@@ -871,62 +871,72 @@
 <ul>
 <li>Accept messages with ANY route state (no route validation)</li>
 <li>Do NOT route responses to any queue (terminal processing)</li>
-<li>Persist results to S3/MinIO (optional)</li>
+<li>Persist results to object storage via state proxy (optional)</li>
 <li>Sidecar reports final task status to gateway (not the runtime)</li>
 </ul>
 <h2 id="current-crew-actors">Current Crew Actors<a class="headerlink" href="#current-crew-actors" title="Permanent link">&para;</a></h2>
 <h3 id="x-sink">x-sink<a class="headerlink" href="#x-sink" title="Permanent link">&para;</a></h3>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
-<li>Persist successfully completed messages to S3/MinIO (optional)</li>
+<li>First layer of two-layer termination: receives messages when pipeline completes</li>
+<li>Persists results to object storage via state proxy (optional, when <code>ASYA_PERSISTENCE_MOUNT</code> is set)</li>
+<li>Suppresses fan-in partials (messages with <code>x-asya-fan-in</code> header are silently consumed)</li>
+<li>Routes to configurable hooks (e.g. checkpoint-s3, notify-slack) via <code>ASYA_SINK_HOOKS</code></li>
 <li>Sidecar reports task success to gateway with result payload</li>
 </ul>
 <p><strong>Queue</strong>: <code>asya-{namespace}-x-sink</code> (automatically routed by sidecar when pipeline completes)</p>
-<p><strong>Handler</strong>: <code>asya_crew.checkpointer.handler</code></p>
+<p><strong>Handler</strong>: <code>asya_crew.sink.sink_handler</code> (generator, uses ABI yield protocol)</p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sink.sink_handler</span>
 
-<span class="c1"># Checkpoint persistence mount point</span>
+<span class="c1"># Checkpoint persistence mount point (optional)</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
+
+<span class="c1"># Hook actors to route to after checkpointing (optional, comma-separated)</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_SINK_HOOKS</span>
+<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;checkpoint-s3,notify-slack&quot;</span>
 </code></pre></div></p>
-<p><strong>S3 Key Structure</strong>:
-<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{message_id}.json
+<p><strong>Storage Key Structure</strong>:
+<div class="highlight"><pre><span></span><code>{prefix}/{timestamp}/{last_actor}/{message_id}.json
 
 Example:
-sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
+succeeded/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 </code></pre></div></p>
 <p><strong>Flow</strong>:
 1. Sidecar receives message from <code>asya-{namespace}-x-sink</code> queue
 2. Sidecar forwards message to runtime via Unix socket
-3. Runtime persists complete message to S3 (if configured)
-4. Runtime returns empty dict <code>{}</code>
-5. Sidecar reports final task status <code>succeeded</code> to gateway with result payload
-6. Sidecar acks message (does NOT route anywhere)</p>
+3. Generator handler reads envelope metadata via ABI (<code>GET .id</code>, <code>GET .headers</code>, etc.)
+4. Fan-in partials (<code>x-asya-fan-in</code> header): handler returns without yielding — silently consumed
+5. Normal messages: handler persists to storage (if configured), then <code>yield payload</code>
+6. Sidecar reports final task status <code>succeeded</code> to gateway (skipped for fan-in partials and fan-out children)
+7. Sidecar acks message (does NOT route anywhere)</p>
 <h3 id="x-sump">x-sump<a class="headerlink" href="#x-sump" title="Permanent link">&para;</a></h3>
 <p><strong>Responsibilities</strong>:</p>
 <ul>
-<li>Persist failed messages to S3/MinIO (optional)</li>
+<li>Second layer of two-layer termination: receives messages after hooks have been processed</li>
+<li>Persists failed messages to object storage via state proxy (optional)</li>
+<li>Logs terminal failures at ERROR level with full message summary</li>
 <li>Sidecar reports task failure to gateway with error details and actor info</li>
 </ul>
 <p><strong>Queue</strong>: <code>asya-{namespace}-x-sump</code> (automatically routed by sidecar when runtime/sidecar errors occur)</p>
-<p><strong>Handler</strong>: <code>asya_crew.checkpointer.handler</code></p>
+<p><strong>Handler</strong>: <code>asya_crew.sump.sump_handler</code> (generator, uses ABI yield protocol)</p>
 <p><strong>Environment Variables</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Required (auto-injected by operator)</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sump.sump_handler</span>
 
-<span class="c1"># Checkpoint persistence mount point</span>
+<span class="c1"># Checkpoint persistence mount point (optional)</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
 <span class="w">  </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
 </code></pre></div></p>
-<p><strong>S3 Key Structure</strong>:
-<div class="highlight"><pre><span></span><code>{prefix}{timestamp}/{last_actor}/{message_id}.json
+<p><strong>Storage Key Structure</strong>:
+<div class="highlight"><pre><span></span><code>{prefix}/{timestamp}/{last_actor}/{message_id}.json
 
 Example:
-error-asya/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
+failed/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
 </code></pre></div></p>
 <p><strong>Error Message Structure</strong>:
 Messages routed to <code>x-sump</code> contain error information in the payload:
@@ -950,8 +960,8 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <p><strong>Flow</strong>:
 1. Sidecar receives error message from <code>asya-{namespace}-x-sump</code> queue
 2. Sidecar forwards message to runtime via Unix socket
-3. Runtime persists complete message (with error details) to S3 (if configured)
-4. Runtime returns empty dict <code>{}</code>
+3. Generator handler reads metadata via ABI, logs failure details
+4. Handler persists message to storage (if configured), then <code>yield payload</code>
 5. Sidecar extracts error info from message payload
 6. Sidecar reports final task status <code>failed</code> to gateway with error details and actor information
 7. Sidecar acks message (does NOT route anywhere)</p>
@@ -983,7 +993,7 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-crew:latest</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sink.sink_handler</span><span class="w">  </span><span class="c1"># or sump_handler for x-sump</span>
 <span class="w">          </span><span class="c1"># Optional S3 configuration (uncomment to enable)</span>
 <span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
@@ -1010,7 +1020,7 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-crew:latest</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sink.sink_handler</span><span class="w">  </span><span class="c1"># or sump_handler for x-sump</span>
 <span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
 <span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50m</span>
@@ -1030,7 +1040,7 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sink.sink_handler</span><span class="w">  </span><span class="c1"># or sump_handler for x-sump</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
 
@@ -1042,7 +1052,7 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
 <span class="w">          </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
+<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.sink.sink_handler</span><span class="w">  </span><span class="c1"># or sump_handler for x-sump</span>
 <span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
 <span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
 </code></pre></div></p>
@@ -1052,40 +1062,57 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
 <span class="w">  </span>--values<span class="w"> </span>custom-values.yaml
 </code></pre></div></p>
 <h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<h3 id="s3-persistence">S3 Persistence<a class="headerlink" href="#s3-persistence" title="Permanent link">&para;</a></h3>
-<p><strong>Bucket auto-creation</strong>: Handlers check if bucket exists and create it if missing (for MinIO/S3).</p>
+<h3 id="storage-persistence">Storage Persistence<a class="headerlink" href="#storage-persistence" title="Permanent link">&para;</a></h3>
+<p>Crew actors persist messages to object storage via the state proxy sidecar. The storage backend (S3, GCS, MinIO) is configured through the state proxy connector in the AsyncActor CRD.</p>
 <p><strong>Key structure breakdown</strong>:</p>
 <ul>
-<li><code>{prefix}</code>: Configurable prefix (default: <code>sink-asya/</code> or <code>error-asya/</code>)</li>
+<li><code>{prefix}</code>: Determined by status phase (<code>succeeded/</code>, <code>failed/</code>, or <code>checkpoint/</code>)</li>
 <li><code>{timestamp}</code>: ISO 8601 UTC timestamp (<code>2025-11-18T14:30:45.123456Z</code>)</li>
-<li><code>{last_actor}</code>: Last non-end actor from route (extracted from <code>route.actors[current]</code>)</li>
-<li><code>{message_id}</code>: Message ID</li>
+<li><code>{last_actor}</code>: Last processed actor from <code>route.prev[-1]</code></li>
+<li><code>{message_id}</code>: Message ID (or <code>x-asya-origin-id</code> header for fan-in merged results)</li>
 </ul>
 <p><strong>Example key generation</strong>:
-<div class="highlight"><pre><span></span><code><span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;sink-asya/&quot;</span>
+<div class="highlight"><pre><span></span><code><span class="n">prefix</span> <span class="o">=</span> <span class="s2">&quot;succeeded&quot;</span>
 <span class="n">timestamp</span> <span class="o">=</span> <span class="s2">&quot;2025-11-18T14:30:45.123456Z&quot;</span>
-<span class="n">last_actor</span> <span class="o">=</span> <span class="s2">&quot;text-processor&quot;</span>  <span class="c1"># from route.actors[1] if current=1</span>
+<span class="n">last_actor</span> <span class="o">=</span> <span class="s2">&quot;text-processor&quot;</span>
 <span class="n">message_id</span> <span class="o">=</span> <span class="s2">&quot;abc-123&quot;</span>
 
-<span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">last_actor</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
-<span class="c1"># Result: sink-asya/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json</span>
+<span class="n">key</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">timestamp</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">last_actor</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">message_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
+<span class="c1"># Result: succeeded/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json</span>
 </code></pre></div></p>
-<p><strong>Persisted content</strong>: Complete message (including id, route, headers, payload) as formatted JSON.</p>
-<p><strong>Error handling</strong>: S3 upload failures are logged but do NOT fail the handler. Handler returns empty dict <code>{}</code> regardless of S3 success/failure.</p>
+<p><strong>Persisted content</strong>: Complete message (including id, route, payload, status) as formatted JSON.</p>
+<p><strong>Error handling</strong>: Storage write failures are logged but do NOT fail the handler. The handler continues regardless of persistence success/failure.</p>
 <h3 id="handler-return-value">Handler Return Value<a class="headerlink" href="#handler-return-value" title="Permanent link">&para;</a></h3>
-<p>End handlers MUST return empty dict <code>{}</code>:</p>
-<ul>
-<li>Sidecar ignores the response (end actor mode)</li>
-<li>Sidecar uses original message payload as result for gateway reporting</li>
-<li>Any non-empty response is ignored</li>
-</ul>
+<p>The sink and sump handlers are <strong>generators</strong> that use the ABI yield protocol. They <code>yield payload</code> at the end to emit a downstream frame. The sidecar captures the first frame for gateway reporting but does not route it anywhere (terminal processing).</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Handler behavior</th>
+<th>Sidecar response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>yield payload</code> (normal message)</td>
+<td>Captures payload, reports to gateway if terminal phase</td>
+</tr>
+<tr>
+<td><code>return</code> without yielding (fan-in partial)</td>
+<td>Uses original envelope payload, skips gateway report</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Gateway reporting</strong> is controlled by <code>shouldReportFinalToGateway</code> in the sidecar, which skips reporting when:
+- <code>x-asya-fan-in</code> header is present (fan-in accumulating slice)
+- <code>parent_id</code> is set (fan-out child)
+- Status phase is not <code>succeeded</code> or <code>failed</code></p>
 <h3 id="sidecar-integration">Sidecar Integration<a class="headerlink" href="#sidecar-integration" title="Permanent link">&para;</a></h3>
-<p>When <code>ASYA_IS_END_ACTOR=true</code>, sidecar:
+<p>When <code>ASYA_IS_END_ACTOR=true</code>, sidecar uses <code>processEndActorEnvelope</code>:
 1. Accepts messages with any route state (no validation)
 2. Sends message to runtime without route checking
-3. Receives empty dict <code>{}</code> from runtime (ignored)
-4. Extracts result/error from original message payload
-5. Reports final task status to gateway:
+3. Captures the first downstream frame from the generator (if any)
+4. Falls back to original envelope payload if runtime returned nothing
+5. Checks <code>shouldReportFinalToGateway</code> — reports only for terminal, non-fan-in/fan-out messages:
    - <code>x-sink</code>: Task status <code>succeeded</code> with result payload
    - <code>x-sump</code>: Task status <code>failed</code> with error details, actor info, route
 6. Does NOT route to any queue (terminal)
@@ -1423,10 +1450,10 @@ Messages routed to <code>x-sump</code> contain error information in the payload:
         </a>
         
         
-        <a href="#s3-persistence"
+        <a href="#storage-persistence"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            S3 Persistence
+            Storage Persistence
         </a>
         
         <a href="#handler-return-value"

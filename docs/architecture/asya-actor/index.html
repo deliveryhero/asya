@@ -1032,6 +1032,38 @@ kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> <
 kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>deploy/text-processor
 kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </span>deploy/text-processor<span class="w"> </span>-c<span class="w"> </span>asya-sidecar
 </code></pre></div>
+<h2 id="handler-return-values-and-sidecar-behavior">Handler Return Values and Sidecar Behavior<a class="headerlink" href="#handler-return-values-and-sidecar-behavior" title="Permanent link">&para;</a></h2>
+<p>The sidecar interprets the handler's return value to decide routing:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Handler returns</th>
+<th>Sidecar behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>dict</code> (e.g. <code>{"result": ...}</code>)</td>
+<td>Route payload to next actor in <code>route.next</code>, or to x-sink if route is exhausted</td>
+</tr>
+<tr>
+<td><code>None</code></td>
+<td>Treat as empty response — route original envelope to x-sink</td>
+</tr>
+<tr>
+<td>Generator <code>yield payload</code></td>
+<td>Each yield emits a downstream frame routed independently</td>
+</tr>
+<tr>
+<td>Generator returns without yielding</td>
+<td>Same as <code>None</code> — route original envelope to x-sink</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Key distinction</strong>: returning <code>None</code> vs <code>{}</code> changes routing behavior for regular actors:
+- <code>None</code> → runtime signals end-of-route (<code>route.curr</code> becomes <code>""</code>) → sidecar routes to x-sink with <strong>original</strong> payload
+- <code>{}</code> → runtime treats as valid output → sidecar routes <code>{}</code> as payload to next actor or x-sink</p>
+<p><strong>End actors</strong> (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See <a href="../asya-crew/">asya-crew.md</a> for details.</p>
 <h2 id="deployment-with-helm">Deployment with Helm<a class="headerlink" href="#deployment-with-helm" title="Permanent link">&para;</a></h2>
 <p>Use <code>asya-actor</code> chart for batch deployment:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># values.yaml</span>
@@ -1372,6 +1404,14 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Basic Commands
+        </a>
+        
+
+        
+        <a href="#handler-return-values-and-sidecar-behavior"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Handler Return Values and Sidecar Behavior
         </a>
         
 
