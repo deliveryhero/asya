@@ -710,6 +710,8 @@ def test_asyncactor_label_propagation(e2e_helper):
 
     Expected: All user labels present on child resources, operator labels preserved
     """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -722,7 +724,7 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  transport: {os.getenv("ASYA_TRANSPORT", "rabbitmq")}
+  transport: {_transport}{_transport_suffix}
   scaling:
     enabled: true
     minReplicas: 1
