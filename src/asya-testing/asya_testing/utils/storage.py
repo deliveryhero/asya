@@ -49,9 +49,11 @@ class StorageClient:
         """Lazy-import the backend module matching the configured storage type."""
         if self.storage_type == Storage.GCS:
             from asya_testing.utils import gcs
+
             return gcs
         else:
             from asya_testing.utils import s3
+
             return s3
 
     def list_objects(self, bucket: str, prefix: str = "") -> list[ObjectInfo]:
@@ -83,7 +85,11 @@ class StorageClient:
         Returns:
             Parsed JSON content or None if object not found
         """
-        return self._backend.get_object_from_gcs(bucket, key) if self.storage_type == Storage.GCS else self._backend.get_object_from_s3(bucket, key)
+        return (
+            self._backend.get_object_from_gcs(bucket, key)
+            if self.storage_type == Storage.GCS
+            else self._backend.get_object_from_s3(bucket, key)
+        )
 
     def find_by_id(self, bucket: str, envelope_id: str, prefix: str = "") -> dict[str, Any] | None:
         """
