@@ -399,15 +399,27 @@ aws_secret_access_key = test
     # sqs-secret in asya-system is created by the SQS Helm chart (testing/e2e/charts/sqs/)
     # Do NOT create it here — Helm requires ownership metadata on managed resources
   elif [[ "$PROFILE" == "pubsub-gcs" ]]; then
-    # Use a clearly labeled placeholder instead of a real RSA block
-    GCP_DUMMY_CREDS='{
-        "type": "service_account",
-        "project_id": "test-project",
-        "private_key_id": "placeholder-id",
-        "private_key": "-----BEGIN PRIVATE KEY-----\nPLACEHOLDER_FOR_TESTING_PURPOSES_ONLY\n-----END PRIVATE KEY-----\n",
-        "client_email": "test@test-project.iam.gserviceaccount.com",
-        "token_uri": "http://mock-oauth.asya-system.svc.cluster.local:8090/token"
-    }'
+    # Generate a real RSA private key so the GCP auth library can sign the JWT assertion.
+    # A placeholder key fails to parse, so the provider can never reach the mock OAuth server.
+    # The mock OAuth server (mock-oauth.asya-system) accepts any POST and returns a dummy
+    # Bearer token; the emulator then accepts that token without validation.
+    GCP_KEY_FILE=$(mktemp)
+    openssl genrsa 2048 > "$GCP_KEY_FILE" 2> /dev/null
+    GCP_DUMMY_CREDS=$(
+      python3 - "$GCP_KEY_FILE" << 'PYEOF'
+import json, sys
+key = open(sys.argv[1]).read()
+print(json.dumps({
+    "type": "service_account",
+    "project_id": "test-project",
+    "private_key_id": "test-key-id",
+    "private_key": key,
+    "client_email": "test@test-project.iam.gserviceaccount.com",
+    "token_uri": "http://mock-oauth.asya-system.svc.cluster.local:8090/token",
+}))
+PYEOF
+    )
+    rm -f "$GCP_KEY_FILE"
 
     kubectl create secret generic gcp-creds \
       -n crossplane-system \
@@ -654,6 +666,20 @@ else
               echo ""
             done
           done
+
+          echo "=== Crossplane Provider Logs ==="
+          kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=100 --all-containers=true || true
+          echo ""
+
+          echo "=== GCP Managed Resources ==="
+          kubectl get topics.pubsub.gcp.upbound.io -A 2> /dev/null || true
+          kubectl get subscriptions.pubsub.gcp.upbound.io -A 2> /dev/null || true
+          echo ""
+
+          echo "=== GCP Managed Resource Conditions ==="
+          kubectl get topics.pubsub.gcp.upbound.io -A -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .status.conditions[*]}{.type}={.status} ({.reason}: {.message}){" "}{end}{"\n"}{end}' 2> /dev/null | head -5 || true
+          kubectl get subscriptions.pubsub.gcp.upbound.io -A -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{range .status.conditions[*]}{.type}={.status} ({.reason}: {.message}){" "}{end}{"\n"}{end}' 2> /dev/null | head -5 || true
+          echo ""
 
           exit 1
           ;;

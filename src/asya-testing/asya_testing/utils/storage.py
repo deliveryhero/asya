@@ -85,11 +85,12 @@ class StorageClient:
         Returns:
             Parsed JSON content or None if object not found
         """
-        return (
-            self._backend.get_object_from_gcs(bucket, key)
-            if self.storage_type == Storage.GCS
-            else self._backend.get_object_from_s3(bucket, key)
-        )
+        if self.storage_type == Storage.GCS:
+            return self._backend.get_object_from_gcs(bucket, key)
+        elif self.storage_type in (Storage.MINIO, Storage.S3):
+            return self._backend.get_object_from_s3(bucket, key)
+        else:
+            raise ValueError(f"Unsupported storage type: {self.storage_type}")
 
     def find_by_id(self, bucket: str, envelope_id: str, prefix: str = "") -> dict[str, Any] | None:
         """
