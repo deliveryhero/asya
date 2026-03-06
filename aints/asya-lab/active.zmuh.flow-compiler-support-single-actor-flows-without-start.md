@@ -1,7 +1,9 @@
 ---
 title: "Flow compiler: support single-actor flows without start router"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
 ---
+
 
 Modify the flow compiler to not generate `start_<flow_name>` router for single-actor flows. A single-actor flow should compile to just the actor itself with `asya.sh/flow=<flow-name>` and `asya.sh/flow-role=entrypoint` labels, no router wrapper needed.
 
