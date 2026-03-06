@@ -9,6 +9,7 @@ tags:
 
 
 
+
 A2A auth is covered at the component level (`testing/component/gateway-a2a/`).
 This task is for full Kubernetes-level A2A e2e tests.
 
