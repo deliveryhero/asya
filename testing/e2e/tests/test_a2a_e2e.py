@@ -5,13 +5,13 @@ E2E tests for the A2A protocol implementation.
 Tests the full A2A JSON-RPC endpoint at /a2a/ in a live Kind cluster:
   - Agent card discovery (public, unauthenticated)
   - Auth: API key and JWT Bearer token
-  - tasks/send: dispatch work through the actor mesh, block on SSE stream
+  - message/stream: dispatch work through the actor mesh, block on SSE stream (A2A v0.3.7)
   - tasks/get: retrieve current task state
-  - tasks/subscribe: SSE stream of task updates
+  - tasks/resubscribe: SSE stream of task updates (A2A v0.3.7)
   - tasks/cancel: transition task to cancelled state
   - tasks/list: list tasks for a context
   - Extended agent card: skills section includes DB-backed tool metadata
-  - Multi-actor pipeline: tasks/send through a multi-hop route
+  - Multi-actor pipeline: message/stream through a multi-hop route
 
 Prerequisites (set by deploy.sh and profile .env files):
   - ASYA_GATEWAY_URL: gateway NodePort URL (e.g. http://127.0.0.1:8080)
@@ -116,22 +116,21 @@ def _a2a_stream(method: str, params: dict, headers: dict | None = None, timeout:
 
 def _send_task(skill: str, payload: dict, context_id: str | None = None, timeout: int = 120) -> list[dict]:
     """
-    Dispatch a task via tasks/send and return all SSE events.
+    Dispatch a task via message/stream (A2A v0.3.7) and return all SSE events.
 
     The returned list ends with an event where result.final == True.
     """
-    task_id = str(uuid.uuid4())
     ctx_id = context_id or str(uuid.uuid4())
     params = {
-        "id": task_id,
-        "contextId": ctx_id,
         "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
             "role": "user",
-            "parts": [{"type": "data", "data": payload}],
+            "parts": [{"kind": "data", "data": payload}],
         },
         "metadata": {"skill": skill},
     }
-    return _a2a_stream("tasks/send", params, timeout=timeout)
+    return _a2a_stream("message/stream", params, timeout=timeout)
 
 
 def _final_state(events: list[dict]) -> str | None:
@@ -380,7 +379,7 @@ def test_a2a_wrong_audience_returns_401(private_key):
 @pytest.mark.fast
 def test_tasks_send_dispatches_work_and_returns_task_state():
     """
-    tasks/send dispatches work through the actor mesh and streams events.
+    message/stream dispatches work through the actor mesh and streams events.
     The SSE stream must end with a final event in 'completed' state.
     """
     if not API_KEY:
@@ -388,37 +387,42 @@ def test_tasks_send_dispatches_work_and_returns_task_state():
 
     events = _send_task("test_echo", {"message": "a2a-hello"}, timeout=120)
 
-    assert len(events) > 0, "tasks/send must return at least one SSE event"
+    assert len(events) > 0, "message/stream must return at least one SSE event"
     final = _final_state(events)
     assert final == "completed", f"expected final state 'completed', got: {final}"
     # Verify the stream included a final=true event
     assert any(e.get("result", {}).get("final") for e in events), (
         "must have at least one event with result.final=true"
     )
-    logger.info(f"[+] tasks/send completed: {len(events)} events, final state={final}")
+    logger.info(f"[+] message/stream completed: {len(events)} events, final state={final}")
 
 
 @pytest.mark.fast
 def test_tasks_get_returns_task_state():
     """
     tasks/get returns the current task state for a known task.
-    Sends a task first (via tasks/send) then retrieves it via tasks/get.
+    Sends a task first (via message/stream) then retrieves it via tasks/get.
     """
     if not API_KEY:
         pytest.skip("ASYA_A2A_API_KEY not configured")
 
-    # Send a task and capture its ID from the SSE stream
-    task_id = str(uuid.uuid4())
+    # Send a task and extract the server-assigned task ID from SSE events
     ctx_id = str(uuid.uuid4())
     params = {
-        "id": task_id,
-        "contextId": ctx_id,
-        "message": {"role": "user", "parts": [{"type": "data", "data": {"message": "get-test"}}]},
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "data", "data": {"message": "get-test"}}],
+        },
         "metadata": {"skill": "test_echo"},
     }
-    events = _a2a_stream("tasks/send", params, timeout=120)
+    events = _a2a_stream("message/stream", params, timeout=120)
     final = _final_state(events)
     assert final == "completed", f"task must complete before tasks/get: {final}"
+
+    task_id = _task_id_from_events(events)
+    assert task_id, f"could not extract task ID from events: {events[:2]}"
 
     # Now retrieve via tasks/get
     result = _a2a_post("tasks/get", {"id": task_id})
@@ -432,77 +436,139 @@ def test_tasks_get_returns_task_state():
 @pytest.mark.fast
 def test_tasks_subscribe_streams_events():
     """
-    tasks/subscribe streams SSE events for an existing task.
-    Subscribes to a completed task (immediate final event) or a running task.
+    tasks/resubscribe reconnects to a live task stream and receives events.
+    Sends a slow task in a background thread and resubscribes concurrently.
     """
     if not API_KEY:
         pytest.skip("ASYA_A2A_API_KEY not configured")
 
-    # First send a task to completion
-    task_id = str(uuid.uuid4())
     ctx_id = str(uuid.uuid4())
     send_params = {
-        "id": task_id,
-        "contextId": ctx_id,
-        "message": {"role": "user", "parts": [{"type": "data", "data": {"message": "subscribe-test"}}]},
-        "metadata": {"skill": "test_echo"},
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "data", "data": {"first_call": True}}],
+        },
+        "metadata": {"skill": "test_slow_boundary"},
     }
-    send_events = _a2a_stream("tasks/send", send_params, timeout=120)
-    assert _final_state(send_events) == "completed"
 
-    # Now subscribe to the completed task — should receive final state immediately
-    sub_events = _a2a_stream("tasks/subscribe", {"id": task_id}, timeout=30)
-    assert len(sub_events) > 0, "tasks/subscribe must return at least one event"
+    task_id_ready = threading.Event()
+    task_id_holder: list[str] = []
+    send_events: list = []
+
+    def send_in_bg():
+        try:
+            h = _api_key_headers()
+            resp = requests.post(
+                _A2A_URL,
+                json={"jsonrpc": "2.0", "id": 1, "method": "message/stream", "params": send_params},
+                headers=h,
+                stream=True,
+                timeout=120,
+            )
+            resp.raise_for_status()
+            client = SSEClient(resp)
+            for event in client.events():
+                if not event.data:
+                    continue
+                data = json.loads(event.data)
+                send_events.append(data)
+                if not task_id_holder:
+                    tid = data.get("result", {}).get("taskId")
+                    if tid:
+                        task_id_holder.append(tid)
+                        task_id_ready.set()
+                if data.get("result", {}).get("final"):
+                    break
+        except Exception as e:
+            logger.debug(f"send_in_bg ended: {e}")
+
+    t = threading.Thread(target=send_in_bg, daemon=True)
+    t.start()
+
+    assert task_id_ready.wait(timeout=30), "timed out waiting for task ID"
+    task_id = task_id_holder[0]
+
+    sub_events = _a2a_stream("tasks/resubscribe", {"id": task_id}, timeout=60)
+    t.join(timeout=130)
+
+    assert len(sub_events) > 0, "tasks/resubscribe must return at least one event"
     sub_final = _final_state(sub_events)
     assert sub_final == "completed", (
-        f"tasks/subscribe on completed task should return completed, got: {sub_final}"
+        f"tasks/resubscribe should return completed, got: {sub_final}"
     )
-    logger.info(f"[+] tasks/subscribe returned {len(sub_events)} events, final={sub_final}")
+    logger.info(f"[+] tasks/resubscribe returned {len(sub_events)} events, final={sub_final}")
 
 
 @pytest.mark.fast
 def test_tasks_subscribe_live_stream():
     """
-    tasks/subscribe delivers updates as a slow actor pipeline progresses.
-    Sends a slow task in a background thread and subscribes concurrently.
+    tasks/resubscribe delivers updates as a slow actor pipeline progresses.
+    Sends a slow task in a background thread and resubscribes concurrently.
     """
     if not API_KEY:
         pytest.skip("ASYA_A2A_API_KEY not configured")
 
-    task_id = str(uuid.uuid4())
     ctx_id = str(uuid.uuid4())
     send_params = {
-        "id": task_id,
-        "contextId": ctx_id,
-        "message": {"role": "user", "parts": [{"type": "data", "data": {"first_call": True}}]},
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "data", "data": {"first_call": True}}],
+        },
         "metadata": {"skill": "test_slow_boundary"},
     }
 
+    task_id_ready = threading.Event()
+    task_id_holder: list[str] = []
     send_events: list = []
     send_error: list = []
 
     def send_in_bg():
         try:
-            send_events.extend(_a2a_stream("tasks/send", send_params, timeout=120))
+            h = _api_key_headers()
+            resp = requests.post(
+                _A2A_URL,
+                json={"jsonrpc": "2.0", "id": 1, "method": "message/stream", "params": send_params},
+                headers=h,
+                stream=True,
+                timeout=120,
+            )
+            resp.raise_for_status()
+            client = SSEClient(resp)
+            for event in client.events():
+                if not event.data:
+                    continue
+                data = json.loads(event.data)
+                send_events.append(data)
+                if not task_id_holder:
+                    tid = data.get("result", {}).get("taskId")
+                    if tid:
+                        task_id_holder.append(tid)
+                        task_id_ready.set()
+                if data.get("result", {}).get("final"):
+                    break
         except Exception as e:
             send_error.append(e)
 
     t = threading.Thread(target=send_in_bg, daemon=True)
     t.start()
 
-    # Give the actor mesh time to receive the task before subscribing
-    time.sleep(0.5)  # Wait for task to be dispatched to queue
+    assert task_id_ready.wait(timeout=30), "timed out waiting for task ID"
+    task_id = task_id_holder[0]
 
-    sub_events = _a2a_stream("tasks/subscribe", {"id": task_id}, timeout=60)
+    sub_events = _a2a_stream("tasks/resubscribe", {"id": task_id}, timeout=60)
     t.join(timeout=130)
 
     if send_error:
-        logger.warning(f"tasks/send background thread error: {send_error[0]}")
+        logger.warning(f"message/stream background thread error: {send_error[0]}")
 
-    assert len(sub_events) > 0, "tasks/subscribe should deliver at least one event"
+    assert len(sub_events) > 0, "tasks/resubscribe should deliver at least one event"
     logger.info(
-        f"[+] Live subscribe: {len(sub_events)} subscribe events, "
-        f"{len(send_events)} send events"
+        f"[+] Live resubscribe: {len(sub_events)} resubscribe events, "
+        f"{len(send_events)} stream events"
     )
 
 
@@ -515,34 +581,61 @@ def test_tasks_cancel_transitions_to_cancelled():
     if not API_KEY:
         pytest.skip("ASYA_A2A_API_KEY not configured")
 
-    task_id = str(uuid.uuid4())
     ctx_id = str(uuid.uuid4())
     send_params = {
-        "id": task_id,
-        "contextId": ctx_id,
-        "message": {"role": "user", "parts": [{"type": "data", "data": {"first_call": True}}]},
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "data", "data": {"first_call": True}}],
+        },
         "metadata": {"skill": "test_slow_boundary"},
     }
 
+    task_id_ready = threading.Event()
+    task_id_holder: list[str] = []
     send_events: list = []
 
     def send_in_bg():
         try:
-            send_events.extend(_a2a_stream("tasks/send", send_params, timeout=60))
+            h = _api_key_headers()
+            resp = requests.post(
+                _A2A_URL,
+                json={"jsonrpc": "2.0", "id": 1, "method": "message/stream", "params": send_params},
+                headers=h,
+                stream=True,
+                timeout=90,
+            )
+            resp.raise_for_status()
+            client = SSEClient(resp)
+            for event in client.events():
+                if not event.data:
+                    continue
+                data = json.loads(event.data)
+                send_events.append(data)
+                if not task_id_holder:
+                    tid = data.get("result", {}).get("taskId")
+                    if tid:
+                        task_id_holder.append(tid)
+                        task_id_ready.set()
+                if data.get("result", {}).get("final"):
+                    break
         except Exception:
             pass
 
     t = threading.Thread(target=send_in_bg, daemon=True)
     t.start()
-    time.sleep(0.5)  # Wait for task to be dispatched
 
-    # Cancel the task
-    cancel_events = _a2a_stream("tasks/cancel", {"id": task_id}, timeout=15)
+    assert task_id_ready.wait(timeout=30), "timed out waiting for task ID"
+    task_id = task_id_holder[0]
+
+    # Cancel the task (returns JSON Task, not SSE stream)
+    cancel_result = _a2a_post("tasks/cancel", {"id": task_id}, timeout=15)
     t.join(timeout=65)
 
-    # Check the cancel response contains a cancelled state
-    assert len(cancel_events) > 0, "tasks/cancel must return at least one event"
-    cancel_state = _final_state(cancel_events)
+    assert "result" in cancel_result, f"tasks/cancel must return result: {cancel_result}"
+    task = cancel_result["result"]
+    cancel_state = task.get("status", {}).get("state") or task.get("state")
     assert cancel_state == "canceled", (
         f"tasks/cancel should yield 'canceled' state, got: {cancel_state}"
     )
@@ -562,21 +655,20 @@ def test_tasks_list_returns_tasks_for_context():
 
     # Send two tasks in the same context
     for i in range(2):
-        task_id = str(uuid.uuid4())
         params = {
-            "id": task_id,
-            "contextId": ctx_id,
             "message": {
+                "messageId": str(uuid.uuid4()),
+                "contextId": ctx_id,
                 "role": "user",
-                "parts": [{"type": "data", "data": {"message": f"list-test-{i}"}}],
+                "parts": [{"kind": "data", "data": {"message": f"list-test-{i}"}}],
             },
             "metadata": {"skill": "test_echo"},
         }
-        events = _a2a_stream("tasks/send", params, timeout=120)
+        events = _a2a_stream("message/stream", params, timeout=120)
         assert _final_state(events) == "completed", f"task {i} must complete for tasks/list test"
 
-    # List tasks for this context
-    result = _a2a_post("tasks/list", {"contextId": ctx_id})
+    # List tasks for this context (JSON tag is context_id, snake_case)
+    result = _a2a_post("tasks/list", {"context_id": ctx_id})
     assert "result" in result, f"tasks/list must return result: {result}"
     tasks = result["result"]
     if isinstance(tasks, dict):
