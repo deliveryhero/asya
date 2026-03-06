@@ -1,4 +1,4 @@
-.PHONY: test cov clean down ensure-coverage-dir
+.PHONY: test test-auth cov clean down ensure-coverage-dir
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -26,8 +26,11 @@ export PROTOCOL_VERSION ?= 2024-11-05
 
 COMPOSE_PROJECT := comp-gateway-mcp
 COMPOSE_FILES := -f docker-compose.yml
+COMPOSE_AUTH_FILES := -f docker-compose.auth.yml
 
-test: clean validate-env ## Run MCP protocol compliance tests
+export MCP_API_KEY ?= test-mcp-secret-key
+
+test: clean validate-env ## Run MCP protocol compliance tests (no auth)
 	@echo "[.] Running MCP protocol compliance tests"
 	$(MAKE) ensure-coverage-dir
 	PYTEST_OPTS="$(PYTEST_OPTS)" ASYA_LOG_LEVEL="$(ASYA_LOG_LEVEL)" PROTOCOL_VERSION="$(PROTOCOL_VERSION)" $(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) up $(DOCKER_COMPOSE_UP_OPTS) tester
@@ -35,12 +38,21 @@ test: clean validate-env ## Run MCP protocol compliance tests
 	@test -f $(COVERAGE_DIR)/cov.json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov.json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: MCP compliance tests passed!"
 
+test-auth: clean validate-env ## Run MCP API key authentication tests (Phase 2)
+	@echo "[.] Running MCP auth tests with API key: $(MCP_API_KEY)"
+	$(MAKE) ensure-coverage-dir
+	MCP_API_KEY="$(MCP_API_KEY)" PYTEST_OPTS="$(PYTEST_OPTS)" ASYA_LOG_LEVEL="$(ASYA_LOG_LEVEL)" $(DOCKER_COMPOSE) $(COMPOSE_AUTH_FILES) -p $(COMPOSE_PROJECT)-auth up $(DOCKER_COMPOSE_UP_OPTS) tester
+	$(DOCKER_COMPOSE) $(COMPOSE_AUTH_FILES) -p $(COMPOSE_PROJECT)-auth down -v --remove-orphans || true
+	@test -f $(COVERAGE_DIR)/cov.json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov.json" || echo "[-] Coverage not generated"
+	@echo "[+] Success: MCP auth tests passed!"
+
 cov: ## Display component test coverage report
 	@echo "Gateway MCP (component) coverage:"
 	@test -f $(COVERAGE_DIR)/cov.db && uv run --with-requirements requirements.txt coverage report --data-file=$(COVERAGE_DIR)/cov.db || echo "[-] Coverage not generated"
 
 down: ## Stop and remove all containers and volumes
 	$(DOCKER_COMPOSE) $(COMPOSE_FILES) -p $(COMPOSE_PROJECT) down -v --remove-orphans || true
+	$(DOCKER_COMPOSE) $(COMPOSE_AUTH_FILES) -p $(COMPOSE_PROJECT)-auth down -v --remove-orphans || true
 
 clean: down ## Clean coverage directory and recreate with correct ownership
 	rm -rf $(COVERAGE_DIR)

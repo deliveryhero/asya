@@ -1,0 +1,65 @@
+include:
+- path: ../../shared/compose/postgres.yml
+
+services:
+  tool-seed:
+    image: postgres:16-alpine
+    restart: "no"
+    depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
+    environment:
+    - PGPASSWORD=postgres
+    volumes:
+    - ./config/tools-seed.sql:/seed.sql:ro
+    command: ["psql", "-h", "postgres", "-U", "postgres", "-d", "asya_test", "-f", "/seed.sql"]
+
+  # Asya Gateway with MCP API key authentication enabled
+  asya-gateway:
+    build:
+      context: ../../../src/asya-gateway
+      dockerfile: Dockerfile
+    ports:
+    - "8089:8089"
+    environment:
+    - ASYA_GATEWAY_PORT=8089
+    - ASYA_DATABASE_URL=postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    - ASYA_GATEWAY_MODE=testing
+    - ASYA_MCP_API_KEY=${MCP_API_KEY}
+    depends_on:
+      tool-seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/health"]
+      interval: 2s
+      timeout: 1s
+      retries: 30
+
+  # Auth-aware tester — passes MCP_API_KEY so test_mcp_auth.py runs
+  tester:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    depends_on:
+      asya-gateway:
+        condition: service_healthy
+    env_file:
+    - ../../shared/compose/envs/.env.tester
+    environment:
+    - GATEWAY_URL=http://asya-gateway:8089
+    - MCP_API_KEY=${MCP_API_KEY}
+    - COVERAGE_FILE=.coverage/cov.db
+    - PYTHONUNBUFFERED=1
+    volumes:
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ./tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/test_mcp_auth.py ${PYTEST_OPTS} \
+        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov.json
