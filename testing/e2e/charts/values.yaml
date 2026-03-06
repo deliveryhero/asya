@@ -53,6 +53,8 @@ gateway:
     type: NodePort
     port: 8080
     nodePort: 30080
+    meshType: NodePort
+    meshNodePort: 30081
 
   config:
     port: "8080"
@@ -252,7 +254,7 @@ crew:
     name: x-sink
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:
@@ -277,7 +279,7 @@ crew:
     name: x-sump
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
     resources:

@@ -7,9 +7,13 @@ containerdConfigPatches:
 nodes:
 - role: control-plane
   extraPortMappings:
-  # Gateway HTTP
+  # Gateway API HTTP
   - containerPort: 30080
     hostPort: 8080
+    protocol: TCP
+  # Gateway Mesh HTTP
+  - containerPort: 30081
+    hostPort: 8081
     protocol: TCP
   # LocalStack SQS
   - containerPort: 30566
