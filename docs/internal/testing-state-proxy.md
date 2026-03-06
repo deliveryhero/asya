@@ -121,7 +121,7 @@ S3 equivalent: `storage-setup` calls `aws s3 mb s3://<bucket>` against LocalStac
 - `-public-host fake-gcs:4443`: Must match the in-container hostname. The SDK
   uses this to construct object self-links. Mismatch causes test failures where
   the SDK rejects responses as coming from the wrong host.
-- No `-public-host` at E2E level uses the full cluster DNS:
+- At the E2E level, `-public-host` is set to the full cluster DNS name:
   `fake-gcs.asya-system.svc.cluster.local:4443`
 
 ## Integration Tests: Gateway + Actors (x-sink / x-sump)

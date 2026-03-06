@@ -39,7 +39,7 @@ def test_send_receive():
     client = SQSClient(endpoint_url="http://localhost:4566", ...)
     ...
 
-# GCS/PubSub: patch the SDK client class itself
+# Pub/Sub: patch the SDK client class itself
 with patch("google.cloud.pubsub_v1.PublisherClient") as mock_pub:
     ...
 ```
