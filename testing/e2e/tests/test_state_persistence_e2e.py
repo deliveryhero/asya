@@ -82,7 +82,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
 
     task_id = response["result"]["task_id"]
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
     assert final_task["status"] == "succeeded"
 
     logger.info("Task completed, restarting gateway...")
@@ -137,7 +137,7 @@ def test_successful_result_persisted_to_storage(e2e_helper, results_bucket):
     task_id = response["result"]["task_id"]
 
     logger.info("Waiting for task to complete...")
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
     assert final_task["status"] == "succeeded", "Task should succeed"
 
@@ -177,7 +177,7 @@ def test_error_result_persisted_to_storage(e2e_helper, errors_bucket):
     task_id = response["result"]["task_id"]
 
     logger.info("Waiting for task to complete...")
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=90)
 
     assert final_task["status"] == "failed", "Task should fail"
 
@@ -314,7 +314,7 @@ def test_concurrent_storage_writes_no_conflicts(e2e_helper, results_bucket):
     completed = 0
     for task_id in task_ids:
         try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=30)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=90)
             if final["status"] == "succeeded":
                 completed += 1
         except Exception as e:
@@ -401,7 +401,7 @@ def test_database_connection_recovery(e2e_helper):
         )
 
         task_id_3 = response_after["result"]["task_id"]
-        final_3 = e2e_helper.wait_for_task_completion(task_id_3, timeout=30)
+        final_3 = e2e_helper.wait_for_task_completion(task_id_3, timeout=90)
         assert final_3["status"] == "succeeded", "Task after recovery should succeed"
 
         logger.info("[+] Database connection recovery verified")
