@@ -138,7 +138,7 @@
 | ○ open | [1fel] | P2 | Flow DSL: Support for loops (requires local variable serialization) | — | — | — |
 | ○ open | [1fi2] | P3 | Compiler: max_iterations guard for while loops | — | — | — |
 
-## local-testing-workflow-docker-compose/
+## local-testing/
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
