@@ -116,11 +116,13 @@ cog build -t my-actor:latest    # builds Docker image locally
 docker push registry/my-actor   # push to any registry
 ```
 
-**Stripping the inference server**: Cog bundles an HTTP server (Rust/Axum).
-Asya doesn't need it (sidecar pattern). Options:
-1. `cog debug > Dockerfile` -- generates Dockerfile, modify to remove server
-2. Override entrypoint in K8s spec: `command: ["python", "asya_runtime.py"]`
-3. Use Cog purely for build environment setup
+**Bundled inference server**: Cog bundles an HTTP server (Rust/Axum) and sets
+it as the image's CMD. Asya doesn't need it -- the asya-injector webhook
+already overwrites the command for every asya-runtime container to run
+`asya_runtime.py` instead. So Cog's CMD is simply ignored at runtime. The
+server binary remains in the image as dead weight (extra disk, no runtime
+cost). Acceptable trade-off for Cog's CUDA auto-detection. If Cog proves
+useful long-term, we can request a `--no-server` build mode upstream.
 
 **Mapping build inputs to Cog**:
 - Python version -> `python_version:`
@@ -435,7 +437,10 @@ above show the **build inputs** each strategy needs, not a final file schema.
 
 2. **Wolfi as base?** 60-70% smaller, glibc, CVE-free. Worth it?
 
-3. **Cog server stripping**: Is `cog debug` + modification reliable long-term?
+3. ~~**Cog server stripping**~~: Resolved. No stripping needed. asya-injector
+   overwrites the container command, so Cog's bundled server CMD is ignored.
+   Extra binary is dead weight in the image (no runtime cost). If Cog proves
+   useful, request `--no-server` build mode upstream.
 
 4. ~~**Where do build inputs live?**~~ Partial decision: dependencies are NOT
    auto-detected. The build config explicitly references dependency files:
