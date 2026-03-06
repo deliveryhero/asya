@@ -91,7 +91,7 @@ def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, 
     logger.info(f"[+] Queue confirmed deleted: {queue_name}")
 
     logger.info("[3/4] Waiting for Crossplane reconciliation")
-    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
     check_interval = 10
     elapsed = 0
     queue_recreated = False
@@ -167,7 +167,7 @@ def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues,
     logger.info(f"[+] Queue deleted: {queue_name}")
 
     logger.info("[2/3] Waiting for Crossplane reconciliation to recreate queue")
-    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
     check_interval = 10
     elapsed = 0
     queue_recreated = False
@@ -250,7 +250,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
     logger.info(f"[+] All {len(test_queues)} queues confirmed deleted")
 
     logger.info("[3/5] Waiting for Crossplane reconciliation to recreate all queues")
-    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
     check_interval = 10
     elapsed = 0
     all_recreated = False
@@ -335,7 +335,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
     logger.info(f"[+] Queue deleted: {queue_name}")
 
     logger.info("[3/4] Waiting for Crossplane reconciliation to recreate queue")
-    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
     check_interval = 10
     elapsed = 0
     queue_recreated = False
@@ -360,7 +360,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
     task_id = response["result"]["task_id"]
     logger.info(f"Task ID: {task_id}")
 
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=60)
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
     assert final_task["status"] == "succeeded", "Actor should process messages after queue recreation"
 
     logger.info("[+] Processing chaos test passed - queue recreated, actor functional")

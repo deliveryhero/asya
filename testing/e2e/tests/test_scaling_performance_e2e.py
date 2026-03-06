@@ -14,6 +14,7 @@ These tests verify the system performs well under various load conditions.
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pytest
 
@@ -328,17 +329,23 @@ def test_cold_start_backlog_processing(e2e_helper):
     polling_interval = int(scaled_obj.strip("'")) if scaled_obj and scaled_obj != "''" else 30
     per_task_timeout = max(polling_interval * 4 + 60, 180)
 
-    logger.info(f"Waiting up to {per_task_timeout}s per task for completion...")
+    logger.info(f"Waiting up to {per_task_timeout}s per task for {len(task_ids)} tasks to complete concurrently...")
     completed = 0
-    for task_id in task_ids:
-        try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=per_task_timeout)
-            if final["status"] == "succeeded":
-                completed += 1
-            else:
-                logger.warning(f"Task {task_id} ended with status: {final['status']}")
-        except Exception as e:
-            logger.warning(f"Task {task_id} timed out or failed: {e}")
+    with ThreadPoolExecutor(max_workers=len(task_ids)) as executor:
+        future_to_task = {
+            executor.submit(e2e_helper.wait_for_task_completion, task_id, timeout=per_task_timeout): task_id
+            for task_id in task_ids
+        }
+        for future in as_completed(future_to_task):
+            task_id = future_to_task[future]
+            try:
+                final = future.result()
+                if final["status"] == "succeeded":
+                    completed += 1
+                else:
+                    logger.warning(f"Task {task_id} ended with status: {final['status']}")
+            except Exception as e:
+                logger.warning(f"Task {task_id} timed out or failed: {e}")
 
     logger.info(f"[+] Cold-start completed: {completed}/{len(task_ids)} tasks succeeded")
     assert completed >= len(task_ids) * 0.9, \
