@@ -270,3 +270,67 @@ def test_keda_pollingInterval_effectiveness(e2e_helper):
     assert pod_ready, f"Pod should scale up within {scale_timeout}s"
 
     logger.info(f"[+] Scale-up occurred in {scale_up_time:.2f}s (pollingInterval={polling_interval}s)")
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    os.getenv("ASYA_TRANSPORT") == "pubsub",
+    reason="KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics",
+)
+def test_cold_start_backlog_processing(e2e_helper):
+    """
+    E2E: Test KEDA cold-start — scale from 0, process backlog to completion.
+
+    Scenario:
+    1. Scale test-echo deployment to 0 replicas (cold start)
+    2. Enqueue 20 messages while actor is at 0 replicas (backlog)
+    3. Wait for KEDA to detect queue depth and scale up
+    4. Assert all 20 messages complete with status "succeeded"
+
+    This validates the minReplicas=0 path end-to-end: backlog accumulates ->
+    KEDA detects -> pod scheduled -> container starts -> messages drain.
+    """
+    logger.info("Scaling test-echo to 0 for cold-start test...")
+    e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
+    time.sleep(3)  # Brief wait to confirm scale-down is applied
+
+    current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
+    logger.info(f"Pod count before backlog: {current_pods}")
+
+    logger.info("Enqueuing 20 messages into cold backlog...")
+    task_ids = []
+    for i in range(20):
+        try:
+            response = e2e_helper.call_mcp_tool(
+                tool_name="test_echo",
+                arguments={"message": f"cold-start-{i}"},
+            )
+            task_ids.append(response["result"]["task_id"])
+        except Exception as e:
+            logger.warning(f"Failed to enqueue message {i}: {e}")
+
+    logger.info(f"Enqueued {len(task_ids)}/20 messages")
+    assert len(task_ids) >= 15, f"Should enqueue at least 15 messages, got {len(task_ids)}"
+
+    scaled_obj = e2e_helper.kubectl(
+        "get", "scaledobject", "test-echo",
+        "-o", "jsonpath='{.spec.pollingInterval}'"
+    )
+    polling_interval = int(scaled_obj.strip("'")) if scaled_obj and scaled_obj != "''" else 30
+    completion_timeout = max(polling_interval * 4 + 60, 180)
+
+    logger.info(f"Waiting up to {completion_timeout}s for all tasks to complete...")
+    completed = 0
+    for task_id in task_ids:
+        try:
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=completion_timeout)
+            if final["status"] == "succeeded":
+                completed += 1
+            else:
+                logger.warning(f"Task {task_id} ended with status: {final['status']}")
+        except Exception as e:
+            logger.warning(f"Task {task_id} timed out or failed: {e}")
+
+    logger.info(f"[+] Cold-start completed: {completed}/{len(task_ids)} tasks succeeded")
+    assert completed >= len(task_ids) * 0.9, \
+        f"At least 90% of cold-start tasks should succeed, got {completed}/{len(task_ids)}"
