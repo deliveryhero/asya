@@ -1,23 +1,4 @@
 ---
-{{- if and .Values.providers.aws.enabled .Values.providers.aws.pollInterval }}
-apiVersion: pkg.crossplane.io/v1beta1
-kind: DeploymentRuntimeConfig
-metadata:
-  name: provider-aws-sqs-config
-  labels:
-    {{- include "asya-crossplane.labels" . | nindent 4 }}
-spec:
-  deploymentTemplate:
-    spec:
-      selector: {}
-      template:
-        spec:
-          containers:
-            - name: package-runtime
-              args:
-                - --poll-interval={{ .Values.providers.aws.pollInterval }}
----
-{{- end }}
 {{- if .Values.providers.aws.enabled }}
 apiVersion: pkg.crossplane.io/v1
 kind: Provider
@@ -27,10 +8,6 @@ metadata:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
   package: xpkg.upbound.io/upbound/provider-aws-sqs:{{ .Values.providers.aws.sqsVersion }}
-  {{- if .Values.providers.aws.pollInterval }}
-  runtimeConfigRef:
-    name: provider-aws-sqs-config
-  {{- end }}
 {{- end }}
 ---
 {{- if .Values.providers.gcp.enabled }}

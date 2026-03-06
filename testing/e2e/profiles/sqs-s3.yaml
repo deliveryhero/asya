@@ -98,9 +98,6 @@ gateway:
     value: "us-east-1"
 
 crossplane:
-  providers:
-    aws:
-      pollInterval: "10s"
   sqs:
     receiveWaitTimeSeconds: 2
   providerConfigs:
