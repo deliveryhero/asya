@@ -1641,6 +1641,15 @@ Served at `GET /.well-known/agent.json`. Generated dynamically from the
 registry changes (POST/DELETE on `/mesh/expose`). Cached in memory via atomic
 pointer swap.
 
+> **NOTE (2026-03-06)**: A2A discoverability should NOT be static. The Agent
+> Card must also reflect available tasks (registered agentic entrypoints) and
+> MCP tools that were exposed with `a2a_enabled = true`. The `skills` list in
+> the Agent Card should be dynamically generated from the flows ConfigMap
+> (source of truth for exposed flows), not hardcoded. When a flow is exposed
+> via `asya flow expose` with A2A options, it appears in the Agent Card; when
+> unexposed, it disappears. Research the A2A spec for correct semantics of
+> dynamic skill lists vs static agent capabilities.
+
 ### 8.2 Skill Registration
 
 #### MCP Tool vs A2A Skill
