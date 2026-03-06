@@ -40,9 +40,7 @@ class HandlerResult:
         frame — use ``frames`` directly for fan-out handlers.
         """
         if len(self.frames) != 1:
-            raise AssertionError(
-                f"Expected exactly 1 downstream frame, got {len(self.frames)}: {self.frames}"
-            )
+            raise AssertionError(f"Expected exactly 1 downstream frame, got {len(self.frames)}: {self.frames}")
         return self.frames[0]
 
 
@@ -122,10 +120,10 @@ def run_handler():
                     break
         elif inspect.isgenerator(handler_call):
             send_val = None
-            gen = handler_call
+            sync_gen = handler_call
             while True:
                 try:
-                    event = gen.send(send_val)
+                    event = sync_gen.send(send_val)
                     send_val = _get_send_value(event)
                     _classify(event)
                 except StopIteration:
@@ -136,10 +134,7 @@ def run_handler():
                 frames = ret if isinstance(ret, list) else [ret]
                 result.frames.extend(frames)
         else:
-            raise TypeError(
-                f"Expected an async generator, sync generator, or coroutine, "
-                f"got {type(handler_call)}"
-            )
+            raise TypeError(f"Expected an async generator, sync generator, or coroutine, got {type(handler_call)}")
 
         return result
 

@@ -12,6 +12,7 @@ from pathlib import Path
 
 import pytest
 
+
 # Repo root: src/asya-testing/tests -> src/asya-testing -> src -> repo root
 _REPO_ROOT = Path(__file__).parent.parent.parent.parent
 
@@ -50,9 +51,7 @@ def load_routers():
 
     def _load(flow_name: str):
         routers_path = compiled_dir / flow_name / "routers.py"
-        spec = importlib.util.spec_from_file_location(
-            f"compiled_{flow_name}_routers", routers_path
-        )
+        spec = importlib.util.spec_from_file_location(f"compiled_{flow_name}_routers", routers_path)
         module = importlib.util.module_from_spec(spec)  # type: ignore[arg-type]
         spec.loader.exec_module(module)  # type: ignore[union-attr]
         return module

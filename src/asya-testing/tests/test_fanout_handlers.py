@@ -11,8 +11,12 @@ Covers:
 - compiled fanout routers: multi-frame output + GET via get_responses
 """
 
-import pytest
-
+from map_reduce import (
+    chunk_processor,
+    map_reduce,
+    reducer,
+    splitter,
+)
 from parallel_sectioning import (
     aggregator,
     entity_recognizer,
@@ -20,12 +24,6 @@ from parallel_sectioning import (
     preprocessor,
     sentiment_analyzer,
     topic_extractor,
-)
-from map_reduce import (
-    chunk_processor,
-    map_reduce,
-    reducer,
-    splitter,
 )
 
 
@@ -153,10 +151,7 @@ async def test_fanout_router_sets_fan_in_headers(run_handler, monkeypatch, load_
     )
 
     # Collect all SET commands for the fan-in header
-    fan_in_sets = [
-        e for e in result.abi
-        if e[0] == "SET" and e[1] == ".headers.x-asya-fan-in"
-    ]
+    fan_in_sets = [e for e in result.abi if e[0] == "SET" and e[1] == ".headers.x-asya-fan-in"]
     assert len(fan_in_sets) == 4  # parent + 3 slices
 
     slice_indices = [e[2]["slice_index"] for e in fan_in_sets]
@@ -190,6 +185,7 @@ async def test_fanout_router_routes_specialists_to_fan_in(run_handler, monkeypat
     for specialist_name, route_set in zip(
         ["sentiment_analyzer", "topic_extractor", "entity_recognizer"],
         route_sets[1:],
+        strict=False,
     ):
         actors = route_set[2]
         assert f"actor-{specialist_name}" in actors
@@ -286,10 +282,7 @@ async def test_map_reduce_fanout_fan_in_metadata(run_handler, monkeypatch, load_
         get_responses={".id": "map-orig", ".route.next": []},
     )
 
-    fan_in_sets = [
-        e for e in result.abi
-        if e[0] == "SET" and e[1] == ".headers.x-asya-fan-in"
-    ]
+    fan_in_sets = [e for e in result.abi if e[0] == "SET" and e[1] == ".headers.x-asya-fan-in"]
     assert len(fan_in_sets) == 4  # 1 parent + 3 chunks
 
     for cmd in fan_in_sets:

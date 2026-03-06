@@ -71,6 +71,7 @@ jobs:
         - asya-runtime
         - asya-sidecar
         - asya-state-proxy
+        - asya-testing
         - asya-ui
 
     steps:

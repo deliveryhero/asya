@@ -11,7 +11,6 @@ Covers:
 """
 
 import pytest
-
 from guardrails_sandwich import (
     core_agent,
     guardrails_sandwich,
@@ -100,7 +99,7 @@ async def test_safe_fallback_generates_refusal(run_handler):
 
 async def test_safe_fallback_sets_default_violation_type(run_handler):
     """If no violation_type was set upstream, fallback defaults to safety_filter."""
-    state = {}
+    state: dict = {}
     result = await run_handler(safe_fallback(state))
     assert result.payload["violation_type"] == "safety_filter"
 
@@ -152,14 +151,10 @@ async def test_try_enter_router_sets_on_error_header_and_actor_chain(run_handler
     routers = load_routers("guardrails_sandwich")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
-    result = await run_handler(
-        routers.router_guardrails_sandwich_line_43_try_enter_0({"user_input": "hi"})
-    )
+    result = await run_handler(routers.router_guardrails_sandwich_line_43_try_enter_0({"user_input": "hi"}))
 
     # _on_error header must be set to the except-dispatch router
-    on_error_cmds = [
-        e for e in result.abi if e[0] == "SET" and e[1] == ".headers._on_error"
-    ]
+    on_error_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".headers._on_error"]
     assert len(on_error_cmds) == 1
     assert "except_dispatch" in on_error_cmds[0][2]
 

@@ -10,7 +10,6 @@ Covers:
 """
 
 import pytest
-
 from routing_classifier import (
     account_agent,
     billing_agent,
@@ -181,15 +180,11 @@ async def test_account_general_conditional_router(run_handler, monkeypatch, load
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     # account path
-    result = await run_handler(
-        routers.router_routing_classifier_line_47_if({"category": "account"})
-    )
-    actors = [e[2] for e in result.abi if e[0] == "SET"][0]
+    result = await run_handler(routers.router_routing_classifier_line_47_if({"category": "account"}))
+    actors = next(e[2] for e in result.abi if e[0] == "SET")
     assert "actor-account_agent" in actors
 
     # general (else) path
-    result = await run_handler(
-        routers.router_routing_classifier_line_47_if({"category": "something-else"})
-    )
-    actors = [e[2] for e in result.abi if e[0] == "SET"][0]
+    result = await run_handler(routers.router_routing_classifier_line_47_if({"category": "something-else"}))
+    actors = next(e[2] for e in result.abi if e[0] == "SET")
     assert "actor-general_agent" in actors

@@ -7,8 +7,6 @@ Covers:
 - The compiled start router (sync generator, ABI SET path)
 """
 
-import pytest
-
 from sequential_pipeline import (
     data_analyst,
     execution_planner,
@@ -93,7 +91,7 @@ async def test_risk_evaluator_produces_assessment(run_handler):
 
 async def test_full_pipeline_chain(run_handler):
     """Simulate 4 actor hops without any infrastructure."""
-    state = {"topic": "quantum computing"}
+    state: dict = {"topic": "quantum computing"}
 
     # Hop 1: data analyst
     result = await run_handler(data_analyst(state))

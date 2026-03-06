@@ -17,7 +17,7 @@ packages = { find = {} }
 
 [tool.pytest.ini_options]
 addopts = [
-    "--cov=asya_testing",
-    "--cov-config=../../.coveragerc",
-    "--cov-report=term",
+  "--cov=asya_testing",
+  "--cov-config=../../.coveragerc",
+  "--cov-report=term",
 ]
