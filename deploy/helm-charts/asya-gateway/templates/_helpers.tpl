@@ -144,3 +144,33 @@ Validate transport configuration - ensure exactly one transport is enabled
 {{- fail "ERROR: No transport enabled. Please set one of transports.rabbitmq.enabled, transports.sqs.enabled, or transports.pubsub.enabled to true" }}
 {{- end }}
 {{- end }}
+
+{{/*
+Fully qualified name for the api deployment/service.
+*/}}
+{{- define "asya-gateway.api.fullname" -}}
+{{- printf "%s-api" (include "asya-gateway.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Fully qualified name for the mesh deployment/service.
+*/}}
+{{- define "asya-gateway.mesh.fullname" -}}
+{{- printf "%s-mesh" (include "asya-gateway.fullname" .) | trunc 63 | trimSuffix "-" }}
+{{- end }}
+
+{{/*
+Selector labels for the api deployment.
+*/}}
+{{- define "asya-gateway.api.selectorLabels" -}}
+{{ include "asya-gateway.selectorLabels" . }}
+app.kubernetes.io/component: api
+{{- end }}
+
+{{/*
+Selector labels for the mesh deployment.
+*/}}
+{{- define "asya-gateway.mesh.selectorLabels" -}}
+{{ include "asya-gateway.selectorLabels" . }}
+app.kubernetes.io/component: mesh
+{{- end }}
