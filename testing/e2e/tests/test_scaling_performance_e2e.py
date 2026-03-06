@@ -292,10 +292,19 @@ def test_cold_start_backlog_processing(e2e_helper):
     """
     logger.info("Scaling test-echo to 0 for cold-start test...")
     e2e_helper.kubectl("scale", "deployment", "test-echo", "--replicas=0")
-    time.sleep(3)  # Brief wait to confirm scale-down is applied
+    time.sleep(3)  # Allow Kubernetes to propagate scale-down before enqueuing backlog
 
     current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
     logger.info(f"Pod count before backlog: {current_pods}")
+
+    # Wait for scale-down to complete before enqueuing cold backlog
+    scale_down_timeout = 30
+    scale_down_elapsed = 0
+    while current_pods > 0 and scale_down_elapsed < scale_down_timeout:
+        time.sleep(2)  # Poll until pods drain to 0
+        scale_down_elapsed += 2
+        current_pods = e2e_helper.get_pod_count("asya.sh/actor=test-echo")
+    logger.info(f"Pods after scale-down wait: {current_pods}")
 
     logger.info("Enqueuing 20 messages into cold backlog...")
     task_ids = []
@@ -317,13 +326,13 @@ def test_cold_start_backlog_processing(e2e_helper):
         "-o", "jsonpath='{.spec.pollingInterval}'"
     )
     polling_interval = int(scaled_obj.strip("'")) if scaled_obj and scaled_obj != "''" else 30
-    completion_timeout = max(polling_interval * 4 + 60, 180)
+    per_task_timeout = max(polling_interval * 4 + 60, 180)
 
-    logger.info(f"Waiting up to {completion_timeout}s for all tasks to complete...")
+    logger.info(f"Waiting up to {per_task_timeout}s per task for completion...")
     completed = 0
     for task_id in task_ids:
         try:
-            final = e2e_helper.wait_for_task_completion(task_id, timeout=completion_timeout)
+            final = e2e_helper.wait_for_task_completion(task_id, timeout=per_task_timeout)
             if final["status"] == "succeeded":
                 completed += 1
             else:
