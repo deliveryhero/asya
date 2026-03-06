@@ -391,11 +391,11 @@ requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
 Three golden paths (ordered by DS-friendliness). Strategy is always explicit
 -- no magic auto-detection of which builder to use:
 
-### Path 1: Buildpacks (zero config for standard Python)
+### Path 1: Buildpacks (standard Python)
 ```yaml
 build:
   strategy: buildpack
-  # everything else auto-detected from requirements.txt / pyproject.toml
+  requirements: requirements.txt   # or pyproject: pyproject.toml, etc.
 ```
 
 ### Path 2: Cog (ML/GPU actors)
@@ -437,9 +437,18 @@ above show the **build inputs** each strategy needs, not a final file schema.
 
 3. **Cog server stripping**: Is `cog debug` + modification reliable long-term?
 
-4. **Where do build inputs live?** Next to handler code? In a central manifest?
-   Embedded in flow definitions? Derived from project files (requirements.txt)?
-   This affects every strategy's integration point.
+4. ~~**Where do build inputs live?**~~ Partial decision: dependencies are NOT
+   auto-detected. The build config explicitly references dependency files:
+   ```yaml
+   build:
+     strategy: buildpack
+     requirements: requirements.txt        # or:
+     pyproject: pyproject.toml             # or:
+     uv_lock: uv.lock                     # etc.
+   ```
+   Explicit better than implicit -- the user declares which file format they
+   use. Remaining open: where the build config itself lives (standalone file,
+   central manifest, flow-level annotation).
 
 ---
 
