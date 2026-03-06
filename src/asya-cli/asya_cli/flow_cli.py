@@ -42,6 +42,13 @@ def cmd_compile(args):
         compiled_file = compiler.compile_file(args.flow_file, args.output_dir, overwrite=args.overwrite)
         print(f"[+] Successfully compiled flow to: {compiled_file}")
 
+        actor = compiler.single_actor_name
+        if actor is not None:
+            print("[+] Single-actor flow detected: no router actor needed")
+            print(f"[+] Apply these labels to actor '{actor}':")
+            print(f"[+]   asya.sh/flow: {compiler.flow_name}")
+            print("[+]   asya.sh/flow-role: entrypoint")
+
         if args.plot:
             try:
                 dot_file, png_path = compiler.generate_plot(args.output_dir, plot_width=args.plot_width)

@@ -30,7 +30,27 @@ class CodeGenerator:
 
         self.all_handlers: set[str] = set()
 
+    def _is_single_actor_flow(self) -> bool:
+        """True when the flow has exactly one actor call and no router logic needed.
+
+        A single-actor flow consists only of [start, end] routers where the start
+        router has no mutations, no conditions, and routes to exactly one actor.
+        In this case the actor itself is the entrypoint — no start router is needed.
+        """
+        if len(self.routers) != 2:
+            return False
+        start, end = self.routers
+        if not start.name.startswith("start_") or not end.name.startswith("end_"):
+            return False
+        if start.mutations or start.condition or start.is_fan_out or start.is_loop_back or start.is_try_enter:
+            return False
+        non_end_actors = [a for a in start.true_branch_actors if not a.startswith("end_")]
+        return len(non_end_actors) == 1
+
     def generate(self) -> str:
+        if self._is_single_actor_flow():
+            return self._generate_single_actor_flow()
+
         self._collect_handlers()
 
         parts = []
@@ -42,6 +62,41 @@ class CodeGenerator:
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
+        return "\n".join(parts)
+
+    def _generate_single_actor_flow(self) -> str:
+        """Generate minimal output for a single-actor flow.
+
+        No router functions are emitted. Instead, a FLOW_METADATA constant is
+        written so that tooling (e.g. `asya flow expose`) can read which actor
+        should carry the flow entrypoint labels without deploying a router actor.
+        """
+        start = self.routers[0]
+        actor_name = next(a for a in start.true_branch_actors if not a.startswith("end_"))
+
+        parts = []
+        parts.append(self._generate_header())
+        parts.append(
+            dedent(f"""\
+
+            # ======================================================================
+            # Single-Actor Flow: no router needed
+            # The actor below IS the entrypoint; label it in your AsyncActor spec:
+            #   asya.sh/flow: {self.flow_name}
+            #   asya.sh/flow-role: entrypoint
+            # ======================================================================
+
+            FLOW_METADATA = {{
+                "flow_name": "{self.flow_name}",
+                "type": "single-actor",
+                "actor": "{actor_name}",
+                "labels": {{
+                    "asya.sh/flow": "{self.flow_name}",
+                    "asya.sh/flow-role": "entrypoint",
+                }},
+            }}
+            """)
+        )
         return "\n".join(parts)
 
     def _has_loop_guards(self) -> bool:

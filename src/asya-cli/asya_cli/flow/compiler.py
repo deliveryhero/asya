@@ -129,6 +129,23 @@ class FlowCompiler:
 
         return str(dot_file), png_path
 
+    @property
+    def single_actor_name(self) -> str | None:
+        """Returns the actor name if this is a single-actor flow, else None.
+
+        A single-actor flow compiles to FLOW_METADATA only (no router functions).
+        The returned name is the actor that should carry flow entrypoint labels.
+        """
+        if len(self.routers) != 2:
+            return None
+        start = self.routers[0]
+        if start.mutations or start.condition or start.is_fan_out or start.is_loop_back or start.is_try_enter:
+            return None
+        non_end = [a for a in start.true_branch_actors if not a.startswith("end_")]
+        if len(non_end) != 1:
+            return None
+        return non_end[0]
+
     def get_warnings(self) -> list[str]:
         return self.warnings
 

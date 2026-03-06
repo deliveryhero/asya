@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from asya_cli.flow.codegen import CodeGenerator
+from asya_cli.flow.compiler import FlowCompiler
 from asya_cli.flow.grouper import Router
 from asya_cli.flow.ir import Condition, Mutation
 
@@ -29,8 +30,9 @@ class TestCodeStructure:
             pytest.fail(f"Generated code is not valid Python: {e}")
 
     def test_contains_all_router_functions(self):
+        # Two actors: not a single-actor flow, so start/end/resolve functions are generated
         routers = [
-            Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "end_flow"]),
+            Router(name="start_flow", lineno=0, true_branch_actors=["handler_a", "handler_b", "end_flow"]),
             Router(name="end_flow", lineno=999),
         ]
         code = CodeGenerator("flow", routers, "test.py").generate()
@@ -864,3 +866,132 @@ def flow(p: dict) -> dict:
             ast.parse(code)
         except SyntaxError as e:
             pytest.fail(f"Generated code for while-inside-if is not valid Python: {e}")
+
+
+class TestSingleActorFlow:
+    """Test code generation for single-actor flows (no start router needed)."""
+
+    def test_single_actor_flow_detected(self):
+        routers = [
+            Router(name="start_my_flow", lineno=0, true_branch_actors=["my_actor", "end_my_flow"]),
+            Router(name="end_my_flow", lineno=999),
+        ]
+        gen = CodeGenerator("my_flow", routers, "test.py")
+        assert gen._is_single_actor_flow() is True
+
+    def test_multi_actor_flow_not_single(self):
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["actor_a", "actor_b", "end_flow"]),
+            Router(name="end_flow", lineno=999),
+        ]
+        gen = CodeGenerator("flow", routers, "test.py")
+        assert gen._is_single_actor_flow() is False
+
+    def test_single_actor_with_mutations_not_single(self):
+        from asya_cli.flow.ir import Mutation
+
+        routers = [
+            Router(
+                name="start_flow",
+                lineno=0,
+                mutations=[Mutation(lineno=1, code='p["x"] = 1')],
+                true_branch_actors=["actor", "end_flow"],
+            ),
+            Router(name="end_flow", lineno=999),
+        ]
+        gen = CodeGenerator("flow", routers, "test.py")
+        assert gen._is_single_actor_flow() is False
+
+    def test_empty_flow_not_single(self):
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["end_flow"]),
+            Router(name="end_flow", lineno=999),
+        ]
+        gen = CodeGenerator("flow", routers, "test.py")
+        assert gen._is_single_actor_flow() is False
+
+    def test_flow_with_extra_routers_not_single(self):
+        routers = [
+            Router(name="start_flow", lineno=0, true_branch_actors=["router_flow_line_3_if"]),
+            Router(name="router_flow_line_3_if", lineno=3, true_branch_actors=["actor", "end_flow"]),
+            Router(name="end_flow", lineno=999),
+        ]
+        gen = CodeGenerator("flow", routers, "test.py")
+        assert gen._is_single_actor_flow() is False
+
+    def test_single_actor_flow_generates_metadata(self):
+        routers = [
+            Router(name="start_my_flow", lineno=0, true_branch_actors=["my_actor", "end_my_flow"]),
+            Router(name="end_my_flow", lineno=999),
+        ]
+        code = CodeGenerator("my_flow", routers, "test.py").generate()
+
+        assert "FLOW_METADATA" in code
+        assert '"flow_name": "my_flow"' in code
+        assert '"type": "single-actor"' in code
+        assert '"actor": "my_actor"' in code
+        assert '"asya.sh/flow": "my_flow"' in code
+        assert '"asya.sh/flow-role": "entrypoint"' in code
+
+    def test_single_actor_flow_has_no_router_functions(self):
+        routers = [
+            Router(name="start_my_flow", lineno=0, true_branch_actors=["my_actor", "end_my_flow"]),
+            Router(name="end_my_flow", lineno=999),
+        ]
+        code = CodeGenerator("my_flow", routers, "test.py").generate()
+        tree = ast.parse(code)
+
+        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        assert "start_my_flow" not in func_names
+        assert "end_my_flow" not in func_names
+        assert "resolve" not in func_names
+
+    def test_single_actor_flow_via_compiler(self):
+        source = """
+def my_flow(p: dict) -> dict:
+    p = my_actor(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "FLOW_METADATA" in code
+        assert compiler.single_actor_name == "my_actor"
+
+    def test_multi_actor_flow_single_actor_name_is_none(self):
+        source = """
+def my_flow(p: dict) -> dict:
+    p = actor_a(p)
+    p = actor_b(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        compiler.compile(source, "test.py")
+
+        assert compiler.single_actor_name is None
+
+    def test_single_actor_flow_with_mutations_single_actor_name_is_none(self):
+        source = """
+def my_flow(p: dict) -> dict:
+    p["x"] = 1
+    p = my_actor(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        compiler.compile(source, "test.py")
+
+        assert compiler.single_actor_name is None
+
+    def test_single_actor_flow_generates_valid_python(self):
+        source = """
+def pipeline(p: dict) -> dict:
+    p = processor(p)
+    return p
+"""
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        try:
+            ast.parse(code)
+        except SyntaxError as e:
+            pytest.fail(f"Generated single-actor flow code is not valid Python: {e}")
