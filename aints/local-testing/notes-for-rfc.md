@@ -52,3 +52,31 @@ gets into K8s. This is about how you test it before it gets there.
 - pytest integration via `asya_test_client()` fixture
 - Could combine with docker-compose for multi-actor local testing (runtime
   containers talk HTTP, a lightweight router replaces the sidecar)
+
+---
+
+## Skaffold / Tilt for Local Code Sync
+
+Skaffold and Tilt are local development tools that watch files and sync code
+changes into running K8s pods without rebuilding images.
+
+**Skaffold** (Google, YAML config):
+- File sync: `src/**/*.py` -> `/app` in container (~1-2s)
+- Dependency changes (requirements.txt) trigger full rebuild (~30s)
+- `skaffold dev` watches files, auto-syncs, cleans up on Ctrl+C
+- Python buildpacks auto-sync NOT available yet (Go, Java, Node.js only)
+
+**Tilt** (Docker-owned, Apache 2.0, Python/Starlark config):
+- Live update with decision tree: code change -> sync (1s), deps change ->
+  in-container pip install (10s), Dockerfile change -> rebuild (60s)
+- Built-in web UI for monitoring multi-service apps
+- Python config more natural for DS than Skaffold's YAML
+
+**Both are local testing / inner-loop tools**, not deployment strategies.
+They require a running K8s cluster and kubectl access. Consider them for
+the local testing RFC alongside mirrord and direct HTTP testing.
+
+**mirrord** (Apache 2.0) is also in this category -- process-level
+interception that runs local Python against remote staging queues. Has
+"queue splitting" for SQS/RabbitMQ. Lighter than Skaffold/Tilt (no Docker
+build needed at all). See research-seamless-build.md section 2.5 for details.

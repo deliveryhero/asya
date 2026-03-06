@@ -1,118 +1,96 @@
-# Research: Seamless Build and Iteration Workflows
+# Research: Seamless Image Build and Deploy Workflows
 
-**Date**: 2026-03-05
+**Date**: 2026-03-05 (updated 2026-03-06)
 **Status**: Informational
-**Context**: How to eliminate build friction during DS experimentation while
-keeping traditional CI/CD for production. Must be modular.
+**Context**: WHERE and HOW actor images are built, and how builds fit into
+two distinct user flows: staging experimentation and production GitOps.
+
+**Scope**: This doc covers image build execution and deployment workflows.
+It does NOT cover:
+- WHAT builds the image (buildpacks, Cog, Dockerfile) -- see
+  `research-no-dockerfile.md`
+- Local testing without builds (HTTP, mirrord, Skaffold/Tilt) -- see
+  `.aint/aints/local-testing/notes-for-rfc.md`
 
 ---
 
 ## 1. Problem Statement
 
-The DS experimentation loop on K8s staging is too slow:
+Building and deploying actor images has two friction points:
 
-| Workflow | Latency | Acceptable? |
-|---|---|---|
-| Local Python function call | <1s | Yes |
-| Code change -> file sync to pod | 1-2s | Yes |
-| Code change -> docker build -> push -> deploy | 3-10min | No |
-| Code change -> commit -> CI/CD -> build -> deploy | 10-30min | No |
+1. **WHERE to build**: DS don't want to install Docker locally. Platform
+   engineers want reproducible CI builds. Both need to produce the same image.
 
-**Goal**: Make iteration on K8s staging as fast as local development while
-keeping the traditional CI/CD pipeline available for production deploys.
+2. **HOW to deploy**: DS want fast imperative deploys to staging ("just deploy
+   my code"). Platform engineers want declarative GitOps for production.
+
+**The bridge**: Same build config (strategy: buildpack/cog/dockerfile) must
+work both locally and in-cluster. Same artifacts must transition from
+imperative staging to declarative production via git commit.
 
 **Design constraints**:
-- Asya actors consume from message queues (SQS/RabbitMQ), not HTTP
-- Sidecar pattern (Go sidecar + Python runtime in same pod)
-- **Runtime speaks HTTP** (POST /invoke on Unix socket, or TCP for local dev).
-  This means the runtime can be tested directly without a sidecar -- just send
-  HTTP requests to it. See the sidecar-runtime protocol RFC for details.
-- Must work for both simple Python and GPU/ML actors
-- Must not force any single tool on teams
-- Must offer "golden paths" solving the UX problem
+- Asya does NOT provide base images (decided)
+- Build strategy is always explicit (decided, see `research-no-dockerfile.md`)
+- Must be modular -- support OCI-as-source-of-truth AND standard GitOps
+- Must offer clear golden paths for DS and platform engineers
 
 ---
 
-## 2. Tool Analysis
+## 2. WHERE Images Are Built
 
-### 2.1 Skaffold (Google, Active Open Source)
+### 2.1 Local Build (Docker / Podman)
 
-**What it does**: Automates build-deploy loop for K8s. Watches files, syncs
-or rebuilds, deploys.
+**How it works**: User runs build locally. Standard Docker/Podman CLI.
 
-**File sync for Python** (the fast path):
-```yaml
-# skaffold.yaml
-apiVersion: skaffold/v4beta11
-kind: Config
-build:
-  artifacts:
-    - image: my-python-actor
-      docker:
-        dockerfile: Dockerfile
-      sync:
-        manual:
-          - src: "src/**/*.py"
-            dest: /app
+```bash
+# With Dockerfile
+docker build -t registry/my-actor:v1 .
+docker push registry/my-actor:v1
+
+# With Cog
+cog build -t registry/my-actor:v1
+docker push registry/my-actor:v1
+
+# With Buildpacks
+pack build registry/my-actor:v1 --builder paketobuildpacks/builder:base
+docker push registry/my-actor:v1
 ```
 
-Code change -> copy to container -> 1-2s. No rebuild.
+**Pros**: Fast iteration, full control, works offline.
+**Cons**: Requires Docker installed, inconsistent environments across devs.
 
-**When rebuilds are needed**: `requirements.txt` changes trigger full rebuild.
-Optimization via BuildKit cache mounts reduces this to ~30s.
+**Asya integration**: `asya build` wraps the strategy-specific CLI. Pushes
+to configured registry.
 
-**Dev mode**: `skaffold dev` watches files, auto-syncs/rebuilds, cleans up
-on Ctrl+C. Profiles for different environments.
+### 2.2 On-Cluster Build (Shipwright)
 
-**Python buildpacks auto-sync**: NOT available yet (works for Go, Java,
-Node.js). Workaround: manual sync mode.
+**How it works**: Build runs inside K8s. No local Docker needed.
+Shipwright creates Build/BuildRun CRDs that spawn Tekton pods.
 
-**Can Asya generate skaffold.yaml?**: Yes, from build inputs (format TBD).
-
-**Verdict**: Good inner-loop tool for code changes. Doesn't solve the "DS
-scared of Docker" problem (still needs a Dockerfile for initial build).
-
-| Dimension | Rating |
-|---|---|
-| Iteration speed (code) | 5/5 (1-2s with sync) |
-| Iteration speed (deps) | 3/5 (30-60s rebuild) |
-| DS-friendliness | 3/5 (needs Dockerfile + skaffold.yaml) |
-| Message queue support | 2/5 (no queue-specific features) |
-| Production-ready | 3/5 (dev tool, not deployment) |
-
-### 2.2 Shipwright (CNCF Sandbox)
-
-**What it does**: On-cluster container builds. Build CRD triggers builds
-inside K8s pods.
-
-**How it works**:
 ```
-Code push -> Build CR -> BuildRun CR -> Tekton pod -> Image -> Registry
+Source (Git/upload) -> Build CR -> BuildRun CR -> Pod -> Image -> Registry
 ```
 
 **Build CRD**:
 ```yaml
 apiVersion: shipwright.io/v1beta1
 kind: Build
-metadata:/
-  name: python-actor-build
+metadata:
+  name: my-actor-build
 spec:
   source:
     type: Git
     git:
-      url: https://github.com/org/actor
+      url: https://github.com/org/actors
   strategy:
-    name: buildpacks-v3        # or kaniko, buildah, custom
+    name: buildpacks-v3       # or kaniko, buildah, cog (custom)
     kind: ClusterBuildStrategy
   output:
-    image: registry/actor:latest
+    image: registry/my-actor:latest
     pushSecret: registry-credentials
 ```
 
-**Custom build strategies**: ClusterBuildStrategy CRDs define build steps.
-Can use buildpacks, Kaniko, Buildah, or custom tools (Cog).
-
-**Cog as Shipwright strategy** (requires custom strategy):
+**Custom build strategies** (e.g., Cog):
 ```yaml
 apiVersion: shipwright.io/v1beta1
 kind: ClusterBuildStrategy
@@ -125,534 +103,416 @@ spec:
       command: ["cog", "build", "-t", "$(params.output-image)"]
 ```
 
-**GitOps integration**: Build triggers on git push, ArgoCD/Flux watches
-registry for new images.
+**Key feature for DS**: No local Docker needed. Push code to git (or upload
+source bundle), Shipwright builds in cluster. DS only needs git + kubectl.
 
-**Build caching**: Persistent volume cache, registry cache. First build
+**Build caching**: Persistent volume cache, registry cache. Cold build
 3-5min, cached 30-60s.
 
-**Maturity (2026)**: CNCF Sandbox, used in OpenShift, growing community.
+**Maturity (2026)**: CNCF Sandbox. Used in OpenShift Builds. Growing
+community. Alternative: Tekton Pipelines directly (more manual).
 
-**Verdict**: Solves "where to build" for teams that don't want local Docker.
-But doesn't solve iteration speed (each build is still minutes).
+### 2.3 CI/CD Build (GitHub Actions / GitLab CI / etc.)
 
-| Dimension | Rating |
-|---|---|
-| DS-friendliness | 4/5 (no local Docker needed) |
-| Build speed | 3/5 (30-60s cached, 3-5min cold) |
-| GitOps integration | 5/5 (native K8s CRDs) |
-| Maturity | 3/5 (CNCF Sandbox) |
+**How it works**: Standard CI pipeline triggered by git push/PR.
 
-### 2.3 Tilt (Docker-owned, Apache 2.0)
-
-**What it does**: K8s development tool with Python-based config (Starlark),
-live updates, web UI.
-
-**Python live update**:
-```python
-# Tiltfile
-docker_build('my-actor', '.',
-  live_update=[
-    sync('./src', '/app/src'),                           # 1s
-    run('pip install -r requirements.txt',               # 10s
-        trigger='requirements.txt'),
-    fall_back_on(['Dockerfile']),                         # 60s
-  ]
-)
-k8s_yaml('k8s-manifest.yaml')  # whatever Asya generates
-```
-
-**Decision tree**:
-1. Python file changed -> sync only (~1s)
-2. requirements.txt changed -> sync + run pip (~10s)
-3. Dockerfile changed -> full rebuild (~60s)
-
-**vs Skaffold**: Tilt has Python config (more expressive), built-in web UI,
-better dependency change handling (run pip in container vs full rebuild).
-Skaffold has YAML config (simpler), Google Cloud integration.
-
-**Status (2026)**: Acquired by Docker (2022), remains open source (Apache 2.0),
-actively maintained.
-
-**Verdict**: Best developer experience for multi-service K8s apps. Python
-config is natural for DS. Dependency changes handled without full rebuild.
-
-| Dimension | Rating |
-|---|---|
-| Iteration speed (code) | 5/5 (1s sync) |
-| Iteration speed (deps) | 4/5 (10s in-container pip) |
-| DS-friendliness | 4/5 (Python config) |
-| Multi-actor pipelines | 5/5 (resource_deps, grouping) |
-
-### 2.4 Direct Runtime Testing (HTTP)
-
-**What it does**: Since the asya-runtime speaks standard HTTP (`POST /invoke`),
-handlers can be tested locally without any sidecar, message queue, or K8s
-involvement. The runtime listens on TCP instead of Unix socket for local dev.
-
-**Local testing** (pure Python, no Docker):
-```bash
-# Start runtime locally on TCP
-ASYA_HANDLER=my_module.process \
-ASYA_SOCKET_PATH=tcp://127.0.0.1:8080 \
-  python asya_runtime.py
-
-# In another terminal, send test message
-curl -X POST http://127.0.0.1:8080/invoke \
-  -H "Content-Type: application/json" \
-  -d '{
-    "id": "test-001",
-    "route": {"prev": [], "curr": "my-actor", "next": ["next-actor"]},
-    "headers": {},
-    "payload": {"text": "hello"}
-  }'
-```
-
-**What this tests**: Handler logic, payload transformation, error handling.
-The runtime processes the message exactly as it would in production -- same
-handler loading, same ABI protocol for generators, same SSE streaming.
-
-**What this does NOT test**: Queue consumption, routing to next actor,
-sidecar behavior, autoscaling. For that, use integration tests or mirrord.
-
-**Programmatic testing** (pytest, Jupyter):
-```python
-import requests
-
-# Runtime running locally on port 8080
-resp = requests.post("http://127.0.0.1:8080/invoke", json={
-    "id": "test-001",
-    "route": {"prev": [], "curr": "my-actor", "next": []},
-    "headers": {},
-    "payload": {"text": "hello"}
-})
-result = resp.json()
-assert result["frames"][0]["payload"]["processed"] is True
-```
-
-**Jupyter integration**: `asya` magic functions could start the runtime in the
-background and expose a `test_actor()` helper that wraps the HTTP call.
-
-**Verdict**: Simplest possible testing path. No Docker, no K8s, no sidecar.
-Just Python + HTTP. Works for handler unit testing and functional testing.
-
-| Dimension | Rating |
-|---|---|
-| Iteration speed | 5/5 (instant -- just restart Python) |
-| DS-friendliness | 5/5 (pure Python, curl or requests) |
-| Fidelity to production | 3/5 (no queue, no sidecar, no routing) |
-| Setup required | 5/5 (only Python + handler deps) |
-
-### 2.5 mirrord (Process-Level Interception)
-
-**What it does**: Runs local process as if it's inside the K8s cluster.
-Intercepts network, filesystem, environment from a remote pod.
-
-**How it works**: LD_PRELOAD-based interception. Hooks libc calls so the
-local Python process sees the remote pod's environment.
-
-```bash
-mirrord exec --target pod/my-actor -- python handler.py
-```
-
-The local Python process:
-- Sees remote env vars (ASYA_TRANSPORT, ASYA_ACTOR_NAME, etc.)
-- Can access remote services (RabbitMQ, SQS, databases)
-- Receives traffic destined for the remote pod
-
-**Queue support**: mirrord supports "queue splitting" -- multiple developers
-can share a staging queue, each filtering for their messages. This is critical
-for Asya's message-queue architecture.
-
-**vs Telepresence**: Telepresence intercepts at network level (VPN),
-mirrord at process level (LD_PRELOAD). mirrord is lighter, no cluster-side
-components needed. Telepresence v2 became proprietary (Ambassador Labs).
-
-**vs Gefyra**: Gefyra uses Wireguard VPN, requires cluster-side components.
-Heavier but more reliable for complex scenarios.
-
-**Critical finding**: Telepresence does NOT work well for message queues
-(designed for HTTP/gRPC interception). mirrord's queue splitting IS designed
-for this pattern.
-
-**Verdict**: Game-changer for Asya. Zero build, zero Docker, code runs
-locally with remote cluster context. Queue splitting fits Asya's architecture
-perfectly.
-
-| Dimension | Rating |
-|---|---|
-| Iteration speed | 5/5 (0s -- runs local code) |
-| DS-friendliness | 5/5 (just run Python) |
-| Message queue support | 4/5 (queue splitting) |
-| Production safety | 3/5 (dev-only, intercepts traffic) |
-| Cluster-side setup | 5/5 (no components needed) |
-
-### 2.6 The "No-Build" Patterns
-
-Several patterns avoid building images entirely:
-
-**A. Code-as-ConfigMap** (Asya already does this for routers):
 ```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: actor-code
-data:
-  handler.py: |
-    def process(payload):
-        return {"result": ...}
-```
-Mount into pod, use generic `asya-runtime` base image.
-
-Limitation: ConfigMaps have 1MB size limit. Only for small handlers.
-
-**B. Code-as-PVC** (Persistent Volume):
-Store code on shared storage, mount into pods. Works for larger codebases.
-But: no dependency isolation, shared state problems.
-
-**C. Code download at startup** (Ray/KServe pattern):
-Pod starts with generic base image, downloads code from Git/S3 at startup:
-```yaml
-initContainers:
-  - name: code-fetcher
-    image: alpine/git
-    command: ["git", "clone", "--depth=1", "https://github.com/org/actor"]
-    volumeMounts:
-      - name: code
-        mountPath: /code
+# .github/workflows/build.yml
+on: push
+jobs:
+  build:
+    steps:
+      - uses: actions/checkout@v4
+      - run: asya build my-actor --push
 ```
 
-Works for experimentation. Unreliable for production (startup dependency
-on external services, no version pinning).
+**Pros**: Reproducible, auditable, integrates with existing CI.
+**Cons**: Slowest path (10-30min including queue, checkout, build, push).
 
-**D. Storage initializer** (KServe pattern):
-Download model/code from S3 at startup. Production-proven for ML models.
-Could extend to user code:
-```yaml
-spec:
-  storageUri: s3://bucket/actor-code/v1.2.3/
+### 2.4 Comparison
+
+| Dimension | Local | On-Cluster (Shipwright) | CI/CD |
+|---|---|---|---|
+| Docker required locally | Yes | No | No |
+| Build speed (cached) | 5-30s | 30-60s | 1-5min |
+| Build speed (cold) | 1-5min | 3-5min | 5-30min |
+| Reproducibility | Low (dev env) | High (pod spec) | High (CI env) |
+| GitOps integration | Manual push | Build CR watches Git | Native |
+| DS-friendliness | 3/5 | 4/5 | 2/5 |
+| Strategy support | All | All (custom strategies) | All |
+
+**Key insight**: Local and on-cluster builds should produce **identical**
+images given the same inputs. The build strategy (buildpacks/cog/dockerfile)
+is the same -- only the execution environment changes.
+
+---
+
+## 3. Source of Truth: Git vs OCI Registry
+
+The critical design question: where is the canonical definition of what
+gets deployed?
+
+### 3.1 Git as Source of Truth (Standard GitOps)
+
+```
+Git repo (code + build config + K8s manifests)
+  -> CI builds image -> pushes to registry
+  -> ArgoCD/Flux watches Git -> syncs K8s state
 ```
 
-**Verdict**: ConfigMap pattern works for routers (already proven). Code
-download works for experimentation but not production. Storage initializer
-is production-proven for models but adds startup latency.
+**What's in Git**:
+- Handler code (`handler.py`)
+- Build config (cog.yaml / Dockerfile / buildpacks config)
+- AsyncActor manifests (XRD claims)
+- Flow definitions (if using flow DSL)
 
-### 2.7 Build Caching Strategies
+**What's in registry**: Built images only (output artifact).
 
-**Optimal Dockerfile for rapid iteration**:
-```dockerfile
-FROM python:3.11-slim
-WORKDIR /app
+**Who uses this**: Platform engineers, regulated environments, teams with
+existing GitOps workflows.
 
-# Layer 1: Rare changes (framework deps)
-COPY requirements-base.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements-base.txt
+**Pros**: Full audit trail, PR review for all changes, rollback via git
+revert, separation of concerns.
 
-# Layer 2: Occasional changes (actor deps)
-COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install -r requirements.txt
+**Cons**: Slow feedback loop for DS (commit -> PR -> CI -> deploy).
 
-# Layer 3: Frequent changes (code)
-COPY handler.py .
-ENV ASYA_HANDLER=handler.process
+### 3.2 OCI Registry as Source of Truth
+
+```
+DS builds image (local or on-cluster)
+  -> pushes to registry with metadata
+  -> ArgoCD Image Updater / Flux Image Automation watches registry
+  -> auto-updates K8s manifests when new image tag appears
 ```
 
-**Result**: Code-only changes rebuild in ~3s (cache hit on layers 1-2).
-Dependency changes rebuild layer 2 in ~30s (cache hit on layer 1).
+**What's in OCI image** (via labels/annotations):
+- Handler code (baked in)
+- Build metadata (strategy, git SHA, build time)
+- AsyncActor config (as OCI annotations or embedded manifest)
 
-**Registry-based caching** (`--cache-from`):
+**What's in Git**: Base manifests with image tag placeholder. Updated
+automatically by image automation.
+
+**Who uses this**: DS teams wanting fast iteration, ML teams shipping
+model+code together.
+
+**Pros**: Fast -- push image, done. No PR required for staging. Image IS
+the deployable artifact (reproducible).
+
+**Cons**: Less visibility (no PR review), harder to audit, image sprawl.
+
+### 3.3 Hybrid: Git for Prod, OCI for Staging
+
+```
+Staging: DS pushes image -> image automation deploys
+Production: PR to update image tag -> ArgoCD syncs
+```
+
+**This is the recommended pattern.** It matches the two user flows:
+- Staging: imperative, fast, OCI-driven
+- Production: declarative, reviewed, Git-driven
+
+**Implementation**:
+- Staging namespace: ArgoCD Image Updater watches registry, auto-deploys
+  new tags matching pattern (e.g., `stg-*`)
+- Production namespace: ArgoCD watches Git, deploys only what's in manifests
+- Promotion: DS commits the tested image tag to Git via PR
+
+### 3.4 Comparison
+
+| Aspect | Git SoT | OCI SoT | Hybrid |
+|---|---|---|---|
+| Deploy speed (staging) | Slow (PR+CI) | Fast (push image) | Fast |
+| Deploy speed (prod) | PR merge | Auto-update | PR merge |
+| Audit trail | Full (Git) | Partial (OCI metadata) | Full for prod |
+| Rollback | `git revert` | Re-tag old image | Both |
+| DS friction | High | Low | Low (stg) / Medium (prod) |
+| Platform control | Full | Limited | Full for prod |
+
+---
+
+## 4. The Two User Flows
+
+### 4.1 Flow A: DS Experimentation on Staging
+
+**Goal**: DS iterates fast on staging without GitOps ceremony.
+
+```
+1. DS writes handler code
+2. DS runs: asya build my-actor --push
+   (builds locally or triggers on-cluster build, pushes to registry)
+3. DS runs: asya deploy my-actor --context=k8s-stg
+   (creates/updates AsyncActor CR on staging)
+4. DS tests against real queues
+5. Repeat 1-4 until satisfied
+```
+
+**What's stored locally** (state files, gitignored or in working branch):
+- Build config (strategy + deps reference)
+- Last deployed image tag
+- AsyncActor manifest (rendered)
+
+**No git commit required** in this flow. Cog, buildpacks, and Docker all
+work with uncommitted files.
+
+**On-cluster build variant** (DS without Docker):
+```
+1. DS writes handler code
+2. DS runs: asya build my-actor --builder=shipwright --push
+   (uploads source to cluster, Shipwright builds + pushes)
+3. DS runs: asya deploy my-actor --context=k8s-stg
+4. Repeat
+```
+
+### 4.2 Flow B: Production via GitOps
+
+**Goal**: Promote tested staging artifacts to production via PR.
+
+```
+1. DS finishes experimentation on staging (Flow A)
+2. DS runs: asya commit my-actor
+   (writes build config + manifest to git-tracked files)
+3. DS creates PR with:
+   - Build config (cog.yaml / Dockerfile / buildpacks config)
+   - AsyncActor manifest (XRD claim)
+   - Handler code
+4. CI builds image from committed config
+5. PR review + merge
+6. ArgoCD/Flux deploys to production
+```
+
+**What gets committed**:
+```
+actors/my-actor/
+  handler.py              # handler code
+  requirements.txt        # dependencies
+  cog.yaml                # build config (or Dockerfile, etc.)
+  asyncactor.yaml         # AsyncActor XRD claim
+```
+
+**Key principle**: The committed files are the source of truth for production.
+CI rebuilds the image from these files (not from the staging image). This
+ensures reproducibility and auditability.
+
+**Alternative**: Teams that trust staging images can promote by tag:
+```
+1. DS tags staging image as production: asya promote my-actor stg-abc123 -> prod-v1.2
+2. PR updates only the image tag in manifests (no rebuild)
+```
+
+### 4.3 Flow Transition: Staging to Production
+
+The transition point is `asya commit` (or equivalent). This command:
+
+1. Reads current local state (build config, manifest, image tag)
+2. Writes git-tracked files in a conventional structure
+3. DS creates PR from these files
+
+**State lifecycle**:
+```
+Local state (ephemeral, .asya/ or working dir)
+  -> asya commit -> Git-tracked files (permanent)
+  -> PR merge -> ArgoCD/Flux deploys to prod
+```
+
+**The build config is always in files** -- whether gitignored during
+experimentation or committed for production. Same format, same files,
+just different lifecycle.
+
+---
+
+## 5. Build Execution Architecture
+
+### 5.1 Pluggable Build Execution
+
+Build strategy (WHAT builds) and build execution (WHERE it runs) are
+independent axes:
+
+```
+            | Local Docker | Shipwright | CI/CD |
+------------|-------------|------------|-------|
+Buildpacks  | pack build  | buildpacks | pack  |
+            |             | strategy   | build |
+------------|-------------|------------|-------|
+Cog         | cog build   | cog custom | cog   |
+            |             | strategy   | build |
+------------|-------------|------------|-------|
+Dockerfile  | docker      | kaniko     | docker|
+            | build       | strategy   | build |
+```
+
+**Same strategy, different execution**. The `asya build` command abstracts
+this: `--builder=local` (default), `--builder=shipwright`, or CI picks
+the right one.
+
+### 5.2 Build Caching
+
+Regardless of where the build runs, caching is critical for fast iteration:
+
+**Docker layer caching** (local and CI):
 ```bash
 docker build --cache-from registry/actor:cache \
   --cache-to registry/actor:cache \
   -t registry/actor:latest .
 ```
 
-**Kaniko caching** (for in-cluster builds): Kaniko warmer pre-populates
-cache. Persistent volume caching across builds.
+**Kaniko caching** (for on-cluster Shipwright builds):
+- Kaniko warmer pre-populates cache
+- Persistent volume caching across builds
 
-### 2.8 Image Streaming (SOCI/Stargz)
+**Buildpacks caching**: Built-in layer caching. Rebase for OS-only updates.
 
-**Problem**: Large ML images (5GB+) are slow to pull on cold start.
+**Cog caching**: Standard Docker layer caching. Code-only changes rebuild
+in ~3-5s (deps layers cached).
 
-**SOCI (Seekable OCI by AWS)**: Lazy-loads image layers. Container starts
-before full image is downloaded. Reduces startup time by 30-70% for large
-images.
+### 5.3 Image Streaming (SOCI/Stargz)
 
-**Stargz (Google/containerd)**: Similar lazy loading via eStargz format.
+Large ML images (5GB+) are slow to pull on cold start. Relevant for KEDA
+scale-to-zero:
 
-**Relevance**: Critical for KEDA autoscaling (scale-to-zero -> cold start).
-Not directly related to build workflow, but affects the deploy step.
+- **SOCI (AWS)**: Lazy-loads image layers. Container starts before full
+  download. 30-70% startup reduction.
+- **Stargz (Google/containerd)**: Similar lazy loading via eStargz format.
 
----
-
-## 3. Patterns from Other Frameworks
-
-### 3.1 How They Ship Code to K8s
-
-| Framework | Pattern | Docker Knowledge? | GitOps? |
-|---|---|---|---|
-| **Ray Serve** | Code reference + runtime_env (download from Git) | None | Medium |
-| **KServe** | Pre-built runtimes + storage initializer | None (built-in) / Yes (custom) | High |
-| **Seldon** | Pre-built servers / S2I / custom image | None / Low / Yes | High |
-| **BentoML** | Bento artifact -> containerize -> deploy | Low (bentoml containerize) | High |
-| **Flyte** | ImageSpec in Python -> auto-build | None | High |
-| **Modal** | Python Image API -> cloud build | None | N/A (serverless) |
-| **Dagster** | User builds image, Dagster launches | Yes | Medium |
-| **Prefect** | Git-based or Docker-based workers | Low (Git) / Yes (Docker) | Medium |
-| **Temporal** | User builds worker image | Yes | Medium |
-| **Metaflow** | Decorator-based, conda pack | Low | Medium |
-
-### 3.2 Key Insights
-
-**Zero-Docker achievers**: Modal, Flyte (ImageSpec), KServe (built-in
-runtimes), Ray Serve. All solve it differently:
-- Modal/Flyte: Python API defines image, framework builds
-- KServe/Seldon: Pre-built runtimes, user provides only model/code artifact
-- Ray: Downloads code at startup (no build at all)
-
-**Common pattern**: Separate code from environment. Ship code as artifact
-(Git, S3, OCI), environment as pre-built image. Combine at deploy time.
-
-**What doesn't work for Asya**:
-- Runtime pip install (Ray pattern) -- unreliable for production queue consumers
-- Pre-built runtimes with fixed deps (KServe pattern) -- too restrictive for
-  diverse actor workloads
-- Proprietary cloud builds (Modal) -- vendor lock-in
-
-**What works for Asya**:
-- Direct runtime testing (HTTP `/invoke`) -- pure local, no infra
-- Declarative image spec (Flyte/Modal API) -- inspiration for UX
-- Storage initializer (KServe) -- download code at startup, proven for ML
-- Code-as-ConfigMap (already used for routers)
-- Local interception (mirrord) -- zero build for experimentation
+Not directly a build concern, but affects the deploy step performance.
 
 ---
 
-## 4. Proposed Architecture: Levels of Sophistication
+## 6. Patterns from Other Frameworks
 
-### Level 0: Direct Runtime Testing (Local HTTP)
+### 6.1 How They Handle Build + Deploy
 
-**For**: DS testing handler logic. No Docker, no K8s, no cluster access needed.
+| Framework | Build WHERE | Source of Truth | Staging Flow | Prod Flow |
+|---|---|---|---|---|
+| **BentoML** | Local (bento build) | OCI (Bento artifact) | Push bento | CI + deploy |
+| **Flyte** | Local (ImageSpec) | Git (Python code) | Register task | CI + register |
+| **Modal** | Cloud (serverless) | Python code | Deploy | Same |
+| **KServe** | Pre-built / CI | Git (InferenceService) | kubectl apply | GitOps |
+| **Seldon** | CI / S2I | Git (SeldonDeployment) | kubectl apply | GitOps |
+| **Ray Serve** | None (runtime) | Git (serve config) | ray serve | GitOps |
 
-```bash
-asya test handler.py
-# Under the hood: starts asya_runtime.py on localhost TCP,
-# sends test payloads via HTTP POST /invoke
-```
+### 6.2 Key Insights
 
-DS writes Python, runs handler directly via HTTP. Tests handler logic,
-payload transformation, error handling. Does NOT test queue routing or
-sidecar behavior.
+**BentoML pattern** (closest to Asya's needs):
+- `bentoml build` creates a "Bento" (code + deps + model as OCI artifact)
+- `bentoml containerize` wraps it in a Docker image
+- `bentoml deploy` pushes to BentoCloud or K8s
+- Staging: imperative `bentoml deploy`
+- Production: CI builds Bento, pushes, GitOps deploys
 
-**Requires**: Python + handler dependencies. Nothing else.
+**Flyte ImageSpec**: Build triggered automatically when image hash changes.
+Checks registry first (hash-based dedup). No manual build step.
 
-### Level 1: Local Interception (mirrord)
-
-**For**: DS experimenting against real staging queues. No Docker, no build.
-
-```bash
-asya dev handler.py --context=k8s-stg
-# Under the hood: mirrord intercepts staging pod,
-# runs local Python with remote env/queues
-```
-
-DS writes Python, saves file, code runs against real staging queues.
-No image build at all.
-
-**Requires**: mirrord installed, kubectl access to staging.
-
-### Level 2: ConfigMap Deploy (No Build)
-
-**For**: Small handler changes, quick iteration on staging.
-
-```bash
-asya actor deploy text-analyzer --mode=configmap
-# Uploads handler code as ConfigMap
-# Uses generic asya-runtime base image
-# Restarts pod to pick up new code
-```
-
-No Docker build. Code is in ConfigMap (1MB limit). Dependencies must
-be in the base image.
-
-**Requires**: Pre-built `asya-runtime` base image with common deps.
-
-### Level 3: Code Sync (Skaffold/Tilt)
-
-**For**: Active development with frequent code changes, occasional dep changes.
-
-```bash
-asya dev --mode=sync --context=k8s-stg
-# Under the hood: Skaffold/Tilt watches files,
-# syncs code changes (1s), rebuilds on dep changes (30s)
-```
-
-**Requires**: Dockerfile (auto-generated from build: config), Skaffold or
-Tilt installed.
-
-### Level 4: On-Cluster Build (Shipwright)
-
-**For**: Teams that don't want local Docker. Code pushed to Git, built in
-cluster.
-
-```bash
-asya actor deploy text-analyzer --context=k8s-stg
-# Under the hood: Creates Shipwright BuildRun CR,
-# builds image in cluster, deploys AsyncActor
-```
-
-**Requires**: Shipwright installed in cluster, registry access.
-
-### Level 5: CI/CD Build (Production)
-
-**For**: Production deployments via GitOps.
-
-```bash
-git push  # triggers CI pipeline
-# CI: asya build render -> docker build -> push to registry
-# ArgoCD: detects new image, syncs AsyncActor CRD
-```
-
-**Requires**: CI pipeline, container registry, ArgoCD/FluxCD.
+**Common pattern**: Build locally or in CI, push OCI artifact, deploy via
+GitOps or imperative command. The difference is whether OCI or Git is the
+source of truth for what's deployed.
 
 ---
 
-## 5. Comparison Matrix
+## 7. Proposed Architecture
 
-| Level | Speed | DS-Friendly | Queue Support | Production | Cluster Deps |
-|---|---|---|---|---|---|
-| **L0: Direct HTTP** | 0s | 5/5 | 1/5 (no queue) | No | None |
-| **L1: mirrord** | 0s | 5/5 | 4/5 (split) | No | None |
-| **L2: ConfigMap** | 5s | 4/5 | 5/5 | No (1MB limit) | None |
-| **L3: Sync** | 1-30s | 3/5 | 3/5 | No | None |
-| **L4: Shipwright** | 30s-5min | 4/5 | 5/5 | Staging | Shipwright |
-| **L5: CI/CD** | 10-30min | 2/5 | 5/5 | Yes | CI + registry |
-
----
-
-## 6. Golden Paths
-
-### Golden Path A: DS Experimentation (recommended default)
+### 7.1 Core Principle: Same Config, Different Lifecycle
 
 ```
-L0 (direct HTTP) for handler logic
-  -> L1 (mirrord) for testing against real staging queues
-  -> L2 (ConfigMap) for quick staging deploys
-  -> L5 (CI/CD) when ready for production
+Build config (strategy + deps + code)
+  |
+  +-- Experimentation: local files, gitignored, imperative deploys
+  |     asya build -> asya deploy --context=k8s-stg
+  |
+  +-- Production: committed to git, CI builds, GitOps deploys
+        asya commit -> PR -> CI -> ArgoCD/Flux
 ```
 
-DS never touches Docker. The transition from L0->L1->L2->L5 is:
-1. Write handler locally, test via HTTP POST /invoke
-2. Test with mirrord against real staging queues
-3. Deploy to staging via ConfigMap for integration testing
-4. Commit code, CI builds proper image, PR for production
-
-### Golden Path B: Active Development
-
-```
-L3 (Skaffold sync) for code iteration
-  -> L4 (Shipwright) or L5 (CI/CD) for production
-```
-
-For developers comfortable with K8s who want fast iteration with full
-dependency control.
-
-### Golden Path C: Platform Engineering
-
-```
-L5 (CI/CD) for everything
-```
-
-Full control, Dockerfiles in git, standard GitOps. No special tools.
-
----
-
-## 7. Integration with Asya CLI
-
-All levels should be accessible through `asya` commands:
+### 7.2 `asya build` Command
 
 ```bash
-# Level 0: Direct runtime testing (local HTTP)
-asya test handler.py                    # start runtime, send test payloads
+# Local build (default)
+asya build my-actor
+# -> reads build config -> runs strategy (cog/buildpacks/docker) locally
+# -> pushes to configured registry
 
-# Level 1: Local interception (mirrord)
-asya dev handler.py --context=k8s-stg   # run locally against staging queues
-
-# Level 2: ConfigMap deploy
-asya actor deploy text-analyzer --mode=configmap
-
-# Level 3: Code sync (auto-generates Skaffold/Tilt config)
-asya dev --mode=sync
-
-# Level 4: On-cluster build
-asya actor deploy text-analyzer --builder=shipwright
-
-# Level 5: Render for CI
-asya build render text-analyzer  # generates build artifacts for CI
+# On-cluster build
+asya build my-actor --builder=shipwright
+# -> uploads source to cluster
+# -> creates Shipwright BuildRun CR
+# -> waits for build -> image in registry
 ```
 
-`asya test` is the simplest entry point (pure local). `asya dev` adds
-cluster interaction. `asya actor deploy` deploys to K8s.
+### 7.3 `asya deploy` Command
+
+```bash
+# Imperative deploy to staging
+asya deploy my-actor --context=k8s-stg
+# -> creates/updates AsyncActor CR
+# -> references latest built image
+
+# Writes manifest for GitOps
+asya deploy my-actor --context=k8s-prod --dry-run > asyncactor.yaml
+# -> generates manifest for git commit
+```
+
+### 7.4 `asya commit` Command
+
+```bash
+asya commit my-actor
+# -> writes to git-tracked directory:
+#    actors/my-actor/handler.py
+#    actors/my-actor/requirements.txt
+#    actors/my-actor/cog.yaml (or Dockerfile, etc.)
+#    actors/my-actor/asyncactor.yaml
+```
+
+### 7.5 Modularity: Supporting Both OCI and GitOps Teams
+
+**For OCI-first teams** (staging + simple prod):
+- Build and push images imperatively
+- ArgoCD Image Updater auto-deploys new tags
+- No `asya commit` needed -- OCI registry is the source of truth
+
+**For GitOps teams** (enterprise / regulated):
+- All config in Git, CI builds from committed files
+- `asya commit` transitions from experimentation to GitOps
+- ArgoCD/Flux watches Git, not registry
+
+**For hybrid teams** (recommended):
+- OCI-driven staging (fast), Git-driven production (auditable)
+- `asya commit` + PR is the promotion gate
 
 ---
 
 ## 8. Open Questions
 
-1. **mirrord licensing**: mirrord OSS is Apache 2.0 but the company offers
-   a commercial product. Need to verify the OSS version supports queue
-   splitting for SQS/RabbitMQ.
+1. **Shipwright maturity**: Still CNCF Sandbox. Is it production-ready for
+   Asya's use cases? Alternative: Tekton Pipelines directly. Or: skip
+   on-cluster builds initially, revisit when demand exists.
 
-2. **ConfigMap code deployment**: How to handle dependencies? Options:
-   - Pre-built `asya-runtime:3.11-ml` with common ML deps
-   - Init container that pip installs from requirements.txt
-   - User provides a "requirements layer" as a separate image
+2. **ArgoCD Image Updater vs Flux Image Automation**: Which to recommend
+   for OCI-driven staging deploys? Both watch registries for new tags.
 
-3. **Skaffold vs Tilt**: Should Asya recommend one or support both?
-   Tilt's Python config is more natural for DS. Skaffold has wider adoption.
+3. **`asya commit` file structure**: What's the conventional directory
+   layout for committed actor configs? Per-actor directories? Monorepo
+   vs polyrepo?
 
-4. **Shipwright maturity**: Still CNCF Sandbox. Is it production-ready for
-   Asya's use cases? Alternative: Tekton Pipelines directly.
+4. **Image tag strategy**: How to tag staging vs production images?
+   `stg-<sha>` / `prod-v1.2`? Semantic versioning? Hash-based (Flyte)?
 
-5. **Code streaming for queue consumers**: mirrord queue splitting is
-   documented for HTTP but less tested for SQS/RabbitMQ. Need PoC.
+5. **Source upload for Shipwright**: How does DS upload local (uncommitted)
+   code to Shipwright? Git push to temp branch? Source bundle upload?
+   Shipwright supports both but UX differs.
 
 6. **SOCI/Stargz adoption**: Is lazy image loading available on major cloud
-   K8s providers (EKS, GKE, AKS)?
-
----
-
-## 9. Implementation Phases
-
-**Phase 1** (MVP): Generate Dockerfile from build inputs (format TBD).
-`asya actor deploy` does `docker build + push + kubectl apply`.
-Simple, works everywhere.
-
-**Phase 2**: `asya dev handler.py` with mirrord integration for zero-build
-experimentation on staging.
-
-**Phase 3**: ConfigMap-based deployment for quick iteration without Docker.
-
-**Phase 4**: Skaffold/Tilt integration for code sync mode.
-
-**Phase 5**: Shipwright integration for on-cluster builds.
+   K8s providers (EKS, GKE, AKS)? Critical for KEDA scale-to-zero with
+   large ML images.
 
 ---
 
 ## Sources
 
-- [Skaffold](https://skaffold.dev/) (Apache 2.0)
 - [Shipwright](https://shipwright.io/) (CNCF Sandbox)
-- [Tilt](https://tilt.dev/) (Apache 2.0, Docker-owned)
-- [mirrord](https://mirrord.dev/) (Apache 2.0)
-- [Telepresence](https://www.telepresence.io/) (proprietary since v2)
-- [Gefyra](https://gefyra.dev/)
-- [DevSpace](https://devspace.sh/)
+- [ArgoCD Image Updater](https://argocd-image-updater.readthedocs.io/)
+- [Flux Image Automation](https://fluxcd.io/flux/guides/image-update/)
 - [SOCI by AWS](https://github.com/awslabs/soci-snapshotter)
-- [KServe](https://kserve.github.io/)
-- [Ray Serve](https://docs.ray.io/en/latest/serve/)
-- [Flyte ImageSpec](https://docs.flyte.org/en/latest/user_guide/customizing_dependencies/imagespec.html)
-- [Modal](https://modal.com/docs/guide/custom-container)
 - [BentoML](https://docs.bentoml.com/)
-- [K8s Local Dev Tools Comparison](https://kubernetes.io/blog/2023/09/12/local-k8s-development-tools/)
+- [Flyte ImageSpec](https://docs.flyte.org/en/latest/user_guide/customizing_dependencies/imagespec.html)
+- [KServe](https://kserve.github.io/)
+- [Kaniko](https://github.com/GoogleContainerTools/kaniko)
