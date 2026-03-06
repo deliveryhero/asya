@@ -6,10 +6,19 @@ decisions that would otherwise require re-reading large PRs.
 
 ## Index
 
-| Document | Covers |
-|----------|--------|
-| [testing-e2e-transport.md](testing-e2e-transport.md) | How transports are wired into E2E tests: profiles, emulators, Crossplane compositions, skip logic |
-| [testing-e2e-state-proxy.md](testing-e2e-state-proxy.md) | How storage backends (S3/GCS) are wired into E2E tests: crew persistence, Helm values, emulators |
+### Transport backends
+
+| Document | Scope | Covers |
+|----------|-------|--------|
+| [testing-transport.md](testing-transport.md) | All levels | Mock strategies per level, component/integration profiles, how to add a new transport end-to-end |
+| [testing-e2e-transport.md](testing-e2e-transport.md) | E2E only | Kind NodePort mapping, Crossplane compositions, Pub/Sub emulator OAuth workaround, `gcpProject` pattern, skip logic |
+
+### State proxy / storage backends
+
+| Document | Scope | Covers |
+|----------|-------|--------|
+| [testing-state-proxy.md](testing-state-proxy.md) | All levels | Mock strategies per level (moto/unittest.mock), component profiles, integration overlays, how to add a new backend |
+| [testing-e2e-state-proxy.md](testing-e2e-state-proxy.md) | E2E only | NodePort mapping, fake-gcs-server quirks, connector image loading into Kind, crew chart `persistence.*` values |
 
 ## What belongs here
 

@@ -1,5 +1,8 @@
 # E2E Testing: State Proxy / Storage Backends
 
+> **Scope**: E2E (Kind cluster) only. For unit/component/integration coverage of
+> the same storage backends, see [testing-state-proxy.md](testing-state-proxy.md).
+
 How storage backends (S3/GCS) are wired into E2E tests, specifically for the
 `x-sink` and `x-sump` crew actors and the state proxy sidecar.
 Captured during PRs #250, #256, #258.

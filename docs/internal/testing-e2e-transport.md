@@ -1,5 +1,8 @@
 # E2E Testing: Transport Backends
 
+> **Scope**: E2E (Kind cluster) only. For unit/component/integration coverage of
+> the same transports, see [testing-transport.md](testing-transport.md).
+
 How message transport (SQS, Pub/Sub, RabbitMQ) is wired into E2E tests.
 Captured during PRs #251, #256, #258.
 
