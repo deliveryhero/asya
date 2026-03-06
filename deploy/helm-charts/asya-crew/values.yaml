@@ -298,6 +298,19 @@ persistence:
   connector:
     image: "" # auto-selected based on backend if not set
 
+# SQS DLQ queue configuration
+# When enabled, a shared dead-letter queue is created via Crossplane for the namespace.
+# The queue name will be: asya-{release-namespace}-dlq
+sqs:
+  dlq:
+    enabled: false
+    # Crossplane ProviderConfig to use for DLQ queue creation
+    providerConfigRef: default
+    # AWS region for the DLQ queue
+    region: us-east-1
+    # Message retention in seconds (default: 14 days)
+    messageRetentionSeconds: 1209600
+
 # DLQ Worker configuration
 # Standalone Go binary for processing transport-level Dead Letter Queue messages.
 # NOT an AsyncActor - deployed as a regular Kubernetes Deployment.

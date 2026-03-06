@@ -1,0 +1,20 @@
+{{- if and .Values.sqs .Values.sqs.dlq .Values.sqs.dlq.enabled }}
+apiVersion: sqs.aws.upbound.io/v1beta1
+kind: Queue
+metadata:
+  name: asya-{{ .Release.Namespace }}-dlq
+  labels:
+    helm.sh/chart: {{ include "asya-crew.chart" . }}
+    asya.sh/role: dlq
+spec:
+  forProvider:
+    name: asya-{{ .Release.Namespace }}-dlq
+    region: {{ .Values.sqs.dlq.region }}
+    messageRetentionSeconds: {{ .Values.sqs.dlq.messageRetentionSeconds | default 1209600 }}
+    tags:
+      asya.sh/namespace: {{ .Release.Namespace }}
+      asya.sh/role: dlq
+  providerConfigRef:
+    name: {{ .Values.sqs.dlq.providerConfigRef }}
+  deletionPolicy: Delete
+{{- end }}
