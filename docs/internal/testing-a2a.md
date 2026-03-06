@@ -75,7 +75,7 @@ reaches terminal state.
 |----------|-----------|
 | Task completes quickly | Stream ends with `final=true`, state=`completed` |
 | Task fails | Stream ends with `final=true`, state=`failed` |
-| Task cancelled externally | Stream ends with `final=true`, state=`canceled` |
+| Task canceled externally | Stream ends with `final=true`, state=`canceled` |
 | Client disconnects mid-stream | Goroutine exits without panic or leak |
 | Multiple FLY events in-flight | All events forwarded before final |
 
