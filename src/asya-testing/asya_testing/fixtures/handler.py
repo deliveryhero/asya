@@ -74,21 +74,62 @@ def run_handler():
     return value is wrapped into a single-frame result automatically.
     """
 
-    async def _run(handler_call: Any) -> HandlerResult:
+    async def _run(handler_call: Any, get_responses: dict | None = None) -> HandlerResult:
+        """Drive a handler and capture all emitted events.
+
+        Args:
+            handler_call: The result of calling a handler function — an async
+                generator, sync generator, or coroutine.
+            get_responses: Optional mapping of ABI path → value to send back
+                for ``yield "GET", path`` calls. Use this when testing
+                generators that read envelope metadata via GET.
+                Example: ``{"headers": {"trace_id": "abc"}, ".route.prev": []}``
+        """
         import inspect
 
         result = HandlerResult()
+        responses = get_responses or {}
 
-        # Support both generator handlers (ABI) and plain function handlers.
-        # Plain functions return a dict directly (no yields to collect).
+        def _classify(event: Any) -> None:
+            if isinstance(event, dict):
+                result.frames.append(event)
+            elif isinstance(event, tuple) and len(event) >= 2 and event[0] == "FLY":
+                result.fly.append(event[1])
+            elif isinstance(event, tuple):
+                result.abi.append(event)
+
+        def _get_send_value(event: Any) -> Any:
+            """Return the value to send back for a GET verb."""
+            if isinstance(event, tuple) and len(event) == 2 and event[0] == "GET":
+                path = event[1]
+                # Try exact path match first, then strip leading dot
+                if path in responses:
+                    return responses[path]
+                stripped = path.lstrip(".")
+                if stripped in responses:
+                    return responses[stripped]
+            return None
+
         if inspect.isasyncgen(handler_call):
-            async for event in handler_call:
-                if isinstance(event, dict):
-                    result.frames.append(event)
-                elif isinstance(event, tuple) and len(event) >= 2 and event[0] == "FLY":
-                    result.fly.append(event[1])
-                elif isinstance(event, tuple):
-                    result.abi.append(event)
+            send_val: Any = None
+            gen = handler_call
+            while True:
+                try:
+                    event = await gen.asend(send_val)
+                    send_val = _get_send_value(event)
+                    _classify(event)
+                except StopAsyncIteration:
+                    break
+        elif inspect.isgenerator(handler_call):
+            send_val = None
+            gen = handler_call
+            while True:
+                try:
+                    event = gen.send(send_val)
+                    send_val = _get_send_value(event)
+                    _classify(event)
+                except StopIteration:
+                    break
         elif inspect.iscoroutine(handler_call):
             ret = await handler_call
             if ret is not None:
@@ -96,7 +137,8 @@ def run_handler():
                 result.frames.extend(frames)
         else:
             raise TypeError(
-                f"Expected an async generator or coroutine, got {type(handler_call)}"
+                f"Expected an async generator, sync generator, or coroutine, "
+                f"got {type(handler_call)}"
             )
 
         return result
