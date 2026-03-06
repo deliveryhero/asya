@@ -1,7 +1,9 @@
 ---
 title: GetTask history and artifacts from S3
 priority: 3 # low
+assignee: Artem Yushkovskiy
 ---
+
 
 ## Objective
 
