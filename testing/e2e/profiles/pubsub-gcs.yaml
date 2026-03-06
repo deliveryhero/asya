@@ -12,8 +12,8 @@ namespace: asya-e2e
 # causing ScaledObject Ready=False which blocks function-auto-ready from firing.
 keda:
   env:
-    - name: PUBSUB_EMULATOR_HOST
-      value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
 
 transport:
   rabbitmq:

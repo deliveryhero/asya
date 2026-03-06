@@ -37,7 +37,7 @@ releases:
     chart: kedacore/keda
     labels:
       layer: infra
-    {{- if .Values.keda }}
+    {{- if hasKey .Values "keda" }}
     values:
       - {{- .Values.keda | toYaml | nindent 8 }}
     {{- end }}
