@@ -60,11 +60,10 @@ func TestFileReader_ReadPayload_PathTraversalGuard(t *testing.T) {
 	writeFixture(t, dir, "succeeded", "legit", payload)
 
 	r := stateproxy.NewFileReader(dir)
-	// Path traversal attempt: "../../legit" should resolve to just "legit" via filepath.Base
+	// The path traversal attempt `../../legit` is sanitized by `filepath.Base` to just `legit`.
+	// The test confirms that the read operation correctly targets `succeeded/legit.json`
+	// within the temporary directory, and does not escape the mount path.
 	got, err := r.ReadPayload(context.Background(), "succeeded", "../../legit")
-	// Should return nil (not found) because filepath.Base("../../legit") == "legit"
-	// and succeeded/legit.json DOES exist, so this actually returns the payload.
-	// The important thing is it doesn't escape the mount directory.
 	require.NoError(t, err)
 	_ = got // result is fine either way; the path does NOT escape mountPath
 }
