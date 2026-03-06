@@ -269,11 +269,30 @@ user flows:
 - Staging: imperative, fast, OCI-driven
 - Production: declarative, reviewed, Git-driven
 
+**The lock file analogy**: The production PR works like committing both
+`package.json` and `package-lock.json`:
+
+| Concept | npm/yarn | Asya |
+|---|---|---|
+| Intent (human) | `package.json` | handler.py, requirements.txt, cog.yaml |
+| Resolved artifact | `package-lock.json` | Image digest in asyncactor.yaml |
+| Resolve command | `npm install` | `asya build` |
+| Verify consistency | `npm ci` | CI verifies source provenance on image |
+| Commit both | Yes | Yes |
+
+Source files are for **human review** (what does this actor do?). The image
+digest is for **machine deployment** (what exactly gets deployed?). You
+commit both. The digest is DERIVED from the source -- `asya build` is the
+resolution step.
+
 **The key question: what goes into the production PR?**
 
-Three promotion strategies (DS chooses based on team policy):
+Three promotion strategies (ordered by how much of the "lock file" pattern
+they follow):
 
-#### Strategy A: Promote by Image Digest (no rebuild)
+#### Strategy A: Lock File Only (no source in PR)
+
+*Analogy: committing only `package-lock.json` without `package.json`.*
 
 PR contains:
 ```
@@ -287,10 +306,12 @@ actors/my-actor/
 - Audit trail: image digest is immutable, OCI metadata links to git SHA
 
 **Pros**: Fastest promotion, guaranteed identical behavior.
-**Cons**: Reviewers can't see source code in the PR diff. Need OCI
-metadata discipline (embed git SHA, build strategy in image labels).
+**Cons**: Reviewers can't see source code in the PR diff. Relies on OCI
+metadata for audit.
 
-#### Strategy B: Promote by Source (CI rebuilds)
+#### Strategy B: Source Only, CI Resolves (no lock file)
+
+*Analogy: committing only `package.json`, letting CI run `npm install`.*
 
 PR contains:
 ```
@@ -301,14 +322,14 @@ actors/my-actor/
   asyncactor.yaml           # image tag TBD -- CI fills in after build
 ```
 
-- CI rebuilds image from committed source
-- CI updates the image tag in asyncactor.yaml (or ArgoCD resolves it)
-- The production image is different from staging (rebuilt from same source)
+- CI rebuilds image from committed source (runs `asya build`)
+- CI updates the image tag in asyncactor.yaml
+- The production image is different from staging (re-resolved)
 
 **Pros**: Full source audit in PR, reviewers see code. Standard GitOps.
-**Cons**: Rebuild may produce different image (new base image layers, dep
-resolution drift). Slower -- CI rebuild adds 5-30min. Not bit-for-bit
-identical to what was tested.
+**Cons**: Like `npm install` vs `npm ci` -- rebuild may resolve different
+versions (base image layers, pip deps). Slower (5-30min). Not identical
+to what was tested on staging.
 
 #### Strategy C: Promote by Source + Pinned Digest (verify & deploy)
 
@@ -325,7 +346,7 @@ actors/my-actor/
 
 1. DS runs `asya promote my-actor`. The command:
    - Reads the last built image digest (from local state or staging)
-   - Reads OCI labels on the image (`asya.sh/source-sha`)
+   - Reads source provenance from the image (OCI annotations / SLSA / labels)
    - Computes SHA of current source files in working directory
    - **Compares them**: if source changed since last build, `asya promote`
      refuses and says "Source changed since last build. Run `asya build`
@@ -337,7 +358,8 @@ actors/my-actor/
    config, AND the pinned image digest. They review the code normally.
 
 3. **CI runs a safety-net check** (~seconds, not a rebuild):
-   - Reads `asya.sh/source-sha` label from the pinned image digest
+   - Reads source provenance from the pinned image (OCI annotations,
+     SLSA attestation, or custom labels -- depends on chosen approach)
    - Compares against SHA of source files in the PR
    - Should always pass (since `asya promote` already verified)
    - Fails only in edge cases: someone edited PR files after promote,
@@ -346,16 +368,19 @@ actors/my-actor/
 4. **On PR merge**: ArgoCD/Flux deploys the pinned digest. No build --
    the image is already in the registry from staging.
 
-**OCI labels baked in at build time**: During `asya build`, the tool adds
-labels to the image:
-```
-asya.sh/source-sha=<sha256 of handler.py + requirements.txt + ...>
-asya.sh/build-strategy=cog
-asya.sh/build-time=2026-03-06T14:30:00Z
-```
+**Source-to-image traceability**: During `asya build`, the tool records
+which source produced which image. Two options (open question):
 
-These are immutable for a given digest. `asya promote` and CI both read
-them via `crane manifest` or `docker inspect`.
+- **OCI annotations** (standard): `org.opencontainers.image.source`,
+  `org.opencontainers.image.revision` -- widely supported, no custom schema
+- **SLSA provenance** (supply-chain standard): attestation attached via
+  Cosign/Sigstore or OCI 1.1 Referrers API, includes full build provenance
+- **Custom labels** (simplest): `asya.sh/source-sha` on the image --
+  easy to implement, but reinvents what OCI/SLSA already provide
+
+The image digest itself is already immutable (OCI guarantees this).
+`asya promote` and CI read provenance metadata via `crane manifest`,
+`cosign verify-attestation`, or `docker inspect`.
 
 **When does CI verification fail?** Almost never in normal workflow,
 because `asya promote` catches drift before creating the PR. Edge cases:
@@ -376,7 +401,8 @@ CI verification is a safety net, not a regular gate.
 
 **Pros**: Reviewers see source code. Production deploys the exact tested
 image. Drift caught early by `asya promote`, with CI as safety net.
-**Cons**: Requires OCI labels at build time (handled by `asya build`).
+**Cons**: Requires source provenance on images (open question 7: OCI
+annotations, SLSA, or custom labels).
 
 #### Recommendation
 
@@ -689,13 +715,23 @@ asya commit my-actor
 4. **Image tag strategy**: How to tag staging vs production images?
    `stg-<sha>` / `prod-v1.2`? Semantic versioning? Hash-based (Flyte)?
 
-5. **Source upload for Shipwright**: How does DS upload local (uncommitted)
-   code to Shipwright? Git push to temp branch? Source bundle upload?
-   Shipwright supports both but UX differs.
+5. ~~**Source upload for Shipwright**~~: **Resolved** -- Shipwright supports
+   streaming (via `kubectl exec`, simplest) and bundle (via OCI registry,
+   when exec is restricted). See section 2.2.
 
 6. **SOCI/Stargz adoption**: Is lazy image loading available on major cloud
    K8s providers (EKS, GKE, AKS)? Critical for KEDA scale-to-zero with
    large ML images.
+
+7. **Source-to-image provenance mechanism**: How to record which source
+   produced which image? Three options:
+   - OCI standard annotations (`org.opencontainers.image.revision`) --
+     simple, widely supported, but limited metadata
+   - SLSA provenance attestations via Cosign/Sigstore -- rich, standard,
+     supply-chain grade, but adds toolchain complexity
+   - Custom OCI labels (`asya.sh/source-sha`) -- simplest to implement,
+     but reinvents existing standards
+   This affects how `asya promote` and CI verify source-image consistency.
 
 ---
 
