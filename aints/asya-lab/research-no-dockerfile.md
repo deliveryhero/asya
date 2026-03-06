@@ -124,6 +124,35 @@ server binary remains in the image as dead weight (extra disk, no runtime
 cost). Acceptable trade-off for Cog's CUDA auto-detection. If Cog proves
 useful long-term, we can request a `--no-server` build mode upstream.
 
+**Fast experimentation (no git commit required)**: Cog uses the working
+directory directly -- uncommitted files are silently included in the build.
+No git commit needed. Respects `.dockerignore` for excluding files.
+
+**Iteration workflow**:
+- `cog build` always requires Docker (no local Python-only mode)
+- `cog predict -i key=value` auto-builds on first run, reuses container after
+- `cog serve` starts persistent HTTP server (avoids container restart overhead)
+- `cog run /bin/bash` gives interactive shell inside the built environment
+- NO `cog dev` or hot-reload mode -- each code change requires a rebuild
+  (issue #1128 tracks this pain point)
+
+**Practical experimentation pattern**:
+```bash
+# 1. First build (~3-5min cold, ~30s cached)
+cog build -t my-actor:latest
+
+# 2. Iterate: edit code, rebuild (only code layer changes, ~3-5s)
+cog build -t my-actor:latest
+
+# 3. Or: interactive shell to test without rebuilds
+cog run /bin/bash
+# inside container: python -c "from handler import process; ..."
+```
+
+**CUDA version dry-run**: No official way to see what CUDA version Cog
+selects without starting a build. Workaround: start `cog build`, inspect
+the base image in build output, cancel if you only needed version info.
+
 **Mapping build inputs to Cog**:
 - Python version -> `python_version:`
 - Dependencies -> `python_requirements:`
@@ -131,8 +160,9 @@ useful long-term, we can request a `--no-server` build mode upstream.
 - GPU -> `gpu: true` (auto-detects CUDA from torch/tf version)
 
 **Verdict**: Best DS experience for GPU/ML actors. Auto CUDA detection is
-the killer feature. Bundled inference server is a concern but can be worked
-around.
+the killer feature. Bundled inference server is acceptable (injector
+overwrites CMD). No git commit needed for experimentation. Main limitation:
+requires Docker and has no hot-reload.
 
 | Dimension | Rating |
 |---|---|
