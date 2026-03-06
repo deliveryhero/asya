@@ -14,6 +14,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -31,6 +32,10 @@ type Config struct {
 	TokenTTL time.Duration
 	// RefreshTTL is the refresh token lifetime. Defaults to 30 days.
 	RefreshTTL time.Duration
+	// RegistrationToken optionally protects /oauth/register.
+	// When non-empty, clients must send Authorization: Bearer <RegistrationToken>
+	// to register. When empty, registration is open (suitable only if network-restricted).
+	RegistrationToken string
 }
 
 // Server is the MCP OAuth 2.1 authorization server.
@@ -101,12 +106,27 @@ type registerResponse struct {
 }
 
 // HandleRegister handles POST /oauth/register (Dynamic Client Registration).
+// When Config.RegistrationToken is set, the request must carry
+// Authorization: Bearer <RegistrationToken>.
 func (s *Server) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Protect registration when a token is configured.
+	if s.cfg.RegistrationToken != "" {
+		authHeader := r.Header.Get("Authorization")
+		provided := strings.TrimPrefix(authHeader, "Bearer ")
+		if !strings.HasPrefix(authHeader, "Bearer ") || provided != s.cfg.RegistrationToken {
+			w.Header().Set("WWW-Authenticate", `Bearer realm="asya-gateway"`)
+			writeOAuthError(w, http.StatusUnauthorized, "unauthorized_client", "registration token required")
+			return
+		}
+	}
+
+	// Limit body to 1 MiB to prevent DoS via large payloads.
+	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_request", "invalid JSON body")
@@ -118,7 +138,8 @@ func (s *Server) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	scope := req.Scope
+	// Only allow supported scopes; default to all if none requested.
+	scope := intersectScopes(req.Scope, "mcp:invoke mcp:read")
 	if scope == "" {
 		scope = "mcp:invoke mcp:read"
 	}
@@ -168,17 +189,26 @@ func (s *Server) HandleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// redirectURI is validated against the client's registered allowlist before use,
+	// eliminating SSRF risk (user input is matched, not trusted for URL construction).
 	if !containsURI(client.RedirectURIs, redirectURI) {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_request", "redirect_uri not registered")
 		return
 	}
 
-	if scope == "" {
+	// Intersect requested scopes with client's registered scopes.
+	if scope != "" {
+		scope = intersectScopes(scope, client.Scope)
+		if scope == "" {
+			writeOAuthError(w, http.StatusBadRequest, "invalid_scope", "no valid scopes in request")
+			return
+		}
+	} else {
 		scope = client.Scope
 	}
 
 	// Issue authorization code (auto-approve for machine clients)
-	code := generateToken(32)
+	code := mustGenerateToken(32)
 	expires := time.Now().Add(5 * time.Minute)
 	if err := s.insertAuthCode(r.Context(), code, clientID, redirectURI, scope, codeChallenge, codeChallengeMethod, expires); err != nil {
 		slog.Error("oauth: failed to insert auth code", "error", err)
@@ -186,8 +216,13 @@ func (s *Server) HandleAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Redirect back to client with code
-	u, _ := url.Parse(redirectURI)
+	// redirectURI was validated against the registered allowlist above.
+	u, err := url.Parse(redirectURI)
+	if err != nil {
+		slog.Error("oauth: registered redirect_uri is not a valid URL", "uri", redirectURI, "error", err)
+		writeOAuthError(w, http.StatusInternalServerError, "server_error", "invalid redirect_uri configuration")
+		return
+	}
 	params := u.Query()
 	params.Set("code", code)
 	if state != "" {
@@ -227,7 +262,9 @@ func (s *Server) handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 	redirectURI := r.FormValue("redirect_uri")
 	codeVerifier := r.FormValue("code_verifier")
 
-	authCode, err := s.findAuthCode(r.Context(), code)
+	// consumeAuthCode atomically validates and marks the code as used (UPDATE ... RETURNING),
+	// preventing TOCTOU race conditions with concurrent token requests.
+	authCode, err := s.consumeAuthCode(r.Context(), code)
 	if err != nil || authCode == nil {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired code")
 		return
@@ -244,39 +281,31 @@ func (s *Server) handleCodeExchange(w http.ResponseWriter, r *http.Request) {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "code_verifier does not match challenge")
 		return
 	}
-	if err := s.markAuthCodeUsed(r.Context(), code); err != nil {
-		slog.Error("oauth: failed to mark code used", "error", err)
-		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to consume code")
-		return
-	}
 
-	s.issueTokenResponse(w, clientID, authCode.Scope)
+	s.issueTokenResponse(w, r.Context(), clientID, authCode.Scope)
 }
 
 func (s *Server) handleRefreshToken(w http.ResponseWriter, r *http.Request) {
 	rawToken := r.FormValue("refresh_token")
 	clientID := r.FormValue("client_id")
 
+	// consumeRefreshToken atomically revokes the token and returns its data,
+	// preventing TOCTOU race conditions with concurrent refresh requests.
 	tokenHash := hashToken(rawToken)
-	refreshToken, err := s.findRefreshToken(r.Context(), tokenHash)
-	if err != nil || refreshToken == nil {
+	rt, err := s.consumeRefreshToken(r.Context(), tokenHash)
+	if err != nil || rt == nil {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "invalid or expired refresh token")
 		return
 	}
-	if refreshToken.ClientID != clientID {
+	if rt.ClientID != clientID {
 		writeOAuthError(w, http.StatusBadRequest, "invalid_grant", "client_id mismatch")
 		return
 	}
-	if err := s.revokeRefreshToken(r.Context(), tokenHash); err != nil {
-		slog.Error("oauth: failed to revoke refresh token", "error", err)
-		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to rotate token")
-		return
-	}
 
-	s.issueTokenResponse(w, clientID, refreshToken.Scope)
+	s.issueTokenResponse(w, r.Context(), clientID, rt.Scope)
 }
 
-func (s *Server) issueTokenResponse(w http.ResponseWriter, clientID, scope string) {
+func (s *Server) issueTokenResponse(w http.ResponseWriter, ctx context.Context, clientID, scope string) {
 	accessToken, err := s.issueAccessToken(clientID, scope)
 	if err != nil {
 		slog.Error("oauth: failed to issue access token", "error", err)
@@ -284,7 +313,7 @@ func (s *Server) issueTokenResponse(w http.ResponseWriter, clientID, scope strin
 		return
 	}
 
-	refreshToken, err := s.insertNewRefreshToken(context.Background(), clientID, scope)
+	refreshToken, err := s.insertNewRefreshToken(ctx, clientID, scope)
 	if err != nil {
 		slog.Error("oauth: failed to issue refresh token", "error", err)
 		writeOAuthError(w, http.StatusInternalServerError, "server_error", "failed to issue refresh token")
@@ -334,7 +363,7 @@ type authCode struct {
 	ExpiresAt           time.Time
 }
 
-type refreshToken struct {
+type refreshTokenRecord struct {
 	TokenHash string
 	ClientID  string
 	Scope     string
@@ -375,12 +404,16 @@ func (s *Server) insertAuthCode(ctx context.Context, code, clientID, redirectURI
 	return err
 }
 
-func (s *Server) findAuthCode(ctx context.Context, code string) (*authCode, error) {
+// consumeAuthCode atomically marks the authorization code as used and returns its data.
+// Using UPDATE ... RETURNING prevents TOCTOU races from concurrent token requests
+// with the same code; only the first successful update returns rows.
+func (s *Server) consumeAuthCode(ctx context.Context, code string) (*authCode, error) {
 	var ac authCode
 	err := s.pool.QueryRow(ctx,
-		`SELECT code, client_id, redirect_uri, scope, code_challenge, code_challenge_method, expires_at
-		 FROM oauth_authorization_codes
-		 WHERE code = $1 AND used_at IS NULL AND expires_at > now()`,
+		`UPDATE oauth_authorization_codes
+		 SET used_at = now()
+		 WHERE code = $1 AND used_at IS NULL AND expires_at > now()
+		 RETURNING code, client_id, redirect_uri, scope, code_challenge, code_challenge_method, expires_at`,
 		code,
 	).Scan(&ac.Code, &ac.ClientID, &ac.RedirectURI, &ac.Scope, &ac.CodeChallenge, &ac.CodeChallengeMethod, &ac.ExpiresAt)
 	if err != nil {
@@ -389,16 +422,8 @@ func (s *Server) findAuthCode(ctx context.Context, code string) (*authCode, erro
 	return &ac, nil
 }
 
-func (s *Server) markAuthCodeUsed(ctx context.Context, code string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE oauth_authorization_codes SET used_at = now() WHERE code = $1`,
-		code,
-	)
-	return err
-}
-
 func (s *Server) insertNewRefreshToken(ctx context.Context, clientID, scope string) (string, error) {
-	rawToken := generateToken(32)
+	rawToken := mustGenerateToken(32)
 	tokenHash := hashToken(rawToken)
 	expires := time.Now().Add(s.cfg.RefreshTTL)
 	_, err := s.pool.Exec(ctx,
@@ -412,12 +437,16 @@ func (s *Server) insertNewRefreshToken(ctx context.Context, clientID, scope stri
 	return rawToken, nil
 }
 
-func (s *Server) findRefreshToken(ctx context.Context, tokenHash string) (*refreshToken, error) {
-	var rt refreshToken
+// consumeRefreshToken atomically revokes the refresh token and returns its data.
+// Using UPDATE ... RETURNING prevents TOCTOU races from concurrent refresh requests;
+// only the first successful update returns rows (token rotation is safe).
+func (s *Server) consumeRefreshToken(ctx context.Context, tokenHash string) (*refreshTokenRecord, error) {
+	var rt refreshTokenRecord
 	err := s.pool.QueryRow(ctx,
-		`SELECT token_hash, client_id, scope, expires_at
-		 FROM oauth_refresh_tokens
-		 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()`,
+		`UPDATE oauth_refresh_tokens
+		 SET revoked_at = now()
+		 WHERE token_hash = $1 AND revoked_at IS NULL AND expires_at > now()
+		 RETURNING token_hash, client_id, scope, expires_at`,
 		tokenHash,
 	).Scan(&rt.TokenHash, &rt.ClientID, &rt.Scope, &rt.ExpiresAt)
 	if err != nil {
@@ -426,19 +455,15 @@ func (s *Server) findRefreshToken(ctx context.Context, tokenHash string) (*refre
 	return &rt, nil
 }
 
-func (s *Server) revokeRefreshToken(ctx context.Context, tokenHash string) error {
-	_, err := s.pool.Exec(ctx,
-		`UPDATE oauth_refresh_tokens SET revoked_at = now() WHERE token_hash = $1`,
-		tokenHash,
-	)
-	return err
-}
-
 // --- Utility functions ---
 
-func generateToken(n int) string {
+// mustGenerateToken generates a cryptographically random base64url token of n bytes.
+// Panics if the system entropy source fails — rand.Read failure is unrecoverable.
+func mustGenerateToken(n int) string {
 	b := make([]byte, n)
-	_, _ = rand.Read(b)
+	if _, err := rand.Read(b); err != nil {
+		panic(fmt.Sprintf("oauth: failed to generate random token: %v", err))
+	}
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
@@ -454,6 +479,22 @@ func containsURI(uris []string, target string) bool {
 		}
 	}
 	return false
+}
+
+// intersectScopes returns the space-separated subset of requested scopes
+// that appear in the allowed scopes string.
+func intersectScopes(requested, allowed string) string {
+	allowedSet := make(map[string]bool)
+	for _, s := range strings.Fields(allowed) {
+		allowedSet[s] = true
+	}
+	var valid []string
+	for _, s := range strings.Fields(requested) {
+		if allowedSet[s] {
+			valid = append(valid, s)
+		}
+	}
+	return strings.Join(valid, " ")
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

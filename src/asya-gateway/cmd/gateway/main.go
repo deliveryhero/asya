@@ -172,9 +172,10 @@ func main() {
 			os.Exit(1)
 		}
 		srv, oauthErr := oauth.NewServer(pgStore.Pool(), oauth.Config{
-			Issuer:   oauthIssuer,
-			Secret:   []byte(oauthSecret),
-			TokenTTL: time.Duration(oauthTokenTTL) * time.Second,
+			Issuer:            oauthIssuer,
+			Secret:            []byte(oauthSecret),
+			TokenTTL:          time.Duration(oauthTokenTTL) * time.Second,
+			RegistrationToken: os.Getenv("ASYA_MCP_OAUTH_REGISTRATION_TOKEN"),
 		})
 		if oauthErr != nil {
 			slog.Error("Failed to create OAuth server", "error", oauthErr)

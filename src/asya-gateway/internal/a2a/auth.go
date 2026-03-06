@@ -142,7 +142,10 @@ func (o *OAuthBearerAuthenticator) Authenticate(r *http.Request) bool {
 func MCPAuthMiddleware(authenticators ...Authenticator) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if len(authenticators) == 0 {
-			return next // auth disabled
+			// Auth disabled: ASYA_MCP_API_KEY and ASYA_MCP_OAUTH_ENABLED are both unset.
+			// MCP endpoints are accessible without credentials. Acceptable in network-restricted
+			// deployments; set ASYA_MCP_API_KEY for production use.
+			return next
 		}
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			for _, auth := range authenticators {

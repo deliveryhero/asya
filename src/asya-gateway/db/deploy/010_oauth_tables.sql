@@ -10,7 +10,7 @@ CREATE TABLE oauth_clients (
 
 CREATE TABLE oauth_authorization_codes (
     code                   TEXT PRIMARY KEY,
-    client_id              TEXT NOT NULL REFERENCES oauth_clients (client_id),
+    client_id              TEXT NOT NULL REFERENCES oauth_clients (client_id) ON DELETE CASCADE,
     redirect_uri           TEXT NOT NULL,
     scope                  TEXT NOT NULL,
     code_challenge         TEXT NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE oauth_authorization_codes (
 
 CREATE TABLE oauth_refresh_tokens (
     token_hash  TEXT PRIMARY KEY,
-    client_id   TEXT NOT NULL REFERENCES oauth_clients (client_id),
+    client_id   TEXT NOT NULL REFERENCES oauth_clients (client_id) ON DELETE CASCADE,
     scope       TEXT NOT NULL,
     expires_at  TIMESTAMPTZ NOT NULL,
     revoked_at  TIMESTAMPTZ
