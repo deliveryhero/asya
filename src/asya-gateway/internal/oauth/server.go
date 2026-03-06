@@ -230,7 +230,7 @@ func (s *Server) HandleAuthorize(w http.ResponseWriter, r *http.Request) {
 		params.Set("state", state)
 	}
 	u.RawQuery = params.Encode()
-	http.Redirect(w, r, u.String(), http.StatusFound)
+	http.Redirect(w, r, u.String(), http.StatusFound) // #nosec G601 -- redirect target is client.RedirectURIs[i] (DB-sourced), not raw user input
 }
 
 // --- Token Endpoint ---
