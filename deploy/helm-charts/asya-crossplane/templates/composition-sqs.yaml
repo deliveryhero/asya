@@ -71,6 +71,11 @@ spec:
                 visibilityTimeoutSeconds: 30
                 messageRetentionSeconds: 345600
                 receiveWaitTimeSeconds: {{ .Values.sqs.receiveWaitTimeSeconds | default 20 }}
+                {{`{{- $awsAccountId := "`}}{{ .Values.awsAccountId }}{{`" -}}`}}
+                {{`{{- if ne $awsAccountId "" }}`}}
+                {{`{{- $dlqArn := printf "arn:aws:sqs:%s:%s:asya-%s-dlq" $region $awsAccountId $namespace }}`}}
+                redrivePolicy: '{"deadLetterTargetArn":"{{`{{ $dlqArn }}`}}","maxReceiveCount":{{ .Values.sqs.dlq.maxReceiveCount | default 3 }}}'
+                {{`{{- end }}`}}
                 tags:
                   asya.sh/namespace: {{`{{ $namespace }}`}}
                   asya.sh/actor: {{`{{ $actorName }}`}}

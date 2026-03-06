@@ -94,6 +94,10 @@ keda:
 # SQS configuration (used by composition-sqs)
 sqs:
   receiveWaitTimeSeconds: 20
+  dlq:
+    # Max receive attempts before moving message to DLQ
+    # Requires awsAccountId to be set and shared DLQ queue to exist (created by asya-crew chart)
+    maxReceiveCount: 3
 
 # RabbitMQ configuration (used by composition-rabbitmq)
 rabbitmq:
