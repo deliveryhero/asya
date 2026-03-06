@@ -2,7 +2,7 @@
 Generic checkpointer for Asya framework.
 
 Persists complete messages (metadata + payload) as JSON files via the state proxy.
-Storage backend is pluggable (S3/GCS/PostgreSQL/etc.) through the state proxy connector
+Storage backend is pluggable (S3/GCS/etc.) through the state proxy connector
 configured in the AsyncActor CRD.
 
 Called from the sink handler, which passes message metadata obtained via ABI protocol.
@@ -11,7 +11,7 @@ Environment Variables:
 - ASYA_PERSISTENCE_MOUNT: State proxy mount path for checkpoint storage
 
 File Path Structure:
-    {mount}/{prefix}/{timestamp}/{actor}/{id}.json
+    {mount}/{prefix}/{id}.json
 
 Prefixes:
 - succeeded/ - Messages with status.phase == "succeeded"
@@ -19,8 +19,12 @@ Prefixes:
 - checkpoint/ - Messages without status.phase (mid-pipeline)
 
 Examples:
-    /state/checkpoints/succeeded/2026-02-12T10:30:00.123456Z/text-processor/msg-123.json
-    /state/checkpoints/failed/2026-02-12T10:30:00.123456Z/image-analyzer/msg-456.json
+    /state/checkpoints/succeeded/msg-123.json
+    /state/checkpoints/failed/msg-456.json
+
+The flat {prefix}/{id}.json structure makes the key reconstructable by the gateway,
+which already knows the task ID and final status. Actor name and timestamp are
+preserved inside the JSON body (route.prev, status.phase) for debugging.
 
 Handler Behavior:
 - Receives message metadata as keyword arguments from caller (sink/sump generators)
@@ -32,7 +36,6 @@ import contextlib
 import json
 import logging
 import os
-from datetime import UTC, datetime
 from typing import Any
 
 
@@ -84,11 +87,7 @@ def handler(
     else:
         prefix = "checkpoint"
 
-    actor = prev_actors[-1] if prev_actors else "unknown"
-
-    now = datetime.now(tz=UTC)
-    timestamp = now.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
-    key = f"{prefix}/{timestamp}/{actor}/{message_id}.json"
+    key = f"{prefix}/{message_id}.json"
     file_path = f"{ASYA_PERSISTENCE_MOUNT}/{key}"
 
     message: dict[str, Any] = {

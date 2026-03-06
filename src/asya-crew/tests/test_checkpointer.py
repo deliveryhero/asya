@@ -124,8 +124,8 @@ def test_skips_when_mount_not_configured(monkeypatch):
     handler({"value": 42}, message_id="test-message-no-mount", phase="succeeded")
 
 
-def test_key_includes_actor_from_route_prev(tmp_path, monkeypatch):
-    """Test checkpoint handler uses last prev actor for file path."""
+def test_key_is_flat_prefix_and_id(tmp_path, monkeypatch):
+    """Test checkpoint key is {prefix}/{id}.json — reconstructable by gateway from task ID + status."""
     mount_path = str(tmp_path / "checkpoints")
     os.makedirs(mount_path)
     monkeypatch.setenv("ASYA_PERSISTENCE_MOUNT", mount_path)
@@ -143,8 +143,7 @@ def test_key_includes_actor_from_route_prev(tmp_path, monkeypatch):
 
     files = _find_json_files(mount_path)
     assert len(files) == 1
-    assert "/text-processor/" in files[0]
-    assert files[0].endswith("test-actor-key.json")
+    assert files[0] == os.path.join(mount_path, "succeeded", "test-actor-key.json")
 
 
 def test_persists_complete_message(tmp_path, monkeypatch):
