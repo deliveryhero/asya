@@ -828,12 +828,12 @@ decisions that would otherwise require re-reading large PRs.</p>
 </thead>
 <tbody>
 <tr>
-<td><a href="testing-e2e-transport/">testing-e2e-transport.md</a></td>
-<td>How transports are wired into E2E tests: profiles, emulators, Crossplane compositions, skip logic</td>
+<td><a href="testing-transport/">testing-transport.md</a></td>
+<td>Transport backends across all test levels: unit mocks, component/integration Docker Compose profiles, E2E Kind cluster wiring, Pub/Sub emulator OAuth workaround, skip logic, how to add a new transport</td>
 </tr>
 <tr>
-<td><a href="testing-e2e-state-proxy/">testing-e2e-state-proxy.md</a></td>
-<td>How storage backends (S3/GCS) are wired into E2E tests: crew persistence, Helm values, emulators</td>
+<td><a href="testing-state-proxy/">testing-state-proxy.md</a></td>
+<td>State proxy / storage backends across all test levels: moto vs unittest.mock, component profiles, integration GCS overlay, E2E NodePort mapping, connector image loading, crew chart <code>persistence.*</code> values, how to add a new backend</td>
 </tr>
 </tbody>
 </table></div>

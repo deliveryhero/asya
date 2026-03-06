@@ -8,8 +8,8 @@ decisions that would otherwise require re-reading large PRs.
 
 | Document | Covers |
 |----------|--------|
-| [testing-e2e-transport.md](testing-e2e-transport.md) | How transports are wired into E2E tests: profiles, emulators, Crossplane compositions, skip logic |
-| [testing-e2e-state-proxy.md](testing-e2e-state-proxy.md) | How storage backends (S3/GCS) are wired into E2E tests: crew persistence, Helm values, emulators |
+| [testing-transport.md](testing-transport.md) | Transport backends across all test levels: unit mocks, component/integration Docker Compose profiles, E2E Kind cluster wiring, Pub/Sub emulator OAuth workaround, skip logic, how to add a new transport |
+| [testing-state-proxy.md](testing-state-proxy.md) | State proxy / storage backends across all test levels: moto vs unittest.mock, component profiles, integration GCS overlay, E2E NodePort mapping, connector image loading, crew chart `persistence.*` values, how to add a new backend |
 
 ## What belongs here
 

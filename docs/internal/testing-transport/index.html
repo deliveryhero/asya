@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Testing e2e transport - Asya🎭</title>
+    <title>Testing transport - Asya🎭</title>
     
 
 
-<title>Testing e2e transport</title>
+<title>Testing transport</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/internal/testing-e2e-transport/">
+<link rel="canonical" href="https://asya.sh/docs/internal/testing-transport/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Testing e2e transport">
+<meta property="og:title" content="Testing transport">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/internal/testing-e2e-transport/">
+<meta property="og:url" content="https://asya.sh/docs/internal/testing-transport/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Testing e2e transport">
+<meta name="twitter:title" content="Testing transport">
 
 
 
@@ -791,12 +791,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Testing e2e transport
+          Testing transport
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/internal/testing-e2e-transport.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/internal/testing-transport.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -815,12 +815,145 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>How message transport (SQS, Pub/Sub, RabbitMQ) is wired into E2E tests.
-Captured during PRs #251, #256, #258.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>E2E tests run against a Kind cluster with a pluggable transport profile. Each
-profile pairs a message transport with a storage backend (see
-<a href="../testing-e2e-state-proxy/">testing-e2e-state-proxy.md</a>).</p>
+    <p>How message transport (SQS, Pub/Sub, RabbitMQ) is exercised across all test levels.
+The same transport appears at four different abstraction layers, each with different
+infrastructure and scope.</p>
+<h2 id="transport-support-matrix">Transport Support Matrix<a class="headerlink" href="#transport-support-matrix" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Transport</th>
+<th>Unit</th>
+<th>Component</th>
+<th>Integration</th>
+<th>E2E</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RabbitMQ</td>
+<td>—</td>
+<td>✅</td>
+<td>✅</td>
+<td>❌ disabled in CI</td>
+</tr>
+<tr>
+<td>SQS</td>
+<td>✅ (moto)</td>
+<td>✅</td>
+<td>✅</td>
+<td>✅ CI</td>
+</tr>
+<tr>
+<td>Pub/Sub</td>
+<td>✅ (mock)</td>
+<td>—</td>
+<td>✅</td>
+<td>✅ CI</td>
+</tr>
+</tbody>
+</table></div>
+<p>Unit tests for the transport layer live in <code>src/asya-sidecar/</code> (Go) and
+<code>src/asya-testing/asya_testing/clients/</code> (Python). Component tests for the
+sidecar are in <code>testing/component/sidecar/</code>.</p>
+<h2 id="unit-tests">Unit Tests<a class="headerlink" href="#unit-tests" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>src/asya-sidecar/transport/</code></p>
+<p>The sidecar transport implementations (<code>sqs.go</code>, <code>pubsub.go</code>, <code>rabbitmq.go</code>) are
+unit-tested with interface mocks — no real queues involved.</p>
+<p>For the <strong>Python test client</strong> (<code>src/asya-testing/</code>):
+- <code>SQSClient</code> — tested via <code>moto</code> (<code>@mock_aws</code> decorator), which intercepts all
+  <code>boto3</code> calls in-process
+- <code>PubSubClient</code> — tested via <code>unittest.mock</code> patching <code>google.cloud.pubsub_v1</code>
+- <code>RabbitMQClient</code> — tested via <code>unittest.mock</code> patching <code>pika</code></p>
+<p>Key mock entry points:
+<div class="highlight"><pre><span></span><code><span class="c1"># SQS: moto intercepts boto3 at the HTTP layer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">moto</span><span class="w"> </span><span class="kn">import</span> <span class="n">mock_aws</span>
+
+<span class="nd">@mock_aws</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">test_send_receive</span><span class="p">():</span>
+    <span class="n">client</span> <span class="o">=</span> <span class="n">SQSClient</span><span class="p">(</span><span class="n">endpoint_url</span><span class="o">=</span><span class="s2">&quot;http://localhost:4566&quot;</span><span class="p">,</span> <span class="o">...</span><span class="p">)</span>
+    <span class="o">...</span>
+
+<span class="c1"># Pub/Sub: patch the SDK client class itself</span>
+<span class="k">with</span> <span class="n">patch</span><span class="p">(</span><span class="s2">&quot;google.cloud.pubsub_v1.PublisherClient&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mock_pub</span><span class="p">:</span>
+    <span class="o">...</span>
+</code></pre></div></p>
+<p><code>TransportTimeouts</code> (<code>src/asya-testing/asya_testing/fixtures/transport.py</code>) groups
+SQS and Pub/Sub together with longer timeouts (30/60/120s) vs RabbitMQ (20/30/120s)
+because both use polling or emulator gRPC, not immediate push delivery.</p>
+<h2 id="component-tests-sidecar">Component Tests: Sidecar<a class="headerlink" href="#component-tests-sidecar" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/component/sidecar/</code></p>
+<p>Tests the sidecar binary in isolation against a real transport emulator. No
+runtime or actor code runs — only the sidecar's message receive/send loop.</p>
+<div class="highlight"><pre><span></span><code>testing/component/sidecar/
+├── profiles/
+│   ├── rabbitmq.yml     # docker-compose: sidecar + RabbitMQ
+│   └── sqs.yml          # docker-compose: sidecar + LocalStack SQS
+└── tests/
+    └── test_sidecar.py
+</code></pre></div>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/component/sidecar<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>sqs
+make<span class="w"> </span>-C<span class="w"> </span>testing/component/sidecar<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>rabbitmq
+</code></pre></div></p>
+<p>There is no Pub/Sub component profile for the sidecar yet. Pub/Sub is first
+exercised at the integration level.</p>
+<h2 id="integration-tests-sidecar-runtime">Integration Tests: Sidecar + Runtime<a class="headerlink" href="#integration-tests-sidecar-runtime" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/integration/sidecar-runtime/</code></p>
+<p>Tests the sidecar ↔ runtime pair end-to-end within Docker Compose. Messages
+flow: test client → transport emulator → sidecar → Unix socket → runtime → response.</p>
+<div class="highlight"><pre><span></span><code>testing/integration/sidecar-runtime/
+├── profiles/
+│   ├── rabbitmq.yml    # RabbitMQ transport
+│   ├── sqs.yml         # LocalStack SQS
+│   └── pubsub.yml      # GCP Pub/Sub emulator (gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators)
+├── configs/
+│   └── pubsub-topics.txt   # List of topics/subscriptions to pre-create
+└── compose/
+    └── tester.yml
+</code></pre></div>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/integration/sidecar-runtime<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub
+make<span class="w"> </span>-C<span class="w"> </span>testing/integration/sidecar-runtime<span class="w"> </span><span class="nb">test</span><span class="w">              </span><span class="c1"># all three transports</span>
+</code></pre></div></p>
+<h3 id="pubsub-emulator-topic-pre-creation">Pub/Sub emulator topic pre-creation<a class="headerlink" href="#pubsub-emulator-topic-pre-creation" title="Permanent link">&para;</a></h3>
+<p>Pub/Sub requires topics and subscriptions to exist before the sidecar starts.
+The <code>queue-setup</code> service (in <code>profiles/pubsub.yml</code>) reads
+<code>configs/pubsub-topics.txt</code> and creates each topic+subscription via the emulator
+REST API:</p>
+<div class="highlight"><pre><span></span><code>PUT http://pubsub:8085/v1/projects/test-project/topics/{topic}
+PUT http://pubsub:8085/v1/projects/test-project/subscriptions/{topic}
+    body: {&quot;topic&quot;: &quot;projects/test-project/topics/{topic}&quot;, &quot;ackDeadlineSeconds&quot;: 60}
+</code></pre></div>
+<p>The <code>tester</code> container starts only after <code>queue-setup</code> completes successfully
+(<code>condition: service_completed_successfully</code>). If a test creates new actors, it
+must also create their topics via the emulator REST API.</p>
+<h3 id="shared-emulator-definitions">Shared emulator definitions<a class="headerlink" href="#shared-emulator-definitions" title="Permanent link">&para;</a></h3>
+<p>The shared <code>testing/shared/compose/pubsub.yml</code> defines the Pub/Sub emulator
+service. Profiles include it with:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">include</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../../shared/compose/pubsub.yml</span>
+</code></pre></div>
+<h2 id="integration-tests-gateway-actors">Integration Tests: Gateway + Actors<a class="headerlink" href="#integration-tests-gateway-actors" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/integration/gateway-actors/</code></p>
+<p>Tests the gateway ↔ sidecar ↔ runtime ↔ x-sink pipeline. The profile name
+combines transport and storage: <code>ASYA_TRANSPORT-ASYA_STORAGE</code>.</p>
+<div class="highlight"><pre><span></span><code>testing/integration/gateway-actors/
+└── profiles/
+    ├── sqs-s3.yml          # LocalStack SQS + LocalStack S3
+    ├── rabbitmq-minio.yml  # RabbitMQ + MinIO
+    └── pubsub-gcs.yml      # Pub/Sub emulator + fake-gcs-server
+</code></pre></div>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gateway-actors<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub<span class="w"> </span><span class="nv">ASYA_STORAGE</span><span class="o">=</span>gcs
+</code></pre></div></p>
+<p>The GCS profile requires an overlay (<code>compose/crew-gcs-overlay.yml</code>) that
+configures the x-sink crew actor to use the GCS connector instead of the default
+S3 connector. This overlay is added automatically when <code>ASYA_STORAGE=gcs</code>.</p>
+<h2 id="e2e-tests-kind-cluster">E2E Tests: Kind Cluster<a class="headerlink" href="#e2e-tests-kind-cluster" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/e2e/</code></p>
+<p>Full Kubernetes deployment with Crossplane, the injector, gateway, KEDA, and crew
+actors. Transport is selected at the profile level.</p>
 <p>Active profiles in CI:</p>
 <div class="table-wrapper"><table>
 <thead>
@@ -852,153 +985,109 @@ profile pairs a message transport with a storage backend (see
 </tr>
 </tbody>
 </table></div>
-<h2 id="file-locations">File Locations<a class="headerlink" href="#file-locations" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>testing/e2e/
 ├── kind-config.yaml              # Kind cluster config (port mappings for all profiles)
 ├── Makefile                      # make up / make trigger-tests PROFILE=sqs-s3
 ├── profiles/
 │   ├── sqs-s3.yaml              # Helm values for sqs-s3 profile
 │   ├── pubsub-gcs.yaml          # Helm values for pubsub-gcs profile
-│   ├── rabbitmq-minio.yaml      # Helm values for rabbitmq-minio profile
 │   ├── .env.sqs-s3              # Env vars exported to pytest (host-side)
-│   ├── .env.pubsub-gcs          # Env vars exported to pytest (host-side)
-│   └── .env.rabbitmq-minio
+│   └── .env.pubsub-gcs
 ├── charts/
 │   ├── helmfile.yaml.gotmpl     # Assembles infra from profiles + charts
 │   ├── sqs/                     # LocalStack SQS Helm chart
-│   ├── pubsub/                  # GCP Pub/Sub emulator chart
-│   └── rabbitmq/                # RabbitMQ chart
-├── scripts/
-│   └── deploy.sh                # Cluster bootstrap + secret creation
+│   └── pubsub/                  # GCP Pub/Sub emulator chart
 └── tests/
     ├── conftest.py              # Transport client fixture selection
     └── test_crossplane_e2e.py   # Crossplane XRD/composition tests (transport-aware)
 </code></pre></div>
-<h2 id="how-a-profile-works">How a Profile Works<a class="headerlink" href="#how-a-profile-works" title="Permanent link">&para;</a></h2>
-<h3 id="1-helm-values-layer-profilesprofileyaml">1. Helm values layer (<code>profiles/&lt;profile&gt;.yaml</code>)<a class="headerlink" href="#1-helm-values-layer-profilesprofileyaml" title="Permanent link">&para;</a></h3>
-<p>The profile YAML is the single source of truth for the entire cluster configuration.
-It is passed to <code>helmfile</code> as an environment file and controls which infrastructure
-releases are enabled:</p>
+<h3 id="how-a-profile-works">How a profile works<a class="headerlink" href="#how-a-profile-works" title="Permanent link">&para;</a></h3>
+<p>The profile YAML (<code>profiles/&lt;profile&gt;.yaml</code>) is the single source of truth for
+the entire cluster. It controls which Helm releases are deployed:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># profiles/pubsub-gcs.yaml</span>
 <span class="nt">transport</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">sqs</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">  </span><span class="nt">pubsub</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># Deploys pubsub emulator chart</span>
-
-<span class="nt">storage</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">gcs</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># Deploys fake-gcs chart</span>
-
-<span class="nt">actors</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pubsub</span><span class="w">  </span><span class="c1"># Sets transport field in all AsyncActor manifests</span>
-
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># deploys pubsub emulator chart</span>
 <span class="nt">crossplane</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">providers</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">false</span>
 <span class="w">    </span><span class="nt">gcp</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># Deploys provider-gcp-pubsub + GCP ProviderConfig</span>
+<span class="w">      </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">  </span><span class="c1"># deploys provider-gcp-pubsub + GCP ProviderConfig</span>
 </code></pre></div>
-<p>The <code>helmfile.yaml.gotmpl</code> reads these values and conditionally deploys:
-- <code>condition: transport.pubsub.enabled</code> — the Pub/Sub emulator
-- <code>condition: storage.gcs.enabled</code> — the fake-gcs-server</p>
-<h3 id="2-environment-file-envprofile">2. Environment file (<code>.env.&lt;profile&gt;</code>)<a class="headerlink" href="#2-environment-file-envprofile" title="Permanent link">&para;</a></h3>
-<p>After the cluster is up, <code>make trigger-tests</code> sources <code>.env.&lt;profile&gt;</code> and
-runs pytest. These variables configure the test-side clients:</p>
+<p>After <code>make up</code>, <code>make trigger-tests</code> sources <code>.env.&lt;profile&gt;</code> which maps
+emulator NodePorts to localhost for pytest:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># .env.pubsub-gcs</span>
 <span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub
 <span class="nv">PUBSUB_EMULATOR_HOST</span><span class="o">=</span><span class="m">127</span>.0.0.1:30085<span class="w">   </span><span class="c1"># NodePort → Kind → emulator pod</span>
-<span class="nv">PUBSUB_PROJECT_ID</span><span class="o">=</span>test-project
-<span class="nv">STORAGE_EMULATOR_HOST</span><span class="o">=</span>http://127.0.0.1:30443
 </code></pre></div>
-<p>The <code>127.0.0.1</code> addresses work because <code>kind-config.yaml</code> includes
-<code>extraPortMappings</code> that bind Kind node NodePorts to localhost:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># kind-config.yaml (all profiles share one config)</span>
+<p>The <code>127.0.0.1</code> addresses work because <code>kind-config.yaml</code> binds Kind node
+NodePorts to localhost via <code>extraPortMappings</code>. All profiles share one Kind
+config — unused ports are harmless:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># kind-config.yaml</span>
 <span class="nt">extraPortMappings</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30566</span><span class="w">   </span><span class="c1"># LocalStack SQS</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30566</span><span class="w">   </span><span class="c1"># LocalStack SQS → localhost:4566</span>
 <span class="w">    </span><span class="nt">hostPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4566</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30085</span><span class="w">   </span><span class="c1"># Pub/Sub emulator</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30085</span><span class="w">   </span><span class="c1"># Pub/Sub emulator → localhost:8085</span>
 <span class="w">    </span><span class="nt">hostPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8085</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">containerPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30443</span><span class="w">   </span><span class="c1"># fake-gcs</span>
-<span class="w">    </span><span class="nt">hostPort</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4443</span>
 </code></pre></div>
-<p><strong>Important</strong>: All ports for all profiles must be in <code>kind-config.yaml</code>, because
-only one Kind cluster is created per profile and it uses the shared config.
-Unused ports are harmless.</p>
-<h3 id="3-crossplane-composition">3. Crossplane composition<a class="headerlink" href="#3-crossplane-composition" title="Permanent link">&para;</a></h3>
-<p>Each transport has its own Crossplane composition:
+<h3 id="crossplane-composition">Crossplane composition<a class="headerlink" href="#crossplane-composition" title="Permanent link">&para;</a></h3>
+<p>Each transport has its own composition:
 - <code>composition-sqs.yaml</code> — creates SQS queue via <code>provider-aws-sqs</code>
 - <code>composition-pubsub.yaml</code> — creates Topic + Subscription via <code>provider-gcp-pubsub</code>
 - <code>composition-rabbitmq.yaml</code> — creates RabbitMQ queue via <code>provider-kubernetes</code></p>
-<p>The composition is selected by Crossplane based on the <code>compositeTypeRef</code> labels.
-The XRD (<code>xasyncactor</code>) picks the correct composition based on the <code>spec.transport</code>
-field value.</p>
-<h2 id="pubsub-specific-wiring">Pub/Sub-Specific Wiring<a class="headerlink" href="#pubsub-specific-wiring" title="Permanent link">&para;</a></h2>
-<p>Pub/Sub required the most non-obvious plumbing to work with an emulator.</p>
-<h3 id="provider-authentication-workaround">Provider authentication workaround<a class="headerlink" href="#provider-authentication-workaround" title="Permanent link">&para;</a></h3>
+<p>Pipeline steps (same structure across compositions):</p>
+<div class="highlight"><pre><span></span><code>input (XAsyncActor)
+  → render-queue                 # creates the queue/topic managed resource
+  → render-sa                    # creates ServiceAccount (IRSA/workload identity)
+  → fetch-environment-configs    # reads EnvironmentConfigs by label selector
+  → function-asya-overlays       # merges overlays → context[&quot;asya/resolved-spec&quot;]
+  → render-scaledobject          # reads context[&quot;asya/resolved-spec&quot;] for KEDA
+  → render-deployment            # reads context[&quot;asya/resolved-spec&quot;] for containers
+  → function-auto-ready          # sets READY condition
+</code></pre></div>
+<p><strong>Bug pattern to avoid</strong>: All three steps that touch overlay data must agree on
+the context key. <code>function-asya-overlays</code> writes <code>"asya/resolved-spec"</code>.
+Using <code>"asya.sh/resolved-spec"</code> in a downstream step silently drops all overlay
+data — <code>$resolvedSpec</code> is always empty. This was the root cause of #258.</p>
+<h3 id="pubsub-emulator-non-obvious-wiring">Pub/Sub emulator: non-obvious wiring<a class="headerlink" href="#pubsub-emulator-non-obvious-wiring" title="Permanent link">&para;</a></h3>
 <p>The Upbound <code>provider-gcp-pubsub</code> (Terraform-based) performs a real OAuth2 token
-exchange before any API calls. This fails with emulator credentials because the
-emulator has no OAuth2 server.</p>
-<p>Three pieces solve this:</p>
+exchange before any API calls, which fails against the emulator. Three pieces solve
+this:</p>
 <ol>
 <li>
 <p><strong><code>DeploymentRuntimeConfig</code></strong> (<code>deploy/helm-charts/asya-crossplane/templates/providers.yaml</code>):
-   Injects <code>PUBSUB_EMULATOR_HOST</code> into the provider pod's environment. Note that
-   the provider ignores the standard Go SDK env var and needs <code>GOOGLE_PUBSUB_CUSTOM_ENDPOINT</code>
-   instead — both are set.</p>
+   Injects <code>PUBSUB_EMULATOR_HOST</code> (and <code>GOOGLE_PUBSUB_CUSTOM_ENDPOINT</code>) into the
+   provider pod so it redirects API calls to the emulator.</p>
 </li>
 <li>
-<p><strong>Mock OAuth server</strong> (<code>mock-oauth</code> deployment): A tiny HTTP server that returns
-   a dummy token, deployed when <code>gcpProviderConfig.emulatorHost</code> is set.
-   The GCP credentials JSON points <code>token_uri</code> to this server.</p>
+<p><strong>Mock OAuth server</strong>: Deployed when <code>gcpProviderConfig.emulatorHost</code> is set.
+   The GCP credentials JSON points <code>token_uri</code> at this server to satisfy the
+   mandatory token exchange.</p>
 </li>
 <li>
-<p><strong>Valid RSA private key in dummy credentials</strong>: The GCP provider validates the
-   key format even in emulator mode. The dummy credentials JSON in <code>deploy.sh</code>
-   includes a real (non-functional) RSA key, not just a placeholder string.
-   (<code>scripts/deploy.sh</code>: <code>GCP_DUMMY_CREDS='{"type":"service_account",...,"private_key":"..."}'</code>)</p>
+<p><strong>Valid RSA private key in dummy credentials</strong>: The provider validates the key
+   format even in emulator mode. <code>deploy.sh</code> embeds a real (non-functional) RSA
+   key in the dummy credentials JSON — a placeholder string fails.</p>
 </li>
 </ol>
-<h3 id="gcpproject-in-asyncactor-manifests"><code>gcpProject</code> in AsyncActor manifests<a class="headerlink" href="#gcpproject-in-asyncactor-manifests" title="Permanent link">&para;</a></h3>
+<h3 id="gcpproject-requirement-in-asyncactor-manifests"><code>gcpProject</code> requirement in AsyncActor manifests<a class="headerlink" href="#gcpproject-requirement-in-asyncactor-manifests" title="Permanent link">&para;</a></h3>
 <p>The injector sets <code>ASYA_PUBSUB_PROJECT_ID</code> on sidecar containers only if the
-AsyncActor spec contains a non-empty <code>gcpProject</code> field. Without it, the sidecar
-calls <code>pubsub.NewClient(ctx, "", ...)</code> and crashes immediately with:
+AsyncActor spec has a non-empty <code>gcpProject</code> field. Without it, the sidecar calls
+<code>pubsub.NewClient(ctx, "", ...)</code> and crashes immediately with
 <code>"projectID string is empty"</code>.</p>
-<p>Every inline AsyncActor manifest in tests must include <code>gcpProject</code> when the
-transport is Pub/Sub. The established pattern (used in <code>test_crossplane_e2e.py</code>):</p>
+<p>Every inline AsyncActor manifest in tests must include <code>gcpProject</code> for Pub/Sub.
+The established pattern:</p>
 <div class="highlight"><pre><span></span><code><span class="n">_transport</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">getenv</span><span class="p">(</span><span class="s2">&quot;ASYA_TRANSPORT&quot;</span><span class="p">,</span> <span class="s2">&quot;rabbitmq&quot;</span><span class="p">)</span>
 <span class="n">_transport_suffix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">  gcpProject: </span><span class="si">{</span><span class="n">GCP_PROJECT</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">if</span> <span class="n">_transport</span> <span class="o">==</span> <span class="s2">&quot;pubsub&quot;</span> <span class="ow">and</span> <span class="n">GCP_PROJECT</span> <span class="k">else</span> <span class="s2">&quot;&quot;</span>
 
 <span class="n">manifest</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;&quot;&quot;</span>
-<span class="s2">apiVersion: asya.dev/v1alpha1</span>
-<span class="s2">kind: AsyncActor</span>
-<span class="s2">...</span>
 <span class="s2">spec:</span>
 <span class="s2">  transport: </span><span class="si">{</span><span class="n">_transport</span><span class="si">}{</span><span class="n">_transport_suffix</span><span class="si">}</span>
 <span class="s2">  ...</span>
 <span class="s2">&quot;&quot;&quot;</span>
 </code></pre></div>
-<p>The <code>_actor_manifest()</code> helper function handles this automatically for tests that
-use it. Only tests with hand-crafted manifest f-strings need the <code>_transport_suffix</code>
-pattern.</p>
-<h3 id="crossplane-context-key">Crossplane context key<a class="headerlink" href="#crossplane-context-key" title="Permanent link">&para;</a></h3>
-<p>The Pub/Sub composition (<code>composition-pubsub.yaml</code>) uses <code>function-asya-overlays</code>,
-which writes merged overlay data to the pipeline context under key <code>"asya/resolved-spec"</code>.
-Downstream steps (<code>render-scaledobject</code>, <code>render-deployment</code>) must read from the
-same key.</p>
-<p><strong>Bug pattern to avoid</strong>: Using <code>"asya.sh/resolved-spec"</code> (with <code>.sh</code> suffix) as
-the context key causes <code>$resolvedSpec</code> to always be empty, so EnvironmentConfig
-overlay data is silently dropped. The SQS composition correctly uses <code>"asya/resolved-spec"</code>.
-If you copy the SQS composition as a template for a new transport, verify both
-the write key (in <code>function-asya-overlays</code> step) and all read sites use the same
-string.</p>
-<h3 id="keda-trigger">KEDA trigger<a class="headerlink" href="#keda-trigger" title="Permanent link">&para;</a></h3>
-<p>SQS uses a KEDA <code>aws-sqs-queue</code> trigger type. Pub/Sub uses <code>gcp-pubsub</code>. The
-KEDA authentication secret (<code>gcp-keda-secret</code>) must exist in the actor namespace
-before any AsyncActor is created.</p>
-<h2 id="test-skip-logic">Test Skip Logic<a class="headerlink" href="#test-skip-logic" title="Permanent link">&para;</a></h2>
-<p>Many tests are SQS-specific and must be skipped for Pub/Sub:</p>
+<p>The <code>_actor_manifest()</code> helper handles this automatically. Only hand-crafted
+manifest f-strings need the explicit <code>_transport_suffix</code> pattern.</p>
+<h3 id="test-skip-logic">Test skip logic<a class="headerlink" href="#test-skip-logic" title="Permanent link">&para;</a></h3>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -1010,7 +1099,7 @@ before any AsyncActor is created.</p>
 <tbody>
 <tr>
 <td><code>test_fanout_fanin_flow_e2e.py</code></td>
-<td>Module-level <code>pytestmark</code> skip for non-SQS</td>
+<td>Module-level skip for non-SQS</td>
 <td>Uses <code>boto3.client("sqs")</code> directly</td>
 </tr>
 <tr>
@@ -1021,80 +1110,61 @@ before any AsyncActor is created.</p>
 <tr>
 <td><code>test_crossplane_e2e.py</code></td>
 <td><code>if transport == "sqs": ... elif transport == "pubsub": ...</code></td>
-<td>KEDA trigger type differs per transport</td>
+<td>KEDA trigger type differs</td>
 </tr>
 <tr>
 <td><code>test_s3_persistence_e2e.py</code></td>
-<td>Entire module skipped</td>
+<td>Entire module skipped for pubsub</td>
 <td>S3-specific, no GCS equivalent</td>
 </tr>
 </tbody>
 </table></div>
-<p>The <code>transport_timeouts</code> fixture in <code>asya_testing/fixtures/transport.py</code> returns
-longer timeouts for both <code>sqs</code> and <code>pubsub</code> (emulator gRPC pull latency is ~2x
-higher than SQS long-polling).</p>
+<p>The <code>transport_timeouts</code> fixture groups SQS and Pub/Sub together with longer
+timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.</p>
 <h2 id="adding-a-new-transport">Adding a New Transport<a class="headerlink" href="#adding-a-new-transport" title="Permanent link">&para;</a></h2>
-<ol>
-<li><strong>Add emulator chart</strong> in <code>testing/e2e/charts/&lt;transport&gt;/</code> with:</li>
-<li><code>Deployment</code> + <code>Service</code> (NodePort type, fixed <code>nodePort</code>)</li>
-<li>
-<p><code>condition: transport.&lt;name&gt;.enabled</code> in <code>helmfile.yaml.gotmpl</code></p>
-</li>
-<li>
-<p><strong>Add NodePort mapping</strong> to <code>kind-config.yaml</code> (remember: shared across profiles,
-   unused ports are harmless).</p>
-</li>
-<li>
-<p><strong>Create profile files</strong>:</p>
-</li>
-<li><code>profiles/&lt;transport&gt;-&lt;storage&gt;.yaml</code> — Helm values</li>
-<li>
-<p><code>profiles/.env.&lt;transport&gt;-&lt;storage&gt;</code> — pytest env vars (host-side addresses
-     use <code>127.0.0.1:&lt;nodePort&gt;</code>)</p>
-</li>
-<li>
-<p><strong>Add Crossplane composition</strong> <code>composition-&lt;transport&gt;.yaml</code> with:</p>
-</li>
-<li>Correct managed resource types for the new provider</li>
-<li>Context key <code>"asya/resolved-spec"</code> (NOT <code>"asya.sh/resolved-spec"</code>) in all
-     steps that read overlay data</li>
-<li>
-<p>Appropriate KEDA trigger type</p>
-</li>
-<li>
-<p><strong>Add transport client</strong> in <code>src/asya-testing/asya_testing/clients/</code>:</p>
-</li>
-<li>Implement <code>TransportClient</code> ABC</li>
-<li>
-<p>Add branch to <code>transport_client</code> fixture in <code>fixtures/transport.py</code></p>
-</li>
-<li>
-<p><strong>Wire injector</strong>: The injector must set transport-specific env vars on sidecar
-   containers (e.g., project ID, endpoint, credentials secret ref). Check
-   <code>src/asya-injector/</code> for existing patterns.</p>
-</li>
-<li>
-<p><strong>Review skip logic</strong> in existing tests: grep for <code>ASYA_TRANSPORT</code> and
-   <code>transport == "sqs"</code> to find all places that need a new branch.</p>
-</li>
-<li>
-<p><strong>Update CI matrix</strong> (<code>.github/workflows/ci.yml</code>) — add the new profile to the
-   <code>e2e-tests</code> matrix once the profile is stable.</p>
-</li>
-</ol>
-<h2 id="crossplane-composition-pipeline">Crossplane Composition Pipeline<a class="headerlink" href="#crossplane-composition-pipeline" title="Permanent link">&para;</a></h2>
-<p>For reference, the pipeline steps in a composition (e.g., <code>composition-pubsub.yaml</code>):</p>
-<div class="highlight"><pre><span></span><code>input (XAsyncActor)
-  → render-queue           # Creates Topic + Subscription managed resources
-  → render-sa              # Creates ServiceAccount (for IRSA/workload identity)
-  → fetch-environment-configs  # Reads EnvironmentConfigs by label selector
-  → function-asya-overlays    # Merges overlays into context[&quot;asya/resolved-spec&quot;]
-  → render-scaledobject    # Reads context[&quot;asya/resolved-spec&quot;] for KEDA config
-  → render-deployment      # Reads context[&quot;asya/resolved-spec&quot;] for container config
-  → function-auto-ready    # Sets READY condition based on managed resource states
-</code></pre></div>
-<p>The context key <code>"asya/resolved-spec"</code> flows from <code>function-asya-overlays</code> through
-<code>render-scaledobject</code> and <code>render-deployment</code>. All three must agree on the key name.</p>
+<h3 id="1-unit-tests">1. Unit tests<a class="headerlink" href="#1-unit-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add a mock client in <code>src/asya-testing/asya_testing/clients/&lt;transport&gt;.py</code>
+  implementing <code>TransportClient</code> ABC</li>
+<li>Add a branch in <code>transport_client</code> fixture in
+  <code>src/asya-testing/asya_testing/fixtures/transport.py</code></li>
+<li>Update <code>TransportTimeouts</code> if the new transport has different polling latency</li>
+</ul>
+<h3 id="2-component-tests">2. Component tests<a class="headerlink" href="#2-component-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/component/sidecar/profiles/&lt;transport&gt;.yml</code> using the shared
+  emulator definition from <code>testing/shared/compose/&lt;transport&gt;.yml</code> (create the
+  shared file if it doesn't exist)</li>
+<li>Add <code>make test-&lt;transport&gt;</code> target in <code>testing/component/sidecar/Makefile</code></li>
+</ul>
+<h3 id="3-integration-tests-sidecar-runtime">3. Integration tests (sidecar-runtime)<a class="headerlink" href="#3-integration-tests-sidecar-runtime" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/integration/sidecar-runtime/profiles/&lt;transport&gt;.yml</code></li>
+<li>If the transport requires topic/subscription pre-creation (like Pub/Sub),
+  add a <code>queue-setup</code> service that runs before the <code>tester</code></li>
+<li>Add <code>make test-&lt;transport&gt;</code> target in the sidecar-runtime Makefile</li>
+</ul>
+<h3 id="4-integration-tests-gateway-actors">4. Integration tests (gateway-actors)<a class="headerlink" href="#4-integration-tests-gateway-actors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/integration/gateway-actors/profiles/&lt;transport&gt;-&lt;storage&gt;.yml</code></li>
+<li>If the new transport uses a different storage backend, also add the storage
+  configuration (see <a href="../testing-state-proxy/">testing-state-proxy.md</a>)</li>
+</ul>
+<h3 id="5-e2e-tests">5. E2E tests<a class="headerlink" href="#5-e2e-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add emulator chart in <code>testing/e2e/charts/&lt;transport&gt;/</code> (<code>Deployment</code> +
+  <code>NodePort Service</code> with a fixed <code>nodePort</code>)</li>
+<li>Add <code>extraPortMappings</code> entry in <code>kind-config.yaml</code> (shared; unused ports fine)</li>
+<li>Add <code>profiles/&lt;transport&gt;-&lt;storage&gt;.yaml</code> (Helm values) and
+  <code>profiles/.env.&lt;transport&gt;-&lt;storage&gt;</code> (pytest env vars using <code>127.0.0.1:&lt;nodePort&gt;</code>)</li>
+<li>Add Crossplane composition <code>composition-&lt;transport&gt;.yaml</code> — use
+  <code>"asya/resolved-spec"</code> (not <code>"asya.sh/resolved-spec"</code>) in all steps that read
+  overlay data; select the correct KEDA trigger type</li>
+<li>Wire the injector to set transport-specific env vars on sidecar containers</li>
+<li>Grep existing tests for <code>ASYA_TRANSPORT</code> and <code>transport == "sqs"</code> — add new
+  transport branches or skip conditions as needed</li>
+<li>Add the new profile to the <code>e2e-tests</code> matrix in <code>.github/workflows/ci.yml</code></li>
+</ul>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1334,89 +1404,97 @@ higher than SQS long-polling).</p>
         
         
         
-        <a href="#overview"
+        <a href="#transport-support-matrix"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Overview
+            Transport Support Matrix
         </a>
         
 
         
-        <a href="#file-locations"
+        <a href="#unit-tests"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            File Locations
+            Unit Tests
         </a>
         
 
+        
+        <a href="#component-tests-sidecar"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Component Tests: Sidecar
+        </a>
+        
+
+        
+        <a href="#integration-tests-sidecar-runtime"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Integration Tests: Sidecar + Runtime
+        </a>
+        
+        
+        <a href="#pubsub-emulator-topic-pre-creation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Pub/Sub emulator topic pre-creation
+        </a>
+        
+        <a href="#shared-emulator-definitions"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Shared emulator definitions
+        </a>
+        
+        
+
+        
+        <a href="#integration-tests-gateway-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Integration Tests: Gateway + Actors
+        </a>
+        
+
+        
+        <a href="#e2e-tests-kind-cluster"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            E2E Tests: Kind Cluster
+        </a>
+        
         
         <a href="#how-a-profile-works"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            How a Profile Works
+            data-active="false" data-depth="3">
+            How a profile works
         </a>
         
-        
-        <a href="#1-helm-values-layer-profilesprofileyaml"
+        <a href="#crossplane-composition"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            1. Helm values layer (profiles/&lt;profile&gt;.yaml)
+            Crossplane composition
         </a>
         
-        <a href="#2-environment-file-envprofile"
+        <a href="#pubsub-emulator-non-obvious-wiring"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            2. Environment file (.env.&lt;profile&gt;)
+            Pub/Sub emulator: non-obvious wiring
         </a>
         
-        <a href="#3-crossplane-composition"
+        <a href="#gcpproject-requirement-in-asyncactor-manifests"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            3. Crossplane composition
+            gcpProject requirement in AsyncActor manifests
         </a>
-        
-        
-
-        
-        <a href="#pubsub-specific-wiring"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Pub/Sub-Specific Wiring
-        </a>
-        
-        
-        <a href="#provider-authentication-workaround"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Provider authentication workaround
-        </a>
-        
-        <a href="#gcpproject-in-asyncactor-manifests"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            gcpProject in AsyncActor manifests
-        </a>
-        
-        <a href="#crossplane-context-key"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Crossplane context key
-        </a>
-        
-        <a href="#keda-trigger"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            KEDA trigger
-        </a>
-        
-        
-
         
         <a href="#test-skip-logic"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Test Skip Logic
+            data-active="false" data-depth="3">
+            Test skip logic
         </a>
+        
         
 
         
@@ -1426,13 +1504,37 @@ higher than SQS long-polling).</p>
             Adding a New Transport
         </a>
         
-
         
-        <a href="#crossplane-composition-pipeline"
+        <a href="#1-unit-tests"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Crossplane Composition Pipeline
+            data-active="false" data-depth="3">
+            1. Unit tests
         </a>
+        
+        <a href="#2-component-tests"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Component tests
+        </a>
+        
+        <a href="#3-integration-tests-sidecar-runtime"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Integration tests (sidecar-runtime)
+        </a>
+        
+        <a href="#4-integration-tests-gateway-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Integration tests (gateway-actors)
+        </a>
+        
+        <a href="#5-e2e-tests"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. E2E tests
+        </a>
+        
         
 
         

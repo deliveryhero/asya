@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Testing e2e state proxy - Asya🎭</title>
+    <title>Testing state proxy - Asya🎭</title>
     
 
 
-<title>Testing e2e state proxy</title>
+<title>Testing state proxy</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/internal/testing-e2e-state-proxy/">
+<link rel="canonical" href="https://asya.sh/docs/internal/testing-state-proxy/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Testing e2e state proxy">
+<meta property="og:title" content="Testing state proxy">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/internal/testing-e2e-state-proxy/">
+<meta property="og:url" content="https://asya.sh/docs/internal/testing-state-proxy/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Testing e2e state proxy">
+<meta name="twitter:title" content="Testing state proxy">
 
 
 
@@ -791,12 +791,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Testing e2e state proxy
+          Testing state proxy
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/internal/testing-e2e-state-proxy.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/internal/testing-state-proxy.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -815,139 +815,223 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>How storage backends (S3/GCS) are wired into E2E tests, specifically for the
-<code>x-sink</code> and <code>x-sump</code> crew actors and the state proxy sidecar.
-Captured during PRs #250, #256, #258.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The state proxy is a sidecar container that the <code>x-sink</code> and <code>x-sump</code> crew actors
-use to persist processed envelopes. In E2E tests, a storage emulator replaces the
-real cloud service. The emulator must be reachable from both:</p>
-<ul>
-<li><strong>Inside the cluster</strong> (state proxy sidecar, connector container)</li>
-<li><strong>Outside the cluster</strong> (pytest, for asserting bucket contents)</li>
-</ul>
-<h2 id="storage-backends">Storage Backends<a class="headerlink" href="#storage-backends" title="Permanent link">&para;</a></h2>
+    <p>How storage backends (S3/GCS/Redis) are exercised across all test levels.
+The state proxy appears in unit tests, component tests, integration tests,
+and E2E tests — each with different infrastructure and scope.</p>
+<h2 id="storage-support-matrix">Storage Support Matrix<a class="headerlink" href="#storage-support-matrix" title="Permanent link">&para;</a></h2>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
 <th>Backend</th>
-<th>Emulator</th>
-<th>Profile</th>
+<th>Unit</th>
+<th>Component</th>
+<th>Integration</th>
+<th>E2E</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>S3</td>
-<td>LocalStack (<code>localstack/localstack</code>)</td>
-<td><code>sqs-s3</code></td>
+<td>S3 LWW</td>
+<td>✅ (moto)</td>
+<td>✅</td>
+<td>✅ (sqs-s3, rabbitmq-minio)</td>
+<td>✅ CI</td>
 </tr>
 <tr>
-<td>GCS</td>
-<td>fake-gcs-server (<code>fsouza/fake-gcs-server</code>)</td>
-<td><code>pubsub-gcs</code></td>
+<td>S3 CAS</td>
+<td>✅ (moto)</td>
+<td>✅</td>
+<td>—</td>
+<td>—</td>
 </tr>
 <tr>
-<td>MinIO</td>
-<td>MinIO (<code>minio/minio</code>)</td>
-<td><code>rabbitmq-minio</code> (disabled in CI)</td>
+<td>S3 passthrough</td>
+<td>✅ (moto)</td>
+<td>✅</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>GCS LWW</td>
+<td>✅ (mock)</td>
+<td>✅</td>
+<td>✅ (pubsub-gcs)</td>
+<td>✅ CI</td>
+</tr>
+<tr>
+<td>GCS CAS</td>
+<td>✅ (mock)</td>
+<td>✅</td>
+<td>—</td>
+<td>—</td>
+</tr>
+<tr>
+<td>Redis CAS</td>
+<td>✅ (mock)</td>
+<td>✅</td>
+<td>—</td>
+<td>—</td>
 </tr>
 </tbody>
 </table></div>
-<h2 id="file-locations">File Locations<a class="headerlink" href="#file-locations" title="Permanent link">&para;</a></h2>
+<h2 id="unit-tests">Unit Tests<a class="headerlink" href="#unit-tests" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>src/asya-state-proxy/tests/</code></p>
+<p>Each connector has its own unit test file. The mock strategy differs by SDK:</p>
+<p><strong>S3 connectors</strong> — use <code>moto</code> (<code>@mock_aws</code> decorator):
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">moto</span><span class="w"> </span><span class="kn">import</span> <span class="n">mock_aws</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="nd">@mock_aws</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">s3_bucket</span><span class="p">():</span>
+    <span class="n">s3</span> <span class="o">=</span> <span class="n">boto3</span><span class="o">.</span><span class="n">client</span><span class="p">(</span><span class="s2">&quot;s3&quot;</span><span class="p">,</span> <span class="n">region_name</span><span class="o">=</span><span class="s2">&quot;us-east-1&quot;</span><span class="p">)</span>
+    <span class="n">s3</span><span class="o">.</span><span class="n">create_bucket</span><span class="p">(</span><span class="n">Bucket</span><span class="o">=</span><span class="n">TEST_BUCKET</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">TEST_BUCKET</span>
+</code></pre></div></p>
+<p><code>moto</code> intercepts all <code>boto3</code> HTTP calls in-process. No Docker, no LocalStack.
+Required env vars are set via <code>monkeypatch.setenv</code> in an <code>autouse</code> fixture.</p>
+<p><strong>GCS connectors</strong> — use <code>unittest.mock</code> patching the <code>google.cloud.storage</code> SDK:
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">unittest.mock</span><span class="w"> </span><span class="kn">import</span> <span class="n">MagicMock</span><span class="p">,</span> <span class="n">patch</span>
+
+<span class="nd">@pytest</span><span class="o">.</span><span class="n">fixture</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">mock_storage_client</span><span class="p">():</span>
+    <span class="k">with</span> <span class="n">patch</span><span class="p">(</span><span class="s2">&quot;asya_state_proxy.connectors.gcs_buffered_lww.connector.storage.Client&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">mock</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">mock</span>
+</code></pre></div></p>
+<p>GCS has no equivalent of <code>moto</code>. The SDK is patched at import time. Generation
+numbers (used for CAS) are simulated with <code>MagicMock</code> return values.</p>
+<p><strong>Redis connector</strong> — patches <code>redis.Redis</code> similarly to the GCS approach.</p>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>src/asya-state-proxy<span class="w"> </span>test-unit
+<span class="c1"># or directly:</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>src/asya-state-proxy/tests/
+</code></pre></div></p>
+<h2 id="component-tests-state-proxy">Component Tests: State Proxy<a class="headerlink" href="#component-tests-state-proxy" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/component/state-proxy/</code></p>
+<p>Tests a single connector in a Docker Compose environment with a real storage
+emulator. The connector process runs alongside a minimal runtime stub that
+exercises the connector's <code>read</code>/<code>write</code>/<code>cas</code> operations via Unix socket.</p>
+<div class="highlight"><pre><span></span><code>testing/component/state-proxy/
+├── profiles/
+│   ├── s3-lww.yml          # LocalStack S3 + s3-buffered-lww connector
+│   ├── s3-cas.yml          # LocalStack S3 + s3-buffered-cas connector
+│   ├── s3-passthrough.yml  # LocalStack S3 + s3-passthrough connector
+│   ├── gcs-lww.yml         # fake-gcs-server + gcs-buffered-lww connector
+│   ├── gcs-cas.yml         # fake-gcs-server + gcs-buffered-cas connector
+│   └── redis-cas.yml       # Redis + redis-buffered-cas connector
+└── compose/
+    ├── state-actors.yml    # state-proxy-connector + asya-state-ops-runtime services
+    └── tester.yml          # pytest runner
+</code></pre></div>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/component/state-proxy<span class="w"> </span>test-one<span class="w"> </span><span class="nv">CONNECTOR_PROFILE</span><span class="o">=</span>gcs-lww
+make<span class="w"> </span>-C<span class="w"> </span>testing/component/state-proxy<span class="w"> </span><span class="nb">test</span><span class="w">      </span><span class="c1"># all six profiles</span>
+</code></pre></div></p>
+<h3 id="profile-assembly">Profile assembly<a class="headerlink" href="#profile-assembly" title="Permanent link">&para;</a></h3>
+<p>Each profile <code>include</code>s the relevant shared emulator from <code>testing/shared/compose/</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># profiles/gcs-lww.yml</span>
+<span class="nt">include</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../../shared/compose/fake-gcs.yml</span>
+</code></pre></div>
+<p>The shared emulator files are:
+- <code>testing/shared/compose/fake-gcs.yml</code> — fake-gcs-server + <code>storage-setup</code> bucket init
+- <code>testing/shared/compose/s3.yml</code> — LocalStack for S3
+- <code>testing/shared/compose/redis.yml</code> — Redis</p>
+<h3 id="bucket-pre-creation">Bucket pre-creation<a class="headerlink" href="#bucket-pre-creation" title="Permanent link">&para;</a></h3>
+<p>The <code>storage-setup</code> service in <code>fake-gcs.yml</code> reads
+<code>testing/shared/compose/configs/gcs-buckets.txt</code> and creates each bucket via the
+fake-gcs REST API before tests run:</p>
+<div class="highlight"><pre><span></span><code>POST http://fake-gcs:4443/storage/v1/b?project=test
+body: {&quot;name&quot;: &quot;&lt;bucket&gt;&quot;}
+</code></pre></div>
+<p>S3 equivalent: <code>storage-setup</code> calls <code>aws s3 mb s3://&lt;bucket&gt;</code> against LocalStack.</p>
+<h3 id="fake-gcs-server-quirks">fake-gcs-server quirks<a class="headerlink" href="#fake-gcs-server-quirks" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>-scheme http</code>: No TLS. Required because the GCS Python SDK must be pointed at
+  <code>STORAGE_EMULATOR_HOST=http://...</code> to skip certificate validation.</li>
+<li><code>-public-host fake-gcs:4443</code>: Must match the in-container hostname. The SDK
+  uses this to construct object self-links. Mismatch causes test failures where
+  the SDK rejects responses as coming from the wrong host.</li>
+<li>At the E2E level, <code>-public-host</code> is set to the full cluster DNS name:
+  <code>fake-gcs.asya-system.svc.cluster.local:4443</code></li>
+</ul>
+<h2 id="integration-tests-gateway-actors-x-sink-x-sump">Integration Tests: Gateway + Actors (x-sink / x-sump)<a class="headerlink" href="#integration-tests-gateway-actors-x-sink-x-sump" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/integration/gateway-actors/</code></p>
+<p>Tests the full pipeline including x-sink persistence. The profile name encodes
+both transport and storage: <code>&lt;transport&gt;-&lt;storage&gt;</code>.</p>
+<div class="highlight"><pre><span></span><code>testing/integration/gateway-actors/
+└── profiles/
+    ├── sqs-s3.yml          # S3 LWW connector via LocalStack S3
+    ├── rabbitmq-minio.yml  # S3 LWW connector via MinIO (S3-compatible)
+    └── pubsub-gcs.yml      # GCS LWW connector via fake-gcs-server
+</code></pre></div>
+<p>For <code>ASYA_STORAGE=gcs</code>, the Makefile automatically appends a GCS overlay:
+<div class="highlight"><pre><span></span><code><span class="cp">ifeq ($(ASYA_STORAGE),gcs)</span>
+<span class="nv">COMPOSE_FILES</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>-f<span class="w"> </span>compose/crew-gcs-overlay.yml
+<span class="cp">endif</span>
+</code></pre></div></p>
+<p>This overlay replaces the default S3 connector image and injects
+<code>STORAGE_EMULATOR_HOST</code> into the x-sink container.</p>
+<p>Run:
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gateway-actors<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub<span class="w"> </span><span class="nv">ASYA_STORAGE</span><span class="o">=</span>gcs
+make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gateway-actors<span class="w"> </span><span class="nb">test</span><span class="w">      </span><span class="c1"># all profiles</span>
+</code></pre></div></p>
+<h3 id="what-gets-tested-here-that-unitcomponent-tests-dont">What gets tested here that unit/component tests don't<a class="headerlink" href="#what-gets-tested-here-that-unitcomponent-tests-dont" title="Permanent link">&para;</a></h3>
+<ul>
+<li>The <code>x-sink</code> crew actor correctly persists the processed envelope to storage
+  after routing through sidecar → runtime → x-sink sidecar → x-sink runtime</li>
+<li>The connector image (built from <code>Dockerfile.gcs-buffered-lww</code>) loads and
+  connects successfully inside a real container</li>
+<li>Bucket existence is verified: tests assert the object appeared in the bucket
+  using the emulator API</li>
+</ul>
+<h3 id="s3-list_objects-pagination">S3 list_objects pagination<a class="headerlink" href="#s3-list_objects-pagination" title="Permanent link">&para;</a></h3>
+<p>LocalStack <code>list_objects</code> returns at most 1000 objects. Cleanup between tests
+uses <code>list_objects_v2</code> with <code>ContinuationToken</code> to handle full buckets. The
+utility is in <code>src/asya-testing/asya_testing/utils/s3.py:delete_all_objects_in_bucket</code>.
+This was a real bug in early test runs (#256).</p>
+<h2 id="e2e-tests-kind-cluster">E2E Tests: Kind Cluster<a class="headerlink" href="#e2e-tests-kind-cluster" title="Permanent link">&para;</a></h2>
+<p><strong>Location</strong>: <code>testing/e2e/</code></p>
+<p>Full Kubernetes deployment with Crossplane-managed AsyncActors, KEDA autoscaling,
+and the crew actors using a real connector image running as a sidecar container.</p>
 <div class="highlight"><pre><span></span><code>testing/e2e/
 ├── profiles/
-│   ├── sqs-s3.yaml              # crew.persistence.backend: s3
-│   └── pubsub-gcs.yaml          # crew.persistence.backend: gcs
+│   ├── sqs-s3.yaml         # crew.persistence.backend: s3
+│   └── pubsub-gcs.yaml     # crew.persistence.backend: gcs
 ├── charts/
-│   ├── s3/                      # LocalStack chart (shared SQS + S3)
-│   ├── gcs/                     # fake-gcs-server chart
-│   └── minio/                   # MinIO chart
+│   ├── s3/                 # LocalStack chart (shared SQS + S3)
+│   ├── gcs/                # fake-gcs-server chart
+│   └── minio/              # MinIO chart
 └── tests/
-    └── test_state_persistence_e2e.py   # State proxy E2E tests
+    └── test_state_persistence_e2e.py
 </code></pre></div>
-<p>The crew chart (<code>deploy/helm-charts/asya-crew/</code>) reads:
-- <code>crew.persistence.backend</code> — selects connector image and config schema
-- <code>crew.persistence.connector.image</code> — connector container image
-- <code>crew.persistence.config</code> — backend-specific config (bucket, endpoint, credentials)</p>
-<h2 id="how-storage-is-configured-in-a-profile">How Storage is Configured in a Profile<a class="headerlink" href="#how-storage-is-configured-in-a-profile" title="Permanent link">&para;</a></h2>
-<h3 id="s3-sqs-s3-profile">S3 (sqs-s3 profile)<a class="headerlink" href="#s3-sqs-s3-profile" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># profiles/sqs-s3.yaml</span>
-<span class="nt">storage</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">s3</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-
-<span class="nt">crew</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">persistence</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s3</span>
-<span class="w">    </span><span class="nt">connector</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:dev</span>
-<span class="w">    </span><span class="nt">config</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
-<span class="w">      </span><span class="nt">endpoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">http://localstack-s3.asya-system.svc.cluster.local:4566</span>
-<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
-<span class="w">      </span><span class="nt">accessKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
-<span class="w">      </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test</span>
-<span class="w">  </span><span class="nt">x-sink</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">AWS_ACCESS_KEY_ID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;test&quot;</span>
-<span class="w">      </span><span class="nt">AWS_SECRET_ACCESS_KEY</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;test&quot;</span>
-</code></pre></div>
-<p>The LocalStack chart deploys a single pod serving both SQS (port 4566) and S3
-(also port 4566 but differentiated by service name: <code>localstack-sqs</code> vs
-<code>localstack-s3</code>).</p>
-<h3 id="gcs-pubsub-gcs-profile">GCS (pubsub-gcs profile)<a class="headerlink" href="#gcs-pubsub-gcs-profile" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># profiles/pubsub-gcs.yaml</span>
-<span class="nt">storage</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">gcs</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-
+<h3 id="crew-chart-persistence-values">Crew chart persistence values<a class="headerlink" href="#crew-chart-persistence-values" title="Permanent link">&para;</a></h3>
+<p>The crew chart (<code>deploy/helm-charts/asya-crew/</code>) reads <code>persistence.*</code> and
+injects the right connector image and env vars:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># profiles/pubsub-gcs.yaml (GCS example)</span>
 <span class="nt">crew</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">persistence</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">    </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcs</span>
+<span class="w">    </span><span class="nt">connector</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest</span>
 <span class="w">    </span><span class="nt">config</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
 <span class="w">      </span><span class="nt">project</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-project</span>
 <span class="w">      </span><span class="nt">emulatorHost</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;http://fake-gcs.asya-system.svc.cluster.local:4443&quot;</span>
-<span class="w">    </span><span class="nt">connector</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest</span>
-<span class="w">  </span><span class="nt">x-sink</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">PUBSUB_EMULATOR_HOST</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;pubsub-emulator.asya-system.svc.cluster.local:8085&quot;</span>
 </code></pre></div>
-<p>The crew chart translates <code>backend: gcs</code> + <code>config.emulatorHost</code> into
-<code>STORAGE_EMULATOR_HOST</code> env var on the state proxy container.</p>
-<h2 id="fake-gcs-server-details">fake-gcs-server Details<a class="headerlink" href="#fake-gcs-server-details" title="Permanent link">&para;</a></h2>
-<p><code>fsouza/fake-gcs-server</code> is a Go reimplementation of the GCS JSON API. Key
-characteristics:</p>
-<ul>
-<li><strong>In-memory + filesystem backends</strong>: E2E tests use <code>filesystem</code> backend with
-  an <code>emptyDir</code> volume (data is lost on pod restart, which is fine for testing)</li>
-<li><strong>Pre-created buckets</strong>: The GCS chart uses an init container to <code>mkdir /data/&lt;bucket&gt;</code>
-  before the server starts. Buckets listed in <code>charts/gcs/values.yaml</code> (<code>asya-results</code>,
-  <code>asya-errors</code>) are created at startup.</li>
-<li><strong>HTTP mode</strong>: The server runs with <code>-scheme http</code> (not HTTPS) to avoid TLS
-  complexity in tests. The GCS Python SDK is configured with
-  <code>STORAGE_EMULATOR_HOST=http://...</code> to use HTTP.</li>
-<li><strong><code>-public-host</code> flag</strong>: Must match the in-cluster service hostname
-  (<code>fake-gcs.&lt;namespace&gt;.svc.cluster.local:4443</code>). The SDK uses this to construct
-  signed URLs and object self-links. If this doesn't match, the SDK may reject
-  responses or generate incorrect URLs.</li>
-</ul>
-<p><strong>Why not MinIO for GCS?</strong> MinIO implements the S3 API, not the GCS JSON API.
-The GCS SDK (<code>google-cloud-storage</code>) is not S3-compatible. <code>fake-gcs-server</code> is
-the only production-ready GCS emulator.</p>
-<h2 id="nodeport-mapping">NodePort Mapping<a class="headerlink" href="#nodeport-mapping" title="Permanent link">&para;</a></h2>
-<p>The storage emulator must be reachable from the pytest process running on the host.
-This requires a <code>NodePort</code> service + <code>extraPortMappings</code> in <code>kind-config.yaml</code>:</p>
+<p>The chart translates <code>backend + config</code> into env vars on the state proxy container:
+<code>STORAGE_BACKEND</code>, <code>STORAGE_BUCKET</code>, <code>STORAGE_EMULATOR_HOST</code>, and
+backend-specific credential vars.</p>
+<h3 id="nodeport-mapping">NodePort mapping<a class="headerlink" href="#nodeport-mapping" title="Permanent link">&para;</a></h3>
+<p>The storage emulator must be reachable from pytest (running on the host).
+<code>kind-config.yaml</code> binds Kind NodePorts to localhost for all profiles:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
 <th>Storage</th>
 <th>NodePort</th>
 <th>Host port</th>
-<th>Service name</th>
+<th>In-cluster service</th>
 </tr>
 </thead>
 <tbody>
@@ -977,129 +1061,74 @@ This requires a <code>NodePort</code> service + <code>extraPortMappings</code> i
 </tr>
 </tbody>
 </table></div>
-<p>The <code>.env.&lt;profile&gt;</code> file uses these host ports:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># .env.pubsub-gcs</span>
-<span class="nv">STORAGE_EMULATOR_HOST</span><span class="o">=</span>http://127.0.0.1:30443
-<span class="nv">GCS_BUCKET</span><span class="o">=</span>asya-results
-</code></pre></div>
-<h2 id="state-proxy-connector-images">State Proxy Connector Images<a class="headerlink" href="#state-proxy-connector-images" title="Permanent link">&para;</a></h2>
-<p>Each storage backend has dedicated connector images built from <code>src/asya-state-proxy/</code>:</p>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Backend</th>
-<th>Image</th>
-<th>Dockerfile</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>S3 LWW</td>
-<td><code>asya-state-proxy-s3-buffered-lww</code></td>
-<td><code>Dockerfile.s3-buffered-lww</code></td>
-</tr>
-<tr>
-<td>S3 CAS</td>
-<td><code>asya-state-proxy-s3-buffered-cas</code></td>
-<td><code>Dockerfile.s3-buffered-cas</code></td>
-</tr>
-<tr>
-<td>GCS LWW</td>
-<td><code>asya-state-proxy-gcs-buffered-lww</code></td>
-<td><code>Dockerfile.gcs-buffered-lww</code></td>
-</tr>
-<tr>
-<td>GCS CAS</td>
-<td><code>asya-state-proxy-gcs-buffered-cas</code></td>
-<td><code>Dockerfile.gcs-buffered-cas</code></td>
-</tr>
-<tr>
-<td>Redis CAS</td>
-<td><code>asya-state-proxy-redis-cas</code></td>
-<td><code>Dockerfile.redis-cas</code></td>
-</tr>
-</tbody>
-</table></div>
-<p>For E2E tests, only the LWW variant is used (simpler, no CAS conflict resolution
-needed). The image is built locally and loaded into Kind:</p>
+<p><code>.env.&lt;profile&gt;</code> exposes these as <code>STORAGE_EMULATOR_HOST=http://127.0.0.1:&lt;port&gt;</code>.</p>
+<h3 id="connector-image-build-and-loading">Connector image build and loading<a class="headerlink" href="#connector-image-build-and-loading" title="Permanent link">&para;</a></h3>
+<p>For E2E tests, connector images are built locally and loaded into Kind:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># scripts/deploy.sh (pubsub-gcs profile)</span>
 docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-state-proxy-gcs-buffered-lww:dev<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-f<span class="w"> </span>src/asya-state-proxy/Dockerfile.gcs-buffered-lww<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>src/asya-state-proxy/
-kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-state-proxy-gcs-buffered-lww:dev<span class="w"> </span>--name<span class="w"> </span>asya-e2e-pubsub-gcs
+kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-state-proxy-gcs-buffered-lww:dev<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--name<span class="w"> </span>asya-e2e-pubsub-gcs
 </code></pre></div>
-<h2 id="crew-helm-chart-persistence-overlay">Crew Helm Chart: Persistence Overlay<a class="headerlink" href="#crew-helm-chart-persistence-overlay" title="Permanent link">&para;</a></h2>
-<p>The crew chart (<code>deploy/helm-charts/asya-crew/</code>) selects the connector image and
-injects backend-specific env vars based on <code>persistence.backend</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># crew chart values (simplified)</span>
-<span class="nt">persistence</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">backend</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gcs</span><span class="w">       </span><span class="c1"># &quot;s3&quot; | &quot;gcs&quot; | &quot;redis&quot;</span>
-<span class="w">  </span><span class="nt">connector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">...</span><span class="w">       </span><span class="c1"># connector image (backend-specific)</span>
-<span class="w">  </span><span class="nt">config</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-results</span>
-<span class="w">    </span><span class="c1"># S3 fields: endpoint, region, accessKey, secretKey</span>
-<span class="w">    </span><span class="c1"># GCS fields: project, emulatorHost</span>
-<span class="w">    </span><span class="c1"># Redis fields: addr</span>
-</code></pre></div>
-<p>The chart translates these into env vars on the state proxy container:
-- <code>STORAGE_BACKEND</code> — connector type selection
-- <code>STORAGE_BUCKET</code> — bucket/prefix
-- <code>STORAGE_EMULATOR_HOST</code> — emulator endpoint (dev/test only)
-- Backend-specific vars (credentials, region, etc.)</p>
-<h2 id="test-side-assertions">Test-Side Assertions<a class="headerlink" href="#test-side-assertions" title="Permanent link">&para;</a></h2>
-<p>Tests read from the storage emulator to verify that <code>x-sink</code> persisted the
-processed envelope. The utilities are in <code>src/asya-testing/asya_testing/utils/</code>:</p>
+<p>For component and integration tests, Docker Compose builds the image from the
+same Dockerfile using a <code>build:</code> context — no pre-loading needed.</p>
+<h3 id="fake-gcs-server-in-e2e-vs-docker-compose">fake-gcs-server in E2E vs Docker Compose<a class="headerlink" href="#fake-gcs-server-in-e2e-vs-docker-compose" title="Permanent link">&para;</a></h3>
+<p>The <code>-public-host</code> flag must match the hostname the GCS SDK will use to reach the
+server. This differs between test levels:</p>
+<ul>
+<li><strong>Docker Compose</strong> (component/integration): <code>-public-host fake-gcs:4443</code>
+  (Docker network name)</li>
+<li><strong>E2E / Kind</strong>: <code>-public-host fake-gcs.asya-system.svc.cluster.local:4443</code>
+  (full cluster DNS)</li>
+</ul>
+<p>Both run in HTTP mode (<code>-scheme http</code>) to avoid TLS.</p>
+<h3 id="test-side-assertions">Test-side assertions<a class="headerlink" href="#test-side-assertions" title="Permanent link">&para;</a></h3>
+<p>Tests verify that <code>x-sink</code> persisted the envelope by reading from the emulator.
+Utilities live in <code>src/asya-testing/asya_testing/utils/</code>:</p>
 <ul>
 <li><code>s3.py</code>: <code>wait_for_envelope_in_s3(bucket, task_id, timeout)</code> — polls via <code>boto3</code></li>
 <li>GCS equivalents use <code>google-cloud-storage</code> SDK with <code>STORAGE_EMULATOR_HOST</code></li>
 </ul>
-<p><strong>S3 pagination note</strong>: LocalStack <code>list_objects</code> returns max 1000 objects. For
-buckets with many results, tests must use <code>list_objects_v2</code> with <code>ContinuationToken</code>
-pagination. This was fixed in PR #256 (<code>delete_all_objects_in_bucket</code> in <code>s3.py</code>).</p>
 <h2 id="adding-a-new-storage-backend">Adding a New Storage Backend<a class="headerlink" href="#adding-a-new-storage-backend" title="Permanent link">&para;</a></h2>
-<ol>
-<li><strong>Add emulator chart</strong> in <code>testing/e2e/charts/&lt;backend&gt;/</code> with:</li>
-<li><code>Deployment</code>: use official image, pre-create buckets/tables in init container</li>
-<li><code>Service</code>: <code>NodePort</code> type with a fixed <code>nodePort</code></li>
-<li>
-<p><code>values.yaml</code>: list of buckets to pre-create</p>
-</li>
-<li>
-<p><strong>Add NodePort to <code>kind-config.yaml</code></strong> (shared config, unused ports are fine).</p>
-</li>
-<li>
-<p><strong>Update <code>.env.&lt;profile&gt;</code></strong> with <code>STORAGE_EMULATOR_HOST</code> and credentials.</p>
-</li>
-<li>
-<p><strong>Implement connector</strong> in <code>src/asya-state-proxy/</code>:</p>
-</li>
-<li>New subdirectory + <code>Dockerfile.&lt;backend&gt;-&lt;mode&gt;</code></li>
-<li>Implement <code>StateProxyConnector</code> ABC</li>
-<li>
-<p>Add connector to <code>src/asya-state-proxy/pyproject.toml</code> extras</p>
-</li>
-<li>
-<p><strong>Update crew chart</strong> to handle the new <code>persistence.backend</code> value in
-   the connector image selection and env var injection logic.</p>
-</li>
-<li>
-<p><strong>Update profile YAML</strong> with:</p>
-</li>
-<li><code>storage.&lt;backend&gt;.enabled: true</code></li>
-<li><code>crew.persistence.backend: &lt;backend&gt;</code></li>
-<li><code>crew.persistence.connector.image: ...</code></li>
-<li>
-<p><code>crew.persistence.config: ...</code> (backend-specific fields)</p>
-</li>
-<li>
-<p><strong>Add test utilities</strong> in <code>src/asya-testing/asya_testing/utils/&lt;backend&gt;.py</code>
-   for asserting bucket contents from the test side.</p>
-</li>
-</ol>
+<h3 id="1-unit-tests">1. Unit tests<a class="headerlink" href="#1-unit-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Create <code>src/asya-state-proxy/tests/test_&lt;backend&gt;_&lt;mode&gt;.py</code></li>
+<li>AWS-compatible: use <code>moto</code> (<code>@mock_aws</code>)</li>
+<li>GCP/other: patch the SDK client class via <code>unittest.mock.patch</code></li>
+<li>Implement <code>StateProxyConnector</code> ABC in
+  <code>src/asya-state-proxy/asya_state_proxy/connectors/&lt;backend&gt;_&lt;mode&gt;/connector.py</code></li>
+</ul>
+<h3 id="2-shared-emulator-definition-component-integration">2. Shared emulator definition (component + integration)<a class="headerlink" href="#2-shared-emulator-definition-component-integration" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/shared/compose/&lt;backend&gt;.yml</code> with:</li>
+<li>The emulator service (official image, not Bitnami)</li>
+<li>A <code>storage-setup</code> service that pre-creates buckets/tables, with a healthcheck</li>
+<li>A <code>configs/&lt;backend&gt;-buckets.txt</code> listing resources to create</li>
+</ul>
+<h3 id="3-component-tests">3. Component tests<a class="headerlink" href="#3-component-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/component/state-proxy/profiles/&lt;backend&gt;-&lt;mode&gt;.yml</code> including
+  the shared emulator and extending <code>compose/state-actors.yml</code></li>
+<li>Add <code>CONNECTOR_PROFILE=&lt;backend&gt;-&lt;mode&gt;</code> to <code>make test</code> in the Makefile</li>
+</ul>
+<h3 id="4-integration-tests-gateway-actors">4. Integration tests (gateway-actors)<a class="headerlink" href="#4-integration-tests-gateway-actors" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/integration/gateway-actors/profiles/&lt;transport&gt;-&lt;backend&gt;.yml</code></li>
+<li>If the crew chart needs an overlay to select the new connector, add
+  <code>compose/crew-&lt;backend&gt;-overlay.yml</code> and wire it into the Makefile condition</li>
+</ul>
+<h3 id="5-e2e-tests">5. E2E tests<a class="headerlink" href="#5-e2e-tests" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Add <code>testing/e2e/charts/&lt;backend&gt;/</code> Helm chart (<code>Deployment</code> + <code>NodePort Service</code>)</li>
+<li>Add <code>extraPortMappings</code> entry to <code>kind-config.yaml</code> (unused ports are harmless)</li>
+<li>Add <code>condition: storage.&lt;backend&gt;.enabled</code> release to <code>helmfile.yaml.gotmpl</code></li>
+<li>Update profile YAML with <code>crew.persistence.backend</code>, connector image, and config</li>
+<li>Update <code>scripts/deploy.sh</code> to build and <code>kind load</code> the connector image</li>
+<li>Update the crew chart to inject the new backend's env vars</li>
+</ul>
 <h2 id="relationship-between-transport-and-storage">Relationship Between Transport and Storage<a class="headerlink" href="#relationship-between-transport-and-storage" title="Permanent link">&para;</a></h2>
-<p>Transport and storage are independent dimensions in the profile matrix. The
+<p>Transport and storage are independent dimensions in the test matrix. The
 <code>sqs-s3</code> profile uses SQS for message passing and S3 for result persistence.
 The <code>pubsub-gcs</code> profile uses Pub/Sub and GCS. There is no technical coupling —
 any transport can be paired with any storage backend. The current profiles
@@ -1344,89 +1373,109 @@ credential simplicity, not technical necessity.</p>
         
         
         
-        <a href="#overview"
+        <a href="#storage-support-matrix"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Overview
+            Storage Support Matrix
         </a>
         
 
         
-        <a href="#storage-backends"
+        <a href="#unit-tests"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Storage Backends
+            Unit Tests
         </a>
         
 
         
-        <a href="#file-locations"
+        <a href="#component-tests-state-proxy"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            File Locations
-        </a>
-        
-
-        
-        <a href="#how-storage-is-configured-in-a-profile"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            How Storage is Configured in a Profile
+            Component Tests: State Proxy
         </a>
         
         
-        <a href="#s3-sqs-s3-profile"
+        <a href="#profile-assembly"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            S3 (sqs-s3 profile)
+            Profile assembly
         </a>
         
-        <a href="#gcs-pubsub-gcs-profile"
+        <a href="#bucket-pre-creation"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            GCS (pubsub-gcs profile)
+            Bucket pre-creation
+        </a>
+        
+        <a href="#fake-gcs-server-quirks"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            fake-gcs-server quirks
         </a>
         
         
 
         
-        <a href="#fake-gcs-server-details"
+        <a href="#integration-tests-gateway-actors-x-sink-x-sump"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            fake-gcs-server Details
+            Integration Tests: Gateway + Actors (x-sink / x-sump)
         </a>
         
+        
+        <a href="#what-gets-tested-here-that-unitcomponent-tests-dont"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            What gets tested here that unit/component tests don't
+        </a>
+        
+        <a href="#s3-list_objects-pagination"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            S3 list_objects pagination
+        </a>
+        
+        
 
+        
+        <a href="#e2e-tests-kind-cluster"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            E2E Tests: Kind Cluster
+        </a>
+        
+        
+        <a href="#crew-chart-persistence-values"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Crew chart persistence values
+        </a>
         
         <a href="#nodeport-mapping"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            NodePort Mapping
+            data-active="false" data-depth="3">
+            NodePort mapping
         </a>
         
-
-        
-        <a href="#state-proxy-connector-images"
+        <a href="#connector-image-build-and-loading"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            State Proxy Connector Images
+            data-active="false" data-depth="3">
+            Connector image build and loading
         </a>
         
-
-        
-        <a href="#crew-helm-chart-persistence-overlay"
+        <a href="#fake-gcs-server-in-e2e-vs-docker-compose"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Crew Helm Chart: Persistence Overlay
+            data-active="false" data-depth="3">
+            fake-gcs-server in E2E vs Docker Compose
         </a>
-        
-
         
         <a href="#test-side-assertions"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Test-Side Assertions
+            data-active="false" data-depth="3">
+            Test-side assertions
         </a>
+        
         
 
         
@@ -1435,6 +1484,38 @@ credential simplicity, not technical necessity.</p>
             data-active="false" data-depth="2">
             Adding a New Storage Backend
         </a>
+        
+        
+        <a href="#1-unit-tests"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Unit tests
+        </a>
+        
+        <a href="#2-shared-emulator-definition-component-integration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Shared emulator definition (component + integration)
+        </a>
+        
+        <a href="#3-component-tests"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Component tests
+        </a>
+        
+        <a href="#4-integration-tests-gateway-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Integration tests (gateway-actors)
+        </a>
+        
+        <a href="#5-e2e-tests"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. E2E tests
+        </a>
+        
         
 
         
