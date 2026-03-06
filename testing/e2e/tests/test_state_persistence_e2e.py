@@ -100,7 +100,7 @@ def test_gateway_restart_preserves_task_history(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
             logger.info("Waiting for new gateway pod...")
-            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
+            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=180)
 
             e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
     else:
@@ -390,7 +390,7 @@ def test_database_connection_recovery(e2e_helper):
         assert e2e_helper.wait_for_pod_ready("app=postgresql", timeout=120)
 
         logger.info("Waiting for gateway to recover...")
-        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30)
+        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=180)
 
         e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 

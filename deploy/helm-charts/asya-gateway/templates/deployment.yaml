@@ -44,8 +44,14 @@ spec:
           set -e
           echo "[.] Checking database connectivity and schema..."
 
-          # Wait for database to be ready
+          # Wait for database to be ready (max 60 retries x 2s = 120s to prevent indefinite hang)
+          DB_ATTEMPTS=0
           until pg_isready -h {{ include "asya-gateway.databaseHost" . }} -p {{ include "asya-gateway.databasePort" . }} -U {{ include "asya-gateway.databaseUsername" . }}; do
+            DB_ATTEMPTS=$((DB_ATTEMPTS + 1))
+            if [ "$DB_ATTEMPTS" -ge 60 ]; then
+              echo "[-] Database not reachable after 120s, will retry on pod restart"
+              exit 1
+            fi
             echo "[.] Waiting for database to be ready..."
             sleep 2
           done

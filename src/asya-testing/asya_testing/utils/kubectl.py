@@ -256,6 +256,7 @@ def wait_for_pod_ready(
                     "pod",
                     "-l",
                     label_selector,
+                    "--field-selector=status.phase=Running",
                     "-n",
                     namespace,
                     f"--timeout={per_attempt_timeout}s",
