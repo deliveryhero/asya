@@ -170,7 +170,38 @@ asya context use <name>              # switch context
 asya compile                         # shortcut: compile all flows
 ```
 
-### 5.5 Protocol Handling
+### 5.5 Command Data Sources
+
+Each CLI command targets a specific backend. Notably, **no CLI command uses
+the gateway's internal `/mesh/*` routes** — those are reserved for sidecar-to-
+gateway communication and are not externally exposed (see agentic-security
+RFC, section 2.2).
+
+| Command | Backend | Protocol / API |
+|---------|---------|---------------|
+| `asya flow call <flow>` | Gateway | MCP `tools/call` or A2A `message/send` |
+| `asya flow stream <id>` | Gateway | MCP streamable HTTP or A2A `tasks/{id}:subscribe` |
+| `asya flow list` | Gateway or K8s | MCP `tools/list` / A2A agent card, or `kubectl get asya -l asya.sh/flow` |
+| `asya flow status <flow>` | K8s API | `kubectl get asya -l asya.sh/flow=<flow>` |
+| `asya flow logs <flow>` | K8s API | `kubectl logs -l asya.sh/flow=<flow>` |
+| `asya flow expose <flow>` | K8s API | `kubectl patch configmap gateway-flows` |
+| `asya flow deploy/undeploy` | K8s API | `kubectl apply/delete` |
+| `asya actor list` | K8s API | `kubectl get asya` |
+| `asya actor status <actor>` | K8s API | `kubectl get asya <actor>` |
+| `asya actor logs <actor>` | K8s API | `kubectl logs` |
+| `asya actor deploy/undeploy` | K8s API | `kubectl apply/delete` |
+| `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
+| `asya msg trace <id>` | Observability | OpenTelemetry trace query (Jaeger/Tempo API) |
+| `asya msg replay <id>` | MQ + Storage | Read from DLQ/S3, re-publish to queue |
+| `asya msg inspect <actor>` | MQ | Queue management API (SQS/RabbitMQ) |
+| `asya msg drain <actor>` | MQ | DLQ drain via queue management API |
+
+Three backend categories:
+- **Gateway** (MCP/A2A protocol) — task invocation and streaming
+- **K8s API** (kubectl) — deployment, status, logs, flow exposure
+- **MQ / Storage / Observability** — low-level message operations
+
+### 5.6 Protocol Handling
 
 `asya flow call` and `asya flow expose` accept a `--protocol=mcp|a2a` flag.
 The default protocol is configurable in `asya.yaml`:

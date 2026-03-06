@@ -257,6 +257,20 @@ network boundary, not application code. This eliminates:
 - Token management for internal traffic
 - Latency from token validation on every sidecar request
 
+### 5.3 Compatibility with asya-lab CLI
+
+The decision to keep mesh routes internal-only has been verified against all
+`asya-lab` CLI commands (see asya-lab RFC, section 5.5). No CLI command
+requires `/mesh/*` routes:
+
+- **Task invocation/streaming**: uses MCP or A2A protocol endpoints (gateway API)
+- **Status, logs, deploy**: uses K8s API (kubectl)
+- **Flow exposure**: uses K8s API (kubectl patch ConfigMap)
+- **Message trace**: uses OpenTelemetry query API (Jaeger/Tempo)
+- **Message replay/inspect/drain**: uses MQ and storage APIs directly
+
+Mesh routes are exclusively for sidecar-to-gateway internal communication.
+
 ---
 
 ## 6. mTLS and Transport Security (Out of Scope)
