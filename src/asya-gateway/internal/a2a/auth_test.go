@@ -390,3 +390,173 @@ func TestA2AAuthMiddleware_PanicsWithNoAuthenticators(t *testing.T) {
 	}()
 	A2AAuthMiddleware()
 }
+
+// --- BearerTokenAuthenticator tests ---
+
+func TestBearerTokenAuthenticator_ValidToken(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "secret-token"}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer secret-token")
+	if !auth.Authenticate(req) {
+		t.Fatal("expected valid Bearer token to authenticate")
+	}
+}
+
+func TestBearerTokenAuthenticator_MissingHeader(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "secret-token"}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	if auth.Authenticate(req) {
+		t.Fatal("expected missing header to fail")
+	}
+}
+
+func TestBearerTokenAuthenticator_WrongToken(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "secret-token"}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer wrong-token")
+	if auth.Authenticate(req) {
+		t.Fatal("expected wrong token to fail")
+	}
+}
+
+func TestBearerTokenAuthenticator_WrongScheme(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "secret-token"}
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Basic secret-token")
+	if auth.Authenticate(req) {
+		t.Fatal("expected wrong scheme to fail")
+	}
+}
+
+// --- OAuthBearerAuthenticator tests ---
+
+func TestOAuthBearerAuthenticator_ValidToken(t *testing.T) {
+	secret := []byte("test-secret-key-32bytes-minimum!!")
+	issuer := "https://gateway.example.com"
+	auth := NewOAuthBearerAuthenticator(secret, issuer, issuer)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": issuer,
+		"aud": jwt.ClaimStrings{issuer},
+		"sub": "test-client",
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
+		"iat": jwt.NewNumericDate(time.Now()),
+	})
+	tokenStr, err := token.SignedString(secret)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenStr)
+	if !auth.Authenticate(req) {
+		t.Fatal("expected valid OAuth JWT to authenticate")
+	}
+}
+
+func TestOAuthBearerAuthenticator_ExpiredToken(t *testing.T) {
+	secret := []byte("test-secret-key-32bytes-minimum!!")
+	issuer := "https://gateway.example.com"
+	auth := NewOAuthBearerAuthenticator(secret, issuer, issuer)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"iss": issuer,
+		"aud": jwt.ClaimStrings{issuer},
+		"sub": "test-client",
+		"exp": jwt.NewNumericDate(time.Now().Add(-time.Hour)),
+		"iat": jwt.NewNumericDate(time.Now().Add(-2 * time.Hour)),
+	})
+	tokenStr, err := token.SignedString(secret)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenStr)
+	if auth.Authenticate(req) {
+		t.Fatal("expected expired token to fail")
+	}
+}
+
+func TestOAuthBearerAuthenticator_WrongSigningMethod(t *testing.T) {
+	secret := []byte("test-secret-key-32bytes-minimum!!")
+	issuer := "https://gateway.example.com"
+	auth := NewOAuthBearerAuthenticator(secret, issuer, issuer)
+
+	// Sign with RS256 instead of HS256
+	_, key, kid := setupJWKSServer(t)
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+		"iss": issuer,
+		"aud": jwt.ClaimStrings{issuer},
+		"sub": "test-client",
+		"exp": jwt.NewNumericDate(time.Now().Add(time.Hour)),
+	})
+	token.Header["kid"] = kid
+	tokenStr, err := token.SignedString(key)
+	if err != nil {
+		t.Fatalf("failed to sign token: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer "+tokenStr)
+	if auth.Authenticate(req) {
+		t.Fatal("expected RS256 token to fail HS256 authenticator")
+	}
+}
+
+// --- MCPAuthMiddleware tests ---
+
+func TestMCPAuthMiddleware_Disabled(t *testing.T) {
+	// No authenticators = auth disabled; all requests pass
+	handler := MCPAuthMiddleware()(okHandler())
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200 when MCP auth disabled, got %d", rec.Code)
+	}
+}
+
+func TestMCPAuthMiddleware_ValidToken(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "mcp-key"}
+	handler := MCPAuthMiddleware(auth)(okHandler())
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer mcp-key")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestMCPAuthMiddleware_InvalidToken(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "mcp-key"}
+	handler := MCPAuthMiddleware(auth)(okHandler())
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer wrong-key")
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401, got %d", rec.Code)
+	}
+	if rec.Header().Get("WWW-Authenticate") == "" {
+		t.Fatal("expected WWW-Authenticate header in 401 response")
+	}
+}
+
+func TestMCPAuthMiddleware_MissingToken(t *testing.T) {
+	auth := &BearerTokenAuthenticator{Token: "mcp-key"}
+	handler := MCPAuthMiddleware(auth)(okHandler())
+
+	req := httptest.NewRequest(http.MethodPost, "/mcp", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("expected 401 for missing token, got %d", rec.Code)
+	}
+}

@@ -17,6 +17,7 @@ import (
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
+	"github.com/deliveryhero/asya/asya-gateway/internal/oauth"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
@@ -148,10 +149,49 @@ func main() {
 		a2aRootHandler = a2a.A2AAuthMiddleware(authenticators...)(a2aHTTPHandler)
 	}
 
+	// MCP auth: Phase 2 (API key) + Phase 3 (OAuth 2.1)
+	var mcpAuthenticators []a2a.Authenticator
+	mcpAPIKey := os.Getenv("ASYA_MCP_API_KEY")
+	if mcpAPIKey != "" {
+		slog.Info("MCP API Key authentication enabled")
+		mcpAuthenticators = append(mcpAuthenticators, &a2a.BearerTokenAuthenticator{Token: mcpAPIKey})
+	}
+
+	var oauthSrv *oauth.Server
+	if os.Getenv("ASYA_MCP_OAUTH_ENABLED") == "true" {
+		oauthIssuer := os.Getenv("ASYA_MCP_OAUTH_ISSUER")
+		oauthSecret := os.Getenv("ASYA_MCP_OAUTH_SECRET")
+		oauthTokenTTL := getEnvInt("ASYA_MCP_OAUTH_TOKEN_TTL", 3600)
+		if oauthIssuer == "" || oauthSecret == "" {
+			slog.Error("ASYA_MCP_OAUTH_ENABLED=true requires ASYA_MCP_OAUTH_ISSUER and ASYA_MCP_OAUTH_SECRET")
+			os.Exit(1)
+		}
+		pgStore, ok := taskStore.(*taskstore.PgStore)
+		if !ok {
+			slog.Error("OAuth 2.1 requires PostgreSQL (ASYA_DATABASE_URL must be set)")
+			os.Exit(1)
+		}
+		srv, oauthErr := oauth.NewServer(pgStore.Pool(), oauth.Config{
+			Issuer:   oauthIssuer,
+			Secret:   []byte(oauthSecret),
+			TokenTTL: time.Duration(oauthTokenTTL) * time.Second,
+		})
+		if oauthErr != nil {
+			slog.Error("Failed to create OAuth server", "error", oauthErr)
+			os.Exit(1)
+		}
+		oauthSrv = srv
+		mcpAuthenticators = append(mcpAuthenticators,
+			a2a.NewOAuthBearerAuthenticator([]byte(oauthSecret), oauthIssuer, oauthIssuer))
+		slog.Info("MCP OAuth 2.1 authentication enabled", "issuer", oauthIssuer)
+	}
+
+	mcpMiddleware := a2a.MCPAuthMiddleware(mcpAuthenticators...)
+
 	// Setup routes based on ASYA_GATEWAY_MODE
 	mux := http.NewServeMux()
 	mode := os.Getenv("ASYA_GATEWAY_MODE")
-	if err := buildRoutes(mux, mode, taskHandler, mcpServer, a2aRootHandler, cardProducer, registry, apiKey); err != nil {
+	if err := buildRoutes(mux, mode, taskHandler, mcpServer, a2aRootHandler, cardProducer, registry, apiKey, mcpMiddleware, oauthSrv); err != nil {
 		slog.Error("Invalid gateway mode", "error", err)
 		os.Exit(1)
 	}
@@ -190,13 +230,13 @@ func main() {
 }
 
 func registerAPIRoutes(mux *http.ServeMux, taskHandler *mcp.Handler, mcpServer *mcp.Server,
-	a2aHandler http.Handler, cardProducer *a2a.CardProducer) {
+	a2aHandler http.Handler, cardProducer *a2a.CardProducer, mcpMiddleware func(http.Handler) http.Handler) {
 	if mcpServer != nil {
-		mux.Handle("/mcp", mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer()))
-		mux.Handle("/mcp/sse", mcpserver.NewSSEServer(mcpServer.GetMCPServer()))
+		mux.Handle("/mcp", mcpMiddleware(mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer())))
+		mux.Handle("/mcp/sse", mcpMiddleware(mcpserver.NewSSEServer(mcpServer.GetMCPServer())))
 	}
 	if taskHandler != nil {
-		mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
+		mux.Handle("/tools/call", mcpMiddleware(http.HandlerFunc(taskHandler.HandleToolCall)))
 	}
 	if a2aHandler != nil {
 		mux.Handle("/a2a/", a2aHandler)
@@ -205,6 +245,18 @@ func registerAPIRoutes(mux *http.ServeMux, taskHandler *mcp.Handler, mcpServer *
 		// Agent card is public — no auth middleware
 		mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
 	}
+}
+
+func registerOAuthRoutes(mux *http.ServeMux, oauthSrv *oauth.Server) {
+	if oauthSrv == nil {
+		return
+	}
+	// OAuth 2.1 discovery and flow endpoints are all public (called before auth is established)
+	mux.HandleFunc("/.well-known/oauth-protected-resource", oauthSrv.HandleProtectedResourceMetadata)
+	mux.HandleFunc("/.well-known/oauth-authorization-server", oauthSrv.HandleServerMetadata)
+	mux.HandleFunc("/oauth/register", oauthSrv.HandleRegister)
+	mux.HandleFunc("/oauth/authorize", oauthSrv.HandleAuthorize)
+	mux.HandleFunc("/oauth/token", oauthSrv.HandleToken)
 }
 
 func registerMeshRoutes(mux *http.ServeMux, taskHandler *mcp.Handler,
@@ -239,14 +291,20 @@ func registerMeshRoutes(mux *http.ServeMux, taskHandler *mcp.Handler,
 
 func buildRoutes(mux *http.ServeMux, mode string, taskHandler *mcp.Handler,
 	mcpServer *mcp.Server, a2aHandler http.Handler, cardProducer *a2a.CardProducer,
-	registry *toolstore.Registry, apiKey string) error {
+	registry *toolstore.Registry, apiKey string,
+	mcpMiddleware func(http.Handler) http.Handler, oauthSrv *oauth.Server) error {
+	if mcpMiddleware == nil {
+		mcpMiddleware = func(h http.Handler) http.Handler { return h }
+	}
 	switch mode {
 	case "api":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
+		registerOAuthRoutes(mux, oauthSrv)
 	case "mesh":
 		registerMeshRoutes(mux, taskHandler, registry, apiKey)
 	case "testing":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
+		registerOAuthRoutes(mux, oauthSrv)
 		registerMeshRoutes(mux, taskHandler, registry, apiKey)
 	default:
 		return fmt.Errorf("ASYA_GATEWAY_MODE must be set to api|mesh|testing, got: %q", mode)
