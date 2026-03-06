@@ -103,14 +103,68 @@ spec:
       command: ["cog", "build", "-t", "$(params.output-image)"]
 ```
 
-**Key feature for DS**: No local Docker needed. Push code to git (or upload
-source bundle), Shipwright builds in cluster. DS only needs git + kubectl.
+**Key feature for DS**: No local Docker needed. DS only needs kubectl access.
+
+**On-demand builds without git commit**: Shipwright supports building from
+uncommitted local code via two source upload methods:
+
+**Method 1: Streaming** (via `kubectl exec`) -- simplest for DS:
+```yaml
+# One-time Build CR setup
+apiVersion: shipwright.io/v1beta1
+kind: Build
+metadata:
+  name: my-actor
+spec:
+  source:
+    type: Local           # no Git URL needed
+  strategy:
+    name: buildpacks-v3
+  output:
+    image: registry/my-actor:latest
+    pushSecret: registry-credentials
+```
+```bash
+# Every iteration -- no git commit needed:
+shp build upload my-actor
+# -> streams tar of working directory to build pod via kubectl exec
+# -> pod builds image -> pushes to registry
+```
+Build pod waits for the CLI to stream source (configurable timeout).
+No intermediate storage, no git push, no source bundle registry.
+
+**Method 2: Bundle** (via OCI registry) -- when `kubectl exec` is restricted:
+```bash
+shp build create my-actor \
+  --source-bundle-image registry/my-actor-source \
+  --source-bundle-prune AfterPull
+
+shp build upload my-actor
+# -> packages local dir as OCI artifact -> pushes to registry
+# -> BuildRun pulls source from registry -> builds -> pushes image
+```
+Works when security policies block `kubectl exec`. Source preserved in
+registry for audit/rebuild. Can be pruned after pull.
+
+**Asya integration** for on-demand Shipwright builds:
+```bash
+asya build my-actor --builder=shipwright
+# Under the hood:
+# 1. shp build upload (streams local source to cluster)
+# 2. Shipwright pod runs buildpacks/cog/kaniko
+# 3. Image pushed to registry
+# No git commit, no local Docker.
+
+asya deploy my-actor --context=k8s-stg
+# -> creates/updates AsyncActor CR referencing built image
+```
 
 **Build caching**: Persistent volume cache, registry cache. Cold build
 3-5min, cached 30-60s.
 
 **Maturity (2026)**: CNCF Sandbox. Used in OpenShift Builds. Growing
-community. Alternative: Tekton Pipelines directly (more manual).
+community. `shp` CLI at v0.19.0. Alternative: Tekton Pipelines directly
+(more manual, no source upload UX).
 
 ### 2.3 CI/CD Build (GitHub Actions / GitLab CI / etc.)
 
@@ -134,6 +188,7 @@ jobs:
 | Dimension | Local | On-Cluster (Shipwright) | CI/CD |
 |---|---|---|---|
 | Docker required locally | Yes | No | No |
+| Git commit required | No | No (source upload) | Yes |
 | Build speed (cached) | 5-30s | 30-60s | 1-5min |
 | Build speed (cold) | 1-5min | 3-5min | 5-30min |
 | Reproducibility | Low (dev env) | High (pod spec) | High (CI env) |
