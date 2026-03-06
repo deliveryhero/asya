@@ -7,6 +7,7 @@ tags:
 
 
 
+
 ## Objective
 
 Implement Bearer/JWT authentication for A2A endpoints, building on the API Key middleware from T12.
