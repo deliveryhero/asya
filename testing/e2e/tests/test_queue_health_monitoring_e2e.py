@@ -1,23 +1,24 @@
 #!/usr/bin/env python3
 """
-E2E Queue Health Monitoring Tests for Asya Framework.
+E2E Queue Stability Tests for Asya Framework.
 
-Tests that the operator automatically detects and recreates missing queues
+Tests that Crossplane automatically detects and reconciles missing queues
 when they are deleted externally (chaos scenarios).
 
-Queue Health Monitoring:
-The operator runs a periodic health check every 5 minutes to detect missing queues
-and automatically recreate them. This ensures resilience against accidental deletions,
-infrastructure failures, or chaos engineering scenarios.
+Queue Stability via Crossplane:
+Crossplane continuously reconciles the desired state (AsyncActor XR exists →
+queue must exist). When a queue is deleted, Crossplane's provider-aws detects
+the drift and recreates the queue within its reconciliation period.
 
 Test Scenarios:
-- test_operator_recreates_deleted_actor_queue_e2e: Delete actor queue, verify auto-recreation
-- test_operator_recreates_deleted_system_queue_e2e: Delete x-sump queue, verify auto-recreation
+- test_crossplane_recreates_deleted_actor_queue_e2e: Delete actor queue, verify Crossplane recreates
+- test_crossplane_recreates_deleted_system_queue_e2e: Delete system queue, verify Crossplane recreates
 - test_multiple_queue_deletions_e2e: Delete multiple queues simultaneously
+- test_queue_deletion_during_processing_e2e: Queue deleted during message processing
 
 Transport Support:
-- ✅ RabbitMQ: Full support
-- ✅ SQS: Full support
+- SQS: Full support (Crossplane manages SQS queues via provider-aws)
+- RabbitMQ: Crossplane manages RabbitMQ queues via composition
 """
 
 import logging
@@ -48,22 +49,21 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
-@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable [pwx6]")
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
+def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
     """
-    E2E Chaos: Test operator recreates deleted actor queue within 5 minutes.
+    E2E Chaos: Test Crossplane reconciles deleted actor queue.
 
     Scenario:
     1. Delete test-echo queue manually (simulate chaos)
-    2. Wait for operator health check cycle (max 6 minutes)
+    2. Wait for Crossplane reconciliation (configurable timeout)
     3. Verify queue is automatically recreated
     4. Verify actor still processes messages correctly
 
     Expected:
     - Queue deleted successfully
-    - Operator detects missing queue within 5 minutes
+    - Crossplane detects the drift and recreates the queue automatically
     - Queue automatically recreated with correct configuration
     - Actor resumes normal operation
 
@@ -90,9 +90,9 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
     assert queue_name not in queues_after_delete, f"Queue {queue_name} should be deleted"
     logger.info(f"[+] Queue confirmed deleted: {queue_name}")
 
-    logger.info("[3/4] Waiting for operator health check cycle (max 6 minutes)")
-    max_wait = 360
-    check_interval = 15
+    logger.info("[3/4] Waiting for Crossplane reconciliation")
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    check_interval = 10
     elapsed = 0
     queue_recreated = False
 
@@ -110,7 +110,7 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
         elapsed += check_interval
 
     assert queue_recreated, \
-        f"Queue {queue_name} was not recreated within {max_wait}s. Operator health check may be disabled."
+        f"Queue {queue_name} was not recreated within {max_wait}s. Crossplane reconciliation may be disabled."
 
     logger.info("[4/4] Verifying actor still processes messages after queue recreation")
     response = e2e_helper.call_mcp_tool(
@@ -125,19 +125,18 @@ def test_operator_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, na
     assert final_task["payload"]["message"] == "chaos-test-recovery", \
         "Actor should return correct payload after recovery"
 
-    logger.info("[+] Chaos test passed - operator recreated queue and actor recovered")
+    logger.info("[+] Chaos test passed - Crossplane recreated queue and actor recovered")
 
 
-@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable [pwx6]")
 @pytest.mark.slow
 @pytest.mark.chaos
-def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, namespace):
+def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, namespace):
     """
-    E2E Chaos: Test operator recreates deleted actor queue with small retry values.
+    E2E Chaos: Test Crossplane reconciles deleted system queue.
 
     Scenario:
     1. Delete test-queue-health queue (simulate infrastructure failure)
-    2. Wait for operator health check cycle
+    2. Wait for Crossplane reconciliation
     3. Verify queue automatically recreated
     4. Verify actor still works after recreation
 
@@ -167,9 +166,9 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, n
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
 
-    logger.info("[2/3] Waiting for operator health check to recreate queue")
-    max_wait = 360
-    check_interval = 15
+    logger.info("[2/3] Waiting for Crossplane reconciliation to recreate queue")
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    check_interval = 10
     elapsed = 0
     queue_recreated = False
 
@@ -204,7 +203,6 @@ def test_operator_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues, n
     logger.info("[+] Queue chaos test passed - queue recreated and actor functional")
 
 
-@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable [pwx6]")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
@@ -251,9 +249,9 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
         assert queue_name not in queues_after_delete, f"Queue {queue_name} should be deleted"
     logger.info(f"[+] All {len(test_queues)} queues confirmed deleted")
 
-    logger.info("[4/5] Waiting for operator to recreate all queues")
-    max_wait = 360
-    check_interval = 15
+    logger.info("[4/5] Waiting for Crossplane reconciliation to recreate all queues")
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    check_interval = 10
     elapsed = 0
     all_recreated = False
 
@@ -289,7 +287,6 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
     logger.info("[+] Mass deletion chaos test passed - all queues recreated, actors functional")
 
 
-@pytest.mark.skip(reason="Crossplane manages queues via AWS provider; operator queue health checks not applicable [pwx6]")
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespace):
@@ -336,9 +333,9 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
 
-    logger.info("[3/4] Waiting for operator to recreate queue")
-    max_wait = 360
-    check_interval = 15
+    logger.info("[3/4] Waiting for Crossplane reconciliation to recreate queue")
+    max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
+    check_interval = 10
     elapsed = 0
     queue_recreated = False
 
