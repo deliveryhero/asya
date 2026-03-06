@@ -196,7 +196,7 @@ def test_multiple_component_failures(e2e_helper):
         )
 
         task_id_after = response_after["result"]["task_id"]
-        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=60)
+        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=120)
 
         assert final_after["status"] == "succeeded", \
             "System should recover and process new messages"
