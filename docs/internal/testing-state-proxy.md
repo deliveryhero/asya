@@ -176,20 +176,64 @@ This was a real bug in early test runs (#256).
 **Location**: `testing/e2e/`
 
 Full Kubernetes deployment with Crossplane-managed AsyncActors, KEDA autoscaling,
-and the crew actors using a real connector image in a sidecar container. The state
-proxy connector runs as a second container in the x-sink/x-sump pods.
+and the crew actors using a real connector image running as a sidecar container.
 
-See [testing-e2e-state-proxy.md](testing-e2e-state-proxy.md) for the full E2E-specific
-documentation including NodePort mapping, Kind image loading, and crew chart
-`persistence.*` values structure.
+```
+testing/e2e/
+├── profiles/
+│   ├── sqs-s3.yaml         # crew.persistence.backend: s3
+│   └── pubsub-gcs.yaml     # crew.persistence.backend: gcs
+├── charts/
+│   ├── s3/                 # LocalStack chart (shared SQS + S3)
+│   ├── gcs/                # fake-gcs-server chart
+│   └── minio/              # MinIO chart
+└── tests/
+    └── test_state_persistence_e2e.py
+```
 
-## Connector Image Build and Loading
+### Crew chart persistence values
 
-In E2E tests, connector images must be built and loaded into the Kind cluster
-before the cluster is used. For the `pubsub-gcs` profile:
+The crew chart (`deploy/helm-charts/asya-crew/`) reads `persistence.*` and
+injects the right connector image and env vars:
+
+```yaml
+# profiles/pubsub-gcs.yaml (GCS example)
+crew:
+  persistence:
+    enabled: true
+    backend: gcs
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+    config:
+      bucket: asya-results
+      project: test-project
+      emulatorHost: "http://fake-gcs.asya-system.svc.cluster.local:4443"
+```
+
+The chart translates `backend + config` into env vars on the state proxy container:
+`STORAGE_BACKEND`, `STORAGE_BUCKET`, `STORAGE_EMULATOR_HOST`, and
+backend-specific credential vars.
+
+### NodePort mapping
+
+The storage emulator must be reachable from pytest (running on the host).
+`kind-config.yaml` binds Kind NodePorts to localhost for all profiles:
+
+| Storage | NodePort | Host port | In-cluster service |
+|---------|----------|-----------|-------------------|
+| LocalStack S3 | 30567 | 4567 | `localstack-s3.asya-system` |
+| LocalStack SQS | 30566 | 4566 | `localstack-sqs.asya-system` |
+| fake-gcs | 30443 | 4443 | `fake-gcs.asya-system` |
+| MinIO | 30900 | 9000 | `minio.<namespace>` |
+
+`.env.<profile>` exposes these as `STORAGE_EMULATOR_HOST=http://127.0.0.1:<port>`.
+
+### Connector image build and loading
+
+For E2E tests, connector images are built locally and loaded into Kind:
 
 ```bash
-# scripts/deploy.sh
+# scripts/deploy.sh (pubsub-gcs profile)
 docker build -t asya-state-proxy-gcs-buffered-lww:dev \
   -f src/asya-state-proxy/Dockerfile.gcs-buffered-lww \
   src/asya-state-proxy/
@@ -197,49 +241,66 @@ kind load docker-image asya-state-proxy-gcs-buffered-lww:dev \
   --name asya-e2e-pubsub-gcs
 ```
 
-For integration and component tests, the image is built by Docker Compose from
-the same Dockerfile via `build:` context in the compose file.
+For component and integration tests, Docker Compose builds the image from the
+same Dockerfile using a `build:` context — no pre-loading needed.
+
+### fake-gcs-server in E2E vs Docker Compose
+
+The `-public-host` flag must match the hostname the GCS SDK will use to reach the
+server. This differs between test levels:
+
+- **Docker Compose** (component/integration): `-public-host fake-gcs:4443`
+  (Docker network name)
+- **E2E / Kind**: `-public-host fake-gcs.asya-system.svc.cluster.local:4443`
+  (full cluster DNS)
+
+Both run in HTTP mode (`-scheme http`) to avoid TLS.
+
+### Test-side assertions
+
+Tests verify that `x-sink` persisted the envelope by reading from the emulator.
+Utilities live in `src/asya-testing/asya_testing/utils/`:
+
+- `s3.py`: `wait_for_envelope_in_s3(bucket, task_id, timeout)` — polls via `boto3`
+- GCS equivalents use `google-cloud-storage` SDK with `STORAGE_EMULATOR_HOST`
 
 ## Adding a New Storage Backend
 
 ### 1. Unit tests
 
 - Create `src/asya-state-proxy/tests/test_<backend>_<mode>.py`
-- For AWS-compatible backends: use `moto` (`@mock_aws`)
-- For GCP/other backends: patch the SDK client class via `unittest.mock.patch`
-- Implement the `StateProxyConnector` ABC in
+- AWS-compatible: use `moto` (`@mock_aws`)
+- GCP/other: patch the SDK client class via `unittest.mock.patch`
+- Implement `StateProxyConnector` ABC in
   `src/asya-state-proxy/asya_state_proxy/connectors/<backend>_<mode>/connector.py`
 
-### 2. Shared emulator definition
+### 2. Shared emulator definition (component + integration)
 
 - Add `testing/shared/compose/<backend>.yml` with:
   - The emulator service (official image, not Bitnami)
-  - A `storage-setup` service that pre-creates buckets/tables
-  - A `configs/<backend>-buckets.txt` (or similar) listing objects to create
-- Add the `storage-setup` healthcheck so dependent services wait correctly
+  - A `storage-setup` service that pre-creates buckets/tables, with a healthcheck
+  - A `configs/<backend>-buckets.txt` listing resources to create
 
 ### 3. Component tests
 
-- Add `testing/component/state-proxy/profiles/<backend>-<mode>.yml` that
-  includes the shared emulator and extends `compose/state-actors.yml`
-- Add `CONNECTOR_PROFILE=<backend>-<mode>` to `make test` in the component
-  state-proxy Makefile
+- Add `testing/component/state-proxy/profiles/<backend>-<mode>.yml` including
+  the shared emulator and extending `compose/state-actors.yml`
+- Add `CONNECTOR_PROFILE=<backend>-<mode>` to `make test` in the Makefile
 
 ### 4. Integration tests (gateway-actors)
 
 - Add `testing/integration/gateway-actors/profiles/<transport>-<backend>.yml`
-  combining an existing transport emulator with the new storage emulator
 - If the crew chart needs an overlay to select the new connector, add
-  `compose/crew-<backend>-overlay.yml` and update the Makefile condition
+  `compose/crew-<backend>-overlay.yml` and wire it into the Makefile condition
 
 ### 5. E2E tests
 
-- Add `charts/<backend>/` Helm chart with `Deployment` + `NodePort Service`
-- Add port to `kind-config.yaml` `extraPortMappings`
-- Update `charts/helmfile.yaml.gotmpl` with `condition: storage.<backend>.enabled`
+- Add `testing/e2e/charts/<backend>/` Helm chart (`Deployment` + `NodePort Service`)
+- Add `extraPortMappings` entry to `kind-config.yaml` (unused ports are harmless)
+- Add `condition: storage.<backend>.enabled` release to `helmfile.yaml.gotmpl`
 - Update profile YAML with `crew.persistence.backend`, connector image, and config
-- Update `scripts/deploy.sh` to build + load the connector image
-- Update crew chart to handle the new `persistence.backend` value
+- Update `scripts/deploy.sh` to build and `kind load` the connector image
+- Update the crew chart to inject the new backend's env vars
 
 ## Relationship Between Transport and Storage
 
