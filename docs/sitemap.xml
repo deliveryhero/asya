@@ -164,4 +164,8 @@
          <loc>https://asya.sh/docs/reference/flow-dsl/</loc>
          <lastmod>2026-03-06</lastmod>
     </url>
+    <url>
+         <loc>https://asya.sh/docs/tutorials/actor-handler-adapter-pattern/</loc>
+         <lastmod>2026-03-06</lastmod>
+    </url>
 </urlset>
