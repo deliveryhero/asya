@@ -34,6 +34,11 @@ crew:
   image:
     tag: latest
     pullPolicy: Never
+  sqs:
+    dlq:
+      enabled: true
+      providerConfigRef: localstack
+      region: us-east-1
   persistence:
     enabled: true
     backend: s3
