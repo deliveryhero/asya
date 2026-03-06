@@ -1637,18 +1637,16 @@ Served at `GET /.well-known/agent.json`. Generated dynamically from the
 | `ASYA_A2A_VERSION` | Agent version | Build version |
 | `ASYA_A2A_PUBLIC_URL` | Base URL for `supportedInterfaces` | Required |
 
-**Refresh**: Agent Card is regenerated from the `tools` table whenever the tool
-registry changes (POST/DELETE on `/mesh/expose`). Cached in memory via atomic
-pointer swap.
+**Refresh**: Agent Card is regenerated whenever the flow registry changes.
+The gateway watches the mounted `gateway-flows` ConfigMap via fsnotify; on
+reload, flows with an `a2a:` section are mapped to `AgentSkill` entries in the
+Agent Card. Cached in memory via atomic pointer swap.
 
-> **NOTE (2026-03-06)**: A2A discoverability should NOT be static. The Agent
-> Card must also reflect available tasks (registered agentic entrypoints) and
-> MCP tools that were exposed with `a2a_enabled = true`. The `skills` list in
-> the Agent Card should be dynamically generated from the flows ConfigMap
-> (source of truth for exposed flows), not hardcoded. When a flow is exposed
-> via `asya flow expose` with A2A options, it appears in the Agent Card; when
-> unexposed, it disappears. Research the A2A spec for correct semantics of
-> dynamic skill lists vs static agent capabilities.
+> **NOTE (2026-03-06)**: A2A discoverability is dynamic, not static. The Agent
+> Card `skills` list is generated from the `gateway-flows` ConfigMap (source of
+> truth for exposed flows). When a flow is exposed via `asya flow expose` with
+> A2A options, it appears in the Agent Card; when unexposed, it disappears.
+> See `adr.configmap-flow-registry.md` for the full design.
 
 ### 8.2 Skill Registration
 
@@ -1746,15 +1744,24 @@ be designed and the gateway to support `blocking` mode first (Phase 2).
 
 ### 8.4 Registration API
 
-Tool/skill registration replaces the former YAML-based static config
-(`routes.yaml` ConfigMap) with a DB-backed registry and REST API. The gateway
-boots from PostgreSQL. No ConfigMap, no fsnotify, no gateway restart needed.
+> **SUPERSEDED (2026-03-06)**: The DB-backed `POST /mesh/expose` approach is
+> superseded by a ConfigMap-based flow registry. See
+> `adr.configmap-flow-registry.md` for the full design. The write path is now
+> `kubectl patch configmap gateway-flows` (via `asya flow expose` CLI), which
+> inherits K8s RBAC. The gateway reads the ConfigMap via a mounted volume and
+> watches for changes with fsnotify. `POST /mesh/expose` is removed;
+> `GET /mesh/expose` is kept as read-only. The `tools` DB table (section 13.4)
+> is also superseded — PostgreSQL stores only task execution state.
 
-**Design decision**: Registration lives under `/mesh/expose` — a user-facing
+~~Tool/skill registration replaces the former YAML-based static config
+(`routes.yaml` ConfigMap) with a DB-backed registry and REST API. The gateway
+boots from PostgreSQL. No ConfigMap, no fsnotify, no gateway restart needed.~~
+
+~~**Design decision**: Registration lives under `/mesh/expose` — a user-facing
 management API for data scientists to register their actor pipelines as
 callable tools/skills. Same `/mesh` namespace as sidecar-facing routes, but
 authenticated (API key). MCP tool invocation lives at `/mcp/tools/call`. A2A
-endpoints at `/a2a/*`.
+endpoints at `/a2a/*`.~~
 
 #### 8.4.1 Endpoints
 
@@ -2495,8 +2502,14 @@ CREATE INDEX idx_task_push_configs_task_id ON task_push_configs(task_id);
 
 ### 13.4 Tools Table
 
-Replaces the former YAML-based `routes.yaml` ConfigMap. This is the full schema
-(new table, not ALTER):
+> **SUPERSEDED (2026-03-06)**: The `tools` table is superseded by the
+> `gateway-flows` ConfigMap. Flow definitions (MCP tools, A2A skills) are stored
+> in a YAML file inside a labeled ConfigMap, not in PostgreSQL. See
+> `adr.configmap-flow-registry.md` for the full design. The schema below is
+> retained for historical reference only.
+
+~~Replaces the former YAML-based `routes.yaml` ConfigMap.~~ This is the full schema
+(new table, not ALTER) — **no longer used**:
 
 ```sql
 CREATE TABLE tools (
