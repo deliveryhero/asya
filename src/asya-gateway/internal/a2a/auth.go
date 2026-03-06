@@ -58,14 +58,23 @@ func (j *JWTAuthenticator) Close() {
 	j.cancel()
 }
 
+// extractBearerToken returns the token string from Authorization: Bearer <token>,
+// and false if the header is missing or uses a different scheme.
+func extractBearerToken(r *http.Request) (string, bool) {
+	h := r.Header.Get("Authorization")
+	if !strings.HasPrefix(h, "Bearer ") {
+		return "", false
+	}
+	return strings.TrimPrefix(h, "Bearer "), true
+}
+
 // Authenticate extracts a Bearer token from the Authorization header and
 // validates it against the JWKS, issuer, and audience.
 func (j *JWTAuthenticator) Authenticate(r *http.Request) bool {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	tokenStr, ok := extractBearerToken(r)
+	if !ok {
 		return false
 	}
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 
 	token, err := jwt.Parse(tokenStr, j.jwks.Keyfunc,
 		jwt.WithIssuer(j.issuer),
@@ -86,11 +95,10 @@ type BearerTokenAuthenticator struct {
 
 // Authenticate returns true if the Authorization: Bearer header matches the configured token.
 func (b *BearerTokenAuthenticator) Authenticate(r *http.Request) bool {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	provided, ok := extractBearerToken(r)
+	if !ok {
 		return false
 	}
-	provided := strings.TrimPrefix(authHeader, "Bearer ")
 	return subtle.ConstantTimeCompare([]byte(provided), []byte(b.Token)) == 1
 }
 
@@ -114,11 +122,10 @@ func NewOAuthBearerAuthenticator(secret []byte, issuer, audience string) *OAuthB
 // Authenticate extracts a Bearer token from the Authorization header and
 // validates it as a gateway-issued HMAC-SHA256 JWT.
 func (o *OAuthBearerAuthenticator) Authenticate(r *http.Request) bool {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
+	tokenStr, ok := extractBearerToken(r)
+	if !ok {
 		return false
 	}
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 	token, err := jwt.Parse(tokenStr,
 		func(t *jwt.Token) (any, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
