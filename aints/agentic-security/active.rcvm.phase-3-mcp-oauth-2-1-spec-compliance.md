@@ -1,7 +1,11 @@
 ---
 title: "Phase 3: MCP OAuth 2.1 spec compliance"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - pr:271
 ---
+
 
 Full MCP authorization spec compliance with OAuth 2.1 + PKCE. See rfc.md section 7, Phase 3.
 
