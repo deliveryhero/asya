@@ -91,12 +91,12 @@ def run_handler():
         responses = get_responses or {}
 
         def _classify(event: Any) -> None:
-            if isinstance(event, dict):
-                result.frames.append(event)
-            elif isinstance(event, tuple) and len(event) >= 2 and event[0] == "FLY":
+            if isinstance(event, tuple) and len(event) >= 2 and event[0] == "FLY":
                 result.fly.append(event[1])
             elif isinstance(event, tuple):
                 result.abi.append(event)
+            else:
+                result.frames.append(event)
 
         def _get_send_value(event: Any) -> Any:
             """Return the value to send back for a GET verb."""
