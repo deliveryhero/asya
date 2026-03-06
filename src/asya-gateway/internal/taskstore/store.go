@@ -105,7 +105,9 @@ func (s *Store) Get(id string) (*types.Task, error) {
 		return nil, fmt.Errorf("task %s: %w", id, ErrNotFound)
 	}
 
-	return task, nil
+	// Return a copy so callers do not share the map pointer with Update.
+	copy := *task
+	return &copy, nil
 }
 
 // Update updates a task's status
