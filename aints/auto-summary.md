@@ -29,7 +29,7 @@
 ## actor-flavors/
 
 ## agentic-security/
-> rfc.md: 418 lines
+> rfc.md: 432 lines
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
@@ -56,7 +56,7 @@
 - ✓ merged [1flm] test-adk-llm-auditor-compilation-execution-test
 
 ## asya-lab/
-> rfc.md: 941 lines
+> rfc.md: 972 lines
 
 ### Recently closed
 - ✓ merged [zmuh] flow-compiler-support-single-actor-flows-without-start

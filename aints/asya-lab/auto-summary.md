@@ -2,7 +2,7 @@
 # git-aint: all clear | 1 merged
 
 ## asya-lab/
-> rfc.md: 941 lines
+> rfc.md: 972 lines
 
 ### Recently closed
 - ✓ merged [zmuh] flow-compiler-support-single-actor-flows-without-start
