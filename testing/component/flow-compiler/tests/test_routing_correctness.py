@@ -54,22 +54,30 @@ class TestRouterExecution:
         os.environ.clear()
 
     def test_simple_flow_routing(self):
+        # Two actors: generates start router (single-actor flows skip the start router)
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler_a(p)
+                p = handler_b(p)
                 return p
 
             def handler_a(p: dict) -> dict:
                 return p
+            def handler_b(p: dict) -> dict:
+                return p
         """)
 
-        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER_A": "handler_a"})
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_HANDLER_A": "handler_a",
+            "ASYA_HANDLER_HANDLER_B": "handler_b",
+        })
         start_func = namespace["start_flow"]
 
         msg_ctx = _make_msg_ctx()
         _drive_abi(start_func({}), msg_ctx)
         next_actors = msg_ctx["route"]["next"]
         assert "handler-a" in next_actors
+        assert "handler-b" in next_actors
 
     def test_sequential_handlers_routing(self):
         source = textwrap.dedent("""
@@ -363,16 +371,23 @@ class TestResolveFunction:
         os.environ.clear()
 
     def test_resolve_finds_handler_from_env(self):
+        # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler(p)
+                p = finalizer(p)
                 return p
 
             def handler(p: dict) -> dict:
                 return p
+            def finalizer(p: dict) -> dict:
+                return p
         """)
 
-        namespace = _compile_and_exec(source, {"ASYA_HANDLER_MY_ACTOR": "handler"})
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_MY_ACTOR": "handler",
+            "ASYA_HANDLER_FINALIZER": "finalizer",
+        })
 
         resolve_func = namespace["resolve"]
         actor_name = resolve_func("handler")
@@ -380,12 +395,16 @@ class TestResolveFunction:
         assert actor_name == "my-actor"
 
     def test_resolve_raises_on_missing_handler(self):
+        # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler(p)
+                p = finalizer(p)
                 return p
 
             def handler(p: dict) -> dict:
+                return p
+            def finalizer(p: dict) -> dict:
                 return p
         """)
 
@@ -399,12 +418,16 @@ class TestResolveFunction:
         os.environ["ASYA_HANDLER_ACTOR1"] = "handler1"
         os.environ["ASYA_HANDLER_ACTOR2"] = "handler2"
 
+        # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler(p)
+                p = finalizer(p)
                 return p
 
             def handler(p: dict) -> dict:
+                return p
+            def finalizer(p: dict) -> dict:
                 return p
         """)
 
@@ -442,16 +465,23 @@ class TestRouteInsertion:
         assert next_actors[-1] == "router_after"
 
     def test_router_preserves_existing_route(self):
+        # Two actors: start router is generated (single-actor flows skip the start router)
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler(p)
+                p = finalizer(p)
                 return p
 
             def handler(p: dict) -> dict:
                 return p
+            def finalizer(p: dict) -> dict:
+                return p
         """)
 
-        namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER": "handler"})
+        namespace = _compile_and_exec(source, {
+            "ASYA_HANDLER_HANDLER": "handler",
+            "ASYA_HANDLER_FINALIZER": "finalizer",
+        })
         start_func = namespace["start_flow"]
 
         msg_ctx = _make_msg_ctx()

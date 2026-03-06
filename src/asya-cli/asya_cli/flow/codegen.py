@@ -89,7 +89,7 @@ class CodeGenerator:
             FLOW_METADATA = {{
                 "flow_name": "{self.flow_name}",
                 "type": "single-actor",
-                "actor": "{actor_name}",
+                "actor": {actor_name!r},
                 "labels": {{
                     "asya.sh/flow": "{self.flow_name}",
                     "asya.sh/flow-role": "entrypoint",

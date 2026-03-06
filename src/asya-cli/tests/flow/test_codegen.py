@@ -888,8 +888,6 @@ class TestSingleActorFlow:
         assert gen._is_single_actor_flow() is False
 
     def test_single_actor_with_mutations_not_single(self):
-        from asya_cli.flow.ir import Mutation
-
         routers = [
             Router(
                 name="start_flow",
@@ -929,7 +927,7 @@ class TestSingleActorFlow:
         assert "FLOW_METADATA" in code
         assert '"flow_name": "my_flow"' in code
         assert '"type": "single-actor"' in code
-        assert '"actor": "my_actor"' in code
+        assert '"actor": ' in code and "my_actor" in code
         assert '"asya.sh/flow": "my_flow"' in code
         assert '"asya.sh/flow-role": "entrypoint"' in code
 

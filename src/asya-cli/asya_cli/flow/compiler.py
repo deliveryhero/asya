@@ -138,7 +138,9 @@ class FlowCompiler:
         """
         if len(self.routers) != 2:
             return None
-        start = self.routers[0]
+        start, end = self.routers
+        if not start.name.startswith("start_") or not end.name.startswith("end_"):
+            return None
         if start.mutations or start.condition or start.is_fan_out or start.is_loop_back or start.is_try_enter:
             return None
         non_end = [a for a in start.true_branch_actors if not a.startswith("end_")]

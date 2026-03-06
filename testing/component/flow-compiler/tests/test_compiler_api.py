@@ -12,10 +12,26 @@ from asya_cli.flow.errors import FlowCompileError
 class TestCompile:
     """Test FlowCompiler.compile() method."""
 
-    def test_compile_simple_flow(self):
+    def test_compile_single_actor_flow_generates_metadata(self):
         source = textwrap.dedent("""
             def flow(p: dict) -> dict:
                 p = handler_a(p)
+                return p
+        """)
+        compiler = FlowCompiler()
+        code = compiler.compile(source, "test.py")
+
+        assert "FLOW_METADATA" in code
+        assert "single-actor" in code
+        assert compiler.flow_name == "flow"
+        assert len(compiler.routers) == 2
+        assert compiler.single_actor_name == "handler_a"
+
+    def test_compile_multi_actor_flow_generates_routers(self):
+        source = textwrap.dedent("""
+            def flow(p: dict) -> dict:
+                p = handler_a(p)
+                p = handler_b(p)
                 return p
         """)
         compiler = FlowCompiler()
@@ -90,10 +106,12 @@ class TestCompileFile:
     """Test FlowCompiler.compile_file() method."""
 
     def test_compile_file_success(self, tmp_path: Path):
+        # Use two actors so a start router is generated
         source_file = tmp_path / "flow.py"
         source_file.write_text(textwrap.dedent("""
             def flow(p: dict) -> dict:
-                p = handler(p)
+                p = handler_a(p)
+                p = handler_b(p)
                 return p
         """))
 
