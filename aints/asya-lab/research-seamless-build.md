@@ -256,22 +256,87 @@ the deployable artifact (reproducible).
 
 **Cons**: Less visibility (no PR review), harder to audit, image sprawl.
 
-### 3.3 Hybrid: Git for Prod, OCI for Staging
+### 3.3 Hybrid: Git for Prod, OCI for Staging (Default Showcase)
 
 ```
-Staging: DS pushes image -> image automation deploys
-Production: PR to update image tag -> ArgoCD syncs
+Staging: DS builds image -> pushes -> image automation deploys
+Production: PR with source + image digest -> review -> ArgoCD syncs
 ```
 
-**This is the recommended pattern.** It matches the two user flows:
+**This is the default showcase pattern.** Asya supports all three natively,
+but the hybrid flow is the recommended starting point. It matches the two
+user flows:
 - Staging: imperative, fast, OCI-driven
 - Production: declarative, reviewed, Git-driven
 
-**Implementation**:
-- Staging namespace: ArgoCD Image Updater watches registry, auto-deploys
-  new tags matching pattern (e.g., `stg-*`)
-- Production namespace: ArgoCD watches Git, deploys only what's in manifests
-- Promotion: DS commits the tested image tag to Git via PR
+**The key question: what goes into the production PR?**
+
+Three promotion strategies (DS chooses based on team policy):
+
+#### Strategy A: Promote by Image Digest (no rebuild)
+
+PR contains:
+```
+actors/my-actor/
+  asyncactor.yaml           # image: registry/my-actor@sha256:abc123...
+```
+
+- The exact image tested on staging goes to production
+- No rebuild -- what you tested = what you deploy
+- Source code is NOT in the PR (it's baked into the image)
+- Audit trail: image digest is immutable, OCI metadata links to git SHA
+
+**Pros**: Fastest promotion, guaranteed identical behavior.
+**Cons**: Reviewers can't see source code in the PR diff. Need OCI
+metadata discipline (embed git SHA, build strategy in image labels).
+
+#### Strategy B: Promote by Source (CI rebuilds)
+
+PR contains:
+```
+actors/my-actor/
+  handler.py                # handler code
+  requirements.txt          # dependencies
+  cog.yaml                  # build config (or Dockerfile, etc.)
+  asyncactor.yaml           # image tag TBD -- CI fills in after build
+```
+
+- CI rebuilds image from committed source
+- CI updates the image tag in asyncactor.yaml (or ArgoCD resolves it)
+- The production image is different from staging (rebuilt from same source)
+
+**Pros**: Full source audit in PR, reviewers see code. Standard GitOps.
+**Cons**: Rebuild may produce different image (new base image layers, dep
+resolution drift). Slower -- CI rebuild adds 5-30min. Not bit-for-bit
+identical to what was tested.
+
+#### Strategy C: Promote by Source + Pinned Digest (verify & deploy)
+
+PR contains:
+```
+actors/my-actor/
+  handler.py                # handler code (for review)
+  requirements.txt          # dependencies (for review)
+  cog.yaml                  # build config (for review)
+  asyncactor.yaml           # image: registry/my-actor@sha256:abc123...
+```
+
+- Source is committed for auditability and review
+- Image digest references the actual staging-tested image
+- CI optionally verifies reproducibility (rebuild + compare layers)
+  but deploys the pinned digest regardless
+- If source and image diverge, CI flags it (but doesn't block)
+
+**Pros**: Best of both worlds -- reviewers see source, production gets
+the tested image. Reproducibility is verifiable but not required.
+**Cons**: More complex. Source and image can drift if DS forgets to
+rebuild after code changes. Needs tooling to keep them in sync.
+
+#### Recommendation
+
+**Default**: Strategy C (source + pinned digest). `asya promote` command
+generates the PR with both source files and image digest. Teams can
+simplify to A or B based on their policy.
 
 ### 3.4 Comparison
 
@@ -283,6 +348,12 @@ Production: PR to update image tag -> ArgoCD syncs
 | Rollback | `git revert` | Re-tag old image | Both |
 | DS friction | High | Low | Low (stg) / Medium (prod) |
 | Platform control | Full | Limited | Full for prod |
+
+| Promotion | What's in PR | Rebuild? | Identical to staging? |
+|---|---|---|---|
+| **A: Digest** | Manifest only | No | Yes (same image) |
+| **B: Source** | Source + config | Yes | No (rebuilt) |
+| **C: Source+Digest** | Source + config + digest | Optional verify | Yes (pinned digest) |
 
 ---
 
@@ -321,58 +392,78 @@ work with uncommitted files.
 
 ### 4.2 Flow B: Production via GitOps
 
-**Goal**: Promote tested staging artifacts to production via PR.
+**Goal**: Promote tested staging actor to production via PR.
 
 ```
 1. DS finishes experimentation on staging (Flow A)
-2. DS runs: asya commit my-actor
-   (writes build config + manifest to git-tracked files)
-3. DS creates PR with:
-   - Build config (cog.yaml / Dockerfile / buildpacks config)
-   - AsyncActor manifest (XRD claim)
-   - Handler code
-4. CI builds image from committed config
-5. PR review + merge
-6. ArgoCD/Flux deploys to production
+2. DS runs: asya promote my-actor
+3. Asya generates PR with source + pinned image digest (Strategy C)
+4. Reviewer sees code diff + knows exact image that was tested
+5. PR merge -> ArgoCD/Flux deploys to production
 ```
 
-**What gets committed**:
-```
-actors/my-actor/
-  handler.py              # handler code
-  requirements.txt        # dependencies
-  cog.yaml                # build config (or Dockerfile, etc.)
-  asyncactor.yaml         # AsyncActor XRD claim
+**What `asya promote` does**:
+
+```bash
+asya promote my-actor --context=k8s-prod
+# 1. Reads local state: build config, source files, last built image digest
+# 2. Writes git-tracked files:
+#    actors/my-actor/handler.py
+#    actors/my-actor/requirements.txt
+#    actors/my-actor/cog.yaml
+#    actors/my-actor/asyncactor.yaml  (with pinned image digest)
+# 3. Creates branch + PR (or outputs files for manual PR)
 ```
 
-**Key principle**: The committed files are the source of truth for production.
-CI rebuilds the image from these files (not from the staging image). This
-ensures reproducibility and auditability.
-
-**Alternative**: Teams that trust staging images can promote by tag:
+**Generated asyncactor.yaml** (pinned to tested image):
+```yaml
+apiVersion: asya.dev/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-actor
+  labels:
+    asya.sh/promoted-from: stg
+    asya.sh/build-strategy: cog
+spec:
+  image: registry/my-actor@sha256:abc123...  # exact staging image
+  transport: sqs
+  handler: my_module.process
 ```
-1. DS tags staging image as production: asya promote my-actor stg-abc123 -> prod-v1.2
-2. PR updates only the image tag in manifests (no rebuild)
+
+**CI behavior** (configurable per team):
+- **Strategy A teams**: CI skips build, deploys pinned digest directly
+- **Strategy B teams**: CI rebuilds from source, ignores pinned digest
+- **Strategy C teams** (default): CI optionally verifies reproducibility
+  (rebuild + compare), deploys pinned digest
+
+**What reviewers see in the PR**:
+```diff
++ actors/my-actor/handler.py          # full handler code
++ actors/my-actor/requirements.txt    # pinned dependencies
++ actors/my-actor/cog.yaml            # build config
++ actors/my-actor/asyncactor.yaml     # XRD claim with image digest
 ```
 
 ### 4.3 Flow Transition: Staging to Production
 
-The transition point is `asya commit` (or equivalent). This command:
-
-1. Reads current local state (build config, manifest, image tag)
-2. Writes git-tracked files in a conventional structure
-3. DS creates PR from these files
-
 **State lifecycle**:
 ```
-Local state (ephemeral, .asya/ or working dir)
-  -> asya commit -> Git-tracked files (permanent)
-  -> PR merge -> ArgoCD/Flux deploys to prod
+Local working dir (ephemeral, uncommitted)
+  -> asya build + asya deploy (staging, OCI-driven)
+  -> asya promote (generates git-tracked files + PR)
+  -> PR review + merge (production, Git-driven)
+  -> ArgoCD/Flux deploys to prod
 ```
 
-**The build config is always in files** -- whether gitignored during
+**The build config is always in files** -- whether uncommitted during
 experimentation or committed for production. Same format, same files,
-just different lifecycle.
+just different lifecycle. `asya promote` is the bridge.
+
+**Teams can customize the promotion gate**:
+- DS teams: `asya promote` auto-creates PR with source + digest
+- Platform teams: require `asya promote --rebuild` (Strategy B, CI rebuilds)
+- Regulated teams: require `asya promote --verify` (Strategy C, CI verifies
+  reproducibility before deploying pinned digest)
 
 ---
 
