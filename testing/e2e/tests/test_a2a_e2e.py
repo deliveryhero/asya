@@ -377,7 +377,7 @@ def test_a2a_wrong_audience_returns_401(private_key):
 
 
 @pytest.mark.fast
-def test_tasks_send_dispatches_work_and_returns_task_state():
+def test_message_stream_dispatches_work_and_returns_task_state():
     """
     message/stream dispatches work through the actor mesh and streams events.
     The SSE stream must end with a final event in 'completed' state.
@@ -434,7 +434,7 @@ def test_tasks_get_returns_task_state():
 
 
 @pytest.mark.fast
-def test_tasks_subscribe_streams_events():
+def test_tasks_resubscribe_streams_events():
     """
     tasks/resubscribe reconnects to a live task stream and receives events.
     Sends a slow task in a background thread and resubscribes concurrently.
@@ -502,7 +502,7 @@ def test_tasks_subscribe_streams_events():
 
 
 @pytest.mark.fast
-def test_tasks_subscribe_live_stream():
+def test_tasks_resubscribe_live_stream():
     """
     tasks/resubscribe delivers updates as a slow actor pipeline progresses.
     Sends a slow task in a background thread and resubscribes concurrently.

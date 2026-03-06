@@ -166,7 +166,7 @@ def test_a2a_valid_api_key_passes():
 # ---------------------------------------------------------------------------
 
 
-def test_tasks_send_echo_completes():
+def test_message_stream_echo_completes():
     """message/stream through test_echo actor returns completed state."""
     events = _send_task("test_echo", {"message": "a2a-integration"}, timeout=60)
 
@@ -244,7 +244,7 @@ def test_tasks_list_returns_tasks_for_context():
 # ---------------------------------------------------------------------------
 
 
-def test_tasks_subscribe_completed_task():
+def test_tasks_resubscribe_completed_task():
     """tasks/resubscribe reconnects to a live task stream and receives events until completion."""
     ctx_id = str(uuid.uuid4())
     send_params = {
