@@ -54,7 +54,7 @@ def test_gateway_restart_during_processing(e2e_helper):
     logger.info("Restarting gateway pod...")
     pods = e2e_helper.kubectl(
         "get", "pods",
-        "-l", "app.kubernetes.io/name=asya-gateway",
+        "-l", "app.kubernetes.io/component=mesh",
         "-o", "jsonpath='{.items[*].metadata.name}'"
     )
 
@@ -62,12 +62,12 @@ def test_gateway_restart_during_processing(e2e_helper):
         pod_names = pods.strip("'").split()
         if pod_names:
             pod_name = pod_names[0]
-            logger.info(f"Deleting gateway pod: {pod_name}")
+            logger.info(f"Deleting gateway mesh pod: {pod_name}")
             e2e_helper.delete_pod(pod_name)
 
-            logger.info("Waiting for new gateway pod to be ready...")
-            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=30), \
-                "Gateway pod should restart"
+            logger.info("Waiting for new gateway mesh pod to be ready...")
+            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/component=mesh", timeout=30), \
+                "Gateway mesh pod should restart"
 
             e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 

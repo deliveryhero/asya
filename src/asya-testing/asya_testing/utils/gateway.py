@@ -54,6 +54,7 @@ class GatewayTestHelper:
         if mesh_gateway_url is None:
             mesh_gateway_url = os.getenv("ASYA_MESH_GATEWAY_URL", gateway_url)
         self.gateway_url = gateway_url
+        self.mesh_gateway_url = mesh_gateway_url
         self.tools_url = f"{gateway_url}/tools/call"
         self.tasks_url = f"{mesh_gateway_url}/mesh"
         self.progress_method = progress_method
