@@ -45,8 +45,8 @@ def _get_pod_restart_count(e2e_helper, actor_name: str) -> int:
         )
         if result:
             return sum(int(c) for c in result.split() if c.isdigit())
-    except Exception:
-        pass
+    except Exception as e:
+        logger.warning(f"Could not get pod restart count for {actor_name}: {e}")
     return 0
 
 
@@ -235,11 +235,40 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
     )
     logger.info(f"[+] Deadline was stamped: {deadline_raw}")
 
-    # Wait for KEDA to scale up and the stale message to be processed.
-    # KEDA polling interval=5s; pod startup ~20-30s; SLA pre-check + x-sump routing adds more.
-    # 90s is conservative to cover the full cold-start lifecycle.
-    logger.info("Waiting 90s for cold-start actor to process stale message...")
-    time.sleep(90)  # Wait for KEDA scale-up and stale message processing
+    # Active wait: let KEDA scale up the cold actor, process the stale message, then scale down.
+    # Scale-up from zero takes ~30-60s; scale-down requires cooldownPeriod (60s) + idle time.
+    logger.info("Waiting for cold-start actor to scale up, process stale message, and scale down...")
+
+    # 1. Wait for the pod to scale up and become ready.
+    pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout-cold", timeout=90)
+    assert pod_ready, "Cold-start actor pod did not become ready within 90s after backstop fired."
+    logger.info("[+] Cold-start actor pod scaled up")
+
+    # 2. Wait for the pod to scale back down to zero (cooldownPeriod=60s + processing buffer).
+    # KEDA scales down after the queue stays empty for the cooldown period.
+    # Scale-down confirms the stale message was processed (routed away via SLA pre-check).
+    logger.info("Waiting for cold-start actor to scale down after processing stale message...")
+    end_time = time.time() + 120  # 60s cooldown + 60s buffer
+    scaled_down = False
+    while time.time() < end_time:
+        try:
+            pod_list = e2e_helper.kubectl(
+                "get", "pods",
+                "-l", "asya.sh/actor=test-timeout-cold",
+                "-o", "jsonpath={.items[*].metadata.name}",
+            )
+            if not pod_list or pod_list == "''":
+                scaled_down = True
+                break
+        except Exception as e:
+            logger.warning(f"Error checking pod status: {e}. Retrying...")
+        time.sleep(5)  # Poll every 5s for pod scale-down
+
+    assert scaled_down, (
+        "Cold-start actor pod did not scale down to zero after processing stale message. "
+        "Check KEDA cooldownPeriod and queue idle detection."
+    )
+    logger.info("[+] Cold-start actor scaled down — stale message fully processed")
 
     # Task must remain failed — not overwritten to succeeded by stale actor result
     post_wait = e2e_helper.get_task_status(task_id)
@@ -248,6 +277,6 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
         f"got status={post_wait['status']!r}. "
         f"The gateway may be incorrectly accepting late actor reports on terminal tasks."
     )
-    logger.info(f"[+] Task still 'failed' after full cold-start lifecycle")
+    logger.info("[+] Task still 'failed' after full cold-start lifecycle")
 
     logger.info("[+] Gateway backstop race test passed")
