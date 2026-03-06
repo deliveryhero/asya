@@ -25,6 +25,7 @@ services:
     - ASYA_GATEWAY_PORT=8089
     - ASYA_DATABASE_URL=postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    - ASYA_GATEWAY_MODE=testing
     depends_on:
       tool-seed:
         condition: service_completed_successfully

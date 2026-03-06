@@ -32,6 +32,7 @@ services:
     environment:
     - ASYA_GATEWAY_PORT=8089
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    - ASYA_GATEWAY_MODE=testing
     - ASYA_SQS_ENDPOINT=http://fake-sqs:4566
     - ASYA_A2A_API_KEY=test-api-key-12345
     - ASYA_A2A_JWT_JWKS_URL=http://jwks-server:8099/jwks.json

@@ -23,6 +23,7 @@ services:
       ASYA_DATABASE_URL: postgres://postgres:postgres@postgres:5432/asya_test?sslmode=disable
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
       ASYA_GATEWAY_PORT: 8080
+      ASYA_GATEWAY_MODE: testing
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
