@@ -6,7 +6,9 @@ tags:
   - phase:1
   - worktree:.worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split
   - branch:agentic-security/1fuy.phase-1-dual-deployment-gateway-split
+  - pr:269
 ---
+
 
 Split gateway into two deployment modes (api + mesh) for network-level route
 isolation. Wire existing A2A auth to the api mode. No new auth code.
