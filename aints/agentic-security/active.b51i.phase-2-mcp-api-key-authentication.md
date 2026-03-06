@@ -1,7 +1,9 @@
 ---
 title: "Phase 2: MCP API key authentication"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
 ---
+
 
 Simple Bearer token auth for MCP endpoints. Reuse existing Authenticator interface from A2A auth. See rfc.md section 7, Phase 2.
 
