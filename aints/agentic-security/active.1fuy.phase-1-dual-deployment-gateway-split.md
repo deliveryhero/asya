@@ -4,7 +4,10 @@ priority: 1 # high
 assignee: Artem Yushkovskiy
 tags:
   - phase:1
+  - worktree:.worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split
+  - branch:agentic-security/1fuy.phase-1-dual-deployment-gateway-split
 ---
+
 
 
 Split gateway into two deployment modes (api + mesh) for network-level route
