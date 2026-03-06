@@ -366,10 +366,9 @@ build inputs (format TBD)
         +-- strategy: dockerfile -->  user-provided Dockerfile + docker build
 ```
 
-**Strategy selection** (mechanism TBD -- could be per-actor, per-context,
-auto-detected, or some combination):
-- Explicit per actor or per context
-- Auto-detected: GPU deps -> suggest Cog; standard Python -> suggest buildpacks
+**Strategy selection**: Always explicit via `strategy:` field. No magic
+auto-detection of which builder to use. Can be set per-actor or as a
+context-level default.
 
 **No rendering needed for some strategies**: Buildpacks auto-detect from
 requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
@@ -389,35 +388,34 @@ requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
 
 ## 6. Golden Paths
 
-Three golden paths (ordered by DS-friendliness), plus escape hatch:
+Three golden paths (ordered by DS-friendliness). Strategy is always explicit
+-- no magic auto-detection of which builder to use:
 
-### Path 1: Zero Config (Buildpacks)
-For actors with only Python dependencies:
+### Path 1: Buildpacks (zero config for standard Python)
 ```yaml
-name: text-analyzer
-handler: my_actors.text_analyzer.analyze
-# no build: section needed -- auto-detected from requirements.txt
+build:
+  strategy: buildpack
+  # everything else auto-detected from requirements.txt / pyproject.toml
 ```
 
-### Path 2: ML-Optimized (Cog)
-For actors needing GPU/CUDA:
+### Path 2: Cog (ML/GPU actors)
 ```yaml
-name: image-classifier
-handler: my_actors.classifier.predict
 build:
+  strategy: cog
   gpu: true
   requirements: requirements.txt
   packages: [ffmpeg]
 ```
 
-### Escape Hatch: BYO Dockerfile
-For actors needing fine-grained control or custom system dependencies:
+### Path 3: Dockerfile (full control)
 ```yaml
-name: custom-actor
-handler: my_actors.custom.process
 build:
+  strategy: dockerfile
   dockerfile: Dockerfile
 ```
+
+Note: config format and file placement are TBD (see section 1). The examples
+above show the **build inputs** each strategy needs, not a final file schema.
 
 ---
 
