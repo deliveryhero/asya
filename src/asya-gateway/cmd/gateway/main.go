@@ -18,6 +18,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
@@ -110,7 +111,18 @@ func main() {
 	// A2A setup using a2a-go library
 	namespace := getEnv("ASYA_NAMESPACE", "default")
 	executor := a2a.NewExecutor(queueClient, taskStore, registry, namespace)
-	storeAdapter := a2a.NewStoreAdapter(taskStore)
+
+	// Wire state proxy reader for GetTask history/artifact hydration.
+	// When ASYA_PERSISTENCE_MOUNT is set, the gateway reads persisted envelope state
+	// from the same filesystem mount used by x-sink / x-sump / x-pause crew actors.
+	// If unset, history and artifacts are omitted from GetTask responses (spec-compliant).
+	var spReader stateproxy.Reader
+	if persistMount := os.Getenv("ASYA_PERSISTENCE_MOUNT"); persistMount != "" {
+		slog.Info("State proxy reader enabled", "mount", persistMount)
+		spReader = stateproxy.NewFileReader(persistMount)
+	}
+
+	storeAdapter := a2a.NewStoreAdapter(taskStore, spReader)
 	cardProducer := a2a.NewCardProducer(registry)
 
 	extendedCardProducer := a2a.NewExtendedCardProducer(registry)

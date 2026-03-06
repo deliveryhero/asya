@@ -15,7 +15,7 @@ import (
 
 func TestStoreAdapterGet(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	task := &types.Task{
 		ID:        "test-task-1",
@@ -48,7 +48,7 @@ func TestStoreAdapterGet(t *testing.T) {
 
 func TestStoreAdapterGetNotFound(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	_, _, err := adapter.Get(context.Background(), a2alib.TaskID("nonexistent"))
 	assert.ErrorIs(t, err, a2alib.ErrTaskNotFound)
@@ -56,7 +56,7 @@ func TestStoreAdapterGetNotFound(t *testing.T) {
 
 func TestStoreAdapterSave(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	task := &types.Task{
 		ID:        "test-task-2",
@@ -96,7 +96,7 @@ func TestStoreAdapterSave(t *testing.T) {
 
 func TestStoreAdapterList(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	task1 := &types.Task{
 		ID:        "test-task-3",
@@ -149,7 +149,7 @@ func TestStoreAdapterList(t *testing.T) {
 
 func TestStoreAdapterListPagination(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	// Create 5 tasks in ctx-1
 	for i := range 5 {
@@ -242,7 +242,7 @@ func TestStoreAdapterListPagination(t *testing.T) {
 
 func TestStoreAdapterListStatusFilter(t *testing.T) {
 	store := taskstore.NewStore()
-	adapter := NewStoreAdapter(store)
+	adapter := NewStoreAdapter(store, nil)
 
 	// Create a pending task
 	err := store.Create(&types.Task{
@@ -286,4 +286,225 @@ func TestStoreAdapterListStatusFilter(t *testing.T) {
 	require.Len(t, resp.Tasks, 1)
 	assert.Equal(t, a2alib.TaskID("running-task"), resp.Tasks[0].ID)
 	assert.Equal(t, a2alib.TaskStateWorking, resp.Tasks[0].Status.State)
+}
+
+// ---------------------------------------------------------------------------
+// State proxy hydration (history + artifacts)
+// ---------------------------------------------------------------------------
+
+// fakeStateProxy is a test double for stateproxy.Reader.
+type fakeStateProxy struct {
+	payloads map[string]map[string]any // prefix+"/"+id -> payload
+	err      error
+}
+
+func (f *fakeStateProxy) ReadPayload(_ context.Context, prefix, taskID string) (map[string]any, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return f.payloads[prefix+"/"+taskID], nil
+}
+
+func buildPayloadWithHistory(msgs []map[string]any) map[string]any {
+	history := make([]any, len(msgs))
+	for i, m := range msgs {
+		history[i] = m
+	}
+	return map[string]any{
+		"a2a": map[string]any{
+			"task": map[string]any{
+				"history": history,
+			},
+		},
+	}
+}
+
+func TestStoreAdapterGet_HistoryHydratedForSucceededTask(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{
+		payloads: map[string]map[string]any{
+			"succeeded/hist-task": buildPayloadWithHistory([]map[string]any{
+				{
+					"messageId": "msg-1",
+					"role":      "user",
+					"parts":     []any{map[string]any{"kind": "text", "text": "Hello"}},
+				},
+			}),
+		},
+	}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "hist-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusSucceeded,
+		Route:     types.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "hist-task",
+		Status:    types.TaskStatusSucceeded,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "hist-task")
+	require.NoError(t, err)
+	require.Len(t, got.History, 1)
+	assert.Equal(t, a2alib.MessageRoleUser, got.History[0].Role)
+}
+
+func TestStoreAdapterGet_HistoryOmittedForInFlightTask(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{
+		payloads: map[string]map[string]any{
+			// provide data for "running" prefix (should never be read)
+			"running/inflight-task": buildPayloadWithHistory([]map[string]any{
+				{"messageId": "msg-x", "role": "user", "parts": []any{}},
+			}),
+		},
+	}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "inflight-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusRunning,
+		Route:     types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "inflight-task",
+		Status:    types.TaskStatusRunning,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "inflight-task")
+	require.NoError(t, err)
+	assert.Nil(t, got.History, "history must be omitted for in-flight tasks")
+}
+
+func TestStoreAdapterGet_HistoryOmittedOnStateProxyError(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{err: fmt.Errorf("s3 unavailable")}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "err-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusSucceeded,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "err-task",
+		Status:    types.TaskStatusSucceeded,
+		Timestamp: time.Now(),
+	}))
+
+	// Must succeed despite state proxy error; history simply omitted
+	got, _, err := adapter.Get(context.Background(), "err-task")
+	require.NoError(t, err)
+	assert.Nil(t, got.History, "history must be omitted when state proxy read fails")
+}
+
+func TestStoreAdapterGet_HistoryOmittedWhenNoFileExists(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{payloads: map[string]map[string]any{}} // empty — no files
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "no-file-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusSucceeded,
+		Route:     types.Route{Prev: []string{}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "no-file-task",
+		Status:    types.TaskStatusSucceeded,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "no-file-task")
+	require.NoError(t, err)
+	assert.Nil(t, got.History)
+}
+
+func TestStoreAdapterGet_ArtifactsHydratedWhenPresent(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{
+		payloads: map[string]map[string]any{
+			"succeeded/art-task": {
+				"a2a": map[string]any{
+					"task": map[string]any{
+						"history": []any{},
+						"artifacts": []any{
+							map[string]any{
+								"artifactId": "artifact-1",
+								"name":       "result.json",
+								"parts": []any{
+									map[string]any{"kind": "text", "text": "{}"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "art-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusSucceeded,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "art-task",
+		Status:    types.TaskStatusSucceeded,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "art-task")
+	require.NoError(t, err)
+	require.Len(t, got.Artifacts, 1)
+	assert.Equal(t, a2alib.ArtifactID("artifact-1"), got.Artifacts[0].ID)
+}
+
+func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
+	store := taskstore.NewStore()
+	sp := &fakeStateProxy{
+		payloads: map[string]map[string]any{
+			"paused/pause-task": buildPayloadWithHistory([]map[string]any{
+				{"messageId": "m1", "role": "user", "parts": []any{map[string]any{"kind": "text", "text": "hi"}}},
+				{"messageId": "m2", "role": "agent", "parts": []any{map[string]any{"kind": "text", "text": "need info"}}},
+			}),
+		},
+	}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Task{
+		ID:        "pause-task",
+		ContextID: "ctx",
+		Status:    types.TaskStatusPaused,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "x-pause", Next: []string{"x-resume"}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.TaskUpdate{
+		ID:        "pause-task",
+		Status:    types.TaskStatusPaused,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "pause-task")
+	require.NoError(t, err)
+	require.Len(t, got.History, 2, "paused task must return full conversation history")
 }
