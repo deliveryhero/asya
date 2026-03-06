@@ -20,7 +20,7 @@ spec:
       response=$(curl -s -w "\n%{http_code}" -X POST \
         -H "Content-Type: application/json" \
         -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"helm-test","version":"1.0.0"}}}' \
-        http://{{ include "asya-gateway.fullname" . }}:{{ .Values.service.port }}/mcp)
+        http://{{ include "asya-gateway.api.fullname" . }}:{{ .Values.service.port }}/mcp)
 
       http_code=$(echo "$response" | tail -n1)
       body=$(echo "$response" | head -n-1)
