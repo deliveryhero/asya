@@ -87,7 +87,8 @@ def handler(
     else:
         prefix = "checkpoint"
 
-    key = f"{prefix}/{message_id}.json"
+    safe_id = os.path.basename(message_id)  # guard against path traversal in message IDs
+    key = f"{prefix}/{safe_id}.json"
     file_path = f"{ASYA_PERSISTENCE_MOUNT}/{key}"
 
     message: dict[str, Any] = {
