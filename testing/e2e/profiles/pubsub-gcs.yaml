@@ -5,6 +5,16 @@
 
 namespace: asya-e2e
 
+# KEDA operator configuration for the pubsub-gcs profile.
+# PUBSUB_EMULATOR_HOST routes the gcp-pubsub scaler to the in-cluster emulator,
+# bypassing GCP OAuth (the emulator accepts requests without authentication).
+# Without this, KEDA fails with Unauthenticated errors against pubsub.googleapis.com,
+# causing ScaledObject Ready=False which blocks function-auto-ready from firing.
+keda:
+  env:
+  - name: PUBSUB_EMULATOR_HOST
+    value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+
 transport:
   rabbitmq:
     enabled: false
