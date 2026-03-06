@@ -221,3 +221,6 @@ bin/
 
 # git-aint
 /.aint/
+
+# A2A JWKS keys (generated at `make up` time, contain private key material)
+testing/e2e/.jwks/

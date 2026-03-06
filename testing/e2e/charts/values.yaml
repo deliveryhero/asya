@@ -97,6 +97,8 @@ gateway:
           required: true
       route: [test-echo]
       timeout: 120
+      a2a:
+        enabled: true
     - name: test_queue_health
       description: Test queue health monitoring with small retry values
       parameters:
@@ -114,6 +116,8 @@ gateway:
           required: true
       route: [test-doubler, test-incrementer]
       timeout: 45
+      a2a:
+        enabled: true
     - name: test_error
       description: Test error handling
       parameters:
@@ -156,6 +160,8 @@ gateway:
           required: true
       route: [test-slow-boundary]
       timeout: 30
+      a2a:
+        enabled: true
     - name: test_nested_flow
       description: Test nested if-else flow with level1 and level2 parameters
       parameters:

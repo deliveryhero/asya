@@ -1,0 +1,7 @@
+apiVersion: v2
+name: jwks-server
+description: Ephemeral JWKS server for A2A JWT authentication e2e testing.
+  Serves the JWKS document (public key info) from a ConfigMap so the gateway
+  can validate JWT Bearer tokens during tests.
+type: application
+version: 0.1.0

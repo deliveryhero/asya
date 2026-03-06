@@ -370,12 +370,26 @@ TOML'
 }
 echo
 
-# Phase 4: Create prerequisite secrets
+# Phase 4: Create prerequisite secrets (and generate JWKS keys for A2A JWT auth)
 echo "[.] Phase 4: Creating prerequisite secrets..."
 time {
   # Create namespaces if they don't exist
   kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
   kubectl create namespace "$SYSTEM_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+
+  # Generate RSA key pair for A2A JWT authentication.
+  # The private key is written to .jwks/private_key.pem for host-side pytest JWT signing.
+  # Both files are stored in a K8s Secret (jwks-keys) which the jwks-server Deployment
+  # (asya-testing image + python3 -m http.server) mounts and serves at /jwks.json.
+  JWKS_DIR="$SCRIPT_DIR/../.jwks"
+  echo "[.] Generating A2A JWKS key pair..."
+  uv run --with cryptography python3 "$SCRIPT_DIR/generate_jwks.py" --key-dir "$JWKS_DIR"
+  kubectl create secret generic jwks-keys \
+    --from-file=jwks.json="$JWKS_DIR/jwks.json" \
+    --from-file=private_key.pem="$JWKS_DIR/private_key.pem" \
+    -n "$NAMESPACE" \
+    --dry-run=client -o yaml | kubectl apply -f - > /dev/null 2>&1
+  echo "[+] JWKS key pair generated and jwks-keys Secret applied"
 
   if [[ "$PROFILE" == "sqs-s3" ]]; then
     # AWS credentials for Crossplane provider (credentials file format)
