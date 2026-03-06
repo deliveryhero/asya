@@ -7,6 +7,7 @@ tags:
 
 
 
+
 ## Objective
 
 Implement `GetExtendedAgentCard` endpoint that returns an authenticated, extended version of the Agent Card with additional details not publicly visible.
