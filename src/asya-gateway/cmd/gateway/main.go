@@ -190,7 +190,7 @@ func main() {
 }
 
 func registerAPIRoutes(mux *http.ServeMux, taskHandler *mcp.Handler, mcpServer *mcp.Server,
-	a2aHandler http.Handler, cardProducer *a2a.CardProducer, apiKey string) {
+	a2aHandler http.Handler, cardProducer *a2a.CardProducer) {
 	if mcpServer != nil {
 		mux.Handle("/mcp", mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer()))
 		mux.Handle("/mcp/sse", mcpserver.NewSSEServer(mcpServer.GetMCPServer()))
@@ -242,11 +242,11 @@ func buildRoutes(mux *http.ServeMux, mode string, taskHandler *mcp.Handler,
 	registry *toolstore.Registry, apiKey string) error {
 	switch mode {
 	case "api":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, apiKey)
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
 	case "mesh":
 		registerMeshRoutes(mux, taskHandler, registry, apiKey)
 	case "testing":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, apiKey)
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
 		registerMeshRoutes(mux, taskHandler, registry, apiKey)
 	default:
 		return fmt.Errorf("ASYA_GATEWAY_MODE must be set to api|mesh|testing, got: %q", mode)
