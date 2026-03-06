@@ -94,7 +94,7 @@ Code push -> Build CR -> BuildRun CR -> Tekton pod -> Image -> Registry
 ```yaml
 apiVersion: shipwright.io/v1beta1
 kind: Build
-metadata:
+metadata:/
   name: python-actor-build
 spec:
   source:

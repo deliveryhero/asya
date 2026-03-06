@@ -259,7 +259,52 @@ network boundary, not application code. This eliminates:
 
 ---
 
-## 6. Auth Configuration Summary
+## 6. mTLS and Transport Security (Out of Scope)
+
+Asya does NOT implement mTLS. Transport-level security is a deployment concern
+handled by infrastructure. This section documents why and what platform teams
+should configure.
+
+### 6.1 Actor-to-Gateway (HTTP)
+
+With dual-deployment, mesh routes are ClusterIP-only — unreachable from outside
+the cluster. No application-level auth is needed on mesh routes.
+
+For defense-in-depth, platform teams can enable a service mesh (Istio/Linkerd)
+which provides automatic mTLS between all pods with zero Asya code changes.
+Alternatively, K8s NetworkPolicy restricts mesh access to actor pods only (see
+section 5.1).
+
+### 6.2 Actor-to-Actor (via Message Queue)
+
+Actors never communicate directly. The path is always:
+
+```
+Actor A sidecar → MQ (publish) → MQ (consume) → Actor B sidecar
+```
+
+Security is handled entirely by the transport layer:
+
+| Transport | Auth | Encryption in transit | Access control |
+|-----------|------|----------------------|----------------|
+| **SQS** | IAM (IRSA or static creds) | TLS by default (AWS HTTPS endpoints) | IAM policy per queue (`asya-*` prefix) |
+| **RabbitMQ** | AMQP credentials (user/pass) | TLS if configured on AMQP listener | Vhost/queue-level permissions |
+
+No application-level mTLS or message signing is needed. The sidecar connects
+to the MQ using credentials provided by the deployment (IRSA, K8s Secret, etc.).
+
+### 6.3 What Asya Documents (Not Implements)
+
+- RabbitMQ TLS configuration for AMQP connections
+- IAM policy examples for SQS queue-level access control
+- Service mesh annotations for automatic mTLS
+- K8s NetworkPolicy examples for mesh route restriction
+
+See aint `[1f63]` for the documentation task.
+
+---
+
+## 7. Auth Configuration Summary
 
 | Env Var | Scope | Default | Purpose |
 |---------|-------|---------|---------|
@@ -275,7 +320,7 @@ network boundary, not application code. This eliminates:
 
 ---
 
-## 7. Implementation Phases
+## 8. Implementation Phases
 
 ### Phase 1: Dual-Deployment Split
 
@@ -329,7 +374,7 @@ OAuth2 and OIDC for both protocols.
 
 ---
 
-## 8. Testing Strategy
+## 9. Testing Strategy
 
 ### Unit Tests
 - Route registration gating per mode
@@ -349,7 +394,7 @@ OAuth2 and OIDC for both protocols.
 
 ---
 
-## 9. Related Research
+## 10. Related Research
 
 - `research-a2a-auth.md` — A2A protocol security specification analysis
 - `research-mcp-auth.md` — MCP authorization specification analysis
@@ -358,7 +403,7 @@ OAuth2 and OIDC for both protocols.
 
 ---
 
-## 10. Open Questions
+## 11. Open Questions
 
 1. **Helm chart structure**: Should the dual deployment use one chart with a
    `mode` value, or two separate charts (`asya-gateway-api`,
