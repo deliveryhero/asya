@@ -6,11 +6,13 @@ metadata:
   labels:
     helm.sh/chart: {{ include "asya-crew.chart" . }}
     asya.sh/role: dlq
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
 spec:
   forProvider:
     name: asya-{{ .Release.Namespace }}-dlq
     region: {{ .Values.sqs.dlq.region }}
-    messageRetentionSeconds: {{ .Values.sqs.dlq.messageRetentionSeconds | default 1209600 }}
+    messageRetentionSeconds: {{ .Values.sqs.dlq.messageRetentionSeconds }}
     tags:
       asya.sh/namespace: {{ .Release.Namespace }}
       asya.sh/role: dlq
