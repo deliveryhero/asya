@@ -49,6 +49,32 @@ def _get_transport_client(transport: str):
         pytest.skip(f"Unsupported transport: {transport}")
 
 
+def _trigger_crossplane_reconcile(e2e_helper, namespace: str, queue_name: str) -> None:
+    """Trigger immediate Crossplane reconciliation for the actor owning this queue.
+
+    Crossplane's SQS provider poll interval is long (default ~10min). Annotating
+    the AsyncActor claim forces an immediate reconciliation loop that detects
+    the missing queue and recreates it within seconds.
+
+    Queue naming convention: asya-{namespace}-{actor_name}
+    """
+    prefix = f"asya-{namespace}-"
+    if not queue_name.startswith(prefix):
+        logger.warning(f"[!] Cannot derive actor name from queue: {queue_name}")
+        return
+    actor_name = queue_name[len(prefix):]
+    try:
+        import time as _time
+        e2e_helper.kubectl(
+            "annotate", "asyncactor", actor_name, "-n", namespace,
+            f"asya.sh/force-reconcile={int(_time.time())}",
+            "--overwrite",
+        )
+        logger.info(f"[+] Triggered Crossplane reconciliation for actor: {actor_name}")
+    except Exception as exc:
+        logger.warning(f"[!] Could not trigger reconciliation for {queue_name}: {exc}")
+
+
 @pytest.mark.slow
 @pytest.mark.chaos
 def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, namespace):
@@ -89,10 +115,11 @@ def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, 
     queues_after_delete = transport_client.list_queues()
     assert queue_name not in queues_after_delete, f"Queue {queue_name} should be deleted"
     logger.info(f"[+] Queue confirmed deleted: {queue_name}")
+    _trigger_crossplane_reconcile(e2e_helper, namespace, queue_name)
 
     logger.info("[3/4] Waiting for Crossplane reconciliation")
     max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
-    check_interval = 10
+    check_interval = 5
     elapsed = 0
     queue_recreated = False
 
@@ -105,7 +132,7 @@ def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, 
             break
         else:
             logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
-        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
+        time.sleep(check_interval)  # Poll every 5s for queue recreation after triggered reconciliation
 
         elapsed += check_interval
 
@@ -165,10 +192,11 @@ def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues,
     logger.info("[1/3] Deleting queue to simulate infrastructure failure")
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
+    _trigger_crossplane_reconcile(e2e_helper, namespace, queue_name)
 
     logger.info("[2/3] Waiting for Crossplane reconciliation to recreate queue")
     max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
-    check_interval = 10
+    check_interval = 5
     elapsed = 0
     queue_recreated = False
 
@@ -181,7 +209,7 @@ def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues,
             break
         else:
             logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
-        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
+        time.sleep(check_interval)  # Poll every 5s for queue recreation after triggered reconciliation
         elapsed += check_interval
 
     assert queue_recreated, \
@@ -243,6 +271,9 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
         except Exception as e:
             logger.warning(f"Failed to delete {queue_name}: {e}")
 
+    for queue_name in test_queues:
+        _trigger_crossplane_reconcile(e2e_helper, namespace, queue_name)
+
     logger.info("[2/5] Verifying all queues deleted")
     queues_after_delete = transport_client.list_queues()
     for queue_name in test_queues:
@@ -251,7 +282,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
 
     logger.info("[3/5] Waiting for Crossplane reconciliation to recreate all queues")
     max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
-    check_interval = 10
+    check_interval = 5
     elapsed = 0
     all_recreated = False
 
@@ -267,7 +298,7 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
             logger.info(f"[+] All queues recreated after {elapsed}s")
             break
 
-        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
+        time.sleep(check_interval)  # Poll every 5s for queue recreation after triggered reconciliation
         elapsed += check_interval
 
     assert all_recreated, \
@@ -333,10 +364,11 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
     logger.info("[2/4] Deleting queue during/after processing")
     transport_client.delete_queue(queue_name)
     logger.info(f"[+] Queue deleted: {queue_name}")
+    _trigger_crossplane_reconcile(e2e_helper, namespace, queue_name)
 
     logger.info("[3/4] Waiting for Crossplane reconciliation to recreate queue")
     max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "300"))
-    check_interval = 10
+    check_interval = 5
     elapsed = 0
     queue_recreated = False
 
@@ -347,7 +379,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
             logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
 
-        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
+        time.sleep(check_interval)  # Poll every 5s for queue recreation after triggered reconciliation
         elapsed += check_interval
 
     assert queue_recreated, f"Queue {queue_name} not recreated within {max_wait}s"
