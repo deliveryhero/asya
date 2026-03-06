@@ -7,9 +7,9 @@
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
 | ◐ active | [1fuy] | P1 | Phase 1: Dual-deployment gateway split | `.worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split` | `agentic-security/1fuy.phase-1-dual-deployment-gateway-split` | — |
+| ○ open | [1fdf] | P2 | Research: Standardized secrets management for Asya actors | — | — | — |
 | ○ open | [rcvm] | P2 | Phase 3: MCP OAuth 2.1 spec compliance | — | — | — |
 | ○ open | [b51i] | P2 | Phase 2: MCP API key authentication | — | — | — |
-| ○ open | [1fdf] | P2 | Research: Standardized secrets management for Asya actors | — | — | — |
 | ○ open | [iu97] | P3 | Phase 4: Enterprise auth (OAuth2 + OIDC for both protocols) | — | — | — |
 | ○ open | [1f63] | P4 | Document TLS/mTLS deployment guidance | — | — | — |
 

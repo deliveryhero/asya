@@ -12,10 +12,10 @@
 | ○ open | [1f7a] | P2 | Implement input_required state for human-in-the-loop | — | — | — |
 | ○ open | [tgfp] | P3 | GetTask history and artifacts from S3 | — | — | — |
 | ○ open | [1fge] | P3 | Implement GET /tasks endpoint (list tasks) | — | — | — |
-| ○ open | [1foq] | P3 | Add gRPC transport support | — | — | — |
 | ○ open | [1fki] | P3 | Research: Adapt Gateway API to A2A/ACP/A2UI standards | — | — | — |
-| ○ open | [1f53] | P4 | Implement push notification configuration endpoints | — | — | — |
+| ○ open | [1foq] | P3 | Add gRPC transport support | — | — | — |
 | ○ open | [1fgy] | P4 | Add A2UI payload support (optional) | — | — | — |
+| ○ open | [1f53] | P4 | Implement push notification configuration endpoints | — | — | — |
 
 ### Recently closed
 - ✓ merged [qf0l] extended-agent-card-getextendedagent
@@ -34,9 +34,9 @@
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
 | ◐ active | [1fuy] | P1 | Phase 1: Dual-deployment gateway split | `.worktrees/agentic-security/1fuy.phase-1-dual-deployment-gateway-split` | `agentic-security/1fuy.phase-1-dual-deployment-gateway-split` | — |
+| ○ open | [1fdf] | P2 | Research: Standardized secrets management for Asya actors | — | — | — |
 | ○ open | [rcvm] | P2 | Phase 3: MCP OAuth 2.1 spec compliance | — | — | — |
 | ○ open | [b51i] | P2 | Phase 2: MCP API key authentication | — | — | — |
-| ○ open | [1fdf] | P2 | Research: Standardized secrets management for Asya actors | — | — | — |
 | ○ open | [iu97] | P3 | Phase 4: Enterprise auth (OAuth2 + OIDC for both protocols) | — | — | — |
 | ○ open | [1f63] | P4 | Document TLS/mTLS deployment guidance | — | — | — |
 
@@ -44,13 +44,13 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1mx1] | P2 | Smart JSON serialization: support pydantic, dataclasses, and typed structures in runtime | — | — | — |
 | ○ open | [1m0d] | P2 | Dynamic routing: transfer_to_agent equivalent for LLM-decided actor selection | — | — | — |
+| ○ open | [1mx1] | P2 | Smart JSON serialization: support pydantic, dataclasses, and typed structures in runtime | — | — | — |
 | ○ open | [1faq] | P2 | Map Asya events to AG-UI event types | — | — | — |
-| ○ open | [1m0e] | P3 | Escalation action for actor-driven loop termination | — | — | — |
-| ○ open | [1m0g] | P3 | Research: event compaction and context window management for long-running agents | — | — | — |
 | ○ open | [1m0f] | P3 | Research: before/after callbacks for model and tool interceptors | — | — | — |
 | ○ open | [1f7m] | P3 | Scheduled trigger crew actors (CronJob-based delay for transports without SendWithDelay) | — | — | — |
+| ○ open | [1m0e] | P3 | Escalation action for actor-driven loop termination | — | — | — |
+| ○ open | [1m0g] | P3 | Research: event compaction and context window management for long-running agents | — | — | — |
 
 ### Recently closed
 - ✓ merged [1flm] test-adk-llm-auditor-compilation-execution-test
@@ -66,10 +66,10 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1kmt] | P3 | Gateway: add Headers field to ActorMessage for API-driven route overrides | — | — | — |
 | ○ open | [1kjq] | P3 | Layer 2: Python router actor for weighted/probabilistic traffic splitting | — | — | — |
-| ○ open | [1kmh] | P4 | Observability: route-override hit rate metrics per actor | — | — | — |
+| ○ open | [1kmt] | P3 | Gateway: add Headers field to ActorMessage for API-driven route overrides | — | — | — |
 | ○ open | [1kvc] | P4 | x-sump: surface route-override audit trail in error handling | — | — | — |
+| ○ open | [1kmh] | P4 | Observability: route-override hit rate metrics per actor | — | — | — |
 
 ### Recently closed
 - ✓ merged [1f7q] sidecar-x-asya-route-override-header-resolution
@@ -87,10 +87,10 @@
 | ○ open | [1fac] | P2 | Sidecar: ASYA_ACTOR_ROLE (regular|sink|sump) and ASYA_ACTOR_SINK unification | — | — | — |
 | ○ open | [1php] | P2 | Design SendWithDelay crew actor for transports without native delay | — | — | — |
 | ○ open | [1k1b] | P2 | Merge asya-dlq-worker image into asya-crew (multi-stage build, shared image with command override) | — | — | — |
-| ○ open | [1ffa] | P3 | Support scaling.advanced in Crossplane XRD | — | — | — |
-| ○ open | [1oa6] | P3 | Support match statement as conditional routing | — | — | — |
-| ○ open | [1omc] | P3 | Support del statement as payload mutation | — | — | — |
 | ○ open | [1jqk] | P3 | x-sump: emit OpenTelemetry metrics for hook outcomes | — | — | — |
+| ○ open | [1oa6] | P3 | Support match statement as conditional routing | — | — | — |
+| ○ open | [1ffa] | P3 | Support scaling.advanced in Crossplane XRD | — | — | — |
+| ○ open | [1omc] | P3 | Support del statement as payload mutation | — | — | — |
 
 ### Recently closed
 - ✗ rejected [1k38] enable-async-flow-compilation
@@ -119,13 +119,13 @@
 |--------|-----|-----|-------|----------|--------|----|
 | ○ open | [1fwj] | P2 | Update 'When to Use Asya🎭' section in README | — | — | — |
 | ○ open | [1fus] | P2 | (EPIC) Agentic Flow Documentation & Tutorials | — | — | — |
-| ○ open | [1f8j] | P2 | Document example overlay EnvironmentConfigs for asya-quickstart | — | — | — |
-| ○ open | [1fcm] | P2 | Determine minimal Kubernetes version for Asya deployment | — | — | — |
-| ○ open | [1ftv] | P2 | Refactor documentation structure and consolidate quickstart | — | — | — |
-| ○ open | [1fht] | P2 | Complete Prometheus monitoring section in quickstart | — | — | — |
-| ○ open | [1fev] | P2 | Create developer onboarding guide (CONTRIBUTING.md) | — | — | — |
-| ○ open | [1fbx] | P2 | Document security posture and hardening practices | — | — | — |
 | ○ open | [1fu4] | P2 | Update observability docs to reference quickstart setup | — | — | — |
+| ○ open | [1fht] | P2 | Complete Prometheus monitoring section in quickstart | — | — | — |
+| ○ open | [1fbx] | P2 | Document security posture and hardening practices | — | — | — |
+| ○ open | [1ftv] | P2 | Refactor documentation structure and consolidate quickstart | — | — | — |
+| ○ open | [1fcm] | P2 | Determine minimal Kubernetes version for Asya deployment | — | — | — |
+| ○ open | [1f8j] | P2 | Document example overlay EnvironmentConfigs for asya-quickstart | — | — | — |
+| ○ open | [1fev] | P2 | Create developer onboarding guide (CONTRIBUTING.md) | — | — | — |
 | ○ open | [1fkc] | P3 | Document max_iterations guard for while-True loops | — | — | — |
 
 ## error-handling/
@@ -134,8 +134,8 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1fmj] | P2 | DotGen: loop and async flow visualization | — | — | — |
 | ○ open | [1fel] | P2 | Flow DSL: Support for loops (requires local variable serialization) | — | — | — |
+| ○ open | [1fmj] | P2 | DotGen: loop and async flow visualization | — | — | — |
 | ○ open | [1fi2] | P3 | Compiler: max_iterations guard for while loops | — | — | — |
 
 ## local-testing/
@@ -151,44 +151,44 @@
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
 | ◐ active | [1mao] | P1 | Fix flaky test_sla_precheck_stops_retries integration test | `.worktrees/misc/1mao92.fix-flaky-test-sla-precheck-stops-retries-integration` | `misc/1mao92.fix-flaky-test-sla-precheck-stops-retries-integration` | — |
-| ◐ active | [1fqo] | P2 | Add Asya-level runtime metrics via response JSON | — | — | — |
 | ◐ active | [1o9t] | P2 | Teach XRD to propagate user labels from AsyncActor down to owned resources | `.worktrees/misc/1o9t98.xrd-propagate-labels` | `misc/1o9t98.xrd-propagate-labels` | — |
+| ◐ active | [1fqo] | P2 | Add Asya-level runtime metrics via response JSON | — | — | — |
 | ◐ active | [mtlj] | P2 | Fix flaky SLA integration test (sidecar-runtime rabbitmq) | — | — | #263 |
-| ○ open | [h6h2] | P2 | Configure DLQ redrive policy in Crossplane compositions | — | — | — |
-| ○ open | [1fvx] | P2 | Enhance AGENTS.md with decision trees for faster agent comprehension | — | — | — |
-| ○ open | [1lnz] | P2 | Post-compilation invariant checks: all routers visible in DOT with proper connectivity | — | — | — |
-| ○ open | [1fm8] | P2 | Add load test Job to asya-quickstart chart | — | — | — |
-| ○ open | [1fsw] | P2 | Implement load testing suite for operator reconciliation and actor autoscaling | — | — | — |
-| ○ open | [1fvm] | P2 | Research: HolmesGPT for AI-assisted Asya debugging | — | — | — |
 | ○ open | [1fzx] | P2 | Auto-detect runtime container instead of requiring asya-runtime name | — | — | — |
-| □ backlog | [tlu5] | P2 | Migrate XRD from apiextensions.crossplane.io/v1 to v2 | — | — | — |
-| ○ open | [1fwa] | P2 | Runtime 'Client disconnected' warnings in crew actors | — | — | — |
-| ○ open | [1msu] | P2 | Support kubectl logs asya/actor-name | — | — | — |
+| ○ open | [1fvx] | P2 | Enhance AGENTS.md with decision trees for faster agent comprehension | — | — | — |
+| ○ open | [1fvm] | P2 | Research: HolmesGPT for AI-assisted Asya debugging | — | — | — |
+| ○ open | [1fm8] | P2 | Add load test Job to asya-quickstart chart | — | — | — |
 | ○ open | [xqz4] | P2 | Configure DLQ redrive policy in Crossplane compositions | — | — | — |
-| ○ open | [1f7w] | P2 | Refactor: Unify injected mounts under /opt/asya directory | — | — | — |
+| ○ open | [h6h2] | P2 | Configure DLQ redrive policy in Crossplane compositions | — | — | — |
+| ○ open | [1fsw] | P2 | Implement load testing suite for operator reconciliation and actor autoscaling | — | — | — |
+| ○ open | [1fwa] | P2 | Runtime 'Client disconnected' warnings in crew actors | — | — | — |
 | ○ open | [1ip8] | P2 | Implement nats-kv-buffered-cas connector | — | — | — |
-| ○ open | [1fol] | P3 | Research: Actor warm-up pattern before scale-to-zero | — | — | — |
-| ○ open | [1ffp] | P3 | Add helm template validation to pre-commit hooks | — | — | — |
+| ○ open | [1f7w] | P2 | Refactor: Unify injected mounts under /opt/asya directory | — | — | — |
+| □ backlog | [tlu5] | P2 | Migrate XRD from apiextensions.crossplane.io/v1 to v2 | — | — | — |
+| ○ open | [1lnz] | P2 | Post-compilation invariant checks: all routers visible in DOT with proper connectivity | — | — | — |
+| ○ open | [1msu] | P2 | Support kubectl logs asya/actor-name | — | — | — |
 | ○ open | [1j0y] | P3 | Gateway: remove queue-name fallback once status.phase is stable | — | — | — |
-| ○ open | [1le9] | P3 | Compiler: eliminate no-op break-check routers in while-loop bodies | — | — | — |
-| ○ open | [1m1v] | P3 | Fix test_asyncactor_label_propagation: update assertions to match Crossplane labeling | — | — | — |
-| □ backlog | [pw0j] | P3 | XRD: Add comprehensive CEL validation for workload schema | — | — | — |
-| ○ open | [pwx6] | P3 | Crossplane queue health monitoring: operator queue recreation not applicable | — | — | — |
-| ○ open | [1fzh] | P3 | Research: kubectl-asya via Krew vs custom CLI wrapper | — | — | — |
-| □ backlog | [1fmi] | P3 | Flow/Actor DSL: tenacity.retry decorator detection and ASYA_ERROR_* config generation | — | — | — |
-| ○ open | [oz2o] | P3 | E2E: fix gateway restart timing in test_gateway_restart_during_processing | — | — | — |
-| ○ open | [1f1s] | P3 | (EPIC) Enable workloadRef: Bring Your Own Deployment | — | — | — |
 | ○ open | [1jhl] | P3 | Integration test: verify exponential backoff delays grow geometrically | — | — | — |
+| ○ open | [1fol] | P3 | Research: Actor warm-up pattern before scale-to-zero | — | — | — |
+| ○ open | [pwx6] | P3 | Crossplane queue health monitoring: operator queue recreation not applicable | — | — | — |
+| ○ open | [1le9] | P3 | Compiler: eliminate no-op break-check routers in while-loop bodies | — | — | — |
+| □ backlog | [1fmi] | P3 | Flow/Actor DSL: tenacity.retry decorator detection and ASYA_ERROR_* config generation | — | — | — |
+| □ backlog | [pw0j] | P3 | XRD: Add comprehensive CEL validation for workload schema | — | — | — |
 | ○ open | [1qey] | P3 | Flow DSL: support local variable assignments from state accessors | — | — | — |
+| ○ open | [oz2o] | P3 | E2E: fix gateway restart timing in test_gateway_restart_during_processing | — | — | — |
+| ○ open | [1fzh] | P3 | Research: kubectl-asya via Krew vs custom CLI wrapper | — | — | — |
+| ○ open | [1f1s] | P3 | (EPIC) Enable workloadRef: Bring Your Own Deployment | — | — | — |
+| ○ open | [1m1v] | P3 | Fix test_asyncactor_label_propagation: update assertions to match Crossplane labeling | — | — | — |
+| ○ open | [1ffp] | P3 | Add helm template validation to pre-commit hooks | — | — | — |
 | ○ open | [sv33] | P3 | Crossplane XRD: add timeout field support | — | — | — |
 | ○ open | [1fx9] | P4 | Research AGNTCY protocol feasibility for Asya Gateway | — | — | — |
 
 ### Recently closed
-- ✗ rejected [1fso] create-architecture-decision-records-adrs
-- ✗ rejected [1fo5] aggregator-crew-actor-with-rocksdb
-- ✗ rejected [1fo0] research-signoz-as-alternative-prometheus-grafana-observability
 - ✗ rejected [1fjb] component-test-aggregator-actor-with-rocksdb
-- ✗ rejected [1fbo] add-statefulset-workload-support-operator-crossplane
+- ✓ merged [1flu] replace-happy-end-error-end-with-x-sink
+- ✓ merged [1fgd] test-e2e-actor-deployment-with-flavors
+- ✓ merged [1ff9] research-stateful-actor-fan-out-fan-coordination
+- ✗ rejected [1fso] create-architecture-decision-records-adrs
 
 ## msg-metadata-vfs/
 
@@ -209,9 +209,9 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1fbs] | P2 | Observability: error retry metrics and tracing for debuggability by message ID + actor name | — | — | — |
 | ○ open | [1f4g] | P2 | Configure OTEL env vars for user metrics in runtime container | — | — | — |
 | ○ open | [1fea] | P2 | Test Prometheus + Grafana setup in local Kind cluster | — | — | — |
+| ○ open | [1fbs] | P2 | Observability: error retry metrics and tracing for debuggability by message ID + actor name | — | — | — |
 
 ## pause-resume-actors/
 
@@ -236,15 +236,15 @@
 - ✓ merged [1opd] support-assert-statement-as-compile-time-flow-guard
 - ✓ merged [1oj4] allow-arbitrary-flow-parameter-name-beyond-p-payload
 - ✓ merged [1ob9] support-import-from-import-handler-module-references
-- ✓ merged [1mhs] non-call-list-elements-parsed-as-fanout
+- ✓ merged [1mhs] fanout-inside-while-loops-runtime-verification
 
 ## tech-debt-crossplane-e2e-tests/
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1f3k] | P3 | Un-xfail E2E tests after Crossplane DLQ support | — | — | — |
 | ○ open | [1fbq] | P3 | Un-skip queue health monitoring E2E tests after Crossplane drift detection validation | — | — | — |
 | ○ open | [1f2y] | P3 | Fix scaling performance E2E tests (cold start / backlog) for KEDA minReplicas=0 | — | — | — |
+| ○ open | [1f3k] | P3 | Un-xfail E2E tests after Crossplane DLQ support | — | — | — |
 
 ## timeout-handling/
 > rfc.md: 329 lines
@@ -256,18 +256,18 @@
 ### Recently closed
 - ✓ merged [1kz8] gateway-stamp-status-deadline-at-message-protocol
 - ✓ merged [1kqf] component-tests-sidecar-sla-enforcement
-- ✓ merged [1kkr] unify-asya-runtime-timeout-into-asya-resiliency-actor
-- ✓ merged [1kjf] add-deadlineat-message-status-struct-parsedeadline-helper
 - ✓ merged [1kbu] refactor-callruntime-accept-per-call-timeout-update-visibility
+- ✓ merged [1k80] integration-tests-sla-enforcement-across-sidecar-runtime-gateway
+- ✓ merged [1k1p] add-effectivetimeout-sla-pre-check-router
 
 ## typed-handler-signatures/
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [1m6h] | P2 | Implement generator/yield typed serialization support | — | — | — |
-| ○ open | [1mbk] | P2 | Update docs for typed handler signatures (ASYA_PARAMS_AT/ASYA_RESULT_AT) | — | — | — |
-| ○ open | [1mnz] | P2 | Add unit and component tests for typed handler signatures | — | — | — |
 | ○ open | [1m58] | P2 | Implement JSON Schema generation and GET /schema endpoint | — | — | — |
-| ○ open | [1m8s] | P2 | Implement typed output merge and return serialization (ASYA_RESULT_AT_KEY) | — | — | — |
 | ○ open | [1m4y] | P2 | Implement typed input extraction and deserialization (ASYA_PARAMS_AT_KEY) | — | — | — |
+| ○ open | [1mbk] | P2 | Update docs for typed handler signatures (ASYA_PARAMS_AT/ASYA_RESULT_AT) | — | — | — |
+| ○ open | [1m6h] | P2 | Implement generator/yield typed serialization support | — | — | — |
+| ○ open | [1mnz] | P2 | Add unit and component tests for typed handler signatures | — | — | — |
+| ○ open | [1m8s] | P2 | Implement typed output merge and return serialization (ASYA_RESULT_AT_KEY) | — | — | — |
 
