@@ -1237,8 +1237,11 @@ func TestHandleMeshCreate(t *testing.T) {
 					if task.ParentID == nil || *task.ParentID != parentIDStr {
 						t.Errorf("Task ParentID = %v, want %v", task.ParentID, parentIDStr)
 					}
-					if task.Status != types.TaskStatusPending {
-						t.Errorf("Task Status = %v, want Pending", task.Status)
+					// Status may be Pending or Running: HandleMeshCreate spawns a
+					// goroutine that immediately sets status to Running, so both
+					// states are valid depending on goroutine scheduling.
+					if task.Status != types.TaskStatusPending && task.Status != types.TaskStatusRunning {
+						t.Errorf("Task Status = %v, want Pending or Running", task.Status)
 					}
 				}
 			}
