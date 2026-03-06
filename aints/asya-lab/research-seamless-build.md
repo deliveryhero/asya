@@ -108,7 +108,7 @@ spec:
 **On-demand builds without git commit**: Shipwright supports building from
 uncommitted local code via two source upload methods:
 
-**Method 1: Streaming** (via `kubectl exec`) -- simplest for DS:
+**Method 1: Streaming** (`source.type: Local`) -- simplest for DS:
 ```yaml
 # One-time Build CR setup
 apiVersion: shipwright.io/v1beta1
@@ -127,13 +127,38 @@ spec:
 ```bash
 # Every iteration -- no git commit needed:
 shp build upload my-actor
-# -> streams tar of working directory to build pod via kubectl exec
-# -> pod builds image -> pushes to registry
+# -> creates BuildRun, streams tar to build pod, pod builds + pushes
 ```
-Build pod waits for the CLI to stream source (configurable timeout).
-No intermediate storage, no git push, no source bundle registry.
 
-**Method 2: Bundle** (via OCI registry) -- when `kubectl exec` is restricted:
+**How streaming works internally**:
+
+1. `shp build upload` creates a new BuildRun, watches for pod `Running`
+2. Build pod starts with a **waiter step** (`step-source-local`) -- a
+   binary that creates a lock file (`/shp-tmp/waiter.lock`) and polls
+   every 100ms. Default timeout: 60s.
+3. CLI streams source via `kubectl exec`:
+   ```
+   local dir -> tar in-memory -> io.Pipe() -> kubectl exec stdin ->
+   "tar --no-same-permissions -xvf - -C /workspace/source"
+   (inside the waiter container)
+   ```
+4. CLI signals done via another exec: `waiter done` (deletes lock file).
+   Waiter exits, Tekton proceeds to build strategy steps.
+
+**File filtering**: `.git/` always excluded (hardcoded). `.gitignore`
+respected. `.dockerignore` NOT respected. No custom exclude patterns.
+
+**Security**: Requires `pods/exec` RBAC permission. Waiter runs non-root
+(UID 1000), read-only rootfs, all capabilities dropped. Source lives in
+EmptyDir -- ephemeral, destroyed with the pod. No registry credentials
+needed for the data transfer itself.
+
+**Iteration model**: Each `shp build upload` creates a **new BuildRun** --
+cannot re-upload to an existing one. Can run repeatedly against the same
+Build CR for iterative development.
+
+**Method 2: Bundle** (`source.type: OCI`) -- when `kubectl exec` is
+restricted:
 ```bash
 shp build create my-actor \
   --source-bundle-image registry/my-actor-source \
@@ -143,8 +168,20 @@ shp build upload my-actor
 # -> packages local dir as OCI artifact -> pushes to registry
 # -> BuildRun pulls source from registry -> builds -> pushes image
 ```
-Works when security policies block `kubectl exec`. Source preserved in
-registry for audit/rebuild. Can be pruned after pull.
+
+**How bundle mode differs**: CLI packages source as an OCI image, pushes
+to registry. Build pod pulls it instead of receiving via exec. Uses
+`.shpignore` (Shipwright-specific, gitignore syntax) for file filtering.
+Requires Docker registry credentials but NOT `pods/exec` RBAC. Source
+preserved in registry for audit/rebuild. Can be pruned after pull.
+
+| Aspect | Streaming (Local) | Bundle (OCI) |
+|---|---|---|
+| Data path | kubectl exec stdin -> pod | CLI -> registry -> pod |
+| Registry needed | No | Yes |
+| RBAC | pods/exec | registry credentials |
+| File filtering | .gitignore | .shpignore |
+| Audit trail | None (ephemeral) | Source in registry |
 
 **Asya integration** for on-demand Shipwright builds:
 ```bash
