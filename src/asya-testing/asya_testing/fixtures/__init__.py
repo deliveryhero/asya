@@ -8,12 +8,14 @@ from .e2e import (
     wait_for_queues_factory,
 )
 from .gateway import gateway_helper
+from .handler import HandlerResult, run_handler
 from .kubectl import kubectl
 from .log_config import configure_logging
 from .transport import TransportTimeouts, rabbitmq_client, transport_timeouts
 
 
 __all__ = [
+    "HandlerResult",
     "TransportTimeouts",
     "configure_logging",
     "e2e_helper",
@@ -25,6 +27,7 @@ __all__ = [
     "rabbitmq_client",
     "rabbitmq_url",
     "results_bucket",
+    "run_handler",
     "s3_endpoint",
     "test_config",
     "transport_timeouts",
