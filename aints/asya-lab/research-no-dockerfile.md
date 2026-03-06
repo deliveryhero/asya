@@ -109,11 +109,30 @@ predict: "handler.py:Predictor"
 ```
 
 **What Cog generates**: A standard Dockerfile with:
-- Base image: `nvidia/cuda:*` (GPU) or `python:*-slim` (CPU)
+- Base image priority: (1) Cog base image `r8.im/cog-base:*` (Replicate's
+  registry, pre-includes CUDA+Python+PyTorch), (2) `nvidia/cuda:*-devel-*`
+  (GPU), (3) `python:*-slim` (CPU fallback)
 - `apt-get install` for system packages
-- uv for pip dependency installation
+- uv (v0.9.26) for pip dependency installation
 - Cog SDK + coglet HTTP server (unnecessary for Asya)
 - Multi-stage builds for model weight separation
+- `CMD ["python", "-m", "cog.server.http"]`
+
+**Cog always uses `devel` CUDA images**: All 69 entries in
+`cuda_compatibility.json` are `devel` variants (`nvidia/cuda:*-cudnn*-devel-*`).
+No `runtime` variants. Every GPU image includes the full CUDA compiler toolkit
+(headers, nvcc, libraries), inflating image size by gigabytes even for
+inference-only workloads.
+
+**Coglet**: Cog bundles a Rust/Axum HTTP server compiled as a Python extension
+via PyO3. It manages worker subprocesses, concurrency slots, and IPC over Unix
+sockets. Endpoints: `POST /predictions`, health checks, OpenAPI schema, cancel,
+shutdown. This is fundamentally incompatible with Asya's sidecar architecture --
+two competing server layers managing the same process.
+
+**Hard Docker dependency**: `cog build` creates a Docker client at startup and
+fails without a Docker daemon. No way to produce images without Docker. No
+daemonless builder support (Kaniko, Buildah).
 
 **CUDA auto-detection -- the killer feature worth reusing**: Cog maintains
 compatibility matrices as JSON files (Apache 2.0 licensed):
@@ -140,12 +159,18 @@ of painful "which CUDA works with which PyTorch?" discovery. Asya can reuse
 these JSON files (Apache 2.0) to resolve CUDA/cuDNN versions from a user's
 requirements.txt -- without depending on Cog itself.
 
-**Why NOT to adopt Cog as a build strategy**:
+**Why NOT to adopt Cog as a build strategy** (see ADR `adr.no-cog.md`):
 1. **It generates Dockerfiles** -- same escape hatch, no lock file possible
-2. **Bundles inference server** -- dead weight for Asya (injector overwrites CMD)
-3. **No apko integration** -- cannot produce lockable, reproducible images
-4. **Cog is a Dockerfile wrapper** -- adopting it adds a dependency without
-   adding a fundamentally different capability
+2. **Conflicting server** -- coglet is a full Rust HTTP server with subprocess
+   isolation and concurrency management. Asya's sidecar already handles this.
+   Two competing server layers in one pod.
+3. **Hard Docker dependency** -- cannot use Kaniko, Buildah, or Shipwright
+   strategies. Breaks daemonless CI pipelines.
+4. **Devel-only CUDA images** -- gigabytes of unnecessary compiler tooling
+   in every GPU inference image
+5. **No reproducibility** -- no lock file, no SBOM, no rebase
+6. **Registry coupling** -- default base images on `r8.im` (Replicate's
+   registry). Configurable but tightly coupled by default.
 
 **What to reuse from Cog**:
 - `torch_compatibility.json` -- CUDA resolution for PyTorch
@@ -246,16 +271,142 @@ tracks Debian security updates.
 OS (glibc, built from source, CVE-free). More flexible than Distroless --
 you build custom images rather than using pre-built ones.
 
+**apko YAML spec** (complete top-level fields):
 ```yaml
-# apko.yaml
+# apko.yaml -- full spec reference
 contents:
-  repositories:
+  repositories:                       # APK package repositories
     - https://packages.wolfi.dev/os
-  packages:
-    - python-3.11
-    - py3.11-pip
+    - @local /path/to/local/repo      # local repo with label
+  build_repositories: []              # repos for build phase only
+  runtime_repositories: []            # repos for runtime metadata only
+  keyring:                            # PGP keys for package verification
+    - https://packages.wolfi.dev/os/wolfi-signing.rsa.pub
+  packages:                           # APK packages to install
+    - python-3.12
+    - py3.12-pip
     - ffmpeg
+  baseimage:                          # EXPERIMENTAL -- see below
+    image: ./path/to/oci-layout       # local OCI layout directory ONLY
+    apkindex: ./path/to/apkindexes    # APK index of base packages
+
+entrypoint:
+  command: /usr/bin/python3           # OCI entrypoint
+  # OR shell-fragment: "exec python3 $@"
+  # OR type: service-bundle + services: {name: cmd}
+cmd: /bin/sh -l                       # OCI CMD
+work-dir: /app                        # WORKDIR
+stop-signal: SIGTERM
+
+accounts:
+  groups:
+    - groupname: app
+      gid: 1000
+  users:
+    - username: app
+      uid: 1000
+  run-as: app                         # non-root by default
+
+environment:
+  PATH: /usr/local/bin:/usr/bin:/bin
+  PYTHONPATH: /opt/app
+
+paths:                                # filesystem operations
+  - path: /opt/app
+    type: directory
+    uid: 1000
+    permissions: 0o755
+  - path: /tmp
+    type: permissions
+    permissions: 0o1777
+
+annotations:                          # OCI annotations
+  org.opencontainers.image.source: https://github.com/...
+
+archs:                                # multi-arch support
+  - amd64
+  - arm64
+
+include: base-config.yaml            # merge from base config (local or remote)
+
+layering:                             # layer splitting (incompatible with baseimage)
+  strategy: origin
+  budget: 15
 ```
+
+**Lock file format** (from `apko lock` -- real example):
+```json
+{
+  "version": "v1",
+  "config": {
+    "name": "./apko.yaml",
+    "checksum": "sha256-W5wS8HLGz9qI5ILWqVoV7YS+m3qz2hppgI0FxC1dtMU="
+  },
+  "contents": {
+    "keyring": [],
+    "build_repositories": [],
+    "runtime_repositories": [],
+    "repositories": [
+      {
+        "name": "dl-cdn.alpinelinux.org/alpine/v3.21/main/x86_64",
+        "url": "https://dl-cdn.alpinelinux.org/.../APKINDEX.tar.gz",
+        "architecture": "x86_64"
+      }
+    ],
+    "packages": [
+      {
+        "name": "musl",
+        "url": "https://dl-cdn.alpinelinux.org/.../musl-1.2.5-r9.apk",
+        "version": "1.2.5-r9",
+        "architecture": "x86_64",
+        "signature": {
+          "range": "bytes=0-666",
+          "checksum": "sha1-sM/dPliGLSt7MPSP5juy3qQ9M1M="
+        },
+        "control": {
+          "range": "bytes=667-1188",
+          "checksum": "sha1-/L7yOJHsBPgaKLmNu7Uh5YIY0tg="
+        },
+        "data": {
+          "range": "bytes=1189-411322",
+          "checksum": "sha256-P47qWTGBhwdIAMt2VqsTEr5Tv/JC4rJVfjbDVuCkroo="
+        },
+        "checksum": "Q1/L7yOJHsBPgaKLmNu7Uh5YIY0tg="
+      }
+    ]
+  }
+}
+```
+
+Each package has **three-level checksums** (signature, control, data) with
+byte ranges for partial verification. The `config.checksum` is a SHA256 deep
+hash of all config YAML files (including `include:` targets). Any config
+change invalidates the lock.
+
+**Lock workflow**: `apko lock apko.yaml` → resolves all packages for all
+architectures → writes `apko.lock.json`. `apko build --lockfile apko.lock.json`
+→ skips resolution, validates checksums → bit-for-bit reproducible image.
+No partial updates -- `apko lock` always fully re-resolves.
+
+**Can apko use non-Wolfi base images?** The `baseimage` field is
+**experimental** and has severe constraints:
+- Image must be a **local OCI layout directory** (pre-downloaded via
+  `crane pull ... --format=oci`), NOT a remote registry reference
+- Requires an **APK index** of the base image's installed packages -- the
+  base must be APK-based (Alpine/Wolfi) for the resolver to work
+- When using `baseimage`, only `contents`, `archs`, and `include` are
+  allowed -- no `accounts`, `environment`, `entrypoint`, `paths`
+- Incompatible with `layering` feature
+- Regression in apko 0.26.0 broke this feature entirely (fixed in PR #1633)
+- **Cannot use nvidia/cuda or pytorch base images** -- they are Debian-based
+  (dpkg/apt), not APK-based. The resolver cannot understand what's installed.
+
+**GPU/CUDA in open-source Wolfi**: **NOT AVAILABLE.** Searched the
+`wolfi-dev/os` repository (3800+ package YAMLs) -- zero results for `cuda`,
+no `cuda-toolkit.yaml`, no `cudnn.yaml`, no `pytorch.yaml`, no
+`tensorflow.yaml`. Only `nvidia-container-toolkit` and `libnvidia-container`
+(runtime plumbing, not the CUDA SDK). CUDA/PyTorch packages exist only in
+**Chainguard's commercial repositories**.
 
 **Pip packages and melange**: apko itself cannot install pip packages. The
 intended path is melange -- Chainguard's APK package builder. However, melange
@@ -275,10 +426,12 @@ pipeline:
   - uses: py/pip-build-install
 ```
 
+`melange convert python <pkg>` can auto-generate YAML from PyPI metadata but
+is experimental and often needs manual editing.
+
 For a project with 20 pip dependencies, you'd need 20 melange YAML files (or
-rely on Wolfi's existing catalog). Wolfi has numpy, scipy, and some scientific
-packages, but many ML libraries (torch, transformers, pandas) are NOT yet
-packaged. No integration with uv or poetry.
+rely on Wolfi's existing catalog of 673+ `py3-*` packages: numpy, scipy,
+scikit-learn, pandas, transformers -- but NOT torch, NOT tensorflow core).
 
 **Where melange runs**: Client-side tool with pluggable runners:
 - Docker (default, needs `--privileged`)
@@ -288,6 +441,11 @@ packaged. No integration with uv or poetry.
 
 Melange is NOT a cluster service -- it's a CLI tool that can optionally
 delegate compute to a K8s cluster. Output is APK packages consumed by apko.
+
+**apko cannot COPY files**: The `paths` field creates directories, empty
+files, links, and sets permissions -- but cannot copy file content (no
+`COPY handler.py /app/` equivalent). Handler code must be packaged as an
+APK via melange, or added via a Dockerfile layer on top.
 
 **Practical alternative**: Use Chainguard's pre-built Python base image
 (`cgr.dev/chainguard/python`) with standard multi-stage Docker builds and pip.
@@ -299,8 +457,6 @@ This gives Wolfi's security benefits without the per-package melange overhead.
 - Fine-grained package selection (not tied to Debian versions)
 - Built-in SBOMs, nightly rebuilds, zero-known-CVE target
 - Chainguard Images (`cgr.dev/chainguard/python`) as pre-built alternative
-
-**GPU/CUDA**: NOT available (same limitation as Distroless).
 
 #### Comparison
 
