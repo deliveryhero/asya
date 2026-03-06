@@ -105,7 +105,7 @@ def test_crossplane_recreates_deleted_actor_queue_e2e(e2e_helper, chaos_queues, 
             break
         else:
             logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
-        time.sleep(check_interval)
+        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
 
         elapsed += check_interval
 
@@ -181,7 +181,7 @@ def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues,
             break
         else:
             logger.info(f"[-] Not found expected queue {queue_name} in: {queues} (sleeping {check_interval}s)")
-        time.sleep(check_interval)
+        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
         elapsed += check_interval
 
     assert queue_recreated, \
@@ -207,12 +207,12 @@ def test_crossplane_recreates_deleted_system_queue_e2e(e2e_helper, chaos_queues,
 @pytest.mark.chaos
 def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
     """
-    E2E Chaos: Test operator handles multiple simultaneous queue deletions.
+    E2E Chaos: Test Crossplane reconciles multiple simultaneous queue deletions.
 
     Scenario:
     1. Delete all queues simultaneously (catastrophic failure)
     2. Verify all queues deleted
-    3. Wait for operator health check cycle
+    3. Wait for Crossplane reconciliation
     4. Verify all queues recreated
     5. Verify all actors functional
 
@@ -243,13 +243,13 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
         except Exception as e:
             logger.warning(f"Failed to delete {queue_name}: {e}")
 
-    logger.info("[3/5] Verifying all queues deleted")
+    logger.info("[2/5] Verifying all queues deleted")
     queues_after_delete = transport_client.list_queues()
     for queue_name in test_queues:
         assert queue_name not in queues_after_delete, f"Queue {queue_name} should be deleted"
     logger.info(f"[+] All {len(test_queues)} queues confirmed deleted")
 
-    logger.info("[4/5] Waiting for Crossplane reconciliation to recreate all queues")
+    logger.info("[3/5] Waiting for Crossplane reconciliation to recreate all queues")
     max_wait = int(os.getenv("CROSSPLANE_RECONCILE_TIMEOUT_SECONDS", "120"))
     check_interval = 10
     elapsed = 0
@@ -267,13 +267,14 @@ def test_multiple_queue_deletions_e2e(e2e_helper, chaos_queues, namespace):
             logger.info(f"[+] All queues recreated after {elapsed}s")
             break
 
-        time.sleep(check_interval)
+        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
         elapsed += check_interval
 
     assert all_recreated, \
         f"Not all queues recreated within {max_wait}s. " \
         f"Missing: {[q for q in test_queues if q not in queues]}"
 
+    logger.info("[4/5] All queues confirmed recreated")
     logger.info("[5/5] Verifying actors functional after mass recreation")
     response = e2e_helper.call_mcp_tool(
         tool_name="test_echo",
@@ -296,7 +297,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
     Scenario:
     1. Send message to actor
     2. Delete queue during processing
-    3. Wait for operator to recreate queue
+    3. Wait for Crossplane reconciliation to recreate queue
     4. Verify message eventually processed
 
     Expected:
@@ -346,7 +347,7 @@ def test_queue_deletion_during_processing_e2e(e2e_helper, chaos_queues, namespac
             logger.info(f"[+] Queue recreated after {elapsed}s: {queue_name}")
             break
 
-        time.sleep(check_interval)
+        time.sleep(check_interval)  # Poll for queue recreation during Crossplane reconciliation
         elapsed += check_interval
 
     assert queue_recreated, f"Queue {queue_name} not recreated within {max_wait}s"
