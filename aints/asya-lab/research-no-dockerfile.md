@@ -139,7 +139,7 @@ around.
 | System packages | 5/5 (native apt support) |
 | Build speed (cached) | 3/5 (standard Docker layers) |
 | Security | 3/5 (no rebase, standard Docker) |
-| Maintenance burden | 2/5 (need to manage Cog integration, strip server) |
+| Maintenance burden | 3/5 (need to manage Cog integration, strip server. But cog is client-level only, no server installations) |
 
 ### 2.3 Source-to-Image (S2I)
 
@@ -163,14 +163,62 @@ Not recommended as primary strategy.
 
 | Dimension | Rating |
 |---|---|
-| DS-friendliness | 3/5 |
+| DS-friendliness | 2/5 |
 | GPU/CUDA | 2/5 (manual base image) |
 | Community | 2/5 (declining outside OpenShift) |
 
-### 2.4 apko + melange (Chainguard)
+### 2.4 Minimal Base Images: Distroless + Wolfi/apko
 
-**How it works**: Declarative YAML -> single-layer OCI image. Based on Wolfi
-OS (glibc, minimal, CVE-free).
+Two related approaches to minimal, secure container images. Same lineage --
+Google Distroless was created by Dan Lorenc and Matt Moore; they later founded
+Chainguard and created Wolfi as the evolution.
+
+#### Google Distroless
+
+**How it works**: Pre-built minimal runtime images based on Debian. No shell,
+no package manager, no debugging tools. Used as `FROM` in multi-stage builds.
+
+```dockerfile
+# Multi-stage: build deps in full image, copy to distroless
+FROM python:3.11-slim-bookworm AS builder
+RUN python3 -m venv /venv
+COPY requirements.txt .
+RUN /venv/bin/pip install -r requirements.txt
+
+FROM gcr.io/distroless/python3-debian12
+COPY --from=builder /venv /venv
+COPY app.py .
+ENV PYTHONPATH=/venv/lib/python3.11/site-packages
+CMD ["/venv/bin/python", "app.py"]
+```
+
+**Python versions**: Tied to Debian releases (Python 3.11.2 in Debian 12).
+Cannot select Python version independently.
+
+**Image size**: ~50 MB for Python3 image. With virtualenv: ~130 MB (still
+smaller than python:3.11-slim at 130 MB, and much smaller than full python).
+
+**GPU/CUDA**: NOT available. No way to install CUDA libraries without package
+manager. Major limitation for ML.
+
+**No shell** (by design): Distroless images have no shell, no package manager,
+no debugging tools. This is the security benefit -- minimal attack surface.
+`:debug` tags include BusyBox shell but are not for production. For debugging
+production pods on K8s, use ephemeral debug containers:
+```bash
+kubectl debug -it <pod-name> --image=busybox --target=<container-name>
+```
+This attaches a debug container to the pod's process namespace without
+modifying the distroless image.
+
+**Maintenance**: Actively maintained (last update Feb 2026). Automated CI/CD
+tracks Debian security updates.
+
+#### Wolfi/apko + melange (Chainguard)
+
+**How it works**: Declarative YAML -> minimal OCI image. Based on Wolfi
+OS (glibc, built from source, CVE-free). More flexible than Distroless --
+you build custom images rather than using pre-built ones.
 
 ```yaml
 # apko.yaml
@@ -183,21 +231,74 @@ contents:
     - ffmpeg
 ```
 
-**Pip packages**: NOT directly supported. Must use melange to build APK
-packages, or use multi-stage approach.
+**Pip packages and melange**: apko itself cannot install pip packages. The
+intended path is melange -- Chainguard's APK package builder. However, melange
+requires **one YAML file per Python package** (not per project). It does NOT
+consume `requirements.txt` or `pyproject.toml` directly:
 
-**Wolfi advantages**: glibc (not musl like Alpine), 60-70% smaller than
-Ubuntu, pre-compiled Python wheels work natively.
+```yaml
+# melange.yaml for a single pip package (py3-pluggy example)
+package:
+  name: py3-pluggy
+  version: 1.5.0
+pipeline:
+  - uses: git-checkout
+    with:
+      repository: https://github.com/pytest-dev/pluggy
+      tag: ${{package.version}}
+  - uses: py/pip-build-install
+```
 
-**Verdict**: Excellent for secure base images. Not practical for DS-facing
-builds (no pip support). Best as base image for other strategies.
+For a project with 20 pip dependencies, you'd need 20 melange YAML files (or
+rely on Wolfi's existing catalog). Wolfi has numpy, scipy, and some scientific
+packages, but many ML libraries (torch, transformers, pandas) are NOT yet
+packaged. No integration with uv or poetry.
+
+**Where melange runs**: Client-side tool with pluggable runners:
+- Docker (default, needs `--privileged`)
+- Bubblewrap (unprivileged Linux sandbox, good for CI)
+- Kubernetes (via `--runner kubernetes` -- creates build pods in cluster)
+- Lima (macOS local dev)
+
+Melange is NOT a cluster service -- it's a CLI tool that can optionally
+delegate compute to a K8s cluster. Output is APK packages consumed by apko.
+
+**Practical alternative**: Use Chainguard's pre-built Python base image
+(`cgr.dev/chainguard/python`) with standard multi-stage Docker builds and pip.
+This gives Wolfi's security benefits without the per-package melange overhead.
+
+**Wolfi advantages over Distroless**:
+- glibc (not musl like Alpine) -- pre-compiled Python wheels work natively
+- 60-70% smaller than Ubuntu, 6% the size of standard `python:latest`
+- Fine-grained package selection (not tied to Debian versions)
+- Built-in SBOMs, nightly rebuilds, zero-known-CVE target
+- Chainguard Images (`cgr.dev/chainguard/python`) as pre-built alternative
+
+**GPU/CUDA**: NOT available (same limitation as Distroless).
+
+#### Comparison
+
+| Aspect | Google Distroless | Wolfi/apko |
+|---|---|---|
+| Base OS | Debian | Wolfi (custom, glibc) |
+| Python versions | Tied to Debian | Any (fine-grained) |
+| Customization | Multi-stage only | YAML declarative |
+| Build tool | Bazel (complex) | apko (simpler) |
+| Pre-built images | gcr.io/distroless/* | cgr.dev/chainguard/* |
+| Size | ~50 MB (python3) | Smaller (custom) |
+| SBOMs | No | Built-in |
+
+**Verdict (both)**: Excellent for secure base images. Neither is practical for
+DS-facing builds (no pip, no shell, no GPU). Best role: **base image layer**
+for other strategies (generated Dockerfile, Cog, or Asya-provided base images).
 
 | Dimension | Rating |
 |---|---|
-| DS-friendliness | 1/5 (too complex) |
+| DS-friendliness | 1/5 (too complex for DS, not intended for them) |
 | Image size | 5/5 (smallest possible) |
-| Security | 5/5 (CVE-free, minimal) |
-| Python ecosystem | 2/5 (no direct pip) |
+| Security | 5/5 (CVE-free, minimal attack surface) |
+| Python ecosystem | 2/5 (no direct pip, multi-stage required) |
+| GPU/CUDA | 1/5 (not supported) |
 
 ### 2.5 Programmatic Dockerfile Generation
 
