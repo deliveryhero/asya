@@ -1,7 +1,9 @@
 ---
 title: "Crossplane E2E tech debt: DLQ support, drift detection tests, cold-start scaling"
-priority: 2
+priority: 2 # medium
+assignee: Artem Yushkovskiy
 ---
+
 
 Merged from: 1f3k (DLQ un-xfail), 1fbq (queue health un-skip), 1f2y (scaling cold-start).
 
