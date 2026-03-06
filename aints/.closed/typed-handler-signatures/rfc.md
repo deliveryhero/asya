@@ -1,3 +1,5 @@
+## Status: REJECTED
+
 ## RFC: Typed Handler Signatures
 
 > Extracted from epic [[1c84.handler-signature-redesign]]. See also: [[1ixt]] (message metadata vfs), [[1irj]] (flow free vars & iteration).
