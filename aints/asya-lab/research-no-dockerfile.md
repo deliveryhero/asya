@@ -300,41 +300,7 @@ for other strategies (generated Dockerfile, Cog, or Asya-provided base images).
 | Python ecosystem | 2/5 (no direct pip, multi-stage required) |
 | GPU/CUDA | 1/5 (not supported) |
 
-### 2.5 Programmatic Dockerfile Generation
-
-**How it works**: Framework generates a Dockerfile internally from build
-config. User never sees it. The generated Dockerfile is an intermediate
-artifact.
-
-**Is this "cheating"?**: No. Heroku, Railway (14M+ builds), Cog all do this
-internally. Proven pattern.
-
-**How Asya could use this**: Given build inputs (Python version, deps, system
-packages, GPU flag), generate a Dockerfile internally:
-
-```dockerfile
-# Auto-generated from build inputs
-FROM asya-runtime:3.11-gpu
-RUN apt-get update && apt-get install -y ffmpeg libsndfile1
-COPY requirements.txt .
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --no-cache-dir -r requirements.txt
-COPY src/ /app/
-ENV ASYA_HANDLER=my_actors.text_analyzer.analyze
-```
-
-**Verdict**: Most practical first implementation. Framework-generated
-Dockerfiles are a proven pattern. Can serve as fallback for all cases.
-
-| Dimension | Rating |
-|---|---|
-| DS-friendliness | 4/5 (user never sees Dockerfile) |
-| GPU/CUDA | 4/5 (base image selection) |
-| Flexibility | 5/5 (full Docker capabilities) |
-| Implementation effort | 5/5 (simplest to build) |
-| Build speed | 4/5 (BuildKit cache mounts) |
-
-### 2.6 Patterns from Other Frameworks
+### 2.5 Patterns from Other Frameworks
 
 **Flyte ImageSpec** -- define image in Python code:
 ```python
@@ -382,7 +348,7 @@ pip install).
 | **Cog** | 5/5 | 5/5 | 5/5 | No (cog.yaml) | No | Medium | Medium |
 | **S2I** | 3/5 | 2/5 | 3/5 | No | No | Low | High (RH) |
 | **apko/Wolfi** | 1/5 | 2/5 | 4/5 | No | No | High | Low |
-| **Generated Dockerfile** | 4/5 | 4/5 | 5/5 | No | No | Low | None |
+| **User Dockerfile** | 5/5 | 5/5 | 5/5 | No | No | None | None |
 | **Flyte ImageSpec** | 5/5 | 4/5 | 4/5 | In code | No | Medium | Medium |
 
 ---
@@ -397,8 +363,7 @@ build inputs (format TBD)
         |
         +-- strategy: buildpack  -->  project.toml + pack build
         +-- strategy: cog        -->  cog.yaml + cog build
-        +-- strategy: dockerfile -->  Dockerfile (generated) + docker build
-        +-- strategy: custom     -->  user-provided Dockerfile
+        +-- strategy: dockerfile -->  user-provided Dockerfile + docker build
 ```
 
 **Strategy selection** (mechanism TBD -- could be per-actor, per-context,
@@ -407,8 +372,7 @@ auto-detected, or some combination):
 - Auto-detected: GPU deps -> suggest Cog; standard Python -> suggest buildpacks
 
 **No rendering needed for some strategies**: Buildpacks auto-detect from
-requirements.txt. Cog needs cog.yaml. Dockerfile strategy generates a file.
-The "render" step is strategy-specific, not universal.
+requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
 
 ---
 
@@ -419,8 +383,7 @@ The "render" step is strategy-specific, not universal.
 | **Router actors** | Generated code, no deps | No build (asya-runtime + ConfigMap) |
 | **Simple Python** | Pip deps only | Buildpacks (zero config) |
 | **ML/GPU actors** | PyTorch/TF, CUDA | Cog (auto CUDA) |
-| **Complex actors** | Custom system deps | Generated Dockerfile |
-| **Platform-managed** | Full control | User-provided Dockerfile |
+| **Complex actors** | Custom system deps, full control | User-provided Dockerfile |
 
 ---
 
@@ -447,19 +410,8 @@ build:
   packages: [ffmpeg]
 ```
 
-### Path 3: Explicit (Generated Dockerfile)
-For actors needing fine-grained control:
-```yaml
-name: audio-processor
-handler: my_actors.audio.process
-build:
-  base: python:3.11-slim
-  python: "3.11"
-  requirements: requirements.txt
-  packages: [ffmpeg, libsndfile1-dev]
-```
-
 ### Escape Hatch: BYO Dockerfile
+For actors needing fine-grained control or custom system dependencies:
 ```yaml
 name: custom-actor
 handler: my_actors.custom.process
@@ -471,17 +423,17 @@ build:
 
 ## 7. Implementation Phases
 
-**Phase 1** (MVP): Generated Dockerfile strategy. Simplest, covers all cases.
-**Phase 2**: Buildpacks for zero-config Python actors.
-**Phase 3**: Cog for GPU/ML actors.
-**Phase 4**: Custom Asya buildpack (if demand warrants).
+**Phase 1** (MVP): Buildpacks for zero-config Python actors + BYO Dockerfile.
+**Phase 2**: Cog for GPU/ML actors.
+**Phase 3**: Custom Asya buildpack (if demand warrants).
 
 ---
 
 ## 8. Open Questions
 
-1. **Should Asya provide base images?** `asya-runtime:3.11`, `asya-runtime:3.11-gpu`
-   would simplify all strategies but is a maintenance commitment.
+1. ~~**Should Asya provide base images?**~~ Decision: NO. Asya does not provide
+   base images. Users bring their own or rely on strategy defaults (buildpack
+   builder images, Cog base images, etc.).
 
 2. **Wolfi as base?** 60-70% smaller, glibc, CVE-free. Worth it?
 
