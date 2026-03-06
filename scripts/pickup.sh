@@ -7,10 +7,6 @@ status=$(git aint get "$ref" --format "{status}") || exit 1
 if [ "$status" = merged ] || [ "$status" = rejected ]; then
   echo "error: [$ref] is already $status" >&2; exit 1
 fi
-if [ "$status" = open ]; then
-  echo "error: [$ref] is open — peep it first: git aint peep $ref" >&2; exit 1
-fi
-
 # 2. resolve branch + worktree path
 branch=$(git aint get "$ref" --format "{config:branch-pattern}") || exit 1
 wt_pattern=$(git aint get "$ref" --format "{config:worktree-pattern}") || exit 1
