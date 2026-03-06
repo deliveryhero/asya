@@ -137,6 +137,15 @@ gateway:
           required: true
       route: [test-timeout]
       timeout: 30
+    - name: test_timeout_cold
+      description: Test gateway backstop race with cold-start actor (minReplicas=0)
+      parameters:
+        sleep_seconds:
+          type: number
+          description: Duration to sleep in seconds
+          required: true
+      route: [test-timeout-cold]
+      timeout: 5
     - name: test_fanout
       description: Create multiple messages via fan-out
       parameters:

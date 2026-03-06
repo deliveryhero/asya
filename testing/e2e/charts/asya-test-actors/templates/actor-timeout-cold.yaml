@@ -1,0 +1,36 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-timeout-cold
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+spec:
+  actor: test-timeout-cold
+  transport: {{ .Values.transport }}
+  {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
+  overlays:
+  - asya-test-actor
+
+  resiliency:
+    actorTimeout: "60s"
+
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 5
+    pollingInterval: 5
+    cooldownPeriod: 60
+    queueLength: 1
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: {{ .Values.workload.image }}
+          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.timeout_handler
