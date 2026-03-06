@@ -7,7 +7,7 @@ two distinct user flows: staging experimentation and production GitOps.
 
 **Scope**: This doc covers image build execution and deployment workflows.
 It does NOT cover:
-- WHAT builds the image (buildpacks, Cog, Dockerfile) -- see
+- WHAT builds the image (apko, buildpacks, Dockerfile) -- see
   `research-no-dockerfile.md`
 - Local testing without builds (HTTP, mirrord, Skaffold/Tilt) -- see
   `.aint/aints/local-testing/notes-for-rfc.md`
@@ -24,7 +24,7 @@ Building and deploying actor images has two friction points:
 2. **HOW to deploy**: DS want fast imperative deploys to staging ("just deploy
    my code"). Platform engineers want declarative GitOps for production.
 
-**The bridge**: Same build config (strategy: buildpack/cog/dockerfile) must
+**The bridge**: Same build config (strategy: apko/buildpack/dockerfile) must
 work both locally and in-cluster. Same artifacts must transition from
 imperative staging to declarative production via git commit.
 
@@ -47,8 +47,8 @@ imperative staging to declarative production via git commit.
 docker build -t registry/my-actor:v1 .
 docker push registry/my-actor:v1
 
-# With Cog
-cog build -t registry/my-actor:v1
+# With apko
+apko build apko.yaml registry/my-actor:v1 --lockfile actor-image.lock
 docker push registry/my-actor:v1
 
 # With Buildpacks
@@ -83,24 +83,24 @@ spec:
     git:
       url: https://github.com/org/actors
   strategy:
-    name: buildpacks-v3       # or kaniko, buildah, cog (custom)
+    name: buildpacks-v3       # or kaniko, buildah, apko (custom)
     kind: ClusterBuildStrategy
   output:
     image: registry/my-actor:latest
     pushSecret: registry-credentials
 ```
 
-**Custom build strategies** (e.g., Cog):
+**Custom build strategies** (e.g., apko):
 ```yaml
 apiVersion: shipwright.io/v1beta1
 kind: ClusterBuildStrategy
 metadata:
-  name: cog-build
+  name: apko-build
 spec:
   steps:
-    - name: cog-build
-      image: replicate/cog:latest
-      command: ["cog", "build", "-t", "$(params.output-image)"]
+    - name: apko-build
+      image: cgr.dev/chainguard/apko:latest
+      command: ["apko", "build", "apko.yaml", "$(params.output-image)", "--lockfile", "actor-image.lock"]
 ```
 
 **Key feature for DS**: No local Docker needed. DS only needs kubectl access.
@@ -151,7 +151,7 @@ registry for audit/rebuild. Can be pruned after pull.
 asya build my-actor --builder=shipwright
 # Under the hood:
 # 1. shp build upload (streams local source to cluster)
-# 2. Shipwright pod runs buildpacks/cog/kaniko
+# 2. Shipwright pod runs buildpacks/apko/kaniko
 # 3. Image pushed to registry
 # No git commit, no local Docker.
 
@@ -197,7 +197,7 @@ jobs:
 | Strategy support | All | All (custom strategies) | All |
 
 **Key insight**: Local and on-cluster builds should produce **identical**
-images given the same inputs. The build strategy (buildpacks/cog/dockerfile)
+images given the same inputs. The build strategy (apko/buildpacks/dockerfile)
 is the same -- only the execution environment changes.
 
 ---
@@ -217,7 +217,7 @@ Git repo (code + build config + K8s manifests)
 
 **What's in Git**:
 - Handler code (`handler.py`)
-- Build config (cog.yaml / Dockerfile / buildpacks config)
+- Build config (apko.yaml / Dockerfile / buildpacks config)
 - AsyncActor manifests (XRD claims)
 - Flow definitions (if using flow DSL)
 
@@ -274,7 +274,7 @@ file for image build inputs.
 
 | Concept | npm/yarn | Asya |
 |---|---|---|
-| Intent (human) | `package.json` | handler.py, requirements.txt, cog.yaml |
+| Intent (human) | `package.json` | handler.py, requirements.txt, apko.yaml |
 | Lock file | `package-lock.json` | `actor-image.lock` |
 | Resolve command | `npm install` | `asya build` (updates lock) |
 | Lock command | `npm install` | `asya actor lock` / `asya flow lock` |
@@ -294,8 +294,8 @@ image: registry/my-actor@sha256:abc123... # resolved image for this input hash
 inputs:
   handler.py: sha256:a1b2c3...
   requirements.txt: sha256:d4e5f6...
-  cog.yaml: sha256:789abc...
-strategy: cog
+  apko.yaml: sha256:789abc...
+strategy: apko
 locked_at: 2026-03-06T14:30:00Z
 ```
 
@@ -323,7 +323,7 @@ an explicit lock file for container image builds:
 
 **Why apko's approach doesn't fully apply to Asya**: apko achieves
 bit-for-bit reproducibility because it is purely declarative (no `RUN`
-commands). Asya builds use Dockerfiles, buildpacks, or Cog -- all of which
+commands). Dockerfile and buildpack builds execute arbitrary commands, which
 execute arbitrary commands (`pip install`, `apt-get`). True bit-for-bit
 reproducibility requires pinning every transitive dependency version, which
 is what `pip freeze > requirements.txt` or `uv pip compile` does for Python
@@ -388,7 +388,7 @@ PR contains:
 actors/my-actor/
   handler.py                # handler code
   requirements.txt          # dependencies
-  cog.yaml                  # build config (or Dockerfile, etc.)
+  apko.yaml                  # build config (or Dockerfile, etc.)
   asyncactor.yaml           # image tag TBD -- CI fills in after build
 ```
 
@@ -410,7 +410,7 @@ PR contains:
 actors/my-actor/
   handler.py                # handler code (for review)
   requirements.txt          # dependencies (for review)
-  cog.yaml                  # build config (for review)
+  apko.yaml                  # build config (for review)
   actor-image.lock          # input_hash + pinned image digest
   asyncactor.yaml           # image: registry/my-actor@sha256:abc123...
 ```
@@ -510,7 +510,7 @@ based on their policy.
 - Last deployed image tag
 - AsyncActor manifest (rendered)
 
-**No git commit required** in this flow. Cog, buildpacks, and Docker all
+**No git commit required** in this flow. apko, buildpacks, and Docker all
 work with uncommitted files.
 
 **On-cluster build variant** (DS without Docker):
@@ -544,7 +544,7 @@ asya promote my-actor --context=k8s-prod
 # 4. If match: writes git-tracked files:
 #    actors/my-actor/handler.py
 #    actors/my-actor/requirements.txt
-#    actors/my-actor/cog.yaml
+#    actors/my-actor/apko.yaml
 #    actors/my-actor/actor-image.lock  (input_hash + image digest)
 #    actors/my-actor/asyncactor.yaml   (with pinned image digest)
 # 5. Creates branch + PR (or outputs files for manual PR)
@@ -558,7 +558,7 @@ metadata:
   name: my-actor
   labels:
     asya.sh/promoted-from: stg
-    asya.sh/build-strategy: cog
+    asya.sh/build-strategy: apko
 spec:
   image: registry/my-actor@sha256:abc123...  # exact staging image
   transport: sqs
@@ -575,7 +575,7 @@ spec:
 ```diff
 + actors/my-actor/handler.py          # full handler code
 + actors/my-actor/requirements.txt    # pinned dependencies
-+ actors/my-actor/cog.yaml            # build config
++ actors/my-actor/apko.yaml            # build config
 + actors/my-actor/actor-image.lock    # input_hash + image digest
 + actors/my-actor/asyncactor.yaml     # XRD claim with image digest
 ```
@@ -595,7 +595,14 @@ Local working dir (ephemeral, uncommitted)
 experimentation or committed for production. Same format, same files,
 just different lifecycle. `asya promote` is the bridge.
 
-**Teams can customize the promotion gate**:
+**Dockerfile users skip `asya promote`**: The lock file flow (Strategies
+A/B/C, `asya promote`, `actor-image.lock`) only applies to the apko path.
+Dockerfile users follow a traditional workflow: commit Dockerfile + source
+to git, CI runs `docker build`, ArgoCD deploys. No lock file, no `asya
+promote`. Asya does not provide special tooling for the Dockerfile escape
+hatch.
+
+**Teams can customize the promotion gate** (apko path only):
 - DS teams: `asya promote` auto-creates PR with source + digest
 - Platform teams: require `asya promote --rebuild` (Strategy B, CI rebuilds)
 - Regulated teams: require `asya promote --verify` (Strategy C, CI verifies
@@ -611,21 +618,25 @@ Build strategy (WHAT builds) and build execution (WHERE it runs) are
 independent axes:
 
 ```
-            | Local Docker | Shipwright | CI/CD |
-------------|-------------|------------|-------|
-Buildpacks  | pack build  | buildpacks | pack  |
-            |             | strategy   | build |
-------------|-------------|------------|-------|
-Cog         | cog build   | cog custom | cog   |
-            |             | strategy   | build |
-------------|-------------|------------|-------|
-Dockerfile  | docker      | kaniko     | docker|
-            | build       | strategy   | build |
+            | Local        | Shipwright | CI/CD       | Lock file? |
+------------|-------------|------------|-------------|------------|
+apko        | apko build  | apko       | apko build  | YES        |
+            |             | strategy   |             |            |
+------------|-------------|------------|-------------|------------|
+Buildpacks  | pack build  | buildpacks | pack build  | Partial    |
+            |             | strategy   |             |            |
+------------|-------------|------------|-------------|------------|
+Dockerfile  | docker      | kaniko     | docker      | NO         |
+            | build       | strategy   | build       | (escape)   |
 ```
 
 **Same strategy, different execution**. The `asya build` command abstracts
 this: `--builder=local` (default), `--builder=shipwright`, or CI picks
 the right one.
+
+**Lock file availability**: Only the apko path produces a true
+`actor-image.lock`. Dockerfile is the escape hatch -- no locking, no
+`asya promote`, traditional local build + GitOps flow.
 
 ### 5.2 Build Caching
 
@@ -644,8 +655,8 @@ docker build --cache-from registry/actor:cache \
 
 **Buildpacks caching**: Built-in layer caching. Rebase for OS-only updates.
 
-**Cog caching**: Standard Docker layer caching. Code-only changes rebuild
-in ~3-5s (deps layers cached).
+**apko caching**: Lock file ensures identical package resolution. No layer
+caching needed -- same inputs always produce the same image.
 
 ### 5.3 Image Streaming (SOCI/Stargz)
 
@@ -710,7 +721,7 @@ Build config (strategy + deps + code)
 ```bash
 # Local build (default)
 asya build my-actor
-# -> reads build config -> runs strategy (cog/buildpacks/docker) locally
+# -> reads build config -> runs strategy (apko/buildpacks/docker) locally
 # -> pushes to configured registry
 
 # On-cluster build
@@ -740,7 +751,7 @@ asya commit my-actor
 # -> writes to git-tracked directory:
 #    actors/my-actor/handler.py
 #    actors/my-actor/requirements.txt
-#    actors/my-actor/cog.yaml (or Dockerfile, etc.)
+#    actors/my-actor/apko.yaml (or Dockerfile, etc.)
 #    actors/my-actor/asyncactor.yaml
 ```
 
@@ -797,7 +808,7 @@ asya commit my-actor
    Each level adds complexity. Level 1 is the practical starting point.
 
 8. **Lock file scope**: Should `actor-image.lock` also include the
-   build strategy version (e.g., buildpacks builder version, Cog version)?
+   build strategy version (e.g., buildpacks builder version, apko version)?
    This affects whether the same source + same lock produces the same
    image across different developer machines.
 

@@ -89,11 +89,13 @@ security.
 | Security | 5/5 (rebase, SBOM) |
 | Maintenance burden | 3/5 (need to maintain custom run images for GPU) |
 
-### 2.2 Cog (Replicate)
+### 2.2 Cog (Replicate) -- Analysis and Reusable Parts
 
 **How it works**: ML-specific builder. `cog.yaml` declares environment
-(Python, GPU, CUDA, system packages). Auto-detects CUDA version from
-PyTorch/TensorFlow versions.
+(Python, GPU, CUDA, system packages). Under the hood, Cog **generates a
+Dockerfile** (`pkg/dockerfile/standard_generator.go`) and runs `docker build`.
+It is syntactic sugar over Dockerfile -- the same escape hatch, not an
+alternative to it.
 
 **cog.yaml schema** (key fields):
 ```yaml
@@ -106,72 +108,64 @@ build:
 predict: "handler.py:Predictor"
 ```
 
-**CUDA auto-detection**: Reads torch/tensorflow version from requirements,
-consults internal compatibility matrix (`pkg/config/cuda_base_images.json`),
-selects matching NVIDIA base image and cuDNN. Supports CUDA 11.0-12.x.
+**What Cog generates**: A standard Dockerfile with:
+- Base image: `nvidia/cuda:*` (GPU) or `python:*-slim` (CPU)
+- `apt-get install` for system packages
+- uv for pip dependency installation
+- Cog SDK + coglet HTTP server (unnecessary for Asya)
+- Multi-stage builds for model weight separation
 
-**Standalone usage**: YES. Apache 2.0 license. No Replicate dependency.
-```bash
-cog build -t my-actor:latest    # builds Docker image locally
-docker push registry/my-actor   # push to any registry
+**CUDA auto-detection -- the killer feature worth reusing**: Cog maintains
+compatibility matrices as JSON files (Apache 2.0 licensed):
+- `pkg/config/torch_compatibility.json` -- maps PyTorch version → CUDA
+  version + torchvision + torchaudio + supported Python versions + pip
+  index URL. Covers PyTorch 1.2 through 2.10.
+- `pkg/config/tf_compatibility.json` -- maps TensorFlow version → CUDA
+  version + cuDNN version + supported Python versions.
+
+```json
+// torch_compatibility.json entry example:
+{
+  "Torch": "2.10.0+cu129",
+  "Torchvision": "0.25.0",
+  "Torchaudio": "2.10.0",
+  "ExtraIndexURL": "https://download.pytorch.org/whl/cu129/",
+  "CUDA": "12.9",
+  "Pythons": ["3.10", "3.11", "3.12", "3.13", "3.14"]
+}
 ```
 
-**Bundled inference server**: Cog bundles an HTTP server (Rust/Axum) and sets
-it as the image's CMD. Asya doesn't need it -- the asya-injector webhook
-already overwrites the command for every asya-runtime container to run
-`asya_runtime.py` instead. So Cog's CMD is simply ignored at runtime. The
-server binary remains in the image as dead weight (extra disk, no runtime
-cost). Acceptable trade-off for Cog's CUDA auto-detection. If Cog proves
-useful long-term, we can request a `--no-server` build mode upstream.
+This compatibility data is the most valuable part of Cog. It encodes years
+of painful "which CUDA works with which PyTorch?" discovery. Asya can reuse
+these JSON files (Apache 2.0) to resolve CUDA/cuDNN versions from a user's
+requirements.txt -- without depending on Cog itself.
 
-**Fast experimentation (no git commit required)**: Cog uses the working
-directory directly -- uncommitted files are silently included in the build.
-No git commit needed. Respects `.dockerignore` for excluding files.
+**Why NOT to adopt Cog as a build strategy**:
+1. **It generates Dockerfiles** -- same escape hatch, no lock file possible
+2. **Bundles inference server** -- dead weight for Asya (injector overwrites CMD)
+3. **No apko integration** -- cannot produce lockable, reproducible images
+4. **Cog is a Dockerfile wrapper** -- adopting it adds a dependency without
+   adding a fundamentally different capability
 
-**Iteration workflow**:
-- `cog build` always requires Docker (no local Python-only mode)
-- `cog predict -i key=value` auto-builds on first run, reuses container after
-- `cog serve` starts persistent HTTP server (avoids container restart overhead)
-- `cog run /bin/bash` gives interactive shell inside the built environment
-- NO `cog dev` or hot-reload mode -- each code change requires a rebuild
-  (issue #1128 tracks this pain point)
+**What to reuse from Cog**:
+- `torch_compatibility.json` -- CUDA resolution for PyTorch
+- `tf_compatibility.json` -- CUDA resolution for TensorFlow
+- The resolution logic: parse requirements.txt → find torch/tf version →
+  look up compatible CUDA → select base image or Wolfi CUDA packages
 
-**Practical experimentation pattern**:
-```bash
-# 1. First build (~3-5min cold, ~30s cached)
-cog build -t my-actor:latest
-
-# 2. Iterate: edit code, rebuild (only code layer changes, ~3-5s)
-cog build -t my-actor:latest
-
-# 3. Or: interactive shell to test without rebuilds
-cog run /bin/bash
-# inside container: python -c "from handler import process; ..."
-```
-
-**CUDA version dry-run**: No official way to see what CUDA version Cog
-selects without starting a build. Workaround: start `cog build`, inspect
-the base image in build output, cancel if you only needed version info.
-
-**Mapping build inputs to Cog**:
-- Python version -> `python_version:`
-- Dependencies -> `python_requirements:`
-- System packages -> `system_packages:`
-- GPU -> `gpu: true` (auto-detects CUDA from torch/tf version)
-
-**Verdict**: Best DS experience for GPU/ML actors. Auto CUDA detection is
-the killer feature. Bundled inference server is acceptable (injector
-overwrites CMD). No git commit needed for experimentation. Main limitation:
-requires Docker and has no hot-reload.
+**Verdict**: Cog as a tool is a Dockerfile generator -- not a distinct
+build strategy. But its compatibility matrices are gold. Asya should reuse
+the JSON data for CUDA auto-detection within apko-based or Dockerfile-based
+flows, not depend on Cog as a builder.
 
 | Dimension | Rating |
 |---|---|
 | DS-friendliness | 5/5 (simplest config for ML) |
-| GPU/CUDA | 5/5 (auto-detection) |
+| GPU/CUDA | 5/5 (auto-detection matrices) |
 | System packages | 5/5 (native apt support) |
 | Build speed (cached) | 3/5 (standard Docker layers) |
 | Security | 3/5 (no rebase, standard Docker) |
-| Maintenance burden | 3/5 (need to manage Cog integration, strip server. But cog is client-level only, no server installations) |
+| Lockable | 1/5 (generates Dockerfile -- no lock file possible) |
 
 ### 2.3 Source-to-Image (S2I)
 
@@ -374,36 +368,51 @@ pip install).
 
 ## 3. Comparison Matrix
 
-| Strategy | DS UX | GPU | Sys Pkgs | Zero Config? | Rebase | Impl Effort | Lock-in |
+| Strategy | DS UX | GPU | Sys Pkgs | Lock File | Rebase | Impl Effort | Lock-in |
 |---|---|---|---|---|---|---|---|
-| **Buildpacks** | 4/5 | 2/5 | 2/5 | Yes | Yes | Medium | Low (CNCF) |
-| **Cog** | 5/5 | 5/5 | 5/5 | No (cog.yaml) | No | Medium | Medium |
+| **apko/Wolfi** | 3/5 | 3/5* | 4/5 | **Yes** | No | High | Low |
+| **Buildpacks** | 4/5 | 2/5 | 2/5 | Partial | Yes | Medium | Low (CNCF) |
+| **Cog** | 5/5 | 5/5 | 5/5 | No (Dockerfile) | No | Medium | Medium |
 | **S2I** | 3/5 | 2/5 | 3/5 | No | No | Low | High (RH) |
-| **apko/Wolfi** | 1/5 | 2/5 | 4/5 | No | No | High | Low |
 | **User Dockerfile** | 5/5 | 5/5 | 5/5 | No | No | None | None |
-| **Flyte ImageSpec** | 5/5 | 4/5 | 4/5 | In code | No | Medium | Medium |
+| **Flyte ImageSpec** | 5/5 | 4/5 | 4/5 | No (hash only) | No | Medium | Medium |
+
+*apko GPU: requires Chainguard commercial for CUDA packages, or custom
+melange builds. Open-source Wolfi does NOT have CUDA/PyTorch.
 
 ---
 
-## 4. Architecture: Pluggable Build Strategies
+## 4. Architecture: Two Build Paths
 
 Build inputs (Python version, deps, system packages, GPU) are the **common
-interface**. Strategies are pluggable backends that consume these inputs:
+interface**. Two fundamentally different paths:
 
 ```
 build inputs (format TBD)
         |
-        +-- strategy: buildpack  -->  project.toml + pack build
-        +-- strategy: cog        -->  cog.yaml + cog build
-        +-- strategy: dockerfile -->  user-provided Dockerfile + docker build
+        +-- strategy: apko       -->  apko.yaml + lock file (lockable, reproducible)
+        +-- strategy: buildpack  -->  project.toml + pack build (lockable via buildpack mechanisms)
+        +-- strategy: dockerfile -->  user-provided Dockerfile (escape hatch, no lock)
 ```
 
-**Strategy selection**: Always explicit via `strategy:` field. No magic
-auto-detection of which builder to use. Can be set per-actor or as a
-context-level default.
+**Key distinction**:
+- **apko path**: Declarative, lockable (`actor-image.lock`), reproducible.
+  Uses Cog's compatibility matrices for CUDA resolution. The path Asya
+  optimizes for.
+- **Buildpacks path**: Auto-detected, partially lockable (layer caching).
+  Good for simple Python actors without GPU.
+- **Dockerfile path**: Escape hatch. Full control, no constraints, no lock
+  file. Traditional local build + GitOps flow. Asya provides no special
+  tooling beyond `docker build`.
 
-**No rendering needed for some strategies**: Buildpacks auto-detect from
-requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
+**Strategy selection**: Always explicit via `strategy:` field. No magic
+auto-detection of which builder to use.
+
+**CUDA resolution** (shared across strategies): Asya reuses Cog's
+compatibility matrices (`torch_compatibility.json`, `tf_compatibility.json`)
+to resolve PyTorch/TF version → CUDA version. This data feeds into:
+- apko: selects CUDA APK packages from Wolfi/Chainguard
+- Dockerfile: suggests base image (informational only)
 
 ---
 
@@ -412,39 +421,46 @@ requirements.txt. Cog needs cog.yaml. Dockerfile is user-provided.
 | Actor Type | Characteristics | Recommended |
 |---|---|---|
 | **Router actors** | Generated code, no deps | No build (asya-runtime + ConfigMap) |
-| **Simple Python** | Pip deps only | Buildpacks (zero config) |
-| **ML/GPU actors** | PyTorch/TF, CUDA | Cog (auto CUDA) |
-| **Complex actors** | Custom system deps, full control | User-provided Dockerfile |
+| **Simple Python** | Pip deps only | Buildpacks (zero config) or apko |
+| **ML/GPU actors** | PyTorch/TF, CUDA | apko (lockable, CUDA via compatibility matrices) |
+| **Complex actors** | Custom system deps, full control | Dockerfile (escape hatch) |
 
 ---
 
 ## 6. Golden Paths
 
-Three golden paths (ordered by DS-friendliness). Strategy is always explicit
--- no magic auto-detection of which builder to use:
+Three golden paths. Strategy is always explicit -- no auto-detection:
 
-### Path 1: Buildpacks (standard Python)
+### Path 1: apko (lockable, reproducible -- primary path)
+```yaml
+build:
+  strategy: apko
+  python: "3.12"
+  requirements: requirements.txt
+  packages: [ffmpeg, numpy]       # Wolfi APK packages
+  gpu: true                       # triggers CUDA resolution from compatibility matrices
+```
+
+Produces `actor-image.lock` (see `research-seamless-build.md`). Lockable,
+reproducible, auditable. Asya resolves CUDA version from PyTorch/TF version
+in requirements.txt using Cog's compatibility matrices.
+
+### Path 2: Buildpacks (standard Python, no GPU)
 ```yaml
 build:
   strategy: buildpack
   requirements: requirements.txt   # or pyproject: pyproject.toml, etc.
 ```
 
-### Path 2: Cog (ML/GPU actors)
-```yaml
-build:
-  strategy: cog
-  gpu: true
-  requirements: requirements.txt
-  packages: [ffmpeg]
-```
-
-### Path 3: Dockerfile (full control)
+### Path 3: Dockerfile (escape hatch, no lock)
 ```yaml
 build:
   strategy: dockerfile
   dockerfile: Dockerfile
 ```
+
+No `actor-image.lock` for Dockerfile path. Traditional local build + GitOps
+flow. Asya provides no special tooling beyond wrapping `docker build`.
 
 Note: config format and file placement are TBD (see section 1). The examples
 above show the **build inputs** each strategy needs, not a final file schema.
@@ -453,9 +469,12 @@ above show the **build inputs** each strategy needs, not a final file schema.
 
 ## 7. Implementation Phases
 
-**Phase 1** (MVP): Buildpacks for zero-config Python actors + BYO Dockerfile.
-**Phase 2**: Cog for GPU/ML actors.
-**Phase 3**: Custom Asya buildpack (if demand warrants).
+**Phase 1** (MVP): BYO Dockerfile (escape hatch) + Buildpacks for zero-config
+Python actors.
+**Phase 2**: apko for lockable, reproducible builds (CPU-only initially).
+Port Cog's compatibility matrices for CUDA resolution.
+**Phase 3**: apko + CUDA (requires Chainguard commercial or custom melange
+builds for CUDA/PyTorch packages).
 
 ---
 
