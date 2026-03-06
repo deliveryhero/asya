@@ -1,0 +1,76 @@
+services:
+  # Generates an RSA key pair at startup, writes to the key-data volume,
+  # then serves the JWKS document so the gateway can validate JWTs.
+  jwks-server:
+    image: python:3.13-slim
+    command: >
+      sh -c "pip install cryptography --quiet --no-cache-dir
+             && python3 /scripts/generate_and_serve_jwks.py"
+    volumes:
+    - ./scripts/generate_and_serve_jwks.py:/scripts/generate_and_serve_jwks.py:ro
+    - key-data:/key-data
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8099/jwks.json')"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 10s
+
+  # Gateway under test — JWT + API Key auth both enabled.
+  # No postgres: in-memory task store is sufficient for auth tests.
+  # Fake SQS endpoint: the queue client initialises without network calls;
+  # actual queue operations are never exercised by these auth-only tests.
+  asya-gateway:
+    build:
+      context: ../../../src/asya-gateway
+      dockerfile: Dockerfile
+    ports:
+    - "8089:8089"
+    depends_on:
+      jwks-server:
+        condition: service_healthy
+    environment:
+    - ASYA_GATEWAY_PORT=8089
+    - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
+    - ASYA_SQS_ENDPOINT=http://fake-sqs:4566
+    - ASYA_A2A_API_KEY=test-api-key-12345
+    - ASYA_A2A_JWT_JWKS_URL=http://jwks-server:8099/jwks.json
+    - ASYA_A2A_JWT_ISSUER=https://test-issuer.local
+    - ASYA_A2A_JWT_AUDIENCE=asya-gateway-test
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/health"]
+      interval: 2s
+      timeout: 1s
+      retries: 30
+
+  tester:
+    build:
+      context: ../../../src/asya-testing
+      dockerfile: Dockerfile
+    depends_on:
+      asya-gateway:
+        condition: service_healthy
+    environment:
+    - GATEWAY_URL=http://asya-gateway:8089
+    - ASYA_A2A_API_KEY=test-api-key-12345
+    - ASYA_A2A_JWT_ISSUER=https://test-issuer.local
+    - ASYA_A2A_JWT_AUDIENCE=asya-gateway-test
+    - PRIVATE_KEY_PATH=/key-data/private_key.pem
+    - COVERAGE_FILE=.coverage/cov.db
+    - PYTHONUNBUFFERED=1
+    volumes:
+    - key-data:/key-data:ro
+    - ${COVERAGE_DIR}:/app/.coverage:rw
+    - ${COVERAGERC}:/app/.coveragerc:ro
+    - ./tests:/app/tests
+    working_dir: /app
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - |
+      set -ex
+      pytest tests/ ${PYTEST_OPTS} \
+        --cov --cov-config=/app/.coveragerc --cov-report=term --cov-report=json:/app/.coverage/cov.json
+
+volumes:
+  key-data:

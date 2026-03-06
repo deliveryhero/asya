@@ -16,3 +16,5 @@ requests>=2.31.0
 sseclient-py>=1.8.0
 google-cloud-pubsub>=2.23.0
 google-cloud-storage>=2.14.0
+PyJWT[cryptography]>=2.8.0
+cryptography>=42.0.0
