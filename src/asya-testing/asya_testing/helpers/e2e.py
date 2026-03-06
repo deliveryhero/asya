@@ -195,9 +195,7 @@ class E2ETestHelper(GatewayTestHelper):
                 for url in health_urls:
                     response = requests.get(url, timeout=2)
                     if response.status_code != 200:
-                        raise requests.exceptions.ConnectionError(
-                            f"Gateway returned {response.status_code}: {url}"
-                        )
+                        raise requests.exceptions.ConnectionError(f"Gateway returned {response.status_code}: {url}")
                 logger.debug("Gateway connectivity confirmed")
                 return True
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
