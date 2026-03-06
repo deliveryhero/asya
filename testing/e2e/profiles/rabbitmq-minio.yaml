@@ -47,7 +47,7 @@ crew:
   x-sink:
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
@@ -57,7 +57,7 @@ crew:
   x-sump:
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
@@ -114,5 +114,5 @@ injector:
   config:
     sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
     sidecarImagePullPolicy: Never
-    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
     rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/

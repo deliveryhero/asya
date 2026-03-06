@@ -60,7 +60,7 @@ crew:
   x-sink:
     transport: pubsub
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
@@ -69,7 +69,7 @@ crew:
   x-sump:
     transport: pubsub
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
@@ -141,4 +141,4 @@ injector:
     sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
     sidecarImagePullPolicy: Never
     pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
-    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
