@@ -1,53 +1,35 @@
 ---
-title: Implement authentication middleware
-priority: 2 # medium
+title: "Phase 1: Dual-deployment gateway split"
+priority: 1 # high
+tags:
+  - phase:1
 ---
 
+Split gateway into two deployment modes (api + mesh) for network-level route
+isolation. Wire existing A2A auth to the api mode. No new auth code.
 
+See `rfc.md` section 7, Phase 1.
 
-Add authentication support for A2A endpoints.
+## Scope
 
-## Requirements
-- Support multiple auth schemes as declared in Agent Card
-- Bearer token (JWT) validation
-- OAuth2 client credentials flow
-- API key authentication (header or query param)
+- Add `ASYA_GATEWAY_MODE` env var (`api`, `mesh`, or empty for dev/all)
+- Gate route registration in `main.go` based on mode
+- Update Helm chart to support two releases with `mode` value
+- Update sidecar `ASYA_GATEWAY_URL` to point to mesh service name
+- Update integration/e2e tests for dual-deployment topology
+- Existing A2A auth (API key + JWT, merged in 7fuy) works unchanged
 
-## Auth Schemes
+## Not in Scope
 
-### 1. Bearer Token (JWT)
-- Header: Authorization: Bearer <token>
-- Validate against JWKS endpoint
-- Extract claims for authorization
+- New auth middleware (Phase 2+)
+- MCP auth (Phase 2+)
+- NetworkPolicy (optional hardening, separate task)
 
-### 2. OAuth2 Client Credentials
-- Token endpoint for machine-to-machine auth
-- Scope-based access control (agent:invoke, agent:read)
+## Acceptance Criteria
 
-### 3. API Key
-- Header: X-API-Key: <key>
-- Or query: ?api_key=<key>
-- Simple validation against configured keys
-
-## Implementation
-- Add auth middleware in internal/auth/middleware.go
-- Configure via environment variables:
-  - ASYA_AUTH_ENABLED=true
-  - ASYA_JWKS_URL=https://auth.example.com/.well-known/jwks.json
-  - ASYA_API_KEYS=key1,key2,key3
-- Apply to all A2A endpoints
-- Skip auth for /.well-known/a2a/agent-card (public)
-- Skip auth for /health
-
-## Error Responses
-- 401 Unauthorized - Missing or invalid credentials
-- 403 Forbidden - Valid credentials but insufficient scope
-
-## Testing
-- Unit test for each auth scheme
-- Integration test for protected endpoints
-- Test public endpoints without auth
-
-
----
-_Migrated from beads `asya-wir`_
+- `ASYA_GATEWAY_MODE=api` serves only /a2a/*, /mcp/*, /.well-known/*, /health
+- `ASYA_GATEWAY_MODE=mesh` serves only /mesh/*, /health
+- Empty mode serves all routes (backward compat)
+- Sidecar can reach mesh service, external clients can reach api service
+- A2A auth (API key + JWT) applies to /a2a/* on api deployment
+- Helm chart produces two Deployments + two Services from one values file
