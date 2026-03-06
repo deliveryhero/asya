@@ -1,7 +1,9 @@
 ---
-title: "Cover all A2A with e2e tests"
+title: Cover all A2A with e2e tests
 priority: 2 # medium
+assignee: Artem Yushkovskiy
 ---
+
 
 A2A auth is covered at the component level (`testing/component/gateway-a2a/`).
 This task is for full Kubernetes-level A2A e2e tests.
