@@ -9,6 +9,8 @@ providers:
     enabled: true
     # SQS provider version
     sqsVersion: "v1.19.0"
+    # Drift detection poll interval (e.g. "10s" for tests, "" for provider default ~10m)
+    pollInterval: ""
   gcp:
     # Enable GCP Pub/Sub provider (set to false for non-GCP deployments)
     enabled: false
