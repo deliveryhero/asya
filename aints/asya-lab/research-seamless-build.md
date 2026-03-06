@@ -24,6 +24,9 @@ keeping the traditional CI/CD pipeline available for production deploys.
 **Design constraints**:
 - Asya actors consume from message queues (SQS/RabbitMQ), not HTTP
 - Sidecar pattern (Go sidecar + Python runtime in same pod)
+- **Runtime speaks HTTP** (POST /invoke on Unix socket, or TCP for local dev).
+  This means the runtime can be tested directly without a sidecar -- just send
+  HTTP requests to it. See the sidecar-runtime protocol RFC for details.
 - Must work for both simple Python and GPU/ML actors
 - Must not force any single tool on teams
 - Must offer "golden paths" solving the UX problem
@@ -181,7 +184,66 @@ config is natural for DS. Dependency changes handled without full rebuild.
 | DS-friendliness | 4/5 (Python config) |
 | Multi-actor pipelines | 5/5 (resource_deps, grouping) |
 
-### 2.4 mirrord (Process-Level Interception)
+### 2.4 Direct Runtime Testing (HTTP)
+
+**What it does**: Since the asya-runtime speaks standard HTTP (`POST /invoke`),
+handlers can be tested locally without any sidecar, message queue, or K8s
+involvement. The runtime listens on TCP instead of Unix socket for local dev.
+
+**Local testing** (pure Python, no Docker):
+```bash
+# Start runtime locally on TCP
+ASYA_HANDLER=my_module.process \
+ASYA_SOCKET_PATH=tcp://127.0.0.1:8080 \
+  python asya_runtime.py
+
+# In another terminal, send test message
+curl -X POST http://127.0.0.1:8080/invoke \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "test-001",
+    "route": {"prev": [], "curr": "my-actor", "next": ["next-actor"]},
+    "headers": {},
+    "payload": {"text": "hello"}
+  }'
+```
+
+**What this tests**: Handler logic, payload transformation, error handling.
+The runtime processes the message exactly as it would in production -- same
+handler loading, same ABI protocol for generators, same SSE streaming.
+
+**What this does NOT test**: Queue consumption, routing to next actor,
+sidecar behavior, autoscaling. For that, use integration tests or mirrord.
+
+**Programmatic testing** (pytest, Jupyter):
+```python
+import requests
+
+# Runtime running locally on port 8080
+resp = requests.post("http://127.0.0.1:8080/invoke", json={
+    "id": "test-001",
+    "route": {"prev": [], "curr": "my-actor", "next": []},
+    "headers": {},
+    "payload": {"text": "hello"}
+})
+result = resp.json()
+assert result["frames"][0]["payload"]["processed"] is True
+```
+
+**Jupyter integration**: `asya` magic functions could start the runtime in the
+background and expose a `test_actor()` helper that wraps the HTTP call.
+
+**Verdict**: Simplest possible testing path. No Docker, no K8s, no sidecar.
+Just Python + HTTP. Works for handler unit testing and functional testing.
+
+| Dimension | Rating |
+|---|---|
+| Iteration speed | 5/5 (instant -- just restart Python) |
+| DS-friendliness | 5/5 (pure Python, curl or requests) |
+| Fidelity to production | 3/5 (no queue, no sidecar, no routing) |
+| Setup required | 5/5 (only Python + handler deps) |
+
+### 2.5 mirrord (Process-Level Interception)
 
 **What it does**: Runs local process as if it's inside the K8s cluster.
 Intercepts network, filesystem, environment from a remote pod.
@@ -225,7 +287,7 @@ perfectly.
 | Production safety | 3/5 (dev-only, intercepts traffic) |
 | Cluster-side setup | 5/5 (no components needed) |
 
-### 2.5 The "No-Build" Patterns
+### 2.6 The "No-Build" Patterns
 
 Several patterns avoid building images entirely:
 
@@ -275,7 +337,7 @@ spec:
 download works for experimentation but not production. Storage initializer
 is production-proven for models but adds startup latency.
 
-### 2.6 Build Caching Strategies
+### 2.7 Build Caching Strategies
 
 **Optimal Dockerfile for rapid iteration**:
 ```dockerfile
@@ -310,7 +372,7 @@ docker build --cache-from registry/actor:cache \
 **Kaniko caching** (for in-cluster builds): Kaniko warmer pre-populates
 cache. Persistent volume caching across builds.
 
-### 2.7 Image Streaming (SOCI/Stargz)
+### 2.8 Image Streaming (SOCI/Stargz)
 
 **Problem**: Large ML images (5GB+) are slow to pull on cold start.
 
@@ -360,6 +422,7 @@ runtimes), Ray Serve. All solve it differently:
 - Proprietary cloud builds (Modal) -- vendor lock-in
 
 **What works for Asya**:
+- Direct runtime testing (HTTP `/invoke`) -- pure local, no infra
 - Declarative image spec (Flyte/Modal API) -- inspiration for UX
 - Storage initializer (KServe) -- download code at startup, proven for ML
 - Code-as-ConfigMap (already used for routers)
@@ -369,9 +432,25 @@ runtimes), Ray Serve. All solve it differently:
 
 ## 4. Proposed Architecture: Levels of Sophistication
 
-### Level 0: Zero Build (Local Interception)
+### Level 0: Direct Runtime Testing (Local HTTP)
 
-**For**: DS experimenting with handler logic. No Docker, no K8s knowledge.
+**For**: DS testing handler logic. No Docker, no K8s, no cluster access needed.
+
+```bash
+asya test handler.py
+# Under the hood: starts asya_runtime.py on localhost TCP,
+# sends test payloads via HTTP POST /invoke
+```
+
+DS writes Python, runs handler directly via HTTP. Tests handler logic,
+payload transformation, error handling. Does NOT test queue routing or
+sidecar behavior.
+
+**Requires**: Python + handler dependencies. Nothing else.
+
+### Level 1: Local Interception (mirrord)
+
+**For**: DS experimenting against real staging queues. No Docker, no build.
 
 ```bash
 asya dev handler.py --context=k8s-stg
@@ -384,7 +463,7 @@ No image build at all.
 
 **Requires**: mirrord installed, kubectl access to staging.
 
-### Level 1: ConfigMap Deploy (No Build)
+### Level 2: ConfigMap Deploy (No Build)
 
 **For**: Small handler changes, quick iteration on staging.
 
@@ -400,7 +479,7 @@ be in the base image.
 
 **Requires**: Pre-built `asya-runtime` base image with common deps.
 
-### Level 2: Code Sync (Skaffold/Tilt)
+### Level 3: Code Sync (Skaffold/Tilt)
 
 **For**: Active development with frequent code changes, occasional dep changes.
 
@@ -413,7 +492,7 @@ asya dev --mode=sync --context=k8s-stg
 **Requires**: Dockerfile (auto-generated from build: config), Skaffold or
 Tilt installed.
 
-### Level 3: On-Cluster Build (Shipwright)
+### Level 4: On-Cluster Build (Shipwright)
 
 **For**: Teams that don't want local Docker. Code pushed to Git, built in
 cluster.
@@ -426,7 +505,7 @@ asya actor deploy text-analyzer --context=k8s-stg
 
 **Requires**: Shipwright installed in cluster, registry access.
 
-### Level 4: CI/CD Build (Production)
+### Level 5: CI/CD Build (Production)
 
 **For**: Production deployments via GitOps.
 
@@ -444,11 +523,12 @@ git push  # triggers CI pipeline
 
 | Level | Speed | DS-Friendly | Queue Support | Production | Cluster Deps |
 |---|---|---|---|---|---|
-| **L0: mirrord** | 0s | 5/5 | 4/5 (split) | No | None |
-| **L1: ConfigMap** | 5s | 4/5 | 5/5 | No (1MB limit) | None |
-| **L2: Sync** | 1-30s | 3/5 | 3/5 | No | None |
-| **L3: Shipwright** | 30s-5min | 4/5 | 5/5 | Staging | Shipwright |
-| **L4: CI/CD** | 10-30min | 2/5 | 5/5 | Yes | CI + registry |
+| **L0: Direct HTTP** | 0s | 5/5 | 1/5 (no queue) | No | None |
+| **L1: mirrord** | 0s | 5/5 | 4/5 (split) | No | None |
+| **L2: ConfigMap** | 5s | 4/5 | 5/5 | No (1MB limit) | None |
+| **L3: Sync** | 1-30s | 3/5 | 3/5 | No | None |
+| **L4: Shipwright** | 30s-5min | 4/5 | 5/5 | Staging | Shipwright |
+| **L5: CI/CD** | 10-30min | 2/5 | 5/5 | Yes | CI + registry |
 
 ---
 
@@ -457,21 +537,23 @@ git push  # triggers CI pipeline
 ### Golden Path A: DS Experimentation (recommended default)
 
 ```
-L0 (mirrord) for handler logic
-  -> L1 (ConfigMap) for quick staging tests
-  -> L4 (CI/CD) when ready for production
+L0 (direct HTTP) for handler logic
+  -> L1 (mirrord) for testing against real staging queues
+  -> L2 (ConfigMap) for quick staging deploys
+  -> L5 (CI/CD) when ready for production
 ```
 
-DS never touches Docker. The transition from L0->L1->L4 is:
-1. Write handler locally, test with mirrord against staging queues
-2. Deploy to staging via ConfigMap for integration testing
-3. Commit code, CI builds proper image, PR for production
+DS never touches Docker. The transition from L0->L1->L2->L5 is:
+1. Write handler locally, test via HTTP POST /invoke
+2. Test with mirrord against real staging queues
+3. Deploy to staging via ConfigMap for integration testing
+4. Commit code, CI builds proper image, PR for production
 
 ### Golden Path B: Active Development
 
 ```
-L2 (Skaffold sync) for code iteration
-  -> L3 (Shipwright) or L4 (CI/CD) for production
+L3 (Skaffold sync) for code iteration
+  -> L4 (Shipwright) or L5 (CI/CD) for production
 ```
 
 For developers comfortable with K8s who want fast iteration with full
@@ -480,7 +562,7 @@ dependency control.
 ### Golden Path C: Platform Engineering
 
 ```
-L4 (CI/CD) for everything
+L5 (CI/CD) for everything
 ```
 
 Full control, Dockerfiles in git, standard GitOps. No special tools.
@@ -492,24 +574,27 @@ Full control, Dockerfiles in git, standard GitOps. No special tools.
 All levels should be accessible through `asya` commands:
 
 ```bash
-# Level 0: Local interception
-asya dev handler.py --context=k8s-stg
+# Level 0: Direct runtime testing (local HTTP)
+asya test handler.py                    # start runtime, send test payloads
 
-# Level 1: ConfigMap deploy
+# Level 1: Local interception (mirrord)
+asya dev handler.py --context=k8s-stg   # run locally against staging queues
+
+# Level 2: ConfigMap deploy
 asya actor deploy text-analyzer --mode=configmap
 
-# Level 2: Code sync (auto-generates Skaffold/Tilt config)
+# Level 3: Code sync (auto-generates Skaffold/Tilt config)
 asya dev --mode=sync
 
-# Level 3: On-cluster build
+# Level 4: On-cluster build
 asya actor deploy text-analyzer --builder=shipwright
 
-# Level 4: Render for CI
-asya build render text-analyzer  # generates Dockerfile
+# Level 5: Render for CI
+asya build render text-analyzer  # generates build artifacts for CI
 ```
 
-The `asya dev` command is the DS-facing entry point. It picks the best level
-based on context and available tools.
+`asya test` is the simplest entry point (pure local). `asya dev` adds
+cluster interaction. `asya actor deploy` deploys to K8s.
 
 ---
 
