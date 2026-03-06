@@ -324,72 +324,66 @@ actors/my-actor/
 **How it works step by step**:
 
 1. DS runs `asya promote my-actor`. The command:
-   - Records the current image digest from the last `asya build` or
-     from the staging deployment
-   - Copies source files (handler, deps, build config) into a git-tracked
-     directory alongside the asyncactor.yaml
-   - Embeds the image digest into asyncactor.yaml
-   - Creates a branch + PR
+   - Reads the last built image digest (from local state or staging)
+   - Reads OCI labels on the image (`asya.sh/source-sha`)
+   - Computes SHA of current source files in working directory
+   - **Compares them**: if source changed since last build, `asya promote`
+     refuses and says "Source changed since last build. Run `asya build`
+     first." -- drift is caught here, not in CI
+   - If match: copies source files + image digest into git-tracked dir,
+     creates branch + PR
 
 2. **Reviewer** sees the full PR diff: handler code, dependencies, build
    config, AND the pinned image digest. They review the code normally.
 
-3. **CI runs a verification check** (not a full rebuild):
-   - Inspects OCI image labels/annotations on the pinned digest
-   - Compares the `asya.sh/source-sha` label (git tree SHA of the source
-     files baked into the image at build time) against the SHA of source
-     files in the PR
-   - If they match: source in PR = source in image. Green check.
-   - If they diverge: CI warns "source files in PR differ from source
-     baked into pinned image" -- DS either needs to rebuild or update
-     the source files in the PR
+3. **CI runs a safety-net check** (~seconds, not a rebuild):
+   - Reads `asya.sh/source-sha` label from the pinned image digest
+   - Compares against SHA of source files in the PR
+   - Should always pass (since `asya promote` already verified)
+   - Fails only in edge cases: someone edited PR files after promote,
+     manual PR creation bypassing `asya promote`, race conditions
 
-   This is NOT a full image rebuild. It's a metadata comparison (~seconds).
+4. **On PR merge**: ArgoCD/Flux deploys the pinned digest. No build --
+   the image is already in the registry from staging.
 
-4. **On PR merge**: ArgoCD/Flux deploys the pinned digest. No build at
-   all -- the image is already in the registry from staging.
-
-**How the source SHA gets into the image**: During `asya build`, the tool
-adds OCI labels to the built image:
+**OCI labels baked in at build time**: During `asya build`, the tool adds
+labels to the image:
 ```
 asya.sh/source-sha=<sha256 of handler.py + requirements.txt + ...>
 asya.sh/build-strategy=cog
 asya.sh/build-time=2026-03-06T14:30:00Z
-asya.sh/git-dirty=true   # or false if committed
 ```
 
-These labels are baked in at build time and are immutable for a given
-digest. The CI check reads them via `docker inspect` or `crane manifest`
-and compares against the PR files.
+These are immutable for a given digest. `asya promote` and CI both read
+them via `crane manifest` or `docker inspect`.
 
-**What happens when source and image diverge**:
-- DS edited handler.py after the last build but forgot to rebuild
-- `asya promote` pins the old image digest
-- CI detects: source SHA in PR != source SHA in image label
-- CI posts a warning on the PR: "Image was built from different source.
-  Run `asya build` and `asya promote` again, or acknowledge the diff."
-- Team decides: block merge (strict) or allow with acknowledgment (lenient)
+**When does CI verification fail?** Almost never in normal workflow,
+because `asya promote` catches drift before creating the PR. Edge cases:
+- Someone pushes a commit to the PR branch modifying source files
+  without rebuilding
+- Someone manually creates a PR bypassing `asya promote`
+- Race condition: another DS pushes to the same PR branch
+
+CI verification is a safety net, not a regular gate.
 
 **Why not just rebuild in CI (Strategy B)?**
-- Rebuilding from source is not guaranteed to produce the same image.
-  Base image layers update, dependency resolution can drift (`pip install`
-  resolves latest patch versions), build environment differs from DS
-  machine. The staging-tested image is the known-good artifact.
+- Rebuilds are not deterministic. Base image layers update, `pip install`
+  resolves different patch versions, build environment differs. The
+  staging-tested image is the known-good artifact.
 - CI rebuild adds 5-30min to the PR cycle.
-- For ML actors with large models baked into images, rebuilding is
-  especially expensive and wasteful.
+- For ML actors with large models baked in, rebuilding is expensive and
+  wasteful.
 
 **Pros**: Reviewers see source code. Production deploys the exact tested
-image. CI verification is fast (metadata, not rebuild). Drift is detected.
-**Cons**: Requires OCI label discipline at build time. Source and image
-can drift if DS edits after building (detected by CI, not prevented).
+image. Drift caught early by `asya promote`, with CI as safety net.
+**Cons**: Requires OCI labels at build time (handled by `asya build`).
 
 #### Recommendation
 
-**Default**: Strategy C (source + pinned digest). `asya promote` command
-generates the PR with both source files and image digest. CI verifies
-source-image consistency via OCI labels. Teams can simplify to A (digest
-only) or B (source + rebuild) based on their policy.
+**Default**: Strategy C (source + pinned digest). `asya promote` enforces
+source-image consistency before creating the PR. CI re-verifies as safety
+net. Teams can simplify to A (digest only, no source in PR) or B (source
++ CI rebuild) based on their policy.
 
 ### 3.4 Comparison
 
