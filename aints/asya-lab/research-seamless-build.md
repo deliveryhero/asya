@@ -64,7 +64,7 @@ on Ctrl+C. Profiles for different environments.
 **Python buildpacks auto-sync**: NOT available yet (works for Go, Java,
 Node.js). Workaround: manual sync mode.
 
-**Can Asya generate skaffold.yaml?**: Yes, from actor.yaml config.
+**Can Asya generate skaffold.yaml?**: Yes, from build inputs (format TBD).
 
 **Verdict**: Good inner-loop tool for code changes. Doesn't solve the "DS
 scared of Docker" problem (still needs a Dockerfile for initial build).
@@ -156,7 +156,7 @@ docker_build('my-actor', '.',
     fall_back_on(['Dockerfile']),                         # 60s
   ]
 )
-k8s_yaml('actor.yaml')
+k8s_yaml('k8s-manifest.yaml')  # whatever Asya generates
 ```
 
 **Decision tree**:
@@ -540,8 +540,8 @@ based on context and available tools.
 
 ## 9. Implementation Phases
 
-**Phase 1** (MVP): `asya build render` generates Dockerfile from actor.yaml
-build: config. `asya actor deploy` does `docker build + push + kubectl apply`.
+**Phase 1** (MVP): Generate Dockerfile from build inputs (format TBD).
+`asya actor deploy` does `docker build + push + kubectl apply`.
 Simple, works everywhere.
 
 **Phase 2**: `asya dev handler.py` with mirrord integration for zero-build

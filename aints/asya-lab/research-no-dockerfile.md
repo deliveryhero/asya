@@ -18,19 +18,19 @@ engineers want Dockerfiles for auditability.
 paths for platform engineers. The system must be modular -- no lock-in to any
 single builder tool.
 
-**Design constraint**: Asya defines a `build:` config in actor.yaml that
-describes build intent in DS-friendly terms:
+**Build intent** (format TBD): Regardless of where or how it's expressed --
+standalone file, section in a central manifest, Python code, or flow-level
+annotation -- the build system needs certain inputs to produce a container image:
 
-```yaml
-build:
-  python: "3.11"
-  requirements: requirements.txt
-  packages: [ffmpeg]
-  gpu: true
-```
+- Python version
+- Python dependencies (requirements file, pyproject.toml, uv.lock, etc.)
+- System packages (apt/apk)
+- GPU/CUDA requirements
+- Base image preference (optional)
 
-This intent can be translated to different build artifacts depending on the
-selected strategy.
+How these inputs are captured (file format, placement, syntax) is an open
+design question. The research below evaluates tools by how well they can
+consume these inputs regardless of how they're expressed.
 
 ---
 
@@ -70,11 +70,11 @@ Paketo apt buildpack with `apt.yml`.
 **Rebase**: Killer feature -- swap OS layers without rebuilding app. Security
 patches in milliseconds. No other tool offers this.
 
-**Translation from actor.yaml `build:`**:
-- `python:` -> `BP_CPYTHON_VERSION` env var
-- `requirements:` -> auto-detected from file
-- `packages:` -> requires custom run image (limitation)
-- `gpu:` -> requires custom run image (limitation)
+**Mapping build inputs to Buildpacks**:
+- Python version -> `BP_CPYTHON_VERSION` env var
+- Dependencies -> auto-detected from requirements.txt/pyproject.toml
+- System packages -> requires custom run image (limitation)
+- GPU/CUDA -> requires custom run image (limitation)
 
 **Verdict**: Excellent for standard Python actors (no GPU, no system packages).
 Poor for ML/GPU workloads. Rebase capability is unique and valuable for
@@ -122,11 +122,11 @@ Asya doesn't need it (sidecar pattern). Options:
 2. Override entrypoint in K8s spec: `command: ["python", "asya_runtime.py"]`
 3. Use Cog purely for build environment setup
 
-**Translation from actor.yaml `build:`**:
-- `python:` -> `python_version:`
-- `requirements:` -> `python_requirements:`
-- `packages:` -> `system_packages:`
-- `gpu:` -> `gpu: true` (auto-detects CUDA)
+**Mapping build inputs to Cog**:
+- Python version -> `python_version:`
+- Dependencies -> `python_requirements:`
+- System packages -> `system_packages:`
+- GPU -> `gpu: true` (auto-detects CUDA from torch/tf version)
 
 **Verdict**: Best DS experience for GPU/ML actors. Auto CUDA detection is
 the killer feature. Bundled inference server is a concern but can be worked
@@ -208,11 +208,11 @@ artifact.
 **Is this "cheating"?**: No. Heroku, Railway (14M+ builds), Cog all do this
 internally. Proven pattern.
 
-**Asya implementation**: `asya build render` translates `build:` config into
-a Dockerfile from `asya-runtime` base images:
+**How Asya could use this**: Given build inputs (Python version, deps, system
+packages, GPU flag), generate a Dockerfile internally:
 
 ```dockerfile
-# Auto-generated from actor.yaml build: config
+# Auto-generated from build inputs
 FROM asya-runtime:3.11-gpu
 RUN apt-get update && apt-get install -y ffmpeg libsndfile1
 COPY requirements.txt .
@@ -288,11 +288,11 @@ pip install).
 
 ## 4. Architecture: Pluggable Build Strategies
 
-The `build:` config in actor.yaml is the **common interface**. Strategies are
-pluggable backends that consume this interface:
+Build inputs (Python version, deps, system packages, GPU) are the **common
+interface**. Strategies are pluggable backends that consume these inputs:
 
 ```
-actor.yaml build: config
+build inputs (format TBD)
         |
         +-- strategy: buildpack  -->  project.toml + pack build
         +-- strategy: cog        -->  cog.yaml + cog build
@@ -300,10 +300,10 @@ actor.yaml build: config
         +-- strategy: custom     -->  user-provided Dockerfile
 ```
 
-**Strategy selection**:
-- Explicit: `build: { strategy: cog }`
-- Context-level default in asya.yaml
-- Auto-detected: `gpu: true` -> suggest Cog; standard -> suggest buildpacks
+**Strategy selection** (mechanism TBD -- could be per-actor, per-context,
+auto-detected, or some combination):
+- Explicit per actor or per context
+- Auto-detected: GPU deps -> suggest Cog; standard Python -> suggest buildpacks
 
 **No rendering needed for some strategies**: Buildpacks auto-detect from
 requirements.txt. Cog needs cog.yaml. Dockerfile strategy generates a file.
@@ -386,8 +386,9 @@ build:
 
 3. **Cog server stripping**: Is `cog debug` + modification reliable long-term?
 
-4. **Where does build: config live for flow-owned actors?** In the flow file?
-   In compiled manifest? In actor.yaml under deploy/?
+4. **Where do build inputs live?** Next to handler code? In a central manifest?
+   Embedded in flow definitions? Derived from project files (requirements.txt)?
+   This affects every strategy's integration point.
 
 ---
 
