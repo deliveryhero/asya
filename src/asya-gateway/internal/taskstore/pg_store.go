@@ -816,7 +816,7 @@ const listCountQuery = `SELECT COUNT(*) FROM tasks
 	WHERE ($1::text IS NULL OR status = $1)
 	  AND ($2::text IS NULL OR context_id = $2)`
 
-const listDataQuery = `SELECT id, context_id, status, payload, result, error, timeout_seconds, deadline,
+const listDataQuery = `SELECT id, context_id, status, payload, result, error, timeout_sec, deadline,
 	        remaining_timeout_sec, progress_percent, current_actor_name, message,
 	        pause_metadata, actors_completed, total_actors,
 	        route_prev, route_curr, route_next,
