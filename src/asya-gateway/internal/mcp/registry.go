@@ -88,17 +88,35 @@ func (r *Registry) registerTool(toolDef toolstore.Tool) error {
 	return nil
 }
 
-// buildParamOptionsFromSchema converts a JSON Schema object into MCP tool options.
+// buildParamOptionsFromSchema converts a parameter schema object into MCP tool options.
+// Supports two formats:
+//   - JSON Schema: {"properties": {"name": {...}}, "required": ["name"]}
+//   - Flat format: {"name": {"type": "string", "required": true, ...}}
 func buildParamOptionsFromSchema(schema map[string]interface{}) []mcp.ToolOption {
 	var opts []mcp.ToolOption
 
-	properties, _ := schema["properties"].(map[string]interface{})
-	requiredList, _ := schema["required"].([]interface{})
+	// Detect format: JSON Schema has a "properties" key; flat format does not.
+	properties, hasProperties := schema["properties"].(map[string]interface{})
 
 	requiredSet := make(map[string]bool)
-	for _, r := range requiredList {
-		if name, ok := r.(string); ok {
-			requiredSet[name] = true
+	if hasProperties {
+		// JSON Schema: required list is a top-level array
+		requiredList, _ := schema["required"].([]interface{})
+		for _, r := range requiredList {
+			if name, ok := r.(string); ok {
+				requiredSet[name] = true
+			}
+		}
+	} else {
+		// Flat format: treat the schema itself as the properties map
+		properties = make(map[string]interface{})
+		for name, v := range schema {
+			if prop, ok := v.(map[string]interface{}); ok {
+				properties[name] = prop
+				if req, _ := prop["required"].(bool); req {
+					requiredSet[name] = true
+				}
+			}
 		}
 	}
 
@@ -159,15 +177,29 @@ func (r *Registry) createToolHandler(toolDef toolstore.Tool) func(context.Contex
 		// Extract all arguments
 		arguments := request.GetArguments()
 
-		// Validate required parameters from JSON Schema
+		// Validate required parameters. Supports two formats:
+		//   - JSON Schema: top-level "required" array
+		//   - Flat format: per-property "required": true field
 		if len(toolDef.Parameters) > 0 {
 			var schema map[string]interface{}
 			if err := json.Unmarshal(toolDef.Parameters, &schema); err == nil {
 				if requiredList, ok := schema["required"].([]interface{}); ok {
+					// JSON Schema format
 					for _, r := range requiredList {
 						if paramName, ok := r.(string); ok {
 							if _, exists := arguments[paramName]; !exists {
 								return mcp.NewToolResultError(fmt.Sprintf("missing required parameter: %s", paramName)), nil
+							}
+						}
+					}
+				} else {
+					// Flat format: {"paramName": {"required": true, ...}}
+					for name, propRaw := range schema {
+						if prop, ok := propRaw.(map[string]interface{}); ok {
+							if req, _ := prop["required"].(bool); req {
+								if _, exists := arguments[name]; !exists {
+									return mcp.NewToolResultError(fmt.Sprintf("missing required parameter: %s", name)), nil
+								}
 							}
 						}
 					}

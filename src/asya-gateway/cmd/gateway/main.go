@@ -104,6 +104,9 @@ func main() {
 	taskHandler := mcp.NewHandler(taskStore)
 	taskHandler.SetServer(mcpServer) // For REST tool calls
 
+	// API key for endpoint auth (shared by A2A and /mesh/expose)
+	apiKey := os.Getenv("ASYA_A2A_API_KEY")
+
 	// Setup routes
 	mux := http.NewServeMux()
 
@@ -116,9 +119,13 @@ func main() {
 	// REST endpoint for tool calls (simpler alternative to SSE-based MCP)
 	mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
 
-	// Tool registration endpoint
+	// Tool registration endpoint (protected by API key when configured)
 	exposeHandler := toolstore.NewHandler(registry)
-	mux.HandleFunc("/mesh/expose", exposeHandler.HandleExpose)
+	var exposeHTTPHandler http.Handler = http.HandlerFunc(exposeHandler.HandleExpose)
+	if apiKey != "" {
+		exposeHTTPHandler = a2a.APIKeyMiddleware(apiKey)(exposeHTTPHandler)
+	}
+	mux.Handle("/mesh/expose", exposeHTTPHandler)
 
 	// Mesh status endpoints (custom functionality)
 	mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
@@ -160,7 +167,6 @@ func main() {
 	)
 
 	// Mount A2A endpoints (with optional API key auth)
-	apiKey := os.Getenv("ASYA_A2A_API_KEY")
 	var a2aRootHandler http.Handler = a2aHTTPHandler
 	if apiKey != "" {
 		slog.Info("A2A API Key authentication enabled")
