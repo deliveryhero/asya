@@ -27,6 +27,7 @@ services:
     - ASYA_PERSISTENCE_MOUNT=/tmp/checkpoints/results
     volumes:
     - asya-x-sink-sockets:/var/run/asya
+    - asya-checkpoints-results:/tmp/checkpoints/results
     - ../../../../src/asya-runtime/asya_runtime.py:/opt/asya/asya_runtime.py:ro
     healthcheck:
       test: ["CMD", "test", "-S", "/var/run/asya/asya-runtime.sock"]
@@ -118,3 +119,7 @@ services:
         condition: service_started
       asya-x-sump-sidecar:
         condition: service_started
+
+volumes:
+  # Shared with gateway so GetTask can serve history from persisted envelopes.
+  asya-checkpoints-results:

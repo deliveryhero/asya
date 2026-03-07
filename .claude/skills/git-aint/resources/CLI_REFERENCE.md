@@ -27,7 +27,7 @@ Usage: git aint create [OPTIONS] --title <TITLE>
 
 ```bash
 git aint create --title "Fix auth timeout"
-git aint create --title "Add linting" --in ci-setup --priority1
+git aint create --title "Add linting" --in ci-setup --priority 1
 git aint create --title "Maybe later" --status backlog
 ```
 
@@ -127,7 +127,7 @@ Usage: git aint summary [DIR] [OPTIONS]
 ```bash
 git aint summary                        # txt, full detail
 git aint summary --brief                # txt, compact (for hooks)
-git aint summary --output md            # markdown (for auto-summary.md)
+git aint summary --output md            # markdown (for auto-generated.md)
 git aint summary auth-rework            # single directory
 ```
 

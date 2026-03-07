@@ -2,7 +2,7 @@
 name = "asya-testing"
 version = "0.1.0"
 description = "Shared test library for Asya framework tests"
-requires-python = ">=3.7"
+requires-python = ">=3.9"
 dynamic = ["dependencies"]
 
 [tool.setuptools.dynamic]
@@ -14,3 +14,10 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 packages = { find = {} }
+
+[tool.pytest.ini_options]
+addopts = [
+  "--cov=asya_testing",
+  "--cov-config=../../.coveragerc",
+  "--cov-report=term",
+]
