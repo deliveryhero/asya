@@ -533,6 +533,55 @@ func TestUpdate(t *testing.T) {
 	}
 }
 
+// TestUpdate_FirstWriteWins verifies that Update() ignores updates for tasks
+// already in a terminal state, implementing the first-write-wins invariant.
+// This prevents late x-sink "succeeded" reports from overwriting a backstop "failed".
+func TestUpdate_FirstWriteWins(t *testing.T) {
+	store := NewStore()
+
+	task := &types.Task{
+		ID: "fw-wins-task",
+		Route: types.Route{
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
+		},
+	}
+	if err := store.Create(task); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+
+	// Transition to Failed (e.g. from gateway backstop)
+	if err := store.Update(types.TaskUpdate{
+		ID:        task.ID,
+		Status:    types.TaskStatusFailed,
+		Error:     "task timed out",
+		Timestamp: time.Now(),
+	}); err != nil {
+		t.Fatalf("Update to Failed: %v", err)
+	}
+
+	// Late x-sink report tries to overwrite with Succeeded — must be ignored.
+	if err := store.Update(types.TaskUpdate{
+		ID:        task.ID,
+		Status:    types.TaskStatusSucceeded,
+		Timestamp: time.Now(),
+	}); err != nil {
+		t.Fatalf("Update to Succeeded returned unexpected error: %v", err)
+	}
+
+	got, err := store.Get(task.ID)
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	if got.Status != types.TaskStatusFailed {
+		t.Errorf("Status = %v after first-write-wins, want Failed", got.Status)
+	}
+	if got.Error != "task timed out" {
+		t.Errorf("Error = %q, want 'task timed out'", got.Error)
+	}
+}
+
 // TestIsActive tests the IsActive method
 func TestIsActive(t *testing.T) {
 	tests := []struct {

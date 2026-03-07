@@ -192,36 +192,37 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
 
     Scenario:
     1. test-timeout-cold actor has minReplicas=0 (KEDA scale-to-zero)
-    2. Call test_timeout_cold (gateway timeout=5s) with sleep_seconds=30
-    3. Gateway publishes message with status.deadline_at=now+5s, starts 5s timer
+    2. Call test_timeout_cold (gateway timeout=15s) with sleep_seconds=60
+    3. Gateway publishes message with status.deadline_at=now+15s, starts 15s timer
     4. Message sits in queue; KEDA detects it and starts scaling (takes 30-60s)
-    5. Gateway backstop fires at 5s -> task=failed, error="task timed out"
+    5. Gateway backstop fires at 15s -> task=failed, error="task timed out"
+       (15s < 60s sleep, so the handler cannot complete before the backstop)
     6. KEDA eventually scales up pod; sidecar picks up stale message
-    7. Sidecar detects expired deadline_at, routes to x-sump via SLA pre-check
-    8. x-sump reports failure; gateway ignores (first-write-wins, task remains failed)
+    7. Sidecar detects expired deadline_at, routes via SLA pre-check
+    8. x-sink/x-sump reports; gateway ignores (first-write-wins, task remains failed)
     9. Task status is still "failed" after 45s (stale processing complete)
 
     Expected:
-    - Within 15s: task.status == "failed" (backstop fired)
-    - task.deadline is non-empty (5s after task creation)
+    - Within 30s: task.status == "failed" (backstop fired at ~15s)
+    - task.deadline is non-empty (15s after task creation)
     - After pod ready + 45s: task.status still "failed" (NOT overwritten)
     """
     logger.info("Testing gateway backstop race with cold-start actor")
 
     response = e2e_helper.call_mcp_tool(
         tool_name="test_timeout_cold",
-        arguments={"sleep_seconds": 30},
+        arguments={"sleep_seconds": 60},
     )
     task_id = response["result"]["task_id"]
     logger.info(f"Task ID: {task_id}")
 
-    # Gateway backstop is 5s; wait up to 15s to absorb clock jitter
-    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=15)
+    # Gateway backstop is 15s; wait up to 30s to absorb clock jitter
+    final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
     assert final_task["status"] == "failed", (
-        f"Gateway backstop should fire after 5s; "
+        f"Gateway backstop should fire after 15s; "
         f"got status={final_task['status']}, error={final_task.get('error')!r}. "
-        f"Check that test_timeout_cold tool has timeout=5 configured."
+        f"Check that test_timeout_cold tool has timeout=15 configured."
     )
     error_msg = final_task.get("error", "").lower()
     assert "timed out" in error_msg or "timeout" in error_msg, (
@@ -231,7 +232,7 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
 
     deadline_raw = final_task.get("deadline")
     assert deadline_raw, (
-        "Gateway should stamp task.deadline for test_timeout_cold (timeout=5). "
+        "Gateway should stamp task.deadline for test_timeout_cold (timeout=15). "
         "Got empty/missing deadline."
     )
     logger.info(f"[+] Deadline was stamped: {deadline_raw}")

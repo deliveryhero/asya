@@ -3,6 +3,7 @@ package taskstore
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"sync"
 	"time"
@@ -118,6 +119,17 @@ func (s *Store) Update(update types.TaskUpdate) error {
 	task, exists := s.tasks[update.ID]
 	if !exists {
 		return fmt.Errorf("task %s not found", update.ID)
+	}
+
+	// First-write-wins: ignore updates for tasks already in a terminal state.
+	// This prevents late actor reports (e.g. x-sink) from overwriting a
+	// backstop "failed" status after the deadline has elapsed.
+	if s.isFinal(task.Status) {
+		slog.Debug("Ignoring update for task in terminal state",
+			"id", update.ID,
+			"current_status", task.Status,
+			"requested_status", update.Status)
+		return nil
 	}
 
 	task.Status = update.Status
