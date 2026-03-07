@@ -27,9 +27,18 @@ func terminalOrInterrupted(status types.TaskStatus) bool {
 	}
 }
 
+// dbPollInterval is how often waitAndRelayEvents polls the DB to detect
+// cross-process status updates (e.g., mesh gateway writing task final status).
+const dbPollInterval = 500 * time.Millisecond
+
 // waitAndRelayEvents subscribes to task store updates and relays them as
 // a2a events to the event queue. It blocks until the task reaches a terminal
 // or interrupted state, the timeout expires, or the context is canceled.
+//
+// In dual-gateway mode (api + mesh pods), the mesh gateway writes final task
+// status to the DB in a separate process. Since the in-process subscription
+// channel only fires for updates within the same process, we also poll the DB
+// at dbPollInterval to detect cross-process status changes.
 func waitAndRelayEvents(
 	ctx context.Context,
 	store taskstore.TaskStore,
@@ -48,9 +57,14 @@ func waitAndRelayEvents(
 		return writeTerminalEvent(ctx, reqCtx, eq, task.Status)
 	}
 
-	// Subscribe to updates
+	// Subscribe to in-process updates (fast path for same-process status changes
+	// such as task cancellation handled within this gateway instance).
 	ch := store.Subscribe(taskID)
 	defer store.Unsubscribe(taskID, ch)
+
+	// Poll the DB to catch cross-process updates (mesh gateway writes).
+	pollTicker := time.NewTicker(dbPollInterval)
+	defer pollTicker.Stop()
 
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
@@ -78,6 +92,18 @@ func waitAndRelayEvents(
 
 			if writeErr := eq.Write(ctx, evt); writeErr != nil {
 				return fmt.Errorf("write relay event: %w", writeErr)
+			}
+
+		case <-pollTicker.C:
+			current, pollErr := store.Get(taskID)
+			if pollErr != nil {
+				slog.Warn("Blocking wait poll error", "task_id", taskID, "error", pollErr)
+				continue
+			}
+			if terminalOrInterrupted(current.Status) {
+				slog.Debug("Blocking wait: terminal status detected via DB poll",
+					"task_id", taskID, "status", current.Status)
+				return writeTerminalEvent(ctx, reqCtx, eq, current.Status)
 			}
 
 		case <-timer.C:
