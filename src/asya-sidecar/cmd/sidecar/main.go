@@ -49,7 +49,8 @@ func verifySocketConnection(socketPath string) error {
 // waitForGateway polls the gateway health endpoint until it responds or maxWait elapses.
 // Each attempt uses a 5-second connect timeout. On failure the loop sleeps 5 seconds
 // before the next attempt, respecting ctx cancellation. Returns nil once the gateway
-// is reachable; returns an error only when maxWait is exhausted.
+// is reachable or when ctx is canceled (graceful shutdown); returns an error only
+// when maxWait is exhausted.
 func waitForGateway(ctx context.Context, r *router.Router, maxWait time.Duration) error {
 	slog.Info("Waiting for gateway to become ready", "maxWait", maxWait)
 	start := time.Now()
@@ -72,10 +73,12 @@ func waitForGateway(ctx context.Context, r *router.Router, maxWait time.Duration
 		}
 
 		slog.Warn("Gateway not ready, retrying", "error", err, "elapsed", elapsed, "retryIn", pollInterval)
+		t := time.NewTimer(pollInterval)
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case <-time.After(pollInterval):
+			t.Stop()
+			return nil
+		case <-t.C:
 		}
 	}
 }
@@ -281,6 +284,8 @@ func main() {
 		if gwMaxWaitStr != "" {
 			if d, err := time.ParseDuration(gwMaxWaitStr); err == nil {
 				gwMaxWait = d
+			} else {
+				slog.Warn("Invalid format for ASYA_GATEWAY_READY_TIMEOUT, using default", "value", gwMaxWaitStr, "error", err)
 			}
 		}
 		if err := waitForGateway(ctx, r, gwMaxWait); err != nil {
