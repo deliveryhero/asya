@@ -23,6 +23,7 @@ Transport Support:
 
 import logging
 import os
+import subprocess
 import time
 
 import pytest
@@ -50,11 +51,12 @@ def _get_transport_client(transport: str):
 
 
 def _trigger_crossplane_reconcile(e2e_helper, namespace: str, queue_name: str) -> None:
-    """Trigger immediate Crossplane reconciliation for the actor owning this queue.
+    """Trigger immediate Crossplane reconciliation for the Queue managed resource.
 
-    Crossplane's SQS provider poll interval is long (default ~10min). Annotating
-    the AsyncActor claim forces an immediate reconciliation loop that detects
-    the missing queue and recreates it within seconds.
+    Annotating the Queue managed resource (sqs.aws.upbound.io/Queue) directly
+    causes the provider-aws-sqs controller to immediately enqueue it for
+    reconciliation. The provider then detects the drift (queue deleted from AWS)
+    and recreates it — without waiting for the default ~10min poll cycle.
 
     Queue naming convention: asya-{namespace}-{actor_name}
     """
@@ -64,13 +66,37 @@ def _trigger_crossplane_reconcile(e2e_helper, namespace: str, queue_name: str) -
         return
     actor_name = queue_name[len(prefix):]
     try:
-        import time as _time
-        e2e_helper.kubectl(
-            "annotate", "asyncactor", actor_name, "-n", namespace,
-            f"asya.sh/force-reconcile={int(_time.time())}",
-            "--overwrite",
+        # Get the XR name from the AsyncActor claim (namespace-scoped, so e2e_helper.kubectl ok)
+        xr_name = e2e_helper.kubectl(
+            "get", "asyncactor", actor_name,
+            "-o", "jsonpath={.spec.resourceRef.name}",
         )
-        logger.info(f"[+] Triggered Crossplane reconciliation for actor: {actor_name}")
+        if not xr_name:
+            logger.warning(f"[!] No XR found for actor {actor_name}")
+            return
+
+        # List cluster-scoped Queue managed resources owned by this XR
+        result = subprocess.run(
+            [
+                "kubectl", "get", "queue.sqs.aws.upbound.io",
+                "-l", f"crossplane.io/composite={xr_name}",
+                "-o", "name",
+            ],
+            capture_output=True, text=True, timeout=15,
+        )
+        queue_resource_names = result.stdout.strip().split() if result.stdout.strip() else []
+        if not queue_resource_names:
+            logger.warning(f"[!] No Queue managed resources found for XR {xr_name}")
+            return
+
+        # Annotate to trigger immediate provider reconciliation
+        ts = str(int(time.time()))
+        for qr_name in queue_resource_names:
+            subprocess.run(
+                ["kubectl", "annotate", qr_name, f"asya.sh/force-reconcile={ts}", "--overwrite"],
+                capture_output=True, text=True, timeout=15,
+            )
+            logger.info(f"[+] Triggered reconciliation for Queue managed resource: {qr_name}")
     except Exception as exc:
         logger.warning(f"[!] Could not trigger reconciliation for {queue_name}: {exc}")
 
