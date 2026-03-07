@@ -83,22 +83,87 @@ asya flow compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
 ```
 
-### 2.3 Config Merging Semantics
+### 2.3 Config Inheritance via `include:`
 
-**Open question**: When multiple `.asya/config.yaml` files exist in the path,
-how do they merge?
+**Decision**: Explicit inheritance via `include:` (like `tsconfig.json`
+`extends`). No implicit merging -- each config is standalone unless it
+explicitly includes a parent.
 
-Options:
-- **Nearest wins**: The closest config.yaml up the tree takes full precedence
-  for its subtree. No merging with parent configs.
-- **Append with override**: Child config entries are appended to parent
-  entries. If the same `module:` appears in both, child wins.
-- **Explicit inheritance**: Child config includes `inherit: true` or
-  `include: ../../.asya/config.yaml` to opt into merging.
+```yaml
+# src/team-a/.asya/config.yaml
+include: /.asya/config.yaml          # include root config
 
-**Current recommendation**: Nearest wins for build-contexts (simple,
-predictable). If a team needs a parent entry, they copy it into their
-config.yaml. Avoid implicit merging -- explicit is better.
+build-contexts:
+  - module: "e_commerce"
+    context: "./e_commerce"           # relative to THIS file
+    image: "${registry}/ecom:${tag}"  # ${registry} from included defaults
+```
+
+```yaml
+# /.asya/config.yaml (root, platform engineers)
+defaults:
+  registry: ghcr.io/org
+  build:
+    strategy: apko
+
+build-contexts:
+  - module: "langchain"
+    image: "ghcr.io/third-party/langchain:v2"
+  - module: "shared_utils"
+    context: "./libs/shared_utils"    # relative to THIS file (repo root)
+    image: "${registry}/shared:${tag}"
+```
+
+**`include:` path syntax**:
+- `/path` -- absolute from repo root (directory containing `.git/`)
+- `./path` -- relative to the config file containing the `include:`
+
+**Merge behavior**:
+- `defaults:` -- deep merge; local values override included values
+- `build-contexts:` -- union by `module:` key; if same `module:` appears in
+  both, **local wins** (child overrides parent)
+- Without `include:` -- config is fully standalone, no parent entries visible
+
+**Path resolution**: All paths (`context:`, `build:` sub-paths) are relative
+to the config file that **defines** them, not the file that includes them.
+This means a root config entry `context: "./libs/shared_utils"` always
+resolves to `{repo-root}/libs/shared_utils`, regardless of which team config
+includes it.
+
+```
+# Example resolution:
+#
+# /.asya/config.yaml defines:
+#   context: "./libs/shared_utils"  →  /libs/shared_utils
+#
+# src/team-a/.asya/config.yaml includes /.asya/config.yaml
+# The shared_utils context still resolves to /libs/shared_utils
+# NOT to src/team-a/libs/shared_utils
+#
+# Team A's own entry:
+#   context: "./e_commerce"  →  src/team-a/e_commerce
+```
+
+**Effective config for team-a** (after include + merge):
+```yaml
+defaults:
+  registry: ghcr.io/org          # from root
+  build:
+    strategy: apko               # from root
+
+build-contexts:
+  # From root (included):
+  - module: "langchain"
+    image: "ghcr.io/third-party/langchain:v2"
+  - module: "shared_utils"
+    context: "/libs/shared_utils"  # resolved from root's ./libs/shared_utils
+    image: "ghcr.io/org/shared:${tag}"
+
+  # From team-a (local):
+  - module: "e_commerce"
+    context: "src/team-a/e_commerce"  # resolved from team-a's ./e_commerce
+    image: "ghcr.io/org/ecom:${tag}"
+```
 
 ---
 
@@ -516,8 +581,8 @@ call `asya build` and `asya deploy` without repeating the tag.
 
 ## 8. Open Questions
 
-1. **Config merging semantics**: When multiple `.asya/config.yaml` files exist
-   in the path, how do they merge? See section 2.3 options.
+1. ~~**Config merging semantics**~~: Resolved. Explicit `include:` with
+   union + local-wins merge. See section 2.3.
 
 2. **Build strategy awareness vs generic CLI**: Should Asya have built-in
    knowledge of build strategies, or treat builds as generic CLI commands?
