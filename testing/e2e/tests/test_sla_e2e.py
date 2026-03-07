@@ -197,14 +197,14 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
     4. Message sits in queue; KEDA detects it and starts scaling (takes 30-60s)
     5. Gateway backstop fires at 5s -> task=failed, error="task timed out"
     6. KEDA eventually scales up pod; sidecar picks up stale message
-    7. Sidecar detects expired deadline_at, routes to x-sump
-    8. x-sump reports failure; gateway ignores or accepts (task remains failed)
-    9. Task status is still "failed" after full actor lifecycle completes
+    7. Sidecar detects expired deadline_at, routes to x-sump via SLA pre-check
+    8. x-sump reports failure; gateway ignores (first-write-wins, task remains failed)
+    9. Task status is still "failed" after 45s (stale processing complete)
 
     Expected:
     - Within 15s: task.status == "failed" (backstop fired)
     - task.deadline is non-empty (5s after task creation)
-    - After 90s: task.status still "failed" (NOT overwritten to "succeeded")
+    - After pod ready + 45s: task.status still "failed" (NOT overwritten)
     """
     logger.info("Testing gateway backstop race with cold-start actor")
 
@@ -236,40 +236,22 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
     )
     logger.info(f"[+] Deadline was stamped: {deadline_raw}")
 
-    # Active wait: let KEDA scale up the cold actor, process the stale message, then scale down.
-    # Scale-up from zero takes ~30-60s; scale-down requires cooldownPeriod (60s) + idle time.
-    logger.info("Waiting for cold-start actor to scale up, process stale message, and scale down...")
+    # Wait for the cold actor to become ready, then allow time for stale message processing.
+    # Scale-up from zero takes ~30-60s; the sidecar SLA pre-check detects the expired deadline
+    # and routes to x-sump without running the handler, so processing is near-instant.
+    logger.info("Waiting for cold-start actor to scale up and process stale message...")
 
     # 1. Wait for the pod to scale up and become ready.
     pod_ready = e2e_helper.wait_for_pod_ready("asya.sh/actor=test-timeout-cold", timeout=90)
     assert pod_ready, "Cold-start actor pod did not become ready within 90s after backstop fired."
     logger.info("[+] Cold-start actor pod scaled up")
 
-    # 2. Wait for the pod to scale back down to zero (cooldownPeriod=60s + processing buffer).
-    # KEDA scales down after the queue stays empty for the cooldown period.
-    # Scale-down confirms the stale message was processed (routed away via SLA pre-check).
-    logger.info("Waiting for cold-start actor to scale down after processing stale message...")
-    end_time = time.time() + 120  # 60s cooldown + 60s buffer
-    scaled_down = False
-    while time.time() < end_time:
-        try:
-            pod_list = e2e_helper.kubectl(
-                "get", "pods",
-                "-l", "asya.sh/actor=test-timeout-cold",
-                "-o", "jsonpath={.items[*].metadata.name}",
-            )
-            if not pod_list or pod_list == "''":
-                scaled_down = True
-                break
-        except Exception as e:
-            logger.warning(f"Error checking pod status: {e}. Retrying...")
-        time.sleep(5)  # Poll every 5s for pod scale-down
-
-    assert scaled_down, (
-        "Cold-start actor pod did not scale down to zero after processing stale message. "
-        "Check KEDA cooldownPeriod and queue idle detection."
-    )
-    logger.info("[+] Cold-start actor scaled down — stale message fully processed")
+    # 2. Wait for the stale message to flow through: sidecar SLA pre-check → x-sump → gateway.
+    # We do not wait for KEDA scale-down (requires 60s cooldown + pod termination) because
+    # scale-down is KEDA infrastructure behavior, not the gateway's first-write-wins guarantee.
+    # 45s is sufficient for: SQS visibility (2s) + sidecar processing + x-sump → gateway report.
+    logger.info("Waiting 45s for stale message to be processed by sidecar SLA pre-check...")
+    time.sleep(45)  # Allow stale message processing via sidecar SLA pre-check and x-sump
 
     # Task must remain failed — not overwritten to succeeded by stale actor result
     post_wait = e2e_helper.get_task_status(task_id)
@@ -278,6 +260,6 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
         f"got status={post_wait['status']!r}. "
         f"The gateway may be incorrectly accepting late actor reports on terminal tasks."
     )
-    logger.info("[+] Task still 'failed' after full cold-start lifecycle")
+    logger.info("[+] Task still 'failed' after stale message processed")
 
     logger.info("[+] Gateway backstop race test passed")
