@@ -368,9 +368,6 @@ asya actor build text-analyzer --arg tag=v1
 # Build all images needed by a flow
 asya flow build order-processing --arg tag=v1
 
-# Build a module's image directly (by config.yaml module name)
-asya module build e_commerce --arg tag=v1
-
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
 asya flow build order-processing
@@ -382,8 +379,6 @@ asya flow build order-processing
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
-- `asya module build <module>` → directly matches `module:` field in
-  config.yaml → executes build
 
 No Python resolution happens at build time -- the context path is taken
 directly from config.yaml.
