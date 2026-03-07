@@ -7,6 +7,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -118,7 +119,7 @@ func (s *Server) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.RegistrationToken != "" {
 		authHeader := r.Header.Get("Authorization")
 		provided := strings.TrimPrefix(authHeader, "Bearer ")
-		if !strings.HasPrefix(authHeader, "Bearer ") || provided != s.cfg.RegistrationToken {
+		if !strings.HasPrefix(authHeader, "Bearer ") || subtle.ConstantTimeCompare([]byte(provided), []byte(s.cfg.RegistrationToken)) != 1 {
 			w.Header().Set("WWW-Authenticate", `Bearer realm="asya-gateway"`)
 			writeOAuthError(w, http.StatusUnauthorized, "unauthorized_client", "registration token required")
 			return
