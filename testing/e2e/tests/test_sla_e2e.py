@@ -23,6 +23,7 @@ import os
 import time
 
 import pytest
+from asya_testing.fixtures.e2e import wait_for_actors_factory
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +31,7 @@ SLA_ACTOR_NAMES = ["test-timeout", "test-timeout-cold"]
 
 
 @pytest.fixture(scope="module")
-def sla_actors(wait_for_actors_factory, kubectl, namespace):
+def sla_actors(kubectl, namespace):
     """Ensure SLA test actors are deployed and their queues are ready."""
     return wait_for_actors_factory(kubectl, namespace, SLA_ACTOR_NAMES)
 
