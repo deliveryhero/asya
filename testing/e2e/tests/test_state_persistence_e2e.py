@@ -394,11 +394,26 @@ def test_database_connection_recovery(e2e_helper):
 
         e2e_helper.ensure_gateway_connectivity(max_retries=5, retry_interval=2.0)
 
-        logger.info("Sending message after recovery...")
-        response_after = e2e_helper.call_mcp_tool(
-            tool_name="test_echo",
-            arguments={"message": "db-recovery-after"},
-        )
+        logger.info("Waiting for gateway to reconnect to database after postgres recovery...")
+        max_db_wait = 60
+        check_interval = 5
+        elapsed = 0
+        response_after = None
+        while elapsed <= max_db_wait:
+            try:
+                response_after = e2e_helper.call_mcp_tool(
+                    tool_name="test_echo",
+                    arguments={"message": "db-recovery-after"},
+                )
+                logger.info(f"[+] Gateway reconnected to database after {elapsed}s")
+                break
+            except Exception as err:
+                logger.info(f"[-] Gateway DB not yet available ({elapsed}s): {err}")
+                time.sleep(check_interval)  # Poll for API connection pool recovery after postgres restart
+                elapsed += check_interval
+
+        assert response_after is not None, \
+            f"Gateway did not reconnect to database within {max_db_wait}s"
 
         task_id_3 = response_after["result"]["task_id"]
         final_3 = e2e_helper.wait_for_task_completion(task_id_3, timeout=90)
