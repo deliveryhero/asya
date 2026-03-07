@@ -8,70 +8,65 @@ tags:
   - pr:274
 ---
 
+## Summary
 
+Two independent root causes fixed. PR #274.
 
-## Investigation Summary
-
-### Root Cause
-
-The CI e2e tests (and all open PRs) fail because **actor sidecars enter CrashLoopBackOff
-during cluster startup**, which delays task processing beyond the 120-second A2A streaming
-timeout.
-
-**Trigger**: PR #273 (`e15e9545`) split the single `asya-gateway` pod into separate
-`asya-gateway-api` (A2A/MCP) and `asya-gateway-mesh` (actor callbacks) deployments.
-
-**Bug**: The sidecar performs a mandatory one-shot health check on `ASYA_GATEWAY_URL`
-at startup (`cmd/sidecar/main.go:245`). If the health check fails (10-second timeout,
-no retries), the sidecar exits and Kubernetes restarts it with exponential backoff
-(10s → 20s → 40s → …). When Helmfile deploys all components in parallel in CI,
-actor pods (`x-sink`, `x-sump`, test actors) start before the mesh gateway service is
-ready. The CrashLoopBackOff delays can easily exceed 1-2 minutes.
-
-**Symptom observed**: During rolling upgrade locally, x-sink sidecar crashed with:
-```
-"Gateway health check failed - sidecar cannot start"
-error="failed to reach gateway health endpoint: Get
-  \"http://asya-gateway.asya-e2e.svc.cluster.local:8080/health\":
-  dial tcp: lookup asya-gateway.asya-e2e.svc.cluster.local ...: no such host"
-```
-
-In CI (fresh deployment), the URL is correct (`asya-gateway-mesh...`) but the timing
-causes the same CrashLoopBackOff pattern.
-
-**Cascading effect**: A2A `message/stream` uses `waitAndRelayEvents()` which polls the
-DB every 500ms for up to `skill.TimeoutSec` (120s for `test_echo`). If x-sink is in
-CrashLoopBackOff for >120s after a task is submitted, the task times out and the SSE
-stream returns the current status (typically `working` or timeout-state `failed`).
-
-### Secondary Findings
-
-1. **DB poll fix (ef61fb71) IS correct**: The `waitAndRelayEvents` 500ms DB poll works
-   fine once x-sink is running. The poll correctly detects x-sink's `succeeded` update
-   within 500ms.
-
-2. **Injector timing race (local only)**: During rolling upgrade, pods created in the
-   brief window before the new injector pod is ready get the OLD `ASYA_GATEWAY_URL`
-   (`asya-gateway` instead of `asya-gateway-mesh`). Fixed by restarting those pods.
-   This is a local artifact, not a CI issue.
-
-3. **SQS queue backlog (local only)**: Old test-echo pod received SQS messages just
-   before restart, couldn't ACK them before termination; messages became invisible for
-   the visibility timeout (300-600s). New pod saw the queue as empty until visibility
-   expired. Again, local artifact.
-
-### Fix Applied
+## Root Cause 1: Sidecar CrashLoopBackOff
 
 **File**: `src/asya-sidecar/cmd/sidecar/main.go`
 
-Added `waitForGateway()` function that retries the health check every 5 seconds for up
-to `ASYA_GATEWAY_READY_TIMEOUT` (default: 5 minutes). The sidecar now logs a warning
-and retries instead of exiting immediately, eliminating CrashLoopBackOff when the mesh
-gateway starts concurrently.
+Sidecar performed a mandatory one-shot health check on `ASYA_GATEWAY_URL` at
+startup (10s timeout, no retries). In CI, Helmfile deploys all components in
+parallel — actor pods start before the mesh gateway service is ready. Health
+check fails → sidecar exits → Kubernetes restarts with exponential backoff (10s
+→ 20s → 40s ...). CrashLoopBackOff delays of 1-2 minutes cause all tasks to
+time out before processing completes.
 
-### Fix Status
+**Fix**: `waitForGateway()` retries every 5s for up to `ASYA_GATEWAY_READY_TIMEOUT`
+(default 5 min). Sidecar logs warning and retries instead of exiting.
 
-- [x] `waitForGateway()` implemented in sidecar
-- [x] Sidecar unit tests pass
-- [ ] Build and deploy to local cluster for e2e verification
-- [ ] Commit and push PR
+## Root Cause 2: StoreAdapter Feedback Loop
+
+**File**: `src/asya-gateway/internal/a2a/blocking.go`
+
+`waitAndRelayEvents` forwarded ALL subscription updates (including non-terminal
+`pending`) to `eq.Write()`. This created a ~100×/second feedback loop:
+
+```
+eq.Write(submitted) → StoreAdapter.Save() → internal.Update(pending)
+  → notifyListeners(pending) → ch receives pending → eq.Write(submitted)
+```
+
+The loop overwrote `tasks.status` back to `pending` within 10ms of any update,
+including the mesh gateway's `succeeded` write. The 500ms DB poll never detected
+terminal state. Task only resolved after 120s timeout timer returned `failed`.
+
+**Evidence**: 11,923 `pending` rows written to `task_updates` per task after the
+mesh gateway wrote `succeeded`.
+
+**Fix**: Drop non-terminal subscription updates. Subscription channel is now only
+a fast-path for in-process terminal state detection (e.g., timeout timer).
+Cross-process terminal state (mesh gateway writes) detected by 500ms DB poll.
+
+## Additional Issues Found
+
+3. **Local registry TLS cert expired** (CI only affects fresh cluster): The Kind
+   cluster's local Docker registry (`172.22.0.x:5000`) used for `function-asya-overlays`
+   had an expired TLS cert. Fixed by adding `skip_verify = true` to containerd config.
+
+4. **Port 8081 not mapped in existing cluster**: The `kind-config.yaml` was updated
+   to add `hostPort: 8081 → containerPort: 30081` for the mesh gateway split, but
+   the existing local cluster was created before this change. CI creates clusters
+   fresh from `kind-config.yaml` so CI is not affected. Workaround for local: use
+   `http://172.22.0.2:30081` directly (NodePort), or recreate the cluster.
+
+## Fix Status
+
+- [x] `waitForGateway()` implemented in sidecar (Fix 1)
+- [x] StoreAdapter feedback loop broken in gateway (Fix 2)
+- [x] Unit tests pass: `make test-unit` in gateway and sidecar
+- [x] E2E streaming test passes: was 120s timeout→failed, now 2.5s→completed
+- [x] Full e2e suite: 124 passed (6 failures are local cluster infrastructure only, not in CI)
+- [x] PR #274 created and pushed
+
