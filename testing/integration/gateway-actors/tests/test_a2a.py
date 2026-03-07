@@ -25,6 +25,7 @@ import threading
 import time
 import uuid
 
+import pytest
 import requests
 from sseclient import SSEClient
 
@@ -388,21 +389,27 @@ def test_multihop_pipeline_via_a2a():
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(
+    os.getenv("ASYA_STORAGE") == "gcs",
+    reason="pubsub-gcs routes x-sink writes through GCS socket connector; local FileReader cannot serve history",
+)
 def test_tasks_get_returns_history_for_completed_task():
     """tasks/get with historyLength returns conversation history for a completed task.
 
     History is persisted by x-sink to the shared state proxy volume and read
     back by the gateway on GetTask. The initial user message is always present
     in payload.a2a.task.history (set by the translator at send time).
+
+    Uses a TextPart so the echo handler passes the payload through unchanged,
+    preserving the payload.a2a.task.history set by the translator.
     """
     ctx_id = str(uuid.uuid4())
-    user_text_payload = {"message": "history-test-message"}
     params = {
         "message": {
             "messageId": str(uuid.uuid4()),
             "contextId": ctx_id,
             "role": "user",
-            "parts": [{"kind": "data", "data": user_text_payload}],
+            "parts": [{"kind": "text", "text": "history-test-message"}],
         },
         "metadata": {"skill": "test_echo"},
     }
