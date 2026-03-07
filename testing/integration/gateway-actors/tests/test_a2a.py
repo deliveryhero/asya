@@ -25,6 +25,7 @@ import threading
 import time
 import uuid
 
+import pytest
 import requests
 from sseclient import SSEClient
 
@@ -381,3 +382,124 @@ def test_multihop_pipeline_via_a2a():
     final = _final_state(events)
     assert final == "completed", f"multi-hop pipeline should complete, got: {final}"
     logger.info(f"[+] multi-hop pipeline: {len(events)} events, state={final}")
+
+
+# ---------------------------------------------------------------------------
+# GetTask history (fetched from state proxy for completed tasks)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(
+    os.getenv("ASYA_STORAGE") == "gcs",
+    reason="pubsub-gcs routes x-sink writes through GCS socket connector; local FileReader cannot serve history",
+)
+def test_tasks_get_returns_history_for_completed_task():
+    """tasks/get with historyLength returns conversation history for a completed task.
+
+    History is persisted by x-sink to the shared state proxy volume and read
+    back by the gateway on GetTask. The initial user message is always present
+    in payload.a2a.task.history (set by the translator at send time).
+
+    Uses a TextPart so the echo handler passes the payload through unchanged,
+    preserving the payload.a2a.task.history set by the translator.
+    """
+    ctx_id = str(uuid.uuid4())
+    params = {
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "text", "text": "history-test-message"}],
+        },
+        "metadata": {"skill": "test_echo"},
+    }
+    events = _a2a_stream("message/stream", params, timeout=60)
+    assert _final_state(events) == "completed", f"task must complete first: {events[-3:]}"
+
+    task_id = _extract_task_id(events)
+    assert task_id, f"could not extract task ID from events: {events[:2]}"
+
+    # Allow brief propagation window for x-sink to write the checkpoint file.
+    import time
+    for _ in range(20):
+        result = _a2a_post("tasks/get", {"id": task_id, "historyLength": 10})
+        task = result.get("result", {})
+        history = task.get("history")
+        if history:
+            break
+        time.sleep(0.5)  # Poll for state proxy file to be written
+
+    assert history is not None, (
+        f"tasks/get with historyLength must return history for completed task "
+        f"(state proxy file may not be written yet or volume not shared). "
+        f"task state: {task.get('status')}"
+    )
+    assert len(history) >= 1, f"expected at least 1 history message, got: {history}"
+    # The initial user message is always the first history entry
+    roles = [m.get("role") for m in history]
+    assert "user" in roles, f"user message must be in history, got roles: {roles}"
+    logger.info(f"[+] tasks/get history: task_id={task_id}, {len(history)} messages, roles={roles}")
+
+
+def test_tasks_get_history_omitted_for_in_flight_task():
+    """tasks/get omits history for in-flight tasks (not available from queues)."""
+    import threading
+
+    ctx_id = str(uuid.uuid4())
+    send_params = {
+        "message": {
+            "messageId": str(uuid.uuid4()),
+            "contextId": ctx_id,
+            "role": "user",
+            "parts": [{"kind": "data", "data": {"first_call": True}}],
+        },
+        "metadata": {"skill": "test_slow_boundary"},
+    }
+
+    task_id_ready = threading.Event()
+    task_id_holder: list[str] = []
+
+    def _send():
+        try:
+            h = _headers()
+            resp = requests.post(
+                _A2A_URL,
+                json={"jsonrpc": "2.0", "id": 1, "method": "message/stream", "params": send_params},
+                headers=h,
+                stream=True,
+                timeout=90,
+            )
+            resp.raise_for_status()
+            from sseclient import SSEClient
+            import json as _json
+
+            client = SSEClient(resp)
+            for event in client.events():
+                if not event.data:
+                    continue
+                data = _json.loads(event.data)
+                if not task_id_holder:
+                    tid = data.get("result", {}).get("taskId")
+                    if tid:
+                        task_id_holder.append(tid)
+                        task_id_ready.set()
+                if data.get("result", {}).get("final"):
+                    break
+        except Exception:
+            pass
+
+    t = threading.Thread(target=_send, daemon=True)
+    t.start()
+
+    assert task_id_ready.wait(timeout=30), "timed out waiting for task ID"
+    task_id = task_id_holder[0]
+
+    result = _a2a_post("tasks/get", {"id": task_id, "historyLength": 10})
+    task = result.get("result", {})
+    history = task.get("history")
+
+    # history must be absent (None) for in-flight tasks, not an empty list
+    assert history is None, f"history must be omitted for in-flight tasks, got: {history}"
+    logger.info(f"[+] tasks/get in-flight: task_id={task_id}, history correctly omitted")
+
+    t.join(timeout=90)

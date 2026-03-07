@@ -15,7 +15,7 @@ git aint pickup <REFERENCE>
 
 ## What it does
 
-1. Creates branch `<dir>/<id>.<slug>` (e.g. `ci-setup/c9x8.fix-auth`)
+1. Creates branch `{dir}/{id}.{slug}` (e.g. `ci-setup/c9x8.fix-auth`)
 2. Creates worktree in `.worktrees/` (configurable via `git config aint.worktree-dir`)
 3. Tags the aint with `worktree:<worktree-path>` and `branch:<branch>`
 4. Sets status to `active`

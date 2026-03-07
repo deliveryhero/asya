@@ -16,7 +16,9 @@ git aint list [OPTIONS]
 
 | Flag | Description |
 |------|-------------|
-| `--search <QUERY>` | Full-text search across titles and body |
+| `-s, --search <QUERY>` | Full-text search across titles and body |
+| `-S, --split` | Split search query into words, require ALL to match (AND) |
+| `--search-files <GLOB>` | Also search in sibling files matching glob (e.g. `"*.md"`, `"rfc.md"`) |
 | `--status [<STATUS>...]` | Filter by status (e.g. `--status open active`) |
 | `--in <DIR>` | Filter by directory (e.g. `--in ci-setup`) |
 | `--priority <PRIORITY>` | Filter by priority (0-4) |
@@ -38,8 +40,14 @@ git aint list [OPTIONS]
 ## Examples
 
 ```bash
-# Full-text search
-git aint list --search "authentication"
+# Full-text search (substring match)
+git aint list -s "authentication"
+
+# Word-split search (all words must appear, in any order)
+git aint list -S -s "db migration tool registry"
+
+# Search including sibling files (rfc.md, adr files, etc.)
+git aint list -S -s "migration registry" --search-files "*.md"
 
 # Filter by status
 git aint list --status active                  # in progress

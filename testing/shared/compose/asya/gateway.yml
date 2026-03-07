@@ -18,6 +18,10 @@ services:
       ASYA_GATEWAY_PORT: 8080
       ASYA_A2A_API_KEY: test-a2a-key
       ASYA_GATEWAY_MODE: testing
+      # Shared with x-sink so GetTask can serve history from persisted envelopes.
+      ASYA_PERSISTENCE_MOUNT: /tmp/checkpoints/results
+    volumes:
+    - asya-checkpoints-results:/tmp/checkpoints/results:ro
     ports:
     - "8081:8080"
     healthcheck:
@@ -25,3 +29,6 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+volumes:
+  asya-checkpoints-results:
