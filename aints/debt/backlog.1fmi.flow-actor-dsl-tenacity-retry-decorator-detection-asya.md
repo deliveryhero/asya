@@ -1,16 +1,12 @@
 ---
-title: "Flow/Actor DSL: tenacity.retry decorator detection and ASYA_ERROR_* config generation"
+title: "Flow/Actor DSL: tenacity.retry decorator detection and resiliency config generation"
 priority: 3 # low
 tags:
   - type:feature
 ---
 
+see `.aint/aints/.closed/error-handling/rfc.md` for resiliency configuration.
 
-
-
-
-Extend Flow DSL compiler (and potentially Actor DSL) to detect tenacity.retry() decorators on actor handler functions. When detected: (1) strip the decorator for Asya-managed retry (handler runs pure), (2) extract retry config (max attempts, backoff strategy, jitter) from decorator arguments, (3) generate corresponding ASYA_ERROR_* env vars for the AsyncActor CRD. This provides familiar Python syntax for retry configuration while keeping the actual retry at infrastructure level via the error-handler crew actor.
-
-
----
-_Migrated from beads `asya-pe6n`_
+Extend Flow DSL compiler (and potentially Actor DSL) to detect `tenacity.retry()` decorators on actor handler functions. When detected: (1) strip the decorator for Asya-managed retry (handler runs pure), (2) extract retry config (max attempts, backoff strategy, jitter) from decorator arguments, (3) generate corresponding ASYA_ERROR_* env vars for the AsyncActor CRD. This provides familiar Python syntax for retry configuration while keeping the actual retry at infrastructure level via the error-handler crew actor.
+ 
+Should work on both actors (decorator) and regular functions to dive in (see `.aint/aints/support-more-compiler-constructs/.closed/merged.1mhs.dive-into-function-calls.md`).
