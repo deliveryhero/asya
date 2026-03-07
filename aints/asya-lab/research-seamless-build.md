@@ -757,12 +757,12 @@ Build config (strategy + deps + code)
 
 ```bash
 # Local build (default)
-asya build my-actor
+asya build my-actor --local
 # -> reads build config -> runs strategy (apko/buildpacks/docker) locally
 # -> pushes to configured registry
 
 # On-cluster build
-asya build my-actor --builder=shipwright
+asya build my-actor --remote  # in asya config: builder=shipwright
 # -> uploads source to cluster
 # -> creates Shipwright BuildRun CR
 # -> waits for build -> image in registry
@@ -782,6 +782,8 @@ asya deploy my-actor --context=k8s-prod --dry-run > asyncactor.yaml
 ```
 
 ### 7.4 `asya commit` Command
+
+USER: I don't like this command, I don't think it makes sense to duplicate code in the repository. Need to re-think this.
 
 ```bash
 asya commit my-actor
