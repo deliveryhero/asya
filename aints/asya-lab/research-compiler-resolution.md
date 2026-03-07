@@ -83,20 +83,20 @@ asya flow compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
 ```
 
-### 2.3 Config Inheritance via `include:`
+### 2.3 Config Inheritance via `extend:`
 
-**Decision**: Explicit inheritance via `include:` (like `tsconfig.json`
+**Decision**: Explicit inheritance via `extend:` (like `tsconfig.json`
 `extends`). No implicit merging -- each config is standalone unless it
-explicitly includes a parent.
+explicitly extends a parent.
 
 ```yaml
 # src/team-a/.asya/config.yaml
-include: /.asya/config.yaml          # include root config
+extend: /.asya/config.yaml           # extend root config
 
 build-contexts:
   - module: "e_commerce"
     context: "./e_commerce"           # relative to THIS file
-    image: "${registry}/ecom:${tag}"  # ${registry} from included defaults
+    image: "${registry}/ecom:${tag}"  # ${registry} from extended defaults
 ```
 
 ```yaml
@@ -114,21 +114,21 @@ build-contexts:
     image: "${registry}/shared:${tag}"
 ```
 
-**`include:` path syntax**:
+**`extend:` path syntax**:
 - `/path` -- absolute from repo root (directory containing `.git/`)
-- `./path` -- relative to the config file containing the `include:`
+- `./path` -- relative to the config file containing the `extend:`
 
 **Merge behavior**:
-- `defaults:` -- deep merge; local values override included values
+- `defaults:` -- deep merge; local values override extended values
 - `build-contexts:` -- union by `module:` key; if same `module:` appears in
   both, **local wins** (child overrides parent)
-- Without `include:` -- config is fully standalone, no parent entries visible
+- Without `extend:` -- config is fully standalone, no parent entries visible
 
 **Path resolution**: All paths (`context:`, `build:` sub-paths) are relative
-to the config file that **defines** them, not the file that includes them.
+to the config file that **defines** them, not the file that extends them.
 This means a root config entry `context: "./libs/shared_utils"` always
 resolves to `{repo-root}/libs/shared_utils`, regardless of which team config
-includes it.
+extends it.
 
 ```
 # Example resolution:
@@ -136,7 +136,7 @@ includes it.
 # /.asya/config.yaml defines:
 #   context: "./libs/shared_utils"  →  /libs/shared_utils
 #
-# src/team-a/.asya/config.yaml includes /.asya/config.yaml
+# src/team-a/.asya/config.yaml extends /.asya/config.yaml
 # The shared_utils context still resolves to /libs/shared_utils
 # NOT to src/team-a/libs/shared_utils
 #
@@ -144,7 +144,7 @@ includes it.
 #   context: "./e_commerce"  →  src/team-a/e_commerce
 ```
 
-**Effective config for team-a** (after include + merge):
+**Effective config for team-a** (after extend + merge):
 ```yaml
 defaults:
   registry: ghcr.io/org          # from root
@@ -152,7 +152,7 @@ defaults:
     strategy: apko               # from root
 
 build-contexts:
-  # From root (included):
+  # From root (extendd):
   - module: "langchain"
     image: "ghcr.io/third-party/langchain:v2"
   - module: "shared_utils"
@@ -358,23 +358,35 @@ in the manifest.
 **Available**: Docker / apko / buildpacks. No live Python.
 **Output**: OCI image in registry
 
-```bash
-# Build a specific module's image
-asya build e_commerce --arg tag=v1
+CLI follows the `asya <noun> <verb>` pattern from the RFC
+(`.aint/aints/asya-lab/rfc.md` section 5):
 
-# Build all images in config.yaml
-asya build --all --arg tag=v1
+```bash
+# Build a specific actor's image (resolves handler → module → build-context)
+asya actor build text-analyzer --arg tag=v1
+
+# Build all images needed by a flow
+asya flow build order-processing --arg tag=v1
+
+# Build a module's image directly (by config.yaml module name)
+asya module build e_commerce --arg tag=v1
 
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
-asya build e_commerce
+asya flow build order-processing
 ```
 
-The build command reads config.yaml, finds the entry for `module: "e_commerce"`,
-and executes the strategy-specific build in the `context` directory.
+**Resolution**:
+- `asya actor build <actor-name>` → reads manifest to find image ref →
+  matches image ref to config.yaml build-context → executes build
+- `asya flow build <flow-name>` → finds all actors in flow → deduplicates
+  by image (multiple actors may share the same image) → builds each unique
+  image once
+- `asya module build <module>` → directly matches `module:` field in
+  config.yaml → executes build
 
-No Python resolution happens at build time -- the context path is taken directly
-from config.yaml.
+No Python resolution happens at build time -- the context path is taken
+directly from config.yaml.
 
 ### 4.3 Deploy Time
 
@@ -384,8 +396,8 @@ from config.yaml.
 
 ```bash
 # Staging (imperative)
-asya deploy --arg tag=v1
-# → applies .asya/manifests/ with ${tag} substituted
+asya flow deploy order-processing --arg tag=v1
+asya actor deploy text-analyzer --arg tag=v1
 
 # Production (GitOps)
 # 1. Commit .asya/manifests/ to git
@@ -395,7 +407,8 @@ asya deploy --arg tag=v1
 
 The `--arg` / `ASYA_ARG_*` substitution is the same mechanism for both build
 and deploy. A DS can `export ASYA_ARG_TAG=experiment-42` in their notebook
-and then run both `asya build` and `asya deploy` without repeating the tag.
+and then run both `asya flow build` and `asya flow deploy` without repeating
+the tag.
 
 ### 4.4 Runtime
 
@@ -581,7 +594,7 @@ call `asya build` and `asya deploy` without repeating the tag.
 
 ## 8. Open Questions
 
-1. ~~**Config merging semantics**~~: Resolved. Explicit `include:` with
+1. ~~**Config merging semantics**~~: Resolved. Explicit `extend:` with
    union + local-wins merge. See section 2.3.
 
 2. **Build strategy awareness vs generic CLI**: Should Asya have built-in

@@ -37,12 +37,12 @@ provides a browser-based window into Asya actor meshes.
 |  +------------------+                                 |
 |  | code-server      |  (browser-based VSCode)         |
 |  |  +-------------+ |                                 |
-|  |  | Asya ext    | |  spawns asya serve on activation |
+|  |  | Asya ext    | |  spawns asya serve on activation|
 |  |  +------+------+ |                                 |
-|  +---------|--------+                                  |
+|  +---------|--------+                                 |
 |            v                                          |
 |  +------------------+                                 |
-|  | asya serve       |  (FastAPI, from asya-lab[ui])    |
+|  | asya serve       |  (FastAPI, from asya-lab[ui])   |
 |  | REST + WebSocket |                                 |
 |  +--------+---------+                                 |
 |            |                                          |
