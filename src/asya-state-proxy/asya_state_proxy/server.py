@@ -125,6 +125,11 @@ def _make_handler(connector: StateProxyConnector) -> type:
                 qs = urllib.parse.parse_qs(parsed.query)
                 attr_list = qs.get("attr")
                 if not attr_list:
+                    # Drain the request body before responding so the client
+                    # can receive the error without a BrokenPipeError (EPIPE).
+                    content_length = self.headers.get("Content-Length")
+                    if content_length:
+                        self.rfile.read(int(content_length))
                     _json_error(self, 400, "bad_request", "attr query parameter required")
                     return
                 content_length = self.headers.get("Content-Length")

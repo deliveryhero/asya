@@ -17,7 +17,7 @@ spec:
     args:
     - |
       echo "Testing gateway health endpoint..."
-      wget --spider -S http://{{ include "asya-gateway.fullname" . }}:{{ .Values.service.port }}/health
+      wget --spider -S http://{{ include "asya-gateway.api.fullname" . }}:{{ .Values.service.port }}/health
       if [ $? -eq 0 ]; then
         echo "[+] Gateway health check passed"
         exit 0

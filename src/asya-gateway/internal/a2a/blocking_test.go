@@ -13,6 +13,30 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
+// crossProcessStore simulates a task store where status updates arrive via an
+// external process (e.g., mesh gateway). Subscribe returns a channel that never
+// fires; the updated status is only visible through Get(), mimicking a DB write
+// from a separate gateway pod that bypasses this process's in-memory listeners.
+type crossProcessStore struct {
+	taskstore.TaskStore
+	taskID    string
+	finalAt   time.Time
+	finalStat types.TaskStatus
+}
+
+func (s *crossProcessStore) Get(id string) (*types.Task, error) {
+	if id == s.taskID && !time.Now().Before(s.finalAt) {
+		return &types.Task{ID: id, Status: s.finalStat}, nil
+	}
+	return &types.Task{ID: id, Status: types.TaskStatusPending}, nil
+}
+
+func (s *crossProcessStore) Subscribe(_ string) chan types.TaskUpdate {
+	return make(chan types.TaskUpdate) // unbuffered, never written — simulates cross-process update
+}
+
+func (s *crossProcessStore) Unsubscribe(_ string, _ chan types.TaskUpdate) {}
+
 func TestTerminalOrInterrupted(t *testing.T) {
 	tests := []struct {
 		status types.TaskStatus
@@ -238,6 +262,61 @@ func TestBlockingModeAlreadyTerminal(t *testing.T) {
 	}
 	if evt.Status.State != a2alib.TaskStateCompleted {
 		t.Errorf("event state = %q, want %q", evt.Status.State, a2alib.TaskStateCompleted)
+	}
+}
+
+// TestBlockingModeCrossProcessUpdate verifies that waitAndRelayEvents detects
+// task completion written by an external process (e.g., mesh gateway) that
+// updates the DB without triggering this process's in-memory listeners.
+func TestBlockingModeCrossProcessUpdate(t *testing.T) {
+	taskID := "cross-process-task"
+	store := &crossProcessStore{
+		TaskStore: taskstore.NewStore(),
+		taskID:    taskID,
+		// Task becomes terminal after 1.5× the poll interval — requires polling to detect
+		finalAt:   time.Now().Add(dbPollInterval + dbPollInterval/2),
+		finalStat: types.TaskStatusSucceeded,
+	}
+
+	reqCtx := &a2asrv.RequestContext{
+		TaskID:    a2alib.TaskID(taskID),
+		ContextID: a2alib.NewContextID(),
+		Message:   a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"}),
+	}
+
+	eq := &mockEventQueue{}
+
+	start := time.Now()
+	waitErr := waitAndRelayEvents(
+		context.Background(),
+		store, taskID,
+		10*time.Second,
+		reqCtx, eq,
+	)
+	elapsed := time.Since(start)
+
+	if waitErr != nil {
+		t.Fatalf("waitAndRelayEvents failed: %v", waitErr)
+	}
+
+	// Should complete within a few poll intervals, not the full timeout
+	if elapsed > 5*dbPollInterval {
+		t.Errorf("cross-process update took %v, expected < %v (5× poll interval)", elapsed, 5*dbPollInterval)
+	}
+
+	// Should have written a final completed event
+	if len(eq.events) == 0 {
+		t.Fatal("expected at least one event")
+	}
+	lastEvt, ok := eq.events[len(eq.events)-1].(*a2alib.TaskStatusUpdateEvent)
+	if !ok {
+		t.Fatalf("last event is not TaskStatusUpdateEvent: %T", eq.events[len(eq.events)-1])
+	}
+	if !lastEvt.Final {
+		t.Error("last event Final = false, want true")
+	}
+	if lastEvt.Status.State != a2alib.TaskStateCompleted {
+		t.Errorf("last event state = %q, want %q", lastEvt.Status.State, a2alib.TaskStateCompleted)
 	}
 }
 

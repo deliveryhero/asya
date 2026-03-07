@@ -173,6 +173,9 @@ class E2ETestHelper(GatewayTestHelper):
         """
         Wait for gateway to become reachable (e.g. after pod restart).
 
+        In split deployments (api + mesh), checks both endpoints since they run
+        as separate pods and may restart independently.
+
         Args:
             max_retries: Maximum number of retry attempts
             retry_interval: Seconds between retries
@@ -183,15 +186,18 @@ class E2ETestHelper(GatewayTestHelper):
         Raises:
             ConnectionError: If gateway unreachable after all retries
         """
+        health_urls = [f"{self.gateway_url}/health"]
+        if self.mesh_gateway_url != self.gateway_url:
+            health_urls.append(f"{self.mesh_gateway_url}/health")
+
         for attempt in range(max_retries):
             try:
-                response = requests.get(
-                    f"{self.gateway_url}/health",
-                    timeout=2,
-                )
-                if response.status_code == 200:
-                    logger.debug("Gateway connectivity confirmed")
-                    return True
+                for url in health_urls:
+                    response = requests.get(url, timeout=2)
+                    if response.status_code != 200:
+                        raise requests.exceptions.ConnectionError(f"Gateway returned {response.status_code}: {url}")
+                logger.debug("Gateway connectivity confirmed")
+                return True
             except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
                 logger.warning(f"Gateway unreachable (attempt {attempt + 1}/{max_retries}): {e}")
 

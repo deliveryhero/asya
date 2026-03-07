@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asya-jwks-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: asya-jwks-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: asya-jwks-server
+  template:
+    metadata:
+      labels:
+        app: asya-jwks-server
+    spec:
+      initContainers:
+      # Copy jwks.json from the Secret into an emptyDir so the serving
+      # container can run python3 -m http.server unprivileged on port 8080.
+      - name: copy-jwks
+        image: ghcr.io/deliveryhero/asya-testing:latest
+        imagePullPolicy: Never
+        command:
+        - sh
+        - -c
+        - cp /jwks-secret/jwks.json /jwks-serve/jwks.json
+        volumeMounts:
+        - name: jwks-secret
+          mountPath: /jwks-secret
+          readOnly: true
+        - name: jwks-serve
+          mountPath: /jwks-serve
+      containers:
+      - name: jwks-server
+        # Use the pre-loaded asya-testing image (already in Kind) to serve
+        # the JWKS document. python3 -m http.server runs unprivileged on 8080;
+        # the Service maps port 80 -> 8080 for the gateway JWKS URL.
+        image: ghcr.io/deliveryhero/asya-testing:latest
+        imagePullPolicy: Never
+        command:
+        - python3
+        - -m
+        - http.server
+        - "--directory"
+        - /jwks-serve
+        - "8080"
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: jwks-serve
+          mountPath: /jwks-serve
+          readOnly: true
+        resources:
+          requests:
+            cpu: 10m
+            memory: 16Mi
+          limits:
+            cpu: 50m
+            memory: 32Mi
+        readinessProbe:
+          httpGet:
+            path: /jwks.json
+            port: 8080
+          initialDelaySeconds: 2
+          periodSeconds: 5
+      volumes:
+      - name: jwks-secret
+        secret:
+          # Created by deploy.sh Phase 4 before helmfile runs.
+          # Contains jwks.json (and private_key.pem for host-side JWT signing).
+          secretName: jwks-keys
+      - name: jwks-serve
+        emptyDir: {}

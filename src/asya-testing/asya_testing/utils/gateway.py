@@ -13,6 +13,7 @@ FAIL-FAST: ASYA_GATEWAY_URL must be set by docker-compose.
 
 import json
 import logging
+import os
 import re
 import time
 
@@ -44,12 +45,18 @@ class GatewayTestHelper:
         self,
         gateway_url: str | None = None,
         progress_method: str = "sse",
+        mesh_gateway_url: str | None = None,
     ):
         if gateway_url is None:
             gateway_url = require_env("ASYA_GATEWAY_URL")
+        # mesh_gateway_url separates api (tool calls) from mesh (task status) in split deployments.
+        # Defaults to gateway_url for single-deployment setups (integration tests / testing mode).
+        if mesh_gateway_url is None:
+            mesh_gateway_url = os.getenv("ASYA_MESH_GATEWAY_URL", gateway_url)
         self.gateway_url = gateway_url
+        self.mesh_gateway_url = mesh_gateway_url
         self.tools_url = f"{gateway_url}/tools/call"
-        self.tasks_url = f"{gateway_url}/mesh"
+        self.tasks_url = f"{mesh_gateway_url}/mesh"
         self.progress_method = progress_method
         logger.debug(f"Initialized GatewayTestHelper with progress_method={progress_method}")
 

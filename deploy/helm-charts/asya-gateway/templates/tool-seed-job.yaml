@@ -98,7 +98,7 @@ metadata:
 data:
   tools-seed.sql: |
     {{- range .Values.routes.tools }}
-    INSERT INTO tools (name, actor, route_next, description, parameters, timeout_sec, progress)
+    INSERT INTO tools (name, actor, route_next, description, parameters, timeout_sec, progress, mcp_enabled, a2a_enabled)
     VALUES (
       {{ .name | squote }},
       {{ index .route 0 | squote }},
@@ -114,7 +114,9 @@ data:
       '{}',
       {{- end }}
       {{ .timeout | default 300 }},
-      {{ .progress | default false }}
+      {{ .progress | default false }},
+      {{ if and .mcp (hasKey .mcp "enabled") (not .mcp.enabled) }}false{{ else }}true{{ end }},
+      {{ if and .a2a .a2a.enabled }}true{{ else }}false{{ end }}
     )
     ON CONFLICT (name) DO UPDATE SET
       actor = EXCLUDED.actor,
@@ -122,6 +124,8 @@ data:
       description = EXCLUDED.description,
       parameters = EXCLUDED.parameters,
       timeout_sec = EXCLUDED.timeout_sec,
-      progress = EXCLUDED.progress;
+      progress = EXCLUDED.progress,
+      mcp_enabled = EXCLUDED.mcp_enabled,
+      a2a_enabled = EXCLUDED.a2a_enabled;
     {{- end }}
 {{- end }}

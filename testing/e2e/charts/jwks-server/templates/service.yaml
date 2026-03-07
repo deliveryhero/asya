@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: asya-jwks-server
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: asya-jwks-server
+spec:
+  selector:
+    app: asya-jwks-server
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080

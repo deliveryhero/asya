@@ -173,8 +173,8 @@ def test_multiple_component_failures(e2e_helper):
             e2e_helper.delete_pod(pod_name)
 
         logger.info("Waiting for components to restart...")
-        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=120)
-        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=120)
+        assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-gateway", timeout=240)
+        assert e2e_helper.wait_for_pod_ready("asya.sh/actor=test-echo", timeout=240)
 
         # Crew actors (x-sink, x-sump) may be scaled to 0 by KEDA if queues are empty
         # They will scale up automatically when needed, so we don't check them here
@@ -196,7 +196,7 @@ def test_multiple_component_failures(e2e_helper):
         )
 
         task_id_after = response_after["result"]["task_id"]
-        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=60)
+        final_after = e2e_helper.wait_for_task_completion(task_id_after, timeout=120)
 
         assert final_after["status"] == "succeeded", \
             "System should recover and process new messages"

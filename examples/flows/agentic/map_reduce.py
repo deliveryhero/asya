@@ -42,11 +42,15 @@ and a fan-in aggregator that collects all results.
 
 
 async def map_reduce(state: dict) -> dict:
+    import asyncio
+
     # Split: divide large input into manageable chunks
     state = await splitter(state)
 
     # Map: apply same operation to each chunk (dynamic fan-out)
-    state["chunk_results"] = [chunk_processor(chunk) for chunk in state["chunks"]]
+    state["chunk_results"] = list(
+        await asyncio.gather(*[chunk_processor(chunk) for chunk in state["chunks"]])
+    )
 
     # Reduce: aggregate all chunk results into final output
     state = await reducer(state)

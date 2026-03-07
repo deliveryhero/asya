@@ -47,7 +47,7 @@ crew:
   x-sink:
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
@@ -57,7 +57,7 @@ crew:
   x-sump:
     transport: rabbitmq
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       AWS_ACCESS_KEY_ID: "minioadmin"
       AWS_SECRET_ACCESS_KEY: "minioadmin"
@@ -75,6 +75,15 @@ gateway:
         poolSize: 20
     sqs:
       enabled: false
+  env:
+  - name: ASYA_A2A_API_KEY
+    value: "test-api-key-e2e"
+  - name: ASYA_A2A_JWT_JWKS_URL
+    value: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
+  - name: ASYA_A2A_JWT_ISSUER
+    value: "https://test-issuer.e2e"
+  - name: ASYA_A2A_JWT_AUDIENCE
+    value: "asya-gateway-e2e"
 
 crossplane:
   providers:
@@ -105,5 +114,5 @@ injector:
   config:
     sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
     sidecarImagePullPolicy: Never
-    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
     rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/

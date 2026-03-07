@@ -1,0 +1,148 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "asya-gateway.api.fullname" . }}
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "asya-gateway.api.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "asya-gateway.api.selectorLabels" . | nindent 8 }}
+        {{- with .Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "asya-gateway.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- include "asya-gateway.validateTransports" . }}
+      {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
+      initContainers:
+      - name: check-db-schema
+        image: postgres:15-alpine
+        command:
+        - sh
+        - -c
+        - |
+          set -e
+          echo "[.] Checking database connectivity and schema..."
+
+          # Wait for database to be ready (max 60 retries x 2s = 120s to prevent indefinite hang)
+          DB_ATTEMPTS=0
+          until pg_isready -h {{ include "asya-gateway.databaseHost" . }} -p {{ include "asya-gateway.databasePort" . }} -U {{ include "asya-gateway.databaseUsername" . }}; do
+            DB_ATTEMPTS=$((DB_ATTEMPTS + 1))
+            if [ "$DB_ATTEMPTS" -ge 60 ]; then
+              echo "[-] Database not reachable after 120s, will retry on pod restart"
+              exit 1
+            fi
+            echo "[.] Waiting for database to be ready..."
+            sleep 2
+          done
+          echo "[+] Database is reachable"
+
+          # Check if required tables exist
+          TABLES_EXIST=$(psql -h {{ include "asya-gateway.databaseHost" . }} \
+                              -p {{ include "asya-gateway.databasePort" . }} \
+                              -U {{ include "asya-gateway.databaseUsername" . }} \
+                              -d {{ include "asya-gateway.databaseName" . }} \
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates', 'tools')")
+
+          if [ "$TABLES_EXIST" -eq 3 ]; then
+            echo "[+] Database schema validated (tasks, task_updates, tools tables exist)"
+          else
+            echo "[-] Database schema validation failed!"
+            echo "[-] Expected tables: tasks, task_updates, tools"
+            echo "[-] Found $TABLES_EXIST table(s)"
+            echo "[-] Please ensure database migrations have been run successfully"
+            exit 1
+          fi
+        env:
+        - name: PGPASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.databaseSecretName" . }}
+              key: {{ include "asya-gateway.databasePasswordKey" . }}
+      {{- end }}
+      containers:
+      - name: gateway
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 12 }}
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        ports:
+        - name: http
+          containerPort: {{ .Values.config.port }}
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: {{ include "asya-gateway.fullname" . }}
+        env:
+        - name: ASYA_GATEWAY_MODE
+          value: "api"
+        {{- if or .Values.postgresql.enabled .Values.externalDatabase.host }}
+        - name: ASYA_DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "asya-gateway.fullname" . }}-db
+              key: database-url
+        {{- else }}
+        - name: ASYA_DATABASE_URL
+          value: ""
+        {{- end }}
+        - name: ASYA_NAMESPACE
+          value: "{{ .Release.Namespace }}"
+        {{- with .Values.env }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 10
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        resources:
+          {{- toYaml .Values.resources | nindent 12 }}
+        {{- with .Values.volumeMounts }}
+        volumeMounts:
+          {{- toYaml . | nindent 12 }}
+        {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

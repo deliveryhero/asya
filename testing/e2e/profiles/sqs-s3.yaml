@@ -54,7 +54,7 @@ crew:
   x-sink:
     transport: sqs
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
@@ -65,7 +65,7 @@ crew:
   x-sump:
     transport: sqs
     env:
-      ASYA_GATEWAY_URL: "http://asya-gateway.asya-e2e.svc.cluster.local:8080"
+      ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
       ASYA_SQS_WAIT_TIME_SECONDS: "2"
       AWS_ACCESS_KEY_ID: "test"
@@ -96,6 +96,14 @@ gateway:
     value: "test"
   - name: AWS_REGION
     value: "us-east-1"
+  - name: ASYA_A2A_API_KEY
+    value: "test-api-key-e2e"
+  - name: ASYA_A2A_JWT_JWKS_URL
+    value: "http://asya-jwks-server.asya-e2e.svc.cluster.local/jwks.json"
+  - name: ASYA_A2A_JWT_ISSUER
+    value: "https://test-issuer.e2e"
+  - name: ASYA_A2A_JWT_AUDIENCE
+    value: "asya-gateway-e2e"
 
 crossplane:
   sqs:
@@ -141,5 +149,5 @@ injector:
     sidecarImagePullPolicy: Never
     sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
     sqsWaitTimeSeconds: "2"
-    gatewayURL: http://asya-gateway.asya-e2e.svc.cluster.local:8080
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
     awsCredsSecret: aws-creds

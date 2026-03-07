@@ -1,0 +1,5 @@
+apiVersion: v2
+name: jwks-server
+description: Ephemeral JWKS server for A2A JWT authentication e2e testing.
+type: application
+version: 0.1.0

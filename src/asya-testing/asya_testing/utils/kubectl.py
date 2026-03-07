@@ -218,13 +218,22 @@ def wait_for_pod_ready(
     label_selector: str, namespace: str = "asya-e2e", timeout: int = 60, poll_interval: float = 1.0
 ) -> bool:
     """
-    Wait for at least one pod matching label selector to be ready.
+    Wait for at least one pod matching label selector to be fully ready.
+
+    Uses `kubectl wait --for=condition=ready pod` which requires ALL containers
+    in the pod to pass their readiness probes. For actor pods this means the
+    runtime container's readiness probe (checks runtime-ready file + socket)
+    must pass, not just that any container process has started.
+
+    The outer retry loop handles the window where the old pod has terminated
+    but the new pod has not yet been scheduled (kubectl wait exits immediately
+    with non-zero when no pods match the selector).
 
     Args:
         label_selector: Kubernetes label selector (e.g., "asya.sh/actor=my-actor")
         namespace: Target namespace
         timeout: Maximum wait time in seconds
-        poll_interval: Polling interval in seconds
+        poll_interval: Polling interval in seconds between retries when no pods found
 
     Returns:
         True if pod is ready, False if timeout
@@ -234,29 +243,35 @@ def wait_for_pod_ready(
 
     while time.time() - start_time < timeout:
         attempt += 1
+        remaining = int(timeout - (time.time() - start_time))
+        if remaining <= 0:
+            break
+        per_attempt_timeout = min(10, remaining)
         try:
             result = subprocess.run(
                 [
                     "kubectl",
-                    "get",
-                    "pods",
-                    "-n",
-                    namespace,
+                    "wait",
+                    "--for=condition=ready",
+                    "pod",
                     "-l",
                     label_selector,
-                    "-o",
-                    "jsonpath='{.items[?(@.status.phase==\"Running\")].status.containerStatuses[?(@.ready==true)].name}'",
+                    "--field-selector=status.phase=Running",
+                    "-n",
+                    namespace,
+                    f"--timeout={per_attempt_timeout}s",
                 ],
                 capture_output=True,
                 text=True,
-                timeout=10,
+                timeout=per_attempt_timeout + 5,
             )
 
-            output = result.stdout.strip()
-            if output and output != "''":
+            if result.returncode == 0:
                 elapsed = time.time() - start_time
                 logger.info(f"Pod with label {label_selector} ready after {elapsed:.2f}s ({attempt} attempts)")
                 return True
+
+            logger.debug(f"kubectl wait returned {result.returncode} (attempt {attempt}): {result.stderr.strip()}")
 
         except Exception as e:
             logger.debug(f"Error checking pod status (attempt {attempt}): {e}")

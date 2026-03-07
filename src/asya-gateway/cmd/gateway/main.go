@@ -18,6 +18,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
+	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
 	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
@@ -107,56 +108,21 @@ func main() {
 	// API key for endpoint auth (shared by A2A and /mesh/expose)
 	apiKey := os.Getenv("ASYA_A2A_API_KEY")
 
-	// Setup routes
-	mux := http.NewServeMux()
-
-	// MCP streamable HTTP endpoint (recommended, per MCP spec)
-	mux.Handle("/mcp", mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer()))
-
-	// MCP SSE endpoint (deprecated but kept for backward compatibility with older clients)
-	mux.Handle("/mcp/sse", mcpserver.NewSSEServer(mcpServer.GetMCPServer()))
-
-	// REST endpoint for tool calls (simpler alternative to SSE-based MCP)
-	mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
-
-	// Tool registration endpoint (protected by API key when configured)
-	exposeHandler := toolstore.NewHandler(registry)
-	var exposeHTTPHandler http.Handler = http.HandlerFunc(exposeHandler.HandleExpose)
-	if apiKey != "" {
-		exposeHTTPHandler = a2a.APIKeyMiddleware(apiKey)(exposeHTTPHandler)
-	}
-	mux.Handle("/mesh/expose", exposeHTTPHandler)
-
-	// Mesh status endpoints (custom functionality)
-	mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasSuffix(r.URL.Path, "/stream") {
-			taskHandler.HandleMeshStream(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/active") {
-			taskHandler.HandleMeshActive(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/progress") {
-			taskHandler.HandleMeshProgress(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/final") {
-			taskHandler.HandleMeshFinal(w, r)
-		} else if strings.HasSuffix(r.URL.Path, "/fly") {
-			taskHandler.HandleMeshFly(w, r)
-		} else {
-			taskHandler.HandleMeshStatus(w, r)
-		}
-	})
-
-	// Mesh creation endpoint (for fanout child mesh from sidecar)
-	mux.HandleFunc("/mesh", taskHandler.HandleMeshCreate)
-
-	// Health check
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintln(w, "OK")
-	})
-
 	// A2A setup using a2a-go library
 	namespace := getEnv("ASYA_NAMESPACE", "default")
 	executor := a2a.NewExecutor(queueClient, taskStore, registry, namespace)
-	storeAdapter := a2a.NewStoreAdapter(taskStore)
+
+	// Wire state proxy reader for GetTask history/artifact hydration.
+	// When ASYA_PERSISTENCE_MOUNT is set, the gateway reads persisted envelope state
+	// from the same filesystem mount used by x-sink / x-sump / x-pause crew actors.
+	// If unset, history and artifacts are omitted from GetTask responses (spec-compliant).
+	var spReader stateproxy.Reader
+	if persistMount := os.Getenv("ASYA_PERSISTENCE_MOUNT"); persistMount != "" {
+		slog.Info("State proxy reader enabled", "mount", persistMount)
+		spReader = stateproxy.NewFileReader(persistMount)
+	}
+
+	storeAdapter := a2a.NewStoreAdapter(taskStore, spReader)
 	cardProducer := a2a.NewCardProducer(registry)
 
 	extendedCardProducer := a2a.NewExtendedCardProducer(registry)
@@ -193,10 +159,15 @@ func main() {
 	if len(authenticators) > 0 {
 		a2aRootHandler = a2a.A2AAuthMiddleware(authenticators...)(a2aHTTPHandler)
 	}
-	mux.Handle("/a2a/", a2aRootHandler)
 
-	// Agent card is public — middleware bypass handles unauthenticated access
-	mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
+	// Setup routes based on ASYA_GATEWAY_MODE
+	mux := http.NewServeMux()
+	mode := os.Getenv("ASYA_GATEWAY_MODE")
+	if err := buildRoutes(mux, mode, taskHandler, mcpServer, a2aRootHandler, cardProducer, registry, apiKey); err != nil {
+		slog.Error("Invalid gateway mode", "error", err)
+		os.Exit(1)
+	}
+	slog.Info("Gateway mode", "mode", mode)
 
 	// Setup graceful shutdown
 	sigChan := make(chan os.Signal, 1)
@@ -209,19 +180,7 @@ func main() {
 
 	// Start server in goroutine
 	go func() {
-		slog.Info("Server listening", "addr", server.Addr)
-		slog.Info("MCP endpoint (streamable HTTP): POST /mcp (recommended)")
-		slog.Info("MCP endpoint (SSE): /mcp/sse (deprecated, for backward compatibility)")
-		slog.Info("REST tool endpoint: POST /tools/call (simple JSON API)")
-		slog.Info("Mesh status: GET /mesh/{id}")
-		slog.Info("Mesh stream: GET /mesh/{id}/stream (SSE)")
-		slog.Info("Mesh active check: GET /mesh/{id}/active (for actors)")
-		slog.Info("Mesh progress: POST /mesh/{id}/progress (from sidecar)")
-		slog.Info("Mesh final status: POST /mesh/{id}/final (for end actors)")
-		slog.Info("A2A endpoint (JSON-RPC): POST /a2a/ (via a2a-go)")
-		slog.Info("A2A Agent Card: GET /.well-known/agent.json")
-		slog.Info("Tool registration: POST/GET /mesh/expose")
-
+		slog.Info("Server listening", "addr", server.Addr, "mode", mode)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("Server failed", "error", err)
 		}
@@ -240,6 +199,75 @@ func main() {
 	}
 
 	slog.Info("Gateway shutdown complete")
+}
+
+func registerAPIRoutes(mux *http.ServeMux, taskHandler *mcp.Handler, mcpServer *mcp.Server,
+	a2aHandler http.Handler, cardProducer *a2a.CardProducer) {
+	if mcpServer != nil {
+		mux.Handle("/mcp", mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer()))
+		mux.Handle("/mcp/sse", mcpserver.NewSSEServer(mcpServer.GetMCPServer()))
+	}
+	if taskHandler != nil {
+		mux.HandleFunc("/tools/call", taskHandler.HandleToolCall)
+	}
+	if a2aHandler != nil {
+		mux.Handle("/a2a/", a2aHandler)
+	}
+	if cardProducer != nil {
+		// Agent card is public — no auth middleware
+		mux.Handle("/.well-known/agent.json", a2asrv.NewAgentCardHandler(cardProducer))
+	}
+}
+
+func registerMeshRoutes(mux *http.ServeMux, taskHandler *mcp.Handler,
+	registry *toolstore.Registry, apiKey string) {
+	if registry != nil {
+		exposeHandler := toolstore.NewHandler(registry)
+		var exposeHTTPHandler http.Handler = http.HandlerFunc(exposeHandler.HandleExpose)
+		if apiKey != "" {
+			exposeHTTPHandler = a2a.APIKeyMiddleware(apiKey)(exposeHTTPHandler)
+		}
+		mux.Handle("/mesh/expose", exposeHTTPHandler)
+	}
+	if taskHandler != nil {
+		mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/stream") {
+				taskHandler.HandleMeshStream(w, r)
+			} else if strings.HasSuffix(r.URL.Path, "/active") {
+				taskHandler.HandleMeshActive(w, r)
+			} else if strings.HasSuffix(r.URL.Path, "/progress") {
+				taskHandler.HandleMeshProgress(w, r)
+			} else if strings.HasSuffix(r.URL.Path, "/final") {
+				taskHandler.HandleMeshFinal(w, r)
+			} else if strings.HasSuffix(r.URL.Path, "/fly") {
+				taskHandler.HandleMeshFly(w, r)
+			} else {
+				taskHandler.HandleMeshStatus(w, r)
+			}
+		})
+		mux.HandleFunc("/mesh", taskHandler.HandleMeshCreate)
+	}
+}
+
+func buildRoutes(mux *http.ServeMux, mode string, taskHandler *mcp.Handler,
+	mcpServer *mcp.Server, a2aHandler http.Handler, cardProducer *a2a.CardProducer,
+	registry *toolstore.Registry, apiKey string) error {
+	switch mode {
+	case "api":
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
+	case "mesh":
+		registerMeshRoutes(mux, taskHandler, registry, apiKey)
+	case "testing":
+		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer)
+		registerMeshRoutes(mux, taskHandler, registry, apiKey)
+	default:
+		return fmt.Errorf("ASYA_GATEWAY_MODE must be set to api|mesh|testing, got: %q", mode)
+	}
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprintln(w, "OK")
+	})
+	return nil
 }
 
 func getEnv(key, defaultValue string) string {
