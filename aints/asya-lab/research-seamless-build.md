@@ -5,6 +5,9 @@
 **Context**: WHERE and HOW actor images are built, and how builds fit into
 two distinct user flows: staging experimentation and production GitOps.
 
+UPD 2026-03-07: NOTE: Asya is a thin command runner for builds, not a build system.
+
+
 **Scope**: This doc covers image build execution and deployment workflows.
 It does NOT cover:
 - WHAT builds the image (apko, buildpacks, Dockerfile) -- see

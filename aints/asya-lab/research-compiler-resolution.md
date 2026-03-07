@@ -94,24 +94,25 @@ explicitly extends a parent.
 extend: /.asya/config.yaml           # extend root config
 
 build-contexts:
-  - module: "e_commerce"
+  e_commerce:
     context: "./e_commerce"           # relative to THIS file
-    image: "${registry}/ecom:${tag}"  # ${registry} from extended defaults
+    image: "${defaults.registry}/ecom:${args.tag}"
 ```
 
 ```yaml
 # /.asya/config.yaml (root, platform engineers)
 defaults:
   registry: ghcr.io/org
-  build:
-    strategy: apko
 
 build-contexts:
-  - module: "langchain"
+  langchain:
     image: "ghcr.io/third-party/langchain:v2"
-  - module: "shared_utils"
+  shared_utils:
     context: "./libs/shared_utils"    # relative to THIS file (repo root)
-    image: "${registry}/shared:${tag}"
+    image: "${defaults.registry}/shared:${args.tag}"
+    build:
+      local: "docker build -t ${..image} ."
+      remote: "docker build -t ${..image} . && docker push ${..image}"
 ```
 
 **`extend:` path syntax**:
@@ -120,8 +121,8 @@ build-contexts:
 
 **Merge behavior**:
 - `defaults:` -- deep merge; local values override extended values
-- `build-contexts:` -- union by `module:` key; if same `module:` appears in
-  both, **local wins** (child overrides parent)
+- `build-contexts:` -- union by dict key; if same key appears in
+  both, **local wins** (child overrides parent entirely)
 - Without `extend:` -- config is fully standalone, no parent entries visible
 
 **Path resolution**: All paths (`context:`, `build:` sub-paths) are relative
@@ -148,150 +149,172 @@ extends it.
 ```yaml
 defaults:
   registry: ghcr.io/org          # from root
-  build:
-    strategy: apko               # from root
 
 build-contexts:
-  # From root (extendd):
-  - module: "langchain"
+  # From root (extended):
+  langchain:
     image: "ghcr.io/third-party/langchain:v2"
-  - module: "shared_utils"
+  shared_utils:
     context: "/libs/shared_utils"  # resolved from root's ./libs/shared_utils
-    image: "ghcr.io/org/shared:${tag}"
+    image: "ghcr.io/org/shared:${args.tag}"
+    build:
+      local: "docker build -t ghcr.io/org/shared:${args.tag} ."
+      remote: "docker build -t ghcr.io/org/shared:${args.tag} . && docker push ghcr.io/org/shared:${args.tag}"
 
   # From team-a (local):
-  - module: "e_commerce"
+  e_commerce:
     context: "src/team-a/e_commerce"  # resolved from team-a's ./e_commerce
-    image: "ghcr.io/org/ecom:${tag}"
+    image: "ghcr.io/org/ecom:${args.tag}"
 ```
 
 ---
 
 ## 3. `.asya/config.yaml` Schema
 
-### 3.1 Top-Level Structure
+### 3.1 Design Principle
+
+config.yaml contains ONLY the binding between Python code, images, and build
+commands. It is NOT a build system -- it's a lookup table that Asya uses to
+answer two questions:
+1. "Which image does this handler belong to?" (compile time)
+2. "How do I build this image?" (build time)
+
+Asya works WITH build systems (Docker, apko, buildpacks, Shipwright, CI
+pipelines), not as a replacement for them. Build tool configuration
+(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the context
+directory, not in config.yaml.
+
+### 3.2 Top-Level Structure
+
+`build-contexts` is a **dict** keyed by module name (not a list). This
+enables OmegaConf-style path traversal for variable interpolation.
 
 ```yaml
 # .asya/config.yaml
 
+extend: /.asya/config.yaml              # optional, inherit from parent config
+
+defaults:
+  registry: ghcr.io/org
+
 build-contexts:
-  - module: "e_commerce"                     # Python importable name
-    context: "./src/e-commerce-package"      # Filesystem root (relative to this file)
-    image: "ghcr.io/org/e-commerce:${tag}"   # Image template with ${} variables
+  # Python package → image + build commands
+  e_commerce:
+    context: "./src/e-commerce-package"  # relative to this config file
+    image: "${defaults.registry}/e-commerce:${args.tag}"
     build:
-      strategy: apko                         # apko | buildpack | dockerfile
-      config: apko.yaml                     # Relative to context
-      requirements: requirements.txt         # Relative to context
+      local: "docker build -t ${..image} ."
+      remote: "docker build -t ${..image} . && docker push ${..image}"
 
-  - module: "./src/notebooks/models"         # Filesystem path (starts with ./)
-    context: "./src/notebooks/models"
-    image: "ghcr.io/org/notebook-models:${tag}"
+  # GPU model with apko
+  gpu_models:
+    context: "./src/gpu-models"
+    image: "${defaults.registry}/gpu-models:${args.tag}"
     build:
-      strategy: dockerfile
-      dockerfile: Dockerfile
-      target: runtime
-      args:
-        PYTHON_VERSION: "3.12"
+      local: "apko build apko.yaml ${..image}"
+      remote: "shp build upload gpu-models --image ${..image}"
 
-  - module: "langchain"                      # Third-party, never built
+  # Third-party, never built
+  langchain:
     image: "ghcr.io/third-party/langchain-actor:v2"
-    # No context, no build
+    # no context, no build — pre-built image
+
+  # Dirty DS scripts (filesystem path key, quoted)
+  "./src/notebooks/models":
+    context: "./src/notebooks/models"
+    image: "${defaults.registry}/notebook-models:${args.tag}"
+    build:
+      local: "docker build -t ${..image} ."
 ```
 
-### 3.2 Field Semantics
+**What's in**: module → context → image → build commands. That's it.
 
-**`module:`** -- identifies Python code that maps to this build context.
+**What's NOT in**: Strategy names, lock file paths, requirements paths,
+Python versions, builder configurations. Those are the build tool's concern
+(inside the Dockerfile, apko.yaml, etc. that lives in the context directory).
+
+### 3.3 Field Semantics
+
+**Dict key** (module name) -- identifies Python code that maps to this build
+context.
 
 | Format | Example | Resolution |
 |--------|---------|------------|
-| Dotted module name | `"e_commerce"` | `importlib.util.find_spec()` at compile time |
-| Dotted module.class | `"e_commerce.models.LargeModel"` | Same, more specific |
-| Filesystem path | `"./src/scripts"` | Direct path matching (starts with `./`) |
+| Dotted module name | `e_commerce` | `importlib.util.find_spec()` at compile time |
+| Dotted module.class | `e_commerce.models.LargeModel` | Same, more specific |
+| Filesystem path | `"./src/scripts"` | Direct path matching (starts with `./`), quoted |
 
-**Matching rule**: Longest prefix wins. If `"e_commerce"` and
-`"e_commerce.models.LargeModel"` both exist, a handler
+**Matching rule**: Longest prefix wins. If `e_commerce` and
+`e_commerce.models.LargeModel` both exist, a handler
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
 **`context:`** -- filesystem root for build operations. Paths are relative to
-the config.yaml file. This becomes the Docker build context, the apko working
-directory, or the buildpack source directory.
+the config.yaml file that defines them (important for `extend:`). The build
+command runs with this directory as CWD.
 
-**`image:`** -- OCI image reference template. Supports `${name}` variable
-substitution. Variables can be set via:
-- CLI: `--arg tag=v1 --arg env=staging`
-- Environment: `ASYA_ARG_TAG=v1`, `ASYA_ARG_ENV=staging`
+**`image:`** -- OCI image reference template with interpolation.
 
-**`build:`** -- strategy-specific configuration. Paths within `build:` are
-relative to `context:`.
+**`build:`** -- shell commands for building the image:
+- `build.local` -- runs locally (build only, no push). Used by DS for
+  iteration and testing. Example: `docker build -t ${..image} .`
+- `build.remote` -- runs for remote/CI builds (build + push). Example:
+  `docker build -t ${..image} . && docker push ${..image}`, or
+  `shp build upload <name> --image ${..image}` for Shipwright.
+- Entries without `build:` are never built by Asya (third-party images).
 
-### 3.3 Strategy-Specific Build Configuration
+### 3.4 Variable Interpolation (OmegaConf-style)
 
-**apko**:
+Asya uses OmegaConf-inspired variable interpolation with dotted path
+traversal:
+
+| Syntax | Meaning | Example |
+|--------|---------|---------|
+| `${path.to.key}` | Absolute path from config root | `${defaults.registry}` |
+| `${.sibling}` | Sibling at current level | `${.image}` (within same entry) |
+| `${..sibling}` | Go up one level, access sibling | `${..image}` (from `build:` to entry's `image`) |
+| `${args.name}` | CLI arg or `ASYA_ARG_NAME` env var | `${args.tag}` |
+| `${env:VAR}` | Raw environment variable | `${env:HOME}` |
+| `${env:VAR,default}` | Env var with fallback | `${env:REGISTRY,ghcr.io/org}` |
+
+**Resolution order**: Config-level references (`${defaults.*}`,
+`${.sibling}`) are resolved first. Then `${args.*}` and `${env:*}` are
+resolved at command time (`asya actor build --arg tag=v1`).
+
+**Example resolution**:
 ```yaml
-build:
-  strategy: apko
-  config: apko.yaml              # apko config file
-  lockfile: apko.lock.json       # apko lock file (generated by apko lock)
-  requirements: requirements.txt  # pip deps (fed to melange or multi-stage)
+defaults:
+  registry: ghcr.io/org
+
+build-contexts:
+  e_commerce:
+    image: "${defaults.registry}/e-commerce:${args.tag}"
+    #       ^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from config)
+    #                                         ^^^^^^^^^^^ → v1 (from --arg)
+    # Final: ghcr.io/org/e-commerce:v1
+    build:
+      local: "docker build -t ${..image} ."
+      #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
+      # ${..image} goes up from build → e_commerce, gets resolved image
 ```
 
-**Buildpacks**:
-```yaml
-build:
-  strategy: buildpack
-  builder: paketobuildpacks/builder:base   # optional, default builder
-  env:                                      # BP_ environment variables
-    BP_CPYTHON_VERSION: "3.12"
-```
+### 3.5 Build Commands Are Opaque
 
-**Dockerfile**:
-```yaml
-build:
-  strategy: dockerfile
-  dockerfile: Dockerfile          # Dockerfile path
-  target: runtime                 # multi-stage target (optional)
-  args:                           # --build-arg values
-    PYTHON_VERSION: "3.12"
-    CUDA_VERSION: "12.1"
-```
+**Decision**: Asya treats build commands as opaque shell strings with
+variable substitution. Asya has zero knowledge of what the command does.
+Lock files, caching, validation, strategy selection are the build tool's
+problem.
 
-### 3.4 Build Strategy: Teach or Generalize?
+This means:
+- Any build tool works (docker, apko, pack, kaniko, nix, bazel, custom)
+- Future build tools work without Asya changes
+- Platform engineers write the commands once in root config; DS just run
+  `asya actor build`
+- Asya is NOT a build system -- it's a command runner with context
 
-**Open question**: Should Asya have built-in knowledge of each build strategy
-(apko, dockerfile, buildpack), or should it treat the build command as a
-generic CLI command?
-
-**Option A -- Built-in strategies** (current design):
-```yaml
-build:
-  strategy: apko
-  config: apko.yaml
-```
-Asya knows how to invoke `apko build`, `docker build`, `pack build`. Can
-validate configs, generate lock files, manage flags.
-
-**Option B -- Generic CLI command**:
-```yaml
-build:
-  command: "apko build apko.yaml ${image}"
-  # or:
-  command: "docker build -f Dockerfile -t ${image} ."
-```
-Asya just runs the command. No strategy knowledge needed. More flexible
-(supports any builder tool), but no validation, no lock file management.
-
-**Option C -- Built-in strategies + CLI escape hatch**:
-```yaml
-build:
-  strategy: apko         # Asya manages the build
-  # or:
-  strategy: custom
-  command: "my-builder build --output ${image}"
-```
-
-**Consideration**: Remote build via Shipwright (see `research-seamless-build.md`)
-would need strategy awareness to generate Build CRDs. A generic CLI command
-can't easily translate to a Shipwright BuildSpec.
+**What about Shipwright remote builds?** For Shipwright, the `build.remote`
+command is a `shp` CLI invocation. If deeper Shipwright integration is
+needed later (generating Build CRDs from config.yaml), that can be added
+as a plugin/extension without changing the core config schema.
 
 ---
 
@@ -306,12 +329,44 @@ can't easily translate to a Shipwright BuildSpec.
 **Python environment detection** (for CLI mode):
 1. Check `--python /path/to/python` flag (explicit)
 2. Check active virtualenv (`VIRTUAL_ENV` / `sys.prefix != sys.base_prefix`)
-3. Check `uv run` (or `poetry run`) -- if project has `pyproject.toml`, use `uv run python`
-4. Fall back to `python3` on PATH (not sure if it's a good idea - might be confusing! better already fall back to --python at this point)
-5. Fail with "cannot resolve Python environment, use --python"
+3. Auto-detect from project tooling (in order):
+   - `uv` -- if `uv.lock` or `[tool.uv]` in pyproject.toml → `uv run python`
+   - `poetry` -- if `poetry.lock` → `poetry run python`
+   - `pdm` -- if `pdm.lock` → `pdm run python`
+   - `hatch` -- if `[tool.hatch]` in pyproject.toml → `hatch run python`
+   - `conda`/`mamba` -- if `environment.yml` → `conda run python`
+   - `pixi` -- if `pixi.lock` → `pixi run python`
+   - `rye` -- if `.python-version` + `requirements.lock` → `rye run python`
+4. Fail with "cannot resolve Python environment, use --python"
+
+Asya does NOT fall back to bare `python3` on PATH -- that could silently
+resolve to a wrong environment. Explicit is better.
 
 **In Jupyter**: Use `sys.executable` from the running kernel. No `--python`
 needed.
+
+**Verbose output requirement**: All compile/build/deploy commands MUST be
+maximally informative, showing exactly what resolved to what. No hidden
+resolutions. Example:
+
+```
+$ asya flow compile flows/order_processing.py
+[compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
+[compile] Config: .asya/config.yaml
+[compile] Handler: validate_order
+           → import: e_commerce.validate.validate_order
+           → file: /proj/src/e-commerce-package/e_commerce/validate.py
+           → build-context: e_commerce
+           → image: ghcr.io/org/e-commerce:${args.tag}
+[compile] Handler: express_handler
+           → import: e_commerce.express.express_handler
+           → file: /proj/src/e-commerce-package/e_commerce/express.py
+           → build-context: e_commerce (same image)
+[compile] Generated: .asya/manifests/flows/order-processing/
+           → validate-order.yaml
+           → express-handler.yaml
+           → router-start.yaml
+```
 
 **Resolution chain**:
 ```
@@ -356,17 +411,20 @@ in the manifest.
 
 **Input**: `.asya/config.yaml` (read directly)
 **Available**: Docker / apko / buildpacks. No live Python.
-**Output**: OCI image in registry
+**Output**: OCI image (local or in registry)
 
 CLI follows the `asya <noun> <verb>` pattern from the RFC
 (`.aint/aints/asya-lab/rfc.md` section 5):
 
 ```bash
-# Build a specific actor's image (resolves handler → module → build-context)
+# Build a specific actor's image (local = build only, no push)
 asya actor build text-analyzer --arg tag=v1
 
 # Build all images needed by a flow
 asya flow build order-processing --arg tag=v1
+
+# Remote build (build + push, or Shipwright)
+asya actor build text-analyzer --remote --arg tag=v1
 
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
@@ -375,13 +433,31 @@ asya flow build order-processing
 
 **Resolution**:
 - `asya actor build <actor-name>` → reads manifest to find image ref →
-  matches image ref to config.yaml build-context → executes build
+  matches image ref to config.yaml build-context → runs `build.local`
+  command in the `context` directory
+- `asya actor build --remote` → same resolution but runs `build.remote`
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
 No Python resolution happens at build time -- the context path is taken
-directly from config.yaml.
+directly from config.yaml. Asya just runs the shell command with variable
+substitution.
+
+**Note**: `asya actor compile` is also needed to generate manifests for
+standalone actors (not part of a flow). Compilation is not flow-only --
+any actor that Asya deploys needs a manifest in `.asya/manifests/`.
+
+**Verbose output**:
+```
+$ asya actor build text-analyzer --arg tag=v1
+[build] Actor: text-analyzer
+[build] Build-context: e_commerce (from manifest image ref)
+[build] Context dir: /proj/src/e-commerce-package
+[build] Image: ghcr.io/org/e-commerce:v1
+[build] Command: docker build -t ghcr.io/org/e-commerce:v1 .
+[build] Running in /proj/src/e-commerce-package ...
+```
 
 ### 4.3 Deploy Time
 
@@ -448,14 +524,16 @@ my-project/
 
 ```yaml
 # .asya/config.yaml
+defaults:
+  registry: ghcr.io/org
+
 build-contexts:
-  - module: "e_commerce"
+  e_commerce:
     context: "./src/e-commerce-package"
-    image: "ghcr.io/org/e-commerce:${tag}"
+    image: "${defaults.registry}/e-commerce:${args.tag}"
     build:
-      strategy: apko
-      config: apko.yaml
-      requirements: requirements.txt
+      local: "apko build apko.yaml ${..image}"
+      remote: "shp build upload e-commerce --image ${..image}"
 ```
 
 ### 5.2 Dirty Layout (DS Experimentation)
@@ -478,12 +556,12 @@ experiments/
 ```yaml
 # .asya/config.yaml
 build-contexts:
-  - module: "./models"                # Filesystem path, not importable
+  "./models":                         # Filesystem path, not importable (quoted)
     context: "./models"
-    image: "ghcr.io/org/bert-models:${tag}"
+    image: "ghcr.io/org/bert-models:${args.tag}"
     build:
-      strategy: dockerfile
-      dockerfile: Dockerfile
+      local: "docker build -t ${..image} ."
+      remote: "docker build -t ${..image} . && docker push ${..image}"
 ```
 
 For the dirty layout, compilation from Jupyter uses the kernel's Python (which
@@ -560,30 +638,43 @@ your Python environment, Asya can resolve it.
 
 ## 7. Variable Substitution
 
-Both `asya build` and `asya deploy` support `${name}` variable substitution
-in `image:` and other template fields.
+All `asya actor/flow build/deploy` commands support OmegaConf-style variable
+interpolation in config.yaml fields. See section 3.4 for the full syntax
+reference.
 
-**Setting variables**:
+**Setting `${args.*}` variables**:
 ```bash
 # Via --arg flag
-asya build e_commerce --arg tag=v1 --arg env=staging
+asya actor build text-analyzer --arg tag=v1 --arg env=staging
 
-# Via environment variables
+# Via environment variables (equivalent)
 export ASYA_ARG_TAG=v1
 export ASYA_ARG_ENV=staging
-asya build e_commerce
-asya deploy  # same variables, no repetition
+asya actor build text-analyzer
+asya actor deploy text-analyzer  # same variables, no repetition
 ```
 
 **In config.yaml**:
 ```yaml
-image: "ghcr.io/org/e-commerce:${tag}"
-# or with defaults:
-image: "ghcr.io/org/e-commerce:${tag:-latest}"
+defaults:
+  registry: ghcr.io/org
+
+build-contexts:
+  e_commerce:
+    image: "${defaults.registry}/e-commerce:${args.tag}"
+    #       ^^^^^^^^^^^^^^^^^ config-level (resolved first)
+    #                                       ^^^^^^^^^^ runtime arg (resolved at command time)
+    build:
+      local: "docker build -t ${..image} ."
+      #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
 ```
 
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once and then
-call `asya build` and `asya deploy` without repeating the tag.
+call `asya actor build` and `asya actor deploy` without repeating the tag.
+
+**Precedence**: `--arg` flag wins over `ASYA_ARG_*` env var. Config-level
+references (`${defaults.*}`, `${.sibling}`) are resolved before runtime
+args (`${args.*}`, `${env:*}`).
 
 ---
 
@@ -592,9 +683,9 @@ call `asya build` and `asya deploy` without repeating the tag.
 1. ~~**Config merging semantics**~~: Resolved. Explicit `extend:` with
    union + local-wins merge. See section 2.3.
 
-2. **Build strategy awareness vs generic CLI**: Should Asya have built-in
-   knowledge of build strategies, or treat builds as generic CLI commands?
-   See section 3.4. Remote Shipwright builds may require strategy awareness.
+2. ~~**Build strategy awareness vs generic CLI**~~: Resolved. Opaque shell
+   commands with variable substitution. Asya has zero knowledge of what the
+   command does. See section 3.5.
 
 3. **Router actor images**: Router actors use generated code (`routers.py`).
    They either need their own build context or use ConfigMap injection
@@ -602,8 +693,9 @@ call `asya build` and `asya deploy` without repeating the tag.
 
 4. **Lock file relationship**: How does `actor-image.lock` (designed in
    `research-seamless-build.md`) relate to strategy-specific lock files
-   (`apko.lock.json`)? Is `actor-image.lock` a wrapper, or does each
-   strategy manage its own lock file?
+   (`apko.lock.json`)? Since build commands are opaque, Asya can't manage
+   lock files inside the build tool. `actor-image.lock` may track only the
+   final image digest, not internal build reproducibility.
 
 5. **Python interpreter caching**: At compile time, should Asya cache the
    import resolution results? Useful for large flows with many handlers
@@ -616,6 +708,11 @@ call `asya build` and `asya deploy` without repeating the tag.
 7. **Monorepo workspaces**: For `uv workspace` / multi-package monorepos,
    should config.yaml be workspace-aware? Or is the hierarchical `.asya/`
    approach sufficient?
+
+8. **OCI-first deployment model**: Future mode where actors are deployed
+   by pushing OCI artifacts (not K8s manifests). Door left open -- config.yaml
+   schema is agnostic to deployment strategy. Needs design when GitOps is
+   stable.
 
 ---
 
