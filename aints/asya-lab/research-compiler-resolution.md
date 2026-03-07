@@ -306,8 +306,8 @@ can't easily translate to a Shipwright BuildSpec.
 **Python environment detection** (for CLI mode):
 1. Check `--python /path/to/python` flag (explicit)
 2. Check active virtualenv (`VIRTUAL_ENV` / `sys.prefix != sys.base_prefix`)
-3. Check `uv run` -- if project has `pyproject.toml`, use `uv run python`
-4. Fall back to `python3` on PATH
+3. Check `uv run` (or `poetry run`) -- if project has `pyproject.toml`, use `uv run python`
+4. Fall back to `python3` on PATH (not sure if it's a good idea - might be confusing! better already fall back to --python at this point)
 5. Fail with "cannot resolve Python environment, use --python"
 
 **In Jupyter**: Use `sys.executable` from the running kernel. No `--python`
