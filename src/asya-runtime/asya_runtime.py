@@ -72,6 +72,7 @@ Socket Configuration:
 """
 
 import asyncio
+import base64
 import contextlib
 import copy
 import errno
@@ -362,6 +363,39 @@ def _error_response(code: str, exc: Exception | None = None) -> dict[str, Any]:
     return error
 
 
+# --- JSON Serialization ---
+
+
+def _json_default(obj):
+    """Custom JSON serializer for types not handled by the stdlib encoder.
+
+    Supports pydantic v2 (model_dump), pydantic v1 (.dict() + __fields__),
+    dataclasses, namedtuples, datetime/date/time, bytes (base64), set/frozenset.
+    Python 3.7+ compatible — uses duck typing, no pydantic import required.
+    """
+    if hasattr(obj, "model_dump"):
+        # Pydantic v2: mode='json' converts datetime/UUID/Decimal to JSON-native types
+        return obj.model_dump(mode="json")
+    if hasattr(obj, "dict") and hasattr(obj, "__fields__"):
+        # Pydantic v1
+        return obj.dict()
+    if hasattr(obj, "__dataclass_fields__"):
+        from dataclasses import asdict
+
+        return asdict(obj)
+    if hasattr(obj, "_asdict"):
+        # NamedTuple
+        return obj._asdict()
+    if hasattr(obj, "isoformat"):
+        # datetime, date, time
+        return obj.isoformat()
+    if isinstance(obj, bytes):
+        return base64.b64encode(obj).decode("ascii")
+    if isinstance(obj, (set, frozenset)):
+        return list(obj)
+    raise TypeError(f"Not JSON serializable: {type(obj).__name__}")
+
+
 # --- ABI Path Resolver ---
 
 _PATH_RE = re.compile(
@@ -650,7 +684,7 @@ def _handle_invoke(data: bytes, user_func) -> tuple:
 
     if not frames:
         return 204, b""
-    return 200, json.dumps({"frames": frames}).encode("utf-8")
+    return 200, json.dumps({"frames": frames}, default=_json_default).encode("utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -1230,12 +1264,12 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         ctx = _AbiContext(envelope)
 
         def on_fly(payload):
-            data = json.dumps({"payload": payload})
+            data = json.dumps({"payload": payload}, default=_json_default)
             self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
             self.wfile.flush()
 
         def on_emit(frame):
-            data = json.dumps(frame)
+            data = json.dumps(frame, default=_json_default)
             self.wfile.write(f"event: downstream\ndata: {data}\n\n".encode())
             self.wfile.flush()
 
