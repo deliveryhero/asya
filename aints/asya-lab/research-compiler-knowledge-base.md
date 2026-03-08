@@ -105,12 +105,16 @@ Among patterns with the same specificity, longer prefix wins
 Any rule can be overridden at the call site using inline comments:
 
 ```python
-p = handler(p)              # asya: treat-as-actor
-p = handler(p)              # asya: treat-as-inline
-p["id"] = str(uuid4())      # asya: treat-as-inline
-p = sub_pipeline(p)         # asya: treat-as-flow
-p = handler(p)              # asya: treat-as-decompose
+p = handler(p)              # asya: actor
+p = handler(p)              # asya: inline
+p["id"] = str(uuid4())      # asya: inline
+p = sub_pipeline(p)         # asya: flow
+p = handler(p)              # asya: decompose
 ```
+
+Follows standard Python tool comment conventions (`# type: ignore`, `# noqa: E501`,
+`# pragma: no cover`): short prefix + action word. No infrastructure parameters
+(actor names, config values) — flow definitions stay pure business logic.
 
 Inline comments have the highest priority, overriding all rules.
 

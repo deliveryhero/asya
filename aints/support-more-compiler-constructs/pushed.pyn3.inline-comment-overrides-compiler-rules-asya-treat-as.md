@@ -1,5 +1,5 @@
 ---
-title: "Inline comment overrides for compiler rules (# asya: treat-as-*)"
+title: "Inline comment overrides for compiler rules (# asya: <action>)"
 priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
@@ -15,33 +15,36 @@ tags:
 ## Problem
 
 The flow compiler does not parse inline comments. Python's AST module strips
-comments, so `# asya: treat-as-actor` annotations are completely invisible
-to the compiler. There is no way to override compiler rules at the call site.
+comments, so `# asya: actor` annotations are completely invisible to the
+compiler. There is no way to override compiler rules at the call site.
 
 ## Design
 
 Inline comments provide the highest-priority override mechanism for compiler
-rules. They follow the same `treat-as` vocabulary:
+rules. Syntax follows standard Python tool conventions (`# type: ignore`,
+`# noqa: E501`, `# pragma: no cover`): short prefix + action word.
 
 ```python
-p = handler(p)              # asya: treat-as-actor
-p = handler(p)              # asya: treat-as-inline
-p["id"] = str(uuid4())      # asya: treat-as-inline
-p = sub_pipeline(p)         # asya: treat-as-flow
-p = handler(p)              # asya: treat-as-decompose
+p = handler(p)              # asya: actor
+p = handler(p)              # asya: inline
+p["id"] = str(uuid4())      # asya: inline
+p = sub_pipeline(p)         # asya: flow
+p = handler(p)              # asya: decompose
 ```
 
+No infrastructure parameters (actor names, config values) in inline comments.
+Flow definitions stay pure business logic. Actor naming, configuration, and
+deployment details are managed in manifests via CLI/UI.
+
 Priority order (highest to lowest):
-1. Inline comment (`# asya: treat-as-*`)
+1. Inline comment (`# asya: <action>`)
 2. Matching compiler rule from `asya.yaml`
 3. Default (decompose for same-package, inline for external)
 
 ### Comment syntax
 
-Pattern: `# asya: treat-as-<action>` where action is one of:
+Pattern: `# asya: <action>` where action is one of:
 `actor`, `flow`, `inline`, `decompose`, `config`
-
-Optional actor name override: `# asya: treat-as-actor name=order-validator`
 
 The comment must appear on the same line as the statement it annotates.
 
@@ -54,24 +57,20 @@ The parser already has `self.source_code`. Add comment extraction:
 1. Split source into lines at init time
 2. For each parsed statement, check `self.source_lines[stmt.lineno - 1]`
    for `# asya:` pattern
-3. Parse the directive: `treat-as-<action>` and optional `name=<value>`
+3. Parse the directive: extract the action word
 4. Store in a dict: `lineno -> AsyaDirective`
 
 ```python
 @dataclass
 class AsyaDirective:
-    treat_as: str          # actor, flow, inline, decompose, config
-    name: str | None       # optional actor name override
+    action: str          # actor, flow, inline, decompose, config
 
 def _extract_directives(self) -> dict[int, AsyaDirective]:
     directives = {}
     for i, line in enumerate(self.source_lines, 1):
-        match = re.search(r'#\s*asya:\s*treat-as-(\w+)(?:\s+name=(\S+))?', line)
+        match = re.search(r'#\s*asya:\s*(\w+)', line)
         if match:
-            directives[i] = AsyaDirective(
-                treat_as=match.group(1),
-                name=match.group(2),
-            )
+            directives[i] = AsyaDirective(action=match.group(1))
     return directives
 ```
 
@@ -93,12 +92,12 @@ an operation (actor boundary vs inline vs decompose).
 
 ### Testing
 
-- Unit: parse `p = handler(p)  # asya: treat-as-actor` → ActorCall
-- Unit: parse `p = handler(p)  # asya: treat-as-inline` → Mutation
-- Unit: parse with `# asya: treat-as-actor name=my-actor` → named actor
+- Unit: parse `p = handler(p)  # asya: actor` → ActorCall
+- Unit: parse `p = handler(p)  # asya: inline` → Mutation
 - Unit: comment without `# asya:` prefix → ignored
 - Unit: directive on non-call statement → error or ignored
 - Unit: directive overrides matching compiler rule
+- Unit: unknown action word → FlowCompileError
 
 See `.aint/aints/asya-lab/research-compiler-knowledge-base.md` for the
 full rules resolution priority design.
