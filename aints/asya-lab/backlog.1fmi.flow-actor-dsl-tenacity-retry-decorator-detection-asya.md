@@ -1,31 +1,75 @@
 ---
-title: "Flow/Actor DSL: tenacity.retry decorator detection and resiliency config generation"
+title: "Compiler knowledge base: treat-as rules engine with default rule set"
 priority: 3 # low
 tags:
   - type:feature
 ---
 
+## Problem
 
-see `.aint/aints/.closed/error-handling/rfc.md` for resiliency configuration.
+The flow compiler has no configurable knowledge base. Every `p = func(p)` is
+assumed to be an actor boundary, decorators are ignored, and there is no way to
+teach the compiler about third-party frameworks (tenacity, stamina,
+asyncio.timeout). The `treat-as` vocabulary (`actor`, `flow`, `unfold`,
+`inline`, `config`) is designed but not implemented as a rules engine.
 
-Extend Flow DSL compiler (and potentially Actor DSL) to detect retry/timeout decorators on actor handler functions. When detected: (1) strip the decorator for Asya-managed retry (handler runs pure), (2) extract retry config from decorator arguments, (3) generate corresponding `ASYA_RESILIENCY_*` env vars for the AsyncActor CRD. This provides familiar Python syntax for retry configuration while keeping the actual retry at infrastructure level via the sidecar.
+## Scope
 
-Should work on both actors (decorator) and regular functions to dive in (see `.aint/aints/support-more-compiler-constructs/.closed/merged.1mhs.dive-into-function-calls.md`).
+Implement the compiler rules system described in
+`.aint/aints/asya-lab/research-compiler-knowledge-base.md`:
 
-## Current Asya resiliency env vars (target for generation)
+1. **Rules engine** — load `compiler.rules` from `.asya/config.yaml`, match
+   symbols against patterns, classify each as one of five `treat-as` actions
+2. **Default rule set** — ship sensible defaults that work without config:
+   - `module: "."` → `treat-as: unfold` (same-package functions)
+   - `module: "*"` → `treat-as: inline` (external code)
+   - `module: "actor"` → `treat-as: actor`
+   - `module: "flow"` → `treat-as: flow`
+3. **Built-in config extraction rules** for common frameworks:
+   - `tenacity.retry` → `treat-as: config` + `extract:` (retry env vars)
+   - `stamina.retry` → `treat-as: config` + `extract:` (retry env vars)
+   - `asyncio.timeout` → `treat-as: config` + `extract:` (timeout env var)
+4. **Pattern matching** — most-specific-wins resolution (exact > prefix
+   wildcard > `.` > `*`)
+5. **Config extraction** — `inspect.signature` at compile time for binding
+   decorator args to `ASYA_RESILIENCY_*` env vars
+6. **Testing** — validate on `examples/flows/` with mixed decorators,
+   context managers, and inline overrides
 
-| Env Var | Type | Default | Retry concept |
-|---------|------|---------|---------------|
-| `ASYA_RESILIENCY_RETRY_POLICY` | "constant"\|"exponential" | "exponential" | Backoff strategy |
-| `ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS` | int | 3 | Max attempts |
-| `ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL` | duration | "1s" | Backoff strategy |
-| `ASYA_RESILIENCY_RETRY_MAX_INTERVAL` | duration | "300s" | Backoff strategy |
-| `ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT` | float | 2.0 | Backoff strategy |
-| `ASYA_RESILIENCY_RETRY_JITTER` | bool | true | Backoff strategy |
-| `ASYA_RESILIENCY_NON_RETRYABLE_ERRORS` | csv | (none) | Exception filter |
-| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | duration | "5m" | Per-call timeout |
+## Blocked by
 
-Not yet implemented: cumulative time window across all retry attempts.
+- `.asya/config.yaml` schema design (WIP — see
+  `.aint/aints/asya-lab/research-compiler-resolution.md`). The `compiler.rules`
+  section needs to be part of the config schema before rules can be loaded.
+
+## Dependencies
+
+- [pyn3] Inline comment overrides (`# asya: <action>`) — merged/in progress
+- [srn2] Decorator detection and rule-based resolution
+- [2t1q] Context manager support (`with`/`async with`)
+- [xx8t] Call-site decorator application (`actor(handler)(p)`)
+- [zjt4] Cumulative retry time window (`ASYA_RESILIENCY_RETRY_MAX_WINDOW`)
+
+## Design references
+
+- **Rules design**: `.aint/aints/asya-lab/research-compiler-knowledge-base.md`
+- **Config schema**: `.aint/aints/asya-lab/research-compiler-resolution.md`
+- **Resiliency env vars**: `.aint/aints/.closed/error-handling/rfc.md`
+- **Decorator strategy resolution**: [n67c]
+
+## Asya resiliency env vars (extraction targets)
+
+| Env Var | Type | Default |
+|---------|------|---------|
+| `ASYA_RESILIENCY_RETRY_POLICY` | "constant"\|"exponential" | "exponential" |
+| `ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS` | int | 3 |
+| `ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL` | duration | "1s" |
+| `ASYA_RESILIENCY_RETRY_MAX_INTERVAL` | duration | "300s" |
+| `ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT` | float | 2.0 |
+| `ASYA_RESILIENCY_RETRY_JITTER` | bool | true |
+| `ASYA_RESILIENCY_NON_RETRYABLE_ERRORS` | csv | (none) |
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | duration | "5m" |
+| `ASYA_RESILIENCY_RETRY_MAX_WINDOW` | duration | (none) — see [zjt4] |
 
 ## Research: Python retry/timeout decorator landscape
 
@@ -46,10 +90,13 @@ Not yet implemented: cumulative time window across all retry attempts.
 | **stopit** | `@threading_timeoutable()` | `default=None, timeout_param='timeout'` |
 | **asyncio** | `asyncio.timeout(30)` | context manager, not a decorator |
 
-### Feasibility of static YAML config for arg extraction
+### Config extraction approach
 
-- **stamina, opnieuw, timeout_decorator**: Plain kwargs — trivially extractable via `kwarg_name -> env_var` mapping
-- **backoff**: Needs positional arg support + first arg is a function reference (`backoff.expo`)
-- **tenacity**: Impossible without AST evaluator — `stop_after_attempt(3)` is a function call returning a strategy object
+Runtime `inspect.signature` at compile time handles all arg styles (positional,
+keyword, mixed) uniformly. Tenacity uses classes (not functions) for strategy
+objects — `inspect.signature(cls.__init__)` resolves parameter names. BinOp
+combinations (`wait_fixed(3) + wait_random(0, 2)`) are flattened by walking the
+AST binary operation tree.
 
-Conclusion: static config covers ~60% of libraries (flat kwargs). The rest need per-library extractors or a first-party SDK approach. See [n67c] for the broader decorator strategy discussion.
+See research-compiler-knowledge-base.md for full extraction design and verified
+tenacity class signatures.
