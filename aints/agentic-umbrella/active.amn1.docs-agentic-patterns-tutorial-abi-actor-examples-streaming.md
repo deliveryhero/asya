@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/agentic-umbrella/amn1.docs-agentic-patterns-tutorial-abi-actor-examples-streaming
   - branch:agentic-umbrella/amn1.docs-agentic-patterns-tutorial-abi-actor-examples-streaming
+  - pr:285
 ---
+
 
 
 Write the missing narrative documentation and code examples for Asya's three
