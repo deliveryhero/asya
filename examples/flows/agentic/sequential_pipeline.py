@@ -31,11 +31,12 @@ Deployment:
   route.next = [data_analyst, trading_analyst, execution_planner, risk_evaluator]
   and messages flow through the chain automatically.
 
-Typed actors:
-  Actor handlers return dataclasses directly — the Asya runtime serializes
-  them automatically. No .model_dump() or manual dict conversion needed.
-  Works the same way with pydantic BaseModel, NamedTuple, or any duck-typed
-  object that implements model_dump() or __dataclass_fields__.
+Typed values in state:
+  Actors store typed dataclasses as dict values — the Asya runtime serializes
+  them automatically when forwarding to the next actor in the chain.
+  No .model_dump() or manual dict conversion needed.
+
+  Works identically with pydantic BaseModel: swap @dataclass for BaseModel.
 
 Payload contract:
   state["topic"]           - investment topic to analyze
@@ -50,7 +51,7 @@ from typing import List
 
 
 # ---------------------------------------------------------------------------
-# Typed result models for each actor
+# Typed result models for each actor's output
 # (pydantic BaseModel works identically — swap @dataclass for BaseModel)
 # ---------------------------------------------------------------------------
 
@@ -112,13 +113,13 @@ class RiskAssessment:
 
 
 async def sequential_pipeline(state: dict) -> dict:
-    # Each actor returns a typed result — stored under a named key in state.
-    # The runtime serializes dataclasses automatically when forwarding to the
-    # next actor in the chain.
-    state["market_data"] = await data_analyst(state)
-    state["strategies"] = await trading_analyst(state)
-    state["exec_plan"] = await execution_planner(state)
-    state["risk_assessment"] = await risk_evaluator(state)
+    # Each actor enriches the state dict with typed values.
+    # The runtime serializes dataclasses automatically when forwarding
+    # to the next actor in the chain.
+    state = await data_analyst(state)
+    state = await trading_analyst(state)
+    state = await execution_planner(state)
+    state = await risk_evaluator(state)
     return state
 
 
@@ -127,14 +128,14 @@ async def sequential_pipeline(state: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def data_analyst(payload: dict) -> MarketData:
+async def data_analyst(state: dict) -> dict:
     """LLM actor: research market data for the given topic.
 
-    Uses web search and financial APIs to gather market data.
-    Returns a MarketData object — the runtime serializes it to JSON automatically.
+    Stores a typed MarketData object at state["market_data"] — the runtime
+    serializes it automatically when forwarding to the next actor.
     """
-    topic = payload.get("topic", "unknown")
-    return MarketData(
+    topic = state.get("topic", "unknown")
+    state["market_data"] = MarketData(
         topic=topic,
         trends=[
             SectorTrend(sector="technology", direction="bullish", momentum=0.72),
@@ -149,72 +150,76 @@ async def data_analyst(payload: dict) -> MarketData:
             "Major institutional investor increased stake by 8.5%",
         ],
     )
+    return state
 
 
-async def trading_analyst(payload: dict) -> List[TradingStrategy]:
+async def trading_analyst(state: dict) -> dict:
     """LLM actor: generate trading strategies based on market data.
 
-    Reads payload["market_data"], returns a list of TradingStrategy objects.
-    Lists of dataclasses serialize automatically — each element is converted
-    via dataclasses.asdict().
+    Reads state["market_data"] (accepts MarketData or dict). Stores a list
+    of TradingStrategy dataclasses at state["strategies"].
     """
-    market_data = payload.get("market_data", {})
-    price = market_data.get("current_price", 0) if isinstance(market_data, dict) else getattr(market_data, "current_price", 0)
+    market_data = state.get("market_data", {})
+    if isinstance(market_data, MarketData):
+        current_price = market_data.current_price
+    else:
+        current_price = market_data.get("prices", {}).get("current", 0)
 
-    return [
+    state["strategies"] = [
         TradingStrategy(
             name="Momentum Breakout",
-            entry=price * 1.03,
-            exit=price * 1.15,
+            entry=current_price * 1.03,
+            exit=current_price * 1.15,
             rationale="Positive earnings momentum suggests continuation pattern",
         ),
         TradingStrategy(
             name="Support Bounce",
-            entry=price * 0.97,
-            exit=price * 1.08,
+            entry=current_price * 0.97,
+            exit=current_price * 1.08,
             rationale="Recent institutional buying provides strong support level",
         ),
         TradingStrategy(
             name="Sector Rotation",
-            entry=price * 0.99,
-            exit=price * 1.12,
+            entry=current_price * 0.99,
+            exit=current_price * 1.12,
             rationale="Technology sector bullish trend indicates sector-wide gains",
         ),
         TradingStrategy(
             name="Earnings Run-up",
-            entry=price * 1.01,
-            exit=price * 1.09,
+            entry=current_price * 1.01,
+            exit=current_price * 1.09,
             rationale="Pre-earnings positioning based on historical patterns",
         ),
         TradingStrategy(
             name="Mean Reversion",
-            entry=price * 0.95,
-            exit=price * 1.05,
+            entry=current_price * 0.95,
+            exit=current_price * 1.05,
             rationale="Price deviation from 50-day moving average presents opportunity",
         ),
     ]
+    return state
 
 
-async def execution_planner(payload: dict) -> ExecutionPlan:
+async def execution_planner(state: dict) -> dict:
     """LLM actor: create implementation plan for chosen strategies.
 
-    Reads payload["strategies"], returns a typed ExecutionPlan.
-    Nested dataclasses (ExecutionAction inside ExecutionPlan) are
-    recursively serialized by dataclasses.asdict().
+    Reads state["strategies"] (accepts list of TradingStrategy or dict).
+    Stores a typed ExecutionPlan at state["exec_plan"]. Nested dataclasses
+    (ExecutionAction inside ExecutionPlan) are serialized recursively.
     """
-    strategies = payload.get("strategies", [])
+    strategies = state.get("strategies", [])
 
     def _name(s):
-        return s["name"] if isinstance(s, dict) else s.name
+        return s.name if isinstance(s, TradingStrategy) else s["name"]
 
     def _entry(s):
-        return s["entry"] if isinstance(s, dict) else s.entry
+        return s.entry if isinstance(s, TradingStrategy) else s["entry"]
 
     first = strategies[0] if strategies else None
     third = strategies[2] if len(strategies) > 2 else None
 
-    return ExecutionPlan(
-        selected_strategies=[_name(s) for s in strategies[:2]],
+    state["exec_plan"] = ExecutionPlan(
+        selected_strategies=[_name(strategies[0]), _name(strategies[2])] if len(strategies) > 2 else [],
         actions=[
             ExecutionAction(
                 action="Place limit order",
@@ -242,18 +247,19 @@ async def execution_planner(payload: dict) -> ExecutionPlan:
         total_capital_allocated=115000,
         max_position_size=800,
     )
+    return state
 
 
-async def risk_evaluator(payload: dict) -> RiskAssessment:
+async def risk_evaluator(state: dict) -> dict:
     """LLM actor: comprehensive risk assessment.
 
-    Reads all prior state, returns a typed RiskAssessment.
+    Reads all prior state fields. Stores a typed RiskAssessment at
+    state["risk_assessment"].
     """
-    strategies = payload.get("strategies", [])
-    exec_plan = payload.get("exec_plan", {})
-    max_pos = exec_plan.get("max_position_size", 0) if isinstance(exec_plan, dict) else getattr(exec_plan, "max_position_size", 0)
+    exec_plan = state.get("exec_plan", {})
+    max_pos = exec_plan.max_position_size if isinstance(exec_plan, ExecutionPlan) else exec_plan.get("max_position_size", 0)
 
-    return RiskAssessment(
+    state["risk_assessment"] = RiskAssessment(
         market_risk_level="moderate",
         concentration_risk_level="low",
         liquidity_risk_level="low",
@@ -265,3 +271,4 @@ async def risk_evaluator(payload: dict) -> RiskAssessment:
             "Monitor institutional flow data for early exit signals",
         ],
     )
+    return state

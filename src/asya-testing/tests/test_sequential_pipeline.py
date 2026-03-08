@@ -8,6 +8,10 @@ Covers:
 """
 
 from sequential_pipeline import (
+    ExecutionPlan,
+    MarketData,
+    RiskAssessment,
+    TradingStrategy,
     data_analyst,
     execution_planner,
     risk_evaluator,
@@ -26,12 +30,12 @@ async def test_data_analyst_populates_market_data(run_handler):
     assert payload["topic"] == "AI semiconductors"
     assert "market_data" in payload
     md = payload["market_data"]
-    assert md["topic"] == "AI semiconductors"
-    assert len(md["trends"]) == 3
-    assert "prices" in md
-    assert "news" in md
-    # upstream fields preserved
-    assert payload["topic"] == "AI semiconductors"
+    # market_data is a typed MarketData dataclass — use attribute access
+    assert isinstance(md, MarketData)
+    assert md.topic == "AI semiconductors"
+    assert len(md.trends) == 3
+    assert md.current_price > 0
+    assert len(md.news) > 0
 
 
 async def test_trading_analyst_requires_market_data(run_handler):
@@ -46,13 +50,13 @@ async def test_trading_analyst_requires_market_data(run_handler):
 
     payload = result.payload
     assert "strategies" in payload
-    assert len(payload["strategies"]) == 5
-    # entry/exit prices are derived from current price
-    for strategy in payload["strategies"]:
-        assert "name" in strategy
-        assert "entry" in strategy
-        assert "exit" in strategy
-        assert strategy["entry"] > 0
+    strategies = payload["strategies"]
+    assert len(strategies) == 5
+    # strategies is a list of typed TradingStrategy dataclasses
+    for strategy in strategies:
+        assert isinstance(strategy, TradingStrategy)
+        assert strategy.entry > 0
+        assert strategy.exit > strategy.entry
 
 
 async def test_execution_planner_selects_strategies(run_handler):
@@ -65,10 +69,12 @@ async def test_execution_planner_selects_strategies(run_handler):
     }
     result = await run_handler(execution_planner(state))
 
+    # exec_plan is a typed ExecutionPlan dataclass — use attribute access
     plan = result.payload["exec_plan"]
-    assert plan["selected_strategies"] == ["StratA", "StratC"]
-    assert len(plan["actions"]) == 3
-    assert plan["total_capital_allocated"] > 0
+    assert isinstance(plan, ExecutionPlan)
+    assert plan.selected_strategies == ["StratA", "StratC"]
+    assert len(plan.actions) == 3
+    assert plan.total_capital_allocated > 0
 
 
 async def test_risk_evaluator_produces_assessment(run_handler):
@@ -79,11 +85,12 @@ async def test_risk_evaluator_produces_assessment(run_handler):
     }
     result = await run_handler(risk_evaluator(state))
 
+    # risk_assessment is a typed RiskAssessment dataclass — use attribute access
     assessment = result.payload["risk_assessment"]
-    assert assessment["overall_risk_rating"] == "acceptable"
-    assert "market_risk" in assessment
-    assert "mitigations" in assessment
-    assert len(assessment["mitigations"]) > 0
+    assert isinstance(assessment, RiskAssessment)
+    assert assessment.overall_rating == "acceptable"
+    assert assessment.market_risk_level in ("low", "moderate", "high")
+    assert len(assessment.mitigations) > 0
 
 
 # ── Full pipeline chain ───────────────────────────────────────────────────────
@@ -93,26 +100,31 @@ async def test_full_pipeline_chain(run_handler):
     """Simulate 4 actor hops without any infrastructure."""
     state: dict = {"topic": "quantum computing"}
 
-    # Hop 1: data analyst
+    # Hop 1: data analyst — market_data stored as MarketData dataclass
     result = await run_handler(data_analyst(state))
     state = result.payload
     assert "market_data" in state
+    assert isinstance(state["market_data"], MarketData)
 
-    # Hop 2: trading analyst
+    # Hop 2: trading analyst — strategies stored as list[TradingStrategy]
     result = await run_handler(trading_analyst(state))
     state = result.payload
     assert "strategies" in state
+    assert all(isinstance(s, TradingStrategy) for s in state["strategies"])
 
-    # Hop 3: execution planner
+    # Hop 3: execution planner — exec_plan stored as ExecutionPlan
     result = await run_handler(execution_planner(state))
     state = result.payload
     assert "exec_plan" in state
+    assert isinstance(state["exec_plan"], ExecutionPlan)
 
-    # Hop 4: risk evaluator
+    # Hop 4: risk evaluator — risk_assessment stored as RiskAssessment
     result = await run_handler(risk_evaluator(state))
     state = result.payload
     assert "risk_assessment" in state
-    assert state["risk_assessment"]["overall_risk_rating"] == "acceptable"
+    assessment = state["risk_assessment"]
+    assert isinstance(assessment, RiskAssessment)
+    assert assessment.overall_rating == "acceptable"
 
     # All earlier fields still present
     assert state["topic"] == "quantum computing"
@@ -125,11 +137,14 @@ async def test_full_pipeline_function(run_handler):
     result = await run_handler(sequential_pipeline({"topic": "biotech"}))
 
     payload = result.payload
-    # All four stages must have contributed
+    # All four stages must have contributed typed values
     assert "market_data" in payload
+    assert isinstance(payload["market_data"], MarketData)
     assert "strategies" in payload
     assert "exec_plan" in payload
+    assert isinstance(payload["exec_plan"], ExecutionPlan)
     assert "risk_assessment" in payload
+    assert isinstance(payload["risk_assessment"], RiskAssessment)
 
 
 # ── Compiled start router (sync generator) ───────────────────────────────────
