@@ -4,8 +4,8 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_pydantic_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_pydantic_pipeline(p)</i></td></tr></table>>];
-  end_pydantic_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_pydantic_pipeline(p)</i></td></tr></table>>];
+  start_typed_pydantic_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_typed_pydantic_pipeline(p)</i></td></tr></table>>];
+  end_typed_pydantic_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_typed_pydantic_pipeline(p)</i></td></tr></table>>];
   ingester [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = ingester(p)</i></td></tr></table>>];
   ranker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = ranker(p)</i></td></tr></table>>];
   responder [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = responder(p)</i></td></tr></table>>];
@@ -13,7 +13,7 @@ digraph flow {
 
   ingester -> scorer;
   ranker -> responder;
-  responder -> end_pydantic_pipeline;
+  responder -> end_typed_pydantic_pipeline;
   scorer -> ranker;
-  start_pydantic_pipeline -> ingester;
+  start_typed_pydantic_pipeline -> ingester;
 }
