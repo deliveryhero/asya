@@ -33,7 +33,7 @@ All gateway routes fall into four groups:
 | Group | Routes | Audience |
 |-------|--------|----------|
 | **A2A** | `/a2a/*`, `/.well-known/agent.json` | External AI agents, orchestrators |
-| **MCP** | `/mcp`, `/mcp/sse`, `/mcp/tools/call` | LLMs, developers, `asya-lab` CLI |
+| **MCP** | `/mcp`, `/mcp/sse`, `/tools/call` | LLMs, developers, `asya-lab` CLI |
 | **Mesh** | `/mesh/{id}/progress`, `/final`, `/fly`, `/status`, `POST /mesh` | Sidecars, crew actors (internal) |
 | **Health** | `/health` | K8s probes, monitoring |
 
@@ -207,7 +207,7 @@ registered clients. Lightweight — no external auth server dependency.
 
 ### 4.3 MCP Auth Middleware
 
-Applied to `/mcp`, `/mcp/sse`, `/mcp/tools/call`:
+Applied to `/mcp`, `/mcp/sse`, `/tools/call`:
 
 ```go
 func MCPAuthMiddleware(config MCPAuthConfig) func(http.Handler) http.Handler
