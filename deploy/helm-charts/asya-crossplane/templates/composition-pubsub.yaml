@@ -12,6 +12,11 @@ spec:
     apiVersion: asya.sh/v1alpha1
     kind: XAsyncActor
   mode: Pipeline
+  environment:
+    environmentConfigs:
+      - type: Reference
+        ref:
+          name: asya-pubsub
   pipeline:
     # Extract user labels into pipeline context, filtering system prefixes
     - step: extract-user-labels
@@ -58,8 +63,9 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
-            {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
+            {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
+            {{`{{- $gcpProject := required "gcpProject is required from EnvironmentConfig asya-pubsub" (index $env "gcpProject") -}}`}}
+            {{`{{- $providerConfigRef := required "gcpProviderConfig is required from EnvironmentConfig asya-pubsub" (index $env "gcpProviderConfig") -}}`}}
             apiVersion: pubsub.gcp.upbound.io/v1beta2
             kind: Topic
             metadata:
@@ -86,8 +92,9 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
-            {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
+            {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
+            {{`{{- $gcpProject := required "gcpProject is required from EnvironmentConfig asya-pubsub" (index $env "gcpProject") -}}`}}
+            {{`{{- $providerConfigRef := required "gcpProviderConfig is required from EnvironmentConfig asya-pubsub" (index $env "gcpProviderConfig") -}}`}}
             apiVersion: pubsub.gcp.upbound.io/v1beta2
             kind: Subscription
             metadata:
@@ -184,7 +191,8 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
+            {{`{{- $gcpProject := required "gcpProject is required from EnvironmentConfig asya-pubsub" (index $env "gcpProject") -}}`}}
             {{`{{- $userLabels := dict -}}`}}
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
