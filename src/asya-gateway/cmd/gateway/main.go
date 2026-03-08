@@ -95,7 +95,8 @@ func main() {
 			os.Exit(1)
 		}
 		slog.Info("Using ConfigMap-based tool registry", "path", configPath)
-		go toolstore.Watch(ctx, configPath, registry, 5*time.Second)
+		pollInterval := getEnvDuration("ASYA_CONFIG_POLL_INTERVAL", 10*time.Second)
+		go toolstore.Watch(ctx, configPath, registry, pollInterval)
 	} else {
 		registry = toolstore.NewInMemoryRegistry()
 		slog.Info("Using in-memory tool registry (ASYA_CONFIG_PATH not set)")
@@ -334,6 +335,16 @@ func getEnvInt(key string, defaultValue int) int {
 			return parsed
 		}
 		slog.Warn("Invalid integer value, using default", "key", key, "value", value, "default", defaultValue)
+	}
+	return defaultValue
+}
+
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	if value := os.Getenv(key); value != "" {
+		if parsed, err := time.ParseDuration(value); err == nil {
+			return parsed
+		}
+		slog.Warn("Invalid duration value, using default", "key", key, "value", value, "default", defaultValue)
 	}
 	return defaultValue
 }
