@@ -1,7 +1,12 @@
 ---
 title: Strip handler decorators by actors
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
+  - branch:support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
 ---
+
 
 ## Resolution
 
