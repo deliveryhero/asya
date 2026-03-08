@@ -2,7 +2,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: advanced-scaling-actor
-  namespace: asya-e2e
+  namespace: my-project
   labels:
     app: advanced-scaling-actor
 spec:

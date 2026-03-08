@@ -5,7 +5,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: fully-configured-actor
-  namespace: asya-e2e
+  namespace: my-project
 spec:
   actor: fully-configured-actor
   transport: sqs

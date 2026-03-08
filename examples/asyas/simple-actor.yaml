@@ -8,7 +8,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: hello-actor
-  namespace: asya-e2e
+  namespace: my-project
 spec:
   # Logical actor identity for queue naming and message routing
   actor: hello-actor

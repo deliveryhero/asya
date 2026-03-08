@@ -5,7 +5,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: custom-sidecar-actor
-  namespace: asya-e2e
+  namespace: my-project
 spec:
   actor: custom-sidecar-actor
   transport: sqs

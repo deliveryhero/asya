@@ -5,7 +5,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: conda-ml-actor
-  namespace: asya-e2e
+  namespace: my-project
 spec:
   actor: conda-ml-actor
   transport: sqs

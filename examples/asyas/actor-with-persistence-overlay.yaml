@@ -18,7 +18,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: data-processor
-  namespace: asya-e2e
+  namespace: my-project
 spec:
   actor: data-processor
   transport: sqs
