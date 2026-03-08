@@ -29,6 +29,18 @@ type StateProxyMount struct {
 	WriteMode      string
 }
 
+// SecretRefKey maps a key in a Kubernetes Secret to an environment variable name
+type SecretRefKey struct {
+	Key    string // key in the Secret
+	EnvVar string // env var name in the container
+}
+
+// SecretRef holds a reference to a Kubernetes Secret and the keys to inject
+type SecretRef struct {
+	SecretName string
+	Keys       []SecretRefKey
+}
+
 // ActorConfig holds the configuration extracted from an AsyncActor resource
 type ActorConfig struct {
 	// ActorName is the name of the actor
@@ -66,4 +78,7 @@ type ActorConfig struct {
 
 	// StateProxy is the list of state proxy mount configurations
 	StateProxy []StateProxyMount
+
+	// SecretRefs is the list of Secret references to inject into the runtime container
+	SecretRefs []SecretRef
 }
