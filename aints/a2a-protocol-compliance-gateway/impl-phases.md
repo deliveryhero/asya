@@ -56,13 +56,13 @@ SendStreamingMessage, GetTask, SubscribeToTask, A2A-native FLY streaming.
 
 ## Phase 3: Advanced Features
 
-**Status**: Not started
+**Status**: Complete (all merged)
 
-| # | Ref | Task | Deps |
-|---|-----|------|------|
-| 14 | `7fuy` | Bearer/JWT authentication | T12 (`tuw5`) |
-| 15 | `qf0l` | Extended Agent Card (GetExtendedAgentCard) | T14 (`7fuy`) |
-| 16 | `tgfp` | GetTask history and artifacts from S3 | None |
+| # | Ref | Task | Deps | Status |
+|---|-----|------|------|--------|
+| 14 | `7fuy` | Bearer/JWT authentication | T12 (`tuw5`) | Merged |
+| 15 | `qf0l` | Extended Agent Card (GetExtendedAgentCard) | T14 (`7fuy`) | Merged |
+| 16 | `tgfp` | GetTask history and artifacts from S3 | None | Merged (PR #273) |
 
 ## Phase 4: Extended Protocol
 
