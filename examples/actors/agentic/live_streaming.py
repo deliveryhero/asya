@@ -10,9 +10,11 @@ FLY events bypass message queues — they travel directly via HTTP from the
 sidecar to the gateway. The downstream envelope (with the full response) is
 emitted after streaming completes.
 
-Event format (FLY payload):
-  {"type": "text_delta", "token": "<token>"}   -- partial token
-  {"type": "text_done"}                         -- end of stream
+FLY payload format (ADK-aligned):
+  {"partial": True, "text": "<token>"}   -- streaming chunk
+
+The final downstream `yield payload` acts as the non-partial (final) frame —
+no explicit "done" FLY is needed. Mirrors ADK's Event(partial=True/False).
 
 Deploy:
   ASYA_HANDLER=live_streaming.streaming_llm
@@ -37,11 +39,14 @@ async def streaming_llm(payload: dict):
 
     tokens = []
     async for token in _stream_tokens(query):
-        yield "FLY", {"type": "text_delta", "token": token}
+        # partial=True marks this as a streaming chunk — equivalent to ADK's
+        # Event(partial=True, content=Part(text=token)). Not persisted to session,
+        # not applied to state, forwarded to UI for real-time display.
+        yield "FLY", {"partial": True, "text": token}
         tokens.append(token)
 
-    yield "FLY", {"type": "text_done"}
-
+    # No explicit "done" FLY needed — the downstream yield payload below is the
+    # final (non-partial) frame, equivalent to ADK's Event(partial=False, ...).
     payload["response"] = "".join(tokens)
     yield payload
 

@@ -308,17 +308,27 @@ rather than waiting for the full response.
 async def streaming_llm(payload: dict):
     tokens = []
     async for token in call_llm_stream(payload["query"]):
-        yield "FLY", {"type": "text_delta", "token": token}  # upstream to gateway
+        # partial=True: streaming chunk, not persisted, forwarded to UI.
+        # ADK equivalent: yield Event(partial=True, content=Part(text=token))
+        yield "FLY", {"partial": True, "text": token}
         tokens.append(token)
 
-    yield "FLY", {"type": "text_done"}
+    # No explicit "done" FLY needed. The downstream yield below is the final
+    # (non-partial) frame — equivalent to ADK's Event(partial=False, ...).
     payload["response"] = "".join(tokens)
     yield payload  # downstream to next actor
 ```
 
 FLY events travel directly from sidecar → mesh gateway → client SSE. They do
-not enter the queue. The final `yield payload` is the regular downstream
-envelope that continues to the next actor in the route.
+not enter the queue. The `partial: True` flag follows ADK's convention:
+
+| ADK | Asya |
+|-----|------|
+| `Event(partial=True, content=Part(text=token))` | `yield "FLY", {"partial": True, "text": token}` |
+| `Event(partial=False, content=...)` — final response | `yield payload` — downstream frame |
+
+The downstream `yield payload` is the final non-partial event. Clients that
+mirror ADK's `event.partial` check can filter on `"partial" in event and event["partial"]`.
 
 Full example with Anthropic and OpenAI API snippets:
 `examples/actors/agentic/live_streaming.py`
@@ -607,7 +617,7 @@ tools without restarting the gateway.
 | `ParallelAgent([A, B, C])` | `asyncio.gather(A(x), B(x), C(x))` | Flow DSL |
 | `LoopAgent(sub_agents, max=5)` | `while` loop in flow DSL | Flow DSL |
 | `transfer_to_agent("X")` | `yield "SET", ".route.next", ["x"]` in generator actor | Actor (ABI) |
-| `Event(partial=True, ...)` | `yield "FLY", {"type": "text_delta", "token": t}` | Actor (ABI) |
+| `Event(partial=True, content=Part(text=t))` | `yield "FLY", {"partial": True, "text": t}` | Actor (ABI) |
 | `should_pause_invocation()` | route to `x-pause`, set `_pause_metadata` | Actor (ABI) |
 | `State` (delta-tracked) | `payload` dict (full state, JSON-serialized per hop) | Envelope |
 | `output_key` enrichment | `payload["key"] = result` | Anywhere |
