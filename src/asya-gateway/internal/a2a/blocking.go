@@ -57,8 +57,18 @@ func waitAndRelayEvents(
 		return writeTerminalEvent(ctx, reqCtx, eq, task.Status)
 	}
 
-	// Subscribe to in-process updates (fast path for same-process status changes
-	// such as task cancellation handled within this gateway instance).
+	// Subscribe to in-process terminal state changes (e.g., the in-memory timeout
+	// timer calling Update(failed) → notifyListeners). Only terminal/interrupted
+	// statuses from the subscription channel are forwarded to the event queue.
+	//
+	// Non-terminal updates are intentionally dropped here to prevent a feedback
+	// loop: forwarding a non-terminal update calls eq.Write(), which triggers
+	// StoreAdapter.Save() → internal.Update() → notifyListeners() → ch receives
+	// the same update again, overwriting the tasks table ~100x/second and
+	// preventing the mesh gateway's succeeded write from persisting.
+	//
+	// Cross-process terminal state changes (mesh gateway writing succeeded/failed)
+	// are detected by the DB poll below, which is the authoritative source.
 	ch := store.Subscribe(taskID)
 	defer store.Unsubscribe(taskID, ch)
 
@@ -77,22 +87,12 @@ func waitAndRelayEvents(
 				return nil
 			}
 
-			state := ToA2AState(update.Status)
-			evt := a2alib.NewStatusUpdateEvent(reqCtx, state, nil)
-
 			if terminalOrInterrupted(update.Status) {
-				evt.Final = true
-				if writeErr := eq.Write(ctx, evt); writeErr != nil {
-					return fmt.Errorf("write terminal event: %w", writeErr)
-				}
-				slog.Debug("Blocking wait: terminal event relayed",
+				slog.Debug("Blocking wait: terminal event relayed via subscription",
 					"task_id", taskID, "status", update.Status)
-				return nil
+				return writeTerminalEvent(ctx, reqCtx, eq, update.Status)
 			}
-
-			if writeErr := eq.Write(ctx, evt); writeErr != nil {
-				return fmt.Errorf("write relay event: %w", writeErr)
-			}
+			// Non-terminal updates are dropped — see comment above.
 
 		case <-pollTicker.C:
 			current, pollErr := store.Get(taskID)
