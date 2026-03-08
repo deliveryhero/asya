@@ -6,7 +6,7 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| □ backlog | [1fmi] | P3 | Flow/Actor DSL: tenacity.retry decorator detection and resiliency config generation | — | — | — |
+| □ backlog | [1fmi] | P3 | Compiler knowledge base: treat-as rules engine with default rule set | — | — | — |
 
 ### Recently closed
 - ✓ merged [zmuh] flow-compiler-support-single-actor-flows-without-start
