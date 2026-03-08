@@ -309,6 +309,7 @@ Walk-up merge unions lists by the `module:` key (see section 2.3).
 var:
   project_root: "."                     # resolved to repo root at load time
   image_registry: ghcr.io/org
+  router_image: python:3.13-slim       # base image for generated router actors
 
 images:
   # Python package → image + build commands
@@ -689,7 +690,7 @@ any actor that Asya deploys needs a manifest in `.asya/manifests/`.
 
 **Verbose output**:
 ```
-$ asya actor build text-analyzer --arg tag=v1
+$ asya actor build text-analyzer --local --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
 [build] Dir: /proj/src/e-commerce-package
