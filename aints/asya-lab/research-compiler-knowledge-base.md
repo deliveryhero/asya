@@ -137,15 +137,17 @@ stripped with config extracted.
 
 ### Call-Site Decorator Application
 
-The `actor` and `flow` markers can also be applied at the call site:
+The `treat-as` markers can also be applied at the call site:
 
 ```python
 p = actor(handler)(p)       # treat handler as actor (same as @actor on definition)
 p = inline(uuid4)(p)        # treat uuid4 as inline code
+p = unfold(helper)(p)       # expand helper's body into current flow
 ```
 
-The compiler recognizes `actor` and `inline` from the same rules — no separate
-"wrapper" concept. Python's decorator and call-site application are equivalent.
+The compiler recognizes `actor`, `inline`, and `unfold` from the same rules — no
+separate "wrapper" concept. Python's decorator and call-site application are
+equivalent.
 
 ### Config Extraction via Runtime Introspection
 

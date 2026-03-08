@@ -22,7 +22,7 @@ The compiler uses a declarative `treat-as` system configured in `asya.yaml`:
 
 See `.aint/aints/asya-lab/research-compiler-knowledge-base.md` for the full
 design including:
-- Five `treat-as` values: `decompose`, `inline`, `actor`, `flow`, `config`
+- Five `treat-as` values: `unfold`, `inline`, `actor`, `flow`, `config`
 - Most-specific-pattern-wins rule matching
 - Runtime `inspect.signature` for arg extraction from third-party decorators
 - Tenacity/stamina/asyncio.timeout extraction examples
@@ -30,7 +30,7 @@ design including:
 ## Implementation aints
 
 - [srn2] Decorator detection and rule-based resolution in flow compiler
-- [pyn3] Inline comment overrides for compiler rules (`# asya: actor` / `# asya: inline`)
+- [pyn3] Inline comment overrides for compiler rules (`# asya: <action>`)
 - [xx8t] Call-site decorator application: `actor(handler)(p)` pattern
 - [2t1q] Support context managers (`with`/`async with`) in flow compiler
 - [1fmi] Tenacity/stamina retry decorator extraction (backlog)

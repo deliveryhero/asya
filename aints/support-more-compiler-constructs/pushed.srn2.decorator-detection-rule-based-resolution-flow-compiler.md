@@ -44,7 +44,7 @@ To detect decorators, the compiler needs access to the function definition, not
 just the call site. This requires the "dive into functions" mechanism from [1mhs]:
 
 1. When encountering `p = handler(p)`, resolve `handler` to its definition
-2. Import the module containing `handler` (already needed for decompose)
+2. Import the module containing `handler` (already needed for unfold)
 3. Read `func.decorator_list` from the definition's AST
 4. For each decorator, resolve its name and match against compiler rules
 5. Apply the most specific matching rule
@@ -82,7 +82,7 @@ Both paths are needed for the full rules system.
 
 ### Testing
 
-- Unit: function with `@actor` decorator → treat-as-actor
+- Unit: function with `@actor` decorator → actor
 - Unit: function with `@retry(...)` → strip + extract config
 - Unit: function with multiple decorators → independent resolution
 - Unit: function with unknown decorator → keep (default)
