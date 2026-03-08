@@ -3,7 +3,9 @@ title: Add fsnotify file watcher to asya-gateway for config hot-reload
 priority: 2 # medium
 tags:
   - type:feature
+reason: "resolved by polling watcher (toolstore.Watch, 5s interval) in PR #277"
 ---
+
 
 
 
