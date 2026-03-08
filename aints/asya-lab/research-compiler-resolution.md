@@ -2,9 +2,9 @@
 
 **Date**: 2026-03-07
 **Status**: Informational
-**Context**: How the Asya compiler resolves Python handler references to build
-contexts, and how `.asya/config.yaml` maps Python packages to images and build
-strategies.
+**Context**: How the Asya compiler resolves Python handler references to
+images, and how `.asya/config.yaml` maps Python packages to OCI images and
+build commands.
 
 **Related docs**:
 - `research-no-dockerfile.md` -- WHAT builds the image (apko, buildpacks,
@@ -21,7 +21,7 @@ Build configuration is **per-Python-package**, not per-actor. Multiple actors
 can share the same image if their handlers come from the same package.
 
 ```
-Python package → build context → image
+Python package → image entry → OCI image
        ↓
   Multiple actors reference the same image
   (same image, different ASYA_HANDLER env var)
@@ -47,7 +47,7 @@ subdirectory creates a sub-project (useful for monorepos with team boundaries).
 ```
 my-project/
 ├── .asya/                        # Project root
-│   ├── config.yaml               # Project-wide build-contexts
+│   ├── config.yaml               # Project-wide images config
 │   └── manifests/                # Generated K8s manifests
 │       ├── actors/               # Single-actor manifests
 │       │   ├── file-creator.yaml
@@ -62,7 +62,7 @@ my-project/
 ├── src/
 │   ├── team-a/
 │   │   ├── .asya/                # Team A sub-project
-│   │   │   └── config.yaml       # Team A's build-contexts
+│   │   │   └── config.yaml       # Team A's images config
 │   │   └── e_commerce/
 │   └── team-b/
 │       ├── .asya/
@@ -83,13 +83,12 @@ asya flow compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
 ```
 
-### 2.3 Config Composition via Walk-Up `OmegaConf.merge()`
+### 2.3 Config Composition via Walk-Up Recursive Merge
 
-**Decision**: Implicit walk-up merge using `OmegaConf.merge()`. No explicit
-`extend:` directive. The CLI collects all `.asya/config.yaml` files from CWD
-(or flow file location) up to the repo root (`.git/`), then merges them
-root-first with `OmegaConf.merge()`. Like `.gitignore` -- just place a file
-and it participates.
+**Decision**: Implicit walk-up merge. No explicit `extend:` directive. The
+CLI collects all `.asya/config.yaml` files from CWD (or flow file location)
+up to the repo root (`.git/`), then merges them root-first. Like `.gitignore`
+-- just place a file and it participates.
 
 **Algorithm**:
 ```python
@@ -110,14 +109,40 @@ def load_effective_config(start_dir: Path) -> DictConfig:
         current = current.parent
 
     configs.reverse()  # root first, most local last
-    return OmegaConf.merge(*configs)
+    return recursive_merge(configs)
 ```
 
-**Merge semantics** (native OmegaConf behavior):
-- `defaults:` -- deep merge; local values override ancestor values
-- `build-contexts:` -- dict merge; local keys override ancestor keys,
-  ancestor-only keys are inherited
-- Most local (closest to CWD) wins on conflicts
+**Recursive merge** handles dicts and lists differently:
+- **Dicts**: deep merge (OmegaConf native). Local keys override ancestor keys.
+- **Lists of dicts**: union by key field, local wins on conflicts. The key
+  field is auto-detected: find the field present in all items with unique
+  scalar values (prefer `module` > `name` > `id` > first alphabetically).
+- **Lists of scalars**: replace (OmegaConf default).
+- Most local (closest to CWD) wins on conflicts.
+
+```python
+def recursive_merge(configs: list[DictConfig]) -> DictConfig:
+    """Merge configs with list-of-dicts union support."""
+    result = OmegaConf.create({})
+    for cfg in configs:  # root first, local last
+        for key in cfg:
+            if is_list_of_dicts(result.get(key)) and is_list_of_dicts(cfg[key]):
+                # Union by detected key field, local wins
+                key_field = detect_key_field(result[key], cfg[key])
+                merged = {item[key_field]: item for item in result[key]}
+                for item in cfg[key]:
+                    merged[item[key_field]] = item  # local overwrites
+                result[key] = list(merged.values())
+            elif OmegaConf.is_dict(result.get(key)) and OmegaConf.is_dict(cfg[key]):
+                result[key] = OmegaConf.merge(result[key], cfg[key])
+            else:
+                result[key] = cfg[key]
+    return result
+```
+
+This is the same pattern as the Asya XRD overlay Crossplane function, which
+merges lists of Crossplane resources by a key field. The merge logic can be
+shared or at least follow the same conventions.
 
 **Example**:
 
@@ -126,10 +151,10 @@ def load_effective_config(start_dir: Path) -> DictConfig:
 defaults:
   registry: ghcr.io/org
 
-build-contexts:
-  langchain:
+images:
+  - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
-  shared_utils:
+  - module: shared_utils
     context: "./libs/shared_utils"    # relative to THIS file (repo root)
     image: "${defaults.registry}/shared:${args.tag}"
     build:
@@ -141,8 +166,8 @@ build-contexts:
 # src/team-a/.asya/config.yaml (team A)
 # No extend: needed — root config is auto-discovered
 
-build-contexts:
-  e_commerce:
+images:
+  - module: e_commerce
     context: "./e_commerce"           # relative to THIS file
     image: "${defaults.registry}/ecom:${args.tag}"
     build:
@@ -166,19 +191,19 @@ the CLI runs from.
 #   Root:   context: "./libs/shared"  →  /repo/libs/shared
 #   Team-A: context: "./e_commerce"   →  /repo/src/team-a/e_commerce
 #
-# OmegaConf.merge(root_cfg, team_a_cfg) produces:
+# Recursive merge (images list unioned by `module:` key):
 ```
 
 **Effective config for team-a** (after walk-up merge):
 ```yaml
 defaults:
-  registry: ghcr.io/org          # from root
+  registry: ghcr.io/org          # from root (dict deep merge)
 
-build-contexts:
-  # From root (inherited):
-  langchain:
+images:
+  # From root (inherited, unioned by module):
+  - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
-  shared_utils:
+  - module: shared_utils
     context: "/repo/libs/shared_utils"  # resolved from root's ./libs/shared_utils
     image: "ghcr.io/org/shared:${args.tag}"
     build:
@@ -186,7 +211,7 @@ build-contexts:
       remote: "docker build -t ghcr.io/org/shared:${args.tag} . && docker push ghcr.io/org/shared:${args.tag}"
 
   # From team-a (local):
-  e_commerce:
+  - module: e_commerce
     context: "/repo/src/team-a/e_commerce"  # resolved from team-a's ./e_commerce
     image: "ghcr.io/org/ecom:${args.tag}"
     build:
@@ -221,19 +246,20 @@ directory, not in config.yaml.
 
 ### 3.2 Top-Level Structure
 
-`build-contexts` is a **dict** keyed by module name (not a list). This
-enables OmegaConf-style path traversal for variable interpolation.
+`images` is a **list** of entries, each identified by a `module:` field.
+OmegaConf relative interpolation (`${..image}`) works within list items.
+Walk-up merge unions lists by the `module:` key (see section 2.3).
 
 ```yaml
 # .asya/config.yaml
-# No extend: needed — ancestor configs are auto-discovered via walk-up merge
+# Ancestor configs are auto-discovered via walk-up merge
 
 defaults:
   registry: ghcr.io/org
 
-build-contexts:
+images:
   # Python package → image + build commands
-  e_commerce:
+  - module: e_commerce
     context: "./src/e-commerce-package"  # relative to this config file
     image: "${defaults.registry}/e-commerce:${args.tag}"
     build:
@@ -241,7 +267,7 @@ build-contexts:
       remote: "docker build -t ${..image} . && docker push ${..image}"
 
   # GPU model with apko
-  gpu_models:
+  - module: gpu_models
     context: "./src/gpu-models"
     image: "${defaults.registry}/gpu-models:${args.tag}"
     build:
@@ -249,12 +275,12 @@ build-contexts:
       remote: "shp build upload gpu-models --image ${..image}"
 
   # Third-party, never built
-  langchain:
+  - module: langchain
     image: "ghcr.io/third-party/langchain-actor:v2"
     # no context, no build — pre-built image
 
-  # Dirty DS scripts (filesystem path key, quoted)
-  "./src/notebooks/models":
+  # Dirty DS scripts (filesystem path)
+  - module: "./src/notebooks/models"
     context: "./src/notebooks/models"
     image: "${defaults.registry}/notebook-models:${args.tag}"
     build:
@@ -269,14 +295,14 @@ Python versions, builder configurations. Those are the build tool's concern
 
 ### 3.3 Field Semantics
 
-**Dict key** (module name) -- identifies Python code that maps to this build
-context.
+**`module:`** -- identifies Python code that maps to this image entry. Also
+serves as the merge key for walk-up list union (section 2.3).
 
 | Format | Example | Resolution |
 |--------|---------|------------|
 | Dotted module name | `e_commerce` | `importlib.util.find_spec()` at compile time |
 | Dotted module.class | `e_commerce.models.LargeModel` | Same, more specific |
-| Filesystem path | `"./src/scripts"` | Direct path matching (starts with `./`), quoted |
+| Filesystem path | `"./src/scripts"` | Direct path matching (starts with `./`) |
 
 **Matching rule**: Longest prefix wins. If `e_commerce` and
 `e_commerce.models.LargeModel` both exist, a handler
@@ -319,8 +345,8 @@ resolved at command time (`asya actor build --arg tag=v1`).
 defaults:
   registry: ghcr.io/org
 
-build-contexts:
-  e_commerce:
+images:
+  - module: e_commerce
     image: "${defaults.registry}/e-commerce:${args.tag}"
     #       ^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from config)
     #                                         ^^^^^^^^^^^ → v1 (from --arg)
@@ -328,7 +354,7 @@ build-contexts:
     build:
       local: "docker build -t ${..image} ."
       #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
-      # ${..image} goes up from build → e_commerce, gets resolved image
+      # ${..image} goes up from build → list item, gets resolved image
 ```
 
 ### 3.5 Build Commands Are Opaque
@@ -392,12 +418,12 @@ $ asya flow compile flows/order_processing.py
 [compile] Handler: validate_order
            → import: e_commerce.validate.validate_order
            → file: /proj/src/e-commerce-package/e_commerce/validate.py
-           → build-context: e_commerce
+           → image entry: e_commerce
            → image: ghcr.io/org/e-commerce:${args.tag}
 [compile] Handler: express_handler
            → import: e_commerce.express.express_handler
            → file: /proj/src/e-commerce-package/e_commerce/express.py
-           → build-context: e_commerce (same image)
+           → image entry: e_commerce (same image)
 [compile] Generated: .asya/manifests/flows/order-processing/
            → validate-order.yaml
            → express-handler.yaml
@@ -411,8 +437,8 @@ Flow source (AST parse)
 Handler refs: ["validate_order", "Model.predict"]
     ↓ Python import resolution (importlib.util.find_spec via detected Python)
 File paths: ["/proj/src/e-commerce-package/e_commerce/validate.py", ...]
-    ↓ match to config.yaml build-contexts (longest prefix wins)
-Build contexts: {"e_commerce" → ghcr.io/org/e-commerce:${tag}}
+    ↓ match to config.yaml images list (longest module prefix wins)
+Image entries: {"e_commerce" → ghcr.io/org/e-commerce:${args.tag}}
     ↓ generate
 Manifests: .asya/manifests/flows/<flow-name>/{router-*.yaml, actor-*.yaml}
 Router code: compiled/routers.py (with resolve() calls)
@@ -469,7 +495,7 @@ asya flow build order-processing
 
 **Resolution**:
 - `asya actor build <actor-name>` → reads manifest to find image ref →
-  matches image ref to config.yaml build-context → runs `build.local`
+  matches image ref to config.yaml `images` entry → runs `build.local`
   command in the `context` directory
 - `asya actor build --remote` → same resolution but runs `build.remote`
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
@@ -488,7 +514,7 @@ any actor that Asya deploys needs a manifest in `.asya/manifests/`.
 ```
 $ asya actor build text-analyzer --arg tag=v1
 [build] Actor: text-analyzer
-[build] Build-context: e_commerce (from manifest image ref)
+[build] Image entry: e_commerce (from manifest image ref)
 [build] Context dir: /proj/src/e-commerce-package
 [build] Image: ghcr.io/org/e-commerce:v1
 [build] Command: docker build -t ghcr.io/org/e-commerce:v1 .
@@ -563,8 +589,8 @@ my-project/
 defaults:
   registry: ghcr.io/org
 
-build-contexts:
-  e_commerce:
+images:
+  - module: e_commerce
     context: "./src/e-commerce-package"
     image: "${defaults.registry}/e-commerce:${args.tag}"
     build:
@@ -591,8 +617,8 @@ experiments/
 
 ```yaml
 # .asya/config.yaml
-build-contexts:
-  "./models":                         # Filesystem path, not importable (quoted)
+images:
+  - module: "./models"                # Filesystem path, not importable
     context: "./models"
     image: "ghcr.io/org/bert-models:${args.tag}"
     build:
@@ -649,7 +675,7 @@ def resolve_handler(handler_ref: str, python_path: str) -> str:
 - Auto-detect Python from venv / `uv run` / PATH
 - Use `importlib.util.find_spec()` (via subprocess to target Python) to resolve
   handler refs to filesystem paths
-- Match filesystem paths to `config.yaml` build-contexts
+- Match filesystem paths to `config.yaml` `images` entries
 - Remove PYTHONPATH-based module path calculation
 
 ### 6.3 DS Anti-Patterns and Asya's Stance
@@ -695,8 +721,8 @@ asya actor deploy text-analyzer  # same variables, no repetition
 defaults:
   registry: ghcr.io/org
 
-build-contexts:
-  e_commerce:
+images:
+  - module: e_commerce
     image: "${defaults.registry}/e-commerce:${args.tag}"
     #       ^^^^^^^^^^^^^^^^^ config-level (resolved first)
     #                                       ^^^^^^^^^^ runtime arg (resolved at command time)
@@ -725,7 +751,7 @@ args (`${args.*}`, `${env:*}`).
    command does. See section 3.5.
 
 3. **Router actor images**: Router actors use generated code (`routers.py`).
-   They either need their own build context or use ConfigMap injection
+   They either need their own `images` entry or use ConfigMap injection
    (current approach for `asya_runtime.py`). How do they fit in config.yaml?
 
 4. **Lock file relationship**: How does `actor-image.lock` (designed in
