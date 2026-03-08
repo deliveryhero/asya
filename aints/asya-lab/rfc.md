@@ -137,7 +137,7 @@ asya actor undeploy <actor>          # undeploy
 asya actor status <actor>            # replicas, queue depth
 asya actor logs <actor>              # stream logs
 asya actor build <actor>             # build actor image
-asya actor template <actor>          # generate manifest from config
+asya actor compile --handler <fqn>   # generate manifest for standalone actor
 # asya actor lock <actor>              # lock actor image (not now - after v0)
 ```
 
@@ -174,6 +174,7 @@ reserved for sidecar-to-gateway communication.
 | `asya flow status <flow>` | K8s API | `kubectl get asya -l asya.sh/flow=<flow>` |
 | `asya flow logs <flow>` | K8s API | `kubectl logs -l asya.sh/flow=<flow>` |
 | `asya flow deploy/undeploy` | K8s API | `kubectl apply/delete` |
+| `asya actor compile` | Local | Config + Python resolution (no K8s needed) |
 | `asya actor build` | Build tool | Opaque shell command from config.yaml |
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya msg trace <id>` | Observability | OpenTelemetry trace query |
@@ -213,46 +214,114 @@ All commands respect context, resolved in this order (highest priority first):
 
 ---
 
-## 7. Project Configuration (`.asya/config.yaml`)
+## 7. Project Configuration (`.asya/`)
 
-The project configuration lives in `.asya/config.yaml`. The `.asya/` directory
-marks the project root (like `.git/`). Created by `asya init`.
+The `.asya/` directory marks the project root (like `.git/`). Created by
+`asya init`. Configuration is split across three files, each a separate concern.
+All files are loaded into one OmegaConf DictConfig — file boundaries are for
+human organization.
 
-### 7.1 Top-Level Structure
+### 7.1 File Structure
 
-```yaml
-project_root: "."
-image_registry: ghcr.io/org
-router_image: python:3.13-slim
-
-asya:
-  build:
-    - module: e_commerce
-      path: "${project_root}/src/e-commerce-package"
-      image: "${image_registry}/e-commerce:${arg:tag}"
-      command:
-        local: "docker build -t ${..image} ."
-        remote: "docker build -t ${..image} . && docker push ${..image}"
-  
-  compile:
-    # compiler rules (treat-as, extraction config)
-  
-  template:
-    output: ".asya/manifests"
-    mode: manifests          # manifests | helm | kustomize
-    body:
-      apiVersion: asya.dev/v1alpha1
-      kind: AsyncActor
-      metadata:
-        name: "${actor:name}"
-      spec:
-        image: "${actor:image}"
-        handler: "${actor:handler}"
-        transport: sqs
-        env: "${actor:env}"
+```
+.asya/
+├── config.yaml            # variables, build mappings, compile settings
+├── compiler.yaml          # compiler treat-as rules (separate file)
+└── template.yaml          # manifest template — looks like the real CRD
 ```
 
-### 7.2 Key Design Decisions
+### 7.2 config.yaml
+
+```yaml
+var:
+  project_root: "."
+  image_registry: ghcr.io/org
+  namespace: team-one
+  transport: sqs
+  router_image: python:3.13-slim
+
+build:
+  - module: e_commerce
+    path: "${var.project_root}/src/e-commerce"
+    image: "${var.image_registry}/e-commerce:${arg:tag}"
+    command:
+      local: "docker build -t ${..image} ."
+      remote: "${.local} && docker push ${..image}"
+
+compile:
+  mode: manifests                               # manifests | helm | kustomize
+  routers: "./src/compiled/${dynamic:flow}"      # where routers.py goes
+  manifests: ".asya/manifests/${dynamic:flow}"   # where CRDs go
+```
+
+### 7.3 template.yaml
+
+Standalone YAML that looks exactly like the final output — not wrapped in a
+`body:` key. The `${dynamic:*}` holes are filled per-actor during compilation.
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "${dynamic:actor}"
+  namespace: "${var.namespace}"
+spec:
+  actor: "${dynamic:actor}"
+  transport: "${var.transport}"
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: "${arg:max_replicas,5}"
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: "${var.router_image}"
+          env:
+          - name: ASYA_HANDLER
+            value: "${dynamic:handler}"
+```
+
+### 7.4 Resolver Syntax
+
+Two families, distinguished by separator:
+
+| Syntax | Source | Resolves when |
+|--------|--------|---------------|
+| `${var.x}` | Config tree (native OmegaConf) | After merge |
+| `${..image}` | Relative parent key (native OmegaConf) | After merge |
+| `${arg:tag}` | CLI `--arg tag=v1` (custom resolver) | At command time |
+| `${arg:x,default}` | CLI with fallback (custom resolver) | At command time |
+| `${dynamic:actor}` | Compiler-computed (custom resolver) | Per actor, at compile time |
+| `${env:HOME}` | Environment variable (custom resolver) | At command time |
+
+**Rule of thumb**: dot = value is in a `.yaml` file. Colon = value is injected
+from outside. Missing values are a hard error (no silent fallback).
+
+### 7.5 `${dynamic:*}` Resolver Keys
+
+| Key | Source | Example |
+|-----|--------|---------|
+| `dynamic:actor` | Actor name, kebab-cased | `"validate-order"` |
+| `dynamic:handler` | Fully qualified Python path | `"e_commerce.validate.validate_order"` |
+| `dynamic:image` | Resolved OCI image ref | `"ghcr.io/org/e-commerce:${arg:tag}"` |
+| `dynamic:flow` | Flow name, kebab-cased | `"order-processing"` |
+| `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
+| `dynamic:timeout` | Extracted actor timeout | `"30s"` |
+| `dynamic:retry_max_attempts` | Extracted max retries | `"3"` |
+| `dynamic:retry_initial_interval` | Extracted initial backoff | `"1s"` |
+| `dynamic:retry_max_interval` | Extracted max backoff | `"300s"` |
+| `dynamic:retry_backoff_coefficient` | Extracted exponential base | `"2.0"` |
+| `dynamic:env` | All extracted env vars (list) | `[{name: ..., value: ...}]` |
+
+Resiliency values are extracted from `treat-as: config` decorators (tenacity,
+stamina, asyncio.timeout). See `research-compiler-knowledge-base.md`.
+
+These values exist only in-memory during compilation — no intermediate file.
+
+### 7.6 Key Design Decisions
 
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
@@ -260,34 +329,88 @@ asya:
   system. `command.local` and `command.remote` are shell strings with variable
   substitution. Any build tool works.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
-  Configs merge root-first (dicts deep-merge, lists concatenate).
-- **OmegaConf interpolation**: `${key}` for top-level config values, `${arg:*}` for
-  CLI args, `${actor:*}` for compiler-inferred values, `${env:*}` for env vars.
-- **Template modes**: `manifests` (raw AsyncActor XRs), `helm` (values.yaml),
+  All `.asya/*.yaml` files merge root-first (dicts deep-merge, lists
+  concatenate).
+- **Three resolver families**: `${var.*}` for config constants (native
+  OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
+  (custom resolvers). Dot = in config, colon = injected.
+- **Output modes**: `manifests` (raw AsyncActor XRs), `helm` (values.yaml),
   `kustomize` (patches). No custom plugins needed.
+- **`project_root: "."`**: Auto-resolved to absolute path at config load time
+  (relative to config file's parent directory). OmegaConf has no shell command
+  support — `"."` resolution is done by the config loader before merge.
 
 > **Full design**: `research-compiler-resolution.md` (sections 2-3: `.asya/`
-> directory, config schema, walk-up merge, variable interpolation, template
+> directory, config schema, walk-up merge, variable interpolation, output
 > modes, `asya init`).
 
 ---
 
-## 8. Five Stages
+## 8. Four Stages
 
-The lifecycle is five distinct stages:
+The lifecycle is four stages. There is no separate template stage — compile
+produces routers AND deployment files directly.
 
 | Stage | CLI | Input | Output |
 |-------|-----|-------|--------|
-| **Compile** | `asya flow compile` | flow.py + config.yaml | routers.py + metadata |
-| **Template** | `asya [flow\|actor] template` | metadata + template config | deployment files |
+| **Compile** | `asya [flow\|actor] compile` | source + .asya/*.yaml | routers.py + manifests |
 | **Build** | `asya [flow\|actor] build` | source + build commands | OCI image |
 | **Deploy** | `asya [flow\|actor] deploy` | manifests | running pods |
 | **Runtime** | (automatic) | envelope | handler response |
 
-Compile invokes template by default (`--no-template` to skip). Build and deploy
-use `--local`/`--remote` flags for execution context.
+Build and deploy use `--local`/`--remote` flags for execution context.
 
-> **Full design**: `research-compiler-resolution.md` (section 4: five stages,
+### 8.1 Compile Data Flow
+
+**`asya flow compile flows/order.py`:**
+1. Load `.asya/*.yaml` → merged OmegaConf config
+2. Parse flow AST → extract handler names
+3. Apply rules (treat-as classification)
+4. Group into routers → Router IR
+5. For each actor: resolve handler → module → build entry → image,
+   set `dynamic:*` values, stamp template.yaml → write manifest
+6. Generate routers.py → write to `compile.routers` path
+
+**`asya actor compile --handler e_commerce.validate.validate_order`:**
+1. Load `.asya/*.yaml` → merged OmegaConf config
+2. Resolve handler → module → build entry → image
+3. Set `dynamic:*` values, stamp template.yaml → write manifest
+
+Same resolution code. Flow compile adds AST parsing + router generation.
+
+### 8.2 Verbosity Levels
+
+All compile/build/deploy commands are **explicit by default** — showing exactly
+what resolved to what. No hidden resolutions.
+
+| Flag | Level | What's shown |
+|------|-------|-------------|
+| `-q` / `--quiet` | Quiet | No output (exit code only) |
+| (default) | Normal | Resolution chain, output files, commands run |
+| `-v` / `--verbose` | Verbose | + config merge trace, file paths, interpolation |
+| `-vv` | Very verbose | + AST analysis, rule matching, OmegaConf debug |
+| `-vvv` | Debug | + full OmegaConf config dump, internal state |
+
+Example (default verbosity):
+```
+$ asya flow compile flows/order_processing.py
+[compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
+[compile] Config: /.asya/config.yaml, /.asya/template.yaml (walk-up)
+[compile] Handler: validate_order
+           → import: e_commerce.validate.validate_order
+           → module: e_commerce → image: ghcr.io/org/e-commerce:${arg:tag}
+[compile] Handler: express_handler
+           → import: e_commerce.express.express_handler
+           → module: e_commerce (same image)
+[compile] Mode: manifests
+[compile] Routers → ./src/compiled/order-processing/routers.py
+[compile] Manifests → .asya/manifests/order-processing/
+           → validate-order.yaml
+           → express-handler.yaml
+           → router-start.yaml
+```
+
+> **Full design**: `research-compiler-resolution.md` (section 4: four stages,
 > Python environment detection, verbose output, resolution chain).
 
 ---
@@ -371,8 +494,9 @@ flows, the actor is cloned.
 ### 10.3 Router Actors
 
 Routers are lightweight (pure Python routing logic). They use the
-`router_image` base image with code injected via ConfigMap. No custom build
-needed. Platform engineers define a `flow-router` flavor for minimal resources.
+`${var.router_image}` base image with code injected via ConfigMap. No custom
+build needed. Platform engineers define a `flow-router` flavor for minimal
+resources.
 
 ---
 
@@ -543,9 +667,10 @@ def test_router_modifies_route(vfs_fixture):
 ### Phase 1: Core SDK + CLI restructure
 - Package creation, migration from asya-cli
 - SDK extraction (compiler, MCP client)
-- `.asya/config.yaml` schema, walk-up merge, `asya init`
-- Template stage (manifests mode)
-- Flow and actor commands (list, status, logs)
+- `.asya/` config schema (config.yaml + template.yaml + compiler.yaml),
+  walk-up merge, `asya init`
+- Compile stage with manifests mode (no separate template stage)
+- Flow and actor commands (list, status, logs, compile)
 
 ### Phase 2: Build + deploy + testing
 - `asya [flow|actor] build` (opaque commands, `--local`/`--remote`)
@@ -561,7 +686,7 @@ def test_router_modifies_route(vfs_fixture):
 
 ### Phase 4: Server + advanced features
 - `asya serve` local HTTP/WS server
-- Template modes: helm, kustomize
+- Compile output modes: helm, kustomize
 - Protocol-agnostic `asya flow call` (MCP + A2A)
 
 ---
@@ -586,13 +711,13 @@ Detailed designs that inform this RFC:
 
 | Document | Covers |
 |---|---|
-| `research-compiler-resolution.md` | `.asya/` directory, config.yaml schema, walk-up merge, OmegaConf interpolation, five stages, template modes, Python resolution |
+| `research-compiler-resolution.md` | `.asya/` directory, config schema (three files), walk-up merge, OmegaConf resolvers, four stages, output modes, Python resolution |
 | `research-compiler-knowledge-base.md` | Compiler rules engine, `treat-as` values, pattern matching, config extraction, tenacity/stamina signatures |
 | `research-no-dockerfile.md` | Build strategies (apko, buildpacks, Cog, Wolfi/distroless), comparison matrix, golden paths |
 | `research-seamless-build.md` | Build execution (local, Shipwright, CI), promotion strategies, `actor-image.lock`, two user flows |
 | `artem-research-compiler-resolution.md` | Four stages overview, compile-time resolution chain, `asya.yaml` role |
-| `adr.no-cog.md` | Decision to not use Cog as build strategy |
-| `adr.compiler-template-not-helm.md` | Template uses OmegaConf resolvers, not Helm |
+| `adr.no-cog.md` | Cog as supported GPU build path (revised) |
+| `adr.compiler-template-not-helm.md` | Output template uses OmegaConf resolvers, not Helm |
 
 ---
 
@@ -610,8 +735,8 @@ Detailed designs that inform this RFC:
 4. **Non-Python actors**: The `module:` field is Python-specific. Go actors,
    shell scripts, or pre-built images need a different matching strategy.
 
-5. **`${arg:tag}` lifecycle per template mode**: Should `${arg:*}` in template
-   body always resolve at template time, or be mode-dependent?
+5. **`${arg:tag}` lifecycle per output mode**: Should `${arg:*}` in template.yaml
+   always resolve at compile time, or be mode-dependent?
 
 6. **Lock file vs opaque builds**: Opaque build commands limit `actor-image.lock`
    to tracking final image digest, not input reproducibility. Acceptable for v1;

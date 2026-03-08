@@ -68,14 +68,13 @@ path in v1 — both deferred to v2 `build.intent` design.
 ## Usage in config.yaml
 
 ```yaml
-asya:
-  build:
-    - module: gpu_models
-      path: "${project_root}/src/gpu-models"
-      image: "${image_registry}/gpu-models:${arg:tag}"
-      command:
-        local: "cog build -t ${..image}"
-        remote: "cog build -t ${..image} && docker push ${..image}"
+build:
+  - module: gpu_models
+    path: "${var.project_root}/src/gpu-models"
+    image: "${var.image_registry}/gpu-models:${arg:tag}"
+    command:
+      local: "cog build -t ${..image}"
+      remote: "cog build -t ${..image} && docker push ${..image}"
 ```
 
 DS writes `cog.yaml` in the `path:` directory alongside their Python code.
