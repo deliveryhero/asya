@@ -508,7 +508,7 @@ spec:
         assert wait_for_asyncactor_ready(
             "test-status",
             namespace=e2e_helper.namespace,
-            timeout=120,
+            timeout=180,
         ), "AsyncActor should reach Ready phase"
 
         actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)

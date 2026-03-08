@@ -46,6 +46,43 @@ func verifySocketConnection(socketPath string) error {
 	return nil
 }
 
+// waitForGateway polls the gateway health endpoint until it responds or maxWait elapses.
+// Each attempt uses a 5-second connect timeout. On failure the loop sleeps 5 seconds
+// before the next attempt, respecting ctx cancellation. Returns nil once the gateway
+// is reachable or when ctx is canceled (graceful shutdown); returns an error only
+// when maxWait is exhausted.
+func waitForGateway(ctx context.Context, r *router.Router, maxWait time.Duration) error {
+	slog.Info("Waiting for gateway to become ready", "maxWait", maxWait)
+	start := time.Now()
+	pollInterval := 5 * time.Second
+
+	for {
+		attemptCtx, attemptCancel := context.WithTimeout(ctx, 5*time.Second)
+		err := r.CheckGatewayHealth(attemptCtx)
+		attemptCancel()
+
+		if err == nil {
+			elapsed := time.Since(start)
+			slog.Info("Gateway health check passed", "waitTime", elapsed)
+			return nil
+		}
+
+		elapsed := time.Since(start)
+		if elapsed >= maxWait {
+			return fmt.Errorf("gateway not ready after %v: %w", maxWait, err)
+		}
+
+		slog.Warn("Gateway not ready, retrying", "error", err, "elapsed", elapsed, "retryIn", pollInterval)
+		t := time.NewTimer(pollInterval)
+		select {
+		case <-ctx.Done():
+			t.Stop()
+			return nil
+		case <-t.C:
+		}
+	}
+}
+
 // waitForRuntime polls for runtime ready signal before starting message consumption
 func waitForRuntime(ctx context.Context, readyFile string, socketPath string, maxWait time.Duration) error {
 	slog.Info("Waiting for runtime to become ready", "file", readyFile, "socket", socketPath, "maxWait", maxWait)
@@ -236,17 +273,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Check gateway health if gateway URL is configured
+	// Wait for gateway to become ready if gateway URL is configured.
+	// Retries every 5 seconds up to ASYA_GATEWAY_READY_TIMEOUT (default 5m) so that
+	// actor sidecars do not enter CrashLoopBackOff when the mesh gateway pod starts
+	// concurrently (e.g. during a fresh cluster deployment or rolling upgrade).
 	if cfg.GatewayURL != "" {
 		slog.Info("Checking gateway health", "url", cfg.GatewayURL)
-		healthCtx, healthCancel := context.WithTimeout(ctx, 10*time.Second)
-		defer healthCancel()
-
-		if err := r.CheckGatewayHealth(healthCtx); err != nil {
+		gwMaxWaitStr := os.Getenv("ASYA_GATEWAY_READY_TIMEOUT")
+		gwMaxWait := 5 * time.Minute
+		if gwMaxWaitStr != "" {
+			if d, err := time.ParseDuration(gwMaxWaitStr); err == nil {
+				gwMaxWait = d
+			} else {
+				slog.Warn("Invalid format for ASYA_GATEWAY_READY_TIMEOUT, using default", "value", gwMaxWaitStr, "error", err)
+			}
+		}
+		if err := waitForGateway(ctx, r, gwMaxWait); err != nil {
 			slog.Error("Gateway health check failed - sidecar cannot start", "error", err, "gateway_url", cfg.GatewayURL)
 			os.Exit(1)
 		}
-		slog.Info("Gateway health check passed")
 	} else {
 		slog.Info("No gateway configured, skipping gateway health check")
 	}
