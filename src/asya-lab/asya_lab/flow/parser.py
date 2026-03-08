@@ -386,7 +386,8 @@ class FlowParser:
         if treat_as == "config":
             # Extract args from each context manager and record them
             for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
-                assert rule is not None  # guaranteed by earlier None-check loop
+                if rule is None:
+                    raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
                 extracted_args = self._extract_ctx_args(item.context_expr, rule)
                 self.extracted_configs.append({"symbol": sym, "args": extracted_args})
             # Strip the with wrapper; return body ops directly
