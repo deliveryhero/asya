@@ -2,6 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-03-06
+**Amended**: 2026-03-08 — polling chosen over fsnotify (see "Watcher implementation" below)
 **Context**: Gateway flow exposure design (brainstorming session)
 **Supersedes**: `expose-flows-to-gateway/` epic (DB-backed `POST /mesh/expose` approach)
 **Related**: A2A RFC section 8.4 (Registration API), section 13.4 (Tools Table)
@@ -12,7 +13,7 @@
 
 Exposed flows (MCP tools and A2A skills) are stored in a **Kubernetes ConfigMap**
 (`gateway-flows`), not in PostgreSQL. The gateway reads the ConfigMap via a
-mounted volume and watches for changes with fsnotify. The write path goes through
+mounted volume and watches for changes via polling. The write path goes through
 `kubectl` (via `asya flow expose` CLI), which inherits K8s RBAC for free.
 
 PostgreSQL remains solely for task execution state (status, progress, context).
@@ -56,7 +57,7 @@ DS laptop                        K8s API                    Gateway pod (xN)
    |   gateway-flows                |-- K8s RBAC check           |
    |<-- OK ------------------------|                            |
    |                                |-- kubelet sync (~60s) ---->|
-   |                                |                            |-- fsnotify
+   |                                |                            |-- polling watcher
    |                                |                            |-- reload YAML -> cache
 ```
 
@@ -247,14 +248,43 @@ asya flow unexpose order-processing --context k8s-stg
 
 ## Gateway Changes
 
+### Watcher implementation
+
+**Amendment (2026-03-08)**: The original design specified a watcher using
+`inotify`/`fsnotify`. After implementation, **polling was chosen instead**.
+
+Kubernetes ConfigMap volume mounts do not use in-place file writes. When kubelet
+syncs a ConfigMap it performs an **atomic symlink swap**:
+
+```
+/etc/asya/flows/
+  flows.yaml  →  ..data/flows.yaml           (symlink)
+  ..data      →  ..2026_03_08_10_00_00.xyz/  (symlink, atomically replaced)
+```
+
+`inotify` watches inodes. The symlink swap fires `IN_DELETE`+`IN_CREATE` on
+`..data`, not `IN_MODIFY` on `flows.yaml`. Correctly tracking this requires
+watching the parent directory and following the symlink chain — significant extra
+complexity, and a known source of bugs in projects using `fsnotify` with
+ConfigMap mounts (e.g. `controller-runtime` certwatcher).
+
+`os.ReadDir` + `stat` naturally follow symlinks on every call, making polling
+immune to this problem. Cost is ~3 syscalls per interval, all served from the
+kernel's dentry cache (no disk I/O). At the default 10 s interval this is
+negligible — and there is no point reacting faster than kubelet's own sync
+period (~60 s default).
+
+Poll interval is configurable via `ASYA_CONFIG_POLL_INTERVAL` (Go duration
+string, e.g. `"10s"`, `"30s"`). Default: `10s`.
+
 ### What Changes
 
 - `toolstore.Registry` reads from YAML files instead of PostgreSQL
-- Add fsnotify watcher on mounted config directory (~30 LOC)
-- Reload YAML into in-memory atomic cache on file change (debounce 500ms)
+- Polling watcher on mounted config directory (`toolstore.Watch`, ~40 LOC); FNV-64a hash of name+mtime+size detects changes
+- Reload YAML into in-memory atomic cache on fingerprint change
 - Remove `tools` DB table and migration
 - `POST /mesh/expose` removed (write path is kubectl)
-- `GET /mesh/expose` kept as read-only endpoint (returns current flows from cache)
+- `GET /mesh/expose` removed (not served by any mode; mesh pod has no registry)
 - Agent Card regenerated on each reload from `a2a:`-enabled flows
 
 ### What Stays Unchanged
@@ -272,7 +302,7 @@ asya flow unexpose order-processing --context k8s-stg
    control access with standard Roles and RoleBindings.
 2. **Gateway stays K8s-unaware** -- no ServiceAccount permissions, no API access,
    no informers. Reads mounted files only.
-3. **Simple implementation** -- fsnotify watcher is ~30 LOC. YAML loader is ~50 LOC.
+3. **Simple implementation** -- polling watcher is ~40 LOC. YAML loader is ~50 LOC.
    No DB migrations, no HTTP write handlers, no auth middleware.
 4. **GitOps compatible** -- ConfigMap YAML can be stored in git, applied by
    ArgoCD/FluxCD. Full audit trail via git history.
@@ -339,7 +369,7 @@ The following sections of the A2A RFC (`rfc.md`) are affected:
 - **Section 13.4 (Tools Table)**: The `tools` PostgreSQL table is superseded by
   the `gateway-flows` ConfigMap. No DB migration needed for tools.
 - **Section 8.1 (Agent Card)**: Agent Card refresh trigger changes from
-  POST/DELETE on `/mesh/expose` to fsnotify file change events.
+  POST/DELETE on `/mesh/expose` to polling-detected ConfigMap changes.
 
 See patch notes in `rfc.md` for details.
 
@@ -363,5 +393,5 @@ After implementation, the YAML schema and behavior must be documented in
 ## Related Aints
 
 - `[zmuh]` -- Flow compiler: support single-actor flows without start router
-- `[1fiy]` -- Add fsnotify file watcher to asya-gateway for config hot-reload
+- `[1fiy]` -- Add fsnotify file watcher to asya-gateway (resolved: polling used instead)
 - `[1f9j]` -- Implement `asya flow deploy`/`undeploy`/`expose` CLI commands

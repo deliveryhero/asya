@@ -1638,9 +1638,10 @@ Served at `GET /.well-known/agent.json`. Generated dynamically from the
 | `ASYA_A2A_PUBLIC_URL` | Base URL for `supportedInterfaces` | Required |
 
 **Refresh**: Agent Card is regenerated whenever the flow registry changes.
-The gateway watches the mounted `gateway-flows` ConfigMap via fsnotify; on
-reload, flows with an `a2a:` section are mapped to `AgentSkill` entries in the
-Agent Card. Cached in memory via atomic pointer swap.
+The gateway watches the mounted `gateway-flows` ConfigMap via a polling watcher
+(`toolstore.Watch`, interval configurable via `ASYA_CONFIG_POLL_INTERVAL`, default
+10 s); on reload, flows with an `a2a:` section are mapped to `AgentSkill` entries
+in the Agent Card. Cached in memory via atomic pointer swap.
 
 > **NOTE (2026-03-06)**: A2A discoverability is dynamic, not static. The Agent
 > Card `skills` list is generated from the `gateway-flows` ConfigMap (source of
@@ -1749,7 +1750,8 @@ be designed and the gateway to support `blocking` mode first (Phase 2).
 > `adr.configmap-flow-registry.md` for the full design. The write path is now
 > `kubectl patch configmap gateway-flows` (via `asya flow expose` CLI), which
 > inherits K8s RBAC. The gateway reads the ConfigMap via a mounted volume and
-> watches for changes with fsnotify. `POST /mesh/expose` is removed;
+> watches for changes via polling (`ASYA_CONFIG_POLL_INTERVAL`, default 10 s).
+`POST /mesh/expose` is removed;
 > `GET /mesh/expose` is kept as read-only. The `tools` DB table (section 13.4)
 > is also superseded — PostgreSQL stores only task execution state.
 
