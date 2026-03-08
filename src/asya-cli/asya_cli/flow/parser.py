@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import ast
+import re
 
 from asya_cli.flow.errors import FlowCompileError
 from asya_cli.flow.ir import (
     ActorCall,
+    AsyaDirective,
     Break,
     Condition,
     Continue,
@@ -19,6 +21,16 @@ from asya_cli.flow.ir import (
     TryExcept,
     WhileLoop,
 )
+
+
+# Pattern for inline compiler directives: # asya: treat-as-<action> [name=<value>]
+_DIRECTIVE_RE = re.compile(r"#\s*asya:\s*treat-as-(\w+)(?:\s+name=(\S+))?")
+
+# Valid treat-as actions
+_VALID_TREAT_AS = frozenset({"actor", "inline", "flow", "decompose", "config"})
+
+# Actions not yet implemented by the compiler
+_UNSUPPORTED_TREAT_AS = frozenset({"flow", "decompose", "config"})
 
 
 # Parameter names accepted in flow function signatures.
@@ -58,6 +70,29 @@ class FlowParser:
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
+        self._source_lines: list[str] = source_code.splitlines()
+        self._directives: dict[int, AsyaDirective] = self._extract_directives()
+
+    def _extract_directives(self) -> dict[int, AsyaDirective]:
+        """Scan source lines for # asya: treat-as-* directives.
+
+        Returns a mapping from 1-based line number to AsyaDirective.
+        Raises FlowCompileError for unknown treat-as actions.
+        """
+        directives: dict[int, AsyaDirective] = {}
+        for lineno, line in enumerate(self._source_lines, 1):
+            match = _DIRECTIVE_RE.search(line)
+            if match is None:
+                continue
+            action = match.group(1)
+            name = match.group(2)
+            if action not in _VALID_TREAT_AS:
+                raise FlowCompileError(
+                    f"{self.filename}:{lineno}: Unknown directive '# asya: treat-as-{action}'. "
+                    f"Valid actions: {', '.join(sorted(_VALID_TREAT_AS))}"
+                )
+            directives[lineno] = AsyaDirective(treat_as=action, name=name)
+        return directives
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -154,6 +189,18 @@ class FlowParser:
             if isinstance(value, ast.Await):
                 value = value.value
             if isinstance(value, ast.Call):
+                directive = self._directives.get(stmt.lineno)
+                if directive is not None:
+                    if directive.treat_as in _UNSUPPORTED_TREAT_AS:
+                        raise FlowCompileError(
+                            f"{self.filename}:{stmt.lineno}: "
+                            f"'# asya: treat-as-{directive.treat_as}' is not yet supported"
+                        )
+                    if directive.treat_as == "inline":
+                        # Embed the call inline in the router instead of dispatching to an actor queue
+                        code = ast.unparse(stmt)
+                        return [Mutation(lineno=stmt.lineno, code=code)]
+                    # treat-as-actor: handled in _parse_actor_call (applies name override)
                 return [self._parse_actor_call(stmt)]
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
@@ -247,7 +294,11 @@ class FlowParser:
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
 
-        return ActorCall(lineno=stmt.lineno, name=actor_name)
+        directive = self._directives.get(stmt.lineno)
+        if directive is not None and directive.treat_as == "actor" and directive.name is not None:
+            actor_name = directive.name
+
+        return ActorCall(lineno=stmt.lineno, name=actor_name, directive=directive)
 
     def _parse_if(self, stmt: ast.If) -> list[IROperation]:
         test = ast.unparse(stmt.test)

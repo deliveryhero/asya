@@ -11,8 +11,15 @@ class IROperation:
 
 
 @dataclass
+class AsyaDirective:
+    treat_as: str  # actor, inline, flow, decompose, config
+    name: str | None = None  # optional actor name override (treat-as-actor only)
+
+
+@dataclass
 class ActorCall(IROperation):
     name: str
+    directive: AsyaDirective | None = None
 
 
 @dataclass
