@@ -156,7 +156,7 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    path: "${const.project_root}/libs/shared_utils"
+    dir: "${const.project_root}/libs/shared_utils"
     image: "${const.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -169,13 +169,13 @@ images:
 
 images:
   - module: e_commerce
-    path: "./e_commerce"           # relative to THIS file
+    dir: "./e_commerce"           # relative to THIS file
     image: "${const.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**Path resolution**: Two styles coexist for the `path:` field:
+**Path resolution**: Two styles coexist for the `dir:` field:
 - **`${const.project_root}/...`** -- repo-root-relative via interpolation.
   Stays as interpolation reference through merge, resolved lazily at use
   time. Portable across machines.
@@ -196,8 +196,8 @@ inherit it via walk-up merge and can reference it as
 #
 # Path resolution:
 #   Root:   project_root: "."  →  resolved to /repo at load time
-#   Root:   path: "${const.project_root}/libs/shared"  →  stays as interpolation
-#   Team-A: path: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
+#   Root:   dir: "${const.project_root}/libs/shared"  →  stays as interpolation
+#   Team-A: dir: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
 #
 # Recursive merge (images list unioned by `module:` key):
 ```
@@ -213,7 +213,7 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    path: "${const.project_root}/libs/shared_utils"   # portable interpolation
+    dir: "${const.project_root}/libs/shared_utils"   # portable interpolation
     image: "${const.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -221,7 +221,7 @@ images:
 
   # From team-a (local):
   - module: e_commerce
-    path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
+    dir: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
     image: "${const.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -250,7 +250,7 @@ answer two questions:
 
 Asya works WITH build systems (Docker, apko, buildpacks, Shipwright, CI
 pipelines), not as a replacement for them. Build tool configuration
-(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the `path:`
+(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the `dir:`
 directory, not in config.yaml.
 
 ### 3.2 Top-Level Structure
@@ -270,7 +270,7 @@ const:
 images:
   # Python package → image + build commands
   - module: e_commerce
-    path: "${const.project_root}/src/e-commerce-package"
+    dir: "${const.project_root}/src/e-commerce-package"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -278,7 +278,7 @@ images:
 
   # GPU model with apko
   - module: gpu_models
-    path: "${const.project_root}/src/gpu-models"
+    dir: "${const.project_root}/src/gpu-models"
     image: "${const.image_registry}/gpu-models:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
@@ -291,17 +291,17 @@ images:
 
   # Dirty DS scripts (filesystem path)
   - module: "./src/notebooks/models"
-    path: "./src/notebooks/models"
+    dir: "./src/notebooks/models"
     image: "${const.image_registry}/notebook-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**What's in**: module → path → image → build commands. That's it.
+**What's in**: module → dir → image → build commands. That's it.
 
 **What's NOT in**: Strategy names, lock file paths, requirements paths,
 Python versions, builder configurations. Those are the build tool's concern
-(inside the Dockerfile, apko.yaml, etc. in the `path:` directory).
+(inside the Dockerfile, apko.yaml, etc. in the `dir:` directory).
 
 ### 3.3 Field Semantics
 
@@ -318,7 +318,7 @@ serves as the merge key for walk-up list union (section 2.3).
 `e_commerce.models.LargeModel` both exist, a handler
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
-**`path:`** -- directory where the build command runs (CWD). Relative paths
+**`dir:`** -- directory where the build command runs (CWD). Relative paths
 are resolved to absolute before merge. Can use `${const.project_root}/...`
 for repo-root-relative paths (stays as interpolation through merge).
 
@@ -364,7 +364,7 @@ const:
 
 images:
   - module: e_commerce
-    path: "${const.project_root}/src/e-commerce"
+    dir: "${const.project_root}/src/e-commerce"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     #       ^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from const)
     #                                              ^^^^^^^^^^^ → v1  (from --arg)
@@ -514,13 +514,13 @@ asya flow build order-processing
 **Resolution**:
 - `asya actor build <actor-name>` → reads manifest to find image ref →
   matches image ref to config.yaml `images` entry → runs `build.local`
-  command in the `path:` directory
+  command in the `dir:` directory
 - `asya actor build --remote` → same resolution but runs `build.remote`
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
-No Python resolution happens at build time -- the `path:` value is taken
+No Python resolution happens at build time -- the `dir:` value is taken
 directly from config.yaml. Asya just runs the shell command with variable
 substitution.
 
@@ -533,7 +533,7 @@ any actor that Asya deploys needs a manifest in `.asya/manifests/`.
 $ asya actor build text-analyzer --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
-[build] Path: /proj/src/e-commerce-package
+[build] Dir: /proj/src/e-commerce-package
 [build] Image: ghcr.io/org/e-commerce:v1
 [build] Command: docker build -t ghcr.io/org/e-commerce:v1 .
 [build] Running in /proj/src/e-commerce-package ...
@@ -610,7 +610,7 @@ const:
 
 images:
   - module: e_commerce
-    path: "${const.project_root}/src/e-commerce-package"
+    dir: "${const.project_root}/src/e-commerce-package"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
@@ -638,7 +638,7 @@ experiments/
 # .asya/config.yaml
 images:
   - module: "./models"                # Filesystem path, not importable
-    path: "./models"
+    dir: "./models"
     image: "ghcr.io/org/bert-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
