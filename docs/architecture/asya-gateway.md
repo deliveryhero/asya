@@ -19,20 +19,42 @@
 
 ## Deployment
 
-Deployed as separate Deployment in actor namespace:
+The gateway binary supports three modes via `ASYA_GATEWAY_MODE`:
+
+| Mode | Routes | Use |
+|------|--------|-----|
+| `api` | A2A, MCP, OAuth, health | External-facing; behind Ingress |
+| `mesh` | Mesh routes, health | Internal-only; ClusterIP, no Ingress |
+| `testing` | All routes | Local development and integration tests |
+
+Production deployments use **two Helm releases** from the same chart:
 
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yaml
+# External-facing API gateway (with Ingress)
+helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+  --set mode=api \
+  -f gateway-values.yaml
+
+# Internal mesh gateway (ClusterIP only, no Ingress)
+helm install asya-gateway-mesh deploy/helm-charts/asya-gateway/ \
+  --set mode=mesh \
+  -f gateway-mesh-values.yaml
 ```
 
-**Gateway is stateful**: Requires PostgreSQL database for task tracking.
+Both releases share the same container image and PostgreSQL database. Sidecars
+and crew actors reach the mesh deployment via in-cluster DNS:
+`asya-gateway-mesh.<namespace>.svc.cluster.local`.
+
+**Gateway is stateful**: Requires PostgreSQL database for task tracking and
+(when OAuth is enabled) for OAuth client/token storage.
 
 ## Configuration
 
-Configured via Helm values or config file:
+Configured via Helm values. Key sections:
 
 ```yaml
 # gateway-values.yaml
+mode: api  # api | mesh | testing
 config:
   sqsRegion: "us-east-1"
   postgresHost: "postgres.default.svc.cluster.local"
@@ -40,46 +62,57 @@ config:
   postgresPasswordSecretRef:
     name: postgres-secret
     key: password
-routes:
-  tools:
-  - name: text-processor
-    description: Process text with LLM
-    parameters:
-      text:
-        type: string
-        required: true
-      model:
-        type: string
-        default: "gpt-4"
-    route: ["preprocess", "llm-infer", "postprocess"]
 ```
 
-**See**: `src/asya-gateway/config/README.md` for complete config reference.
+Tool/skill registration is **DB-backed**: tools are registered dynamically via
+the tool store API, not via static YAML. See `src/asya-gateway/config/README.md`
+for the complete configuration reference.
+
+**See also**: `docs/internal/gateway-security.md` for all auth-related env vars
+(`ASYA_A2A_API_KEY`, `ASYA_MCP_OAUTH_*`, etc.).
 
 ## API Endpoints
 
-Gateway exposes both **MCP-compliant** and **REST** endpoints.
+**See**: `docs/internal/gateway-api-spec.md` for the full API reference with complete request/response schemas for all routes.
 
-### MCP Endpoints
 
-**Standard MCP protocol** (recommended):
+
+Routes are split across the two deployments. Authentication requirements are
+described in `docs/internal/gateway-security.md`.
+
+### External API routes (`mode: api`)
+
+#### MCP endpoints
+
 ```bash
-POST /mcp
-# MCP request/response format
-# Uses mark3labs/mcp-go server implementation
+POST /mcp        # MCP Streamable HTTP transport (recommended)
+GET  /mcp/sse    # MCP SSE transport (for clients that require SSE)
+POST /tools/call # MCP tool invocation (REST convenience path)
 ```
 
-**Legacy SSE endpoint** (deprecated):
+Both `/mcp` and `/mcp/sse` are active transports — neither is deprecated. Use
+whichever your MCP client supports.
+
 ```bash
-/mcp/sse
-# Deprecated, use POST /mcp instead
+GET  /.well-known/agent.json   # A2A Agent Card (public, no auth)
+POST /a2a/                     # A2A JSON-RPC endpoint
 ```
 
-### REST Endpoints
+OAuth 2.1 endpoints (when `ASYA_MCP_OAUTH_ENABLED=true`):
 
-Simpler REST API for tool calls without MCP protocol overhead.
+```bash
+GET  /.well-known/oauth-protected-resource    # RFC 9728 resource metadata
+GET  /.well-known/oauth-authorization-server  # RFC 8414 server metadata
+POST /oauth/register                          # Dynamic Client Registration
+GET  /oauth/authorize                         # Authorization Code endpoint
+POST /oauth/token                             # Token exchange and refresh
+```
 
-#### Call Tool (REST)
+### Mesh routes (`mode: mesh`)
+
+Called exclusively by sidecars and crew actors within the cluster.
+
+#### Call Tool (REST, external api mode)
 
 ```bash
 POST /tools/call
@@ -193,7 +226,7 @@ Response (inactive - HTTP 410 Gone):
 {"active": false}
 ```
 
-### Internal Endpoints (Sidecar/Crew)
+### Mesh endpoints (Sidecar/Crew, `mode: mesh`)
 
 #### Report Progress
 
@@ -315,6 +348,27 @@ Response: `OK`
           default: 1000
   route: [validate, llm-infer, postprocess]
 ```
+
+## Security
+
+The gateway implements protocol-native authentication on external routes and
+network-level isolation for mesh routes. No auth code runs on mesh routes —
+they are unreachable from outside the cluster by design.
+
+| Route group | Auth mechanism |
+|-------------|---------------|
+| A2A (`/a2a/`) | API key (`X-API-Key`) or JWT Bearer — configured via `ASYA_A2A_*` env vars |
+| MCP (`/mcp`, `/mcp/sse`, `/tools/call`) | API key Bearer or OAuth 2.1 token — configured via `ASYA_MCP_*` env vars |
+| Mesh (`/mesh/…`) | None — ClusterIP only, unreachable externally |
+| Well-known + health | Always public |
+
+OAuth 2.1 tokens carry `mcp:invoke` / `mcp:read` scope claims; per-endpoint
+scope enforcement is post-v0 (tokens are authenticated but scopes are not yet
+checked per operation).
+
+**See**: `docs/internal/gateway-security.md` for the complete security reference:
+deployment model rationale, env var table, OAuth 2.1 flow walkthrough, and
+NetworkPolicy examples.
 
 ## Using MCP tools
 **See**: [For Data Scientists](../quickstart/for-data-scientists.md#using-mcp-tools) for instructions how to test MCP locally.
