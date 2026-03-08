@@ -1,0 +1,19 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_typed_dataclass_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_typed_dataclass_pipeline(p)</i></td></tr></table>>];
+  end_typed_dataclass_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_typed_dataclass_pipeline(p)</i></td></tr></table>>];
+  classifier [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = classifier(p)</i></td></tr></table>>];
+  enricher [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = enricher(p)</i></td></tr></table>>];
+  extractor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = extractor(p)</i></td></tr></table>>];
+  formatter [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = formatter(p)</i></td></tr></table>>];
+
+  classifier -> enricher;
+  enricher -> formatter;
+  extractor -> classifier;
+  formatter -> end_typed_dataclass_pipeline;
+  start_typed_dataclass_pipeline -> extractor;
+}
