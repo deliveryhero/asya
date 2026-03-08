@@ -83,21 +83,43 @@ asya flow compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
 ```
 
-### 2.3 Config Inheritance via `extend:`
+### 2.3 Config Composition via Walk-Up `OmegaConf.merge()`
 
-**Decision**: Explicit inheritance via `extend:` (like `tsconfig.json`
-`extends`). No implicit merging -- each config is standalone unless it
-explicitly extends a parent.
+**Decision**: Implicit walk-up merge using `OmegaConf.merge()`. No explicit
+`extend:` directive. The CLI collects all `.asya/config.yaml` files from CWD
+(or flow file location) up to the repo root (`.git/`), then merges them
+root-first with `OmegaConf.merge()`. Like `.gitignore` -- just place a file
+and it participates.
 
-```yaml
-# src/team-a/.asya/config.yaml
-extend: /.asya/config.yaml           # extend root config
+**Algorithm**:
+```python
+from omegaconf import OmegaConf
 
-build-contexts:
-  e_commerce:
-    context: "./e_commerce"           # relative to THIS file
-    image: "${defaults.registry}/ecom:${args.tag}"
+def load_effective_config(start_dir: Path) -> DictConfig:
+    """Walk up from start_dir, collect and merge all .asya/config.yaml files."""
+    configs = []
+    current = start_dir.resolve()
+    repo_root = find_git_root(current)
+
+    while current >= repo_root:
+        cfg_path = current / ".asya" / "config.yaml"
+        if cfg_path.exists():
+            cfg = OmegaConf.load(cfg_path)
+            resolve_relative_paths(cfg, base_dir=cfg_path.parent.parent)
+            configs.append(cfg)
+        current = current.parent
+
+    configs.reverse()  # root first, most local last
+    return OmegaConf.merge(*configs)
 ```
+
+**Merge semantics** (native OmegaConf behavior):
+- `defaults:` -- deep merge; local values override ancestor values
+- `build-contexts:` -- dict merge; local keys override ancestor keys,
+  ancestor-only keys are inherited
+- Most local (closest to CWD) wins on conflicts
+
+**Example**:
 
 ```yaml
 # /.asya/config.yaml (root, platform engineers)
@@ -115,47 +137,49 @@ build-contexts:
       remote: "docker build -t ${..image} . && docker push ${..image}"
 ```
 
-**`extend:` path syntax**:
-- `/path` -- absolute from repo root (directory containing `.git/`)
-- `./path` -- relative to the config file containing the `extend:`
+```yaml
+# src/team-a/.asya/config.yaml (team A)
+# No extend: needed — root config is auto-discovered
 
-**Merge behavior**:
-- `defaults:` -- deep merge; local values override extended values
-- `build-contexts:` -- union by dict key; if same key appears in
-  both, **local wins** (child overrides parent entirely)
-- Without `extend:` -- config is fully standalone, no parent entries visible
-
-**Path resolution**: All paths (`context:`, `build:` sub-paths) are relative
-to the config file that **defines** them, not the file that extends them.
-This means a root config entry `context: "./libs/shared_utils"` always
-resolves to `{repo-root}/libs/shared_utils`, regardless of which team config
-extends it.
-
-```
-# Example resolution:
-#
-# /.asya/config.yaml defines:
-#   context: "./libs/shared_utils"  →  /libs/shared_utils
-#
-# src/team-a/.asya/config.yaml extends /.asya/config.yaml
-# The shared_utils context still resolves to /libs/shared_utils
-# NOT to src/team-a/libs/shared_utils
-#
-# Team A's own entry:
-#   context: "./e_commerce"  →  src/team-a/e_commerce
+build-contexts:
+  e_commerce:
+    context: "./e_commerce"           # relative to THIS file
+    image: "${defaults.registry}/ecom:${args.tag}"
+    build:
+      local: "docker build -t ${..image} ."
 ```
 
-**Effective config for team-a** (after extend + merge):
+**Path resolution**: All paths (`context:`) are relative to the config file
+that **defines** them. Before merging, the CLI resolves all relative paths
+to absolute paths. This means a root config entry `context: "./libs/shared"`
+always resolves to `{repo-root}/libs/shared`, regardless of which directory
+the CLI runs from.
+
+```
+# Example: running from src/team-a/flows/
+#
+# Walk-up finds:
+#   1. /.asya/config.yaml           (root)
+#   2. src/team-a/.asya/config.yaml (local)
+#
+# Before merge, relative paths are resolved:
+#   Root:   context: "./libs/shared"  →  /repo/libs/shared
+#   Team-A: context: "./e_commerce"   →  /repo/src/team-a/e_commerce
+#
+# OmegaConf.merge(root_cfg, team_a_cfg) produces:
+```
+
+**Effective config for team-a** (after walk-up merge):
 ```yaml
 defaults:
   registry: ghcr.io/org          # from root
 
 build-contexts:
-  # From root (extended):
+  # From root (inherited):
   langchain:
     image: "ghcr.io/third-party/langchain:v2"
   shared_utils:
-    context: "/libs/shared_utils"  # resolved from root's ./libs/shared_utils
+    context: "/repo/libs/shared_utils"  # resolved from root's ./libs/shared_utils
     image: "ghcr.io/org/shared:${args.tag}"
     build:
       local: "docker build -t ghcr.io/org/shared:${args.tag} ."
@@ -163,9 +187,20 @@ build-contexts:
 
   # From team-a (local):
   e_commerce:
-    context: "src/team-a/e_commerce"  # resolved from team-a's ./e_commerce
+    context: "/repo/src/team-a/e_commerce"  # resolved from team-a's ./e_commerce
     image: "ghcr.io/org/ecom:${args.tag}"
+    build:
+      local: "docker build -t ghcr.io/org/ecom:${args.tag} ."
 ```
+
+**Why not explicit `extend:`?**
+- OmegaConf has no YAML-level include/extend mechanism -- it's a value
+  interpolation library, not a config composition one
+- Hydra's `defaults:` list solves a different problem (experiment config group
+  selection), and conflicts with our `defaults:` for default values
+- Walk-up merge is simpler: no `extend:` paths to maintain, no cycles to
+  detect, no cross-tree references to resolve
+- `.gitignore`-style accumulation is familiar and predictable
 
 ---
 
@@ -191,8 +226,7 @@ enables OmegaConf-style path traversal for variable interpolation.
 
 ```yaml
 # .asya/config.yaml
-
-extend: /.asya/config.yaml              # optional, inherit from parent config
+# No extend: needed — ancestor configs are auto-discovered via walk-up merge
 
 defaults:
   registry: ghcr.io/org
@@ -249,8 +283,8 @@ context.
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
 **`context:`** -- filesystem root for build operations. Paths are relative to
-the config.yaml file that defines them (important for `extend:`). The build
-command runs with this directory as CWD.
+the config.yaml file that defines them (resolved to absolute before merge).
+The build command runs with this directory as CWD.
 
 **`image:`** -- OCI image reference template with interpolation.
 
@@ -352,7 +386,9 @@ resolutions. Example:
 ```
 $ asya flow compile flows/order_processing.py
 [compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
-[compile] Config: .asya/config.yaml
+[compile] Config (walk-up merge):
+           1. /.asya/config.yaml (root)
+           2. src/team-a/.asya/config.yaml (local)
 [compile] Handler: validate_order
            → import: e_commerce.validate.validate_order
            → file: /proj/src/e-commerce-package/e_commerce/validate.py
@@ -680,8 +716,9 @@ args (`${args.*}`, `${env:*}`).
 
 ## 8. Open Questions
 
-1. ~~**Config merging semantics**~~: Resolved. Explicit `extend:` with
-   union + local-wins merge. See section 2.3.
+1. ~~**Config merging semantics**~~: Resolved. Walk-up `OmegaConf.merge()`
+   with root-first, local-wins ordering. No explicit `extend:`. See
+   section 2.3.
 
 2. ~~**Build strategy awareness vs generic CLI**~~: Resolved. Opaque shell
    commands with variable substitution. Asya has zero knowledge of what the
