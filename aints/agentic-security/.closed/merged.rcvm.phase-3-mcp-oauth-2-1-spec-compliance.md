@@ -7,6 +7,7 @@ tags:
 ---
 
 
+
 Full MCP authorization spec compliance with OAuth 2.1 + PKCE. See rfc.md section 7, Phase 3.
 
 ## Scope
