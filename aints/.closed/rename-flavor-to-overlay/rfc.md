@@ -16,7 +16,7 @@ The replacement term is **overlay**. The rationale:
 | **K8s ecosystem echo** | Kustomize established "overlay" for partial configs merged on top of a base. Platform engineers already carry this mental model. |
 | **Ordering intuition** | "Overlays are stacked, later wins" — matches the left-to-right merge order exactly. |
 | **No ecosystem collision** | Unlike "patch" (Crossplane's own `patches:` field), "overlay" has no naming conflict in the Crossplane pipeline. |
-| **Config, not behavior** | Unlike "mixin" (adds methods in Python/Ruby) or "trait" (OAM behaviors), "overlay" clearly denotes layered configuration data. |
+| **Config, not behavior** | Unlike "rmixin" (adds methods in Python/Ruby) or "trait" (OAM behaviors), "overlay" clearly denotes layered configuration data. |
 
 ### 2. Merge Order Clarification
 
