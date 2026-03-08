@@ -42,6 +42,19 @@ Inline comment syntax simplified: `# asya: actor` / `# asya: inline` (no `treat-
 Regex pattern: `#\s*asya:\s*(\w+)(?:\s+name=(\S+))?`
 PR #280 was updated to reflect this.
 
+Final action vocabulary (all five values):
+
+| Action | Meaning |
+|--------|---------|
+| `actor` | Message boundary, remote dispatch |
+| `flow` | Sub-flow, compile recursively |
+| `unfold` | Expand function body into current flow |
+| `inline` | Keep call as-is in router code |
+| `config` | Strip and extract infrastructure metadata |
+
+Note: `decompose` (old name) → `unfold`. PR #280 implements `actor` and `inline`;
+`flow`, `unfold`, `config` are recognized but raise "not yet implemented".
+
 ## Original context
 
 See [1mhs] - it supports custom decorators `@actor`.
