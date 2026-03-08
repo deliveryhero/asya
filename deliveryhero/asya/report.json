@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "9d8f2eae689d746f1ed588d8750c5444aa4394dc",
+  "commit": "51395baf4719e9cacccf59575a5340535f68376d",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -23249,13 +23249,13 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 31503,
+    "code": 31914,
     "test": 21905,
     "code_files": [
       {
-        "code": 914,
-        "comment": 164,
-        "blank": 240,
+        "code": 940,
+        "comment": 175,
+        "blank": 246,
         "path": "deploy/helm-charts/asya-crossplane/files/asya_runtime.py",
         "language": "Python"
       },
@@ -23750,6 +23750,27 @@
         "language": "Python"
       },
       {
+        "code": 42,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/typed_dataclass_pipeline/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 51,
+        "comment": 43,
+        "blank": 25,
+        "path": "examples/flows/compiled/typed_dict_pipeline/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 40,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/typed_pydantic_pipeline/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 84,
         "comment": 47,
         "blank": 33,
@@ -24034,6 +24055,27 @@
         "comment": 0,
         "blank": 0,
         "path": "examples/flows/try_except_simple.py",
+        "language": "Python"
+      },
+      {
+        "code": 63,
+        "comment": 82,
+        "blank": 37,
+        "path": "examples/flows/typed_dataclass_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 85,
+        "comment": 95,
+        "blank": 39,
+        "path": "examples/flows/typed_dict_pipeline.py",
+        "language": "Python"
+      },
+      {
+        "code": 78,
+        "comment": 91,
+        "blank": 47,
+        "path": "examples/flows/typed_pydantic_pipeline.py",
         "language": "Python"
       },
       {
@@ -24716,9 +24758,9 @@
         "language": "Python"
       },
       {
-        "code": 914,
-        "comment": 164,
-        "blank": 240,
+        "code": 940,
+        "comment": 175,
+        "blank": 246,
         "path": "src/asya-runtime/asya_runtime.py",
         "language": "Python"
       },
@@ -25748,6 +25790,6 @@
       }
     ]
   },
-  "test_execution_time": 341000000000,
-  "timestamp": "2026-03-08T20:48:08.909734881Z"
+  "test_execution_time": 321000000000,
+  "timestamp": "2026-03-08T21:31:09.013634507Z"
 }
