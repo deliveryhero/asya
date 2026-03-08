@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
   - branch:a2a-protocol-compliance-gateway/zaai.configmap-toolstore-adr-impl
+  - pr:277
 ---
+
 
 
 Implement the accepted ADR (`adr.configmap-flow-registry.md`): replace the
