@@ -11,11 +11,6 @@ spec:
     apiVersion: asya.sh/v1alpha1
     kind: XAsyncActor
   mode: Pipeline
-  environment:
-    environmentConfigs:
-      - type: Reference
-        ref:
-          name: asya-sqs
   pipeline:
     # Extract user labels into pipeline context, filtering system prefixes
     - step: extract-user-labels
@@ -62,9 +57,8 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
-            {{`{{- $region := required "awsRegion is required from EnvironmentConfig asya-sqs" (index $env "awsRegion") -}}`}}
-            {{`{{- $providerConfigRef := required "awsProviderConfig is required from EnvironmentConfig asya-sqs" (index $env "awsProviderConfig") -}}`}}
+            {{`{{- $region := `}}{{ .Values.awsRegion | quote }}{{` -}}`}}
+            {{`{{- $providerConfigRef := `}}{{ .Values.awsProviderConfig.name | quote }}{{` -}}`}}
             apiVersion: sqs.aws.upbound.io/v1beta1
             kind: Queue
             metadata:
@@ -228,8 +222,7 @@ spec:
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
-            {{`{{- $region := required "awsRegion is required from EnvironmentConfig asya-sqs" (index $env "awsRegion") -}}`}}
+            {{`{{- $region := `}}{{ .Values.awsRegion | quote }}{{` -}}`}}
             {{`{{- $queueURL := "" -}}`}}
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}
