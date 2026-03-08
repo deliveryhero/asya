@@ -332,7 +332,7 @@ spec:
                               - type: Percent
                                 value: 100
                                 periodSeconds: 60
-                      {{`{{- if and $advanced (hasKey $advanced "formula") }}`}}
+                      {{`{{- if and $advanced (hasKey $advanced "formula") (hasKey $advanced "target") }}`}}
                       scalingModifiers:
                         formula: {{`{{ $advanced.formula | quote }}`}}
                         target: {{`{{ $advanced.target | quote }}`}}

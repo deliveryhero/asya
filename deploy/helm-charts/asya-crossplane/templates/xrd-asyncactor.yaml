@@ -120,6 +120,13 @@ spec:
                             - AverageValue
                             - Value
                             - Utilization
+                      oneOf:
+                        - not:
+                            required:
+                              - formula
+                        - required:
+                            - formula
+                            - target
 
                 workload:
                   type: object
