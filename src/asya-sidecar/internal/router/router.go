@@ -153,8 +153,8 @@ func (r *Router) isMeshStatusEnabled(msg *envelopes.Envelope) bool {
 	if r.progressReporter == nil {
 		return false
 	}
-	if v, ok := msg.Headers["x-asya-mesh-status"]; ok {
-		if s, ok := v.(string); ok && s == "off" {
+	if v, ok := msg.Headers[envelopes.HeaderMeshStatus]; ok {
+		if s, ok := v.(string); ok && s == envelopes.MeshStatusOff {
 			slog.Debug("Skipping mesh status reporting: x-asya-mesh-status=off", "id", msg.ID)
 			return false
 		}

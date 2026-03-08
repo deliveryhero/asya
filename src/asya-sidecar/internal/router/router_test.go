@@ -3917,14 +3917,14 @@ func TestRouter_IsMeshStatusEnabled(t *testing.T) {
 			name:     "disabled: x-asya-mesh-status=off",
 			hasGW:    true,
 			msgID:    "abc123",
-			headers:  map[string]interface{}{"x-asya-mesh-status": "off"},
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: envelopes.MeshStatusOff},
 			expected: false,
 		},
 		{
 			name:     "enabled: x-asya-mesh-status with value other than off",
 			hasGW:    true,
 			msgID:    "abc123",
-			headers:  map[string]interface{}{"x-asya-mesh-status": "on"},
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: "on"},
 			expected: true,
 		},
 		{
@@ -3938,7 +3938,7 @@ func TestRouter_IsMeshStatusEnabled(t *testing.T) {
 			name:     "disabled: x-asya-mesh-status=off with other headers present",
 			hasGW:    true,
 			msgID:    "abc123",
-			headers:  map[string]interface{}{"x-asya-mesh-status": "off", "other": "header"},
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: envelopes.MeshStatusOff, "other": "header"},
 			expected: false,
 		},
 	}
@@ -4010,7 +4010,7 @@ func TestRouter_StealthMode_NoGatewayRequests(t *testing.T) {
 			Next: []string{"next-actor"},
 		},
 		Headers: map[string]interface{}{
-			"x-asya-mesh-status": "off",
+			envelopes.HeaderMeshStatus: envelopes.MeshStatusOff,
 		},
 		Payload: json.RawMessage(`{"data": "test"}`),
 	}
