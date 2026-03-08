@@ -12,6 +12,7 @@ tags:
 ---
 
 
+
 ## Motivation
 
 Actors working with A2A protocol types (via `a2a-python` or custom pydantic models)
