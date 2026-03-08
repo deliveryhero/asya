@@ -1045,6 +1045,87 @@ model, warming up a connection pool, or reading a configuration file. The
         <span class="k">return</span> <span class="n">state</span>
 </code></pre></div>
 <hr />
+<h2 id="typed-outputs-and-the-json-boundary">Typed outputs and the JSON boundary<a class="headerlink" href="#typed-outputs-and-the-json-boundary" title="Permanent link">&para;</a></h2>
+<p>Asya actors communicate through JSON-serialized envelopes. A typed Python
+object (pydantic model, dataclass) that one actor writes into <code>state</code> is
+serialized to JSON before it reaches the next actor. The next actor's handler
+receives a plain <code>dict</code>, not a typed object.</p>
+<p>This shapes two rules:</p>
+<p><strong>Rule 1: actors can store typed objects as outputs</strong> — the runtime's
+<code>_json_default</code> hook serializes them automatically. No <code>.model_dump()</code> or
+<code>dataclasses.asdict()</code> needed in the adapter.</p>
+<p><strong>Rule 2: incoming <code>state</code> values are always plain dicts</strong> — treat every
+value you read from <code>state</code> as a dict (or a primitive). Never use attribute
+access on an incoming state value.</p>
+<h3 id="storing-typed-results-correct">Storing typed results (correct)<a class="headerlink" href="#storing-typed-results-correct" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">ScoredCandidate</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
+    <span class="n">text</span><span class="p">:</span> <span class="nb">str</span>
+    <span class="n">score</span><span class="p">:</span> <span class="nb">float</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">scorer</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Incoming value from previous actor — it&#39;s a list of dicts, not typed objects</span>
+    <span class="n">candidates</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;candidates&quot;</span><span class="p">]</span>
+
+    <span class="c1"># Domain function produces typed objects</span>
+    <span class="n">results</span> <span class="o">=</span> <span class="k">await</span> <span class="n">score_all</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">],</span> <span class="n">candidates</span><span class="p">)</span>
+
+    <span class="c1"># Store typed results — the runtime serializes them on forward</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span>     <span class="c1"># list[ScoredCandidate] → JSON automatically</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<h3 id="reading-incoming-typed-looking-values-correct">Reading incoming typed-looking values (correct)<a class="headerlink" href="#reading-incoming-typed-looking-values-correct" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ranker</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># state[&quot;scores&quot;] is a list of plain dicts — it crossed a JSON boundary</span>
+    <span class="c1"># Use [&quot;key&quot;] access, not attribute access</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]</span>
+    <span class="n">sorted_scores</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">scores</span><span class="p">,</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">s</span><span class="p">[</span><span class="s2">&quot;score&quot;</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;ranked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">sorted_scores</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<h3 id="reconstructing-typed-objects-from-incoming-dicts">Reconstructing typed objects from incoming dicts<a class="headerlink" href="#reconstructing-typed-objects-from-incoming-dicts" title="Permanent link">&para;</a></h3>
+<p>When your domain function requires typed inputs, reconstruct them inside the
+adapter using <code>model_validate</code> or direct construction:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ranker</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># Reconstruct typed objects from the incoming dicts</span>
+    <span class="n">scores</span> <span class="o">=</span> <span class="p">[</span><span class="n">ScoredCandidate</span><span class="o">.</span><span class="n">model_validate</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]]</span>
+
+    <span class="c1"># Domain function works with typed inputs</span>
+    <span class="n">ranked</span> <span class="o">=</span> <span class="n">rank</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span>
+
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;ranked&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">ranked</span>     <span class="c1"># ScoredCandidate list → JSON automatically</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<h3 id="the-wrong-pattern">The wrong pattern<a class="headerlink" href="#the-wrong-pattern" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">ranker</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># WRONG: state[&quot;scores&quot;][0] is a dict after crossing the JSON boundary</span>
+    <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;scores&quot;</span><span class="p">]:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">score</span><span class="p">)</span>           <span class="c1"># AttributeError: &#39;dict&#39; object has no attribute &#39;score&#39;</span>
+</code></pre></div>
+<h3 id="summary-of-the-boundary-rule">Summary of the boundary rule<a class="headerlink" href="#summary-of-the-boundary-rule" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Location</th>
+<th>Type of value</th>
+<th>Access pattern</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Output from this actor</td>
+<td>Any Python object</td>
+<td>Store directly — runtime serializes</td>
+</tr>
+<tr>
+<td>Input to this actor</td>
+<td>Always <code>dict</code> / primitive</td>
+<td>Use <code>["key"]</code> or <code>model_validate</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
 <h2 id="testing-adapters-locally">Testing adapters locally<a class="headerlink" href="#testing-adapters-locally" title="Permanent link">&para;</a></h2>
 <p>Because adapters are plain Python functions, you test them with plain pytest —
 no Asya runtime, no queues, no Docker.</p>
@@ -1162,6 +1243,14 @@ in one process. The behavior is identical because adapters are pure Python.</p>
 <tr>
 <td>Class adapter</td>
 <td>One-time initialization (model loading, connection pool)</td>
+</tr>
+<tr>
+<td>Typed outputs</td>
+<td>Store pydantic/dataclass results in state — runtime serializes automatically</td>
+</tr>
+<tr>
+<td>Reconstruct on input</td>
+<td>Use <code>Model.model_validate(state["field"])</code> when domain fn needs typed args</td>
 </tr>
 </tbody>
 </table></div>
@@ -1475,6 +1564,46 @@ testable anywhere Python runs, and easy to understand.</p>
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Adapter inside a class
+        </a>
+        
+        
+
+        
+        <a href="#typed-outputs-and-the-json-boundary"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Typed outputs and the JSON boundary
+        </a>
+        
+        
+        <a href="#storing-typed-results-correct"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Storing typed results (correct)
+        </a>
+        
+        <a href="#reading-incoming-typed-looking-values-correct"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Reading incoming typed-looking values (correct)
+        </a>
+        
+        <a href="#reconstructing-typed-objects-from-incoming-dicts"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Reconstructing typed objects from incoming dicts
+        </a>
+        
+        <a href="#the-wrong-pattern"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            The wrong pattern
+        </a>
+        
+        <a href="#summary-of-the-boundary-rule"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Summary of the boundary rule
         </a>
         
         
