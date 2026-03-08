@@ -10,6 +10,7 @@ tags:
 
 
 
+
 Write clean, implementation-accurate internal documentation for the gateway security model.
 The RFC and research docs are design-time artifacts; this task produces the canonical reference
 used by contributors and operators.
