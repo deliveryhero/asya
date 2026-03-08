@@ -5,11 +5,11 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ◑ pushed | [srn2] | P2 | Decorator detection and rule-based resolution in flow compiler | — | — | #280 |
+| ◑ pushed | [pyn3] | P2 | Inline comment overrides for compiler rules (# asya: <action>) | `.worktrees/support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as` | `support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as` | #278 |
 | ◑ pushed | [2t1q] | P2 | Support context managers (with/async with) in flow compiler | `.worktrees/support-more-compiler-constructs/2t1q.support-context-managers-with-async-with-flow-compiler` | `support-more-compiler-constructs/2t1q.support-context-managers-with-async-with-flow-compiler` | #281 |
+| ◑ pushed | [srn2] | P2 | Decorator detection and rule-based resolution in flow compiler | — | — | #280 |
 | ◑ pushed | [n67c] | P2 | Strip handler decorators by actors | `.worktrees/support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors` | `support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors` | #280 |
 | ◑ pushed | [xx8t] | P2 | Call-site decorator application: actor(handler)(p) pattern | — | — | #280 |
-| ◑ pushed | [pyn3] | P2 | Inline comment overrides for compiler rules (# asya: <action>) | `.worktrees/support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as` | `support-more-compiler-constructs/pyn3.inline-comment-overrides-compiler-rules-asya-treat-as` | #278 |
 
 ### Recently closed
 - ✓ merged [1mhs] dive-into-function-calls
