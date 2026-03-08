@@ -1247,22 +1247,24 @@ func TestInjector_Inject_SecretRefs(t *testing.T) {
 		}
 	}
 
-	if sel, ok := secretEnvs["OPENAI_API_KEY"]; !ok {
-		t.Error("OPENAI_API_KEY not injected into runtime container")
-	} else {
-		if sel.Name != "openai-creds" {
-			t.Errorf("expected secret name 'openai-creds', got %q", sel.Name)
-		}
-		if sel.Key != "api_key" {
-			t.Errorf("expected key 'api_key', got %q", sel.Key)
-		}
+	expectedSecrets := map[string]corev1.SecretKeySelector{
+		"OPENAI_API_KEY": {LocalObjectReference: corev1.LocalObjectReference{Name: "openai-creds"}, Key: "api_key"},
+		"OPENAI_ORG_ID":  {LocalObjectReference: corev1.LocalObjectReference{Name: "openai-creds"}, Key: "org_id"},
 	}
-
-	if sel, ok := secretEnvs["OPENAI_ORG_ID"]; !ok {
-		t.Error("OPENAI_ORG_ID not injected into runtime container")
-	} else {
-		if sel.Key != "org_id" {
-			t.Errorf("expected key 'org_id', got %q", sel.Key)
+	if len(secretEnvs) != len(expectedSecrets) {
+		t.Errorf("expected %d secret envs, got %d", len(expectedSecrets), len(secretEnvs))
+	}
+	for name, expected := range expectedSecrets {
+		actual, ok := secretEnvs[name]
+		if !ok {
+			t.Errorf("expected env var %q was not injected", name)
+			continue
+		}
+		if actual.Name != expected.Name {
+			t.Errorf("env var %q: expected secret name %q, got %q", name, expected.Name, actual.Name)
+		}
+		if actual.Key != expected.Key {
+			t.Errorf("env var %q: expected key %q, got %q", name, expected.Key, actual.Key)
 		}
 	}
 

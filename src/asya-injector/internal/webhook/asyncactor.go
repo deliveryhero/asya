@@ -3,6 +3,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -211,34 +212,43 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	// Extract secretRefs
 	secretRefsRaw, secretRefsFound, _ := unstructured.NestedSlice(spec, "secretRefs")
 	if secretRefsFound {
-		for _, sr := range secretRefsRaw {
+		actorName := asyncActor.GetName()
+		actorNS := asyncActor.GetNamespace()
+		for i, sr := range secretRefsRaw {
 			srMap, ok := sr.(map[string]interface{})
 			if !ok {
+				slog.Warn("secretRefs entry is not a map, skipping", "actor", actorName, "namespace", actorNS, "index", i)
 				continue
 			}
 			ref := injection.SecretRef{}
 			ref.SecretName, _, _ = unstructured.NestedString(srMap, "secretName")
 			if ref.SecretName == "" {
+				slog.Warn("secretRefs entry has empty secretName, skipping", "actor", actorName, "namespace", actorNS, "index", i)
 				continue
 			}
 			keysRaw, keysFound, _ := unstructured.NestedSlice(srMap, "keys")
 			if keysFound {
-				for _, k := range keysRaw {
+				for j, k := range keysRaw {
 					kMap, ok := k.(map[string]interface{})
 					if !ok {
+						slog.Warn("secretRefs key entry is not a map, skipping", "actor", actorName, "namespace", actorNS, "secretName", ref.SecretName, "keyIndex", j)
 						continue
 					}
 					key := injection.SecretRefKey{}
 					key.Key, _, _ = unstructured.NestedString(kMap, "key")
 					key.EnvVar, _, _ = unstructured.NestedString(kMap, "envVar")
-					if key.Key != "" && key.EnvVar != "" {
-						ref.Keys = append(ref.Keys, key)
+					if key.Key == "" || key.EnvVar == "" {
+						slog.Warn("secretRefs key entry missing key or envVar, skipping", "actor", actorName, "namespace", actorNS, "secretName", ref.SecretName, "key", key.Key, "envVar", key.EnvVar)
+						continue
 					}
+					ref.Keys = append(ref.Keys, key)
 				}
 			}
-			if len(ref.Keys) > 0 {
-				config.SecretRefs = append(config.SecretRefs, ref)
+			if len(ref.Keys) == 0 {
+				slog.Warn("secretRefs entry has no valid keys, skipping", "actor", actorName, "namespace", actorNS, "secretName", ref.SecretName)
+				continue
 			}
+			config.SecretRefs = append(config.SecretRefs, ref)
 		}
 	}
 
