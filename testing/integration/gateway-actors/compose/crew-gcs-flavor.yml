@@ -1,9 +1,9 @@
-# Overlay: GCS state proxy connectors for crew actors
+# Flavor: GCS state proxy connectors for crew actors
 #
 # Adds gcs-buffered-lww state proxy connectors for x-sink and x-sump actors,
 # enabling checkpointer persistence to fake-gcs-server in integration tests.
 #
-# Used via: docker compose -f profiles/pubsub-gcs.yml -f compose/crew-gcs-overlay.yml up
+# Used via: docker compose -f profiles/pubsub-gcs.yml -f compose/crew-gcs-flavor.yml up
 
 x-logging: &default-logging
   driver: "json-file"

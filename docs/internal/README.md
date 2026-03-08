@@ -9,7 +9,7 @@ decisions that would otherwise require re-reading large PRs.
 | Document | Covers |
 |----------|--------|
 | [testing-transport.md](testing-transport.md) | Transport backends across all test levels: unit mocks, component/integration Docker Compose profiles, E2E Kind cluster wiring, Pub/Sub emulator OAuth workaround, skip logic, how to add a new transport |
-| [testing-state-proxy.md](testing-state-proxy.md) | State proxy / storage backends across all test levels: moto vs unittest.mock, component profiles, integration GCS overlay, E2E NodePort mapping, connector image loading, crew chart `persistence.*` values, how to add a new backend |
+| [testing-state-proxy.md](testing-state-proxy.md) | State proxy / storage backends across all test levels: moto vs unittest.mock, component profiles, integration GCS flavor, E2E NodePort mapping, connector image loading, crew chart `persistence.*` values, how to add a new backend |
 
 ## What belongs here
 

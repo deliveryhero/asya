@@ -145,9 +145,9 @@ Run:
 make -C testing/integration/gateway-actors test-one ASYA_TRANSPORT=pubsub ASYA_STORAGE=gcs
 ```
 
-The GCS profile requires an overlay (`compose/crew-gcs-overlay.yml`) that
+The GCS profile requires an flavor (`compose/crew-gcs-flavor.yml`) that
 configures the x-sink crew actor to use the GCS connector instead of the default
-S3 connector. This overlay is added automatically when `ASYA_STORAGE=gcs`.
+S3 connector. This flavor is added automatically when `ASYA_STORAGE=gcs`.
 
 ## E2E Tests: Kind Cluster
 
@@ -234,15 +234,15 @@ input (XAsyncActor)
   → render-queue                 # creates the queue/topic managed resource
   → render-sa                    # creates ServiceAccount (IRSA/workload identity)
   → fetch-environment-configs    # reads EnvironmentConfigs by label selector
-  → function-asya-overlays       # merges overlays → context["asya/resolved-spec"]
+  → function-asya-flavors       # merges flavors → context["asya/resolved-spec"]
   → render-scaledobject          # reads context["asya/resolved-spec"] for KEDA
   → render-deployment            # reads context["asya/resolved-spec"] for containers
   → function-auto-ready          # sets READY condition
 ```
 
-**Bug pattern to avoid**: All three steps that touch overlay data must agree on
-the context key. `function-asya-overlays` writes `"asya/resolved-spec"`.
-Using `"asya.sh/resolved-spec"` in a downstream step silently drops all overlay
+**Bug pattern to avoid**: All three steps that touch flavor data must agree on
+the context key. `function-asya-flavors` writes `"asya/resolved-spec"`.
+Using `"asya.sh/resolved-spec"` in a downstream step silently drops all flavor
 data — `$resolvedSpec` is always empty. This was the root cause of #258.
 
 ### Pub/Sub emulator: non-obvious wiring
@@ -338,7 +338,7 @@ timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.
   `profiles/.env.<transport>-<storage>` (pytest env vars using `127.0.0.1:<nodePort>`)
 - Add Crossplane composition `composition-<transport>.yaml` — use
   `"asya/resolved-spec"` (not `"asya.sh/resolved-spec"`) in all steps that read
-  overlay data; select the correct KEDA trigger type
+  flavor data; select the correct KEDA trigger type
 - Wire the injector to set transport-specific env vars on sidecar containers
 - Grep existing tests for `ASYA_TRANSPORT` and `transport == "sqs"` — add new
   transport branches or skip conditions as needed
