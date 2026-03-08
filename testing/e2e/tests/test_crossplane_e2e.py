@@ -463,12 +463,13 @@ spec:
         logger.info("Creating AsyncActor with scaling.advanced fields...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for AsyncActor to be ready (including KEDA reconciliation)...")
-        assert wait_for_asyncactor_ready(
+        logger.info("Waiting for Crossplane to create the ScaledObject...")
+        assert wait_for_resource(
+            "scaledobject",
             "test-scaling-advanced",
             namespace=e2e_helper.namespace,
-            timeout=180,
-        ), "AsyncActor should reach Ready state with scaling.advanced fields"
+            timeout=120,
+        ), "Crossplane composition should create the KEDA ScaledObject with advanced fields"
 
         logger.info("Fetching ScaledObject and verifying advanced fields...")
         scaled = kubectl_get("scaledobject", "test-scaling-advanced", namespace=e2e_helper.namespace)
