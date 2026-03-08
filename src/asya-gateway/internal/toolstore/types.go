@@ -31,6 +31,7 @@ type FlowsFile struct {
 type FlowConfig struct {
 	Name        string         `yaml:"name"`
 	Entrypoint  string         `yaml:"entrypoint"`
+	RouteNext   []string       `yaml:"route_next,omitempty"`
 	Description string         `yaml:"description"`
 	TimeoutSec  *int           `yaml:"timeout,omitempty"`
 	MCP         *MCPFlowConfig `yaml:"mcp,omitempty"`
@@ -65,6 +66,7 @@ func flowConfigToTool(f FlowConfig) (Tool, error) {
 	t := Tool{
 		Name:        f.Name,
 		Actor:       f.Entrypoint,
+		RouteNext:   f.RouteNext,
 		Description: f.Description,
 		TimeoutSec:  f.TimeoutSec,
 	}

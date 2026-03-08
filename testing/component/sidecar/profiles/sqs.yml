@@ -10,7 +10,6 @@ include:
 - path: ../../../shared/compose/sqs.yml
 - path: ../../../shared/compose/minio.yml
 - path: ../../../shared/compose/postgres.yml
-- path: ../../../shared/compose/tool-seed.yml
 
 - path: ../compose/testing-actors.yml
   env_file: .env.sqs
@@ -26,14 +25,15 @@ services:
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
       ASYA_GATEWAY_PORT: 8080
       ASYA_GATEWAY_MODE: testing
+      ASYA_CONFIG_PATH: /etc/asya/flows
+    volumes:
+    - ../../../shared/compose/configs/gateway-flows.yaml:/etc/asya/flows/flows.yaml:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
       retries: 10
     depends_on:
-      tool-seed:
-        condition: service_completed_successfully
       sqs:
         condition: service_healthy
 

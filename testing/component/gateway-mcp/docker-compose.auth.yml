@@ -2,18 +2,6 @@ include:
 - path: ../../shared/compose/postgres.yml
 
 services:
-  tool-seed:
-    image: postgres:16-alpine
-    restart: "no"
-    depends_on:
-      postgres-migrate:
-        condition: service_completed_successfully
-    environment:
-    - PGPASSWORD=postgres
-    volumes:
-    - ./config/tools-seed.sql:/seed.sql:ro
-    command: ["psql", "-h", "postgres", "-U", "postgres", "-d", "asya_test", "-f", "/seed.sql"]
-
   # Asya Gateway with MCP API key authentication enabled
   asya-gateway:
     build:
@@ -27,8 +15,11 @@ services:
     - ASYA_LOG_LEVEL=${ASYA_LOG_LEVEL:-INFO}
     - ASYA_GATEWAY_MODE=testing
     - ASYA_MCP_API_KEY=${MCP_API_KEY}
+    - ASYA_CONFIG_PATH=/etc/asya/flows
+    volumes:
+    - ./config/flows.yaml:/etc/asya/flows/flows.yaml:ro
     depends_on:
-      tool-seed:
+      postgres-migrate:
         condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8089/health"]

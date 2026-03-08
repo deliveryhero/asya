@@ -8,7 +8,6 @@ include:
 - path: ../../../shared/compose/postgres.yml
 - path: ../../../shared/compose/rabbitmq.yml
 - path: ../../../shared/compose/minio.yml
-- path: ../../../shared/compose/tool-seed.yml
 - path: ../../../shared/compose/asya/testing-actors.yml
 - path: ../../../shared/compose/asya/crew-actors.yml
 - path: ../compose/tester-py.yml
@@ -24,14 +23,15 @@ services:
       ASYA_LOG_LEVEL: ${ASYA_LOG_LEVEL:-INFO}
       ASYA_GATEWAY_PORT: 8080
       ASYA_GATEWAY_MODE: testing
+      ASYA_CONFIG_PATH: /etc/asya/flows
+    volumes:
+    - ../../../shared/compose/configs/gateway-flows.yaml:/etc/asya/flows/flows.yaml:ro
     healthcheck:
       test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
       interval: 5s
       timeout: 3s
       retries: 10
     depends_on:
-      tool-seed:
-        condition: service_completed_successfully
       rabbitmq:
         condition: service_healthy
 

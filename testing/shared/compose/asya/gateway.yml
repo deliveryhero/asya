@@ -20,8 +20,11 @@ services:
       ASYA_GATEWAY_MODE: testing
       # Shared with x-sink so GetTask can serve history from persisted envelopes.
       ASYA_PERSISTENCE_MOUNT: /tmp/checkpoints/results
+      # Flow registry: ConfigMap-based YAML hot-reload
+      ASYA_CONFIG_PATH: /etc/asya/flows
     volumes:
     - asya-checkpoints-results:/tmp/checkpoints/results:ro
+    - ../configs/gateway-flows.yaml:/etc/asya/flows/flows.yaml:ro
     ports:
     - "8081:8080"
     healthcheck:

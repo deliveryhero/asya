@@ -11,7 +11,6 @@ include:
 - path: ../../../shared/compose/rabbitmq.yml
 - path: ../../../shared/compose/minio.yml
 - path: ../../../shared/compose/postgres.yml
-- path: ../../../shared/compose/tool-seed.yml
 # Asya components:
 - path: ../../../shared/compose/asya/testing-actors.yml
   env_file: .env.rabbitmq-minio
@@ -28,8 +27,6 @@ services:
       rabbitmq:
         condition: service_healthy
       queue-setup:
-        condition: service_completed_successfully
-      tool-seed:
         condition: service_completed_successfully
 
   tester:
