@@ -75,7 +75,8 @@ OAuth endpoints (registered when `ASYA_MCP_OAUTH_ENABLED=true`):
 |------|------|-------------|
 | `POST /mesh` | Network isolation | Create task from sidecar |
 | `POST /mesh/expose` | Network isolation | Expose flow route (SSE) |
-| `GET/POST /mesh/{id}/…` | Network isolation | Per-task progress, fly, final-status |
+| `GET /mesh/{id}/…`  | Network isolation | Per-task status, stream, and active check |
+| `POST /mesh/{id}/…` | Network isolation | Per-task progress, final status, and fly events |
 | `GET /health` | Public | Liveness/readiness probe |
 
 > **Note on A2A discovery path**: The `a2asrv` library registers the Agent Card
@@ -244,8 +245,8 @@ PKCE (`code_challenge_method=S256`) is required for all clients.
 
 `/oauth/register` is public by default. To restrict it, set
 `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` — callers must then supply
-`Authorization: Bearer <registration-token>` to register. Leave empty only if
-the endpoint is network-restricted (not exposed to the internet).
+`Authorization: Bearer <registration-token>` to register. Leave empty only for
+local development or if the `api` deployment is in a trusted, network-restricted environment.
 
 > **Note on test coverage**: The component test (`testing/component/gateway-mcp`)
 > covers the API key auth path (Phase 2) but not the full OAuth 2.1 flow.
