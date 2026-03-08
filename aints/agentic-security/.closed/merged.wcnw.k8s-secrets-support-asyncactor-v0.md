@@ -11,6 +11,7 @@ dependencies:
 ---
 
 
+
 Enable AsyncActor workloads to consume sensitive credentials (AI API tokens, DB passwords) via standard Kubernetes Secrets. This is the minimum viable secret injection story for v0 — no external vault required.
 
 ## Problem
