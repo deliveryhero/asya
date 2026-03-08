@@ -376,8 +376,8 @@ func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
 	// continuously overwrite tasks.status and prevent mesh gateway writes from persisting.
 	// The subscription channel is only used as a fast path for terminal state detection.
 	// So we expect exactly 1 event: the final completed event.
-	if len(eq.events) == 0 {
-		t.Fatal("expected at least 1 event (completed), got 0")
+if len(eq.events) != 1 {
+		t.Fatalf("expected exactly 1 event (completed), got %d", len(eq.events))
 	}
 
 	// Verify the final event is completed
