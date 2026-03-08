@@ -1,7 +1,12 @@
 ---
 title: "Stealth mode: x-asya-mesh-status header to disable gateway task tracking"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/debt/4v09.stealth-mode-x-asya-mesh-status-header-disable
+  - branch:debt/4v09.stealth-mode-x-asya-mesh-status-header-disable
 ---
+
 
 ## Problem
 
