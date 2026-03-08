@@ -23,14 +23,14 @@ from asya_cli.flow.ir import (
 )
 
 
-# Pattern for inline compiler directives: # asya: treat-as-<action> [name=<value>]
-_DIRECTIVE_RE = re.compile(r"#\s*asya:\s*treat-as-(\w+)(?:\s+name=(\S+))?")
+# Pattern for inline compiler directives: # asya: <action>
+_DIRECTIVE_RE = re.compile(r"#\s*asya:\s*(\w+)")
 
-# Valid treat-as actions
-_VALID_TREAT_AS = frozenset({"actor", "inline", "flow", "decompose", "config"})
+# Valid directive actions
+_VALID_ACTIONS = frozenset({"actor", "inline", "flow", "decompose", "config"})
 
 # Actions not yet implemented by the compiler
-_UNSUPPORTED_TREAT_AS = frozenset({"flow", "decompose", "config"})
+_UNSUPPORTED_ACTIONS = frozenset({"flow", "decompose", "config"})
 
 
 # Parameter names accepted in flow function signatures.
@@ -74,10 +74,10 @@ class FlowParser:
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
 
     def _extract_directives(self) -> dict[int, AsyaDirective]:
-        """Scan source lines for # asya: treat-as-* directives.
+        """Scan source lines for # asya: <action> directives.
 
         Returns a mapping from 1-based line number to AsyaDirective.
-        Raises FlowCompileError for unknown treat-as actions.
+        Raises FlowCompileError for unknown actions.
         """
         directives: dict[int, AsyaDirective] = {}
         for lineno, line in enumerate(self._source_lines, 1):
@@ -85,13 +85,12 @@ class FlowParser:
             if match is None:
                 continue
             action = match.group(1)
-            name = match.group(2)
-            if action not in _VALID_TREAT_AS:
+            if action not in _VALID_ACTIONS:
                 raise FlowCompileError(
-                    f"{self.filename}:{lineno}: Unknown directive '# asya: treat-as-{action}'. "
-                    f"Valid actions: {', '.join(sorted(_VALID_TREAT_AS))}"
+                    f"{self.filename}:{lineno}: Unknown directive '# asya: {action}'. "
+                    f"Valid actions: {', '.join(sorted(_VALID_ACTIONS))}"
                 )
-            directives[lineno] = AsyaDirective(treat_as=action, name=name)
+            directives[lineno] = AsyaDirective(action=action)
         return directives
 
     def parse(self) -> tuple[str, list[IROperation]]:
@@ -191,16 +190,16 @@ class FlowParser:
             if isinstance(value, ast.Call):
                 directive = self._directives.get(stmt.lineno)
                 if directive is not None:
-                    if directive.treat_as in _UNSUPPORTED_TREAT_AS:
+                    if directive.action in _UNSUPPORTED_ACTIONS:
                         raise FlowCompileError(
                             f"{self.filename}:{stmt.lineno}: "
-                            f"'# asya: treat-as-{directive.treat_as}' is not yet supported"
+                            f"'# asya: {directive.action}' is not yet supported"
                         )
-                    if directive.treat_as == "inline":
+                    if directive.action == "inline":
                         # Embed the call inline in the router instead of dispatching to an actor queue
                         code = ast.unparse(stmt)
                         return [Mutation(lineno=stmt.lineno, code=code)]
-                    # treat-as-actor: handled in _parse_actor_call (applies name override)
+                    # actor: handled in _parse_actor_call
                 return [self._parse_actor_call(stmt)]
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
@@ -295,9 +294,6 @@ class FlowParser:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
 
         directive = self._directives.get(stmt.lineno)
-        if directive is not None and directive.treat_as == "actor" and directive.name is not None:
-            actor_name = directive.name
-
         return ActorCall(lineno=stmt.lineno, name=actor_name, directive=directive)
 
     def _parse_if(self, stmt: ast.If) -> list[IROperation]:
