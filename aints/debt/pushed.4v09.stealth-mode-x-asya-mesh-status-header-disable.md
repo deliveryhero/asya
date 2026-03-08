@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/debt/4v09.stealth-mode-x-asya-mesh-status-header-disable
   - branch:debt/4v09.stealth-mode-x-asya-mesh-status-header-disable
+  - pr:284
 ---
+
 
 
 ## Problem
