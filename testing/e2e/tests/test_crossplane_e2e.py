@@ -407,6 +407,150 @@ spec:
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
+def test_asyncactor_scaling_advanced_fields_propagate(e2e_helper):
+    """
+    E2E: Test that scaling.advanced fields propagate from XR into the KEDA ScaledObject.
+
+    Scenario:
+    1. Create AsyncActor with scaling.advanced (restoreToOriginalReplicaCount,
+       formula, target, activationTarget, metricType)
+    2. Wait for AsyncActor to reach Ready state (Crossplane composition pipeline complete)
+    3. Fetch the resulting KEDA ScaledObject from the cluster
+    4. Assert spec.advanced.restoreToOriginalReplicaCount is set correctly
+    5. Assert spec.advanced.scalingModifiers has all formula-related fields
+
+    This test verifies the composition correctly threads XRD fields through
+    function-go-templating into the KEDA ScaledObject. KEDA behavior itself
+    is covered by test_keda_scaling.py; here we only check field propagation.
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    _gcp_line = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
+    manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-scaling-advanced
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: test-scaling-advanced
+  transport: {_transport}{_gcp_line}
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 10
+    queueLength: 5
+    advanced:
+      restoreToOriginalReplicaCount: true
+      formula: "queue_depth / 2"
+      target: "3"
+      activationTarget: "1"
+      metricType: AverageValue
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        logger.info("Creating AsyncActor with scaling.advanced fields...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(
+            "test-scaling-advanced",
+            namespace=e2e_helper.namespace,
+            timeout=180,
+        ), "AsyncActor should reach Ready state with scaling.advanced fields"
+
+        logger.info("Fetching ScaledObject and verifying advanced fields...")
+        scaled = kubectl_get("scaledobject", "test-scaling-advanced", namespace=e2e_helper.namespace)
+        advanced = scaled["spec"].get("advanced", {})
+
+        assert advanced.get("restoreToOriginalReplicaCount") is True, \
+            "ScaledObject spec.advanced.restoreToOriginalReplicaCount should be true"
+
+        modifiers = advanced.get("scalingModifiers", {})
+        assert modifiers.get("formula") == "queue_depth / 2", \
+            "ScaledObject spec.advanced.scalingModifiers.formula should match XR spec"
+        assert modifiers.get("target") == "3", \
+            "ScaledObject spec.advanced.scalingModifiers.target should match XR spec"
+        assert modifiers.get("activationTarget") == "1", \
+            "ScaledObject spec.advanced.scalingModifiers.activationTarget should match XR spec"
+        assert modifiers.get("metricType") == "AverageValue", \
+            "ScaledObject spec.advanced.scalingModifiers.metricType should match XR spec"
+
+        logger.info("[+] scaling.advanced fields correctly propagated to ScaledObject")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics("test-scaling-advanced", namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor("test-scaling-advanced", e2e_helper.namespace)
+
+
+@pytest.mark.core
+def test_asyncactor_scaling_advanced_formula_without_target_rejected(e2e_helper):
+    """
+    E2E: Test that formula without target is rejected at admission (oneOf constraint).
+
+    The XRD schema enforces: if formula is set, target is required (oneOf validation).
+    kubectl apply should fail at the Kubernetes API server level before Crossplane
+    ever sees the resource.
+
+    Scenario:
+    1. Attempt to create AsyncActor with scaling.advanced.formula but no target
+    2. kubectl apply should fail with a validation error
+    3. No AsyncActor resource should be created
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-advanced-no-target
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: test-advanced-no-target
+  transport: {_transport}
+  scaling:
+    advanced:
+      formula: "queue_depth / 2"
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: ghcr.io/deliveryhero/asya-testing:latest
+          imagePullPolicy: IfNotPresent
+          env:
+          - name: ASYA_HANDLER
+            value: asya_testing.handlers.payload.echo_handler
+"""
+
+    try:
+        logger.info("Attempting to create AsyncActor with formula but no target...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, \
+            "kubectl apply should be rejected when formula is set without target (oneOf constraint)"
+
+        stderr = result.stderr.decode()
+        logger.info(f"[+] Got expected rejection: {stderr[:300]}")
+
+    finally:
+        kubectl_delete("asyncactor", "test-advanced-no-target", namespace=e2e_helper.namespace)
+
+
+@pytest.mark.core
 def test_asyncactor_invalid_transport(e2e_helper):
     """
     E2E: Test AsyncActor with invalid transport is rejected at admission.
