@@ -195,17 +195,10 @@ time {
 
   echo "[.] Waiting for Crossplane core CRDs to be established..."
   kubectl wait --for=condition=Established \
+    crd/environmentconfigs.apiextensions.crossplane.io \
     crd/compositeresourcedefinitions.apiextensions.crossplane.io \
     crd/compositions.apiextensions.crossplane.io \
     --timeout=60s > /dev/null 2>&1
-
-  echo "[.] Crossplane version and available CRDs:"
-  helm list -n crossplane-system
-  echo "[.] EnvironmentConfig CRD (if present):"
-  kubectl get crd environmentconfigs.apiextensions.crossplane.io \
-    -o jsonpath='name={.metadata.name} versions={.spec.versions[*].name}' 2>&1 || echo "(not found)"
-  echo "[.] All apiextensions.crossplane.io CRDs:"
-  kubectl get crd -o name | grep apiextensions.crossplane.io || echo "(none)"
 
   echo "[+] cert-manager and Crossplane core installed"
 }

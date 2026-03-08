@@ -1,5 +1,5 @@
 {{- if .Values.providers.gcp.enabled }}
-apiVersion: apiextensions.crossplane.io/v1
+apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
 metadata:
   name: asya-pubsub
