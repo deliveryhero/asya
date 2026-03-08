@@ -345,3 +345,131 @@ class TestValuesConfiguration:
 
         irsa = values.get("irsa", {})
         assert irsa.get("enabled") is False, "IRSA should be disabled for LocalStack"
+
+
+class TestScalingAdvancedXrdSchema:
+    """Test XRD schema for spec.scaling.advanced fields."""
+
+    @pytest.fixture
+    def scaling_schema(self) -> dict:
+        """Get the scaling schema from the XRD."""
+        docs = helm_template()
+        xrd = find_xrd(docs, "xasyncactors.asya.sh")
+        assert xrd is not None
+        versions = xrd["spec"]["versions"]
+        v1alpha1 = next(v for v in versions if v["name"] == "v1alpha1")
+        spec_props = v1alpha1["schema"]["openAPIV3Schema"]["properties"]["spec"]["properties"]
+        return spec_props["scaling"]
+
+    def test_advanced_field_exists(self, scaling_schema):
+        """Test that scaling.advanced object is present in XRD schema."""
+        assert "advanced" in scaling_schema["properties"], \
+            "scaling.advanced should be defined in the XRD schema"
+
+    def test_advanced_is_object_type(self, scaling_schema):
+        """Test scaling.advanced is of type object."""
+        advanced = scaling_schema["properties"]["advanced"]
+        assert advanced["type"] == "object"
+
+    def test_advanced_has_restore_to_original_replica_count(self, scaling_schema):
+        """Test restoreToOriginalReplicaCount is a boolean field."""
+        props = scaling_schema["properties"]["advanced"]["properties"]
+        assert "restoreToOriginalReplicaCount" in props
+        assert props["restoreToOriginalReplicaCount"]["type"] == "boolean"
+
+    def test_advanced_has_formula_field(self, scaling_schema):
+        """Test formula is a string field for composite metric expressions."""
+        props = scaling_schema["properties"]["advanced"]["properties"]
+        assert "formula" in props
+        assert props["formula"]["type"] == "string"
+
+    def test_advanced_has_target_field(self, scaling_schema):
+        """Test target is a string field for composite metric target value."""
+        props = scaling_schema["properties"]["advanced"]["properties"]
+        assert "target" in props
+        assert props["target"]["type"] == "string"
+
+    def test_advanced_has_activation_target_field(self, scaling_schema):
+        """Test activationTarget is a string field."""
+        props = scaling_schema["properties"]["advanced"]["properties"]
+        assert "activationTarget" in props
+        assert props["activationTarget"]["type"] == "string"
+
+    def test_advanced_has_metric_type_enum(self, scaling_schema):
+        """Test metricType is an enum with valid KEDA values."""
+        props = scaling_schema["properties"]["advanced"]["properties"]
+        assert "metricType" in props
+        metric_type = props["metricType"]
+        assert metric_type["type"] == "string"
+        assert set(metric_type["enum"]) == {"AverageValue", "Value", "Utilization"}
+
+    def test_advanced_has_one_of_constraint(self, scaling_schema):
+        """Test oneOf constraint enforces target is required when formula is set."""
+        advanced = scaling_schema["properties"]["advanced"]
+        assert "oneOf" in advanced, \
+            "advanced schema should have oneOf to enforce formula+target co-requirement"
+
+        one_of = advanced["oneOf"]
+        assert len(one_of) == 2, "oneOf should have exactly 2 alternatives"
+
+        # One branch: formula is NOT required (formula absent)
+        no_formula = next(
+            (b for b in one_of if "not" in b and "required" in b.get("not", {})), None
+        )
+        assert no_formula is not None, "oneOf should include a branch where formula is not required"
+        assert "formula" in no_formula["not"]["required"]
+
+        # Other branch: both formula and target are required
+        with_formula = next(
+            (b for b in one_of if "required" in b and "not" not in b), None
+        )
+        assert with_formula is not None, "oneOf should include a branch requiring formula+target"
+        assert "formula" in with_formula["required"]
+        assert "target" in with_formula["required"]
+
+
+class TestScalingAdvancedCompositionTemplates:
+    """Test that composition templates correctly emit scaling.advanced KEDA fields."""
+
+    @pytest.fixture(params=["asyncactor-sqs", "asyncactor-rabbitmq"])
+    def composition(self, request) -> dict:
+        """Get SQS and RabbitMQ compositions (pubsub requires GCP values)."""
+        docs = helm_template()
+        comp = find_composition(docs, request.param)
+        assert comp is not None, f"{request.param} Composition should exist"
+        return comp
+
+    def test_scaledobject_template_has_advanced_variable_extraction(self, composition):
+        """Test render-scaledobject step extracts $advanced from $scaling."""
+        step = get_pipeline_step(composition, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        assert "$advanced := dict" in template, \
+            "Template should initialize $advanced variable"
+        assert 'hasKey $scaling "advanced"' in template, \
+            "Template should check for advanced key in scaling"
+        assert "$advanced = $scaling.advanced" in template, \
+            "Template should assign advanced from scaling"
+
+    def test_scaledobject_template_has_restore_to_original_conditional(self, composition):
+        """Test render-scaledobject template has restoreToOriginalReplicaCount conditional."""
+        step = get_pipeline_step(composition, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        assert 'hasKey $advanced "restoreToOriginalReplicaCount"' in template, \
+            "Template should conditionally emit restoreToOriginalReplicaCount"
+        assert "restoreToOriginalReplicaCount:" in template
+
+    def test_scaledobject_template_has_scaling_modifiers_conditional(self, composition):
+        """Test render-scaledobject template emits scalingModifiers only when formula+target present."""
+        step = get_pipeline_step(composition, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        assert 'hasKey $advanced "formula"' in template, \
+            "Template should gate scalingModifiers on formula being present"
+        assert 'hasKey $advanced "target"' in template, \
+            "Template should also gate on target being present (required with formula)"
+        assert "scalingModifiers:" in template
+        assert "formula:" in template
+        assert "activationTarget:" in template
+        assert "metricType:" in template

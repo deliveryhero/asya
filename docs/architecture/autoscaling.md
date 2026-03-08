@@ -12,7 +12,7 @@ KEDA (Kubernetes Event Driven Autoscaling) monitors external metrics (queue dept
 
 ## Asya Integration
 
-Asya operator creates KEDA ScaledObject for each AsyncActor:
+The Crossplane composition creates a KEDA ScaledObject for each AsyncActor:
 
 ```yaml
 apiVersion: keda.sh/v1alpha1
@@ -81,6 +81,48 @@ spec:
 - `queueLength`: Target messages per replica (default: 5)
 - `cooldownPeriod`: Delay before scaling down in seconds (default: 60)
 - `pollingInterval`: Queue check frequency in seconds (default: 10)
+
+### Advanced Scaling Configuration
+
+For fine-grained KEDA behavior, use the `scaling.advanced` sub-object:
+
+```yaml
+spec:
+  scaling:
+    minReplicas: 0
+    maxReplicas: 20
+    advanced:
+      restoreToOriginalReplicaCount: true
+      formula: "(queue_depth + pending) / 2"
+      target: "10"
+      activationTarget: "1"
+      metricType: AverageValue
+```
+
+**Parameters**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `restoreToOriginalReplicaCount` | bool | When true, replicas are restored to their value before the ScaledObject was created when the ScaledObject is deleted |
+| `formula` | string | Composite metric formula combining multiple metrics (KEDA `scalingModifiers.formula`). Requires `target`. |
+| `target` | string | Target value for the composite formula (required with `formula`) |
+| `activationTarget` | string | Minimum metric value before scaling activates (avoids scaling at near-zero load) |
+| `metricType` | `AverageValue` \| `Value` \| `Utilization` | Metric aggregation method for the composite formula |
+
+**Composite formula example** — scale by averaging two queue depths:
+
+```yaml
+advanced:
+  formula: "(sqs_depth + dlq_depth) / 2"
+  target: "5"
+  activationTarget: "1"
+  metricType: AverageValue
+```
+
+**Notes**:
+- `formula`, `target`, `activationTarget`, and `metricType` map to `spec.advanced.scalingModifiers` in the KEDA ScaledObject
+- `restoreToOriginalReplicaCount` maps to `spec.advanced.restoreToOriginalReplicaCount`
+- `target` is required when `formula` is set; the XRD enforces this with a `oneOf` validation constraint
 
 ## Scaling Scenarios
 
