@@ -2,7 +2,7 @@
 
 **Status**: Accepted
 **Date**: 2026-03-08
-**Context**: Design of `compiler.template` in `.asya/config.yaml`
+**Context**: Design of `template:` section in `.asya/config.yaml`
 (research-compiler-resolution.md, section 3.8)
 
 ## Decision
@@ -58,5 +58,5 @@ Custom parsing needed. OmegaConf resolvers are native — no custom parser.
 - Template expressiveness is intentionally limited to substitution
 - Complex deployment logic (GPU conditionals, environment-specific config)
   belongs in overlays or helm/kustomize — not in the compiler template
-- If a team needs conditionals in their output, they use `compiler.mode: helm`
+- If a team needs conditionals in their output, they use `template.mode: helm`
   and let Helm handle it — Asya generates values.yaml, Helm renders templates

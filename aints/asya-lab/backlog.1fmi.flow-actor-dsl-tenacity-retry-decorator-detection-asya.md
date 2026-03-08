@@ -18,7 +18,7 @@ asyncio.timeout). The `treat-as` vocabulary (`actor`, `flow`, `unfold`,
 Implement the compiler rules system described in
 `.aint/aints/asya-lab/research-compiler-knowledge-base.md`:
 
-1. **Rules engine** — load `compiler.rules` from `.asya/config.yaml`, match
+1. **Rules engine** — load `compile.rules` from `.asya/config.yaml`, match
    symbols against patterns, classify each as one of five `treat-as` actions
 2. **Default rule set** — ship sensible defaults that work without config:
    - `module: "."` → `treat-as: unfold` (same-package functions)
@@ -39,7 +39,7 @@ Implement the compiler rules system described in
 ## Blocked by
 
 - `.asya/config.yaml` schema design (WIP — see
-  `.aint/aints/asya-lab/research-compiler-resolution.md`). The `compiler.rules`
+  `.aint/aints/asya-lab/research-compiler-resolution.md`). The `compile.rules`
   section needs to be part of the config schema before rules can be loaded.
 
 ## Dependencies

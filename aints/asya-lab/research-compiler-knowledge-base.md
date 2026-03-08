@@ -33,11 +33,11 @@ Every symbol the compiler encounters is classified into exactly one of five acti
 
 ### Rules
 
-Rules are declared in `asya.yaml` under `compiler.rules`. Each rule matches a
+Rules are declared in `asya.yaml` under `compile.rules`. Each rule matches a
 symbol pattern and assigns a `treat-as` classification.
 
 ```yaml
-compiler:
+compile:
   rules:
     - module: "."
       treat-as: unfold

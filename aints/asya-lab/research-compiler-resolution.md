@@ -72,16 +72,16 @@ my-project/
 
 ### 2.2 Manifest Output Location
 
-Output path is configurable via `compiler.output` in config.yaml (default:
-`.asya/manifests`). The compiler creates the directory structure on first
-compile if it doesn't exist — `asya init` does NOT create it.
+Output path is configurable via `template.output` in config.yaml (default:
+`.asya/manifests`). The templater creates the directory structure on first
+`asya template` invocation — `asya init` does NOT create it.
 
 ```yaml
-compiler:
+template:
   output: ".asya/manifests"     # relative to config.yaml's directory
 ```
 
-The compiler creates `actors/` and `flows/<flow-name>/` subdirectories
+The templater creates `actors/` and `flows/<flow-name>/` subdirectories
 under the output path as needed:
 
 ```
@@ -303,12 +303,12 @@ message.
 
 ```
 .asya/
-└── config.yaml               # Full config with var + images + compiler
+└── config.yaml               # Full config with var + images + compile + template
 ```
 
 The `manifests/` directory is NOT created by init — it appears on first
-compile (see section 2.2). This avoids empty directories in the repo
-before compilation has ever run.
+`asya template` invocation (see section 2.2). This avoids empty directories
+in the repo before templating has ever run.
 
 **Generated `config.yaml`**:
 
@@ -330,10 +330,13 @@ images: []
   #     local: "docker build -t ${..image} ."
   #     remote: "docker build -t ${..image} . && docker push ${..image}"
 
-compiler:
+compile:
+  # compiler-specific settings (future: rules, extraction config)
+
+template:
   output: ".asya/manifests"
   mode: manifests
-  template:
+  body:
     apiVersion: asya.dev/v1alpha1
     kind: AsyncActor
     metadata:
@@ -353,12 +356,13 @@ compiler:
 - **Static scaffold**: No questions, no flags for customization. The
   generated config has sensible defaults and `TODO` comments where the user
   must fill in values (`image_registry`).
-- **Full compiler template**: Included out of the box so `asya flow compile`
-  works immediately after init. Users modify the template to match their
-  deployment setup (helm mode, custom overlays, etc.).
-- **Manifests created on compile**: Output directory (`compiler.output`)
-  is created on first compile, not init. Keeps the repo clean until
-  compilation actually runs.
+- **Full template section**: Included out of the box so `asya flow compile`
+  (which invokes templating by default) works immediately after init. Users
+  modify the template to match their deployment setup (helm mode, custom
+  overlays, etc.).
+- **Manifests created on first template**: Output directory
+  (`template.output`) is created on first `asya template` invocation, not
+  init. Keeps the repo clean until templating actually runs.
 - **Fully git-tracked**: No `.gitignore` inside `.asya/`. Everything is
   committed — config is source of truth, manifests are required for GitOps.
 
@@ -427,9 +431,8 @@ images:
     image: "ghcr.io/third-party/langchain-actor:v2"
     # no path, no build — pre-built image
 
-  # Dirty DS scripts (filesystem path)
-  - module: "./src/notebooks/models"
-    path: "./src/notebooks/models"
+  # Dirty DS scripts (no module - just filesystem path)
+  - path: "./src/notebooks/models"
     image: "${var.image_registry}/notebook-models:${arg:tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -448,9 +451,8 @@ serves as the merge key for walk-up list union (section 2.3).
 
 | Format | Example | Resolution |
 |--------|---------|------------|
-| Dotted module name | `e_commerce` | `importlib.util.find_spec()` at compile time |
+| Dotted module name/prefix | `e_commerce.models` | `importlib.util.find_spec()` at compile time |
 | Dotted module.class | `e_commerce.models.LargeModel` | Same, more specific |
-| Filesystem path | `"./src/scripts"` | Direct path matching (starts with `./`) |
 
 **Matching rule**: Longest prefix wins. If `e_commerce` and
 `e_commerce.models.LargeModel` both exist, a handler
@@ -655,34 +657,48 @@ Error: unknown top-level key 'iamges'
 Semantic validation runs after OmegaConf produces the effective config.
 Both levels produce errors with source file location and actionable hints.
 
-### 3.8 Compiler Output Template
+### 3.8 `compile:` and `template:` Sections
 
-The compiler generates manifests by resolving a **template** defined in
-config.yaml. The template uses `${actor:*}` resolvers for values inferred
-by the compiler, and standard `${var.*}` / `${arg:*}` for everything else.
+Compilation and templating are **separate stages** with separate config
+sections and CLI commands:
+
+| Stage | Config section | CLI command | What it does |
+|-------|---------------|-------------|-------------|
+| Compile | `compile:` | `asya flow compile` | AST → routers + metadata |
+| Template | `template:` | `asya [flow\|actor] template` | Values → deployment files |
+
+`asya flow compile` invokes both stages by default. Use `--no-template`
+to compile without producing output files.
 
 **Design principle**: Asya integrates INTO existing deployment tools (helm,
-kustomize, raw manifests) — it does not replace them. The compiler produces
+kustomize, raw manifests) — it does not replace them. The templater produces
 tool-native output (values.yaml for helm, patches for kustomize, raw XRs
-for manifests). No custom plugins needed.
+for manifests). No custom plugins needed. See `adr.compiler-template-not-helm.md`.
 
-**Why not reinventing helm?** The template has ~5 fixed substitution keys
-(`name`, `image`, `handler`, `env`, `overlays`). No conditionals, no loops,
-no functions — it's printf-level substitution. The rest of the template is
-static YAML that the user controls.
-
-#### Compiler settings
+#### `compile:` section
 
 ```yaml
-# .asya/config.yaml
-compiler:
-  output: ".asya/manifests"    # output dir, relative to config.yaml's dir
-  mode: manifests              # manifests | helm | kustomize
+compile:
+  # compiler-specific settings (future: rules, extraction config)
 ```
 
-`compiler.output` is the base directory for all generated artifacts. The
-compiler creates `actors/` and `flows/<name>/` subdirectories under it as
-needed. Created on first compile if it doesn't exist.
+Currently empty — reserved for future compiler configuration (treat-as
+rules, decorator extraction settings). The compiler reads flow source
+files and produces routers + metadata consumed by the templater.
+
+#### `template:` section
+
+```yaml
+template:
+  output: ".asya/manifests"    # output dir, relative to config.yaml's dir
+  mode: manifests              # manifests | helm | kustomize
+  body:                        # the actual template
+    ...
+```
+
+`template.output` is the base directory for all generated artifacts. The
+templater creates `actors/` and `flows/<name>/` subdirectories under it as
+needed. Created on first `asya template` invocation if it doesn't exist.
 
 #### `${actor:*}` resolver keys
 
@@ -693,18 +709,18 @@ needed. Created on first compile if it doesn't exist.
 | `actor:handler` | string | Fully qualified Python handler path (`module.function` or `module.Class.method`) |
 | `actor:env` | list | Environment variables extracted from handler code (`os.environ` / `os.getenv` calls) |
 
-These keys are populated by the compiler for each actor it generates. They
-are read-only — users cannot set them via `--arg` or env vars.
+These keys are populated by the compiler (for flows) or from CLI flags
+(for standalone actors). Read-only — not settable via `--arg` or env vars.
 
 #### Mode: `manifests` (default)
 
 Generates raw AsyncActor XR manifests. No external tooling needed.
 
 ```yaml
-compiler:
+template:
   output: ".asya/manifests"
   mode: manifests
-  template:
+  body:
     apiVersion: asya.dev/v1alpha1
     kind: AsyncActor
     metadata:
@@ -720,7 +736,7 @@ compiler:
       env: "${actor:env}"
 ```
 
-Output: `<compiler.output>/flows/<flow>/` or `<compiler.output>/actors/`.
+Output: `<template.output>/flows/<flow>/` or `<template.output>/actors/`.
 
 #### Mode: `helm`
 
@@ -728,12 +744,12 @@ Generates `values.yaml` files for the `asya-actor` Helm chart (or any
 user-specified chart).
 
 ```yaml
-compiler:
+template:
   output: ".asya/manifests"
   mode: helm
   helm:
     chart: asya-actor           # Helm chart name (default: asya-actor)
-  template:
+  body:
     actor: "${actor:name}"
     image:
       repository: "${actor:image}"
@@ -747,12 +763,15 @@ compiler:
     env: "${actor:env}"
 ```
 
-Output: `<compiler.output>/flows/<flow>/<actor>/values.yaml`.
+Output: `<template.output>/flows/<flow>/<actor>/values.yaml`.
 
 Usage:
 ```bash
-# Compile → generates values.yaml per actor
+# Compile + template → generates values.yaml per actor
 asya flow compile flows/order.py --arg tag=v1
+
+# Template only for a standalone actor
+asya actor template --handler e_commerce.validate.validate_order --arg tag=v1
 
 # Deploy via helm (standard helm workflow)
 helm install validate-order asya-actor \
@@ -764,12 +783,12 @@ helm install validate-order asya-actor \
 Generates kustomize patches against a base.
 
 ```yaml
-compiler:
+template:
   output: ".asya/manifests"
   mode: kustomize
   kustomize:
     base: deploy/base            # Path to kustomize base
-  template:
+  body:
     apiVersion: asya.dev/v1alpha1
     kind: AsyncActor
     metadata:
@@ -780,7 +799,7 @@ compiler:
       env: "${actor:env}"
 ```
 
-Output: `<compiler.output>/flows/<flow>/<actor>/patch.yaml` + generated
+Output: `<template.output>/flows/<flow>/<actor>/patch.yaml` + generated
 `kustomization.yaml` referencing the base.
 
 #### ADR: Integration Direction
@@ -792,26 +811,27 @@ Output: `<compiler.output>/flows/<flow>/<actor>/patch.yaml` + generated
    already understand (values.yaml, patches). No helm plugin, no kustomize
    generator function to maintain.
 2. **User keeps their workflow** — Teams already using helm/kustomize don't
-   need to learn a new deployment tool. `asya compile` is a pre-step.
+   need to learn a new deployment tool. `asya compile` + `asya template`
+   are pre-steps.
 3. **Separation of concerns** — Compiler knows about Python handlers and
    images. Helm/kustomize know about K8s deployment. Neither needs to
    understand the other's internals.
 4. **GitOps compatible** — Generated files are plain YAML, committable to
    git, picked up by flux/argocd without special handling.
 5. **Future-proof** — New deployment tools (e.g., Timoni, cdk8s) can be
-   supported by adding a new `mode:` without changing the compiler core.
+   supported by adding a new `mode:` without changing the templater core.
 
 ---
 
-## 4. The Four Stages
+## 4. The Five Stages
 
-### 4.1 Compile Time
+### 4.1 Compile Time (`asya flow compile`)
 
 **Input**: flow source (Python) + `.asya/config.yaml`
 **Available**: Python interpreter (kernel or `--python`)
-**Output**: router code + manifests in `.asya/manifests/` (format depends on
-`compiler.mode`: raw XR manifests, helm values.yaml, or kustomize patches —
-see section 3.8)
+**Output**: router code + compiler metadata (handler→image mappings, extracted
+config). By default also invokes the template stage (section 4.2) — use
+`--no-template` to skip.
 
 **Python environment detection** (for CLI mode):
 1. Check `--python /path/to/python` flag (explicit)
@@ -851,9 +871,8 @@ $ asya flow compile flows/order_processing.py
            → import: e_commerce.express.express_handler
            → file: /proj/src/e-commerce-package/e_commerce/express.py
            → image entry: e_commerce (same image)
-[compile] Mode: manifests (from config compiler.mode)
-[compile] Template: compiler.template (5 resolver keys)
-[compile] Generated: .asya/manifests/flows/order-processing/
+[template] Mode: manifests (from config template.mode)
+[template] Output: .asya/manifests/flows/order-processing/
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
@@ -878,11 +897,22 @@ Router code: compiled/routers.py (with resolve() calls)
 own import system to resolve handler references to filesystem paths, then
 matches those paths against config.yaml.
 
-**Generated manifests** are produced by resolving `compiler.template`
-(section 3.8) with `${actor:*}` values for each actor:
+**Future extension**: The compiler will detect `os.environ` / `os.getenv`
+calls in handler code and populate `${actor:env}` for the templater.
+
+### 4.2 Template Time (`asya [flow|actor] template`)
+
+**Input**: compiler metadata (or explicit CLI flags for standalone actors)
++ `template:` section from config.yaml
+**Available**: No Python needed — just YAML substitution
+**Output**: deployment files in `<template.output>/`
+
+The templater resolves `template.body` with `${actor:*}` values for each
+actor and writes output files. Format depends on `template.mode`:
+
 ```yaml
+# Example output (mode: manifests):
 # .asya/manifests/flows/order-processing/validate-order.yaml
-# (generated from compiler.template with mode: manifests)
 apiVersion: asya.dev/v1alpha1
 kind: AsyncActor
 metadata:
@@ -890,19 +920,32 @@ metadata:
 spec:
   image: ghcr.io/org/e-commerce:${arg:tag}          # ${actor:image}
   handler: e_commerce.validate.validate_order       # ${actor:handler}
-  transport: sqs                                    # from template (static)
-  overlays: [base]                                  # from template (static)
+  transport: sqs                                    # from body (static)
+  overlays: [base]                                  # from body (static)
 ```
 
 Same image for all handlers from the same package. Different `handler` field
 for each actor. `${arg:tag}` remains unresolved in the manifest — it is
 resolved at deploy time (`asya actor deploy --arg tag=v1`).
 
-**Future extension**: The compiler will detect `os.environ` / `os.getenv`
-calls in handler code and generate exposed environment variable declarations
-in the manifest.
+**Standalone actors** (no compilation needed):
+```bash
+asya actor template --handler e_commerce.validate.validate_order --arg tag=v1
+```
+Resolves handler → module → image from config.yaml, then templates the
+manifest directly. No AST analysis, no router generation.
 
-### 4.2 Build Time
+**Verbose output**:
+```
+$ asya actor template --handler e_commerce.validate.validate_order
+[template] Handler: e_commerce.validate.validate_order
+           → image entry: e_commerce
+           → image: ghcr.io/org/e-commerce:${arg:tag}
+[template] Mode: manifests (from config template.mode)
+[template] Output: .asya/manifests/actors/validate-order.yaml
+```
+
+### 4.3 Build Time
 
 **Input**: `.asya/config.yaml` (read directly)
 **Available**: Docker / apko / buildpacks. No live Python.
@@ -963,12 +1006,10 @@ OmegaConf default values for `arg` are not supported — missing args are a
 hard error. If a build command needs optional flags, use `${env:VAR,default}`
 instead (`${env:DOCKER_CACHE,}` resolves to empty string if unset).
 
-**Note**: `asya actor compile` generates manifests for standalone actors
-(not part of a flow). Input is CLI-driven: `asya actor compile --handler
+**Note**: `asya actor template` generates manifests for standalone actors
+(not part of a flow). Input is CLI-driven: `asya actor template --handler
 e_commerce.validate.validate_order --arg tag=v1`. The generated manifest
-IS the persistent artifact — no actor list in config.yaml. The same
-`compiler.template` (section 3.8) is used for both flow and standalone
-actors.
+IS the persistent artifact — no actor list in config.yaml. See section 4.2.
 
 **Verbose output**:
 ```
@@ -981,9 +1022,9 @@ $ asya actor build text-analyzer --local --arg tag=v1
 [build] Running in /proj/src/e-commerce-package ...
 ```
 
-### 4.3 Deploy Time
+### 4.4 Deploy Time
 
-**Input**: `.asya/manifests/*.yaml` (generated at compile time)
+**Input**: `.asya/manifests/*.yaml` (generated at template time)
 **Available**: kubectl / flux / argocd. No Python.
 **Output**: Running pods in K8s
 
@@ -1004,7 +1045,7 @@ in their notebook
 and then run both `asya flow build` and `asya flow deploy` without repeating
 the tag.
 
-### 4.4 Runtime
+### 4.5 Runtime
 
 **Input**: Running container with handler code
 **Available**: Full Python environment inside the container
@@ -1258,14 +1299,13 @@ the tag.
 
 9. ~~**`asya init` design**~~: Resolved. Static scaffold (like `git init`):
    creates `.asya/config.yaml` with full config (`var:` + `images:` +
-   `compiler.template`) and `.asya/manifests/{actors,flows}/` with
-   `.gitkeep`. No interactive prompts. See section 2.4.
+   `compile:` + `template:`). Output directory created on first
+   `asya template` invocation, not init. See section 2.4.
 
-10. ~~**`asya actor compile` for standalone actors**~~: Resolved. CLI-driven
-    via `--handler` flag: `asya actor compile --handler module.function`.
-    No persistent actor list in config.yaml — the generated manifest IS the
-    persistent artifact. Uses the same `compiler.template` as flow compilation
-    (section 3.8).
+10. ~~**`asya actor compile` → `asya actor template`**~~: Resolved.
+    Standalone actors use the template stage directly:
+    `asya actor template --handler module.function`. No compilation needed —
+    just handler → image resolution + template substitution. See section 4.2.
 
 11. **Non-Python actors**: The current design assumes Python handlers.
     Go actors, shell script actors, or pre-built third-party images with no
@@ -1273,58 +1313,70 @@ the tag.
     Python-specific — may need a more generic identifier for non-Python
     actors in future.
 
-12. **Opaque build commands completeness**: Opaque shell commands work well
-    as an escape hatch and cover the common case (Dockerfile, apko, pack
-    CLI). However, analysis of `research-no-dockerfile.md` and
-    `research-seamless-build.md` reveals gaps for advanced scenarios:
+12. ~~**Opaque build commands completeness**~~: **Resolved (v1: opaque only)**.
+    Full evaluation against `research-no-dockerfile.md` and
+    `research-seamless-build.md`:
 
-    **What opaque commands handle well**:
-    - Any local build tool (docker, apko, pack, kaniko, nix, bazel)
-    - Simple CI pipelines (shell script runs the command)
-    - Shipwright via `shp` CLI (`build.remote: "shp build upload ..."`)
-    - Tool-specific caching via env vars/flags
+    **What opaque commands handle well** (~80% of real usage):
+    - Any CLI build tool: docker, apko, pack, kaniko, nix, bazel, custom
+    - Shipwright remote builds via `shp build upload` CLI
+    - CI pipelines (shell script runs the command)
+    - Tool-specific caching via env vars/flags (`${env:DOCKER_CACHE,}`)
+    - Both GitOps (template → commit → flux) and OCI-first (build → push →
+      image automation) workflows
+    - Future build tools work without Asya code changes
 
-    **Where opaque commands have limitations**:
-    - **No lock file generation**: Asya can't hash build inputs because it
-      doesn't know what they are. `actor-image.lock` can only track the
-      final image digest, not input reproducibility (Strategy C from
-      `research-seamless-build.md` requires input hashing).
-    - **No CUDA auto-resolution**: Cog's compatibility matrices (PyTorch →
-      CUDA version) require pre-build analysis. An opaque command can't
-      leverage this — DS must manually specify CUDA.
-    - **No build rendering**: `asya build render` (generate Dockerfile from
-      structured intent for GitOps) is not possible with opaque commands.
-    - **No multi-strategy portability**: Switching from docker to apko
-      requires rewriting the command string, not just changing a strategy
-      flag.
+    **Known gaps for v1** (accepted):
+    - **No `actor-image.lock` input hashing**: Asya can't compute
+      `input_hash` because opaque commands don't declare their inputs.
+      Lock file deferred to v2. For v1, `asya promote` copies source files
+      without hash verification. Workaround: hash entire `path:` directory
+      minus `.gitignore` patterns.
+    - **No CUDA auto-resolution**: DS must manually determine CUDA version.
+      Mitigated by standalone helper command (`asya resolve cuda
+      --requirements requirements.txt`) that reads Cog's compatibility
+      matrices — independent of build commands.
+    - **No build rendering**: Can't generate Dockerfile from structured
+      intent. Not needed for v1 (users write their own Dockerfiles).
+    - **Shipwright Build CR lifecycle**: `shp build upload` requires
+      pre-existing Build CR. One-time manual setup per actor. Can add
+      `asya actor setup --builder shipwright` in v2.
+    - **No skip-if-unchanged**: Asya always runs the build command. Tied to
+      lock file gap — with `input_hash`, Asya could skip unchanged builds.
 
-    **Mitigation**: These limitations are acceptable for v1 (GitOps focus).
-    If structured build intent is needed later (CUDA auto-resolution,
-    input hashing, build rendering), it can be added as an optional
-    `build.intent:` field alongside the existing opaque `build.local`/
-    `build.remote` commands — no schema break needed.
+    **Not a real gap**:
+    - **Multi-strategy portability**: Switching docker→apko requires
+      rewriting the command string, but teams rarely switch strategies.
+      `asya init --strategy apko` can scaffold the right commands.
 
-13. **Compiler template: `${arg:tag}` lifecycle per mode**: In `manifests`
-    mode, `${arg:tag}` stays unresolved in the generated YAML and is resolved
-    at deploy time. In `helm` mode, it becomes a values.yaml field resolved
-    via `--set image.tag=v1`. In `kustomize` mode, it uses the images
-    transformer. Should `${arg:*}` in the template always resolve at compile
-    time, or should it be mode-dependent?
+    **v2 extension path** (no schema break): Optional `build.intent:` field
+    alongside existing `build.local`/`build.remote`. When `intent` exists,
+    Asya can auto-generate commands, compute `input_hash`, resolve CUDA.
+    When absent, falls back to opaque commands. Additive change — v1 configs
+    remain valid.
 
-14. **Compiler template: custom Helm chart support**: The `helm.chart`
+13. **Template: `${arg:tag}` lifecycle per mode**: In `manifests` mode,
+    `${arg:tag}` stays unresolved in the generated YAML and is resolved at
+    deploy time. In `helm` mode, it becomes a values.yaml field resolved via
+    `--set image.tag=v1`. In `kustomize` mode, it uses the images
+    transformer. Should `${arg:*}` in the template body always resolve at
+    template time, or should it be mode-dependent?
+
+14. **Template: custom Helm chart support**: The `template.helm.chart`
     field defaults to `asya-actor`. If a team uses a custom chart with a
-    different values schema, the template must match that chart's structure.
-    Should Asya validate the template against the chart's `values.schema.json`?
+    different values schema, the template body must match that chart's
+    structure. Should Asya validate the body against the chart's
+    `values.schema.json`?
 
-15. **Compiler template: `${actor:env}` format**: Environment variables
-    extracted from handler code (`os.environ`, `os.getenv`). What format?
-    A list of `{name, value}` dicts matching K8s `env:` schema? Or just
-    variable names (values come from overlays/secrets)?
+15. **Template: `${actor:env}` format**: Environment variables extracted
+    from handler code (`os.environ`, `os.getenv`). What format? A list of
+    `{name, value}` dicts matching K8s `env:` schema? Or just variable
+    names (values come from overlays/secrets)?
 
 16. **Infrastructure defaults ownership**: Overlays handle infrastructure
-    defaults (transport, scaling, GPU) at K8s deploy time. The compiler
-    template also has static defaults (transport, overlays list, scaling).
-    These overlap — should the template contain ONLY compiler-inferred values
+    defaults (transport, scaling, GPU) at K8s deploy time. The template
+    body also has static defaults (transport, overlays list, scaling).
+    These overlap — should the body contain ONLY actor-inferred values
     (`${actor:*}`) and leave all static defaults to overlays?
 
 ---
