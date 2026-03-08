@@ -635,3 +635,29 @@ def streaming_error_handler(payload):
     """
     yield "FLY", {"type": "text_delta", "token": "before_error"}
     raise ValueError("Mid-stream intentional error")
+
+
+# =============================================================================
+# Secret Injection Testing (async)
+# =============================================================================
+
+
+async def secret_echo_handler(payload: dict[str, Any]) -> dict[str, Any]:
+    """
+    Secret echo handler: Returns values of env vars named in payload.
+
+    Used to verify that Kubernetes Secrets injected via AsyncActor secretRefs
+    are accessible to the Python actor code via os.environ.
+
+    Payload:
+        env_vars (list[str]): env var names to read and return
+
+    Returns:
+        payload with "env_values" dict mapping each name to its value
+        (or "__NOT_SET__" if the var is not present in the environment)
+    """
+    import os
+
+    env_vars = payload.get("env_vars", [])
+    env_values = {var: os.environ.get(var, "__NOT_SET__") for var in env_vars}
+    return {**payload, "env_values": env_values}
