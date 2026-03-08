@@ -183,15 +183,15 @@ time {
   helm repo update crossplane-stable > /dev/null 2>&1
   helm upgrade --install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace \
-    --wait --timeout 120s > /dev/null 2>&1
+    --wait --timeout 5m > /dev/null 2>&1
 
   echo "[.] Waiting for cert-manager webhooks..."
   kubectl wait --for=condition=available deployment/cert-manager-webhook \
-    -n cert-manager --timeout=120s > /dev/null 2>&1
+    -n cert-manager --timeout=3m > /dev/null 2>&1
 
   echo "[.] Waiting for Crossplane pods..."
   kubectl wait --for=condition=available deployment/crossplane \
-    -n crossplane-system --timeout=120s > /dev/null 2>&1
+    -n crossplane-system --timeout=3m > /dev/null 2>&1
 
   echo "[+] cert-manager and Crossplane core installed"
 }
