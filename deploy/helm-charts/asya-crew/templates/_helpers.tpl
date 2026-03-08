@@ -219,21 +219,21 @@ gcpProject: {{ .Values.gcpProject }}
 {{- end }}
 
 {{/*
-Persistence overlay name
+Persistence flavor name
 */}}
-{{- define "asya-crew.persistence.overlayName" -}}
+{{- define "asya-crew.persistence.flavorName" -}}
 {{- printf "%s-persistence-%s" .Release.Name .Values.persistence.backend }}
 {{- end }}
 
 {{/*
-Persistence overlay labels
+Persistence flavor labels
 */}}
 {{- define "asya-crew.persistence.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
 {{- end }}
 
 {{/*
-Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig overlay)
+Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig flavor)
 Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" "my-bucket")
 If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 */}}

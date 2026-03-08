@@ -114,8 +114,8 @@ time {
   INJECTOR_BUILD_PID=$!
 
   # Build Crossplane function image (will be pushed to local registry in Phase 3)
-  echo "[.] Building function-asya-overlays image..."
-  docker build -t "function-asya-overlays:latest" "$ROOT_DIR/src/function-asya-overlays/" > /dev/null 2>&1 &
+  echo "[.] Building function-asya-flavors image..."
+  docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
   # Build state-proxy connector image for the active profile
@@ -147,10 +147,10 @@ time {
   echo "[+] Injector image built"
 
   if ! wait "$FUNCTION_BUILD_PID"; then
-    echo "[-] function-asya-overlays build failed"
+    echo "[-] function-asya-flavors build failed"
     exit 1
   fi
-  echo "[+] function-asya-overlays image built"
+  echo "[+] function-asya-flavors image built"
 
   if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
     if ! wait "$STATE_PROXY_BUILD_PID"; then
@@ -202,11 +202,11 @@ echo
 # Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
 # into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
 #
-# Crossplane Function packages (function-asya-overlays) use Crossplane's own OCI puller,
+# Crossplane Function packages (function-asya-flavors) use Crossplane's own OCI puller,
 # NOT containerd — `kind load` does NOT work for them. We run a local OCI registry
 # (registry:2), push freshly-built function images to it, and point the Crossplane
 # Function CRD at the registry's cluster-internal IP. This lets E2E tests run on the
-# same function-asya-overlays code that was just built, matching how other images work.
+# same function-asya-flavors code that was just built, matching how other images work.
 #
 # Crossplane's OCI client (go-containerregistry) uses HTTPS by default. A plain HTTP
 # registry at a private IP fails silently. We generate a self-signed TLS cert so the
@@ -214,7 +214,7 @@ echo
 # Crossplane via registryCaBundleConfig to trust the CA for pull.
 REGISTRY_NAME="${REGISTRY_NAME:-asya-e2e-registry}"
 REGISTRY_HOST_PORT=5001
-OVERLAYS_REPOSITORY=""
+FLAVORS_REPOSITORY=""
 REGISTRY_CERTS_DIR=$(mktemp -d)
 
 echo "[.] Phase 3: Loading images into Kind cluster..."
@@ -333,9 +333,9 @@ TOML'
   echo "[+] containerd CA trust configured on Kind nodes"
 
   # Push function image to the TLS registry
-  docker tag "function-asya-overlays:latest" \
-    "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest"
-  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest" > /dev/null
+  docker tag "function-asya-flavors:latest" \
+    "localhost:${REGISTRY_HOST_PORT}/function-asya-flavors:latest"
+  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-flavors:latest" > /dev/null
 
   # Create ConfigMap with CA cert so Crossplane trusts the registry
   kubectl create configmap local-registry-ca \
@@ -349,9 +349,9 @@ TOML'
     --set "registryCaBundleConfig.key=ca-certificates.crt" \
     --wait --timeout 60s > /dev/null
 
-  OVERLAYS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-overlays"
+  FLAVORS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-flavors"
   echo "[+] Local OCI registry (TLS) at ${REGISTRY_IP}:5000"
-  echo "[+] Function repository: ${OVERLAYS_REPOSITORY}"
+  echo "[+] Function repository: ${FLAVORS_REPOSITORY}"
 
   # Wait for all kind load operations
   LOAD_FAILED=false
@@ -488,18 +488,18 @@ time {
 }
 echo
 
-# Point function-asya-overlays at the local OCI registry.
+# Point function-asya-flavors at the local OCI registry.
 # Phase 5 created the Function CRD with the default ghcr.io URL; this upgrade
 # rewrites the package field so Crossplane pulls from our local registry instead.
-if [ -n "$OVERLAYS_REPOSITORY" ]; then
-  echo "[.] Pointing function-asya-overlays at local registry..."
+if [ -n "$FLAVORS_REPOSITORY" ]; then
+  echo "[.] Pointing function-asya-flavors at local registry..."
   helm upgrade asya-crossplane ../../../deploy/helm-charts/asya-crossplane \
     -n asya-system --reuse-values \
-    --set "functions.overlaysRepository=${OVERLAYS_REPOSITORY}" \
-    --set "functions.overlaysVersion=latest" \
-    --set "functions.overlaysPackagePullPolicy=Always" \
+    --set "functions.flavorsRepository=${FLAVORS_REPOSITORY}" \
+    --set "functions.flavorsVersion=latest" \
+    --set "functions.flavorsPackagePullPolicy=Always" \
     --wait --timeout 60s > /dev/null
-  echo "[+] Function CRD updated: ${OVERLAYS_REPOSITORY}:latest"
+  echo "[+] Function CRD updated: ${FLAVORS_REPOSITORY}:latest"
 fi
 echo
 

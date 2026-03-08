@@ -1,7 +1,7 @@
-# EnvironmentConfigs used by E2E test actors to exercise the overlay pipeline.
+# EnvironmentConfigs used by E2E test actors to exercise the flavor pipeline.
 #
 # - asya-test-actor: standard compute + scaling defaults applied to most test actors
-# - asya-test-env-vars: extra env var used by multi-overlay test (actor-unicode)
+# - asya-test-env-vars: extra env var used by multi-flavor test (actor-unicode)
 #
 # Both are cluster-scoped resources (EnvironmentConfig has no namespace).
 ---
@@ -10,7 +10,7 @@ kind: EnvironmentConfig
 metadata:
   name: asya-test-actor
   labels:
-    asya.sh/overlay: asya-test-actor
+    asya.sh/flavor: asya-test-actor
 data:
   scaling:
     minReplicas: 1
@@ -34,7 +34,7 @@ kind: EnvironmentConfig
 metadata:
   name: asya-test-env-vars
   labels:
-    asya.sh/overlay: asya-test-env-vars
+    asya.sh/flavor: asya-test-env-vars
 data:
   workload:
     template:
@@ -42,5 +42,5 @@ data:
         containers:
         - name: asya-runtime
           env:
-          - name: OVERLAY_EXTRA_VAR
-            value: from-overlay
+          - name: FLAVOR_EXTRA_VAR
+            value: from-flavor

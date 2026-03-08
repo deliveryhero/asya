@@ -49,15 +49,15 @@ spec:
                     - pubsub
                   default: sqs
 
-                overlays:
+                flavors:
                   type: array
                   maxItems: 8
                   items:
                     type: string
                     minLength: 3
                   description: >-
-                    List of overlay names (EnvironmentConfigs) to compose.
-                    Applied left-to-right; later overlays override earlier ones.
+                    List of flavor names (EnvironmentConfigs) to compose.
+                    Applied left-to-right; later flavors override earlier ones.
                     Actor inline spec is applied last and always wins.
 
                 region:

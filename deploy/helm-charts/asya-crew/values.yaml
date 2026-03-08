@@ -278,11 +278,11 @@ x-resume:
     # Merge mode for user input: "shallow" (default) or "deep"
     ASYA_RESUME_MERGE_MODE: ""
 
-# Persistence overlay configuration
-# When enabled, creates a shared EnvironmentConfig overlay providing storage infrastructure
+# Persistence flavor configuration
+# When enabled, creates a shared EnvironmentConfig flavor providing storage infrastructure
 # (stateProxy connector + bucket). Each crew actor sets its own ASYA_PERSISTENCE_MOUNT.
 # Mount path is NOT configurable here — it's a per-actor concern (container-level).
-# The overlay hardcodes mount path to /state/checkpoints; actors use subdirectories.
+# The flavor hardcodes mount path to /state/checkpoints; actors use subdirectories.
 persistence:
   enabled: false
   backend: "" # "s3" or "gcs"

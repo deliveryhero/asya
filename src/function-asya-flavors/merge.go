@@ -48,19 +48,19 @@ type TemplateSchema struct {
 	Spec corev1.PodSpec `json:"spec,omitempty"`
 }
 
-// MergeOverlays applies strategic merge patches sequentially for each overlay's data.
-// Overlays are merged left-to-right: later overlays override earlier ones.
-func MergeOverlays(overlayData []map[string]interface{}) (map[string]interface{}, error) {
-	if len(overlayData) == 0 {
+// MergeFlavors applies strategic merge patches sequentially for each flavor's data.
+// Flavors are merged left-to-right: later flavors override earlier ones.
+func MergeFlavors(flavorData []map[string]interface{}) (map[string]interface{}, error) {
+	if len(flavorData) == 0 {
 		return map[string]interface{}{}, nil
 	}
 
 	base := map[string]interface{}{}
-	for i, data := range overlayData {
+	for i, data := range flavorData {
 		var err error
 		base, err = ApplyStrategicMerge(base, data)
 		if err != nil {
-			return nil, errors.Wrapf(err, "cannot apply overlay at index %d", i)
+			return nil, errors.Wrapf(err, "cannot apply flavor at index %d", i)
 		}
 	}
 

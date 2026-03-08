@@ -107,14 +107,14 @@ metadata:
 spec:
   package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:{{ .Values.functions.autoReadyVersion }}
 ---
-{{- if .Values.functions.overlaysEnabled }}
+{{- if .Values.functions.flavorsEnabled }}
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
-  name: function-asya-overlays
+  name: function-asya-flavors
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
 spec:
-  package: {{ .Values.functions.overlaysRepository }}:{{ .Values.functions.overlaysVersion }}
-  packagePullPolicy: {{ .Values.functions.overlaysPackagePullPolicy }}
+  package: {{ .Values.functions.flavorsRepository }}:{{ .Values.functions.flavorsVersion }}
+  packagePullPolicy: {{ .Values.functions.flavorsPackagePullPolicy }}
 {{- end }}

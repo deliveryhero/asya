@@ -111,7 +111,7 @@ crossplane:
   providerConfigs:
     install: false
   functions:
-    overlaysEnabled: true
+    flavorsEnabled: true
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret

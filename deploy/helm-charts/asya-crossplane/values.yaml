@@ -23,10 +23,10 @@ functions:
   goTemplatingVersion: "v0.11.3"
   patchAndTransformVersion: "v0.8.2"
   autoReadyVersion: "v0.6.0"
-  overlaysEnabled: true
-  overlaysRepository: "ghcr.io/deliveryhero/function-asya-overlays"
-  overlaysVersion: "0.5.3"
-  overlaysPackagePullPolicy: IfNotPresent
+  flavorsEnabled: true
+  flavorsRepository: "ghcr.io/deliveryhero/function-asya-flavors"
+  flavorsVersion: "0.5.3"
+  flavorsPackagePullPolicy: IfNotPresent
 
 # AWS ProviderConfig settings
 awsProviderConfig:

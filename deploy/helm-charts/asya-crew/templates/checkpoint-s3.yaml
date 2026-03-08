@@ -19,8 +19,8 @@ spec:
   transport: {{ $checkpointS3.transport }}
   {{- include "asya-crew.pubsub-spec" . | nindent 2 }}
   {{- if .Values.persistence.enabled }}
-  overlays:
-    - {{ include "asya-crew.persistence.overlayName" . }}
+  flavors:
+    - {{ include "asya-crew.persistence.flavorName" . }}
   {{- end }}
 
   {{- with $checkpointS3.sidecar }}

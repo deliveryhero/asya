@@ -64,7 +64,7 @@ def _actor_manifest(
     image: str = "ghcr.io/deliveryhero/asya-testing:latest",
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
-    overlays: list[str] | None = None,
+    flavors: list[str] | None = None,
     gcp_project: str | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
@@ -89,10 +89,10 @@ def _actor_manifest(
 
     replicas_line = f"\n    replicas: {replicas}" if replicas is not None else ""
 
-    overlays_block = ""
-    if overlays:
-        overlay_lines = "\n".join(f"    - {f}" for f in overlays)
-        overlays_block = f"\n  overlays:\n{overlay_lines}"
+    flavors_block = ""
+    if flavors:
+        flavor_lines = "\n".join(f"    - {f}" for f in flavors)
+        flavors_block = f"\n  flavors:\n{flavor_lines}"
 
     gcp_project_line = f"\n  gcpProject: {gcp_project}" if gcp_project else ""
 
@@ -106,7 +106,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  transport: {transport}{gcp_project_line}{overlays_block}
+  transport: {transport}{gcp_project_line}{flavors_block}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -1694,76 +1694,76 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
 
 @pytest.mark.core
 @pytest.mark.timeout(600)
-def test_asyncactor_overlays_resolved(e2e_helper):
+def test_asyncactor_flavors_resolved(e2e_helper):
     """
-    E2E: Test that spec.overlays are resolved and merged into the actor workload.
+    E2E: Test that spec.flavors are resolved and merged into the actor workload.
 
-    Scenario 1 - Single overlay:
-    1. Create actor with spec.overlays: [asya-test-actor] (no inline resources)
-    2. Crossplane resolves overlay EnvironmentConfig, merges resources into spec
-    3. Deployment is created with resources from the overlay
+    Scenario 1 - Single flavor:
+    1. Create actor with spec.flavors: [asya-test-actor] (no inline resources)
+    2. Crossplane resolves flavor EnvironmentConfig, merges resources into spec
+    3. Deployment is created with resources from the flavor
 
-    Scenario 2 - Multiple overlays + env var override:
-    1. Create actor with spec.overlays: [asya-test-actor, asya-test-env-vars]
-       plus an inline env var OVERLAY_EXTRA_VAR=from-actor
-    2. Actor inline spec wins over overlay: override is applied last
-    3. Deployment env has OVERLAY_EXTRA_VAR=from-actor (not from-overlay)
+    Scenario 2 - Multiple flavors + env var override:
+    1. Create actor with spec.flavors: [asya-test-actor, asya-test-env-vars]
+       plus an inline env var FLAVOR_EXTRA_VAR=from-actor
+    2. Actor inline spec wins over flavor: override is applied last
+    3. Deployment env has FLAVOR_EXTRA_VAR=from-actor (not from-flavor)
 
-    Scenario 3 - No overlays (backward compat):
-    1. Actor without spec.overlays is created
-    2. Actor still reconciles correctly without overlay EnvironmentConfig
+    Scenario 3 - No flavors (backward compat):
+    1. Actor without spec.flavors is created
+    2. Actor still reconciles correctly without flavor EnvironmentConfig
 
     Expected: All three scenarios work correctly
     """
-    actor_single = f"test-overlay-single-{e2e_helper.namespace[-4:]}"
-    actor_multi = f"test-overlay-multi-{e2e_helper.namespace[-4:]}"
-    actor_no_overlay = f"test-overlay-none-{e2e_helper.namespace[-4:]}"
+    actor_single = f"test-flavor-single-{e2e_helper.namespace[-4:]}"
+    actor_multi = f"test-flavor-multi-{e2e_helper.namespace[-4:]}"
+    actor_no_flavor = f"test-flavor-none-{e2e_helper.namespace[-4:]}"
 
     try:
-        # --- Scenario 1: single overlay ---
-        logger.info("Creating actor with single overlay...")
+        # --- Scenario 1: single flavor ---
+        logger.info("Creating actor with single flavor...")
         kubectl_apply_raw(
             _actor_manifest(
                 actor_single,
                 e2e_helper.namespace,
-                overlays=["asya-test-actor"],
+                flavors=["asya-test-actor"],
             ),
             namespace=e2e_helper.namespace,
         )
 
         assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=180), (
-            "Overlay actor should reach Ready=True"
+            "Flavor actor should reach Ready=True"
         )
 
-        # Verify the Deployment has resources injected by the overlay
+        # Verify the Deployment has resources injected by the flavor
         deployment = kubectl_get("deployment", actor_single, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
         assert runtime is not None, "asya-runtime container must exist"
         resources = runtime.get("resources", {})
         assert resources.get("limits", {}).get("cpu") == "200m", (
-            f"Overlay should set cpu limit to 200m, got: {resources}"
+            f"Flavor should set cpu limit to 200m, got: {resources}"
         )
         assert resources.get("requests", {}).get("memory") == "64Mi", (
-            f"Overlay should set memory request to 64Mi, got: {resources}"
+            f"Flavor should set memory request to 64Mi, got: {resources}"
         )
-        logger.info("[+] Single overlay: resources correctly injected from overlay")
+        logger.info("[+] Single flavor: resources correctly injected from flavor")
 
-        # --- Scenario 2: multiple overlays + env var override ---
-        logger.info("Creating actor with multiple overlays and env var override...")
+        # --- Scenario 2: multiple flavors + env var override ---
+        logger.info("Creating actor with multiple flavors and env var override...")
         override_env = """\
-          - name: OVERLAY_EXTRA_VAR
+          - name: FLAVOR_EXTRA_VAR
             value: from-actor"""
         manifest = _actor_manifest(
             actor_multi,
             e2e_helper.namespace,
-            overlays=["asya-test-actor", "asya-test-env-vars"],
+            flavors=["asya-test-actor", "asya-test-env-vars"],
             extra_runtime_env=override_env,
         )
         kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
 
         assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=180), (
-            "Multi-overlay actor should reach Ready=True"
+            "Multi-flavor actor should reach Ready=True"
         )
 
         deployment = kubectl_get("deployment", actor_multi, namespace=e2e_helper.namespace)
@@ -1771,27 +1771,27 @@ def test_asyncactor_overlays_resolved(e2e_helper):
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
         assert runtime is not None, "asya-runtime container must exist"
         env_vars = {e["name"]: e["value"] for e in runtime.get("env", [])}
-        assert env_vars.get("OVERLAY_EXTRA_VAR") == "from-actor", (
-            f"Inline env var should override overlay value, got: {env_vars}"
+        assert env_vars.get("FLAVOR_EXTRA_VAR") == "from-actor", (
+            f"Inline env var should override flavor value, got: {env_vars}"
         )
-        logger.info("[+] Multi-overlay: env var override correctly applied")
+        logger.info("[+] Multi-flavor: env var override correctly applied")
 
-        # --- Scenario 3: no overlays (backward compat) ---
-        logger.info("Creating actor without overlays...")
+        # --- Scenario 3: no flavors (backward compat) ---
+        logger.info("Creating actor without flavors...")
         kubectl_apply_raw(
-            _actor_manifest(actor_no_overlay, e2e_helper.namespace),
+            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
             namespace=e2e_helper.namespace,
         )
 
-        assert wait_for_asyncactor_ready(actor_no_overlay, namespace=e2e_helper.namespace, timeout=180), (
+        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=180), (
             "Non-overlaid actor should reach Ready=True (backward compat)"
         )
-        logger.info("[+] No-overlay actor: backward compat confirmed")
+        logger.info("[+] No-flavor actor: backward compat confirmed")
 
     except Exception:
-        for actor in [actor_single, actor_multi, actor_no_overlay]:
+        for actor in [actor_single, actor_multi, actor_no_flavor]:
             log_asyncactor_workload_diagnostics(actor, namespace=e2e_helper.namespace)
         raise
     finally:
-        for actor in [actor_single, actor_multi, actor_no_overlay]:
+        for actor in [actor_single, actor_multi, actor_no_flavor]:
             _cleanup_actor(actor, e2e_helper.namespace)

@@ -14,7 +14,7 @@ categories:
   - 'asya-crew'
   - 'asya-gateway'
   - 'asya-injector'
-  - 'function-asya-overlays'
+  - 'function-asya-flavors'
   - 'asya-runtime'
   - 'asya-sidecar'
   - 'asya-state-proxy'
@@ -45,7 +45,7 @@ include-labels:
 - 'asya-crew'
 - 'asya-gateway'
 - 'asya-injector'
-- 'function-asya-overlays'
+- 'function-asya-flavors'
 - 'asya-runtime'
 - 'asya-sidecar'
 - 'asya-state-proxy'
@@ -156,9 +156,9 @@ autolabeler:
 - label: 'asya-injector'
   files:
   - 'src/asya-injector/**/*'
-- label: 'function-asya-overlays'
+- label: 'function-asya-flavors'
   files:
-  - 'src/function-asya-overlays/**/*'
+  - 'src/function-asya-flavors/**/*'
 - label: 'asya-runtime'
   files:
   - 'src/asya-runtime/**/*'

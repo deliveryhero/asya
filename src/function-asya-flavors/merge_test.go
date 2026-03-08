@@ -6,8 +6,8 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func TestMergeOverlays_EmptyList(t *testing.T) {
-	result, err := MergeOverlays(nil)
+func TestMergeFlavors_EmptyList(t *testing.T) {
+	result, err := MergeFlavors(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -17,7 +17,7 @@ func TestMergeOverlays_EmptyList(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_SingleOverlay(t *testing.T) {
+func TestMergeFlavors_SingleFlavor(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"scaling": map[string]interface{}{
@@ -27,7 +27,7 @@ func TestMergeOverlays_SingleOverlay(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestMergeOverlays_SingleOverlay(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_ScalingFieldsMerge(t *testing.T) {
+func TestMergeFlavors_ScalingFieldsMerge(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"scaling": map[string]interface{}{
@@ -59,7 +59,7 @@ func TestMergeOverlays_ScalingFieldsMerge(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestMergeOverlays_ScalingFieldsMerge(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_EnvVarsMergeByName(t *testing.T) {
+func TestMergeFlavors_EnvVarsMergeByName(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -119,7 +119,7 @@ func TestMergeOverlays_EnvVarsMergeByName(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -143,7 +143,7 @@ func TestMergeOverlays_EnvVarsMergeByName(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_EnvVarOverrideByName(t *testing.T) {
+func TestMergeFlavors_EnvVarOverrideByName(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -185,7 +185,7 @@ func TestMergeOverlays_EnvVarOverrideByName(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -197,11 +197,11 @@ func TestMergeOverlays_EnvVarOverrideByName(t *testing.T) {
 
 	env := envVars[0].(map[string]interface{})
 	if env["value"] != "DEBUG" {
-		t.Errorf("LOG_LEVEL: got %q, want %q (later overlay should win)", env["value"], "DEBUG")
+		t.Errorf("LOG_LEVEL: got %q, want %q (later flavor should win)", env["value"], "DEBUG")
 	}
 }
 
-func TestMergeOverlays_ValueFromSecretKeyRef(t *testing.T) {
+func TestMergeFlavors_ValueFromSecretKeyRef(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -248,7 +248,7 @@ func TestMergeOverlays_ValueFromSecretKeyRef(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -274,11 +274,11 @@ func TestMergeOverlays_ValueFromSecretKeyRef(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_TolerationsReplacedAtomically(t *testing.T) {
+func TestMergeFlavors_TolerationsReplacedAtomically(t *testing.T) {
 	// PodSpec.Tolerations uses +listType=atomic in Kubernetes, meaning
-	// the last overlay's tolerations replace earlier ones entirely.
-	// Overlays that need both GPU and dedicated tolerations should include
-	// all of them in a single overlay definition.
+	// the last flavor's tolerations replace earlier ones entirely.
+	// Flavors that need both GPU and dedicated tolerations should include
+	// all of them in a single flavor definition.
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -313,14 +313,14 @@ func TestMergeOverlays_TolerationsReplacedAtomically(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	tolerations := result["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["tolerations"].([]interface{})
 
-	// Only the last overlay's tolerations survive (atomic replace)
+	// Only the last flavor's tolerations survive (atomic replace)
 	if len(tolerations) != 1 {
 		t.Fatalf("expected 1 toleration (atomic list replace), got %d", len(tolerations))
 	}
@@ -331,8 +331,8 @@ func TestMergeOverlays_TolerationsReplacedAtomically(t *testing.T) {
 	}
 }
 
-func TestMergeOverlays_TolerationsCombinedInSingleOverlay(t *testing.T) {
-	// Correct usage: a single overlay bundles all needed tolerations
+func TestMergeFlavors_TolerationsCombinedInSingleFlavor(t *testing.T) {
+	// Correct usage: a single flavor bundles all needed tolerations
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -357,7 +357,7 @@ func TestMergeOverlays_TolerationsCombinedInSingleOverlay(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,11 +365,11 @@ func TestMergeOverlays_TolerationsCombinedInSingleOverlay(t *testing.T) {
 	tolerations := result["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["tolerations"].([]interface{})
 
 	if len(tolerations) != 2 {
-		t.Fatalf("expected 2 tolerations from single overlay, got %d", len(tolerations))
+		t.Fatalf("expected 2 tolerations from single flavor, got %d", len(tolerations))
 	}
 }
 
-func TestMergeOverlays_ResourceOverride(t *testing.T) {
+func TestMergeFlavors_ResourceOverride(t *testing.T) {
 	data := []map[string]interface{}{
 		{
 			"workload": map[string]interface{}{
@@ -411,7 +411,7 @@ func TestMergeOverlays_ResourceOverride(t *testing.T) {
 		},
 	}
 
-	result, err := MergeOverlays(data)
+	result, err := MergeFlavors(data)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -421,7 +421,7 @@ func TestMergeOverlays_ResourceOverride(t *testing.T) {
 	limits := container["resources"].(map[string]interface{})["limits"].(map[string]interface{})
 
 	if limits["memory"] != "16Gi" {
-		t.Errorf("memory: got %v, want 16Gi (later overlay should override)", limits["memory"])
+		t.Errorf("memory: got %v, want 16Gi (later flavor should override)", limits["memory"])
 	}
 	if limits["nvidia.com/gpu"] != "1" {
 		t.Errorf("nvidia.com/gpu: got %v, want 1", limits["nvidia.com/gpu"])
@@ -429,7 +429,7 @@ func TestMergeOverlays_ResourceOverride(t *testing.T) {
 }
 
 func TestApplyStrategicMerge_ActorInlineWins(t *testing.T) {
-	overlayData := []map[string]interface{}{
+	flavorData := []map[string]interface{}{
 		{
 			"scaling": map[string]interface{}{
 				"minReplicas":    float64(1),
@@ -447,8 +447,8 @@ func TestApplyStrategicMerge_ActorInlineWins(t *testing.T) {
 										"value": "INFO",
 									},
 									map[string]interface{}{
-										"name":  "OVERLAY_VAR",
-										"value": "from-overlay",
+										"name":  "FLAVOR_VAR",
+										"value": "from-flavor",
 									},
 								},
 							},
@@ -459,7 +459,7 @@ func TestApplyStrategicMerge_ActorInlineWins(t *testing.T) {
 		},
 	}
 
-	merged, err := MergeOverlays(overlayData)
+	merged, err := MergeFlavors(flavorData)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -497,14 +497,14 @@ func TestApplyStrategicMerge_ActorInlineWins(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Actor's minReplicas=2 should override overlay's minReplicas=1
+	// Actor's minReplicas=2 should override flavor's minReplicas=1
 	scaling := result["scaling"].(map[string]interface{})
 	if scaling["minReplicas"] != float64(2) {
 		t.Errorf("minReplicas: got %v, want 2 (actor should override)", scaling["minReplicas"])
 	}
-	// Overlay's cooldownPeriod should be preserved
+	// Flavor's cooldownPeriod should be preserved
 	if scaling["cooldownPeriod"] != float64(600) {
-		t.Errorf("cooldownPeriod: got %v, want 600 (should be preserved from overlay)", scaling["cooldownPeriod"])
+		t.Errorf("cooldownPeriod: got %v, want 600 (should be preserved from flavor)", scaling["cooldownPeriod"])
 	}
 
 	envVars := getEnvVars(t, result)
@@ -517,13 +517,13 @@ func TestApplyStrategicMerge_ActorInlineWins(t *testing.T) {
 		}
 	}
 
-	// Actor's LOG_LEVEL=DEBUG should override overlay's LOG_LEVEL=INFO
+	// Actor's LOG_LEVEL=DEBUG should override flavor's LOG_LEVEL=INFO
 	if envMap["LOG_LEVEL"] != "DEBUG" {
 		t.Errorf("LOG_LEVEL: got %q, want %q (actor should override)", envMap["LOG_LEVEL"], "DEBUG")
 	}
-	// Overlay's OVERLAY_VAR should be preserved
-	if envMap["OVERLAY_VAR"] != "from-overlay" {
-		t.Errorf("OVERLAY_VAR: got %q, want %q (should be preserved from overlay)", envMap["OVERLAY_VAR"], "from-overlay")
+	// Flavor's FLAVOR_VAR should be preserved
+	if envMap["FLAVOR_VAR"] != "from-flavor" {
+		t.Errorf("FLAVOR_VAR: got %q, want %q (should be preserved from flavor)", envMap["FLAVOR_VAR"], "from-flavor")
 	}
 	// Actor's ASYA_HANDLER should be present
 	if envMap["ASYA_HANDLER"] != "model.inference" {

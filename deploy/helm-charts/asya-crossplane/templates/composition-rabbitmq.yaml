@@ -35,13 +35,13 @@ spec:
               "asya/user-labels":
                 {{`{{- $userLabels | toYaml | nindent 4 }}`}}
 
-    {{- if .Values.functions.overlaysEnabled }}
-    # Resolve actor overlays — merges EnvironmentConfig overlay data into a resolved spec
+    {{- if .Values.functions.flavorsEnabled }}
+    # Resolve actor flavors — merges EnvironmentConfig flavor data into a resolved spec
     # written to context key asya/resolved-spec for downstream steps to consume.
-    # Actors without spec.overlays are passed through with no changes.
-    - step: resolve-overlays
+    # Actors without spec.flavors are passed through with no changes.
+    - step: resolve-flavors
       functionRef:
-        name: function-asya-overlays
+        name: function-asya-flavors
     {{- end }}
 
     # Step 2: Create KEDA TriggerAuthentication for RabbitMQ scaling
