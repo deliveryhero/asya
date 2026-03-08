@@ -2,7 +2,7 @@
 # This is the minimal configuration needed to create an actor
 #
 # Actor name: spec.actor (required, used for queue naming and routing)
-# Queue name: asya-asya-e2e-hello-actor
+# Queue name: asya-my-project-hello-actor
 
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -14,8 +14,6 @@ spec:
   actor: hello-actor
   # Reference to operator-configured transport
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   # Your runtime container
   workload:

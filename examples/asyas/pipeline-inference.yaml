@@ -9,8 +9,6 @@ metadata:
 spec:
   actor: inference
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   scaling:
     enabled: true

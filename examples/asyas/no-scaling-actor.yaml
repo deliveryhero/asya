@@ -9,8 +9,6 @@ metadata:
 spec:
   actor: fixed-replicas-actor
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   # Disable KEDA autoscaling
   scaling:

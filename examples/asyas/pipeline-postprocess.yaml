@@ -9,8 +9,6 @@ metadata:
 spec:
   actor: postprocess
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   scaling:
     enabled: true

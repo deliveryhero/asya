@@ -22,8 +22,6 @@ metadata:
 spec:
   actor: data-processor
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   # Reference shared persistence overlay created by asya-crew chart
   overlays: [asya-persistence-s3]

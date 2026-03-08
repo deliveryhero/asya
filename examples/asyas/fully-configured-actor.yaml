@@ -9,8 +9,6 @@ metadata:
 spec:
   actor: fully-configured-actor
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
 
   scaling:
     enabled: true
