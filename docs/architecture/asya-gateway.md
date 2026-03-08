@@ -29,18 +29,71 @@ The gateway binary supports three modes via `ASYA_GATEWAY_MODE`:
 
 ### State ownership
 
-The flows registry (ConfigMap) is owned exclusively by the **api pod**:
+The gateway uses two independent state stores with clearly separated ownership:
 
-- **api pod** mounts `gateway-flows` ConfigMap at `ASYA_CONFIG_PATH`, polls it
-  every 5 s, and uses the registry for MCP dispatch, A2A routing, and the agent
-  card. It is the only pod that needs to know what flows exist.
-- **mesh pod** has no ConfigMap mount and no registry. It is stateless w.r.t.
-  tool configuration — its only job is receiving actor callbacks
-  (`/mesh/{id}/progress`, `/mesh/{id}/final`, etc.) and updating the task store.
+```
+                        ┌─────────────────────────────┐
+                        │   gateway-flows ConfigMap   │
+                        │   (flows.yaml — K8s object) │
+                        └──────────────┬──────────────┘
+                                       │ polls every 5 s
+                                       │ (toolstore.Watch)
+                        ┌──────────────▼──────────────┐
+   external client ───► │        api pod              │
+   MCP / A2A / OAuth    │  - MCP dispatch             │
+                        │  - A2A routing              │
+                        │  - agent card               │
+                        └──────────────┬──────────────┘
+                                       │ sends envelope
+                                       ▼
+                                  actor queue
+                                       │
+                                       ▼
+                                  actor pod
+                                       │ POST /mesh/{id}/…
+                        ┌──────────────▼──────────────┐
+                        │        mesh pod             │
+                        │  - progress callbacks       │
+                        │  - final status             │
+                        │  - SSE fan-out              │
+                        └──────────────┬──────────────┘
+                                       │ reads / writes
+                        ┌──────────────▼──────────────┐
+                        │        PostgreSQL           │
+                        │  tasks, task_updates        │
+                        │  oauth_clients, tokens      │
+                        └─────────────────────────────┘
+                                       ▲
+                        ───────────────┘
+                        api pod also reads/writes
+                        (task creation, OAuth, GetTask)
+```
 
-This means mesh pods can be restarted, scaled, or replaced with zero concern
-about flow configuration. When a new flow is added to the ConfigMap, only the
-api pod needs to reload it.
+**ConfigMap** (`gateway-flows`) — routing configuration:
+
+| | api pod | mesh pod |
+|---|---|---|
+| Mounts ConfigMap | ✅ (`ASYA_CONFIG_PATH`) | ❌ |
+| Hot-reloads on change | ✅ every 5 s | ❌ |
+| Uses for dispatch | ✅ MCP + A2A + agent card | ❌ |
+
+The ConfigMap is the source of truth for *what flows exist*. It is seeded by
+Helm at deploy time and can be patched at runtime (e.g., via `kubectl patch` or
+`asya mcp expose`) without a pod restart.
+
+**PostgreSQL** — task and auth state:
+
+| | api pod | mesh pod |
+|---|---|---|
+| Creates tasks | ✅ (on MCP/A2A call) | ❌ |
+| Writes progress | ❌ | ✅ (via `/mesh/{id}/progress`) |
+| Writes final status | ❌ | ✅ (via `/mesh/{id}/final`) |
+| Reads task state | ✅ (GetTask, SSE, OAuth) | ✅ (SSE stream) |
+| Stores OAuth clients/tokens | ✅ (when OAuth enabled) | ❌ |
+
+Both pods connect to the **same** PostgreSQL instance. PostgreSQL is the shared
+coordination point: the api pod creates a task record, then mesh pod workers
+update it as actors report progress.
 
 Production deployments use **two Helm releases** from the same chart:
 
