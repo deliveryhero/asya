@@ -103,8 +103,6 @@ spec:
         {{- end }}
         - name: ASYA_NAMESPACE
           value: "{{ .Release.Namespace }}"
-        - name: ASYA_CONFIG_PATH
-          value: "{{ .Values.flowsConfig.mountPath }}"
         {{- with .Values.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -122,19 +120,12 @@ spec:
           periodSeconds: 10
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-        volumeMounts:
-        - name: gateway-flows
-          mountPath: {{ .Values.flowsConfig.mountPath }}
-          readOnly: true
         {{- with .Values.volumeMounts }}
+        volumeMounts:
         {{- toYaml . | nindent 8 }}
         {{- end }}
-      volumes:
-      - name: gateway-flows
-        configMap:
-          name: {{ include "asya-gateway.fullname" . }}-flows
-          optional: true
       {{- with .Values.volumes }}
+      volumes:
       {{- toYaml . | nindent 6 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
