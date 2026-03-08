@@ -129,9 +129,9 @@ class TestUnknownDirective:
 
 
 class TestUnsupportedDirectives:
-    """flow, decompose, config are valid syntax but not yet implemented."""
+    """flow, unfold, config are valid syntax but not yet implemented."""
 
-    @pytest.mark.parametrize("action", ["flow", "decompose", "config"])
+    @pytest.mark.parametrize("action", ["flow", "unfold", "config"])
     def test_unsupported_action_raises_at_parse_time(self, action: str):
         source = textwrap.dedent(f"""
             def flow(p: dict) -> dict:

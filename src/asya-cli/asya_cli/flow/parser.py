@@ -27,10 +27,10 @@ from asya_cli.flow.ir import (
 _DIRECTIVE_RE = re.compile(r"#\s*asya:\s*(\w+)")
 
 # Valid directive actions
-_VALID_ACTIONS = frozenset({"actor", "inline", "flow", "decompose", "config"})
+_VALID_ACTIONS = frozenset({"actor", "flow", "unfold", "inline", "config"})
 
 # Actions not yet implemented by the compiler
-_UNSUPPORTED_ACTIONS = frozenset({"flow", "decompose", "config"})
+_UNSUPPORTED_ACTIONS = frozenset({"flow", "unfold", "config"})
 
 
 # Parameter names accepted in flow function signatures.

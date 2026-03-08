@@ -12,7 +12,7 @@ class IROperation:
 
 @dataclass
 class AsyaDirective:
-    action: str  # actor, inline, flow, decompose, config
+    action: str  # actor, flow, unfold, inline, config
 
 
 @dataclass
