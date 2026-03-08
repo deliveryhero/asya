@@ -114,57 +114,56 @@ def load_effective_config(start_dir: Path) -> DictConfig:
 
 **Recursive merge** handles dicts and lists differently:
 - **Dicts**: deep merge (OmegaConf native). Local keys override ancestor keys.
-- **Lists of dicts**: union by explicit key field, local wins on conflicts.
-  The key field is declared by the Asya semantic layer (see below), NOT
-  auto-detected. For unknown sections, lists are replaced wholesale.
-- **Lists of scalars**: replace (OmegaConf default).
-- Most local (closest to CWD) wins on conflicts.
+- **Lists**: concatenate (append child entries after parent entries). No
+  key detection, no overwrite. Duplicates are detected later at the Asya
+  semantic layer (compile time), not at the merge layer.
+- **Scalars**: replace (child wins).
 
 **Three-layer architecture**:
 1. **OmegaConf (syntactic)**: Load YAML, interpolation, strict fail on
    missing values. Zero knowledge of Asya.
-2. **Merge (generic)**: Walk-up recursive merge. Receives key field
-   mappings as a parameter. Zero knowledge of Asya.
-3. **Asya (semantic)**: Schema validation, handler resolution. Provides
-   key field mappings to the merge layer: `{"images": "module"}`.
+2. **Merge (generic)**: Walk-up recursive merge. Dicts deep-merge, lists
+   concatenate. Zero knowledge of Asya — no key field mappings, no
+   overwrite logic.
+3. **Asya (semantic)**: Schema validation, handler resolution. Detects
+   duplicates in concatenated lists (e.g., two entries matching the same
+   handler) and produces errors with source file locations.
 
 ```python
-# Asya semantic layer defines merge keys for known list sections
-MERGE_KEYS = {
-    "images": "module",
-    # future sections would add entries here
-}
-
-def recursive_merge(configs: list[DictConfig],
-                    merge_keys: dict[str, str] = MERGE_KEYS) -> DictConfig:
-    """Merge configs with list-of-dicts union support."""
+def recursive_merge(configs: list[DictConfig]) -> DictConfig:
+    """Walk-up merge: dicts deep-merge, lists concatenate."""
     result = OmegaConf.create({})
     for cfg in configs:  # root first, local last
         for key in cfg:
-            if (key in merge_keys
-                    and is_list_of_dicts(result.get(key))
-                    and is_list_of_dicts(cfg[key])):
-                kf = merge_keys[key]
-                merged = {item[kf]: item for item in result[key]}
-                for item in cfg[key]:
-                    merged[item[kf]] = item  # local overwrites
-                result[key] = list(merged.values())
+            if is_list(result.get(key)) and is_list(cfg[key]):
+                result[key] = list(result[key]) + list(cfg[key])  # append
             elif OmegaConf.is_dict(result.get(key)) and OmegaConf.is_dict(cfg[key]):
                 result[key] = OmegaConf.merge(result[key], cfg[key])
             else:
-                result[key] = cfg[key]  # scalars and unknown lists: replace
+                result[key] = cfg[key]  # scalars: replace
     return result
 ```
 
-This is the same pattern as the Asya XRD overlay Crossplane function, which
-merges lists of Crossplane resources by a key field. The merge logic can be
-shared or at least follow the same conventions.
+**Why append-only lists?** No key detection needed, no silent overwrites,
+no merge-key configuration. The merge layer stays trivially simple. If two
+configs define entries that resolve to the same handler, the Asya semantic
+layer catches it at compile time with a clear error:
+```
+Error: duplicate image entry matching module 'langchain'
+  defined in: /.asya/config.yaml:8
+  and also in: src/team-a/.asya/config.yaml:3
+  hint: remove one definition
+```
 
-**Why not auto-detect key fields?** Auto-detection (`detect_key_field`) is
-fragile: it breaks when items have no common unique field, when parent and
-child lists have different structures, or when multiple fields look like
-candidates. Explicit mapping is simple, predictable, and keeps the merge
-layer generic. The Asya semantic layer is the right place for this knowledge.
+**Debuggability of `var:` overrides** (dicts DO deep-merge, child wins):
+verbose output traces the merge chain for every overridden value:
+```
+[config] var.image_registry:
+  /.asya/config.yaml        → ghcr.io/org
+  src/team-a/.asya/config.yaml → ghcr.io/team-a  (overrides)
+  --var image_registry=...  → (not set)
+  effective: ghcr.io/team-a
+```
 
 **Correctness requirements** for merge + interpolation:
 1. **Resolve `./` paths BEFORE merge**: Each config's `./` relative paths
@@ -242,7 +241,7 @@ inherit it via walk-up merge and can reference it as
 #   Root:   path: "${var.project_root}/libs/shared"  →  stays as interpolation
 #   Team-A: path: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
 #
-# Recursive merge (images list unioned by `module:` key):
+# Recursive merge (images list concatenated, root first):
 ```
 
 **Effective config for team-a** (after walk-up merge):
@@ -252,7 +251,7 @@ var:
   image_registry: ghcr.io/org    # from root
 
 images:
-  # From root (inherited, unioned by module):
+  # From root (concatenated first):
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
@@ -262,7 +261,7 @@ images:
       local: "docker build -t ${..image} ."
       remote: "docker build -t ${..image} . && docker push ${..image}"
 
-  # From team-a (local):
+  # From team-a (appended after root):
   - module: e_commerce
     path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
     image: "${var.image_registry}/ecom:${arg.tag}"
@@ -514,12 +513,21 @@ Error: unresolved interpolation '${var.registy}'
 ```
 
 **Level 2 — Asya (semantic)**:
-- `images` entries have required `module:` field
-- `module:` values are unique within the effective config
+- No unknown top-level keys (catch typos like `iamges:`)
 - `build.local` / `build.remote` are valid shell commands (basic syntax check)
 - `path:` directories exist on disk (when building)
-- No unknown top-level keys (catch typos like `iamges:`)
-- Image references resolve to an `images` entry (at compile time)
+- Image references in manifests resolve to an `images` entry (at compile time)
+- **Duplicate detection in concatenated lists**: after walk-up merge
+  concatenates lists (section 2.3), the Asya layer checks for entries that
+  resolve to the same handler. This is a semantic check — the merge layer
+  knows nothing about `module:` or handler resolution.
+
+```
+Error: duplicate image entry matching module 'langchain'
+  defined in: /.asya/config.yaml:8
+  and also in: src/team-a/.asya/config.yaml:3
+  hint: remove one definition
+```
 
 ```
 Error: unknown top-level key 'iamges'
