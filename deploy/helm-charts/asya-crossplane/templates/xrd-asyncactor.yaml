@@ -267,6 +267,37 @@ spec:
                             description: Kubernetes resource requests/limits
                             x-kubernetes-preserve-unknown-fields: true
 
+                secretRefs:
+                  type: array
+                  description: Secret references to inject as env vars into the actor runtime container
+                  items:
+                    type: object
+                    required:
+                      - secretName
+                      - keys
+                    properties:
+                      secretName:
+                        type: string
+                        description: Name of the Kubernetes Secret in the same namespace
+                        minLength: 1
+                      keys:
+                        type: array
+                        minItems: 1
+                        items:
+                          type: object
+                          required:
+                            - key
+                            - envVar
+                          properties:
+                            key:
+                              type: string
+                              description: Key within the Secret
+                              minLength: 1
+                            envVar:
+                              type: string
+                              description: Environment variable name to inject into the runtime container
+                              minLength: 1
+
             status:
               type: object
               properties:
