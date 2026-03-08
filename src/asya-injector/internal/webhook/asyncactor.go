@@ -209,8 +209,8 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 	}
 
 	// Extract secretRefs
-	secretRefsRaw, found, _ := unstructured.NestedSlice(spec, "secretRefs")
-	if found {
+	secretRefsRaw, secretRefsFound, _ := unstructured.NestedSlice(spec, "secretRefs")
+	if secretRefsFound {
 		for _, sr := range secretRefsRaw {
 			srMap, ok := sr.(map[string]interface{})
 			if !ok {

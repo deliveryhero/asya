@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/deliveryhero/asya/asya-injector/internal/injection"
 )
 
 func TestIsAsyncActorReady(t *testing.T) {
@@ -361,49 +363,148 @@ func TestExtractActorConfig(t *testing.T) {
 }
 
 func TestExtractActorConfig_SecretRefs(t *testing.T) {
-	asyncActor := &unstructured.Unstructured{
-		Object: map[string]interface{}{
-			"spec": map[string]interface{}{
-				"transport": "sqs",
-				"region":    "us-east-1",
-				"secretRefs": []interface{}{
-					map[string]interface{}{
-						"secretName": "openai-creds",
-						"keys": []interface{}{
-							map[string]interface{}{
-								"key":    "api_key",
-								"envVar": "OPENAI_API_KEY",
-							},
-						},
+	tests := []struct {
+		name           string
+		secretRefsSpec []interface{}
+		wantRefs       int
+		check          func(t *testing.T, refs []injection.SecretRef)
+	}{
+		{
+			name: "happy path: one secret one key",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "openai-creds",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "api_key", "envVar": "OPENAI_API_KEY"},
 					},
 				},
 			},
-			"status": map[string]interface{}{
-				"conditions": []interface{}{
-					map[string]interface{}{"type": "Ready", "status": "True"},
+			wantRefs: 1,
+			check: func(t *testing.T, refs []injection.SecretRef) {
+				t.Helper()
+				if refs[0].SecretName != "openai-creds" {
+					t.Errorf("secretName: got %q, want %q", refs[0].SecretName, "openai-creds")
+				}
+				if refs[0].Keys[0].Key != "api_key" || refs[0].Keys[0].EnvVar != "OPENAI_API_KEY" {
+					t.Errorf("key mapping wrong: %+v", refs[0].Keys[0])
+				}
+			},
+		},
+		{
+			name: "empty secretName is skipped",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "k", "envVar": "V"},
+					},
 				},
+			},
+			wantRefs: 0,
+			check:    nil,
+		},
+		{
+			name: "key with empty key field is skipped",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "my-secret",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "", "envVar": "SOME_VAR"},
+					},
+				},
+			},
+			wantRefs: 0, // no valid keys → whole ref dropped
+			check:    nil,
+		},
+		{
+			name: "key with empty envVar is skipped",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "my-secret",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "some_key", "envVar": ""},
+					},
+				},
+			},
+			wantRefs: 0,
+			check:    nil,
+		},
+		{
+			name: "valid and invalid keys in same ref: only valid key retained",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "mixed-secret",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "good_key", "envVar": "GOOD_VAR"},
+						map[string]interface{}{"key": "", "envVar": "BAD_VAR"},
+					},
+				},
+			},
+			wantRefs: 1,
+			check: func(t *testing.T, refs []injection.SecretRef) {
+				t.Helper()
+				if len(refs[0].Keys) != 1 {
+					t.Errorf("expected 1 valid key, got %d", len(refs[0].Keys))
+				}
+				if refs[0].Keys[0].Key != "good_key" {
+					t.Errorf("wrong key retained: %q", refs[0].Keys[0].Key)
+				}
+			},
+		},
+		{
+			name: "multiple secretRefs all included",
+			secretRefsSpec: []interface{}{
+				map[string]interface{}{
+					"secretName": "secret-a",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "k1", "envVar": "VAR1"},
+					},
+				},
+				map[string]interface{}{
+					"secretName": "secret-b",
+					"keys": []interface{}{
+						map[string]interface{}{"key": "k2", "envVar": "VAR2"},
+					},
+				},
+			},
+			wantRefs: 2,
+			check: func(t *testing.T, refs []injection.SecretRef) {
+				t.Helper()
+				if refs[0].SecretName != "secret-a" || refs[1].SecretName != "secret-b" {
+					t.Errorf("wrong secrets: %v %v", refs[0].SecretName, refs[1].SecretName)
+				}
 			},
 		},
 	}
 
-	config, err := extractActorConfig(asyncActor)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if len(config.SecretRefs) != 1 {
-		t.Fatalf("expected 1 SecretRef, got %d", len(config.SecretRefs))
-	}
-	if config.SecretRefs[0].SecretName != "openai-creds" {
-		t.Errorf("expected secretName 'openai-creds', got %q", config.SecretRefs[0].SecretName)
-	}
-	if len(config.SecretRefs[0].Keys) != 1 {
-		t.Fatalf("expected 1 key, got %d", len(config.SecretRefs[0].Keys))
-	}
-	if config.SecretRefs[0].Keys[0].Key != "api_key" {
-		t.Errorf("expected key 'api_key', got %q", config.SecretRefs[0].Keys[0].Key)
-	}
-	if config.SecretRefs[0].Keys[0].EnvVar != "OPENAI_API_KEY" {
-		t.Errorf("expected envVar 'OPENAI_API_KEY', got %q", config.SecretRefs[0].Keys[0].EnvVar)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			asyncActor := &unstructured.Unstructured{
+				Object: map[string]interface{}{
+					"spec": map[string]interface{}{
+						"transport":  "sqs",
+						"region":     "us-east-1",
+						"secretRefs": tt.secretRefsSpec,
+					},
+					"status": map[string]interface{}{
+						"conditions": []interface{}{
+							map[string]interface{}{"type": "Ready", "status": "True"},
+						},
+					},
+				},
+			}
+
+			config, err := extractActorConfig(asyncActor)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if len(config.SecretRefs) != tt.wantRefs {
+				t.Fatalf("expected %d SecretRefs, got %d", tt.wantRefs, len(config.SecretRefs))
+			}
+			if tt.check != nil {
+				tt.check(t, config.SecretRefs)
+			}
+		})
 	}
 }
 
