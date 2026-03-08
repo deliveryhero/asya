@@ -437,12 +437,12 @@ spec:
   transport: {_transport}{_gcp_line}
   scaling:
     enabled: true
-    minReplicas: 0
+    minReplicas: 1
     maxReplicas: 10
     queueLength: 5
     advanced:
       restoreToOriginalReplicaCount: true
-      formula: "queue_depth / 2"
+      formula: "s0"
       target: "3"
       activationTarget: "1"
       metricType: AverageValue
@@ -463,13 +463,12 @@ spec:
         logger.info("Creating AsyncActor with scaling.advanced fields...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
-        logger.info("Waiting for Crossplane to create the ScaledObject...")
-        assert wait_for_resource(
-            "scaledobject",
+        logger.info("Waiting for AsyncActor to be ready (including KEDA reconciliation)...")
+        assert wait_for_asyncactor_ready(
             "test-scaling-advanced",
             namespace=e2e_helper.namespace,
-            timeout=120,
-        ), "Crossplane should create the KEDA ScaledObject"
+            timeout=180,
+        ), "AsyncActor should reach Ready state with scaling.advanced fields"
 
         logger.info("Fetching ScaledObject and verifying advanced fields...")
         scaled = kubectl_get("scaledobject", "test-scaling-advanced", namespace=e2e_helper.namespace)
@@ -479,7 +478,7 @@ spec:
             "ScaledObject spec.advanced.restoreToOriginalReplicaCount should be true"
 
         modifiers = advanced.get("scalingModifiers", {})
-        assert modifiers.get("formula") == "queue_depth / 2", \
+        assert modifiers.get("formula") == "s0", \
             "ScaledObject spec.advanced.scalingModifiers.formula should match XR spec"
         assert modifiers.get("target") == "3", \
             "ScaledObject spec.advanced.scalingModifiers.target should match XR spec"
@@ -523,7 +522,7 @@ spec:
   transport: {_transport}
   scaling:
     advanced:
-      formula: "queue_depth / 2"
+      formula: "s0"
   workload:
     kind: Deployment
     template:
