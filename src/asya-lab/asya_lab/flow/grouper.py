@@ -54,6 +54,7 @@ class Router:
     is_fan_out: bool = False
     with_expr: str | None = None  # expression for inline context manager
     is_async_with: bool = False  # whether it's `async with`
+    with_imports: list[str] = field(default_factory=list)  # import statements for inline ctx manager
 
 
 class OperationGrouper:
@@ -677,6 +678,7 @@ class OperationGrouper:
             lineno=block.lineno,
             with_expr=block.expr,
             is_async_with=block.is_async,
+            with_imports=list(block.imports),
             true_branch_actors=[*body_actors, *continuation],
         )
         self.routers.append(router)

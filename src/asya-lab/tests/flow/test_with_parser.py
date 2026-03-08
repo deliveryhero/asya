@@ -36,7 +36,7 @@ class TestWithParserRejectsUnknown:
                     p = handler(p)
                 return p
         """)
-        parser = FlowParser(source, "test.py", rules=CompilerRules({}))
+        parser = FlowParser(source, "test.py", rules=CompilerRules.empty())
         with pytest.raises(FlowCompileError, match="unknown_ctx"):
             parser.parse()
 
@@ -47,7 +47,7 @@ class TestWithParserRejectsUnknown:
                     p = handler(p)
                 return p
         """)
-        parser = FlowParser(source, "test.py", rules=CompilerRules({}))
+        parser = FlowParser(source, "test.py", rules=CompilerRules.empty())
         with pytest.raises(FlowCompileError, match="unknown_ctx"):
             parser.parse()
 
@@ -300,11 +300,12 @@ class TestNestedWith:
                         p = handler(p)
                 return p
         """)
-        rules = _inline_rules("custom_ctx")
-        rules2 = CompilerRules({
-            "asyncio.timeout": CompilerRule(treat_as="config", extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"}),
-            "custom_ctx": CompilerRule(treat_as="inline"),
-        })
+        rules2 = CompilerRules(
+            {
+                "asyncio.timeout": CompilerRule(treat_as="config", extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"}),
+                "custom_ctx": CompilerRule(treat_as="inline"),
+            }
+        )
         parser = FlowParser(source, "test.py", rules=rules2)
         _, ops = parser.parse()
 
@@ -319,13 +320,15 @@ class TestMultipleWithItems:
 
     def test_multiple_config_items_all_stripped(self):
         """Two config items → body ops returned, both extracted."""
-        rules = CompilerRules({
-            "asyncio.timeout": CompilerRule(
-                treat_as="config",
-                extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
-            ),
-            "another_config": CompilerRule(treat_as="config", extract={}),
-        })
+        rules = CompilerRules(
+            {
+                "asyncio.timeout": CompilerRule(
+                    treat_as="config",
+                    extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+                ),
+                "another_config": CompilerRule(treat_as="config", extract={}),
+            }
+        )
         source = textwrap.dedent("""
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30), another_config():
@@ -365,10 +368,12 @@ class TestMultipleWithItems:
                     p = handler(p)
                 return p
         """)
-        rules = CompilerRules({
-            "asyncio.timeout": CompilerRule(treat_as="config", extract={}),
-            "custom_ctx": CompilerRule(treat_as="inline"),
-        })
+        rules = CompilerRules(
+            {
+                "asyncio.timeout": CompilerRule(treat_as="config", extract={}),
+                "custom_ctx": CompilerRule(treat_as="inline"),
+            }
+        )
         parser = FlowParser(source, "test.py", rules=rules)
         with pytest.raises(FlowCompileError, match="mixed"):
             parser.parse()

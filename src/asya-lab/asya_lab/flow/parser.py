@@ -364,7 +364,7 @@ class FlowParser:
         rules = [self.rules.lookup(sym) for sym in symbols]
 
         # Reject unknown context managers (no matching rule)
-        for sym, rule in zip(symbols, rules, strict=False):
+        for sym, rule in zip(symbols, rules, strict=True):
             if rule is None:
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Unsupported context manager: {sym!r}. "
@@ -385,7 +385,7 @@ class FlowParser:
 
         if treat_as == "config":
             # Extract args from each context manager and record them
-            for sym, item, rule in zip(symbols, stmt.items, rules, strict=False):
+            for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
                 assert rule is not None  # guaranteed by earlier None-check loop
                 extracted_args = self._extract_ctx_args(item.context_expr, rule)
                 self.extracted_configs.append({"symbol": sym, "args": extracted_args})
@@ -395,15 +395,18 @@ class FlowParser:
         elif treat_as == "inline":
             # Build the expression string from all withitems
             expr_parts = []
-            for item in stmt.items:
+            imports: list[str] = []
+            for item, rule in zip(stmt.items, rules, strict=True):
+                assert rule is not None  # guaranteed by earlier None-check loop
                 part = ast.unparse(item.context_expr)
                 if item.optional_vars is not None:
                     part += f" as {ast.unparse(item.optional_vars)}"
                 expr_parts.append(part)
+                imports.extend(rule.imports)
             expr = ", ".join(expr_parts)
 
             body = self._parse_body(stmt.body)
-            return [WithBlock(lineno=stmt.lineno, expr=expr, is_async=is_async, body=body)]
+            return [WithBlock(lineno=stmt.lineno, expr=expr, is_async=is_async, body=body, imports=imports)]
 
         else:
             raise FlowCompileError(

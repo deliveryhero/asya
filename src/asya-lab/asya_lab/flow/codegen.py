@@ -59,6 +59,9 @@ class CodeGenerator:
             parts.append(self._generate_max_iter_constant())
         if self._has_fan_out():
             parts.append("import copy\n")
+        inline_imports = self._collect_inline_imports()
+        if inline_imports:
+            parts.append("\n".join(inline_imports) + "\n")
         parts.append(self._generate_routers())
         parts.append(self._generate_resolve_function())
 
@@ -106,6 +109,17 @@ class CodeGenerator:
 
     def _has_fan_out(self) -> bool:
         return any(r.is_fan_out for r in self.routers)
+
+    def _collect_inline_imports(self) -> list[str]:
+        """Collect deduplicated import statements from inline context manager routers."""
+        seen: set[str] = set()
+        imports: list[str] = []
+        for router in self.routers:
+            for stmt in router.with_imports:
+                if stmt not in seen:
+                    seen.add(stmt)
+                    imports.append(stmt)
+        return imports
 
     def _generate_max_iter_constant(self) -> str:
         default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
@@ -492,9 +506,11 @@ class CodeGenerator:
     def _generate_with_router(self, router: Router) -> str:
         """Generate a router that wraps its routing decisions in a `with expr:` block."""
         with_keyword = "async with" if router.is_async_with else "with"
+        # Escape triple-quotes to prevent docstring breakage from user-supplied expressions
+        safe_expr = (router.with_expr or "").replace('"""', r"\"\"\"")
         lines = []
         lines.append(f"def {router.name}(payload: dict):")
-        lines.append(f'    """With-block router: {with_keyword} {router.with_expr}"""')
+        lines.append(f'    """With-block router: {with_keyword} {safe_expr}"""')
         lines.append("    p = payload")
         lines.append("    _next = []")
 
