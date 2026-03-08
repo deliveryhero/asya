@@ -72,8 +72,17 @@ my-project/
 
 ### 2.2 Manifest Output Location
 
-Generated manifests go into the **nearest** `.asya/manifests/` up the file
-tree from the flow source file.
+Output path is configurable via `compiler.output` in config.yaml (default:
+`.asya/manifests`). The compiler creates the directory structure on first
+compile if it doesn't exist — `asya init` does NOT create it.
+
+```yaml
+compiler:
+  output: ".asya/manifests"     # relative to config.yaml's directory
+```
+
+The compiler creates `actors/` and `flows/<flow-name>/` subdirectories
+under the output path as needed:
 
 ```
 asya flow compile src/team-a/flows/order.py
@@ -81,6 +90,9 @@ asya flow compile src/team-a/flows/order.py
 
 asya flow compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
+
+asya actor compile --handler e_commerce.validate.validate_order
+  → writes to .asya/manifests/actors/validate-order.yaml
 ```
 
 ### 2.3 Config Composition via Walk-Up Recursive Merge
@@ -291,13 +303,12 @@ message.
 
 ```
 .asya/
-├── config.yaml               # Full config with var + images + compiler
-└── manifests/                 # Output directory for generated manifests
-    ├── actors/
-    │   └── .gitkeep
-    └── flows/
-        └── .gitkeep
+└── config.yaml               # Full config with var + images + compiler
 ```
+
+The `manifests/` directory is NOT created by init — it appears on first
+compile (see section 2.2). This avoids empty directories in the repo
+before compilation has ever run.
 
 **Generated `config.yaml`**:
 
@@ -320,6 +331,7 @@ images: []
   #     remote: "docker build -t ${..image} . && docker push ${..image}"
 
 compiler:
+  output: ".asya/manifests"
   mode: manifests
   template:
     apiVersion: asya.dev/v1alpha1
@@ -344,9 +356,9 @@ compiler:
 - **Full compiler template**: Included out of the box so `asya flow compile`
   works immediately after init. Users modify the template to match their
   deployment setup (helm mode, custom overlays, etc.).
-- **`.gitkeep` in manifests**: Directories exist from the start so the
-  directory structure is visible in git. Generated manifests appear here
-  on first compile.
+- **Manifests created on compile**: Output directory (`compiler.output`)
+  is created on first compile, not init. Keeps the repo clean until
+  compilation actually runs.
 - **Fully git-tracked**: No `.gitignore` inside `.asya/`. Everything is
   committed — config is source of truth, manifests are required for GitOps.
 
@@ -659,13 +671,18 @@ for manifests). No custom plugins needed.
 no functions — it's printf-level substitution. The rest of the template is
 static YAML that the user controls.
 
-#### Compiler mode
+#### Compiler settings
 
 ```yaml
 # .asya/config.yaml
 compiler:
+  output: ".asya/manifests"    # output dir, relative to config.yaml's dir
   mode: manifests              # manifests | helm | kustomize
 ```
+
+`compiler.output` is the base directory for all generated artifacts. The
+compiler creates `actors/` and `flows/<name>/` subdirectories under it as
+needed. Created on first compile if it doesn't exist.
 
 #### `${actor:*}` resolver keys
 
@@ -685,6 +702,7 @@ Generates raw AsyncActor XR manifests. No external tooling needed.
 
 ```yaml
 compiler:
+  output: ".asya/manifests"
   mode: manifests
   template:
     apiVersion: asya.dev/v1alpha1
@@ -702,7 +720,7 @@ compiler:
       env: "${actor:env}"
 ```
 
-Output: `.asya/manifests/flows/<flow>/` or `.asya/manifests/actors/`.
+Output: `<compiler.output>/flows/<flow>/` or `<compiler.output>/actors/`.
 
 #### Mode: `helm`
 
@@ -711,6 +729,7 @@ user-specified chart).
 
 ```yaml
 compiler:
+  output: ".asya/manifests"
   mode: helm
   helm:
     chart: asya-actor           # Helm chart name (default: asya-actor)
@@ -728,7 +747,7 @@ compiler:
     env: "${actor:env}"
 ```
 
-Output: `.asya/manifests/flows/<flow>/<actor>/values.yaml`.
+Output: `<compiler.output>/flows/<flow>/<actor>/values.yaml`.
 
 Usage:
 ```bash
@@ -746,6 +765,7 @@ Generates kustomize patches against a base.
 
 ```yaml
 compiler:
+  output: ".asya/manifests"
   mode: kustomize
   kustomize:
     base: deploy/base            # Path to kustomize base
@@ -760,7 +780,7 @@ compiler:
       env: "${actor:env}"
 ```
 
-Output: `.asya/manifests/flows/<flow>/<actor>/patch.yaml` + generated
+Output: `<compiler.output>/flows/<flow>/<actor>/patch.yaml` + generated
 `kustomization.yaml` referencing the base.
 
 #### ADR: Integration Direction
