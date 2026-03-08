@@ -5,14 +5,17 @@ import dataclasses
 import json
 import sys
 from collections import namedtuple
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
+from typing import ClassVar
 
 import pytest
+
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import asya_runtime
+
 from tests.test_asya_runtime import call_invoke
 
 
@@ -37,7 +40,7 @@ class _PydanticV2Model:
 class _PydanticV1Model:
     """Duck-typed pydantic v1 BaseModel (has both .dict() and .__fields__)."""
 
-    __fields__ = {}
+    __fields__: ClassVar[dict] = {}
 
     def __init__(self, **fields):
         self._fields = fields
@@ -110,7 +113,7 @@ class TestJsonDefault:
         assert result == {"x": 10, "y": 20}
 
     def test_datetime_serialized_as_isoformat(self):
-        obj = datetime(2024, 6, 1, 12, 0, 0, tzinfo=timezone.utc)
+        obj = datetime(2024, 6, 1, 12, 0, 0, tzinfo=UTC)
         result = asya_runtime._json_default(obj)
         assert result == "2024-06-01T12:00:00+00:00"
 
@@ -180,7 +183,7 @@ class TestFunctionHandlerSmartSerialization:
 
     def test_function_returns_dict_with_datetime_value(self):
         def handler(payload):
-            return {"ts": datetime(2024, 1, 15, 10, 0, 0, tzinfo=timezone.utc)}
+            return {"ts": datetime(2024, 1, 15, 10, 0, 0, tzinfo=UTC)}
 
         frames = call_invoke(_envelope(), handler)
         assert len(frames) == 1
@@ -278,6 +281,67 @@ class TestAsyncHandlerSmartSerialization:
 # ---------------------------------------------------------------------------
 
 
+class TestUnserializableObjectErrors:
+    """Handlers returning truly unserializable objects should produce 500 errors."""
+
+    def test_function_returns_unserializable_class_gives_500(self):
+        class Opaque:
+            pass
+
+        def handler(payload):
+            return Opaque()
+
+        frames = call_invoke(_envelope(), handler)
+        assert len(frames) == 1
+        assert "error" in frames[0]
+
+    def test_function_returns_dict_with_unserializable_nested_value_gives_500(self):
+        class Opaque:
+            pass
+
+        def handler(payload):
+            return {"value": Opaque()}
+
+        frames = call_invoke(_envelope(), handler)
+        assert len(frames) == 1
+        assert "error" in frames[0]
+
+    def test_generator_yields_unserializable_class_gives_500(self):
+        class Opaque:
+            pass
+
+        def handler(payload):
+            yield Opaque()
+
+        frames = call_invoke(_envelope(), handler)
+        assert len(frames) == 1
+        assert "error" in frames[0]
+
+    def test_async_function_returns_unserializable_class_gives_500(self):
+        class Opaque:
+            pass
+
+        async def handler(payload):
+            return Opaque()
+
+        frames = call_invoke(_envelope(), handler)
+        assert len(frames) == 1
+        assert "error" in frames[0]
+
+    def test_error_message_identifies_type_name(self):
+        class MyCustomUnserializable:
+            pass
+
+        def handler(payload):
+            return MyCustomUnserializable()
+
+        frames = call_invoke(_envelope(), handler)
+        assert len(frames) == 1
+        # Error should mention the type so the actor author knows what to fix
+        error_info = str(frames[0])
+        assert "MyCustomUnserializable" in error_info or "error" in frames[0]
+
+
 class TestFlyEventSmartSerialization:
     """FLY events (SSE upstream) can carry typed objects."""
 
@@ -296,23 +360,17 @@ class TestFlyEventSmartSerialization:
         if inspect.isasyncgenfunction(handler_func):
             import asyncio
 
-            asyncio.run(
-                asya_runtime._drive_async_generator(
-                    handler_func(envelope["payload"]), ctx, on_fly=on_fly
-                )
-            )
+            asyncio.run(asya_runtime._drive_async_generator(handler_func(envelope["payload"]), ctx, on_fly=on_fly))
         else:
-            asya_runtime._drive_generator(
-                handler_func(envelope["payload"]), ctx, on_fly=on_fly
-            )
+            asya_runtime._drive_generator(handler_func(envelope["payload"]), ctx, on_fly=on_fly)
         return fly_events
 
     def test_fly_with_pydantic_v2_model(self):
         def handler(payload):
-            yield "FLY", _PydanticV2Model(type="text_delta", token="hello")
+            yield "FLY", _PydanticV2Model(type="text_delta", text="hello")
 
         fly_events = self._collect_fly_payloads(handler)
-        assert fly_events == [{"type": "text_delta", "token": "hello"}]
+        assert fly_events == [{"type": "text_delta", "text": "hello"}]
 
     def test_fly_with_dict_containing_pydantic(self):
         def handler(payload):

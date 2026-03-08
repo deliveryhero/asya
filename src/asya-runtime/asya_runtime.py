@@ -684,7 +684,11 @@ def _handle_invoke(data: bytes, user_func) -> tuple:
 
     if not frames:
         return 204, b""
-    return 200, json.dumps({"frames": frames}, default=_json_default).encode("utf-8")
+    try:
+        body = json.dumps({"frames": frames}, default=_json_default).encode("utf-8")
+    except (TypeError, ValueError) as exc:
+        return 500, json.dumps(_error_response("processing_error", exc)).encode("utf-8")
+    return 200, body
 
 
 # ---------------------------------------------------------------------------
