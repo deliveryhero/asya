@@ -261,6 +261,10 @@ spec:
               {{`{{- if hasKey $scaling "cooldownPeriod" }}{{ $cooldownPeriod = $scaling.cooldownPeriod }}{{ end -}}`}}
               {{`{{- if hasKey $scaling "queueLength" }}{{ $queueLength = $scaling.queueLength }}{{ end -}}`}}
             {{`{{- end -}}`}}
+            {{`{{- $advanced := dict -}}`}}
+            {{`{{- if and $scaling (hasKey $scaling "advanced") -}}`}}
+            {{`{{- $advanced = $scaling.advanced -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $workloadName := $actorName -}}`}}
             {{`{{- $workloadKind := "Deployment" -}}`}}
             {{`{{- if hasKey $workload "kind" -}}`}}
@@ -308,6 +312,9 @@ spec:
                           awsEndpoint: {{ .Values.awsProviderConfig.endpoint.url }}
                           {{- end }}
                     advanced:
+                      {{`{{- if and $advanced (hasKey $advanced "restoreToOriginalReplicaCount") }}`}}
+                      restoreToOriginalReplicaCount: {{`{{ $advanced.restoreToOriginalReplicaCount }}`}}
+                      {{`{{- end }}`}}
                       horizontalPodAutoscalerConfig:
                         behavior:
                           scaleDown:
@@ -325,6 +332,17 @@ spec:
                               - type: Percent
                                 value: 100
                                 periodSeconds: 60
+                      {{`{{- if and $advanced (hasKey $advanced "formula") }}`}}
+                      scalingModifiers:
+                        formula: {{`{{ $advanced.formula | quote }}`}}
+                        target: {{`{{ $advanced.target | quote }}`}}
+                        {{`{{- if hasKey $advanced "activationTarget" }}`}}
+                        activationTarget: {{`{{ $advanced.activationTarget | quote }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- if hasKey $advanced "metricType" }}`}}
+                        metricType: {{`{{ $advanced.metricType }}`}}
+                        {{`{{- end }}`}}
+                      {{`{{- end }}`}}
               providerConfigRef:
                 name: {{ .Values.kubernetesProviderConfig.name }}
             {{`{{- end }}`}}

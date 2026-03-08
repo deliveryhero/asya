@@ -94,6 +94,32 @@ spec:
                       type: integer
                       description: Target queue length per replica
                       default: 5
+                    advanced:
+                      type: object
+                      description: Advanced KEDA ScaledObject configuration
+                      properties:
+                        restoreToOriginalReplicaCount:
+                          type: boolean
+                          description: Restore to original replica count when ScaledObject is deleted
+                        formula:
+                          type: string
+                          description: >-
+                            Composite metric formula for KEDA scalingModifiers.
+                            Enables custom scaling expressions combining multiple metrics.
+                            Requires target to be set.
+                        target:
+                          type: string
+                          description: Target value for the composite metric formula (used with formula)
+                        activationTarget:
+                          type: string
+                          description: Activation threshold for the composite metric formula (used with formula)
+                        metricType:
+                          type: string
+                          description: Metric type for scalingModifiers composite metric
+                          enum:
+                            - AverageValue
+                            - Value
+                            - Utilization
 
                 workload:
                   type: object
