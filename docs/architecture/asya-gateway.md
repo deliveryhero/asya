@@ -73,6 +73,10 @@ for the complete configuration reference.
 
 ## API Endpoints
 
+**See**: `docs/internal/gateway-api-spec.md` for the full API reference with complete request/response schemas for all routes.
+
+
+
 Routes are split across the two deployments. Authentication requirements are
 described in `docs/internal/gateway-security.md`.
 
