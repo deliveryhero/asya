@@ -12,7 +12,7 @@ KEDA (Kubernetes Event Driven Autoscaling) monitors external metrics (queue dept
 
 ## Asya Integration
 
-Asya operator creates KEDA ScaledObject for each AsyncActor:
+The Crossplane composition creates a KEDA ScaledObject for each AsyncActor:
 
 ```yaml
 apiVersion: keda.sh/v1alpha1
@@ -81,6 +81,48 @@ spec:
 - `queueLength`: Target messages per replica (default: 5)
 - `cooldownPeriod`: Delay before scaling down in seconds (default: 60)
 - `pollingInterval`: Queue check frequency in seconds (default: 10)
+
+### Advanced Scaling Configuration
+
+For fine-grained KEDA behavior, use the `scaling.advanced` sub-object:
+
+```yaml
+spec:
+  scaling:
+    minReplicas: 0
+    maxReplicas: 20
+    advanced:
+      restoreToOriginalReplicaCount: true
+      formula: "queue"
+      target: "10"
+      activationTarget: "1"
+      metricType: AverageValue
+```
+
+**Parameters**:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `restoreToOriginalReplicaCount` | bool | When true, replicas are restored to their value before the ScaledObject was created when the ScaledObject is deleted |
+| `formula` | string | Composite metric formula combining multiple metrics (KEDA `scalingModifiers.formula`). Requires `target`. Formula must reference trigger names — Asya compositions name the primary trigger `queue`, so use `queue` to reference it. |
+| `target` | string | Target value for the composite formula (required with `formula`) |
+| `activationTarget` | string | Minimum metric value before scaling activates (avoids scaling at near-zero load) |
+| `metricType` | `AverageValue` \| `Value` \| `Utilization` | Metric aggregation method for the composite formula |
+
+**Formula trigger reference**: KEDA validates formula identifiers at admission time using `expr-lang`. Formulas must reference trigger names defined in `triggers[N].name`. Asya compositions set `name: queue` on the primary trigger, so `queue` is always a valid reference:
+
+```yaml
+advanced:
+  formula: "queue"
+  target: "5"
+  activationTarget: "1"
+  metricType: AverageValue
+```
+
+**Notes**:
+- `formula`, `target`, `activationTarget`, and `metricType` map to `spec.advanced.scalingModifiers` in the KEDA ScaledObject
+- `restoreToOriginalReplicaCount` maps to `spec.advanced.restoreToOriginalReplicaCount`
+- `target` is required when `formula` is set; the XRD enforces this with a `oneOf` validation constraint
 
 ## Scaling Scenarios
 

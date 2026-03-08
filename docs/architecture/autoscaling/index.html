@@ -874,7 +874,7 @@
 <li><strong>ScaledObject</strong>: Defines scaling triggers and targets</li>
 </ul>
 <h2 id="asya-integration">Asya Integration<a class="headerlink" href="#asya-integration" title="Permanent link">&para;</a></h2>
-<p>Asya operator creates KEDA ScaledObject for each AsyncActor:</p>
+<p>The Crossplane composition creates a KEDA ScaledObject for each AsyncActor:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keda.sh/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ScaledObject</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -934,6 +934,67 @@
 <li><code>cooldownPeriod</code>: Delay before scaling down in seconds (default: 60)</li>
 <li><code>pollingInterval</code>: Queue check frequency in seconds (default: 10)</li>
 </ul>
+<h3 id="advanced-scaling-configuration">Advanced Scaling Configuration<a class="headerlink" href="#advanced-scaling-configuration" title="Permanent link">&para;</a></h3>
+<p>For fine-grained KEDA behavior, use the <code>scaling.advanced</code> sub-object:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<span class="w">    </span><span class="nt">advanced</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">restoreToOriginalReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">      </span><span class="nt">formula</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;queue&quot;</span>
+<span class="w">      </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;10&quot;</span>
+<span class="w">      </span><span class="nt">activationTarget</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">      </span><span class="nt">metricType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AverageValue</span>
+</code></pre></div>
+<p><strong>Parameters</strong>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>restoreToOriginalReplicaCount</code></td>
+<td>bool</td>
+<td>When true, replicas are restored to their value before the ScaledObject was created when the ScaledObject is deleted</td>
+</tr>
+<tr>
+<td><code>formula</code></td>
+<td>string</td>
+<td>Composite metric formula combining multiple metrics (KEDA <code>scalingModifiers.formula</code>). Requires <code>target</code>. Formula must reference trigger names — Asya compositions name the primary trigger <code>queue</code>, so use <code>queue</code> to reference it.</td>
+</tr>
+<tr>
+<td><code>target</code></td>
+<td>string</td>
+<td>Target value for the composite formula (required with <code>formula</code>)</td>
+</tr>
+<tr>
+<td><code>activationTarget</code></td>
+<td>string</td>
+<td>Minimum metric value before scaling activates (avoids scaling at near-zero load)</td>
+</tr>
+<tr>
+<td><code>metricType</code></td>
+<td><code>AverageValue</code> | <code>Value</code> | <code>Utilization</code></td>
+<td>Metric aggregation method for the composite formula</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Formula trigger reference</strong>: KEDA validates formula identifiers at admission time using <code>expr-lang</code>. Formulas must reference trigger names defined in <code>triggers[N].name</code>. Asya compositions set <code>name: queue</code> on the primary trigger, so <code>queue</code> is always a valid reference:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">advanced</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">formula</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;queue&quot;</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;5&quot;</span>
+<span class="w">  </span><span class="nt">activationTarget</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">  </span><span class="nt">metricType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AverageValue</span>
+</code></pre></div>
+<p><strong>Notes</strong>:
+- <code>formula</code>, <code>target</code>, <code>activationTarget</code>, and <code>metricType</code> map to <code>spec.advanced.scalingModifiers</code> in the KEDA ScaledObject
+- <code>restoreToOriginalReplicaCount</code> maps to <code>spec.advanced.restoreToOriginalReplicaCount</code>
+- <code>target</code> is required when <code>formula</code> is set; the XRD enforces this with a <code>oneOf</code> validation constraint</p>
 <h2 id="scaling-scenarios">Scaling Scenarios<a class="headerlink" href="#scaling-scenarios" title="Permanent link">&para;</a></h2>
 <h3 id="idle-workload">Idle Workload<a class="headerlink" href="#idle-workload" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1283,6 +1344,14 @@ kubectl<span class="w"> </span>get<span class="w"> </span>--raw<span class="w"> 
             data-active="false" data-depth="2">
             Configuration
         </a>
+        
+        
+        <a href="#advanced-scaling-configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Advanced Scaling Configuration
+        </a>
+        
         
 
         
