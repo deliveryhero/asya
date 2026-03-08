@@ -302,6 +302,7 @@ spec:
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
                       - type: aws-sqs-queue
+                        name: queue
                         authenticationRef:
                           name: {{`{{ $actorName }}`}}-trigger-auth
                         metadata:

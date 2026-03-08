@@ -272,6 +272,7 @@ spec:
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
                       - type: gcp-pubsub
+                        name: queue
                         authenticationRef:
                           name: {{`{{ $actorName }}`}}-trigger-auth
                         metadata:

@@ -442,7 +442,7 @@ spec:
     queueLength: 5
     advanced:
       restoreToOriginalReplicaCount: true
-      formula: "s0"
+      formula: "queue"
       target: "3"
       activationTarget: "1"
       metricType: AverageValue
@@ -481,7 +481,7 @@ spec:
             "ScaledObject spec.advanced.restoreToOriginalReplicaCount should be true"
 
         modifiers = advanced.get("scalingModifiers", {})
-        assert modifiers.get("formula") == "s0", \
+        assert modifiers.get("formula") == "queue", \
             "ScaledObject spec.advanced.scalingModifiers.formula should match XR spec"
         assert modifiers.get("target") == "3", \
             "ScaledObject spec.advanced.scalingModifiers.target should match XR spec"
@@ -525,7 +525,7 @@ spec:
   transport: {_transport}
   scaling:
     advanced:
-      formula: "s0"
+      formula: "queue"
   workload:
     kind: Deployment
     template:

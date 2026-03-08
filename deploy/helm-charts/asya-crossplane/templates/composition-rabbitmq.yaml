@@ -188,6 +188,7 @@ spec:
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
                       - type: rabbitmq
+                        name: queue
                         authenticationRef:
                           name: {{`{{ $actorName }}`}}-trigger-auth
                         metadata:

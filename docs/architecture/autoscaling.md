@@ -93,7 +93,7 @@ spec:
     maxReplicas: 20
     advanced:
       restoreToOriginalReplicaCount: true
-      formula: "(queue_depth + pending) / 2"
+      formula: "queue"
       target: "10"
       activationTarget: "1"
       metricType: AverageValue
@@ -104,16 +104,16 @@ spec:
 | Field | Type | Description |
 |-------|------|-------------|
 | `restoreToOriginalReplicaCount` | bool | When true, replicas are restored to their value before the ScaledObject was created when the ScaledObject is deleted |
-| `formula` | string | Composite metric formula combining multiple metrics (KEDA `scalingModifiers.formula`). Requires `target`. |
+| `formula` | string | Composite metric formula combining multiple metrics (KEDA `scalingModifiers.formula`). Requires `target`. Formula must reference trigger names — Asya compositions name the primary trigger `queue`, so use `queue` to reference it. |
 | `target` | string | Target value for the composite formula (required with `formula`) |
 | `activationTarget` | string | Minimum metric value before scaling activates (avoids scaling at near-zero load) |
 | `metricType` | `AverageValue` \| `Value` \| `Utilization` | Metric aggregation method for the composite formula |
 
-**Composite formula example** — scale by averaging two queue depths:
+**Formula trigger reference**: KEDA validates formula identifiers at admission time using `expr-lang`. Formulas must reference trigger names defined in `triggers[N].name`. Asya compositions set `name: queue` on the primary trigger, so `queue` is always a valid reference:
 
 ```yaml
 advanced:
-  formula: "(sqs_depth + dlq_depth) / 2"
+  formula: "queue"
   target: "5"
   activationTarget: "1"
   metricType: AverageValue
