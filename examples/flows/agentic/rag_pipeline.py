@@ -32,224 +32,185 @@ Deployment:
   - generator: produces answer grounded in retrieved context
   - fact_checker: optional post-generation verification
 
-Typed actors:
-  Actor handlers return dataclasses directly — the Asya runtime serializes
-  them automatically. Works identically with pydantic BaseModel.
-
 Payload contract:
-  state["question"]      - user's question
-  state["query"]         - current search query (may differ from question)
-  state["documents"]     - list[Document] (set by retriever)
-  state["is_sufficient"] - bool (set by evaluator)
-  state["answer"]        - GeneratedAnswer (set by generator)
+  state["question"]     - user's question
+  state["query"]        - current search query (may differ from question)
+  state["documents"]    - retrieved documents
+  state["is_sufficient"] - whether docs are sufficient (set by evaluator)
+  state["answer"]       - generated answer
+  state["citations"]    - source citations
 """
-
-from dataclasses import dataclass, field
-from typing import List, Optional
-
-
-# ---------------------------------------------------------------------------
-# Typed result models
-# ---------------------------------------------------------------------------
-
-
-@dataclass
-class QueryAnalysis:
-    query: str
-    key_concepts: List[str]
-    strategy: str
-
-
-@dataclass
-class Document:
-    content: str
-    source: str
-    relevance_score: float
-
-
-@dataclass
-class RelevanceEvaluation:
-    is_sufficient: bool
-    avg_score: float
-    reasoning: str
-
-
-@dataclass
-class Citation:
-    index: int
-    source: str
-    claim: str
-
-
-@dataclass
-class GeneratedAnswer:
-    text: str
-    citations: List[Citation]
-    verified: bool = False
-
-
-# ---------------------------------------------------------------------------
-# Flow definition
-# ---------------------------------------------------------------------------
 
 
 async def rag_pipeline(state: dict) -> dict:
     state["retrieval_attempts"] = 0
 
     # Analyze query: decompose, identify key concepts
-    analysis = await query_analyzer(state)
-    state["query"] = analysis.query
-    state["key_concepts"] = analysis.key_concepts
+    state = await query_analyzer(state)
 
     # Adaptive retrieval loop
     while True:
         state["retrieval_attempts"] += 1
 
-        # Retrieve documents — actor returns typed list
-        state["documents"] = await retriever(state)
+        # Retrieve documents from knowledge base
+        state = await retriever(state)
 
-        # Evaluate relevance — actor returns typed evaluation
-        evaluation = await relevance_evaluator(state)
-        state["is_sufficient"] = evaluation.is_sufficient
+        # Evaluate relevance of retrieved documents
+        state = await relevance_evaluator(state)
 
-        if evaluation.is_sufficient:
+        # Sufficient context found
+        if state.get("is_sufficient"):
             break
+
+        # Max retrieval attempts reached
         if state["retrieval_attempts"] >= 3:
             break
 
-        state["query"] = await query_refiner(state)
+        # Refine query for better results
+        state = await query_refiner(state)
 
-    # Generate and verify answer — actor returns typed result
-    state["answer"] = await generator(state)
-    state["answer"] = await fact_checker(state)
+    # Generate answer grounded in retrieved context
+    state = await generator(state)
+
+    # Verify generated answer against sources
+    state = await fact_checker(state)
 
     return state
 
 
-# ---------------------------------------------------------------------------
-# Handler stubs
-# ---------------------------------------------------------------------------
+# --- Handler stubs ---
 
 
-async def query_analyzer(payload: dict) -> QueryAnalysis:
+async def query_analyzer(state: dict) -> dict:
     """LLM actor: analyze and decompose the user's question.
 
-    Returns a QueryAnalysis dataclass — runtime serializes it automatically.
+    Identifies key concepts, determines retrieval strategy (keyword vs
+    semantic vs hybrid), and may decompose complex questions into
+    sub-queries. Sets state["query"] for the retriever.
     """
-    question = payload["question"]
-    return QueryAnalysis(
-        query=f"semantic search: {question}",
-        key_concepts=["machine learning", "neural networks", "training data", "model architecture"],
-        strategy="semantic",
-    )
+    question = state["question"]
+    state["query"] = f"semantic search: {question}"
+    state["key_concepts"] = [
+        "machine learning",
+        "neural networks",
+        "training data",
+        "model architecture",
+    ]
+    return state
 
 
-async def retriever(payload: dict) -> List[Document]:
+async def retriever(state: dict) -> dict:
     """Tool actor: search knowledge base for relevant documents.
 
-    Returns a list of Document dataclasses. Lists of dataclasses are
-    serialized recursively by dataclasses.asdict().
+    Executes state["query"] against a vector store, database, or
+    search engine. Returns state["documents"] - a list of document
+    chunks with metadata (source, relevance score, etc.).
     """
-    attempt = payload.get("retrieval_attempts", 0)
+    query = state["query"]
+    attempt = state.get("retrieval_attempts", 0)
 
     if attempt == 1:
-        return [
-            Document(
-                content="Neural networks are computational models inspired by biological neurons.",
-                source="ml_textbook_ch3.pdf",
-                relevance_score=0.62,
-            ),
-            Document(
-                content="Machine learning encompasses supervised and unsupervised approaches.",
-                source="ai_overview.pdf",
-                relevance_score=0.58,
-            ),
+        state["documents"] = [
+            {
+                "content": "Neural networks are computational models inspired by biological neurons.",
+                "source": "ml_textbook_ch3.pdf",
+                "relevance_score": 0.62,
+            },
+            {
+                "content": "Machine learning encompasses supervised and unsupervised approaches.",
+                "source": "ai_overview.pdf",
+                "relevance_score": 0.58,
+            },
         ]
-
-    return [
-        Document(
-            content="Training data quality directly impacts neural network performance. "
-            "Datasets should be representative, balanced, and sufficiently large.",
-            source="deep_learning_practice.pdf",
-            relevance_score=0.89,
-        ),
-        Document(
-            content="Common neural network architectures include CNNs for image processing, "
-            "RNNs for sequential data, and Transformers for language tasks.",
-            source="architecture_guide.pdf",
-            relevance_score=0.91,
-        ),
-        Document(
-            content="Model training requires careful hyperparameter tuning including "
-            "learning rate, batch size, and regularization parameters.",
-            source="optimization_handbook.pdf",
-            relevance_score=0.87,
-        ),
-    ]
+    else:
+        state["documents"] = [
+            {
+                "content": "Training data quality directly impacts neural network performance. Datasets should be representative, balanced, and sufficiently large.",
+                "source": "deep_learning_practice.pdf",
+                "relevance_score": 0.89,
+            },
+            {
+                "content": "Common neural network architectures include CNNs for image processing, RNNs for sequential data, and Transformers for language tasks.",
+                "source": "architecture_guide.pdf",
+                "relevance_score": 0.91,
+            },
+            {
+                "content": "Model training requires careful hyperparameter tuning including learning rate, batch size, and regularization parameters.",
+                "source": "optimization_handbook.pdf",
+                "relevance_score": 0.87,
+            },
+        ]
+    return state
 
 
-async def relevance_evaluator(payload: dict) -> RelevanceEvaluation:
+async def relevance_evaluator(state: dict) -> dict:
     """LLM actor: judge whether retrieved documents are sufficient.
 
-    Returns a typed RelevanceEvaluation — the flow reads .is_sufficient directly.
+    Evaluates state["documents"] against state["question"]. Sets
+    state["is_sufficient"] to True if the documents contain enough
+    information to answer the question. May also filter out
+    irrelevant documents.
     """
-    documents = payload.get("documents", [])
+    documents = state["documents"]
+    question = state["question"]
 
-    def _score(d):
-        return d["relevance_score"] if isinstance(d, dict) else d.relevance_score
+    avg_relevance = sum(doc["relevance_score"] for doc in documents) / len(documents)
+    state["is_sufficient"] = avg_relevance > 0.75
 
-    avg = sum(_score(d) for d in documents) / len(documents) if documents else 0.0
-    sufficient = avg > 0.75
-
-    return RelevanceEvaluation(
-        is_sufficient=sufficient,
-        avg_score=avg,
-        reasoning="Average relevance score threshold: 0.75",
-    )
+    return state
 
 
-async def query_refiner(payload: dict) -> str:
+async def query_refiner(state: dict) -> dict:
     """LLM actor: rewrite the search query for better retrieval.
 
-    Returns a plain string — the new query. Strings are JSON-native.
+    Based on state["question"], state["documents"] (what was found),
+    and what's missing, generates a refined state["query"] that
+    targets the gaps.
     """
-    key_concepts = payload.get("key_concepts", [])
-    return f"detailed guide: {' '.join(key_concepts[:2])} best practices and implementation"
+    question = state["question"]
+    documents = state["documents"]
+    key_concepts = state["key_concepts"]
+
+    state["query"] = f"detailed guide: {' '.join(key_concepts[:2])} best practices and implementation"
+
+    return state
 
 
-async def generator(payload: dict) -> GeneratedAnswer:
+async def generator(state: dict) -> dict:
     """LLM actor: generate answer grounded in retrieved context.
 
-    Returns a GeneratedAnswer with embedded Citation dataclasses.
-    Nested dataclasses serialize recursively — no manual conversion.
+    Receives state["question"] and state["documents"]. Produces
+    state["answer"] with inline citations. Must only use information
+    from the provided documents (no hallucination).
     """
-    return GeneratedAnswer(
-        text=(
-            "Neural networks require high-quality training data that is representative, "
-            "balanced, and sufficiently large [1]. Common architectures include CNNs for images, "
-            "RNNs for sequences, and Transformers for language tasks [2]. Training involves "
-            "careful hyperparameter tuning of learning rate, batch size, and regularization [3]."
-        ),
-        citations=[
-            Citation(index=1, source="deep_learning_practice.pdf", claim="training data quality"),
-            Citation(index=2, source="architecture_guide.pdf", claim="network architectures"),
-            Citation(index=3, source="optimization_handbook.pdf", claim="hyperparameter tuning"),
-        ],
+    question = state["question"]
+    documents = state["documents"]
+
+    state["answer"] = (
+        "Neural networks require high-quality training data that is representative, "
+        "balanced, and sufficiently large [1]. Common architectures include CNNs for images, "
+        "RNNs for sequences, and Transformers for language tasks [2]. Training involves "
+        "careful hyperparameter tuning of learning rate, batch size, and regularization [3]."
     )
 
+    return state
 
-async def fact_checker(payload: dict) -> GeneratedAnswer:
+
+async def fact_checker(state: dict) -> dict:
     """LLM actor: verify generated answer against source documents.
 
-    Receives the GeneratedAnswer from state, marks it as verified.
+    Cross-references state["answer"] with state["documents"] to
+    ensure all claims are supported. Flags unsupported claims and
+    adds state["citations"] linking answer segments to source docs.
     """
-    answer = payload.get("answer", {})
-    if isinstance(answer, dict):
-        return GeneratedAnswer(
-            text=answer.get("text", ""),
-            citations=[Citation(**c) if isinstance(c, dict) else c for c in answer.get("citations", [])],
-            verified=True,
-        )
-    # Already a GeneratedAnswer instance (in-process flow execution)
-    answer.verified = True
-    return answer
+    answer = state["answer"]
+    documents = state["documents"]
+
+    state["citations"] = [
+        {"index": 1, "source": "deep_learning_practice.pdf", "claim": "training data quality"},
+        {"index": 2, "source": "architecture_guide.pdf", "claim": "network architectures"},
+        {"index": 3, "source": "optimization_handbook.pdf", "claim": "hyperparameter tuning"},
+    ]
+    state["verified"] = True
+
+    return state
