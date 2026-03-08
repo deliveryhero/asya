@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/agentic-security/4iga.gateway-security-internal-docs
   - branch:agentic-security/4iga.gateway-security-internal-docs
+  - pr:275
 ---
+
 
 
 Write clean, implementation-accurate internal documentation for the gateway security model.
