@@ -114,7 +114,7 @@ crossplane:
   providerConfigs:
     install: false
   functions:
-    overlaysEnabled: true
+    flavorsEnabled: true
   gcpProviderConfig:
     name: gcp-emulator
     projectId: test-project
