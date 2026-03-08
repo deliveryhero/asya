@@ -63,8 +63,8 @@ spec:
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
-            {{`{{- $region := index $env "awsRegion" -}}`}}
-            {{`{{- $providerConfigRef := index $env "awsProviderConfig" -}}`}}
+            {{`{{- $region := required "awsRegion is required from EnvironmentConfig asya-sqs" (index $env "awsRegion") -}}`}}
+            {{`{{- $providerConfigRef := required "awsProviderConfig is required from EnvironmentConfig asya-sqs" (index $env "awsProviderConfig") -}}`}}
             apiVersion: sqs.aws.upbound.io/v1beta1
             kind: Queue
             metadata:
@@ -229,7 +229,7 @@ spec:
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $env := index .context "apiextensions.crossplane.io/environment" | default dict -}}`}}
-            {{`{{- $region := index $env "awsRegion" -}}`}}
+            {{`{{- $region := required "awsRegion is required from EnvironmentConfig asya-sqs" (index $env "awsRegion") -}}`}}
             {{`{{- $queueURL := "" -}}`}}
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}
