@@ -148,7 +148,7 @@ shared or at least follow the same conventions.
 
 ```yaml
 # /.asya/config.yaml (root, platform engineers)
-const:
+vars:
   project_root: "."                   # resolved to repo root at load time
   image_registry: ghcr.io/org
 
@@ -156,8 +156,8 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    dir: "${const.project_root}/libs/shared_utils"
-    image: "${const.image_registry}/shared:${args.tag}"
+    path: "${vars.project_root}/libs/shared_utils"
+    image: "${vars.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
       remote: "docker build -t ${..image} . && docker push ${..image}"
@@ -169,23 +169,23 @@ images:
 
 images:
   - module: e_commerce
-    dir: "./e_commerce"           # relative to THIS file
-    image: "${const.image_registry}/ecom:${args.tag}"
+    path: "./e_commerce"           # relative to THIS file
+    image: "${vars.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**Path resolution**: Two styles coexist for the `dir:` field:
-- **`${const.project_root}/...`** -- repo-root-relative via interpolation.
+**Path resolution**: Two styles coexist for the `path:` field:
+- **`${vars.project_root}/...`** -- repo-root-relative via interpolation.
   Stays as interpolation reference through merge, resolved lazily at use
   time. Portable across machines.
 - **`./...`** -- file-relative, resolved to absolute before merge (necessary
   because source file info is lost after merge).
 
-`const.project_root` is defined as `"."` in the root config.yaml. Since the
+`vars.project_root` is defined as `"."` in the root config.yaml. Since the
 root config lives next to `.git/`, `"."` resolves to the repo root. Teams
 inherit it via walk-up merge and can reference it as
-`${const.project_root}/path`.
+`${vars.project_root}/path`.
 
 ```
 # Example: running from src/team-a/flows/
@@ -196,15 +196,15 @@ inherit it via walk-up merge and can reference it as
 #
 # Path resolution:
 #   Root:   project_root: "."  →  resolved to /repo at load time
-#   Root:   dir: "${const.project_root}/libs/shared"  →  stays as interpolation
-#   Team-A: dir: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
+#   Root:   path: "${vars.project_root}/libs/shared"  →  stays as interpolation
+#   Team-A: path: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
 #
 # Recursive merge (images list unioned by `module:` key):
 ```
 
 **Effective config for team-a** (after walk-up merge):
 ```yaml
-const:
+vars:
   project_root: "/repo"          # resolved from root's "." (dict deep merge)
   image_registry: ghcr.io/org    # from root
 
@@ -213,16 +213,16 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    dir: "${const.project_root}/libs/shared_utils"   # portable interpolation
-    image: "${const.image_registry}/shared:${args.tag}"
+    path: "${vars.project_root}/libs/shared_utils"   # portable interpolation
+    image: "${vars.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
       remote: "docker build -t ${..image} . && docker push ${..image}"
 
   # From team-a (local):
   - module: e_commerce
-    dir: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
-    image: "${const.image_registry}/ecom:${args.tag}"
+    path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
+    image: "${vars.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
@@ -231,7 +231,7 @@ images:
 - OmegaConf has no YAML-level include/extend mechanism -- it's a value
   interpolation library, not a config composition one
 - Hydra's `defaults:` list solves a different problem (experiment config
-  group selection) and has no equivalent of our `const:` / `args:` split
+  group selection) and has no equivalent of our `vars:` / `args:` split
 - Walk-up merge is simpler: no `extend:` paths to maintain, no cycles to
   detect, no cross-tree references to resolve
 - `.gitignore`-style accumulation is familiar and predictable
@@ -250,7 +250,7 @@ answer two questions:
 
 Asya works WITH build systems (Docker, apko, buildpacks, Shipwright, CI
 pipelines), not as a replacement for them. Build tool configuration
-(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the `dir:`
+(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the `path:`
 directory, not in config.yaml.
 
 ### 3.2 Top-Level Structure
@@ -263,23 +263,23 @@ Walk-up merge unions lists by the `module:` key (see section 2.3).
 # .asya/config.yaml
 # Ancestor configs are auto-discovered via walk-up merge
 
-const:
+vars:
   project_root: "."                     # resolved to repo root at load time
   image_registry: ghcr.io/org
 
 images:
   # Python package → image + build commands
   - module: e_commerce
-    dir: "${const.project_root}/src/e-commerce-package"
-    image: "${const.image_registry}/e-commerce:${args.tag}"
+    path: "${vars.project_root}/src/e-commerce-package"
+    image: "${vars.image_registry}/e-commerce:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
       remote: "docker build -t ${..image} . && docker push ${..image}"
 
   # GPU model with apko
   - module: gpu_models
-    dir: "${const.project_root}/src/gpu-models"
-    image: "${const.image_registry}/gpu-models:${args.tag}"
+    path: "${vars.project_root}/src/gpu-models"
+    image: "${vars.image_registry}/gpu-models:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
       remote: "shp build upload gpu-models --image ${..image}"
@@ -291,17 +291,17 @@ images:
 
   # Dirty DS scripts (filesystem path)
   - module: "./src/notebooks/models"
-    dir: "./src/notebooks/models"
-    image: "${const.image_registry}/notebook-models:${args.tag}"
+    path: "./src/notebooks/models"
+    image: "${vars.image_registry}/notebook-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**What's in**: module → dir → image → build commands. That's it.
+**What's in**: module → path → image → build commands. That's it.
 
 **What's NOT in**: Strategy names, lock file paths, requirements paths,
 Python versions, builder configurations. Those are the build tool's concern
-(inside the Dockerfile, apko.yaml, etc. in the `dir:` directory).
+(inside the Dockerfile, apko.yaml, etc. in the `path:` directory).
 
 ### 3.3 Field Semantics
 
@@ -318,8 +318,8 @@ serves as the merge key for walk-up list union (section 2.3).
 `e_commerce.models.LargeModel` both exist, a handler
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
-**`dir:`** -- directory where the build command runs (CWD). Relative paths
-are resolved to absolute before merge. Can use `${const.project_root}/...`
+**`path:`** -- directory where the build command runs (CWD). Relative paths
+are resolved to absolute before merge. Can use `${vars.project_root}/...`
 for repo-root-relative paths (stays as interpolation through merge).
 
 **`image:`** -- OCI image reference template with interpolation.
@@ -339,34 +339,34 @@ traversal:
 
 | Syntax | Meaning | Example |
 |--------|---------|---------|
-| `${path.to.key}` | Absolute path from config root | `${const.image_registry}` |
+| `${path.to.key}` | Absolute path from config root | `${vars.image_registry}` |
 | `${.sibling}` | Sibling at current level | `${.image}` (within same entry) |
 | `${..sibling}` | Go up one level, access sibling | `${..image}` (from `build:` to entry's `image`) |
 | `${args.name}` | CLI arg or `ASYA_ARG_NAME` env var | `${args.tag}` |
 | `${env:VAR}` | Raw environment variable | `${env:HOME}` |
 | `${env:VAR,default}` | Env var with fallback | `${env:REGISTRY,ghcr.io/org}` |
 
-**Resolution order**: Config-level references (`${const.*}`, `${.sibling}`)
+**Resolution order**: Config-level references (`${vars.*}`, `${.sibling}`)
 are resolved first. Then `${args.*}` and `${env:*}` are resolved at command
 time (`asya actor build --arg tag=v1`).
 
 **Two namespaces**:
-- `${const.*}` -- static values defined in config. Should not be overridden
-  by child configs (signal: these are project-wide constants).
+- `${vars.*}` -- static values defined in config. Should not be overridden
+  by child configs (signal: these are project-wide varsants).
 - `${args.*}` -- runtime values from `--arg` flag or `ASYA_ARG_*` env vars.
   Change per invocation.
 
 **Example resolution**:
 ```yaml
-const:
+vars:
   project_root: "."
   image_registry: ghcr.io/org
 
 images:
   - module: e_commerce
-    dir: "${const.project_root}/src/e-commerce"
-    image: "${const.image_registry}/e-commerce:${args.tag}"
-    #       ^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from const)
+    path: "${vars.project_root}/src/e-commerce"
+    image: "${vars.image_registry}/e-commerce:${args.tag}"
+    #       ^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from vars)
     #                                              ^^^^^^^^^^^ → v1  (from --arg)
     # Final: ghcr.io/org/e-commerce:v1
     build:
@@ -514,13 +514,13 @@ asya flow build order-processing
 **Resolution**:
 - `asya actor build <actor-name>` → reads manifest to find image ref →
   matches image ref to config.yaml `images` entry → runs `build.local`
-  command in the `dir:` directory
+  command in the `path:` directory
 - `asya actor build --remote` → same resolution but runs `build.remote`
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
-No Python resolution happens at build time -- the `dir:` value is taken
+No Python resolution happens at build time -- the `path:` value is taken
 directly from config.yaml. Asya just runs the shell command with variable
 substitution.
 
@@ -604,14 +604,14 @@ my-project/
 
 ```yaml
 # .asya/config.yaml
-const:
+vars:
   project_root: "."
   image_registry: ghcr.io/org
 
 images:
   - module: e_commerce
-    dir: "${const.project_root}/src/e-commerce-package"
-    image: "${const.image_registry}/e-commerce:${args.tag}"
+    path: "${vars.project_root}/src/e-commerce-package"
+    image: "${vars.image_registry}/e-commerce:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
       remote: "shp build upload e-commerce --image ${..image}"
@@ -638,7 +638,7 @@ experiments/
 # .asya/config.yaml
 images:
   - module: "./models"                # Filesystem path, not importable
-    dir: "./models"
+    path: "./models"
     image: "ghcr.io/org/bert-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -737,15 +737,15 @@ asya actor deploy text-analyzer  # same variables, no repetition
 
 **In config.yaml**:
 ```yaml
-const:
+vars:
   project_root: "."
   image_registry: ghcr.io/org
 
 images:
   - module: e_commerce
-    image: "${const.image_registry}/e-commerce:${args.tag}"
-    #       ^^^^^^^^^^^^^^^^^^^^^^ const (resolved first)
-    #                                          ^^^^^^^^^^ arg (resolved at command time)
+    image: "${vars.image_registry}/e-commerce:${args.tag}"
+    #       ^^^^^^^^^^^^^^^^^^^^^^ vars (resolved first)
+    #                                    ^^^^^^^^^^ arg (resolved at command time)
     build:
       local: "docker build -t ${..image} ."
       #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
@@ -754,7 +754,7 @@ images:
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once and then
 call `asya actor build` and `asya actor deploy` without repeating the tag.
 
-**Precedence**: `--arg` flag wins over `ASYA_ARG_*` env var. `${const.*}`
+**Precedence**: `--arg` flag wins over `ASYA_ARG_*` env var. `${vars.*}`
 and `${.sibling}` are resolved before `${args.*}` and `${env:*}`.
 
 ---
