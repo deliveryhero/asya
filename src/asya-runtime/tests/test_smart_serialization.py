@@ -2,8 +2,10 @@
 """Tests for smart JSON serialization: pydantic, dataclasses, namedtuples, etc."""
 
 import dataclasses
+import decimal
 import json
 import sys
+import uuid
 from collections import namedtuple
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -121,6 +123,21 @@ class TestJsonDefault:
         obj = date(2024, 6, 1)
         result = asya_runtime._json_default(obj)
         assert result == "2024-06-01"
+
+    def test_uuid_serialized_as_string(self):
+        obj = uuid.UUID("12345678-1234-5678-1234-567812345678")
+        result = asya_runtime._json_default(obj)
+        assert result == "12345678-1234-5678-1234-567812345678"
+
+    def test_decimal_serialized_as_string(self):
+        obj = decimal.Decimal("3.14159265358979")
+        result = asya_runtime._json_default(obj)
+        assert result == "3.14159265358979"
+
+    def test_decimal_integer_serialized_as_string(self):
+        obj = decimal.Decimal("100")
+        result = asya_runtime._json_default(obj)
+        assert result == "100"
 
     def test_bytes_serialized_as_base64(self):
         obj = b"hello"
