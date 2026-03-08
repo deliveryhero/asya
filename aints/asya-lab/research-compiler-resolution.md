@@ -280,6 +280,87 @@ images:
   detect, no cross-tree references to resolve
 - `.gitignore`-style accumulation is familiar and predictable
 
+### 2.4 `asya init`
+
+**Behavior**: Creates the `.asya/` directory with a static scaffold. No
+interactive prompts — like `git init`, not `npm init`. Idempotent: running
+`asya init` in a directory that already has `.asya/` is a no-op with a
+message.
+
+**What it creates**:
+
+```
+.asya/
+├── config.yaml               # Full config with var + images + compiler
+└── manifests/                 # Output directory for generated manifests
+    ├── actors/
+    │   └── .gitkeep
+    └── flows/
+        └── .gitkeep
+```
+
+**Generated `config.yaml`**:
+
+```yaml
+# .asya/config.yaml
+# Asya project configuration
+# Docs: https://asya.sh/docs/config
+
+var:
+  project_root: "."
+  image_registry: ghcr.io/OWNER    # TODO: set your registry
+  router_image: python:3.13-slim
+
+images: []
+  # - module: my_package
+  #   path: "${var.project_root}/src/my-package"
+  #   image: "${var.image_registry}/my-package:${arg:tag}"
+  #   build:
+  #     local: "docker build -t ${..image} ."
+  #     remote: "docker build -t ${..image} . && docker push ${..image}"
+
+compiler:
+  mode: manifests
+  template:
+    apiVersion: asya.dev/v1alpha1
+    kind: AsyncActor
+    metadata:
+      name: "${actor:name}"
+    spec:
+      image: "${actor:image}"
+      handler: "${actor:handler}"
+      transport: sqs
+      overlays: [base]
+      scaling:
+        minReplicas: 0
+        maxReplicas: 10
+      env: "${actor:env}"
+```
+
+**Design decisions**:
+- **Static scaffold**: No questions, no flags for customization. The
+  generated config has sensible defaults and `TODO` comments where the user
+  must fill in values (`image_registry`).
+- **Full compiler template**: Included out of the box so `asya flow compile`
+  works immediately after init. Users modify the template to match their
+  deployment setup (helm mode, custom overlays, etc.).
+- **`.gitkeep` in manifests**: Directories exist from the start so the
+  directory structure is visible in git. Generated manifests appear here
+  on first compile.
+- **Fully git-tracked**: No `.gitignore` inside `.asya/`. Everything is
+  committed — config is source of truth, manifests are required for GitOps.
+
+**CLI**:
+```bash
+asya init                        # creates .asya/ in current directory
+asya init src/team-a             # creates src/team-a/.asya/ (sub-project)
+```
+
+**Error cases**:
+- `.asya/` already exists → print "already initialized" and exit 0
+- Not inside a git repo → warn but proceed (`.asya/` doesn't require git,
+  but walk-up merge stops at `.git/` boundary)
+
 ---
 
 ## 3. `.asya/config.yaml` Schema
@@ -1155,9 +1236,10 @@ the tag.
    schema is agnostic to deployment strategy. Needs design when GitOps is
    stable.
 
-9. **`asya init` design**: What does `asya init` create? At minimum: root
-   `.asya/config.yaml` with `var.project_root`, `var.image_registry`,
-   `var.router_image`, and an empty `images:` list. To be designed.
+9. ~~**`asya init` design**~~: Resolved. Static scaffold (like `git init`):
+   creates `.asya/config.yaml` with full config (`var:` + `images:` +
+   `compiler.template`) and `.asya/manifests/{actors,flows}/` with
+   `.gitkeep`. No interactive prompts. See section 2.4.
 
 10. ~~**`asya actor compile` for standalone actors**~~: Resolved. CLI-driven
     via `--handler` flag: `asya actor compile --handler module.function`.
