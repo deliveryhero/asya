@@ -12,6 +12,7 @@ tags:
 
 
 
+
 Port the scaling.advanced sub-object from asya-operator CRD to the Crossplane XRD. Fields: formula, target, activationTarget, metricType, restoreToOriginalReplicaCount. These allow users to customize KEDA scaling behavior beyond simple queue-length triggers.
 
 
