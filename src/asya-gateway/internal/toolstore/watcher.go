@@ -52,7 +52,7 @@ func dirFingerprint(dir string) uint64 {
 		if err != nil {
 			continue
 		}
-		fmt.Fprintf(h, "%s:%d:%d\n", entry.Name(), info.ModTime().UnixNano(), info.Size())
+		_, _ = fmt.Fprintf(h, "%s:%d:%d\n", entry.Name(), info.ModTime().UnixNano(), info.Size())
 	}
 	return h.Sum64()
 }
