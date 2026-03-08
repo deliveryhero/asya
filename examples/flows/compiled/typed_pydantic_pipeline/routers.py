@@ -13,18 +13,16 @@ Regenerate by running: asya flow compile ../../typed_pydantic_pipeline.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_typed_pydantic_pipeline(payload: dict):
-    """Entrypoint for flow 'typed_pydantic_pipeline'"""
+def start_ingester(payload: dict):
+    """Entrypoint for flow 'ingester'"""
     _next = []
-    _next.append(resolve("ingester"))
-    _next.append(resolve("scorer"))
-    _next.append(resolve("ranker"))
-    _next.append(resolve("responder"))
+    p = payload
+    p['candidates'] = retrieve(p['query'], p.get('top_k', 10))
     yield "SET", ".route.next[:0]", _next
-    yield payload
+    yield p
 
-def end_typed_pydantic_pipeline(payload: dict):
-    """Exitpoint for flow 'typed_pydantic_pipeline'"""
+def end_ingester(payload: dict):
+    """Exitpoint for flow 'ingester'"""
     yield "SET", ".route.next", []
     yield payload
 
