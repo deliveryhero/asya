@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Problem
 
 When messages are sent directly to actor queues (bypassing the gateway), the sidecar still attempts to report to `/mesh/{id}/*` endpoints. Currently this is partially tolerated:
