@@ -139,14 +139,14 @@ testing/integration/gateway-actors/
     └── pubsub-gcs.yml      # GCS LWW connector via fake-gcs-server
 ```
 
-For `ASYA_STORAGE=gcs`, the Makefile automatically appends a GCS overlay:
+For `ASYA_STORAGE=gcs`, the Makefile automatically appends a GCS flavor:
 ```makefile
 ifeq ($(ASYA_STORAGE),gcs)
-COMPOSE_FILES += -f compose/crew-gcs-overlay.yml
+COMPOSE_FILES += -f compose/crew-gcs-flavor.yml
 endif
 ```
 
-This overlay replaces the default S3 connector image and injects
+This flavor replaces the default S3 connector image and injects
 `STORAGE_EMULATOR_HOST` into the x-sink container.
 
 Run:
@@ -290,8 +290,8 @@ Utilities live in `src/asya-testing/asya_testing/utils/`:
 ### 4. Integration tests (gateway-actors)
 
 - Add `testing/integration/gateway-actors/profiles/<transport>-<backend>.yml`
-- If the crew chart needs an overlay to select the new connector, add
-  `compose/crew-<backend>-overlay.yml` and wire it into the Makefile condition
+- If the crew chart needs an flavor to select the new connector, add
+  `compose/crew-<backend>-flavor.yml` and wire it into the Makefile condition
 
 ### 5. E2E tests
 

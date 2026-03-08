@@ -947,9 +947,9 @@ combines transport and storage: <code>ASYA_TRANSPORT-ASYA_STORAGE</code>.</p>
 <p>Run:
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gateway-actors<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub<span class="w"> </span><span class="nv">ASYA_STORAGE</span><span class="o">=</span>gcs
 </code></pre></div></p>
-<p>The GCS profile requires an overlay (<code>compose/crew-gcs-overlay.yml</code>) that
+<p>The GCS profile requires an flavor (<code>compose/crew-gcs-flavor.yml</code>) that
 configures the x-sink crew actor to use the GCS connector instead of the default
-S3 connector. This overlay is added automatically when <code>ASYA_STORAGE=gcs</code>.</p>
+S3 connector. This flavor is added automatically when <code>ASYA_STORAGE=gcs</code>.</p>
 <h2 id="e2e-tests-kind-cluster">E2E Tests: Kind Cluster<a class="headerlink" href="#e2e-tests-kind-cluster" title="Permanent link">&para;</a></h2>
 <p><strong>Location</strong>: <code>testing/e2e/</code></p>
 <p>Full Kubernetes deployment with Crossplane, the injector, gateway, KEDA, and crew
@@ -1039,14 +1039,14 @@ config — unused ports are harmless:</p>
   → render-queue                 # creates the queue/topic managed resource
   → render-sa                    # creates ServiceAccount (IRSA/workload identity)
   → fetch-environment-configs    # reads EnvironmentConfigs by label selector
-  → function-asya-overlays       # merges overlays → context[&quot;asya/resolved-spec&quot;]
+  → function-asya-flavors       # merges flavors → context[&quot;asya/resolved-spec&quot;]
   → render-scaledobject          # reads context[&quot;asya/resolved-spec&quot;] for KEDA
   → render-deployment            # reads context[&quot;asya/resolved-spec&quot;] for containers
   → function-auto-ready          # sets READY condition
 </code></pre></div>
-<p><strong>Bug pattern to avoid</strong>: All three steps that touch overlay data must agree on
-the context key. <code>function-asya-overlays</code> writes <code>"asya/resolved-spec"</code>.
-Using <code>"asya.sh/resolved-spec"</code> in a downstream step silently drops all overlay
+<p><strong>Bug pattern to avoid</strong>: All three steps that touch flavor data must agree on
+the context key. <code>function-asya-flavors</code> writes <code>"asya/resolved-spec"</code>.
+Using <code>"asya.sh/resolved-spec"</code> in a downstream step silently drops all flavor
 data — <code>$resolvedSpec</code> is always empty. This was the root cause of #258.</p>
 <h3 id="pubsub-emulator-non-obvious-wiring">Pub/Sub emulator: non-obvious wiring<a class="headerlink" href="#pubsub-emulator-non-obvious-wiring" title="Permanent link">&para;</a></h3>
 <p>The Upbound <code>provider-gcp-pubsub</code> (Terraform-based) performs a real OAuth2 token
@@ -1159,7 +1159,7 @@ timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.</p>
   <code>profiles/.env.&lt;transport&gt;-&lt;storage&gt;</code> (pytest env vars using <code>127.0.0.1:&lt;nodePort&gt;</code>)</li>
 <li>Add Crossplane composition <code>composition-&lt;transport&gt;.yaml</code> — use
   <code>"asya/resolved-spec"</code> (not <code>"asya.sh/resolved-spec"</code>) in all steps that read
-  overlay data; select the correct KEDA trigger type</li>
+  flavor data; select the correct KEDA trigger type</li>
 <li>Wire the injector to set transport-specific env vars on sidecar containers</li>
 <li>Grep existing tests for <code>ASYA_TRANSPORT</code> and <code>transport == "sqs"</code> — add new
   transport branches or skip conditions as needed</li>

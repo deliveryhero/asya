@@ -886,9 +886,9 @@ prevent path traversal attacks (e.g., a crafted ID like <code>../../etc/passwd</
 <p>The checkpointer is part of the <code>asya-crew</code> image and deployed via the
 <code>deploy/helm-charts/asya-crew</code> Helm chart. It is activated by setting
 <code>ASYA_PERSISTENCE_MOUNT</code> in the crew actor's environment.</p>
-<h3 id="state-proxy-overlay">State Proxy Overlay<a class="headerlink" href="#state-proxy-overlay" title="Permanent link">&para;</a></h3>
-<p>Persistence is wired through an <code>EnvironmentConfig</code> overlay that adds a state
-proxy sidecar to the crew actor pods. The overlay configures:</p>
+<h3 id="state-proxy-flavor">State Proxy Flavor<a class="headerlink" href="#state-proxy-flavor" title="Permanent link">&para;</a></h3>
+<p>Persistence is wired through an <code>EnvironmentConfig</code> flavor that adds a state
+proxy sidecar to the crew actor pods. The flavor configures:</p>
 <ul>
 <li><code>spec.stateProxy.connector.image</code> — backend-specific connector image
   (e.g., <code>asya-state-proxy-s3-buffered-lww</code>, <code>asya-state-proxy-gcs-buffered-lww</code>)</li>
@@ -1286,10 +1286,10 @@ confirmed.</p>
         </a>
         
         
-        <a href="#state-proxy-overlay"
+        <a href="#state-proxy-flavor"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            State Proxy Overlay
+            State Proxy Flavor
         </a>
         
         <a href="#graceful-skip"

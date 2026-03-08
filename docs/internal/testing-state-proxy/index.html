@@ -964,12 +964,12 @@ both transport and storage: <code>&lt;transport&gt;-&lt;storage&gt;</code>.</p>
     ├── rabbitmq-minio.yml  # S3 LWW connector via MinIO (S3-compatible)
     └── pubsub-gcs.yml      # GCS LWW connector via fake-gcs-server
 </code></pre></div>
-<p>For <code>ASYA_STORAGE=gcs</code>, the Makefile automatically appends a GCS overlay:
+<p>For <code>ASYA_STORAGE=gcs</code>, the Makefile automatically appends a GCS flavor:
 <div class="highlight"><pre><span></span><code><span class="cp">ifeq ($(ASYA_STORAGE),gcs)</span>
-<span class="nv">COMPOSE_FILES</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>-f<span class="w"> </span>compose/crew-gcs-overlay.yml
+<span class="nv">COMPOSE_FILES</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span>-f<span class="w"> </span>compose/crew-gcs-flavor.yml
 <span class="cp">endif</span>
 </code></pre></div></p>
-<p>This overlay replaces the default S3 connector image and injects
+<p>This flavor replaces the default S3 connector image and injects
 <code>STORAGE_EMULATOR_HOST</code> into the x-sink container.</p>
 <p>Run:
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/integration/gateway-actors<span class="w"> </span>test-one<span class="w"> </span><span class="nv">ASYA_TRANSPORT</span><span class="o">=</span>pubsub<span class="w"> </span><span class="nv">ASYA_STORAGE</span><span class="o">=</span>gcs
@@ -1115,8 +1115,8 @@ Utilities live in <code>src/asya-testing/asya_testing/utils/</code>:</p>
 <h3 id="4-integration-tests-gateway-actors">4. Integration tests (gateway-actors)<a class="headerlink" href="#4-integration-tests-gateway-actors" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Add <code>testing/integration/gateway-actors/profiles/&lt;transport&gt;-&lt;backend&gt;.yml</code></li>
-<li>If the crew chart needs an overlay to select the new connector, add
-  <code>compose/crew-&lt;backend&gt;-overlay.yml</code> and wire it into the Makefile condition</li>
+<li>If the crew chart needs an flavor to select the new connector, add
+  <code>compose/crew-&lt;backend&gt;-flavor.yml</code> and wire it into the Makefile condition</li>
 </ul>
 <h3 id="5-e2e-tests">5. E2E tests<a class="headerlink" href="#5-e2e-tests" title="Permanent link">&para;</a></h3>
 <ul>
