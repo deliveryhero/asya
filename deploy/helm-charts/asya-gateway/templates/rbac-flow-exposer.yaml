@@ -1,0 +1,31 @@
+{{- if .Values.flowsConfig.exposerGroup }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}-flow-exposer
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: flows
+rules:
+- apiGroups: [""]
+  resources: [configmaps]
+  resourceNames: [{{ include "asya-gateway.fullname" . }}-flows]
+  verbs: [get, patch, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "asya-gateway.fullname" . }}-flow-exposer
+  labels:
+    {{- include "asya-gateway.labels" . | nindent 4 }}
+    app.kubernetes.io/component: flows
+subjects:
+- kind: Group
+  name: {{ .Values.flowsConfig.exposerGroup }}
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: {{ include "asya-gateway.fullname" . }}-flow-exposer
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}

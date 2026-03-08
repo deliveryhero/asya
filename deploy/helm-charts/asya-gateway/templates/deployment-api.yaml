@@ -63,13 +63,13 @@ spec:
                               -p {{ include "asya-gateway.databasePort" . }} \
                               -U {{ include "asya-gateway.databaseUsername" . }} \
                               -d {{ include "asya-gateway.databaseName" . }} \
-                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates', 'tools')")
+                              -tAc "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='public' AND table_name IN ('tasks', 'task_updates')")
 
-          if [ "$TABLES_EXIST" -eq 3 ]; then
-            echo "[+] Database schema validated (tasks, task_updates, tools tables exist)"
+          if [ "$TABLES_EXIST" -eq 2 ]; then
+            echo "[+] Database schema validated (tasks, task_updates tables exist)"
           else
             echo "[-] Database schema validation failed!"
-            echo "[-] Expected tables: tasks, task_updates, tools"
+            echo "[-] Expected tables: tasks, task_updates"
             echo "[-] Found $TABLES_EXIST table(s)"
             echo "[-] Please ensure database migrations have been run successfully"
             exit 1
@@ -109,6 +109,8 @@ spec:
         {{- end }}
         - name: ASYA_NAMESPACE
           value: "{{ .Release.Namespace }}"
+        - name: ASYA_CONFIG_PATH
+          value: "{{ .Values.flowsConfig.mountPath }}"
         {{- with .Values.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
@@ -126,13 +128,20 @@ spec:
           periodSeconds: 10
         resources:
           {{- toYaml .Values.resources | nindent 12 }}
-        {{- with .Values.volumeMounts }}
         volumeMounts:
-          {{- toYaml . | nindent 12 }}
-        {{- end }}
-      {{- with .Values.volumes }}
-      volumes:
+        - name: gateway-flows
+          mountPath: {{ .Values.flowsConfig.mountPath }}
+          readOnly: true
+        {{- with .Values.volumeMounts }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+      - name: gateway-flows
+        configMap:
+          name: {{ include "asya-gateway.fullname" . }}-flows
+          optional: true
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 8 }}
       {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:

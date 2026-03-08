@@ -3,41 +3,84 @@ package toolstore
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 	"sync/atomic"
 
-	"github.com/jackc/pgx/v5/pgxpool"
+	"gopkg.in/yaml.v3"
 )
 
-// Registry manages tools with an in-memory cache and optional DB persistence.
+// Registry manages tools with an in-memory atomic cache.
+// The cache is loaded from a directory of YAML files (ConfigMap mount)
+// or populated via Upsert for tests.
 type Registry struct {
-	pool  *pgxpool.Pool
 	cache atomic.Value // *[]Tool
 }
 
-// NewInMemoryRegistry creates a registry without database persistence (for tests).
+// NewInMemoryRegistry creates an empty registry (for tests and no-config mode).
 func NewInMemoryRegistry() *Registry {
 	r := &Registry{}
 	r.cache.Store(&[]Tool{})
 	return r
 }
 
-// NewRegistry creates a DB-backed registry and loads all tools from the database.
-func NewRegistry(ctx context.Context, pool *pgxpool.Pool) (*Registry, error) {
-	r := &Registry{
-		pool: pool,
+// NewRegistryFromDir creates a registry loaded from YAML files in dir.
+func NewRegistryFromDir(dir string) (*Registry, error) {
+	r := &Registry{}
+	r.cache.Store(&[]Tool{})
+	if err := r.LoadFromDir(dir); err != nil {
+		return nil, err
 	}
-
-	// Load initial tools from database
-	if err := r.Refresh(ctx); err != nil {
-		return nil, fmt.Errorf("failed to load tools: %w", err)
-	}
-
 	return r, nil
 }
 
-// Upsert validates and persists a tool, then refreshes the cache.
-func (r *Registry) Upsert(ctx context.Context, tool Tool) error {
-	// Validation
+// LoadFromDir reads all *.yaml / *.yml files in dir, parses FlowsFile,
+// converts each flow to a Tool, and atomically replaces the cache.
+// On error the previous cache is preserved.
+func (r *Registry) LoadFromDir(dir string) error {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return fmt.Errorf("read config dir %q: %w", dir, err)
+	}
+
+	tools := make([]Tool, 0)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".yaml") && !strings.HasSuffix(name, ".yml") {
+			continue
+		}
+
+		path := filepath.Join(dir, name)
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("read %q: %w", path, err)
+		}
+
+		var ff FlowsFile
+		if err := yaml.Unmarshal(data, &ff); err != nil {
+			return fmt.Errorf("parse %q: %w", path, err)
+		}
+
+		for _, fc := range ff.Flows {
+			t, err := flowConfigToTool(fc)
+			if err != nil {
+				return fmt.Errorf("file %q, flow %q: %w", path, fc.Name, err)
+			}
+			tools = append(tools, t)
+		}
+	}
+
+	r.cache.Store(&tools)
+	return nil
+}
+
+// Upsert validates a tool and adds/replaces it in the in-memory cache.
+// Used in tests and for single-tool injection without YAML files.
+func (r *Registry) Upsert(_ context.Context, tool Tool) error {
 	if tool.Name == "" {
 		return fmt.Errorf("tool name is required")
 	}
@@ -45,52 +88,6 @@ func (r *Registry) Upsert(ctx context.Context, tool Tool) error {
 		return fmt.Errorf("tool actor is required")
 	}
 
-	// Persist to DB if available
-	if r.pool != nil {
-		query := `
-			INSERT INTO tools (
-				name, actor, route_next, description, parameters, timeout_sec, progress,
-				mcp_enabled, a2a_enabled, a2a_tags, a2a_input_modes, a2a_output_modes, a2a_examples
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
-			ON CONFLICT (name) DO UPDATE SET
-				actor = EXCLUDED.actor,
-				route_next = EXCLUDED.route_next,
-				description = EXCLUDED.description,
-				parameters = EXCLUDED.parameters,
-				timeout_sec = EXCLUDED.timeout_sec,
-				progress = EXCLUDED.progress,
-				mcp_enabled = EXCLUDED.mcp_enabled,
-				a2a_enabled = EXCLUDED.a2a_enabled,
-				a2a_tags = EXCLUDED.a2a_tags,
-				a2a_input_modes = EXCLUDED.a2a_input_modes,
-				a2a_output_modes = EXCLUDED.a2a_output_modes,
-				a2a_examples = EXCLUDED.a2a_examples
-		`
-
-		_, err := r.pool.Exec(ctx, query,
-			tool.Name,
-			tool.Actor,
-			tool.RouteNext,
-			tool.Description,
-			tool.Parameters,
-			tool.TimeoutSec,
-			tool.Progress,
-			tool.MCPEnabled,
-			tool.A2AEnabled,
-			tool.A2ATags,
-			tool.A2AInputModes,
-			tool.A2AOutputModes,
-			tool.A2AExamples,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to upsert tool: %w", err)
-		}
-
-		// Reload from DB to get updated timestamps
-		return r.Refresh(ctx)
-	}
-
-	// In-memory only - add or update in cache
 	tools := r.All()
 	newTools := make([]Tool, 0, len(tools)+1)
 	found := false
@@ -109,59 +106,6 @@ func (r *Registry) Upsert(ctx context.Context, tool Tool) error {
 	}
 
 	r.cache.Store(&newTools)
-	return nil
-}
-
-// Refresh reloads all tools from the database into the cache.
-func (r *Registry) Refresh(ctx context.Context) error {
-	if r.pool == nil {
-		return nil
-	}
-
-	query := `
-		SELECT name, actor, route_next, description, parameters, timeout_sec, progress,
-			   mcp_enabled, a2a_enabled, a2a_tags, a2a_input_modes, a2a_output_modes, a2a_examples,
-			   created_at, updated_at
-		FROM tools
-		ORDER BY name
-	`
-
-	rows, err := r.pool.Query(ctx, query)
-	if err != nil {
-		return fmt.Errorf("failed to query tools: %w", err)
-	}
-	defer rows.Close()
-
-	tools := make([]Tool, 0)
-	for rows.Next() {
-		var t Tool
-		if err := rows.Scan(
-			&t.Name,
-			&t.Actor,
-			&t.RouteNext,
-			&t.Description,
-			&t.Parameters,
-			&t.TimeoutSec,
-			&t.Progress,
-			&t.MCPEnabled,
-			&t.A2AEnabled,
-			&t.A2ATags,
-			&t.A2AInputModes,
-			&t.A2AOutputModes,
-			&t.A2AExamples,
-			&t.CreatedAt,
-			&t.UpdatedAt,
-		); err != nil {
-			return fmt.Errorf("failed to scan tool: %w", err)
-		}
-		tools = append(tools, t)
-	}
-
-	if err := rows.Err(); err != nil {
-		return fmt.Errorf("error iterating tools: %w", err)
-	}
-
-	r.cache.Store(&tools)
 	return nil
 }
 

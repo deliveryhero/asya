@@ -84,19 +84,21 @@ func main() {
 	slog.Info("Gateway uses standalone end actors for final status reporting",
 		"info", "Deploy x-sink and x-sump actors to handle end queues")
 
-	// Initialize tool registry from PostgreSQL
+	// Initialize tool registry from ConfigMap directory or in-memory fallback
 	var registry *toolstore.Registry
-	if pgStore, ok := taskStore.(*taskstore.PgStore); ok {
+	configPath := os.Getenv("ASYA_CONFIG_PATH")
+	if configPath != "" {
 		var err error
-		registry, err = toolstore.NewRegistry(ctx, pgStore.Pool())
+		registry, err = toolstore.NewRegistryFromDir(configPath)
 		if err != nil {
-			slog.Error("Failed to create DB-backed tool registry", "error", err)
+			slog.Error("Failed to load tool registry from ConfigMap", "path", configPath, "error", err)
 			os.Exit(1)
 		}
-		slog.Info("Using DB-backed tool registry")
+		slog.Info("Using ConfigMap-based tool registry", "path", configPath)
+		go toolstore.Watch(ctx, configPath, registry, 5*time.Second)
 	} else {
 		registry = toolstore.NewInMemoryRegistry()
-		slog.Info("Using in-memory tool registry")
+		slog.Info("Using in-memory tool registry (ASYA_CONFIG_PATH not set)")
 	}
 
 	// Create MCP server (reads tools from DB-backed registry)

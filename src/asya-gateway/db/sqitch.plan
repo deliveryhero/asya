@@ -12,3 +12,4 @@
 008_add_pause_metadata [007_add_partial_payload] 2026-02-25T02:00:00Z Asya Team <team@asya.sh> # Add pause_metadata and remaining_timeout_sec for pause/resume functionality
 009_tools_table_and_status_values [008_add_pause_metadata] 2026-03-03T00:00:00Z Asya Team <team@asya.sh> # Tools table and expanded task status values for A2A
 010_oauth_tables [009_tools_table_and_status_values] 2026-03-06T00:00:00Z Asya Team <team@asya.sh> # OAuth 2.1 tables for MCP authorization server
+011_drop_tools_table [010_oauth_tables] 2026-03-08T00:00:00Z Asya Team <team@asya.sh> # Drop tools table (replaced by ConfigMap-based flow registry)

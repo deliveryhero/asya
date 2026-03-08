@@ -123,9 +123,15 @@ migration:
       memory: 128Mi
   backoffLimit: 5
 
-# Tool routes (seeded into database via tool-seed-job)
-routes:
-  tools: []
+# Flow registry ConfigMap configuration.
+# The gateway-flows ConfigMap is managed externally (by actors via RBAC or manually).
+# The gateway hot-reloads flows.yaml when the ConfigMap changes.
+flowsConfig:
+  # mountPath is the directory where flows.yaml is mounted inside the gateway containers.
+  mountPath: /etc/asya/flows
+  # exposerGroup is the Kubernetes Group bound to the flow-exposer RBAC Role,
+  # allowing members to patch the gateway-flows ConfigMap.
+  exposerGroup: "asya-flow-exposers"
 
 # External database (if postgresql.enabled=false)
 # Leave host empty to use in-memory store (no persistence)
