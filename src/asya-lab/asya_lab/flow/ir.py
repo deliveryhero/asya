@@ -76,5 +76,12 @@ class FanOutCall(IROperation):
 
 
 @dataclass
+class WithBlock(IROperation):
+    expr: str  # e.g., "custom_ctx()" or "asyncio.timeout(30)"
+    is_async: bool
+    body: list[IROperation]
+
+
+@dataclass
 class Return(IROperation):
     pass

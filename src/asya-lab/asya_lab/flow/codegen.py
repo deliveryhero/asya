@@ -175,6 +175,8 @@ class CodeGenerator:
                 lines.append(self._generate_except_dispatch_router(router))
             elif router.is_reraise:
                 lines.append(self._generate_reraise_router(router))
+            elif router.with_expr is not None:
+                lines.append(self._generate_with_router(router))
             else:
                 lines.append(self._generate_router(router))
 
@@ -483,6 +485,31 @@ class CodeGenerator:
         lines.append('    _error_type = yield "GET", ".status.error.type"')
         lines.append('    _error_msg = yield "GET", ".status.error.message"')
         lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_with_router(self, router: Router) -> str:
+        """Generate a router that wraps its routing decisions in a `with expr:` block."""
+        with_keyword = "async with" if router.is_async_with else "with"
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f'    """With-block router: {with_keyword} {router.with_expr}"""')
+        lines.append("    p = payload")
+        lines.append("    _next = []")
+
+        filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+
+        lines.append(f"    {with_keyword} {router.with_expr}:")
+        if filtered_actors:
+            for actor in filtered_actors:
+                lines.append(f'        _next.append(resolve("{actor}"))')
+        else:
+            lines.append("        pass")
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
         lines.append("")
 
         return "\n".join(lines)
