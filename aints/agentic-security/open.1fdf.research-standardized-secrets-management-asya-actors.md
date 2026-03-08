@@ -1,8 +1,10 @@
 ---
-title: "Research: Standardized secrets management for Asya actors"
-priority: 2 # medium
+title: "External secrets integration: Vault, ESO, cloud secret managers (post-v0)"
+priority: 3 # low — post-v0; basic k8s Secrets in [wcnw]
 tags:
   - type:feature
+dependencies:
+  - agentic-security/wcnw
 ---
 
 
