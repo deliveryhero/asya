@@ -60,15 +60,6 @@ spec:
                     Applied left-to-right; later overlays override earlier ones.
                     Actor inline spec is applied last and always wins.
 
-                region:
-                  type: string
-                  description: AWS region for SQS queue
-                  default: us-east-1
-
-                gcpProject:
-                  type: string
-                  description: GCP project ID for Pub/Sub
-
                 scaling:
                   type: object
                   description: KEDA autoscaling configuration
@@ -223,11 +214,6 @@ spec:
                     resources:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
-
-                providerConfigRef:
-                  type: string
-                  description: Name of the AWS ProviderConfig to use
-                  default: {{ .Values.awsProviderConfig.name }}
 
                 irsa:
                   type: object

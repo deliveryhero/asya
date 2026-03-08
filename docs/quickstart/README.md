@@ -323,8 +323,6 @@ metadata:
     asya.sh/actor: hello
 spec:
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
   scaling:
     enabled: true
     minReplicas: 0

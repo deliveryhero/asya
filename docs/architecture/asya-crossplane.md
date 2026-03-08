@@ -215,7 +215,6 @@ metadata:
   namespace: asya
 spec:
   transport: sqs
-  region: us-east-1
 
   scaling:
     enabled: true

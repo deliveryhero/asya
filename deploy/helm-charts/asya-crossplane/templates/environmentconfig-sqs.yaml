@@ -1,0 +1,10 @@
+apiVersion: apiextensions.crossplane.io/v1alpha1
+kind: EnvironmentConfig
+metadata:
+  name: asya-sqs
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+data:
+  awsRegion: {{ .Values.awsRegion }}
+  awsProviderConfig: {{ .Values.awsProviderConfig.name }}
+  awsAccountId: {{ .Values.awsAccountId | quote }}
