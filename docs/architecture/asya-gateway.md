@@ -27,6 +27,21 @@ The gateway binary supports three modes via `ASYA_GATEWAY_MODE`:
 | `mesh` | Mesh routes, health | Internal-only; ClusterIP, no Ingress |
 | `testing` | All routes | Local development and integration tests |
 
+### State ownership
+
+The flows registry (ConfigMap) is owned exclusively by the **api pod**:
+
+- **api pod** mounts `gateway-flows` ConfigMap at `ASYA_CONFIG_PATH`, polls it
+  every 5 s, and uses the registry for MCP dispatch, A2A routing, and the agent
+  card. It is the only pod that needs to know what flows exist.
+- **mesh pod** has no ConfigMap mount and no registry. It is stateless w.r.t.
+  tool configuration — its only job is receiving actor callbacks
+  (`/mesh/{id}/progress`, `/mesh/{id}/final`, etc.) and updating the task store.
+
+This means mesh pods can be restarted, scaled, or replaced with zero concern
+about flow configuration. When a new flow is added to the ConfigMap, only the
+api pod needs to reload it.
+
 Production deployments use **two Helm releases** from the same chart:
 
 ```bash
@@ -64,9 +79,15 @@ config:
     key: password
 ```
 
-Tool/skill registration is **DB-backed**: tools are registered dynamically via
-the tool store API, not via static YAML. See `src/asya-gateway/config/README.md`
-for the complete configuration reference.
+Tool/skill registration is **ConfigMap-backed**: flows are declared in
+`flows.yaml`, mounted into the api pod, and hot-reloaded every 5 seconds by a
+polling watcher (`toolstore.Watch`). Updating the ConfigMap is the only way to
+add, change, or remove an exposed tool or A2A skill — no restart is needed.
+
+The Helm chart seeds the initial `gateway-flows` ConfigMap from
+`flowsConfig.flows` in `values.yaml`. After deployment, the ConfigMap can be
+patched directly (e.g., via `asya mcp expose` or `kubectl patch`) to add new
+flows without a Helm upgrade.
 
 **See also**: `docs/internal/gateway-security.md` for all auth-related env vars
 (`ASYA_A2A_API_KEY`, `ASYA_MCP_OAUTH_*`, etc.).
@@ -301,53 +322,61 @@ GET /health
 
 Response: `OK`
 
-## Tool Examples
+## Flow Examples
 
-**Simple tool**:
+Flows are declared in `flows.yaml` (mounted as a ConfigMap). Each entry is a
+`FlowConfig` that maps a name to an actor pipeline and declares whether it is
+exposed as an MCP tool, an A2A skill, or both.
+
+**Single-actor MCP tool**:
 ```yaml
+flows:
 - name: hello
+  entrypoint: hello-actor
   description: Say hello
-  parameters:
-    who:
-      type: string
-      required: true
-  route: [hello-actor]
-```
-
-**Multi-step pipeline**:
-```yaml
-- name: image-enhance
-  description: Enhance image quality
-  parameters:
-    image_url:
-      type: string
-      required: true
-    quality:
-      type: string
-      enum: [low, medium, high]
-      default: medium
-  route: [download-image, enhance, upload]
-```
-
-**Complex parameters**:
-```yaml
-- name: llm-pipeline
-  description: Multi-step LLM processing
-  parameters:
-    prompt:
-      type: string
-      required: true
-    config:
+  mcp:
+    inputSchema:
       type: object
       properties:
-        temperature:
-          type: number
-          default: 0.7
-        max_tokens:
-          type: integer
-          default: 1000
-  route: [validate, llm-infer, postprocess]
+        who:
+          type: string
+          description: Name to greet
+      required: [who]
 ```
+
+**Multi-actor pipeline exposed as both MCP and A2A**:
+```yaml
+flows:
+- name: image-enhance
+  entrypoint: download-image
+  route_next: [enhance, upload]
+  description: Enhance image quality
+  timeout: 120
+  mcp:
+    inputSchema:
+      type: object
+      properties:
+        image_url:
+          type: string
+          description: URL of image to enhance
+        quality:
+          type: string
+          description: "Target quality: low | medium | high"
+      required: [image_url]
+  a2a: {}
+```
+
+**Fields**:
+
+| Field | Required | Description |
+|---|---|---|
+| `name` | ✅ | Unique flow name; becomes the MCP tool name and A2A skill name |
+| `entrypoint` | ✅ | First actor in the pipeline (queue name without `asya-<ns>-` prefix) |
+| `route_next` | ❌ | Ordered list of subsequent actors |
+| `description` | ❌ | Human-readable description surfaced in tool/skill listings |
+| `timeout` | ❌ | Max seconds to wait for completion (default: no limit) |
+| `mcp` | ❌ | Present → exposed as MCP tool; `inputSchema` is the JSON Schema for arguments |
+| `a2a` | ❌ | Present → exposed as A2A skill |
 
 ## Security
 
