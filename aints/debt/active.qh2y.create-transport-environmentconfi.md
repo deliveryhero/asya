@@ -1,7 +1,12 @@
 ---
 title: Create transport EnvironmentConfig
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/debt/qh2y.create-transport-environmentconfi
+  - branch:debt/qh2y.create-transport-environmentconfi
 ---
+
 
 ## Problem
 
