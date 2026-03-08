@@ -156,7 +156,7 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    context: "${const.project_root}/libs/shared_utils"
+    path: "${const.project_root}/libs/shared_utils"
     image: "${const.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -169,17 +169,17 @@ images:
 
 images:
   - module: e_commerce
-    context: "./e_commerce"           # relative to THIS file
+    path: "./e_commerce"           # relative to THIS file
     image: "${const.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**Path resolution**: Two styles coexist:
-- **`${const.project_root}/path`** -- repo-root-relative via interpolation.
+**Path resolution**: Two styles coexist for the `path:` field:
+- **`${const.project_root}/...`** -- repo-root-relative via interpolation.
   Stays as interpolation reference through merge, resolved lazily at use
   time. Portable across machines.
-- **`./path`** -- file-relative, resolved to absolute before merge (necessary
+- **`./...`** -- file-relative, resolved to absolute before merge (necessary
   because source file info is lost after merge).
 
 `const.project_root` is defined as `"."` in the root config.yaml. Since the
@@ -196,8 +196,8 @@ inherit it via walk-up merge and can reference it as
 #
 # Path resolution:
 #   Root:   project_root: "."  →  resolved to /repo at load time
-#   Root:   context: "${const.project_root}/libs/shared"  →  stays as interpolation
-#   Team-A: context: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
+#   Root:   path: "${const.project_root}/libs/shared"  →  stays as interpolation
+#   Team-A: path: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
 #
 # Recursive merge (images list unioned by `module:` key):
 ```
@@ -213,7 +213,7 @@ images:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    context: "${const.project_root}/libs/shared_utils"   # portable interpolation
+    path: "${const.project_root}/libs/shared_utils"   # portable interpolation
     image: "${const.image_registry}/shared:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -221,7 +221,7 @@ images:
 
   # From team-a (local):
   - module: e_commerce
-    context: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
+    path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
     image: "${const.image_registry}/ecom:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -250,7 +250,7 @@ answer two questions:
 
 Asya works WITH build systems (Docker, apko, buildpacks, Shipwright, CI
 pipelines), not as a replacement for them. Build tool configuration
-(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the context
+(Dockerfiles, apko.yaml, requirements.txt, etc.) lives in the `path:`
 directory, not in config.yaml.
 
 ### 3.2 Top-Level Structure
@@ -270,7 +270,7 @@ const:
 images:
   # Python package → image + build commands
   - module: e_commerce
-    context: "${const.project_root}/src/e-commerce-package"
+    path: "${const.project_root}/src/e-commerce-package"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
@@ -278,7 +278,7 @@ images:
 
   # GPU model with apko
   - module: gpu_models
-    context: "${const.project_root}/src/gpu-models"
+    path: "${const.project_root}/src/gpu-models"
     image: "${const.image_registry}/gpu-models:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
@@ -287,21 +287,21 @@ images:
   # Third-party, never built
   - module: langchain
     image: "ghcr.io/third-party/langchain-actor:v2"
-    # no context, no build — pre-built image
+    # no path, no build — pre-built image
 
   # Dirty DS scripts (filesystem path)
   - module: "./src/notebooks/models"
-    context: "./src/notebooks/models"
+    path: "./src/notebooks/models"
     image: "${const.image_registry}/notebook-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
 ```
 
-**What's in**: module → context → image → build commands. That's it.
+**What's in**: module → path → image → build commands. That's it.
 
 **What's NOT in**: Strategy names, lock file paths, requirements paths,
 Python versions, builder configurations. Those are the build tool's concern
-(inside the Dockerfile, apko.yaml, etc. that lives in the context directory).
+(inside the Dockerfile, apko.yaml, etc. in the `path:` directory).
 
 ### 3.3 Field Semantics
 
@@ -318,9 +318,9 @@ serves as the merge key for walk-up list union (section 2.3).
 `e_commerce.models.LargeModel` both exist, a handler
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
-**`context:`** -- filesystem root for build operations. Paths are relative to
-the config.yaml file that defines them (resolved to absolute before merge).
-The build command runs with this directory as CWD.
+**`path:`** -- directory where the build command runs (CWD). Relative paths
+are resolved to absolute before merge. Can use `${const.project_root}/...`
+for repo-root-relative paths (stays as interpolation through merge).
 
 **`image:`** -- OCI image reference template with interpolation.
 
@@ -364,7 +364,7 @@ const:
 
 images:
   - module: e_commerce
-    context: "${const.project_root}/src/e-commerce"
+    path: "${const.project_root}/src/e-commerce"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     #       ^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from const)
     #                                              ^^^^^^^^^^^ → v1  (from --arg)
@@ -514,13 +514,13 @@ asya flow build order-processing
 **Resolution**:
 - `asya actor build <actor-name>` → reads manifest to find image ref →
   matches image ref to config.yaml `images` entry → runs `build.local`
-  command in the `context` directory
+  command in the `path:` directory
 - `asya actor build --remote` → same resolution but runs `build.remote`
 - `asya flow build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
-No Python resolution happens at build time -- the context path is taken
+No Python resolution happens at build time -- the `path:` value is taken
 directly from config.yaml. Asya just runs the shell command with variable
 substitution.
 
@@ -533,7 +533,7 @@ any actor that Asya deploys needs a manifest in `.asya/manifests/`.
 $ asya actor build text-analyzer --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
-[build] Context dir: /proj/src/e-commerce-package
+[build] Path: /proj/src/e-commerce-package
 [build] Image: ghcr.io/org/e-commerce:v1
 [build] Command: docker build -t ghcr.io/org/e-commerce:v1 .
 [build] Running in /proj/src/e-commerce-package ...
@@ -610,7 +610,7 @@ const:
 
 images:
   - module: e_commerce
-    context: "${const.project_root}/src/e-commerce-package"
+    path: "${const.project_root}/src/e-commerce-package"
     image: "${const.image_registry}/e-commerce:${args.tag}"
     build:
       local: "apko build apko.yaml ${..image}"
@@ -638,7 +638,7 @@ experiments/
 # .asya/config.yaml
 images:
   - module: "./models"                # Filesystem path, not importable
-    context: "./models"
+    path: "./models"
     image: "ghcr.io/org/bert-models:${args.tag}"
     build:
       local: "docker build -t ${..image} ."
