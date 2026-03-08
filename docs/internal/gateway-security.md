@@ -170,19 +170,25 @@ Set `ASYA_MCP_OAUTH_ENABLED=true` plus `ASYA_MCP_OAUTH_ISSUER` and
 `ASYA_MCP_OAUTH_SECRET`. The gateway acts as its own authorization server,
 issuing HMAC-SHA256 JWTs. PostgreSQL is required (`ASYA_DATABASE_URL`).
 
-**Scopes:**
+**Scopes (issued but not yet enforced per-endpoint):**
 
-| Scope | Permission |
-|-------|-----------|
+| Scope | Intended permission |
+|-------|-------------------|
 | `mcp:invoke` | Call tools, send messages |
 | `mcp:read` | List tools, read task state |
 
-Clients requesting no specific scope receive both by default. Requests with
-invalid tokens or insufficient scope receive `401 Unauthorized` or
-`403 Forbidden` respectively.
+Scopes are issued into access tokens and stored in the database. However,
+`MCPAuthMiddleware` currently only validates that a token is authentic (signature,
+`iss`, `aud`, `exp`) — it does **not** check that the token's scope is sufficient
+for the specific operation being requested. A token with only `mcp:read` scope
+can currently invoke tools.
+
+> **Post-v0**: Per-endpoint scope enforcement requires extending the
+> `Authenticator` interface to return claims (not just a boolean), then adding
+> scope guards per route. Tracked separately.
 
 **Token validation**: `OAuthBearerAuthenticator` verifies HMAC-SHA256 signature,
-`iss` and `aud` claims against the configured issuer.
+`iss` and `aud` claims, and token expiry against the configured issuer.
 
 #### Full OAuth 2.1 flow
 
@@ -239,7 +245,12 @@ PKCE (`code_challenge_method=S256`) is required for all clients.
 `/oauth/register` is public by default. To restrict it, set
 `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` — callers must then supply
 `Authorization: Bearer <registration-token>` to register. Leave empty only if
-the mesh route is network-restricted (not exposed to the internet).
+the endpoint is network-restricted (not exposed to the internet).
+
+> **Note on test coverage**: The component test (`testing/component/gateway-mcp`)
+> covers the API key auth path (Phase 2) but not the full OAuth 2.1 flow.
+> Integration tests exercising the complete register → authorize → token → MCP
+> call sequence are post-v0.
 
 #### Token refresh
 

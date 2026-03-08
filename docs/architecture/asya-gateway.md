@@ -354,9 +354,13 @@ they are unreachable from outside the cluster by design.
 | Route group | Auth mechanism |
 |-------------|---------------|
 | A2A (`/a2a/`) | API key (`X-API-Key`) or JWT Bearer — configured via `ASYA_A2A_*` env vars |
-| MCP (`/mcp`, `/mcp/sse`, `/tools/call`) | API key Bearer or OAuth 2.1 — configured via `ASYA_MCP_*` env vars |
+| MCP (`/mcp`, `/mcp/sse`, `/tools/call`) | API key Bearer or OAuth 2.1 token — configured via `ASYA_MCP_*` env vars |
 | Mesh (`/mesh/…`) | None — ClusterIP only, unreachable externally |
 | Well-known + health | Always public |
+
+OAuth 2.1 tokens carry `mcp:invoke` / `mcp:read` scope claims; per-endpoint
+scope enforcement is post-v0 (tokens are authenticated but scopes are not yet
+checked per operation).
 
 **See**: `docs/internal/gateway-security.md` for the complete security reference:
 deployment model rationale, env var table, OAuth 2.1 flow walkthrough, and
