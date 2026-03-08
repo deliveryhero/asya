@@ -158,8 +158,7 @@ asya init                            # scaffold .asya/ project directory
 asya serve                           # start local HTTP/WS server for UI
 asya context list                    # list contexts
 asya context use <name>              # switch context
-asya compile                         # shortcut: compile all flows
-asya promote <actor>                 # promote staging image to prod PR
+# asya <actor/flow> promote                 # promote staging image to prod PR -> UNDEFINED, needs more design
 ```
 
 ### 5.5 Command Data Sources
@@ -222,35 +221,35 @@ marks the project root (like `.git/`). Created by `asya init`.
 ### 7.1 Top-Level Structure
 
 ```yaml
-var:
-  project_root: "."
-  image_registry: ghcr.io/org
-  router_image: python:3.13-slim
+project_root: "."
+image_registry: ghcr.io/org
+router_image: python:3.13-slim
 
-images:
-  - module: e_commerce
-    path: "${var.project_root}/src/e-commerce-package"
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
-    build:
-      local: "docker build -t ${..image} ."
-      remote: "docker build -t ${..image} . && docker push ${..image}"
-
-compile:
-  # compiler rules (treat-as, extraction config)
-
-template:
-  output: ".asya/manifests"
-  mode: manifests          # manifests | helm | kustomize
-  body:
-    apiVersion: asya.dev/v1alpha1
-    kind: AsyncActor
-    metadata:
-      name: "${actor:name}"
-    spec:
-      image: "${actor:image}"
-      handler: "${actor:handler}"
-      transport: sqs
-      env: "${actor:env}"
+asya:
+  build:
+    - module: e_commerce
+      path: "${project_root}/src/e-commerce-package"
+      image: "${image_registry}/e-commerce:${arg:tag}"
+      command:
+        local: "docker build -t ${..image} ."
+        remote: "docker build -t ${..image} . && docker push ${..image}"
+  
+  compile:
+    # compiler rules (treat-as, extraction config)
+  
+  template:
+    output: ".asya/manifests"
+    mode: manifests          # manifests | helm | kustomize
+    body:
+      apiVersion: asya.dev/v1alpha1
+      kind: AsyncActor
+      metadata:
+        name: "${actor:name}"
+      spec:
+        image: "${actor:image}"
+        handler: "${actor:handler}"
+        transport: sqs
+        env: "${actor:env}"
 ```
 
 ### 7.2 Key Design Decisions
@@ -258,11 +257,11 @@ template:
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
-  system. `build.local` and `build.remote` are shell strings with variable
+  system. `command.local` and `command.remote` are shell strings with variable
   substitution. Any build tool works.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
   Configs merge root-first (dicts deep-merge, lists concatenate).
-- **OmegaConf interpolation**: `${var.*}` for config values, `${arg:*}` for
+- **OmegaConf interpolation**: `${key}` for top-level config values, `${arg:*}` for
   CLI args, `${actor:*}` for compiler-inferred values, `${env:*}` for env vars.
 - **Template modes**: `manifests` (raw AsyncActor XRs), `helm` (values.yaml),
   `kustomize` (patches). No custom plugins needed.
@@ -372,7 +371,7 @@ flows, the actor is cloned.
 ### 10.3 Router Actors
 
 Routers are lightweight (pure Python routing logic). They use the
-`var.router_image` base image with code injected via ConfigMap. No custom build
+`router_image` base image with code injected via ConfigMap. No custom build
 needed. Platform engineers define a `flow-router` flavor for minimal resources.
 
 ---
@@ -381,11 +380,11 @@ needed. Platform engineers define a `flow-router` flavor for minimal resources.
 
 ### 11.1 Three Build Paths
 
-| Path | Lock file? | Best for |
-|------|-----------|----------|
-| **apko** (Wolfi) | Yes (`actor-image.lock`) | Lockable, reproducible, ML/GPU actors |
-| **Buildpacks** (CNCF) | Partial | Standard Python, zero config |
-| **Dockerfile** | No (escape hatch) | Full control, existing CI pipelines |
+| Path | CUDA? | Lock file (v1)? | Best for |
+|------|-------|-----------------|----------|
+| **Cog** | Auto-resolved | No | GPU/ML actors, DS experimentation |
+| **Dockerfile** | Manual | No | Full control, existing CI pipelines |
+| **apko** (Wolfi) | Not yet | Yes (`actor-image.lock`) | Lockable, reproducible, non-GPU |
 
 Strategy is always explicit in config.yaml (no auto-detection).
 
@@ -394,15 +393,16 @@ Strategy is always explicit in config.yaml (no auto-detection).
 Asya reuses Cog's compatibility matrices (Apache 2.0) for PyTorch/TensorFlow
 CUDA version resolution -- without depending on Cog as a build tool.
 
-### 11.3 Cog Rejection
+### 11.3 Cog as GPU Build Path
 
-Cog is NOT used as a build strategy. Reasons: it's a Dockerfile generator (not
-a distinct strategy), bundles a conflicting HTTP server (coglet), has hard Docker
-dependency, uses devel-only CUDA images, no lock file.
+Cog is a **supported build path** for GPU/ML actors. DS writes `cog.yaml`,
+Asya runs `cog build` as an opaque command. Cog auto-resolves CUDA versions.
+Known trade-offs: dead coglet server (no runtime impact), devel-only CUDA
+images (larger), Docker dependency (local builds only).
 
 > **Full design**: `research-no-dockerfile.md` (tool analysis, comparison
 > matrix, golden paths).
-> **ADR**: `adr.no-cog.md`.
+> **ADR**: `adr.no-cog.md` (revised: Cog as supported path).
 
 ---
 

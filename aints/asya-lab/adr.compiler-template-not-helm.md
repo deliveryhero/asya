@@ -44,7 +44,7 @@ generating a full Helm chart for printf is over-engineering.
 ### Use Jinja2
 
 Rejected. Jinja syntax (`{{ name }}`) is visually confusing when mixed with
-OmegaConf interpolation (`${var.image_registry}`). Two different substitution
+OmegaConf interpolation (`${image_registry}`). Two different substitution
 systems in the same file — unclear which engine resolves what. OmegaConf
 custom resolvers (`${actor:name}`) use the same syntax as everything else.
 
