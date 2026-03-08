@@ -1187,6 +1187,103 @@ func TestInjector_InjectSystemActors(t *testing.T) {
 	}
 }
 
+func TestInjector_Inject_SecretRefs(t *testing.T) {
+	cfg := &config.Config{
+		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",
+		RuntimeConfigMap:       "asya-runtime",
+		SidecarImagePullPolicy: "IfNotPresent",
+		SocketDir:              "/var/run/asya",
+		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
+	}
+	injector := NewInjector(cfg)
+
+	pod := &corev1.Pod{
+		ObjectMeta: metav1.ObjectMeta{Name: "test-pod", Namespace: "default"},
+		Spec: corev1.PodSpec{
+			Containers: []corev1.Container{
+				{Name: "asya-runtime", Image: "my-app:v1"},
+			},
+		},
+	}
+
+	actorConfig := &ActorConfig{
+		ActorName: "my-actor",
+		Namespace: "default",
+		Transport: "sqs",
+		Region:    "us-east-1",
+		SecretRefs: []SecretRef{
+			{
+				SecretName: "openai-creds",
+				Keys: []SecretRefKey{
+					{Key: "api_key", EnvVar: "OPENAI_API_KEY"},
+					{Key: "org_id", EnvVar: "OPENAI_ORG_ID"},
+				},
+			},
+		},
+	}
+
+	mutated, err := injector.Inject(pod, actorConfig)
+	if err != nil {
+		t.Fatalf("Inject failed: %v", err)
+	}
+
+	// Find runtime container
+	var runtime *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-runtime" {
+			runtime = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if runtime == nil {
+		t.Fatal("runtime container not found")
+	}
+
+	// Verify secretKeyRef env vars are in runtime container
+	secretEnvs := map[string]*corev1.SecretKeySelector{}
+	for _, e := range runtime.Env {
+		if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+			secretEnvs[e.Name] = e.ValueFrom.SecretKeyRef
+		}
+	}
+
+	if sel, ok := secretEnvs["OPENAI_API_KEY"]; !ok {
+		t.Error("OPENAI_API_KEY not injected into runtime container")
+	} else {
+		if sel.Name != "openai-creds" {
+			t.Errorf("expected secret name 'openai-creds', got %q", sel.Name)
+		}
+		if sel.Key != "api_key" {
+			t.Errorf("expected key 'api_key', got %q", sel.Key)
+		}
+	}
+
+	if sel, ok := secretEnvs["OPENAI_ORG_ID"]; !ok {
+		t.Error("OPENAI_ORG_ID not injected into runtime container")
+	} else {
+		if sel.Key != "org_id" {
+			t.Errorf("expected key 'org_id', got %q", sel.Key)
+		}
+	}
+
+	// Verify sidecar does NOT get secret env vars
+	var sidecar *corev1.Container
+	for i := range mutated.Spec.Containers {
+		if mutated.Spec.Containers[i].Name == "asya-sidecar" {
+			sidecar = &mutated.Spec.Containers[i]
+			break
+		}
+	}
+	if sidecar == nil {
+		t.Fatal("sidecar container not found")
+	}
+	for _, e := range sidecar.Env {
+		if e.ValueFrom != nil && e.ValueFrom.SecretKeyRef != nil {
+			t.Errorf("sidecar should not get secretKeyRef env vars, got: %s", e.Name)
+		}
+	}
+}
+
 func TestInjector_RegularActorNotSystemActor(t *testing.T) {
 	cfg := &config.Config{
 		SidecarImage:           "ghcr.io/deliveryhero/asya-sidecar:test",

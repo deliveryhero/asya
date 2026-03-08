@@ -322,6 +322,23 @@ func (i *Injector) modifyRuntimeContainer(pod *corev1.Pod, actorConfig *ActorCon
 		})
 	}
 
+	// Inject secret key refs into runtime container
+	for _, sr := range actorConfig.SecretRefs {
+		for _, k := range sr.Keys {
+			runtime.Env = append(runtime.Env, corev1.EnvVar{
+				Name: k.EnvVar,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: sr.SecretName,
+						},
+						Key: k.Key,
+					},
+				},
+			})
+		}
+	}
+
 	// Add volume mounts
 	runtime.VolumeMounts = appendVolumeMountIfNotExists(runtime.VolumeMounts, corev1.VolumeMount{
 		Name:      socketVolumeName,
