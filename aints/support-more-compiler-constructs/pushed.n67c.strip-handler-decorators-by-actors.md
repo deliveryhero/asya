@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
   - branch:support-more-compiler-constructs/n67c.strip-handler-decorators-by-actors
+  - pr:280
 ---
+
 
 
 ## Resolution
