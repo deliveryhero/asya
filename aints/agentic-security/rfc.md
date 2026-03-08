@@ -1,7 +1,7 @@
 # RFC: Gateway Security Model
 
-**Status**: Draft
-**Date**: 2026-03-06
+**Status**: Implemented (Phases 1–3 merged; Phase 4 post-v0)
+**Date**: 2026-03-06 (updated 2026-03-08)
 **Epic**: agentic-security
 **Related**: a2a-protocol-compliance-gateway (A2A RFC sections 6.1, 12),
 asya-lab (flow expose), merged.7fuy (JWT auth)
@@ -15,8 +15,8 @@ deployed as **two deployment units** from the same binary/image, separating
 external (client-facing) and internal (mesh) traffic at the network level.
 
 External routes implement protocol-native authentication: **A2A security
-schemes** (API key + JWT, already implemented) and **MCP OAuth 2.1 with PKCE**
-(new). Internal mesh routes rely on network isolation with zero auth code.
+schemes** (API key + JWT) and **MCP OAuth 2.1 with PKCE** (both implemented).
+Internal mesh routes rely on network isolation with zero auth code.
 
 Flow registration (tool/skill exposure) uses **ConfigMap + kubectl**, inheriting
 K8s RBAC for free (see ADR `adr.configmap-flow-registry.md` in
@@ -329,8 +329,10 @@ See aint `[1f63]` for the documentation task.
 | `ASYA_A2A_JWT_AUDIENCE` | A2A | `""` | Expected JWT audience |
 | `ASYA_MCP_API_KEY` | MCP | `""` (disabled) | API key for MCP (Phase 2) |
 | `ASYA_MCP_OAUTH_ENABLED` | MCP | `false` | Enable OAuth 2.1 (Phase 3) |
-| `ASYA_MCP_OAUTH_ISSUER` | MCP | `""` | OAuth token issuer URL |
+| `ASYA_MCP_OAUTH_ISSUER` | MCP | `""` | OAuth token issuer URL (required when OAuth enabled) |
+| `ASYA_MCP_OAUTH_SECRET` | MCP | `""` | HMAC-SHA256 signing key for access tokens (required when OAuth enabled) |
 | `ASYA_MCP_OAUTH_TOKEN_TTL` | MCP | `3600` | Access token lifetime (s) |
+| `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | MCP | `""` (open) | Bearer token protecting `/oauth/register`; empty = open registration |
 
 ---
 
@@ -417,16 +419,19 @@ OAuth2 and OIDC for both protocols.
 
 ---
 
-## 11. Open Questions
+## 11. Decisions (formerly Open Questions)
 
-1. **Helm chart structure**: Should the dual deployment use one chart with a
-   `mode` value, or two separate charts (`asya-gateway-api`,
-   `asya-gateway-mesh`)?
+1. **Helm chart structure**: **Decided** — one chart (`asya-gateway`) with a
+   `mode` value in Helm values. A second release (`asya-gateway-mesh`) uses the
+   same chart with `mode: mesh`. No separate chart needed.
 
-2. **Dev mode**: When `ASYA_GATEWAY_MODE` is empty, all routes are registered
-   with no auth. Should dev mode require an explicit `ASYA_GATEWAY_MODE=dev`
-   to prevent accidental unprotected production deployments?
+2. **Dev/test mode**: **Decided** — `ASYA_GATEWAY_MODE` must be set explicitly.
+   Valid values: `api`, `mesh`, `testing`. Empty string is rejected at startup
+   with an error. Use `ASYA_GATEWAY_MODE=testing` locally to register all routes
+   (API + mesh) in a single process. This prevents accidental unprotected
+   production deployments.
 
-3. **MCP OAuth storage**: Should OAuth clients/tokens use the same PostgreSQL
-   as tasks, or a separate database? Same DB is simpler; separate DB isolates
-   auth state from runtime state.
+3. **MCP OAuth storage**: **Decided** — same PostgreSQL database as task store
+   (`ASYA_DATABASE_URL`). OAuth tables (`oauth_clients`, `oauth_tokens`,
+   `oauth_authorization_codes`) colocate with task/taskupdate tables. Simpler
+   operational model; auth state and runtime state share lifecycle.
