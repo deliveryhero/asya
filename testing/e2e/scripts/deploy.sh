@@ -193,6 +193,13 @@ time {
   kubectl wait --for=condition=available deployment/crossplane \
     -n crossplane-system --timeout=3m > /dev/null 2>&1
 
+  echo "[.] Waiting for Crossplane core CRDs to be established..."
+  kubectl wait --for=condition=Established \
+    crd/environmentconfigs.apiextensions.crossplane.io \
+    crd/compositeresourcedefinitions.apiextensions.crossplane.io \
+    crd/compositions.apiextensions.crossplane.io \
+    --timeout=60s > /dev/null 2>&1
+
   echo "[+] cert-manager and Crossplane core installed"
 }
 echo
