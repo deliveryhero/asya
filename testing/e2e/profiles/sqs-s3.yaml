@@ -87,7 +87,7 @@ gateway:
       config:
         endpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
         region: "us-east-1"
-        visibilityTimeout: 300
+        visibilityTimeout: 30
         waitTimeSeconds: 2
   env:
   - name: AWS_ACCESS_KEY_ID

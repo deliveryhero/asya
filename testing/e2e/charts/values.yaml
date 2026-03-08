@@ -71,7 +71,7 @@ gateway:
       config:
         endpoint: ""
         region: "us-east-1"
-        visibilityTimeout: 300
+        visibilityTimeout: 30
         waitTimeSeconds: 2
     pubsub:
       enabled: false
