@@ -1,244 +1,244 @@
 flows:
-  - name: test_echo
-    entrypoint: test-echo
-    description: Echo back the input message
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Message to echo
-        required: [message]
-    a2a:
-      tags: [echo, test]
-      input_modes: [application/json]
-      output_modes: [application/json]
+- name: test_echo
+  entrypoint: test-echo
+  description: Echo back the input message
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message to echo
+      required: [message]
+  a2a:
+    tags: [echo, test]
+    input_modes: [application/json]
+    output_modes: [application/json]
 
-  - name: test_pipeline
-    entrypoint: test-doubler
-    route_next: [test-incrementer]
-    description: Test multi-actor pipeline processing
-    timeout: 45
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          value:
-            type: integer
-            description: Value to process through pipeline
-        required: [value]
-    a2a:
-      tags: [pipeline, test]
-      input_modes: [application/json]
-      output_modes: [application/json]
+- name: test_pipeline
+  entrypoint: test-doubler
+  route_next: [test-incrementer]
+  description: Test multi-actor pipeline processing
+  timeout: 45
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        value:
+          type: integer
+          description: Value to process through pipeline
+      required: [value]
+  a2a:
+    tags: [pipeline, test]
+    input_modes: [application/json]
+    output_modes: [application/json]
 
-  - name: test_error
-    entrypoint: test-error
-    description: Test error handling and error reporting
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          should_fail:
-            type: boolean
-            description: Whether the handler should fail
+- name: test_error
+  entrypoint: test-error
+  description: Test error handling and error reporting
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        should_fail:
+          type: boolean
+          description: Whether the handler should fail
 
-  - name: test_timeout
-    entrypoint: test-timeout
-    description: Test timeout handling
-    timeout: 10
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          sleep_seconds:
-            type: integer
-            description: How long to sleep (should exceed timeout)
+- name: test_timeout
+  entrypoint: test-timeout
+  description: Test timeout handling
+  timeout: 10
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        sleep_seconds:
+          type: integer
+          description: How long to sleep (should exceed timeout)
 
-  - name: test_fanout
-    entrypoint: test-fanout
-    description: Test fan-out array response
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          count:
-            type: integer
-            description: Number of items to fan out
+- name: test_fanout
+  entrypoint: test-fanout
+  description: Test fan-out array response
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        count:
+          type: integer
+          description: Number of items to fan out
 
-  - name: test_empty_response
-    entrypoint: test-empty
-    description: Test empty/null payload handling
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Test message
+- name: test_empty_response
+  entrypoint: test-empty
+  description: Test empty/null payload handling
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Test message
 
-  - name: test_unicode
-    entrypoint: test-unicode
-    description: Test Unicode payload handling
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Unicode message
-        required: [message]
+- name: test_unicode
+  entrypoint: test-unicode
+  description: Test Unicode payload handling
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Unicode message
+      required: [message]
 
-  - name: test_large_payload
-    entrypoint: test-large-payload
-    description: Test large payload processing
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          size_kb:
-            type: integer
-            description: Payload size in KB
+- name: test_large_payload
+  entrypoint: test-large-payload
+  description: Test large payload processing
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        size_kb:
+          type: integer
+          description: Payload size in KB
 
-  - name: test_nested_data
-    entrypoint: test-nested
-    description: Test deeply nested JSON structures
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Test message
+- name: test_nested_data
+  entrypoint: test-nested
+  description: Test deeply nested JSON structures
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Test message
 
-  - name: test_null_values
-    entrypoint: test-null
-    description: Test null/None value handling
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Test message
+- name: test_null_values
+  entrypoint: test-null
+  description: Test null/None value handling
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Test message
 
-  - name: test_slow_boundary
-    entrypoint: test-slow-boundary
-    description: Test timeout boundary condition (1.5s processing, adequate timeout with overhead)
-    timeout: 10
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          first_call:
-            type: boolean
-            description: Is this the first call
-    a2a:
-      tags: [sla, test]
-      input_modes: [application/json]
-      output_modes: [application/json]
+- name: test_slow_boundary
+  entrypoint: test-slow-boundary
+  description: Test timeout boundary condition (1.5s processing, adequate timeout with overhead)
+  timeout: 10
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        first_call:
+          type: boolean
+          description: Is this the first call
+  a2a:
+    tags: [sla, test]
+    input_modes: [application/json]
+    output_modes: [application/json]
 
-  - name: test_cyclic_route
-    entrypoint: test-cycle
-    route_next: [test-cycle, test-cycle]
-    description: Test cyclic route detection
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Test message
+- name: test_cyclic_route
+  entrypoint: test-cycle
+  route_next: [test-cycle, test-cycle]
+  description: Test cyclic route detection
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Test message
 
-  - name: test_param_flow
-    entrypoint: test-param-flow-1
-    route_next: [test-param-flow-2]
-    description: Test that multi-actor pipelines pass outputs correctly
-    timeout: 45
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          original_param:
-            type: string
-            description: Original parameter to track
-          number:
-            type: integer
-            description: Number to transform
-        required: [original_param]
+- name: test_param_flow
+  entrypoint: test-param-flow-1
+  route_next: [test-param-flow-2]
+  description: Test that multi-actor pipelines pass outputs correctly
+  timeout: 45
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        original_param:
+          type: string
+          description: Original parameter to track
+        number:
+          type: integer
+          description: Number to transform
+      required: [original_param]
 
-  - name: test_streaming
-    entrypoint: test-streaming
-    description: Test streaming partial events (upstream) from generator handler
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          token_count:
-            type: integer
-            description: Number of partial tokens to stream
+- name: test_streaming
+  entrypoint: test-streaming
+  description: Test streaming partial events (upstream) from generator handler
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        token_count:
+          type: integer
+          description: Number of partial tokens to stream
 
-  - name: test_streaming_error
-    entrypoint: test-streaming-error
-    description: Test mid-stream error during partial event streaming
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
+- name: test_streaming_error
+  entrypoint: test-streaming-error
+  description: Test mid-stream error during partial event streaming
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
 
-  - name: test_pause_resume
-    entrypoint: test-echo
-    route_next: [x-pause, test-incrementer]
-    description: Test pause/resume flow with echo actor before pause
-    timeout: 60
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Message to echo before pausing
-          value:
-            type: integer
-            description: Optional value for incrementer pipeline stage
-        required: [message]
+- name: test_pause_resume
+  entrypoint: test-echo
+  route_next: [x-pause, test-incrementer]
+  description: Test pause/resume flow with echo actor before pause
+  timeout: 60
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message to echo before pausing
+        value:
+          type: integer
+          description: Optional value for incrementer pipeline stage
+      required: [message]
 
-  - name: test_sla_backstop
-    entrypoint: test-timeout
-    description: Test gateway backstop fires before actor processes message
-    timeout: 3
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          sleep_seconds:
-            type: integer
-            description: How long handler sleeps (must exceed gateway timeout)
+- name: test_sla_backstop
+  entrypoint: test-timeout
+  description: Test gateway backstop fires before actor processes message
+  timeout: 3
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        sleep_seconds:
+          type: integer
+          description: How long handler sleeps (must exceed gateway timeout)

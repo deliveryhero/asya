@@ -41,6 +41,8 @@ services:
       service: tester-go
     env_file: .env.rabbitmq
     depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
       gateway:
         condition: service_healthy
       tester-py: # run go tests after py

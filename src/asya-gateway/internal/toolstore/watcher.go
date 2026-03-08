@@ -2,9 +2,10 @@ package toolstore
 
 import (
 	"context"
+	"fmt"
+	"hash/fnv"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -12,12 +13,14 @@ import (
 // It logs errors but never stops — the previous cache is preserved on load failure.
 // Call with go Watch(...) to run in the background.
 func Watch(ctx context.Context, dir string, r *Registry, pollInterval time.Duration) {
-	var last int64
+	var last uint64
+	ticker := time.NewTicker(pollInterval)
+	defer ticker.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-time.After(pollInterval):
+		case <-ticker.C:
 			fp := dirFingerprint(dir)
 			if fp == last {
 				continue
@@ -32,14 +35,15 @@ func Watch(ctx context.Context, dir string, r *Registry, pollInterval time.Durat
 	}
 }
 
-// dirFingerprint returns a sum of ModTime and Size for all non-directory entries
-// in dir. A change in any file causes a different fingerprint.
-func dirFingerprint(dir string) int64 {
+// dirFingerprint returns a hash of sorted file names, mod times, and sizes for
+// all non-directory entries in dir. Using FNV-64a avoids the collisions that
+// simple integer summation is prone to (e.g. renames with similar byte values).
+func dirFingerprint(dir string) uint64 {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return 0
 	}
-	var sum int64
+	h := fnv.New64a()
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
@@ -48,11 +52,7 @@ func dirFingerprint(dir string) int64 {
 		if err != nil {
 			continue
 		}
-		// Combine path hash, mod time, and size for a stable fingerprint
-		for _, b := range []byte(filepath.Join(dir, entry.Name())) {
-			sum += int64(b)
-		}
-		sum += info.ModTime().UnixNano() + info.Size()
+		fmt.Fprintf(h, "%s:%d:%d\n", entry.Name(), info.ModTime().UnixNano(), info.Size())
 	}
-	return sum
+	return h.Sum64()
 }

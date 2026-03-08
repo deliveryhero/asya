@@ -43,6 +43,8 @@ services:
       service: tester-go
     env_file: .env.sqs
     depends_on:
+      postgres-migrate:
+        condition: service_completed_successfully
       sqs:
         condition: service_healthy
       queue-setup:

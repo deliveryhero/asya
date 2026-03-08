@@ -1,46 +1,46 @@
 flows:
-  - name: echo
-    entrypoint: echo
-    description: Echo tool for testing - returns input payload
-    mcp:
-      progress: false
-      inputSchema:
-        type: object
-        properties:
-          message:
-            type: string
-            description: Message to echo back
-        required: [message]
+- name: echo
+  entrypoint: echo
+  description: Echo tool for testing - returns input payload
+  mcp:
+    progress: false
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message to echo back
+      required: [message]
 
-  - name: test_progress
-    entrypoint: echo
-    description: Test tool with progress reporting
-    timeout: 30
-    mcp:
-      progress: true
-      inputSchema:
-        type: object
-        properties:
-          value:
-            type: number
-            description: Test value
-        required: [value]
+- name: test_progress
+  entrypoint: echo
+  description: Test tool with progress reporting
+  timeout: 30
+  mcp:
+    progress: true
+    inputSchema:
+      type: object
+      properties:
+        value:
+          type: number
+          description: Test value
+      required: [value]
 
-  - name: test_validation
-    entrypoint: echo
-    description: Test parameter validation
-    mcp:
-      progress: false
-      inputSchema:
-        type: object
-        properties:
-          required_string:
-            type: string
-            description: Required string parameter
-          optional_number:
-            type: number
-            description: Optional number parameter
-          boolean_flag:
-            type: boolean
-            description: Optional boolean flag
-        required: [required_string]
+- name: test_validation
+  entrypoint: echo
+  description: Test parameter validation
+  mcp:
+    progress: false
+    inputSchema:
+      type: object
+      properties:
+        required_string:
+          type: string
+          description: Required string parameter
+        optional_number:
+          type: number
+          description: Optional number parameter
+        boolean_flag:
+          type: boolean
+          description: Optional boolean flag
+      required: [required_string]
