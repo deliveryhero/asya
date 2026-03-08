@@ -320,6 +320,10 @@ func TestBlockingModeCrossProcessUpdate(t *testing.T) {
 	}
 }
 
+// TestBlockingModeRelaysIntermediateEvents verifies that non-terminal subscription
+// updates do NOT trigger eq.Write() (to avoid the StoreAdapter.Save feedback loop),
+// but terminal updates are still detected and forwarded immediately via subscription.
+// The subscription channel is a fast path for in-process terminal detection only.
 func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
 	store := taskstore.NewStore()
 	taskID := "intermediate-task"
@@ -367,24 +371,16 @@ func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
 		t.Fatalf("waitAndRelayEvents failed: %v", waitErr)
 	}
 
-	// Should have: working event (non-final) + completed event (final)
-	if len(eq.events) < 2 {
-		t.Fatalf("expected at least 2 events (working + completed), got %d", len(eq.events))
+	// Non-terminal subscription updates (running/working) are dropped to prevent the
+	// StoreAdapter.Save() → notifyListeners() → eq.Write() feedback loop that would
+	// continuously overwrite tasks.status and prevent mesh gateway writes from persisting.
+	// The subscription channel is only used as a fast path for terminal state detection.
+	// So we expect exactly 1 event: the final completed event.
+	if len(eq.events) != 1 {
+		t.Fatalf("expected exactly 1 event (completed), got %d", len(eq.events))
 	}
 
-	// Verify working event
-	workingEvt, ok := eq.events[0].(*a2alib.TaskStatusUpdateEvent)
-	if !ok {
-		t.Fatalf("first event is not TaskStatusUpdateEvent: %T", eq.events[0])
-	}
-	if workingEvt.Status.State != a2alib.TaskStateWorking {
-		t.Errorf("first event state = %q, want %q", workingEvt.Status.State, a2alib.TaskStateWorking)
-	}
-	if workingEvt.Final {
-		t.Error("working event Final = true, want false")
-	}
-
-	// Verify completed event
+	// Verify the final event is completed
 	completedEvt, ok := eq.events[len(eq.events)-1].(*a2alib.TaskStatusUpdateEvent)
 	if !ok {
 		t.Fatalf("last event is not TaskStatusUpdateEvent: %T", eq.events[len(eq.events)-1])
