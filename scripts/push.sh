@@ -1,5 +1,5 @@
 #!/bin/sh
-# push.sh — push branch to origin and create/update GitHub PR
+# push-create-pr.sh — push branch to origin and create/update GitHub PR
 set -e
 
 # --- parse args ---
