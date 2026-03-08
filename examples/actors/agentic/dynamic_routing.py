@@ -58,17 +58,16 @@ async def dispatcher(payload: dict):
         yield payload
         return
 
-    if VALID_TARGETS:
-        # Enum validation: reject hallucinated targets at actor time
-        if target_key not in VALID_TARGETS:
-            raise ValueError(
-                f"Invalid transfer target: {target_key!r}. "
-                f"Valid targets: {sorted(VALID_TARGETS)}"
-            )
-        actor_name = VALID_TARGETS[target_key]
-    else:
-        # No env vars configured: use the key directly as the actor name
-        actor_name = target_key
+    # Enum validation: always require target to be in allowlist.
+    # VALID_TARGETS is empty when no ASYA_HANDLER_* env vars are set,
+    # which means dynamic routing is unconfigured — always raise in that case.
+    if target_key not in VALID_TARGETS:
+        raise ValueError(
+            f"Invalid transfer target: {target_key!r}. "
+            f"Valid targets: {sorted(VALID_TARGETS)}. "
+            f"Configure ASYA_HANDLER_<NAME>=<queue> env vars to define valid targets."
+        )
+    actor_name = VALID_TARGETS[target_key]
 
     yield "SET", ".route.next", [actor_name]
     yield payload
@@ -91,7 +90,13 @@ async def llm_router(payload: dict):
     payload["response"] = response
 
     if target_key:
-        actor_name = VALID_TARGETS.get(target_key, target_key)
+        actor_name = VALID_TARGETS.get(target_key)
+        if actor_name is None:
+            raise ValueError(
+                f"LLM returned unknown routing target: {target_key!r}. "
+                f"Valid targets: {sorted(VALID_TARGETS)}. "
+                f"Configure ASYA_HANDLER_<NAME>=<queue> env vars to define valid targets."
+            )
         yield "SET", ".route.next", [actor_name]
 
     yield payload
@@ -110,7 +115,6 @@ async def _call_llm_with_routing(payload: dict) -> tuple[str | None, str]:
     Real implementation (Anthropic):
 
         import anthropic
-        import json
 
         client = anthropic.AsyncAnthropic()
         tools = [{"name": "transfer_to", "input_schema": {
