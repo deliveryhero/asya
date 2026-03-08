@@ -11,6 +11,7 @@ tags:
 
 
 
+
 Simple Bearer token auth for MCP endpoints. Reuse existing Authenticator interface from A2A auth. See rfc.md section 7, Phase 2.
 
 ## Scope
