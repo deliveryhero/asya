@@ -208,6 +208,40 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 		}
 	}
 
+	// Extract secretRefs
+	secretRefsRaw, found, _ := unstructured.NestedSlice(spec, "secretRefs")
+	if found {
+		for _, sr := range secretRefsRaw {
+			srMap, ok := sr.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			ref := injection.SecretRef{}
+			ref.SecretName, _, _ = unstructured.NestedString(srMap, "secretName")
+			if ref.SecretName == "" {
+				continue
+			}
+			keysRaw, keysFound, _ := unstructured.NestedSlice(srMap, "keys")
+			if keysFound {
+				for _, k := range keysRaw {
+					kMap, ok := k.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					key := injection.SecretRefKey{}
+					key.Key, _, _ = unstructured.NestedString(kMap, "key")
+					key.EnvVar, _, _ = unstructured.NestedString(kMap, "envVar")
+					if key.Key != "" && key.EnvVar != "" {
+						ref.Keys = append(ref.Keys, key)
+					}
+				}
+			}
+			if len(ref.Keys) > 0 {
+				config.SecretRefs = append(config.SecretRefs, ref)
+			}
+		}
+	}
+
 	return config, nil
 }
 

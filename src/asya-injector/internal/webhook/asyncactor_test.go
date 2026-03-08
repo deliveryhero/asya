@@ -360,6 +360,53 @@ func TestExtractActorConfig(t *testing.T) {
 	}
 }
 
+func TestExtractActorConfig_SecretRefs(t *testing.T) {
+	asyncActor := &unstructured.Unstructured{
+		Object: map[string]interface{}{
+			"spec": map[string]interface{}{
+				"transport": "sqs",
+				"region":    "us-east-1",
+				"secretRefs": []interface{}{
+					map[string]interface{}{
+						"secretName": "openai-creds",
+						"keys": []interface{}{
+							map[string]interface{}{
+								"key":    "api_key",
+								"envVar": "OPENAI_API_KEY",
+							},
+						},
+					},
+				},
+			},
+			"status": map[string]interface{}{
+				"conditions": []interface{}{
+					map[string]interface{}{"type": "Ready", "status": "True"},
+				},
+			},
+		},
+	}
+
+	config, err := extractActorConfig(asyncActor)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(config.SecretRefs) != 1 {
+		t.Fatalf("expected 1 SecretRef, got %d", len(config.SecretRefs))
+	}
+	if config.SecretRefs[0].SecretName != "openai-creds" {
+		t.Errorf("expected secretName 'openai-creds', got %q", config.SecretRefs[0].SecretName)
+	}
+	if len(config.SecretRefs[0].Keys) != 1 {
+		t.Fatalf("expected 1 key, got %d", len(config.SecretRefs[0].Keys))
+	}
+	if config.SecretRefs[0].Keys[0].Key != "api_key" {
+		t.Errorf("expected key 'api_key', got %q", config.SecretRefs[0].Keys[0].Key)
+	}
+	if config.SecretRefs[0].Keys[0].EnvVar != "OPENAI_API_KEY" {
+		t.Errorf("expected envVar 'OPENAI_API_KEY', got %q", config.SecretRefs[0].Keys[0].EnvVar)
+	}
+}
+
 func TestExtractResiliencyConfig(t *testing.T) {
 	t.Run("no resiliency section", func(t *testing.T) {
 		asyncActor := &unstructured.Unstructured{
