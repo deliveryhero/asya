@@ -151,7 +151,46 @@ asya msg inspect <actor>             # peek at queue/DLQ
 asya msg drain <actor>               # drain DLQ
 ```
 
-### 5.4 Project / Infrastructure
+### 5.4 Compiler Rules
+
+```bash
+asya compiler-rule add \             # add extraction rule
+  "tenacity.retry(stop=stop_after_attempt(X))" \
+  --assign-to spec.resiliency.retry.maxAttempts
+asya compiler-rule add "my_lib.helper" --treat-as inline  # classification
+asya compiler-rule list              # list all rules (built-in + project)
+asya compiler-rule remove <match>    # remove a rule
+asya compiler-rule explain <match>   # show what compiler does with a symbol
+```
+
+Pattern uses Python-like syntax with `X` as the capture marker. The CLI
+parses the expression, builds a `where:` tree, and auto-generates `example:`.
+See `research-compiler-knowledge-base.md` for full syntax.
+
+### 5.5 Secret Mapping
+
+```bash
+asya secret create <VAR> --secret <name> --key <key>  # register mapping
+asya secret remove <VAR>                               # remove mapping
+asya secret list                                       # list all mappings
+```
+
+Manages the `secrets:` section in `config.yaml`. Actual K8s Secrets are
+managed separately (kubectl, Vault, ExternalSecrets).
+
+### 5.6 File Safety
+
+All commands that generate or modify files refuse to overwrite unless the
+target is git-committed. Prevents accidental loss of manual edits.
+
+- `asya flow compile` → won't overwrite dirty routers.py or manifests
+- `asya compiler-rule add` → won't overwrite dirty config.compiler.yaml
+- `asya secret create` → won't overwrite dirty config.yaml
+- Override with `--force`
+
+All file-generating commands show the git diff of their changes.
+
+### 5.7 Project / Infrastructure
 
 ```bash
 asya init                            # scaffold .asya/ project directory
@@ -161,7 +200,7 @@ asya context use <name>              # switch context
 # asya <actor/flow> promote                 # promote staging image to prod PR -> UNDEFINED, needs more design
 ```
 
-### 5.5 Command Data Sources
+### 5.8 Command Data Sources
 
 No CLI command uses the gateway's internal `/mesh/*` routes -- those are
 reserved for sidecar-to-gateway communication.
@@ -176,20 +215,22 @@ reserved for sidecar-to-gateway communication.
 | `asya flow deploy/undeploy` | K8s API | `kubectl apply/delete` |
 | `asya actor compile` | Local | Config + Python resolution (no K8s needed) |
 | `asya actor build` | Build tool | Opaque shell command from config.yaml |
+| `asya compiler-rule *` | Local | Reads/writes config.compiler.yaml |
+| `asya secret *` | Local | Reads/writes config.yaml secrets: |
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya msg trace <id>` | Observability | OpenTelemetry trace query |
 
-### 5.6 Protocol Handling
+### 5.9 Protocol Handling
 
 `asya flow call` and `asya flow expose` accept a `--protocol=mcp|a2a` flag.
 Default is configurable. DS should not need to care about MCP vs A2A.
 
-### 5.7 Log Display
+### 5.10 Log Display
 
 `asya flow logs <flow>` aggregates logs from all actors in the flow, prefixed
 with a colored actor name (like `docker compose logs`).
 
-### 5.8 Deploy/Undeploy Semantics
+### 5.11 Deploy/Undeploy Semantics
 
 Behavior depends on active context type:
 
@@ -218,17 +259,22 @@ All commands respect context, resolved in this order (highest priority first):
 
 The `.asya/` directory marks the project root (like `.git/`). Created by
 `asya init`. Configuration is split across three files, each a separate concern.
-All files are loaded into one OmegaConf DictConfig — file boundaries are for
-human organization.
+All files are loaded into one OmegaConf DictConfig (the library, not
+"inspired by") — file boundaries are for human organization.
 
 ### 7.1 File Structure
 
 ```
 .asya/
-├── config.yaml            # variables, build mappings, compile settings
-├── compiler.yaml          # compiler treat-as rules (separate file)
-└── template.yaml          # manifest template — looks like the real CRD
+├── config.yaml              # root: variables, build mappings, compile settings
+├── config.template.yaml     # → merged under template: key
+└── config.compiler.yaml     # → merged under compiler: key
 ```
+
+**Filename-to-key convention**: Files named `config.<section>.yaml` have their
+content placed under the `<section>:` key in the merged config. `config.yaml`
+itself is the root. On disk, `config.template.yaml` looks like a raw CRD; after
+loading, the compiler accesses it as `config.template`.
 
 ### 7.2 config.yaml
 
@@ -252,12 +298,21 @@ compile:
   mode: manifests                               # manifests | helm | kustomize
   routers: "./src/compiled/${dynamic:flow}"      # where routers.py goes
   manifests: ".asya/manifests/${dynamic:flow}"   # where CRDs go
+
+secrets:
+  OPENAI_API_KEY:
+    secret: llm-secrets
+    key: openai-api-key
+  DB_PASSWORD:
+    secret: database-creds
+    key: password
 ```
 
-### 7.3 template.yaml
+### 7.3 config.template.yaml
 
-Standalone YAML that looks exactly like the final output — not wrapped in a
-`body:` key. The `${dynamic:*}` holes are filled per-actor during compilation.
+Standalone YAML that looks exactly like the final output. On disk it's a raw
+CRD; after loading it's available as `config.template`. The `${dynamic:*}` holes
+are filled per-actor during compilation.
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -278,11 +333,14 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: "${var.router_image}"
-          env:
-          - name: ASYA_HANDLER
-            value: "${dynamic:handler}"
+          image: "${dynamic:image}"
+          env: "${dynamic:env}"
 ```
+
+`${dynamic:env}` is an OmegaConf subtree resolver — it returns the full K8s
+env list (including `ASYA_HANDLER`, router mappings, and env vars detected from
+handler code). See `research-compiler-knowledge-base.md` for how env vars are
+detected and sourced via `secrets:`.
 
 ### 7.4 Resolver Syntax
 
@@ -309,28 +367,42 @@ from outside. Missing values are a hard error (no silent fallback).
 | `dynamic:image` | Resolved OCI image ref | `"ghcr.io/org/e-commerce:${arg:tag}"` |
 | `dynamic:flow` | Flow name, kebab-cased | `"order-processing"` |
 | `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
-| `dynamic:timeout` | Extracted actor timeout | `"30s"` |
-| `dynamic:retry_max_attempts` | Extracted max retries | `"3"` |
-| `dynamic:retry_initial_interval` | Extracted initial backoff | `"1s"` |
-| `dynamic:retry_max_interval` | Extracted max backoff | `"300s"` |
-| `dynamic:retry_backoff_coefficient` | Extracted exponential base | `"2.0"` |
-| `dynamic:env` | All extracted env vars (list) | `[{name: ..., value: ...}]` |
+| `dynamic:env` | K8s env list (subtree resolver) | `[{name: "ASYA_HANDLER", value: "..."}]` |
 
-Resiliency values are extracted from `treat-as: config` decorators (tenacity,
-stamina, asyncio.timeout). See `research-compiler-knowledge-base.md`.
+These are values the compiler **always** computes per actor. They exist only
+in-memory during compilation — no intermediate file.
 
-These values exist only in-memory during compilation — no intermediate file.
+Resiliency values (`spec.resiliency.retry.*`, `spec.resiliency.timeout`) are
+**not** `${dynamic:*}` resolvers — they are placed directly at XR spec paths
+via compiler rules (`assign-to: spec.*`). See
+`research-compiler-knowledge-base.md`.
+
+`${dynamic:env}` is an OmegaConf subtree resolver that returns a list of K8s
+env entries. The compiler constructs this list from:
+- `ASYA_HANDLER` (always present)
+- `ASYA_HANDLER_*` router mappings (for router actors)
+- Env vars detected from handler code (`os.environ`, `os.getenv`)
+- Default values extracted from `os.getenv("KEY", "default")`
+- Secret refs from `secrets:` section in config.yaml
 
 ### 7.6 Key Design Decisions
 
+- **OmegaConf is a real dependency**: Not "inspired by" — the library is used
+  directly. OmegaConf handles interpolation (relative refs, lazy resolution),
+  custom resolvers (`arg:`, `dynamic:`, `env:`), and merge with
+  `ListMergeMode.EXTEND` for list concatenation. Asya adds: walk-up file
+  discovery, filename-to-key convention, semantic validation.
+- **Filename-to-key convention**: `config.<section>.yaml` → content placed
+  under `<section>:` key. `config.yaml` is the root. No explicit merge
+  directives needed.
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
   system. `command.local` and `command.remote` are shell strings with variable
   substitution. Any build tool works.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
-  All `.asya/*.yaml` files merge root-first (dicts deep-merge, lists
-  concatenate).
+  All `.asya/config*.yaml` files merge root-first (dicts deep-merge, lists
+  concatenate via `ListMergeMode.EXTEND`).
 - **Three resolver families**: `${var.*}` for config constants (native
   OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
   (custom resolvers). Dot = in config, colon = injected.
@@ -368,13 +440,13 @@ Build and deploy use `--local`/`--remote` flags for execution context.
 3. Apply rules (treat-as classification)
 4. Group into routers → Router IR
 5. For each actor: resolve handler → module → build entry → image,
-   set `dynamic:*` values, stamp template.yaml → write manifest
+   set `dynamic:*` values, stamp config.template.yaml → write manifest
 6. Generate routers.py → write to `compile.routers` path
 
 **`asya actor compile --handler e_commerce.validate.validate_order`:**
 1. Load `.asya/*.yaml` → merged OmegaConf config
 2. Resolve handler → module → build entry → image
-3. Set `dynamic:*` values, stamp template.yaml → write manifest
+3. Set `dynamic:*` values, stamp config.template.yaml → write manifest
 
 Same resolution code. Flow compile adds AST parsing + router generation.
 
@@ -395,7 +467,7 @@ Example (default verbosity):
 ```
 $ asya flow compile flows/order_processing.py
 [compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
-[compile] Config: /.asya/config.yaml, /.asya/template.yaml (walk-up)
+[compile] Config: /.asya/config.yaml, /.asya/config.template.yaml (walk-up)
 [compile] Handler: validate_order
            → import: e_commerce.validate.validate_order
            → module: e_commerce → image: ghcr.io/org/e-commerce:${arg:tag}
@@ -448,11 +520,14 @@ These are implemented (PRs #278, #280, #281):
 
 ### 9.3 Config Extraction
 
-When `treat-as: config`, the compiler uses `inspect.signature` at compile time
-to bind decorator/context-manager arguments to Asya resiliency env vars
-(`ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS`, `ASYA_RESILIENCY_ACTOR_TIMEOUT`, etc.).
-Works with tenacity, stamina, asyncio.timeout, and any library with inspectable
-signatures.
+Rules with `where:` trees navigate the Python AST and extract values directly
+to AsyncActor XR spec paths (e.g., `spec.resiliency.retry.maxAttempts`).
+The compiler uses `inspect.signature` at compile time to resolve parameter
+names. Each terminal `assign-to:` has an `example:` field for debugging.
+
+Environment variables detected via `os.environ` / `os.getenv` rules are
+sourced from the `secrets:` section in `config.yaml`. Default values from
+`os.getenv("KEY", "default")` are captured automatically.
 
 ### 9.4 Defaults
 
@@ -462,8 +537,9 @@ signatures.
 | External function | `inline` | Specific rule |
 | Decorator, no rule | Keep at runtime | `treat-as: config` rule |
 
-> **Full design**: `research-compiler-knowledge-base.md` (rules engine, pattern
-> matching, extraction design, tenacity signatures).
+> **Full design**: `research-compiler-knowledge-base.md` (rules engine,
+> `where:`/`assign-to:` tree syntax, env var detection, secrets mapping,
+> `asya compiler-rule` CLI, tenacity/stamina signatures).
 > **Implementation tasks**: pushed [pyn3], [srn2], [n67c], [xx8t], [2t1q];
 > backlog [1fmi] (rules engine with default rule set).
 
@@ -667,7 +743,7 @@ def test_router_modifies_route(vfs_fixture):
 ### Phase 1: Core SDK + CLI restructure
 - Package creation, migration from asya-cli
 - SDK extraction (compiler, MCP client)
-- `.asya/` config schema (config.yaml + template.yaml + compiler.yaml),
+- `.asya/` config schema (config.yaml + config.template.yaml + config.compiler.yaml),
   walk-up merge, `asya init`
 - Compile stage with manifests mode (no separate template stage)
 - Flow and actor commands (list, status, logs, compile)
@@ -678,9 +754,10 @@ def test_router_modifies_route(vfs_fixture):
 - `actor-image.lock` and `asya promote`
 - `asya_lab.testing` pytest fixtures
 
-### Phase 3: Compiler rules + message operations + Jupyter
-- `compile.rules` engine with default rule set [1fmi]
-- Config extraction (`treat-as: config`)
+### Phase 3: Message operations + Jupyter
+- `where:`/`assign-to:` extraction with full rule set [1fmi]
+- `asya compiler-rule add/remove/list/explain`
+- `asya secret create/remove/list`
 - `asya msg send/trace/replay/inspect/drain`
 - Jupyter magics, interactive flow visualization
 
@@ -735,7 +812,7 @@ Detailed designs that inform this RFC:
 4. **Non-Python actors**: The `module:` field is Python-specific. Go actors,
    shell scripts, or pre-built images need a different matching strategy.
 
-5. **`${arg:tag}` lifecycle per output mode**: Should `${arg:*}` in template.yaml
+5. **`${arg:tag}` lifecycle per output mode**: Should `${arg:*}` in config.template.yaml
    always resolve at compile time, or be mode-dependent?
 
 6. **Lock file vs opaque builds**: Opaque build commands limit `actor-image.lock`

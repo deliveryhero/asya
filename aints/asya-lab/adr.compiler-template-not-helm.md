@@ -2,12 +2,12 @@
 
 **Status**: Accepted
 **Date**: 2026-03-08
-**Context**: Design of `.asya/template.yaml` output template
+**Context**: Design of `.asya/config.template.yaml` output template
 (research-compiler-resolution.md, section 3.8)
 
 ## Decision
 
-The compiler uses a standalone YAML template (`.asya/template.yaml`) with
+The compiler uses a standalone YAML template (`.asya/config.template.yaml`) with
 `${dynamic:*}` OmegaConf resolvers to generate output (manifests, helm values,
 kustomize patches). This is printf-level substitution, not a template engine.
 
@@ -27,8 +27,10 @@ The compiler has these values to place:
 - `${dynamic:image}` — resolved OCI image reference
 - `${dynamic:handler}` — fully qualified Python handler path
 - `${dynamic:flow_role}` — role within flow (entrypoint, router, processor)
-- `${dynamic:timeout}`, `${dynamic:retry_*}` — extracted resiliency config
-- `${dynamic:env}` — all extracted environment variables
+- Resiliency values — placed directly at XR spec paths via `assign-to:` rules
+  (not template resolvers; see `research-compiler-knowledge-base.md`)
+- `${dynamic:env}` — K8s env list (subtree resolver: ASYA_HANDLER, router
+  mappings, env vars detected from handler code via `secrets:` mapping)
 - `${var.*}` — user constants from config.yaml
 - `${arg:*}` — deploy-time parameters (tag, etc.)
 

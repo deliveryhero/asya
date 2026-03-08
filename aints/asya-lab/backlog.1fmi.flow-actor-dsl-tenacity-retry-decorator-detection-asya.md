@@ -25,14 +25,20 @@ Implement the compiler rules system described in
    - `module: "*"` → `treat-as: inline` (external code)
    - `module: "actor"` → `treat-as: actor`
    - `module: "flow"` → `treat-as: flow`
-3. **Built-in config extraction rules** for common frameworks:
-   - `tenacity.retry` → `treat-as: config` + `extract:` (retry env vars)
-   - `stamina.retry` → `treat-as: config` + `extract:` (retry env vars)
-   - `asyncio.timeout` → `treat-as: config` + `extract:` (timeout env var)
+3. **Built-in extraction rules** for common frameworks:
+   - `tenacity.retry` → `where:` tree → `assign-to: spec.resiliency.*`
+   - `stamina.retry` → `where:` tree → `assign-to: spec.resiliency.*`
+   - `asyncio.timeout` → `where:` tree → `assign-to: spec.resiliency.timeout`
+   - `os` → `where: access:` → `assign-to: env` (env var detection)
 4. **Pattern matching** — most-specific-wins resolution (exact > prefix
    wildcard > `.` > `*`)
-5. **Config extraction** — `inspect.signature` at compile time for binding
-   decorator args to `ASYA_RESILIENCY_*` env vars
+5. **Value extraction** — `inspect.signature` at compile time for binding
+   decorator args; `where:`/`assign-to:` tree syntax places values at XR
+   spec paths
+6. **Secrets mapping** — `secrets:` section in config.yaml for env var →
+   K8s secretKeyRef mapping
+7. **CLI** — `asya compiler-rule add/remove/list/explain` and
+   `asya secret create/remove/list`
 6. **Testing** — validate on `examples/flows/` with mixed decorators,
    context managers, and inline overrides
 
@@ -48,7 +54,7 @@ Implement the compiler rules system described in
 - [srn2] Decorator detection and rule-based resolution
 - [2t1q] Context manager support (`with`/`async with`)
 - [xx8t] Call-site decorator application (`actor(handler)(p)`)
-- [zjt4] Cumulative retry time window (`ASYA_RESILIENCY_RETRY_MAX_WINDOW`)
+- [zjt4] Cumulative retry time window (`spec.resiliency.retry.maxWindow`)
 
 ## Design references
 
@@ -57,19 +63,19 @@ Implement the compiler rules system described in
 - **Resiliency env vars**: `.aint/aints/.closed/error-handling/rfc.md`
 - **Decorator strategy resolution**: [n67c]
 
-## Asya resiliency env vars (extraction targets)
+## XR spec paths (extraction targets)
 
-| Env Var | Type | Default |
-|---------|------|---------|
-| `ASYA_RESILIENCY_RETRY_POLICY` | "constant"\|"exponential" | "exponential" |
-| `ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS` | int | 3 |
-| `ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL` | duration | "1s" |
-| `ASYA_RESILIENCY_RETRY_MAX_INTERVAL` | duration | "300s" |
-| `ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT` | float | 2.0 |
-| `ASYA_RESILIENCY_RETRY_JITTER` | bool | true |
-| `ASYA_RESILIENCY_NON_RETRYABLE_ERRORS` | csv | (none) |
-| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | duration | "5m" |
-| `ASYA_RESILIENCY_RETRY_MAX_WINDOW` | duration | (none) — see [zjt4] |
+| XR Spec Path | Type | Default |
+|-------------|------|---------|
+| `spec.resiliency.retry.maxAttempts` | int | 3 |
+| `spec.resiliency.retry.initialInterval` | duration | "1s" |
+| `spec.resiliency.retry.maxInterval` | duration | "300s" |
+| `spec.resiliency.retry.backoffCoefficient` | float | 2.0 |
+| `spec.resiliency.retry.jitter` | bool | true |
+| `spec.resiliency.retry.maxWindow` | duration | (none) — see [zjt4] |
+| `spec.resiliency.nonRetryableErrors` | csv | (none) |
+| `spec.resiliency.timeout` | duration | "5m" |
+| `env` | list | [] — K8s env entries (semantic shorthand) |
 
 ## Research: Python retry/timeout decorator landscape
 

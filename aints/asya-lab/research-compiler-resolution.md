@@ -47,7 +47,9 @@ subdirectory creates a sub-project (useful for monorepos with team boundaries).
 ```
 my-project/
 ├── .asya/                        # Project root
-│   ├── config.yaml               # Project-wide images config
+│   ├── config.yaml               # root: var, build, compile, secrets
+│   ├── config.template.yaml      # → merged under template: key
+│   ├── config.compiler.yaml      # → merged under compiler: key
 │   └── manifests/                # Generated K8s manifests
 │       ├── actors/               # Single-actor manifests
 │       │   ├── file-creator.yaml
@@ -98,63 +100,66 @@ asya actor compile --handler e_commerce.validate.validate_order
 ### 2.3 Config Composition via Walk-Up Recursive Merge
 
 **Decision**: Implicit walk-up merge. No explicit `extend:` directive. The
-CLI collects all `.asya/config.yaml` files from CWD (or flow file location)
+CLI collects all `.asya/config*.yaml` files from CWD (or flow file location)
 up to the repo root (`.git/`), then merges them root-first. Like `.gitignore`
 -- just place a file and it participates.
 
+**Filename-to-key convention**: Files named `config.<section>.yaml` have their
+content placed under the `<section>:` key in the merged config. `config.yaml`
+itself is the root. Example: `config.template.yaml` → `template:`,
+`config.compiler.yaml` → `compiler:`.
+
 **Algorithm**:
 ```python
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, ListMergeMode
 
 def load_effective_config(start_dir: Path) -> DictConfig:
-    """Walk up from start_dir, collect and merge all .asya/config.yaml files."""
+    """Walk up from start_dir, collect and merge all .asya/config*.yaml files."""
     configs = []
     current = start_dir.resolve()
     repo_root = find_git_root(current)
 
     while current >= repo_root:
-        cfg_path = current / ".asya" / "config.yaml"
-        if cfg_path.exists():
-            cfg = OmegaConf.load(cfg_path)
-            resolve_relative_paths(cfg, base_dir=cfg_path.parent.parent)
+        asya_dir = current / ".asya"
+        if asya_dir.exists():
+            cfg = load_asya_dir(asya_dir)
             configs.append(cfg)
         current = current.parent
 
     configs.reverse()  # root first, most local last
-    return recursive_merge(configs)
-```
+    return OmegaConf.merge(*configs)
 
-**Recursive merge** handles dicts and lists differently:
-- **Dicts**: deep merge (OmegaConf native). Local keys override ancestor keys.
-- **Lists**: concatenate (append child entries after parent entries). No
-  key detection, no overwrite. Duplicates are detected later at the Asya
-  semantic layer (compile time), not at the merge layer.
-- **Scalars**: replace (child wins).
-
-**Three-layer architecture**:
-1. **OmegaConf (syntactic)**: Load YAML, interpolation, strict fail on
-   missing values. Zero knowledge of Asya.
-2. **Merge (generic)**: Walk-up recursive merge. Dicts deep-merge, lists
-   concatenate. Zero knowledge of Asya — no key field mappings, no
-   overwrite logic.
-3. **Asya (semantic)**: Schema validation, handler resolution. Detects
-   duplicates in concatenated lists (e.g., two entries matching the same
-   handler) and produces errors with source file locations.
-
-```python
-def recursive_merge(configs: list[DictConfig]) -> DictConfig:
-    """Walk-up merge: dicts deep-merge, lists concatenate."""
+def load_asya_dir(asya_dir: Path) -> DictConfig:
+    """Load all config*.yaml from .asya/, apply filename-to-key convention."""
     result = OmegaConf.create({})
-    for cfg in configs:  # root first, local last
-        for key in cfg:
-            if is_list(result.get(key)) and is_list(cfg[key]):
-                result[key] = list(result[key]) + list(cfg[key])  # append
-            elif OmegaConf.is_dict(result.get(key)) and OmegaConf.is_dict(cfg[key]):
-                result[key] = OmegaConf.merge(result[key], cfg[key])
-            else:
-                result[key] = cfg[key]  # scalars: replace
+    for f in sorted(asya_dir.glob("config*.yaml")):
+        cfg = OmegaConf.load(f)
+        resolve_relative_paths(cfg, base_dir=asya_dir.parent)
+        if f.name == "config.yaml":
+            result = OmegaConf.merge(result, cfg)
+        else:
+            # config.template.yaml → template: key
+            section = f.name.removeprefix("config.").removesuffix(".yaml")
+            result[section] = cfg
     return result
 ```
+
+**Merge semantics** (OmegaConf native with `ListMergeMode.EXTEND`):
+- **Dicts**: deep merge (OmegaConf native). Local keys override ancestor keys.
+- **Lists**: concatenate via `ListMergeMode.EXTEND` (append child entries
+  after parent entries). No key detection, no overwrite. Duplicates are
+  detected later at the Asya semantic layer (compile time), not at the
+  merge layer.
+- **Scalars**: replace (child wins).
+
+**Two-layer architecture**:
+1. **OmegaConf (syntactic)**: Load YAML, interpolation, merge with
+   `ListMergeMode.EXTEND`, strict fail on missing values. Zero knowledge
+   of Asya. This is the OmegaConf library, not "inspired by."
+2. **Asya (semantic)**: Walk-up file discovery, filename-to-key convention,
+   schema validation, handler resolution. Detects duplicates in concatenated
+   lists (e.g., two entries matching the same handler) and produces errors
+   with source file locations.
 
 **Why append-only lists?** No key detection needed, no silent overwrites,
 no merge-key configuration. The merge layer stays trivially simple. If two
@@ -303,7 +308,9 @@ message.
 
 ```
 .asya/
-└── config.yaml               # Full config with var (constants) + build + compile
+├── config.yaml               # root: var, build, compile
+├── config.template.yaml      # → merged under template: key
+└── config.compiler.yaml      # → merged under compiler: key
 ```
 
 The `manifests/` directory is NOT created by init — it appears on first
@@ -455,10 +462,10 @@ repo-root-relative paths (stays as interpolation through merge).
   `shp build upload <name> --image ${..image}` for Shipwright.
 - Entries without `command:` are never built by Asya (third-party images).
 
-### 3.4 Variable Interpolation (OmegaConf-style)
+### 3.4 Variable Interpolation (OmegaConf)
 
-Asya uses OmegaConf-inspired variable interpolation with dotted path
-traversal:
+Asya uses OmegaConf (the library, not "inspired by") for variable interpolation
+with dotted path traversal:
 
 | Syntax | Meaning | Example |
 |--------|---------|---------|
@@ -646,14 +653,15 @@ Both levels produce errors with source file location and actionable hints.
 Compilation produces BOTH router code and deployment files in a single stage.
 There is no separate template stage.
 
-| Config file | What it configures |
-|-------------|-------------------|
-| `config.yaml` (`compile:` section) | Output paths and mode |
-| `compiler.yaml` (`rules:` section) | Treat-as rules for AST analysis |
-| `template.yaml` | Manifest shape with `${dynamic:*}` holes |
+| Config file | Merged key | What it configures |
+|-------------|-----------|-------------------|
+| `config.yaml` | (root) | `var:`, `build:`, `compile:` |
+| `config.compiler.yaml` | `compiler:` | Treat-as rules for AST analysis |
+| `config.template.yaml` | `template:` | Manifest shape with `${dynamic:*}` holes |
 
-All three files are loaded into one OmegaConf config via walk-up merge.
-File boundaries are for human organization.
+All three files are loaded into one OmegaConf DictConfig via the
+filename-to-key convention (section 2.3). `config.<section>.yaml` → content
+placed under `<section>:` key.
 
 #### `compile:` section (in config.yaml)
 
@@ -664,16 +672,19 @@ compile:
   manifests: ".asya/manifests/${dynamic:flow}"   # where CRDs go
 ```
 
-#### `compiler.yaml` (separate file)
+#### `config.compiler.yaml` (→ merged under `compiler:`)
 
 ```yaml
+# .asya/config.compiler.yaml
+# Loaded as: compiler.rules in the merged config
 rules: []                       # treat-as rules (future, see research-compiler-knowledge-base.md)
 ```
 
-#### `template.yaml` (separate file)
+#### `config.template.yaml` (→ merged under `template:`)
 
-Standalone YAML that looks exactly like the final output — not wrapped in a
-`body:` key. The `${dynamic:*}` holes are filled per-actor during compilation.
+Standalone YAML that looks exactly like the final output. On disk it's a raw
+CRD; after loading it's available as `config.template`. The `${dynamic:*}` holes
+are filled per-actor during compilation.
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -694,11 +705,15 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: "${var.router_image}"
-          env:
-          - name: ASYA_HANDLER
-            value: "${dynamic:handler}"
+          image: "${dynamic:image}"
+          env: "${dynamic:env}"
 ```
+
+`${dynamic:env}` is an OmegaConf subtree resolver returning the full K8s env
+list. The compiler constructs it from: `ASYA_HANDLER` (always), router
+mappings (`ASYA_HANDLER_*`), and env vars detected from handler code. See
+"Environment Variable Detection" and "Secrets Mapping" in
+`research-compiler-knowledge-base.md`.
 
 #### `${dynamic:*}` resolver keys
 
@@ -709,16 +724,14 @@ spec:
 | `dynamic:image` | Resolved OCI image ref | `"ghcr.io/org/e-commerce:${arg:tag}"` |
 | `dynamic:flow` | Flow name, kebab-cased | `"order-processing"` |
 | `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
-| `dynamic:timeout` | Extracted actor timeout | `"30s"` |
-| `dynamic:retry_max_attempts` | Extracted max retries | `"3"` |
-| `dynamic:retry_initial_interval` | Extracted initial backoff | `"1s"` |
-| `dynamic:retry_max_interval` | Extracted max backoff | `"300s"` |
-| `dynamic:retry_backoff_coefficient` | Extracted exponential base | `"2.0"` |
-| `dynamic:env` | All extracted env vars (list) | `[{name: ..., value: ...}]` |
+| `dynamic:env` | K8s env list (subtree resolver) | `[{name: "ASYA_HANDLER", value: "..."}]` |
 
-These values exist only in-memory during compilation — no intermediate file.
-Resiliency values are extracted from `treat-as: config` decorators.
-See `research-compiler-knowledge-base.md`.
+These are values the compiler **always** computes per actor. They exist only
+in-memory during compilation — no intermediate file.
+
+Resiliency values (`spec.resiliency.*`) are **not** `${dynamic:*}` resolvers —
+they are placed directly at XR spec paths via compiler rules
+(`assign-to: spec.*`). See `research-compiler-knowledge-base.md`.
 
 #### Output modes
 
@@ -736,7 +749,7 @@ substitution, not a template engine.
 
 ### 4.1 Compile Time (`asya flow compile`)
 
-**Input**: flow source (Python) + `.asya/config.yaml` + `template.yaml`
+**Input**: flow source (Python) + `.asya/config*.yaml`
 **Available**: Python interpreter (kernel or `--python`)
 **Output**: router code + deployment files (manifests, helm values, or kustomize patches)
 
@@ -814,8 +827,12 @@ Router code: compiled/routers.py (with resolve() calls)
 own import system to resolve handler references to filesystem paths, then
 matches those paths against config.yaml.
 
-**Future extension**: The compiler will detect `os.environ` / `os.getenv`
-calls in handler code and populate `${dynamic:env}` during compilation.
+**Environment variable detection**: The compiler detects `os.environ` /
+`os.getenv` calls in handler code via AST analysis (see `match: os` rule in
+`research-compiler-knowledge-base.md`). Detected env var names are looked up
+in the `secrets:` section of `config.yaml` for K8s sourcing (secretKeyRef).
+Default values from `os.getenv("KEY", "default")` are captured automatically.
+All detected env vars are included in `${dynamic:env}`.
 
 ### 4.2 Build Time
 
@@ -1176,7 +1193,7 @@ the tag.
 
 10. ~~**Standalone actor compilation**~~: Resolved.
     `asya actor compile --handler module.function` resolves handler → image
-    and stamps template.yaml in one step. No separate template verb.
+    and stamps config.template.yaml in one step. No separate template verb.
 
 11. **Non-Python actors**: The current design assumes Python handlers.
     Go actors, shell script actors, or pre-built third-party images with no
@@ -1231,22 +1248,26 @@ the tag.
     `${arg:tag}` stays unresolved in the generated YAML and is resolved at
     deploy time. In `helm` mode, it becomes a values.yaml field resolved via
     `--set image.tag=v1`. In `kustomize` mode, it uses the images
-    transformer. Should `${arg:*}` in `template.yaml` always resolve at
-    compile time, or should it be mode-dependent?
+    transformer. Should `${arg:*}` in `config.template.yaml` always resolve
+    at compile time, or should it be mode-dependent?
 
 14. **Custom Helm chart support**: The helm mode generates values.yaml
     files. If a team uses a custom chart with a different values schema,
-    the `template.yaml` must match that chart's structure. Should Asya
-    validate `template.yaml` against the chart's `values.schema.json`?
+    the `config.template.yaml` must match that chart's structure. Should
+    Asya validate `config.template.yaml` against the chart's
+    `values.schema.json`?
 
-15. **`${dynamic:env}` format**: Environment variables extracted
-    from handler code (`os.environ`, `os.getenv`). What format? A list of
-    `{name, value}` dicts matching K8s `env:` schema? Or just variable
-    names (values come from overlays/secrets)?
+15. ~~**`${dynamic:env}` format**~~: **Resolved**. `${dynamic:env}` is an
+    OmegaConf subtree resolver returning a K8s env list. Env var names are
+    detected via AST analysis (`os.environ`, `os.getenv`). Default values
+    from `os.getenv("KEY", "default")` are captured. K8s sourcing (secretKeyRef)
+    comes from `secrets:` section in `config.yaml`. Resiliency values go
+    directly to XR spec paths via `assign-to:` rules, not through env vars.
+    See `research-compiler-knowledge-base.md`.
 
 16. **Infrastructure defaults ownership**: Overlays handle infrastructure
     defaults (transport, scaling, GPU) at K8s deploy time. The
-    `template.yaml` also has static defaults (transport, scaling).
+    `config.template.yaml` also has static defaults (transport, scaling).
     These overlap — should the template contain ONLY dynamic values
     (`${dynamic:*}`) and leave all static defaults to overlays?
 
