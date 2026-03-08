@@ -464,11 +464,13 @@ spec:
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for Crossplane to create the ScaledObject...")
+        # pubsub: ScaledObject is gated on subscription readiness, so we need
+        # extra time compared to SQS. Use 180s matching the subscription setup window.
         assert wait_for_resource(
             "scaledobject",
             "test-scaling-advanced",
             namespace=e2e_helper.namespace,
-            timeout=120,
+            timeout=180,
         ), "Crossplane composition should create the KEDA ScaledObject with advanced fields"
 
         logger.info("Fetching ScaledObject and verifying advanced fields...")
