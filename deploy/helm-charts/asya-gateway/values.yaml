@@ -132,6 +132,9 @@ flowsConfig:
   # exposerGroup is the Kubernetes Group bound to the flow-exposer RBAC Role,
   # allowing members to patch the gateway-flows ConfigMap.
   exposerGroup: "asya-flow-exposers"
+  # flows is the list of FlowConfig entries seeded into the gateway-flows ConfigMap at deploy time.
+  # Each entry maps to an MCP tool and/or A2A skill exposed by the gateway.
+  flows: []
 
 # External database (if postgresql.enabled=false)
 # Leave host empty to use in-memory store (no persistence)

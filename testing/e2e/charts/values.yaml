@@ -88,137 +88,163 @@ gateway:
       name: postgres-secret
       key: password
 
-  routes:
-    tools:
+  flowsConfig:
+    flows:
     - name: test_echo
+      entrypoint: test-echo
       description: Echo back the input message
-      parameters:
-        message:
-          type: string
-          description: Message to echo
-          required: true
-      route: [test-echo]
       timeout: 120
-      a2a:
-        enabled: true
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Message to echo
+          required: [message]
+      a2a: {}
     - name: test_queue_health
+      entrypoint: test-queue-health
       description: Test queue health monitoring with small retry values
-      parameters:
-        data:
-          type: string
-          description: Test data
-          required: true
-      route: [test-queue-health]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            data:
+              type: string
+              description: Test data
+          required: [data]
     - name: test_pipeline
+      entrypoint: test-doubler
+      route_next: [test-incrementer]
       description: Process value through doubler and incrementer pipeline
-      parameters:
-        value:
-          type: number
-          description: Value to process through pipeline
-          required: true
-      route: [test-doubler, test-incrementer]
       timeout: 45
-      a2a:
-        enabled: true
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            value:
+              type: number
+              description: Value to process through pipeline
+          required: [value]
+      a2a: {}
     - name: test_error
+      entrypoint: test-error
       description: Test error handling
-      parameters:
-        should_fail:
-          type: boolean
-          description: Whether to trigger an error
-          required: true
-      route: [test-error]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            should_fail:
+              type: boolean
+              description: Whether to trigger an error
+          required: [should_fail]
     - name: test_timeout
+      entrypoint: test-timeout
       description: Test timeout handling
-      parameters:
-        sleep_seconds:
-          type: number
-          description: Duration to sleep in seconds
-          required: true
-      route: [test-timeout]
       timeout: 30
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            sleep_seconds:
+              type: number
+              description: Duration to sleep in seconds
+          required: [sleep_seconds]
     - name: test_timeout_cold
+      entrypoint: test-timeout-cold
       description: Test gateway backstop race with cold-start actor (minReplicas=0)
-      parameters:
-        sleep_seconds:
-          type: number
-          description: Duration to sleep in seconds
-          required: true
-      route: [test-timeout-cold]
       timeout: 15
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            sleep_seconds:
+              type: number
+              description: Duration to sleep in seconds
+          required: [sleep_seconds]
     - name: test_fanout
+      entrypoint: test-fanout
       description: Create multiple messages via fan-out
-      parameters:
-        count:
-          type: number
-          description: Number of messages to create
-          required: true
-      route: [test-fanout]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            count:
+              type: number
+              description: Number of messages to create
+          required: [count]
     - name: test_empty_response
+      entrypoint: test-empty
       description: Test empty response handling
-      parameters:
-        message:
-          type: string
-          description: Test message
-          required: false
-      route: [test-empty]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Test message
     - name: test_slow_boundary
+      entrypoint: test-slow-boundary
       description: "Test slow processing at actor boundary (1.5s processing, generous timeout for SQS transit)"
-      parameters:
-        first_call:
-          type: boolean
-          description: Whether this is the first call
-          required: true
-      route: [test-slow-boundary]
       timeout: 30
-      a2a:
-        enabled: true
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            first_call:
+              type: boolean
+              description: Whether this is the first call
+          required: [first_call]
+      a2a: {}
     - name: test_nested_flow
+      entrypoint: start-test-nested-flow
       description: Test nested if-else flow with level1 and level2 parameters
-      parameters:
-        level1:
-          type: string
-          description: First level decision (A or B)
-          required: true
-        level2:
-          type: string
-          description: Second level decision (X or Y)
-          required: true
-      route: [start-test-nested-flow]
       timeout: 60
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            level1:
+              type: string
+              description: First level decision (A or B)
+            level2:
+              type: string
+              description: Second level decision (X or Y)
+          required: [level1, level2]
     - name: test_unicode
+      entrypoint: test-unicode
       description: Test Unicode character handling
-      parameters:
-        message:
-          type: string
-          description: Unicode message
-          required: false
-      route: [test-unicode]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Unicode message
     - name: test_large_payload
+      entrypoint: test-large-payload
       description: Test large payload handling
-      parameters:
-        size_kb:
-          type: number
-          description: Size of payload in KB
-          required: false
-      route: [test-large-payload]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            size_kb:
+              type: number
+              description: Size of payload in KB
     - name: test_nested
+      entrypoint: test-nested
       description: Test nested JSON handling
-      parameters:
-        depth:
-          type: number
-          description: Nesting depth
-          required: false
-      route: [test-nested]
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            depth:
+              type: number
+              description: Nesting depth
     - name: test_multihop
-      description: Test multi-hop message processing through 15 actors
-      parameters:
-        message:
-          type: string
-          description: Initial message
-          required: false
-      route:
-      - test-multihop-0
+      entrypoint: test-multihop-0
+      route_next:
       - test-multihop-1
       - test-multihop-2
       - test-multihop-3
@@ -233,7 +259,15 @@ gateway:
       - test-multihop-12
       - test-multihop-13
       - test-multihop-14
+      description: Test multi-hop message processing through 15 actors
       timeout: 120
+      mcp:
+        inputSchema:
+          type: object
+          properties:
+            message:
+              type: string
+              description: Initial message
   resources:
     requests:
       cpu: 50m
