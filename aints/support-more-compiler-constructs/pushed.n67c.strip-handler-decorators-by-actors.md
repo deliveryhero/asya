@@ -30,11 +30,17 @@ design including:
 ## Implementation aints
 
 - [srn2] Decorator detection and rule-based resolution in flow compiler
-- [pyn3] Inline comment overrides for compiler rules (`# asya: treat-as-*`)
+- [pyn3] Inline comment overrides for compiler rules (`# asya: actor` / `# asya: inline`)
 - [xx8t] Call-site decorator application: `actor(handler)(p)` pattern
 - [2t1q] Support context managers (`with`/`async with`) in flow compiler
 - [1fmi] Tenacity/stamina retry decorator extraction (backlog)
 - [zjt4] Cumulative retry time window — prerequisite for timeout extraction
+
+## Design change (2026-03-08)
+
+Inline comment syntax simplified: `# asya: actor` / `# asya: inline` (no `treat-as-` prefix).
+Regex pattern: `#\s*asya:\s*(\w+)(?:\s+name=(\S+))?`
+PR #280 was updated to reflect this.
 
 ## Original context
 
