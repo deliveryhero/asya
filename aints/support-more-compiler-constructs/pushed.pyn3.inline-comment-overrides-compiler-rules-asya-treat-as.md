@@ -29,7 +29,7 @@ p = handler(p)              # asya: actor
 p = handler(p)              # asya: inline
 p["id"] = str(uuid4())      # asya: inline
 p = sub_pipeline(p)         # asya: flow
-p = handler(p)              # asya: decompose
+p = handler(p)              # asya: unfold
 ```
 
 No infrastructure parameters (actor names, config values) in inline comments.
@@ -39,12 +39,12 @@ deployment details are managed in manifests via CLI/UI.
 Priority order (highest to lowest):
 1. Inline comment (`# asya: <action>`)
 2. Matching compiler rule from `asya.yaml`
-3. Default (decompose for same-package, inline for external)
+3. Default (unfold for same-package, inline for external)
 
 ### Comment syntax
 
 Pattern: `# asya: <action>` where action is one of:
-`actor`, `flow`, `inline`, `decompose`, `config`
+`actor`, `flow`, `inline`, `unfold`, `config`
 
 The comment must appear on the same line as the statement it annotates.
 
@@ -63,7 +63,7 @@ The parser already has `self.source_code`. Add comment extraction:
 ```python
 @dataclass
 class AsyaDirective:
-    action: str          # actor, flow, inline, decompose, config
+    action: str          # actor, flow, inline, unfold, config
 
 def _extract_directives(self) -> dict[int, AsyaDirective]:
     directives = {}
@@ -88,7 +88,7 @@ class ActorCall(IROperation):
 ```
 
 **Grouper/Codegen**: Check `directive` field when deciding how to handle
-an operation (actor boundary vs inline vs decompose).
+an operation (actor boundary vs inline vs unfold).
 
 ### Testing
 

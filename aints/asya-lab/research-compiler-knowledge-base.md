@@ -25,7 +25,7 @@ Every symbol the compiler encounters is classified into exactly one of five acti
 
 | Value | Meaning | Body inspected? | Creates boundary? |
 |-------|---------|-----------------|-------------------|
-| `decompose` | Expand function body into current flow's routers | Yes | No |
+| `unfold` | Expand function body into current flow's routers | Yes | No |
 | `inline` | Run code inside router verbatim | No | No |
 | `actor` | Message boundary, separate deployment | No | Yes |
 | `flow` | Sub-flow, compile recursively | Yes | Yes |
@@ -40,7 +40,7 @@ symbol pattern and assigns a `treat-as` classification.
 compiler:
   rules:
     - module: "."
-      treat-as: decompose
+      treat-as: unfold
 
     - module: "*"
       treat-as: inline
@@ -109,7 +109,7 @@ p = handler(p)              # asya: actor
 p = handler(p)              # asya: inline
 p["id"] = str(uuid4())      # asya: inline
 p = sub_pipeline(p)         # asya: flow
-p = handler(p)              # asya: decompose
+p = handler(p)              # asya: unfold
 ```
 
 Follows standard Python tool comment conventions (`# type: ignore`, `# noqa: E501`,
@@ -217,7 +217,7 @@ Not yet implemented (see [zjt4]):
 
 | Situation | Default behavior | Override mechanism |
 |-----------|-----------------|-------------------|
-| Same-package function, no rule | `decompose` (via `"."` rule) | Inline comment or specific rule |
+| Same-package function, no rule | `unfold` (via `"."` rule) | Inline comment or specific rule |
 | External function, no rule | `inline` (via `"*"` rule) | Specific rule |
 | Decorator, no rule | Keep at runtime | `treat-as: config` rule to strip |
 
