@@ -910,6 +910,114 @@
 </tr>
 </tbody>
 </table></div>
+<h3 id="state-ownership">State ownership<a class="headerlink" href="#state-ownership" title="Permanent link">&para;</a></h3>
+<p>The gateway uses two independent state stores with clearly separated ownership:</p>
+<div class="highlight"><pre><span></span><code>                        ┌─────────────────────────────┐
+                        │   gateway-flows ConfigMap   │
+                        │   (flows.yaml — K8s object) │
+                        └──────────────┬──────────────┘
+                                       │ polls every 5 s
+                                       │ (toolstore.Watch)
+                        ┌──────────────▼──────────────┐
+   external client ───► │        api pod              │
+   MCP / A2A / OAuth    │  - MCP dispatch             │
+                        │  - A2A routing              │
+                        │  - agent card               │
+                        └──────────────┬──────────────┘
+                                       │ sends envelope
+                                       ▼
+                                  actor queue
+                                       │
+                                       ▼
+                                  actor pod
+                                       │ POST /mesh/{id}/…
+                        ┌──────────────▼──────────────┐
+                        │        mesh pod             │
+                        │  - progress callbacks       │
+                        │  - final status             │
+                        │  - SSE fan-out              │
+                        └──────────────┬──────────────┘
+                                       │ reads / writes
+                        ┌──────────────▼──────────────┐
+                        │        PostgreSQL           │
+                        │  tasks, task_updates        │
+                        │  oauth_clients, tokens      │
+                        └─────────────────────────────┘
+                                       ▲
+                        ───────────────┘
+                        api pod also reads/writes
+                        (task creation, OAuth, GetTask)
+</code></pre></div>
+<p><strong>ConfigMap</strong> (<code>gateway-flows</code>) — routing configuration:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th></th>
+<th>api pod</th>
+<th>mesh pod</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mounts ConfigMap</td>
+<td>✅ (<code>ASYA_CONFIG_PATH</code>)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Hot-reloads on change</td>
+<td>✅ every 5 s</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Uses for dispatch</td>
+<td>✅ MCP + A2A + agent card</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<p>The ConfigMap is the source of truth for <em>what flows exist</em>. It is seeded by
+Helm at deploy time and can be patched at runtime (e.g., via <code>kubectl patch</code> or
+<code>asya mcp expose</code>) without a pod restart.</p>
+<p><strong>PostgreSQL</strong> — task and auth state:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th></th>
+<th>api pod</th>
+<th>mesh pod</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Creates tasks</td>
+<td>✅ (on MCP/A2A call)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Writes progress</td>
+<td>❌</td>
+<td>✅ (via <code>/mesh/{id}/progress</code>)</td>
+</tr>
+<tr>
+<td>Writes final status</td>
+<td>❌</td>
+<td>✅ (via <code>/mesh/{id}/final</code>)</td>
+</tr>
+<tr>
+<td>Reads task state</td>
+<td>✅ (GetTask, SSE, OAuth)</td>
+<td>✅ (SSE stream)</td>
+</tr>
+<tr>
+<td>Stores OAuth clients/tokens</td>
+<td>✅ (when OAuth enabled)</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both pods connect to the <strong>same</strong> PostgreSQL instance. PostgreSQL is the shared
+coordination point: the api pod creates a task record, then mesh pod workers
+update it as actors report progress.</p>
 <p>Production deployments use <strong>two Helm releases</strong> from the same chart:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># External-facing API gateway (with Ingress)</span>
 helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>deploy/helm-charts/asya-gateway/<span class="w"> </span><span class="se">\</span>
@@ -938,9 +1046,14 @@ and crew actors reach the mesh deployment via in-cluster DNS:
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres-secret</span>
 <span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 </code></pre></div>
-<p>Tool/skill registration is <strong>DB-backed</strong>: tools are registered dynamically via
-the tool store API, not via static YAML. See <code>src/asya-gateway/config/README.md</code>
-for the complete configuration reference.</p>
+<p>Tool/skill registration is <strong>ConfigMap-backed</strong>: flows are declared in
+<code>flows.yaml</code>, mounted into the api pod, and hot-reloaded every 5 seconds by a
+polling watcher (<code>toolstore.Watch</code>). Updating the ConfigMap is the only way to
+add, change, or remove an exposed tool or A2A skill — no restart is needed.</p>
+<p>The Helm chart seeds the initial <code>gateway-flows</code> ConfigMap from
+<code>flowsConfig.flows</code> in <code>values.yaml</code>. After deployment, the ConfigMap can be
+patched directly (e.g., via <code>asya mcp expose</code> or <code>kubectl patch</code>) to add new
+flows without a Helm upgrade.</p>
 <p><strong>See also</strong>: <code>docs/internal/gateway-security.md</code> for all auth-related env vars
 (<code>ASYA_A2A_API_KEY</code>, <code>ASYA_MCP_OAUTH_*</code>, etc.).</p>
 <h2 id="api-endpoints">API Endpoints<a class="headerlink" href="#api-endpoints" title="Permanent link">&para;</a></h2>
@@ -1111,47 +1224,91 @@ Content-Type:<span class="w"> </span>application/json
 <div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/health
 </code></pre></div>
 <p>Response: <code>OK</code></p>
-<h2 id="tool-examples">Tool Examples<a class="headerlink" href="#tool-examples" title="Permanent link">&para;</a></h2>
-<p><strong>Simple tool</strong>:
-<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello</span>
+<h2 id="flow-examples">Flow Examples<a class="headerlink" href="#flow-examples" title="Permanent link">&para;</a></h2>
+<p>Flows are declared in <code>flows.yaml</code> (mounted as a ConfigMap). Each entry is a
+<code>FlowConfig</code> that maps a name to an actor pipeline and declares whether it is
+exposed as an MCP tool, an A2A skill, or both.</p>
+<p><strong>Single-actor MCP tool</strong>:
+<div class="highlight"><pre><span></span><code><span class="nt">flows</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello</span>
+<span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello-actor</span>
 <span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Say hello</span>
-<span class="w">  </span><span class="nt">parameters</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">who</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
-<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">route</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">hello-actor</span><span class="p p-Indicator">]</span>
-</code></pre></div></p>
-<p><strong>Multi-step pipeline</strong>:
-<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image-enhance</span>
-<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enhance image quality</span>
-<span class="w">  </span><span class="nt">parameters</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">image_url</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
-<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">quality</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
-<span class="w">      </span><span class="nt">enum</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">low</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">medium</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">high</span><span class="p p-Indicator">]</span>
-<span class="w">      </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">medium</span>
-<span class="w">  </span><span class="nt">route</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">download-image</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">enhance</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">upload</span><span class="p p-Indicator">]</span>
-</code></pre></div></p>
-<p><strong>Complex parameters</strong>:
-<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">llm-pipeline</span>
-<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Multi-step LLM processing</span>
-<span class="w">  </span><span class="nt">parameters</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">prompt</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
-<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">mcp</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">inputSchema</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
 <span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">temperature</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">number</span>
-<span class="w">          </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.7</span>
-<span class="w">        </span><span class="nt">max_tokens</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">integer</span>
-<span class="w">          </span><span class="nt">default</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1000</span>
-<span class="w">  </span><span class="nt">route</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">validate</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">llm-infer</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">postprocess</span><span class="p p-Indicator">]</span>
+<span class="w">        </span><span class="nt">who</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Name to greet</span>
+<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">who</span><span class="p p-Indicator">]</span>
 </code></pre></div></p>
+<p><strong>Multi-actor pipeline exposed as both MCP and A2A</strong>:
+<div class="highlight"><pre><span></span><code><span class="nt">flows</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image-enhance</span>
+<span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">download-image</span>
+<span class="w">  </span><span class="nt">route_next</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">enhance</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">upload</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enhance image quality</span>
+<span class="w">  </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
+<span class="w">  </span><span class="nt">mcp</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">inputSchema</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">image_url</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">URL of image to enhance</span>
+<span class="w">        </span><span class="nt">quality</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Target</span><span class="nv"> </span><span class="s">quality:</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">medium</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">high&quot;</span>
+<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image_url</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">a2a</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+</code></pre></div></p>
+<p><strong>Fields</strong>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>✅</td>
+<td>Unique flow name; becomes the MCP tool name and A2A skill name</td>
+</tr>
+<tr>
+<td><code>entrypoint</code></td>
+<td>✅</td>
+<td>First actor in the pipeline (queue name without <code>asya-&lt;ns&gt;-</code> prefix)</td>
+</tr>
+<tr>
+<td><code>route_next</code></td>
+<td>❌</td>
+<td>Ordered list of subsequent actors</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>❌</td>
+<td>Human-readable description surfaced in tool/skill listings</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>❌</td>
+<td>Max seconds to wait for completion (default: no limit)</td>
+</tr>
+<tr>
+<td><code>mcp</code></td>
+<td>❌</td>
+<td>Present → exposed as MCP tool; <code>inputSchema</code> is the JSON Schema for arguments</td>
+</tr>
+<tr>
+<td><code>a2a</code></td>
+<td>❌</td>
+<td>Present → exposed as A2A skill</td>
+</tr>
+</tbody>
+</table></div>
 <h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
 <p>The gateway implements protocol-native authentication on external routes and
 network-level isolation for mesh routes. No auth code runs on mesh routes —
@@ -1479,6 +1636,14 @@ NetworkPolicy examples.</p>
             Deployment
         </a>
         
+        
+        <a href="#state-ownership"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            State ownership
+        </a>
+        
+        
 
         
         <a href="#configuration"
@@ -1523,10 +1688,10 @@ NetworkPolicy examples.</p>
         
 
         
-        <a href="#tool-examples"
+        <a href="#flow-examples"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Tool Examples
+            Flow Examples
         </a>
         
 
