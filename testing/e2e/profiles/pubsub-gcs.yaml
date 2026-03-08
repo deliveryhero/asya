@@ -43,7 +43,6 @@ actors:
     emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
 
 crew:
-  gcpProject: test-project
   image:
     tag: latest
     pullPolicy: Never

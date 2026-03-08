@@ -25,10 +25,9 @@ helm.sh/chart: {{ include "asya-test-actors.chart" . }}
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+Pub/Sub spec fields. gcpProject is now platform config set via EnvironmentConfig,
+not an AsyncActor spec field. This helper is kept for backward compatibility but
+renders nothing.
 */}}
 {{- define "asya-test-actors.pubsub-spec" -}}
-{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
 {{- end }}

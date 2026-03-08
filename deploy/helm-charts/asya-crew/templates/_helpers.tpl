@@ -210,12 +210,11 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when gcpProject is set.
+Pub/Sub spec fields. gcpProject is now platform config set via EnvironmentConfig,
+not an AsyncActor spec field. This helper is kept for backward compatibility but
+renders nothing.
 */}}
 {{- define "asya-crew.pubsub-spec" -}}
-{{- if .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
 {{- end }}
 
 {{/*
