@@ -465,7 +465,7 @@ traversal:
 | `${path.to.key}` | Absolute path from config root | `${var.image_registry}` |
 | `${.sibling}` | Sibling at current level | `${.image}` (within same entry) |
 | `${..sibling}` | Go up one level, access sibling | `${..image}` (from `command:` to entry's `image`) |
-| `${arg:name}` | CLI `--arg` or `ASYA_CONFIG_ARG_NAME` env var | `${arg:tag}` |
+| `${arg:name}` | CLI `--arg` or `ASYA_ARG_NAME` env var | `${arg:tag}` |
 | `${dynamic:key}` | Compiler-inferred value (colon resolver) | `${dynamic:actor}` |
 | `${env:VAR}` | Raw environment variable | `${env:HOME}` |
 | `${env:VAR,default}` | Env var with fallback | `${env:REGISTRY,ghcr.io/org}` |
@@ -503,25 +503,25 @@ resolved at command time.
 | Mechanism | Example | Scope |
 |-----------|---------|-------|
 | CLI flag | `--arg tag=v1`, `--set var.image_registry=x` | Single command |
-| `ASYA_CONFIG_*` env var | `ASYA_CONFIG_ARG_TAG=v1`, `ASYA_CONFIG_VAR_IMAGE_REGISTRY=x` | Shell session |
+| `ASYA_*` env var | `ASYA_ARG_TAG=v1`, `ASYA_VAR_IMAGE_REGISTRY=x` | Shell session |
 | Config file (`var:`) | `var: { image_registry: ghcr.io/org }` | Project-wide |
 
-**Env var naming convention**: `ASYA_CONFIG_<NAMESPACE>_<KEY>` where
+**Env var naming convention**: `ASYA_<NAMESPACE>_<KEY>` where
 namespace is `ARG` for runtime args or `VAR` for config constants, key is
 UPPER_SNAKE_CASE of the config key.
 ```bash
 # These are equivalent:
 asya actor build foo --arg tag=v1
-ASYA_CONFIG_ARG_TAG=v1 asya actor build foo
+ASYA_ARG_TAG=v1 asya actor build foo
 
 # Override a var constant from env (useful in CI):
-export ASYA_CONFIG_VAR_IMAGE_REGISTRY=my-registry.io
+export ASYA_VAR_IMAGE_REGISTRY=my-registry.io
 asya actor build foo --arg tag=v1
 ```
 
 **Precedence** (highest wins):
 1. CLI `--set` / `--arg` flags
-2. `ASYA_CONFIG_*` env vars
+2. `ASYA_*` env vars
 3. Config file values (child > parent via walk-up merge)
 
 **Strict resolution**: OmegaConf MUST fail with an error on any unresolved
@@ -530,7 +530,7 @@ referenced but no source provides a value, the command fails immediately:
 ```
 Error: unresolved interpolation '${arg:tag}'
   in: images[0].image = "${var.image_registry}/e-commerce:${arg:tag}"
-  hint: pass --arg tag=<value> or set ASYA_CONFIG_ARG_TAG
+  hint: pass --arg tag=<value> or set ASYA_ARG_TAG
 ```
 
 **Example resolution**:
@@ -837,7 +837,7 @@ asya flow build order-processing --local --arg tag=v1
 asya actor build text-analyzer --remote --arg tag=v1
 
 # Variables via environment (useful in notebooks)
-export ASYA_CONFIG_ARG_TAG=v1
+export ASYA_ARG_TAG=v1
 asya flow build order-processing --local
 ```
 
@@ -911,8 +911,8 @@ asya actor deploy text-analyzer --arg tag=v1
 # 3. flux/argocd picks up and applies
 ```
 
-The `--arg` / `ASYA_CONFIG_ARG_*` substitution is the same mechanism for
-both build and deploy. A DS can `export ASYA_CONFIG_ARG_TAG=experiment-42`
+The `--arg` / `ASYA_ARG_*` substitution is the same mechanism for
+both build and deploy. A DS can `export ASYA_ARG_TAG=experiment-42`
 in their notebook
 and then run both `asya flow build` and `asya flow deploy` without repeating
 the tag.
@@ -1079,20 +1079,20 @@ All `asya actor/flow build/deploy` commands support OmegaConf-style variable
 interpolation in config.yaml fields. See section 3.4 for the full syntax
 reference.
 
-**Setting variables** via CLI flags or `ASYA_CONFIG_*` env vars:
+**Setting variables** via CLI flags or `ASYA_*` env vars:
 ```bash
 # CLI flags (single command)
 asya actor build text-analyzer --arg tag=v1 --arg env=staging
 asya actor build text-analyzer --set var.image_registry=my-registry.io
 
 # Env vars (shell session — survives across commands)
-export ASYA_CONFIG_ARG_TAG=v1
-export ASYA_CONFIG_ARG_ENV=staging
+export ASYA_ARG_TAG=v1
+export ASYA_ARG_ENV=staging
 asya actor build text-analyzer --local
 asya actor deploy text-analyzer  # same variables, no repetition
 
 # Override a var constant from env (useful in CI)
-export ASYA_CONFIG_VAR_IMAGE_REGISTRY=ci-registry.internal
+export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
 asya flow build order-processing --local --arg tag=$CI_SHA
 ```
 
@@ -1112,7 +1112,7 @@ build:
       #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
 ```
 
-**In notebooks**: DS can `export ASYA_CONFIG_ARG_TAG=experiment-42` once
+**In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once
 and then call `asya actor build` and `asya actor deploy` without repeating
 the tag.
 
@@ -1124,7 +1124,7 @@ the tag.
 
 **Precedence** (highest wins, see also section 3.4):
 1. CLI `--set` / `--arg` flags
-2. `ASYA_CONFIG_*` / `ASYA_CONFIG_ARG_*` env vars
+2. `ASYA_*` / `ASYA_ARG_*` env vars
 3. Config file values (child > parent via walk-up merge)
 - `var.*` keys and `${.sibling}` resolve before `${arg:*}` and `${env:*}`
 - `${dynamic:*}` resolves only during compilation — unavailable in build/deploy
