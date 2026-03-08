@@ -5,6 +5,7 @@ tags:
   - type:feature
 ---
 
+
 see `.aint/aints/.closed/error-handling/rfc.md` for resiliency configuration.
 
 Extend Flow DSL compiler (and potentially Actor DSL) to detect retry/timeout decorators on actor handler functions. When detected: (1) strip the decorator for Asya-managed retry (handler runs pure), (2) extract retry config from decorator arguments, (3) generate corresponding `ASYA_RESILIENCY_*` env vars for the AsyncActor CRD. This provides familiar Python syntax for retry configuration while keeping the actual retry at infrastructure level via the sidecar.
