@@ -5,20 +5,18 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: inference
-  namespace: default
+  namespace: asya-e2e
 spec:
   actor: inference
-  transport: rabbitmq
+  transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   scaling:
     enabled: true
     minReplicas: 0
     maxReplicas: 5 # Limited by GPU availability
     queueLength: 2
-
-  timeout:
-    processing: 300 # 5min for model loading
-    gracefulShutdown: 60
 
   workload:
     kind: Deployment

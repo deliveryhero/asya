@@ -1,19 +1,21 @@
-# Simple Actor example with RabbitMQ transport
+# Simple Actor example
 # This is the minimal configuration needed to create an actor
 #
 # Actor name: spec.actor (required, used for queue naming and routing)
-# Queue name: asya-default-hello-actor
+# Queue name: asya-asya-e2e-hello-actor
 
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: hello-actor
-  namespace: default
+  namespace: asya-e2e
 spec:
   # Logical actor identity for queue naming and message routing
   actor: hello-actor
   # Reference to operator-configured transport
-  transport: rabbitmq
+  transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   # Your runtime container
   workload:

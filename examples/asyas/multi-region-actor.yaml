@@ -3,8 +3,12 @@
 # This example demonstrates using spec.actor to deploy the same logical actor
 # across multiple regions/clusters with different resource names.
 #
-# Use case: Deploy "text-processor" actor in EU and US regions, both consuming
-# from the same queue (asya-production-text-processor) but with region-specific
+# IMPORTANT: Deploy each resource to a SEPARATE CLUSTER, not the same cluster.
+# Applying both to the same cluster+namespace causes Deployment name conflicts,
+# because both share spec.actor: text-processor (same queue and Deployment name).
+#
+# Use case: Deploy "text-processor" actor in EU and US clusters, both consuming
+# from their own queue (asya-{namespace}-text-processor) but with region-specific
 # resource names for cluster management.
 #
 # Key concepts:
@@ -16,7 +20,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: text-processor-eu
-  namespace: production
+  namespace: asya-e2e
   labels:
     # Flow label for grouping related actors
     asya.sh/flow: document-processing
@@ -24,9 +28,11 @@ metadata:
     region: eu-central-1
 spec:
   # Logical actor name - used for queue naming and routing
-  # Queue: asya-production-text-processor
+  # Queue: asya-asya-e2e-text-processor
   actor: text-processor
   transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   scaling:
     enabled: true
@@ -64,7 +70,7 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: text-processor-us
-  namespace: production
+  namespace: asya-e2e
   labels:
     asya.sh/flow: document-processing
     region: us-east-1
@@ -72,6 +78,8 @@ spec:
   # Same logical actor name - both regions consume from same queue
   actor: text-processor
   transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   scaling:
     enabled: true

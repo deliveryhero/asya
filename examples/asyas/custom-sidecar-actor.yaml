@@ -5,15 +5,17 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: custom-sidecar-actor
-  namespace: default
+  namespace: asya-e2e
 spec:
   actor: custom-sidecar-actor
-  transport: rabbitmq
+  transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   # Custom sidecar configuration
   sidecar:
-    # Use a specific version
-    image: ghcr.io/deliveryhero/asya-sidecar:v2.1.0
+    # Pin to a specific version (replace with an actual published tag)
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
     imagePullPolicy: Always
 
     # Custom resource limits
@@ -35,11 +37,6 @@ spec:
       value: http://jaeger-collector:14268/api/traces
     - name: CUSTOM_TIMEOUT
       value: "30"
-
-  # Custom timeouts
-  timeout:
-    processing: 600
-    gracefulShutdown: 60
 
   scaling:
     enabled: true

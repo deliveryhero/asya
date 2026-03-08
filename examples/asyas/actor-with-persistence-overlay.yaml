@@ -18,10 +18,12 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: data-processor
-  namespace: default
+  namespace: asya-e2e
 spec:
   actor: data-processor
   transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   # Reference shared persistence overlay created by asya-crew chart
   overlays: [asya-persistence-s3]

@@ -5,10 +5,12 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: fixed-replicas-actor
-  namespace: default
+  namespace: asya-e2e
 spec:
   actor: fixed-replicas-actor
-  transport: rabbitmq
+  transport: sqs
+  region: us-east-1
+  providerConfigRef: localstack
 
   # Disable KEDA autoscaling
   scaling:
