@@ -487,7 +487,7 @@ retry_if_exception_type(exception_types=<class 'Exception'>)
    `inspect` + the same `_fqn` logic.
 
    Sidecar change: `isNonRetryableError` becomes `shouldRetry` checking both
-   lists (mutually exclusive). See aint [retryableErrors-sidecar].
+   lists (mutually exclusive). See aint [w76v].
 
 2. **Compile-time dependency requirement**: Rules with `where:` trees require
    the matched package to be installed at compile time for `inspect.signature`.
