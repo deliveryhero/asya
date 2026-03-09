@@ -159,8 +159,9 @@ class TestCompositionUsesSpecActor:
         for step in steps_with_templates:
             template = step["input"]["inline"]["template"]
             if "$actorName" in template:
-                assert "$xr.spec.actor" in template, \
-                    f"Step '{step['step']}' should use $xr.spec.actor"
+                uses_spec_actor = "$xr.spec.actor" in template or "$xrSpec.actor" in template
+                assert uses_spec_actor, \
+                    f"Step '{step['step']}' should use $xr.spec.actor or $xrSpec.actor"
                 assert 'asya.sh/actor") | default' not in template, \
                     f"Step '{step['step']}' should not fall back to label"
 
