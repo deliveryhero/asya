@@ -47,7 +47,7 @@ subdirectory creates a sub-project (useful for monorepos with team boundaries).
 ```
 my-project/
 ├── .asya/                        # Project root
-│   ├── config.yaml               # root: var, build, compile, secrets
+│   ├── config.yaml               # root: var, build, compile, secrets, contexts, secrets, contexts
 │   ├── config.template.yaml      # → merged under template: key
 │   ├── config.compiler.yaml      # → merged under compiler: key
 │   └── manifests/                # Generated K8s manifests
@@ -308,7 +308,7 @@ message.
 
 ```
 .asya/
-├── config.yaml               # root: var, build, compile
+├── config.yaml               # root: var, build, compile, secrets, contexts
 ├── config.template.yaml      # → merged under template: key
 └── config.compiler.yaml      # → merged under compiler: key
 ```

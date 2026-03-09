@@ -218,6 +218,7 @@ reserved for sidecar-to-gateway communication.
 | `asya actor build` | Build tool | Opaque shell command from config.yaml |
 | `asya compiler-rule *` | Local | Reads/writes config.compiler.yaml |
 | `asya secret *` | Local | Reads/writes config.yaml secrets: |
+| `asya context *` | Local | Reads/writes config.yaml contexts: / default_context: |
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya msg trace <id>` | Observability | OpenTelemetry trace query |
 
@@ -294,11 +295,96 @@ exits 0 (idempotent).
 
 ## 6. Context System
 
-All commands respect context, resolved in this order (highest priority first):
+A context is a named profile that bundles everything needed to reach a
+deployment target: cluster, namespace, gateway URL, and permissions.
+
+### 6.1 Context Definition
+
+```yaml
+# .asya/config.yaml
+contexts:
+  stg:
+    type: kubernetes
+    kubecontext: my-stg-cluster     # kubeconfig context name (required)
+    namespace: "${var.namespace}"    # K8s namespace
+    gateway: https://gw.stg.internal
+  prod:
+    type: kubernetes
+    kubecontext: my-prod-cluster
+    namespace: prod
+    gateway: https://gw.prod.internal
+    readonly: true                  # blocks deploy/undeploy, allows status/logs/call
+  local:
+    type: docker
+    gateway: http://localhost:8080  # optional, if gateway runs in compose
+
+default_context: stg
+```
+
+### 6.2 Context Types
+
+| Type | `deploy`/`undeploy` | `status` | `logs` | `list` DEPLOYED | `call`/`stream` |
+|------|---------------------|----------|--------|-----------------|-----------------|
+| `kubernetes` | `kubectl apply/delete` | `kubectl get asyncactor` | `kubectl logs -l` | `kubectl get asyncactor` | Gateway URL |
+| `docker` | `docker compose up/down` | `docker compose ps` | `docker compose logs` | `docker compose ps` | Gateway URL |
+
+**`kubernetes`** fields:
+- `kubecontext` (required): kubeconfig context name
+- `namespace` (required): K8s namespace
+- `gateway` (optional): gateway URL for `call`/`stream`
+- `readonly` (optional, default `false`): blocks deploy/undeploy/promote
+
+**`docker`** fields:
+- `compose_file` (optional, default `docker-compose.yaml`): path to compose file
+- `gateway` (optional): gateway URL, typically `http://localhost:<port>`
+
+### 6.3 Resolution Order
+
+Highest priority first:
 
 1. `--context` flag on the command
 2. `ASYA_CONTEXT` environment variable
-3. Default context in config
+3. `default_context` field in config.yaml
+
+**No auto-detection fallback.** If no context is resolved, commands that need
+a deployment target fail with:
+```
+Error: no context configured
+  hint: add contexts: section to .asya/config.yaml
+  hint: or pass --context=<name>
+  see: asya init --help
+```
+
+Commands that don't need a context (compile, build, compiler-rule, secret)
+work without one.
+
+### 6.4 CLI
+
+```bash
+asya context list                  # show all contexts, mark active
+asya context use <name>            # set default_context in config.yaml
+```
+
+`asya context list` output:
+```
+  NAME    TYPE         NAMESPACE    GATEWAY                      READONLY
+* stg     kubernetes   team-one     https://gw.stg.internal      no
+  prod    kubernetes   prod         https://gw.prod.internal     yes
+  local   docker       —            http://localhost:8080         no
+```
+
+`asya context use prod` writes `default_context: prod` to config.yaml.
+Committed to git = team-shared default. Per-developer override via
+`ASYA_CONTEXT` env var.
+
+### 6.5 Read-Only Enforcement
+
+Contexts with `readonly: true` block write operations:
+- `asya flow deploy/undeploy` → error
+- `asya actor deploy/undeploy` → error
+- `asya promote` → error (production writes happen via GitOps PR)
+
+Read operations always allowed: `status`, `logs`, `list`, `call`, `stream`.
 
 ---
 
@@ -313,7 +399,7 @@ All files are loaded into one OmegaConf DictConfig (the library, not
 
 ```
 .asya/
-├── config.yaml              # root: variables, build mappings, compile settings
+├── config.yaml              # root: var, build, compile, secrets, contexts
 ├── config.template.yaml     # → merged under template: key
 └── config.compiler.yaml     # → merged under compiler: key
 ```
@@ -353,6 +439,24 @@ secrets:
   DB_PASSWORD:
     secret: database-creds
     key: password
+
+contexts:
+  stg:
+    type: kubernetes
+    kubecontext: my-stg-cluster
+    namespace: "${var.namespace}"
+    gateway: https://gw.stg.internal
+  prod:
+    type: kubernetes
+    kubecontext: my-prod-cluster
+    namespace: prod
+    gateway: https://gw.prod.internal
+    readonly: true
+  local:
+    type: docker
+    gateway: http://localhost:8080
+
+default_context: stg
 ```
 
 ### 7.3 config.template.yaml
