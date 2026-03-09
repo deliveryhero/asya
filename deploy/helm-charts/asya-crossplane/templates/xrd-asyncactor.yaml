@@ -215,18 +215,6 @@ spec:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
 
-                irsa:
-                  type: object
-                  description: IRSA (IAM Roles for Service Accounts) configuration
-                  properties:
-                    enabled:
-                      type: boolean
-                      description: Enable ServiceAccount with IRSA annotation
-                      default: true
-                    roleArn:
-                      type: string
-                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
-
                 stateProxy:
                   type: array
                   description: State proxy mount configurations for persistent state access
