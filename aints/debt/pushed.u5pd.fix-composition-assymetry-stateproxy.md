@@ -1,4 +1,4 @@
----
+j---
 title: Simplify flavor function and fix stateProxy asymmetry
 priority: 2 # medium
 assignee: Artem Yushkovskiy
