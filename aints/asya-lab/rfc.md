@@ -406,6 +406,9 @@ env entries. The compiler constructs this list from:
 - **Three resolver families**: `${var.*}` for config constants (native
   OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
   (custom resolvers). Dot = in config, colon = injected.
+- **Template vs overlays**: Same as XRD merge — overlays applied first (in
+  order, last wins), then template body applies on top. Template values are
+  the user's explicit intent and override overlay defaults.
 - **Output modes**: `manifests` (raw AsyncActor XRs), `helm` (values.yaml),
   `kustomize` (patches). No custom plugins needed.
 - **`project_root: "."`**: Auto-resolved to absolute path at config load time

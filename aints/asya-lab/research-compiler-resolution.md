@@ -733,6 +733,19 @@ Resiliency values (`spec.resiliency.*`) are **not** `${dynamic:*}` resolvers —
 they are placed directly at XR spec paths via compiler rules
 (`assign-to: spec.*`). See `research-compiler-knowledge-base.md`.
 
+#### Merge precedence for template values
+
+Same semantics as Crossplane XRD compositions — overlays first, user last:
+
+1. **Overlays** applied in order (last wins) — infrastructure defaults
+   (transport, scaling, GPU, resource limits)
+2. **Template body** applied on top — user's explicit per-project values
+
+The template body MAY contain static defaults (e.g., `transport:`,
+`scaling:`). These are the user's explicit intent and override any overlay
+defaults. Overlays provide sensible platform defaults; the template body is
+the final authority.
+
 #### Output modes
 
 The `compile.mode` field determines output format:
@@ -1265,11 +1278,13 @@ the tag.
     directly to XR spec paths via `assign-to:` rules, not through env vars.
     See `research-compiler-knowledge-base.md`.
 
-16. **Infrastructure defaults ownership**: Overlays handle infrastructure
-    defaults (transport, scaling, GPU) at K8s deploy time. The
-    `config.template.yaml` also has static defaults (transport, scaling).
-    These overlap — should the template contain ONLY dynamic values
-    (`${dynamic:*}`) and leave all static defaults to overlays?
+16. ~~**Infrastructure defaults ownership**~~: **Resolved**. Same semantics as
+    Crossplane XRD compositions: overlays are applied first (in order, last
+    wins), then user template values apply on top. The template body MAY
+    contain static defaults (transport, scaling) — they act as the user's
+    explicit intent and override any overlay defaults. This means overlays
+    provide sensible infrastructure defaults, and the template body is the
+    final authority for per-project overrides.
 
 ---
 
