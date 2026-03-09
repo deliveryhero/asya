@@ -116,8 +116,10 @@ Commands are organized by domain abstractions: flow, actor, msg.
 ### 5.1 Flow Operations
 
 ```bash
-asya flow compile <flow.py>          # stage 1: Python -> compiled manifests (intermediate)
-asya flow render <flow>              # stage 2: compiled manifests -> target artifacts
+asya flow compile <flow.py>          # Python -> base/*.yaml + routers.py (kustomize base)
+asya flow edit <actor>               # open kustomize patch for actor (create if needed)
+asya flow show <flow>                # print effective manifests (kustomize build)
+asya flow compose <flow>             # generate docker-compose.yaml from effective manifests
 asya flow list                       # list all flows
 asya flow expose <flow>              # register with gateway
 asya flow call <flow> '{params}'     # call via gateway
@@ -139,7 +141,7 @@ asya actor status <actor>            # replicas, queue depth
 asya actor logs <actor>              # stream logs
 asya actor build <actor>             # build actor image
 asya actor compile --handler <fqn>   # generate compiled manifest for standalone actor
-asya actor render <actor>            # render compiled manifest -> target artifact
+asya actor edit <actor>              # open kustomize patch for actor
 # asya actor lock <actor>              # lock actor image (not now - after v0)
 ```
 
@@ -185,12 +187,37 @@ managed separately (kubectl, Vault, ExternalSecrets).
 All commands that generate or modify files refuse to overwrite unless the
 target is git-committed. Prevents accidental loss of manual edits.
 
-- `asya flow compile` → won't overwrite dirty routers.py or manifests
+- `asya flow compile` → won't overwrite dirty routers.py or base/ manifests
+- `asya flow compose` → won't overwrite dirty docker-compose.yaml
 - `asya compiler-rule add` → won't overwrite dirty config.compiler.yaml
 - `asya secret create` → won't overwrite dirty config.yaml
 - Override with `--force`
 
 All file-generating commands show the git diff of their changes.
+
+### 5.7 Command Transparency
+
+All CLI commands that execute external tools print what they run, like
+`set -x` in shell. Commands are printed to stderr before execution:
+
+```
+$ asya flow deploy order-processing --context=k8s-stg
++ kustomize build .asya/manifests/order-processing/
++ kubectl apply -f - --context=stg-cluster -n e-commerce-stg
+asyncactor.asya.sh/validate-order configured
+asyncactor.asya.sh/router-start-order-processing configured
+
+$ asya flow compose order-processing
++ kustomize build .asya/manifests/order-processing/
+[compose] Translating 4 AsyncActor XRs → .asya/compose/order-processing.yaml
+[compose] Wrote .asya/compose/order-processing.yaml
+
+$ asya flow deploy order-processing --context=local
++ docker compose -f .asya/compose/order-processing.yaml up -d
+```
+
+This makes every CLI action auditable and reproducible — the user can
+copy-paste the printed commands to run them manually.
 
 ### 5.7 Project / Infrastructure
 
