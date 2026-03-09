@@ -1,9 +1,14 @@
 ---
 title: "Phase 1: Remove leaked provider fields from XRD"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd
+  - branch:xrd-v2/8gc6.phase-1-remove-leaked-provider-fields-from-xrd
 dependencies:
   - u5pd
 ---
+
 
 ## Summary
 
