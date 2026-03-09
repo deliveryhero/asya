@@ -568,9 +568,9 @@ build:
       remote: "${.local} && docker push ${..image}"
 
 compile:
-  mode: manifests                               # manifests | helm | kustomize
+  template: .asya/config.template.yaml
   routers: "./src/compiled/${dynamic:flow}"      # where routers.py goes
-  manifests: ".asya/manifests/${dynamic:flow}"   # where CRDs go
+  manifests: ".asya/manifests/${dynamic:flow}"   # where base/*.yaml goes
 
 secrets:
   OPENAI_API_KEY:
@@ -594,6 +594,7 @@ contexts:
     readonly: true
   local:
     type: docker
+    compose_output: ".asya/compose/"
     gateway: http://localhost:8080
 
 default_context: stg
@@ -601,9 +602,10 @@ default_context: stg
 
 ### 7.3 config.template.yaml
 
-Standalone YAML that looks exactly like the final output. On disk it's a raw
-CRD; after loading it's available as `config.template`. The `${dynamic:*}` holes
-are filled per-actor during compilation.
+Standalone YAML that looks exactly like the final output — a flat AsyncActor
+XR (v1alpha2 spec, see `xrd-v2/rfc.md`). On disk it's a raw CRD; after
+loading it's available as `config.template`. The `${dynamic:*}` holes are
+filled per-actor during compilation.
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -611,27 +613,44 @@ kind: AsyncActor
 metadata:
   name: "${dynamic:actor}"
   namespace: "${var.namespace}"
+  labels:
+    asya.sh/flow: "${dynamic:flow}"
+    asya.sh/flow-role: "${dynamic:flow_role}"
 spec:
   actor: "${dynamic:actor}"
+  image: "${dynamic:image}"
+  handler: "${dynamic:handler}"
   transport: "${var.transport}"
+  env: "${dynamic:env}"
   scaling:
     enabled: true
     minReplicas: 0
     maxReplicas: "${arg:max_replicas,5}"
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: "${dynamic:image}"
-          env: "${dynamic:env}"
 ```
+
+The template uses the **flat XRD v2 spec** — `image`, `handler`, `env` are
+top-level fields under `spec`, not buried inside
+`workload.template.spec.containers[]`. This makes the template trivially
+readable and directly maps to what `asya flow edit` exposes.
 
 `${dynamic:env}` is an OmegaConf subtree resolver — it returns the full K8s
 env list (including `ASYA_HANDLER`, router mappings, and env vars detected from
 handler code). See `research-compiler-knowledge-base.md` for how env vars are
 detected and sourced via `secrets:`.
+
+**Platform engineers customize the template** to set infra-tier defaults:
+```yaml
+# Platform team adds to template:
+spec:
+  # ...
+  resiliency:
+    retry:
+      policy: exponential
+      maxAttempts: "${var.default_retry_attempts}"
+```
+
+These defaults become part of `base/` and can be overridden per-actor via
+kustomize patches.
 
 ### 7.4 Resolver Syntax
 
@@ -700,8 +719,10 @@ env entries. The compiler constructs this list from:
 - **Template vs overlays**: Same as XRD merge — overlays applied first (in
   order, last wins), then template body applies on top. Template values are
   the user's explicit intent and override overlay defaults.
-- **Output modes**: `manifests` (raw AsyncActor XRs), `helm` (values.yaml),
-  `kustomize` (patches). No custom plugins needed.
+- **Kustomize-native**: Compile stamps XRs directly into `base/`. No render
+  step, no helm values, no abstract IR. User edits go into kustomize patches.
+  `kustomize build` merges base + patches → effective manifests. Docker Compose
+  is generated explicitly from effective manifests (`asya flow compose`).
 - **`project_root: "."`**: Auto-resolved to absolute path at config load time
   (relative to config file's parent directory). OmegaConf has no shell command
   support — `"."` resolution is done by the config loader before merge.
