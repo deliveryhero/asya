@@ -607,7 +607,7 @@ spec:
 
 
 @pytest.mark.core
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(450)
 def test_asyncactor_status_conditions(e2e_helper):
     """
     E2E: Test AsyncActor status conditions are updated correctly.
@@ -655,7 +655,7 @@ spec:
         assert wait_for_asyncactor_ready(
             "test-status",
             namespace=e2e_helper.namespace,
-            timeout=180,
+            timeout=270,  # pubsub needs extra time for GCP subscription provisioning + KEDA stabilization
         ), "AsyncActor should reach Ready phase"
 
         actor = kubectl_get("asyncactor", "test-status", namespace=e2e_helper.namespace)
