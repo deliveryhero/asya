@@ -913,6 +913,12 @@ instead (`${env:DOCKER_CACHE,}` resolves to empty string if unset).
 e_commerce.validate.validate_order --arg tag=v1`. The generated manifest
 IS the persistent artifact — no actor list in config.yaml.
 
+**Discovery for list commands**: `asya flow list` and `asya actor list` show
+a unified outer-join table across three sources: (1) local `.py` files with
+`@actor`/`@flow` decorators (matched via compiler rules), (2) compiled
+manifests in `.asya/manifests/`, (3) deployed state in current context
+(K8s/Docker). Decorator scan walks `var.project_root`. See rfc.md section 5.9.
+
 **Verbose output**:
 ```
 $ asya actor build text-analyzer --local --arg tag=v1

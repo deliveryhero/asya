@@ -209,7 +209,8 @@ reserved for sidecar-to-gateway communication.
 |---------|---------|---------------|
 | `asya flow call <flow>` | Gateway | MCP `tools/call` or A2A `message/send` |
 | `asya flow stream <id>` | Gateway | MCP streamable HTTP or A2A subscribe |
-| `asya flow list` | Gateway or K8s | MCP `tools/list` / kubectl |
+| `asya flow list` | Local + context | Decorator scan + manifests + K8s/Docker |
+| `asya actor list` | Local + context | Manifests + K8s/Docker |
 | `asya flow status <flow>` | K8s API | `kubectl get asya -l asya.sh/flow=<flow>` |
 | `asya flow logs <flow>` | K8s API | `kubectl logs -l asya.sh/flow=<flow>` |
 | `asya flow deploy/undeploy` | K8s API | `kubectl apply/delete` |
@@ -220,17 +221,63 @@ reserved for sidecar-to-gateway communication.
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya msg trace <id>` | Observability | OpenTelemetry trace query |
 
-### 5.9 Protocol Handling
+### 5.9 List Commands (Discovery)
+
+`asya flow list` and `asya actor list` show a unified outer-join table across
+three data sources: local source files, compiled manifests, and deployed state
+in the current context.
+
+**Flow discovery**: Scan all `.py` files under `var.project_root` for `@actor`
+and `@flow` decorators. Decorator names are matched against compiler rules
+(`treat-as: actor`, `treat-as: flow`). Later: a shipped `asya` Python package
+will provide pre-built decorators.
+
+**Data sources** (joined by name):
+
+| Column | Source | Available when |
+|--------|--------|----------------|
+| SOURCE | `.py` files with `@flow`/`@actor` decorators | Always (pre-compile) |
+| COMPILED | `.asya/manifests/<flow>/` YAML files | After `asya flow compile` |
+| DEPLOYED | K8s `asyncactor` resources or Docker containers | After `asya deploy` |
+
+**Default output** (`asya flow list`):
+```
+FLOW               SOURCE            NUM_ACTORS    NUM_ROUTERS   DEPLOYED (k8s-stg)
+order-processing   flows/order.py    3             8             11/11 Running
+image-pipeline     flows/image.py    2             5             —
+new-experiment     flows/exp.py      —             —             —
+legacy-flow        —                 —             —             2/2 Running
+```
+
+COMPILED shows `N+M` = N handler actors + M generated routers.
+
+**Default output** (`asya actor list`):
+```
+ACTOR              SOURCE              FLOW               DEPLOYED (k8s-stg)
+validate-order     path/actor1.py      order-processing   1/1 Running
+express-handler    path/actor2.py      order-processing   0/0 Napping
+router-start       path/actor3.py      order-processing   1/1 Running
+old-actor          path/actor4.py      —                  1/1 Running
+```
+
+**Wide output** (`-o wide`) adds MANIFEST column (full path to manifest file)
+and additional detail (handler FQN, image ref).
+
+**Deployed column** queries the current context — K8s (kubeconfig) or Docker
+(local compose). Rows with no local source/manifest but deployed = managed
+outside Asya.
+
+### 5.10 Protocol Handling
 
 `asya flow call` and `asya flow expose` accept a `--protocol=mcp|a2a` flag.
 Default is configurable. DS should not need to care about MCP vs A2A.
 
-### 5.10 Log Display
+### 5.11 Log Display
 
 `asya flow logs <flow>` aggregates logs from all actors in the flow, prefixed
 with a colored actor name (like `docker compose logs`).
 
-### 5.11 Deploy/Undeploy Semantics
+### 5.12 Deploy/Undeploy Semantics
 
 Behavior depends on active context type:
 
