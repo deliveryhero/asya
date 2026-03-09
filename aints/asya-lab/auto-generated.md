@@ -2,7 +2,7 @@
 # git-aint: 1 backlog | 1 merged
 
 ## asya-lab/
-> rfc.md: 986 lines
+> rfc.md: 1068 lines
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
