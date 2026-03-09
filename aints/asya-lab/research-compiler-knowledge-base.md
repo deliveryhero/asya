@@ -495,8 +495,7 @@ retry_if_exception_type(exception_types=<class 'Exception'>)
    mypy/pyright requiring deps installed. Natural since the flow file already
    imports the package.
 
-3. **Context manager scope semantics**: When `asyncio.timeout(30)` wraps multiple
-   actor calls, does the extracted timeout apply to each actor individually or to
-   the scope as a whole? Current design: per-actor (each actor in the scope gets
-   the extracted config). Flow-level timeout is handled by the gateway's
-   `deadline_at` mechanism.
+3. ~~**Context manager scope semantics**~~: **Resolved**. Per-scope, not
+   per-actor. `asyncio.timeout(30)` wrapping 3 actors = 30s total for the
+   pipeline segment, not 30s per actor. All compiler rules apply per scope:
+   context manager body, decorated function, or single call. See aint [ia37].
