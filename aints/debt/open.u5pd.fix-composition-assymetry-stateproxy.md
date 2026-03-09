@@ -123,15 +123,44 @@ not emit a `stateProxy` key. Update the example actor manifest.
 
 ## Recommended fix
 
-**Option C** is the most architecturally consistent with the existing model:
-flavors resolve configuration, compositions materialise it into Kubernetes
-resources. Extending the Go template to read `stateProxy` from `$resolvedSpec`
-and emit the connector container + volume + env keeps the injector focused on
-the Asya sidecar (transport) and avoids XR mutation.
+**Option A — patch stateProxy from context back onto the XR spec.**
 
-**Option D** is the pragmatic short-term fix if full stateProxy flavor support
-is not a near-term priority: remove the dead code, update the example, update
-the docs. Can be combined with Option C later.
+### Why Option A wins
+
+The injector already does stateProxy injection correctly — it adds containers,
+volumes, env vars to pods at admission time (`state_proxy.go`). The flavor
+pipeline already merges `stateProxy` into `asya/resolved-spec`. The only missing
+piece is a `ToCompositeFieldPath` patch that writes the resolved `stateProxy`
+back onto `spec.stateProxy`, where the injector already reads it.
+
+The fix is tiny:
+1. Add `"stateProxy"` to `extractActorInlineSpec` field list in `fn.go` — so
+   actor-inline stateProxy participates in actor-wins merge (1 line).
+2. Add a `ToCompositeFieldPath` patch in each composition template to write
+   `resolved-spec.stateProxy` to `spec.stateProxy` (few lines per template).
+3. Zero changes to the injector.
+
+### Why Option C is worse
+
+Moving stateProxy injection into the composition means generating container
+specs (image, env vars, volume mounts, resource limits) inside Go templates:
+- Painful to write and debug in Helm/Go templating.
+- Duplicates well-tested logic in the injector (`state_proxy.go`).
+- Blurs the clean boundary: compositions handle Deployments/ScaledObjects at
+  structural level, the injector handles container-level mutation.
+
+### Why Option D is too conservative
+
+`persistence-overlay.yaml` exists so platform teams can standardize stateProxy
+config (connector image, bucket, region, creds) across actors. Dropping it means
+every actor copy-pastes that block — defeating the purpose of flavors.
+
+### Subtlety
+
+`ToCompositeFieldPath` patches to `spec.*` are less common than `status.*` but
+fully supported by Crossplane. The XR spec becomes a "resolved" view after
+composition — the correct mental model for "what the actor looks like after
+platform defaults are applied."
 
 ## Affected files
 
