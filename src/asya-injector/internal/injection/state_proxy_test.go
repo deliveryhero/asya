@@ -319,7 +319,6 @@ func TestInjectStateProxy_ViaInject(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 		StateProxy: []StateProxyMount{
 			{
 				Name:           "session",

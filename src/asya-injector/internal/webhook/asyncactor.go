@@ -145,17 +145,6 @@ func extractActorConfig(asyncActor *unstructured.Unstructured) (*injection.Actor
 		}
 	}
 
-	// Extract region for SQS
-	config.Region, _, _ = unstructured.NestedString(spec, "region")
-	if config.Region == "" {
-		config.Region = "us-east-1"
-	}
-
-	// Extract GCP project for Pub/Sub
-	if gcpProject, ok := spec["gcpProject"].(string); ok {
-		config.GCPProject = gcpProject
-	}
-
 	// Extract resiliency configuration
 	config.Resiliency = extractResiliencyConfig(spec)
 

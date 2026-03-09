@@ -43,7 +43,6 @@ actors:
     emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
 
 crew:
-  gcpProject: test-project
   image:
     tag: latest
     pullPolicy: Never
@@ -141,4 +140,5 @@ injector:
     sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
     sidecarImagePullPolicy: Never
     pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
+    gcpProjectId: test-project
     gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080

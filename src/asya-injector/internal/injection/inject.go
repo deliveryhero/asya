@@ -173,7 +173,7 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 	if actorConfig.Transport == "sqs" {
 		env = append(env, corev1.EnvVar{
 			Name:  "ASYA_AWS_REGION",
-			Value: actorConfig.Region,
+			Value: i.config.AWSRegion,
 		})
 		if i.config.SQSEndpoint != "" {
 			env = append(env, corev1.EnvVar{
@@ -201,10 +201,10 @@ func (i *Injector) buildSidecarEnv(actorConfig *ActorConfig) []corev1.EnvVar {
 			})
 		}
 	} else if actorConfig.Transport == "pubsub" {
-		if actorConfig.GCPProject != "" {
+		if i.config.GCPProject != "" {
 			env = append(env, corev1.EnvVar{
 				Name:  "ASYA_PUBSUB_PROJECT_ID",
-				Value: actorConfig.GCPProject,
+				Value: i.config.GCPProject,
 			})
 		}
 		if i.config.PubSubEndpoint != "" {

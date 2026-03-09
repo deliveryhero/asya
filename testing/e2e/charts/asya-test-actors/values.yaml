@@ -7,7 +7,6 @@
 transport: rabbitmq
 
 # GCP project ID (required for pubsub transport)
-gcpProject: ""
 
 # Common workload configuration for all actors
 workload:

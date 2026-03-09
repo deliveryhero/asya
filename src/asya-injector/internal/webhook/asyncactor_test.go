@@ -142,7 +142,6 @@ func TestExtractActorConfig(t *testing.T) {
 			SidecarImagePullPolicy string
 			SidecarEnvNames        []string
 			SidecarEnvValues       []string
-			Region                 string
 		})
 	}{
 		{
@@ -163,13 +162,9 @@ func TestExtractActorConfig(t *testing.T) {
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
 				SidecarEnvValues       []string
-				Region                 string
 			}) {
 				if cfg.Transport != "sqs" {
 					t.Errorf("expected transport 'sqs', got '%s'", cfg.Transport)
-				}
-				if cfg.Region != "us-east-1" {
-					t.Errorf("expected region 'us-east-1', got '%s'", cfg.Region)
 				}
 			},
 		},
@@ -179,7 +174,6 @@ func TestExtractActorConfig(t *testing.T) {
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"transport": "rabbitmq",
-						"region":    "eu-west-1",
 						"workload": map[string]interface{}{
 							"handler": "my_module.process",
 						},
@@ -203,13 +197,9 @@ func TestExtractActorConfig(t *testing.T) {
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
 				SidecarEnvValues       []string
-				Region                 string
 			}) {
 				if cfg.Transport != "rabbitmq" {
 					t.Errorf("expected transport 'rabbitmq', got '%s'", cfg.Transport)
-				}
-				if cfg.Region != "eu-west-1" {
-					t.Errorf("expected region 'eu-west-1', got '%s'", cfg.Region)
 				}
 				if cfg.Handler != "my_module.process" {
 					t.Errorf("expected handler 'my_module.process', got '%s'", cfg.Handler)
@@ -256,7 +246,6 @@ func TestExtractActorConfig(t *testing.T) {
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
 				SidecarEnvValues       []string
-				Region                 string
 			}) {
 				if cfg.SidecarImage != "custom:v1" {
 					t.Errorf("expected sidecarImage 'custom:v1', got '%s'", cfg.SidecarImage)
@@ -298,7 +287,6 @@ func TestExtractActorConfig(t *testing.T) {
 				SidecarImagePullPolicy string
 				SidecarEnvNames        []string
 				SidecarEnvValues       []string
-				Region                 string
 			}) {
 				if cfg.SidecarImagePullPolicy != "" {
 					t.Errorf("expected empty imagePullPolicy, got '%s'", cfg.SidecarImagePullPolicy)
@@ -345,7 +333,6 @@ func TestExtractActorConfig(t *testing.T) {
 					SidecarImagePullPolicy string
 					SidecarEnvNames        []string
 					SidecarEnvValues       []string
-					Region                 string
 				}{
 					Transport:              cfg.Transport,
 					QueueURL:               cfg.QueueURL,
@@ -354,7 +341,6 @@ func TestExtractActorConfig(t *testing.T) {
 					SidecarImagePullPolicy: cfg.SidecarImagePullPolicy,
 					SidecarEnvNames:        envNames,
 					SidecarEnvValues:       envValues,
-					Region:                 cfg.Region,
 				}
 				tt.checks(t, &check)
 			}
@@ -483,7 +469,6 @@ func TestExtractActorConfig_SecretRefs(t *testing.T) {
 				Object: map[string]interface{}{
 					"spec": map[string]interface{}{
 						"transport":  "sqs",
-						"region":     "us-east-1",
 						"secretRefs": tt.secretRefsSpec,
 					},
 					"status": map[string]interface{}{

@@ -57,8 +57,8 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
-            {{`{{- $providerConfigRef := $xr.spec.providerConfigRef | default "`}}{{ .Values.awsProviderConfig.name }}{{`" -}}`}}
+            {{`{{- $region := "`}}{{ .Values.awsRegion | default "us-east-1" }}{{`" -}}`}}
+            {{`{{- $providerConfigRef := "`}}{{ .Values.awsProviderConfig.name }}{{`" -}}`}}
             apiVersion: sqs.aws.upbound.io/v1beta1
             kind: Queue
             metadata:
@@ -101,13 +101,7 @@ spec:
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $irsaEnabled := true -}}`}}
-            {{`{{- if hasKey $xr.spec "irsa" -}}`}}
-              {{`{{- if hasKey $xr.spec.irsa "enabled" -}}`}}
-                {{`{{- $irsaEnabled = $xr.spec.irsa.enabled -}}`}}
-              {{`{{- end -}}`}}
-            {{`{{- end -}}`}}
-            {{`{{- if $irsaEnabled -}}`}}
+
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
@@ -131,14 +125,9 @@ spec:
                       app.kubernetes.io/part-of: asya
                       app.kubernetes.io/managed-by: crossplane
                     annotations:
-                      {{`{{- if and (hasKey $xr.spec "irsa") (hasKey $xr.spec.irsa "roleArn") }}`}}
-                      eks.amazonaws.com/role-arn: {{`{{ $xr.spec.irsa.roleArn }}`}}
-                      {{`{{- else }}`}}
                       eks.amazonaws.com/role-arn: {{ .Values.irsa.roleArnPattern }}
-                      {{`{{- end }}`}}
               providerConfigRef:
                 name: {{ .Values.kubernetesProviderConfig.name }}
-            {{`{{- end }}`}}
     {{- end }}
 
     # Create KEDA TriggerAuthentication for SQS scaling
@@ -225,7 +214,7 @@ spec:
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $region := $xr.spec.region | default "us-east-1" -}}`}}
+            {{`{{- $region := "`}}{{ .Values.awsRegion | default "us-east-1" }}{{`" -}}`}}
             {{`{{- $queueURL := "" -}}`}}
             {{`{{- if .observed.resources -}}`}}
               {{`{{- if index .observed.resources "sqs-queue" -}}`}}

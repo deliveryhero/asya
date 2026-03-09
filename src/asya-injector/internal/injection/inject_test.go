@@ -18,6 +18,7 @@ func TestInjector_Inject(t *testing.T) {
 		RuntimeMountPath:       "/opt/asya/asya_runtime.py",
 		GatewayURL:             "http://gateway.default.svc:8080",
 		SQSEndpoint:            "http://localstack:4566",
+		AWSRegion:              "us-east-1",
 	}
 
 	injector := NewInjector(cfg)
@@ -43,7 +44,6 @@ func TestInjector_Inject(t *testing.T) {
 		Transport: "sqs",
 		QueueURL:  "http://sqs.localhost:4566/000000000000/asya-default-my-actor",
 		Handler:   "my_module.process",
-		Region:    "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -205,7 +205,6 @@ func TestInjector_InjectPythonExecutable(t *testing.T) {
 				ActorName: "my-actor",
 				Namespace: "default",
 				Transport: "sqs",
-				Region:    "us-east-1",
 			}
 
 			mutated, err := injector.Inject(pod, actorConfig)
@@ -375,7 +374,6 @@ func TestInjector_InjectAWSCredentials(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -439,7 +437,6 @@ func TestInjector_InjectNoAWSCredentials(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -796,7 +793,6 @@ func TestInjector_InjectRabbitMQNoCredsForSQS(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 	}
 
 	mutated, err := injector.Inject(pod, actorConfig)
@@ -872,7 +868,6 @@ func TestInjector_SQSWaitTimeSeconds(t *testing.T) {
 				ActorName: "my-actor",
 				Namespace: "default",
 				Transport: "sqs",
-				Region:    "us-east-1",
 			}
 
 			mutated, err := injector.Inject(pod, actorConfig)
@@ -985,7 +980,6 @@ func TestInjector_InjectResiliencyEnvVars(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 		Resiliency: &ResiliencyConfig{
 			Retry: &RetryConfig{
 				Policy:             "exponential",
@@ -1067,7 +1061,6 @@ func TestInjector_InjectResiliencyPartial(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 		Resiliency: &ResiliencyConfig{
 			Retry: &RetryConfig{
 				MaxAttempts: "3",
@@ -1210,7 +1203,6 @@ func TestInjector_Inject_SecretRefs(t *testing.T) {
 		ActorName: "my-actor",
 		Namespace: "default",
 		Transport: "sqs",
-		Region:    "us-east-1",
 		SecretRefs: []SecretRef{
 			{
 				SecretName: "openai-creds",

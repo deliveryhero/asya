@@ -60,15 +60,6 @@ spec:
                     Applied left-to-right; later flavors override earlier ones.
                     Actor inline spec is applied last and always wins.
 
-                region:
-                  type: string
-                  description: AWS region for SQS queue
-                  default: us-east-1
-
-                gcpProject:
-                  type: string
-                  description: GCP project ID for Pub/Sub
-
                 scaling:
                   type: object
                   description: KEDA autoscaling configuration
@@ -223,23 +214,6 @@ spec:
                     resources:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
-
-                providerConfigRef:
-                  type: string
-                  description: Name of the AWS ProviderConfig to use
-                  default: {{ .Values.awsProviderConfig.name }}
-
-                irsa:
-                  type: object
-                  description: IRSA (IAM Roles for Service Accounts) configuration
-                  properties:
-                    enabled:
-                      type: boolean
-                      description: Enable ServiceAccount with IRSA annotation
-                      default: true
-                    roleArn:
-                      type: string
-                      description: IAM role ARN for the ServiceAccount (overrides default pattern)
 
                 stateProxy:
                   type: array

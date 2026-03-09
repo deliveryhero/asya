@@ -88,6 +88,14 @@ spec:
         - name: ASYA_GCP_CREDS_SECRET
           value: {{ .Values.config.gcpCredsSecret | quote }}
         {{- end }}
+        {{- if .Values.config.awsRegion }}
+        - name: ASYA_AWS_REGION
+          value: {{ .Values.config.awsRegion | quote }}
+        {{- end }}
+        {{- if .Values.config.gcpProjectId }}
+        - name: ASYA_PUBSUB_PROJECT_ID
+          value: {{ .Values.config.gcpProjectId | quote }}
+        {{- end }}
         livenessProbe:
           httpGet:
             path: /healthz

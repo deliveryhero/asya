@@ -70,7 +70,6 @@ def _actor_manifest(
     """Build an AsyncActor manifest with common defaults."""
     transport = transport or TRANSPORT
 
-    # Pubsub transport requires gcpProject so the injector can set ASYA_PUBSUB_PROJECT_ID
     # on the sidecar. Default to the value from the test environment.
     if gcp_project is None and transport == "pubsub":
         gcp_project = GCP_PROJECT
@@ -94,7 +93,6 @@ def _actor_manifest(
         flavor_lines = "\n".join(f"    - {f}" for f in flavors)
         flavors_block = f"\n  flavors:\n{flavor_lines}"
 
-    gcp_project_line = f"\n  gcpProject: {gcp_project}" if gcp_project else ""
 
     extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
 
@@ -106,7 +104,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {name}
-  transport: {transport}{gcp_project_line}{flavors_block}
+  transport: {transport}{flavors_block}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -208,7 +206,6 @@ def test_asyncactor_basic_lifecycle(e2e_helper):
     Expected: Full lifecycle works without errors
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -217,7 +214,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -306,7 +303,6 @@ def test_asyncactor_update_propagates(e2e_helper):
     Expected: Changes propagate correctly
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     initial_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -315,7 +311,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -342,7 +338,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 3
@@ -425,7 +421,6 @@ def test_asyncactor_scaling_advanced_fields_propagate(e2e_helper):
     is covered by test_keda_scaling.py; here we only check field propagation.
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _gcp_line = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -434,7 +429,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-scaling-advanced
-  transport: {_transport}{_gcp_line}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -620,7 +615,6 @@ def test_asyncactor_status_conditions(e2e_helper):
     Expected: Status reflects actual state
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -629,7 +623,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -695,7 +689,6 @@ def test_asyncactor_with_broken_image(e2e_helper):
     Expected: Graceful handling of image pull failures
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -704,7 +697,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -772,7 +765,6 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
     Expected: All required env vars present
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -781,7 +773,7 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -868,7 +860,6 @@ def test_asyncactor_label_propagation(e2e_helper):
     Expected: All user labels present on child resources, operator labels preserved
     """
     _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    _transport_suffix = f"\n  gcpProject: {GCP_PROJECT}" if _transport == "pubsub" and GCP_PROJECT else ""
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -881,7 +872,7 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  transport: {_transport}{_transport_suffix}
+  transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1

@@ -58,7 +58,7 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $gcpProject := "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
             {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
             apiVersion: pubsub.gcp.upbound.io/v1beta2
             kind: Topic
@@ -86,7 +86,7 @@ spec:
             {{`{{- $xr := .observed.composite.resource -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $gcpProject := "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
             {{`{{- $providerConfigRef := "`}}{{ .Values.gcpProviderConfig.name }}{{`" -}}`}}
             apiVersion: pubsub.gcp.upbound.io/v1beta2
             kind: Subscription
@@ -187,7 +187,7 @@ spec:
             {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
-            {{`{{- $gcpProject := $xr.spec.gcpProject | default "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
+            {{`{{- $gcpProject := "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
             {{`{{- $userLabels := dict -}}`}}
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}

@@ -210,12 +210,9 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when gcpProject is set.
+Pub/Sub spec fields (no-op, gcpProject removed from XRD).
 */}}
 {{- define "asya-crew.pubsub-spec" -}}
-{{- if .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
 {{- end }}
 
 {{/*

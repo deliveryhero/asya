@@ -25,13 +25,9 @@ const (
 // infrastructureFields are spec fields managed by the composition pipeline,
 // not by flavors. These are excluded from the actor-wins override.
 var infrastructureFields = map[string]bool{
-	"actor":             true,
-	"transport":         true,
-	"flavors":           true,
-	"region":            true,
-	"gcpProject":        true,
-	"providerConfigRef": true,
-	"irsa":              true,
+	"actor":     true,
+	"transport": true,
+	"flavors":   true,
 }
 
 // Function implements the function-asya-flavors composition function.

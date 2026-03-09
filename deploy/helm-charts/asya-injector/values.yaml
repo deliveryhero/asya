@@ -114,3 +114,7 @@ config:
   pubsubEndpoint: ""
   # GCP credentials secret name to inject into sidecar
   gcpCredsSecret: ""
+  # AWS region for SQS access (cluster-wide)
+  awsRegion: us-east-1
+  # GCP project ID for Pub/Sub access (cluster-wide)
+  gcpProjectId: ""

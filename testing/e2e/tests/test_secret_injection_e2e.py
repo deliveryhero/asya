@@ -140,7 +140,6 @@ def test_secretrefs_injection(e2e_helper):
     secret_name = "test-actor-creds"
     namespace = e2e_helper.namespace
 
-    gcp_project_line = f"\n  gcpProject: {GCP_PROJECT}" if TRANSPORT == "pubsub" and GCP_PROJECT else ""
 
     secret_manifest = f"""\
 apiVersion: v1
@@ -160,7 +159,7 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  transport: {TRANSPORT}{gcp_project_line}
+  transport: {TRANSPORT}
   scaling:
     enabled: false
   workload:

@@ -44,6 +44,12 @@ type Config struct {
 
 	// GCPCredsSecret is the name of the secret containing GCP credentials to inject into the sidecar
 	GCPCredsSecret string
+
+	// AWSRegion is the AWS region for SQS queue access
+	AWSRegion string
+
+	// GCPProject is the GCP project ID for Pub/Sub access
+	GCPProject string
 }
 
 // LoadFromEnv loads configuration from environment variables
@@ -62,6 +68,8 @@ func LoadFromEnv() *Config {
 		RabbitMQCredsSecret:    getEnv("ASYA_RABBITMQ_CREDS_SECRET", ""),
 		PubSubEndpoint:         getEnv("ASYA_PUBSUB_ENDPOINT", ""),
 		GCPCredsSecret:         getEnv("ASYA_GCP_CREDS_SECRET", ""),
+		AWSRegion:              getEnv("ASYA_AWS_REGION", "us-east-1"),
+		GCPProject:             getEnv("ASYA_PUBSUB_PROJECT_ID", ""),
 	}
 }
 
