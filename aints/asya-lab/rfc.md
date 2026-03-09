@@ -1376,5 +1376,11 @@ Detailed designs that inform this RFC:
    to tracking final image digest, not input reproducibility. Acceptable for v1;
    structured `build.intent:` can be added later without schema break.
 
+7. ~~**Kustomize as hard dependency**~~: **Resolved**. Kustomize is bundled with
+   kubectl since v1.14 — `kubectl apply -k` does `kustomize build` + `apply`.
+   No extra binary. Users without patches can still `kubectl apply -f base/`.
+   Helm output backend deferred to future iteration. See
+   `adr.kustomize-not-extra-dependency.md`.
+
 See also open questions in `research-compiler-resolution.md` (section 8) and
 `research-seamless-build.md` (section 8).
