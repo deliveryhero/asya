@@ -489,9 +489,11 @@ retry_if_exception_type(exception_types=<class 'Exception'>)
    Sidecar change: `isNonRetryableError` becomes `shouldRetry` checking both
    lists (mutually exclusive). See aint [w76v].
 
-2. **Compile-time dependency requirement**: Rules with `where:` trees require
-   the matched package to be installed at compile time for `inspect.signature`.
-   This is natural (the flow file imports it), but should be documented.
+2. ~~**Compile-time dependency requirement**~~ **Resolved**: Already documented in
+   "Value Extraction via Runtime Introspection" section above and RFC §14.
+   The compiler imports packages and calls `inspect.signature` — same as
+   mypy/pyright requiring deps installed. Natural since the flow file already
+   imports the package.
 
 3. **Context manager scope semantics**: When `asyncio.timeout(30)` wraps multiple
    actor calls, does the extracted timeout apply to each actor individually or to
