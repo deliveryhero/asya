@@ -111,6 +111,9 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
+            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}
@@ -233,6 +236,9 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
+            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $claimName := index $xr.metadata.labels "crossplane.io/claim-name" -}}`}}
             {{`{{- $actorName := (index $xr.metadata.labels "asya.sh/actor") | default $claimName -}}`}}

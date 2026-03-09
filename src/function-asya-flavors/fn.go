@@ -94,6 +94,11 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 
 	merged := MergeFlavors(flavorData)
 
+	// Filter infrastructure fields from flavor data
+	for k := range infrastructureFields {
+		delete(merged, k)
+	}
+
 	actorSpec := extractActorInlineSpec(oxr)
 	if actorSpec != nil {
 		merged = DeepMerge(merged, actorSpec)
@@ -104,17 +109,13 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 		return errors.Wrapf(err, "cannot get desired composite resource")
 	}
 
-	// Write each resolved field back onto the XR spec
-	dxrSpec, ok := dxr.Resource.Object["spec"].(map[string]interface{})
-	if !ok {
-		dxrSpec = make(map[string]interface{})
-	}
+	// Build complete spec: observed base + merged flavor overrides.
+	// This ensures desired XR has all fields (infra + resolved flavors)
+	// so downstream pipeline steps reading from desired see the full spec.
+	oxrSpec, _ := oxr.Resource.Object["spec"].(map[string]interface{})
+	completeSpec := DeepMerge(oxrSpec, merged)
 
-	for k, v := range merged {
-		dxrSpec[k] = v
-	}
-
-	dxr.Resource.Object["spec"] = dxrSpec
+	dxr.Resource.Object["spec"] = completeSpec
 
 	if err := response.SetDesiredCompositeResource(rsp, dxr); err != nil {
 		return errors.Wrapf(err, "cannot set desired composite resource")

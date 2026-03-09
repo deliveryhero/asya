@@ -216,6 +216,9 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
+            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
@@ -349,6 +352,9 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
+            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
             {{`{{- $actorName := $xr.spec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}

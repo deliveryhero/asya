@@ -64,8 +64,9 @@ func isNameKeyedArray(arr []interface{}) bool {
 	return true
 }
 
-// mergeByName merges two arrays of name-keyed objects. Same name = patch wins.
-// Different names accumulate. Order: base items first, then new patch items.
+// mergeByName merges two arrays of name-keyed objects. Same name = deep merge
+// (preserves fields from base not present in patch). Different names accumulate.
+// Order: base items first, then new patch items.
 func mergeByName(base, patch []interface{}) []interface{} {
 	patchMap := make(map[string]interface{})
 	var patchOrder []string
@@ -80,14 +81,14 @@ func mergeByName(base, patch []interface{}) []interface{} {
 	seen := make(map[string]bool)
 	var result []interface{}
 
-	// Base items first, with overrides from patch
+	// Base items first, with deep-merged overrides from patch
 	for _, item := range base {
 		m := item.(map[string]interface{})
 		name := m["name"].(string)
 		seen[name] = true
 
 		if override, ok := patchMap[name]; ok {
-			result = append(result, override)
+			result = append(result, DeepMerge(m, override.(map[string]interface{})))
 		} else {
 			result = append(result, item)
 		}

@@ -113,14 +113,21 @@ func TestMergeFlavors_EnvVarsMergeByName(t *testing.T) {
 	result := MergeFlavors(data)
 
 	envVars := getEnvVars(t, result)
-	// mergeByName replaces entire container by name, so only the last flavor's env vars survive
-	if len(envVars) != 1 {
-		t.Fatalf("expected 1 env var (last flavor wins), got %d: %v", len(envVars), envVars)
+	// mergeByName deep-merges containers with same name, so env vars accumulate
+	if len(envVars) != 2 {
+		t.Fatalf("expected 2 env vars (deep merge preserves both), got %d: %v", len(envVars), envVars)
 	}
 
-	env := envVars[0].(map[string]interface{})
-	if env["name"] != "BAZ" || env["value"] != "qux" {
-		t.Errorf("expected BAZ=qux, got %v", env)
+	envMap := make(map[string]string)
+	for _, e := range envVars {
+		env := e.(map[string]interface{})
+		envMap[env["name"].(string)] = env["value"].(string)
+	}
+	if envMap["FOO"] != "bar" {
+		t.Errorf("FOO: got %q, want %q", envMap["FOO"], "bar")
+	}
+	if envMap["BAZ"] != "qux" {
+		t.Errorf("BAZ: got %q, want %q", envMap["BAZ"], "qux")
 	}
 }
 
@@ -229,17 +236,24 @@ func TestMergeFlavors_ValueFromSecretKeyRef(t *testing.T) {
 	result := MergeFlavors(data)
 
 	envVars := getEnvVars(t, result)
-	// mergeByName replaces entire container by name, so only the last flavor's env vars survive
-	if len(envVars) != 1 {
-		t.Fatalf("expected 1 env var (last flavor wins), got %d", len(envVars))
+	// mergeByName deep-merges containers with same name, so env vars accumulate
+	if len(envVars) != 2 {
+		t.Fatalf("expected 2 env vars (deep merge preserves both), got %d", len(envVars))
 	}
 
-	env := envVars[0].(map[string]interface{})
-	if env["name"] != "SECRET_VAR" {
-		t.Errorf("expected SECRET_VAR, got %v", env["name"])
+	envMap := make(map[string]interface{})
+	for _, e := range envVars {
+		env := e.(map[string]interface{})
+		envMap[env["name"].(string)] = env
 	}
 
-	secretRef := env["valueFrom"].(map[string]interface{})["secretKeyRef"].(map[string]interface{})
+	plainVar := envMap["PLAIN_VAR"].(map[string]interface{})
+	if plainVar["value"] != "hello" {
+		t.Errorf("PLAIN_VAR: got %q, want %q", plainVar["value"], "hello")
+	}
+
+	secretVar := envMap["SECRET_VAR"].(map[string]interface{})
+	secretRef := secretVar["valueFrom"].(map[string]interface{})["secretKeyRef"].(map[string]interface{})
 	if secretRef["name"] != "my-secret" || secretRef["key"] != "api-key" {
 		t.Errorf("SECRET_VAR secretKeyRef mismatch: %v", secretRef)
 	}
@@ -463,7 +477,7 @@ func TestDeepMerge_ActorInlineWins(t *testing.T) {
 		t.Errorf("cooldownPeriod: got %v, want 600 (should be preserved from flavor)", scaling["cooldownPeriod"])
 	}
 
-	// mergeByName replaces entire container by name, so only actor's env vars survive
+	// mergeByName deep-merges containers with same name, so env vars accumulate
 	envVars := getEnvVars(t, result)
 
 	envMap := make(map[string]string)
@@ -474,7 +488,7 @@ func TestDeepMerge_ActorInlineWins(t *testing.T) {
 		}
 	}
 
-	// Actor's LOG_LEVEL=DEBUG should be present (actor container replaces flavor container)
+	// Actor's LOG_LEVEL=DEBUG should override flavor's LOG_LEVEL=INFO
 	if envMap["LOG_LEVEL"] != "DEBUG" {
 		t.Errorf("LOG_LEVEL: got %q, want %q (actor should override)", envMap["LOG_LEVEL"], "DEBUG")
 	}
@@ -482,9 +496,9 @@ func TestDeepMerge_ActorInlineWins(t *testing.T) {
 	if envMap["ASYA_HANDLER"] != "model.inference" {
 		t.Errorf("ASYA_HANDLER: got %q, want %q", envMap["ASYA_HANDLER"], "model.inference")
 	}
-	// FLAVOR_VAR is NOT preserved (entire container replaced by mergeByName)
-	if _, ok := envMap["FLAVOR_VAR"]; ok {
-		t.Errorf("FLAVOR_VAR should not be present (container replaced atomically by name)")
+	// FLAVOR_VAR is preserved (deep merge keeps flavor env vars alongside actor env vars)
+	if envMap["FLAVOR_VAR"] != "from-flavor" {
+		t.Errorf("FLAVOR_VAR: got %q, want %q (should be preserved from flavor)", envMap["FLAVOR_VAR"], "from-flavor")
 	}
 }
 
