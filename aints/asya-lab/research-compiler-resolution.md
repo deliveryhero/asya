@@ -846,8 +846,10 @@ mappings (`ASYA_HANDLER_*`), and env vars detected from handler code. See
 | `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
 | `dynamic:env` | K8s env list (subtree resolver) | `[{name: "ASYA_HANDLER", value: "..."}]` |
 
-These are values the compiler **always** computes per actor. They exist only
-in-memory during compilation — no intermediate file.
+These are values the compiler **always** computes per actor. They are resolved
+during stage 1 (compile) and written into compiled manifests (the editable
+intermediate). Stage 2 (render) reads these manifests to produce target
+artifacts.
 
 Resiliency values (`spec.resiliency.*`) are **not** `${dynamic:*}` resolvers —
 they are placed directly at XR spec paths via compiler rules
@@ -866,25 +868,45 @@ The template body MAY contain static defaults (e.g., `transport:`,
 defaults. Overlays provide sensible platform defaults; the template body is
 the final authority.
 
-#### Output modes
+#### Output modes (render stage)
 
-The `compile.mode` field determines output format:
-- **manifests** (default): Raw AsyncActor XR files
+Output mode is a render-time concern (`asya flow render --mode`), not
+compile-time. The `compile.mode` field in config sets the default:
+- **manifests** (default): Raw AsyncActor XR files (resolve `${arg:*}`)
 - **helm**: values.yaml files for Helm chart
 - **kustomize**: Patches against a kustomize base
+- **docker-compose**: docker-compose.yaml with orchestrator + runtimes (no
+  sidecar, no message queue — uses `asya-testing` package)
 
 See `adr.compiler-template-not-helm.md` for why this is printf-level
 substitution, not a template engine.
 
 ---
 
-## 4. The Four Stages
+## 4. The Five Stages
 
-### 4.1 Compile Time (`asya flow compile`)
+### 4.1 Compile Time (`asya flow compile`) — Stage 1
 
 **Input**: flow source (Python) + `.asya/config*.yaml`
 **Available**: Python interpreter (kernel or `--python`)
-**Output**: router code + deployment files (manifests, helm values, or kustomize patches)
+**Output**: router code + compiled manifests (editable intermediate)
+
+Compile extracts all information from Python AST into compiled manifests.
+After compile, the source of truth shifts from Python files to these
+manifests. The user can edit them (add env vars, change scaling) without
+recompiling.
+
+### 4.1a Render Time (`asya flow render`) — Stage 2
+
+**Input**: compiled manifests + context/mode
+**Output**: target-specific artifacts (K8s YAML, helm values, kustomize
+patches, docker-compose.yaml)
+
+Render is re-runnable: edit a compiled manifest → re-render → updated
+artifacts. No Python recompilation needed. Mode defaults from
+`compile.mode` in config or context type, overridable with `--mode`.
+
+### 4.1b Compile Time (continued) — Python resolution
 
 **Python environment detection** (for CLI mode):
 1. Check `--python /path/to/python` flag (explicit)
@@ -924,11 +946,11 @@ $ asya flow compile flows/order_processing.py
            → import: e_commerce.express.express_handler
            → file: /proj/src/e-commerce-package/e_commerce/express.py
            → image entry: e_commerce (same image)
-[compile] Mode: manifests (from config compile.mode)
-[compile] Output: .asya/manifests/flows/order-processing/
+[compile] Compiled manifests: .asya/manifests/order-processing/
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
+[compile] Next: asya flow render order-processing
 ```
 
 **Verbosity levels**:
@@ -967,7 +989,7 @@ in the `secrets:` section of `config.yaml` for K8s sourcing (secretKeyRef).
 Default values from `os.getenv("KEY", "default")` are captured automatically.
 All detected env vars are included in `${dynamic:env}`.
 
-### 4.2 Build Time
+### 4.2 Build Time — Stage 3
 
 **Input**: `.asya/config.yaml` (read directly)
 **Available**: Docker / apko / buildpacks. No live Python.
@@ -1050,30 +1072,32 @@ $ asya actor build text-analyzer --local --arg tag=v1
 [build] Running in /proj/src/e-commerce-package ...
 ```
 
-### 4.3 Deploy Time
+### 4.3 Deploy Time — Stage 4
 
-**Input**: `.asya/manifests/*.yaml` (generated at compile time)
-**Available**: kubectl / flux / argocd. No Python.
-**Output**: Running pods in K8s
+**Input**: rendered artifacts (from stage 2)
+**Available**: kubectl / docker compose / flux / argocd. No Python.
+**Output**: Running pods (K8s) or containers (Docker Compose)
 
 ```bash
-# Staging (imperative)
-asya flow deploy order-processing --arg tag=v1
-asya actor deploy text-analyzer --arg tag=v1
+# K8s staging (imperative)
+asya flow render order-processing --arg tag=v1   # render with resolved tag
+asya flow deploy order-processing                # kubectl apply
 
-# Production (GitOps)
-# 1. Commit .asya/manifests/ to git
-# 2. Create PR
+# K8s production (GitOps)
+# 1. asya flow render order-processing --arg tag=v1
+# 2. Commit rendered manifests to git, create PR
 # 3. flux/argocd picks up and applies
+
+# Docker Compose (local dev)
+asya flow render order-processing --mode docker-compose --arg tag=v1
+asya flow deploy order-processing    # docker compose up -d
 ```
 
 The `--arg` / `ASYA_ARG_*` substitution is the same mechanism for
-both build and deploy. A DS can `export ASYA_ARG_TAG=experiment-42`
-in their notebook
-and then run both `asya flow build` and `asya flow deploy` without repeating
-the tag.
+build, render, and deploy. A DS can `export ASYA_ARG_TAG=experiment-42`
+in their notebook and reuse it across all commands.
 
-### 4.4 Runtime
+### 4.4 Runtime — Stage 5
 
 **Input**: Running container with handler code
 **Available**: Full Python environment inside the container
