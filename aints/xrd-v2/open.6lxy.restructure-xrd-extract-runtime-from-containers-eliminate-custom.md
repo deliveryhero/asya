@@ -94,10 +94,11 @@ spec:
 | Phase | Aint | Title |
 |-------|------|-------|
 | 1 | `[8gc6]` | Remove leaked provider fields from XRD |
+| 1.5 | `[af25]` | Remove injector, render full Deployment in compositions |
 | 2 | `[lfcf]` | Flatten workload structure, promote handler, rewrite flavor merge |
 | 3 | `[azb9]` | Update documentation for flat XRD |
 
-Dependency chain: `u5pd` → `8gc6` → `lfcf` → `azb9`
+Dependency chain: `u5pd` → `8gc6` → `af25` → `lfcf` → `azb9`
 
 ## Depends on
 

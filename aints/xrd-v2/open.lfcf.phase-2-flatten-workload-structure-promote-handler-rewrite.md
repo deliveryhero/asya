@@ -2,7 +2,7 @@
 title: "Phase 2: Flatten workload structure, promote handler, rewrite flavor merge"
 priority: 2 # medium
 dependencies:
-  - 8gc6
+  - af25
 ---
 
 ## Summary
