@@ -1165,7 +1165,33 @@ Flow deployment uses labels + CLI tooling (no separate AsyncFlow CRD).
 | `asya.sh/flow-role` | Role within flow | `entrypoint`, `exitpoint`, `router`, `processor` |
 
 One actor belongs to at most one flow. If the same handler is needed in multiple
-flows, the actor is cloned.
+flows, the compiler clones the actor with a flow-scoped name.
+
+**Naming convention**: Actors compiled within flow `foo-bar` are postfixed with
+the flow name: `validate-order-foo-bar`. Standalone actors (deployed outside a
+flow) keep their original name: `validate-order`.
+
+**Compile-time collision detection**: The compiler checks existing manifests in
+`base/` before writing. If `validate-order-foo-bar.yaml` already exists (from a
+different flow sharing the same output directory), the compiler appends a numeric
+suffix: `validate-order-foo-bar-1`. This is a local file check — no cluster
+access needed at compile time.
+
+**Apply-time collision protection**: Before applying, `asya k deploy` checks
+each actor name against the cluster:
+
+1. `kubectl get asyncactor <name>` — does it already exist?
+2. If yes, read `asya.sh/flow` label:
+   - Same flow → update (normal SSA apply)
+   - Different flow → **hard error**, refuse to apply
+   - No label (standalone actor) → **hard error**, refuse to apply
+3. If no → create (normal SSA apply)
+
+SSA field managers (`asya-flow-<name>`) provide defense-in-depth: two flows
+applying the same resource with different field managers would conflict on
+field ownership. But the pre-apply label check catches edge cases where the
+existing actor was created outside SSA (manual `kubectl apply`, standalone
+deploy).
 
 ### 10.2 What `asya k deploy` Does
 
@@ -1466,15 +1492,6 @@ Detailed designs that inform this RFC:
    socket transport in the sidecar for local Docker Compose runs (no message
    queue). This transport is not yet implemented and is a dependency for the
    `asya d up` workflow.
-
-9. **Multiple flows sharing an actor**: §10.1 says "one actor belongs to at
-   most one flow" — the compiler clones actors for reuse across flows. But
-   cloned actors have different names → different queues → different scaling.
-   The same handler deployed as `validate-order-flow-a` and
-   `validate-order-flow-b` doubles infrastructure cost. The cloning mechanism
-   itself is unspecified: how does the compiler rename actors, how are clones
-   reflected in manifests, and can users opt into shared actors (single queue
-   serving multiple flows) when isolation isn't needed?
 
 See also open questions in `research-compiler-resolution.md` (section 8) and
 `research-seamless-build.md` (section 8).
