@@ -1461,5 +1461,14 @@ Detailed designs that inform this RFC:
    queue). This transport is not yet implemented and is a dependency for the
    `asya d up` workflow.
 
+9. **Multiple flows sharing an actor**: §10.1 says "one actor belongs to at
+   most one flow" — the compiler clones actors for reuse across flows. But
+   cloned actors have different names → different queues → different scaling.
+   The same handler deployed as `validate-order-flow-a` and
+   `validate-order-flow-b` doubles infrastructure cost. The cloning mechanism
+   itself is unspecified: how does the compiler rename actors, how are clones
+   reflected in manifests, and can users opt into shared actors (single queue
+   serving multiple flows) when isolation isn't needed?
+
 See also open questions in `research-compiler-resolution.md` (section 8) and
 `research-seamless-build.md` (section 8).
