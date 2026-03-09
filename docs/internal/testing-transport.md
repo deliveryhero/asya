@@ -234,16 +234,16 @@ input (XAsyncActor)
   → render-queue                 # creates the queue/topic managed resource
   → render-sa                    # creates ServiceAccount (IRSA/workload identity)
   → fetch-environment-configs    # reads EnvironmentConfigs by label selector
-  → function-asya-flavors       # merges flavors → context["asya/resolved-spec"]
-  → render-scaledobject          # reads context["asya/resolved-spec"] for KEDA
-  → render-deployment            # reads context["asya/resolved-spec"] for containers
+  → function-asya-flavors       # merges flavors → writes resolved spec to desired XR
+  → render-scaledobject          # reads $xr.spec.scaling for KEDA
+  → render-deployment            # reads $xr.spec.workload for containers
   → function-auto-ready          # sets READY condition
 ```
 
-**Bug pattern to avoid**: All three steps that touch flavor data must agree on
-the context key. `function-asya-flavors` writes `"asya/resolved-spec"`.
-Using `"asya.sh/resolved-spec"` in a downstream step silently drops all flavor
-data — `$resolvedSpec` is always empty. This was the root cause of #258.
+**How flavors are consumed**: `function-asya-flavors` writes the resolved spec
+directly onto the XR's desired state. Downstream steps read from
+`$xr.spec.*` (with a fallback to `.desired.composite.resource` in templates).
+No context key is used.
 
 ### Pub/Sub emulator: non-obvious wiring
 
@@ -336,9 +336,9 @@ timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.
 - Add `extraPortMappings` entry in `kind-config.yaml` (shared; unused ports fine)
 - Add `profiles/<transport>-<storage>.yaml` (Helm values) and
   `profiles/.env.<transport>-<storage>` (pytest env vars using `127.0.0.1:<nodePort>`)
-- Add Crossplane composition `composition-<transport>.yaml` — use
-  `"asya/resolved-spec"` (not `"asya.sh/resolved-spec"`) in all steps that read
-  flavor data; select the correct KEDA trigger type
+- Add Crossplane composition `composition-<transport>.yaml` — downstream
+  steps read from `$xr.spec.*` (desired XR); select the correct KEDA
+  trigger type
 - Wire the injector to set transport-specific env vars on sidecar containers
 - Grep existing tests for `ASYA_TRANSPORT` and `transport == "sqs"` — add new
   transport branches or skip conditions as needed

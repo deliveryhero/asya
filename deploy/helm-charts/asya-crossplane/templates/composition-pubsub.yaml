@@ -37,8 +37,8 @@ spec:
                 {{`{{- $userLabels | toYaml | nindent 4 }}`}}
 
     {{- if .Values.functions.flavorsEnabled }}
-    # Resolve actor flavors -- merges EnvironmentConfig flavor data into a resolved spec
-    # written to context key asya/resolved-spec for downstream steps to consume.
+    # Resolve actor flavors -- merges EnvironmentConfig flavor data and writes
+    # the resolved spec back onto the XR's desired state for downstream steps.
     # Actors without spec.flavors are passed through with no changes.
     - step: resolve-flavors
       functionRef:
