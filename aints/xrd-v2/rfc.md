@@ -130,12 +130,12 @@ The XRD is structurally flat — all fields live under `spec` with no nesting
 like `spec.app` or `spec.infra`. But conceptually, fields fall into two tiers:
 
 **App tier** (compiler-filled from Python code):
-- `actor`, `image`, `handler`, `env`, `resources`, `resiliency`
+- `actor`, `image`, `handler`, `env`, `resiliency`
 - Source: the asya-lab compiler extracts these from `flow.py` AST
 - In `config.template.yaml`: `${dynamic:*}` placeholders
 
 **Infra tier** (from flavors, platform config, or DS via UI/CLI):
-- `transport`, `flavors`, `scaling`, `tolerations`, `nodeSelector`,
+- `resources`, `transport`, `flavors`, `scaling`, `tolerations`, `nodeSelector`,
   `stateProxy`, `secretRefs`, `volumes`, `volumeMounts`, `replicas`, `sidecar`
 - Source: EnvironmentConfigs (flavors), Helm values, or deploy-time args
 - In `config.template.yaml`: `${var.*}` (config constants) or `${arg:*}`
@@ -215,26 +215,77 @@ workload:
 
 ## Impact on flavors
 
-With flat XRD and non-intersecting flavors, `function-asya-flavors` reduces
-from ~200 LOC to ~30 LOC:
+With flat XRD, `function-asya-flavors` reduces from ~200 LOC to ~50 LOC.
+
+### Flavor overlap rules
+
+Flavors are composable — an actor can use multiple flavors simultaneously
+(e.g., `gpu-a100` + `checkpoint-state` + `inference-cache`). Overlap behavior
+depends on the field's runtime type:
+
+| Field type | Overlap behavior | Fields |
+|---|---|---|
+| **Lists** | Append | `stateProxy`, `tolerations`, `secretRefs`, `volumes`, `volumeMounts` |
+| **Maps** | Merge keys (conflict on same key = error) | `nodeSelector` |
+| **Scalars/structs** | Error (flavors must not overlap) | `scaling`, `resources`, `replicas`, `sidecar` |
+
+**Actor inline spec always wins** over flavor values, silently. This is
+intentional — the actor is the most specific override (like CSS inline styles
+over class rules).
+
+**Example**: a model serving actor with three composable flavors:
+- `gpu-a100` → `tolerations` (GPU), `nodeSelector` (gpu-type), `resources` (GPU limits)
+- `checkpoint-state` → `stateProxy` entry for `/checkpoints` (S3)
+- `inference-cache` → `stateProxy` entry for `/cache` (Redis)
+
+The two state flavors both contribute `stateProxy` entries — lists are
+appended. No conflict.
+
+### Merge implementation (~50 LOC)
 
 ```go
 merged := map[string]interface{}{}
-for _, flavor := range flavorData {
-    for k, v := range flavor {
-        merged[k] = v  // last flavor wins (non-intersecting = no conflict)
+for _, flavorName := range flavorNames {
+    for k, v := range flavorData[flavorName] {
+        if existing, ok := merged[k]; ok {
+            switch ev := existing.(type) {
+            case []interface{}:
+                // lists: append
+                merged[k] = append(ev, v.([]interface{})...)
+            case map[string]interface{}:
+                // maps: merge keys, error on conflict
+                for mk, mv := range v.(map[string]interface{}) {
+                    if _, dup := ev[mk]; dup {
+                        return Fatal("flavors %q and %q conflict on %s.%s",
+                            seen[k], flavorName, k, mk)
+                    }
+                    ev[mk] = mv
+                }
+            default:
+                // scalar/struct: error
+                return Fatal("flavors %q and %q both set %q",
+                    seen[k], flavorName, k)
+            }
+        } else {
+            merged[k] = v
+            seen[k] = flavorName
+        }
     }
 }
+// actor inline spec always wins
 for k, v := range actorSpec {
-    merged[k] = v  // actor always wins
+    merged[k] = v
 }
 dxr.Resource.Object["spec"] = merged
 ```
 
-No `DeepMerge`, no `mergeByName`, no field allow/deny lists.
+No `DeepMerge`, no `mergeByName`, no field allow/deny lists. Overlap rules
+are generic (Go type dispatch), not field-specific.
 
 Env vars do NOT belong in flavors — secrets are namespace-scoped and can't
-be referenced from cluster-scoped EnvironmentConfigs.
+be referenced from cluster-scoped EnvironmentConfigs. If an infra component
+needs env vars on the runtime container, the composition function injects
+them directly into the rendered Deployment.
 
 ## Impact on workloadRef
 
