@@ -1,171 +1,115 @@
 ---
-title: Fix Composition assymetry for stateProxy
+title: Simplify flavor function and fix stateProxy asymmetry
 priority: 2 # medium
 ---
 
 ## Problem
 
-The flavor pipeline (`function-asya-flavors`) merges `scaling` and `workload`
-from referenced `EnvironmentConfig` flavors and writes the result to the
-Crossplane composition context under `asya/resolved-spec`. Downstream Go
-template steps read from that context to build Deployments and ScaledObjects.
+The flavor pipeline (`function-asya-flavors`) has two architectural issues:
 
-`stateProxy` is **not** handled by this pipeline. Instead, the `asya-injector`
-mutating webhook reads `spec.stateProxy` directly from the live `AsyncActor`
-object at Pod admission time — completely bypassing the composition context.
+1. **Hardcoded field list**: `extractActorInlineSpec` only handles `scaling` and
+   `workload`. Any other field (like `stateProxy`) is silently ignored. Adding a
+   new flavor-mergeable field requires changing Go code.
 
-This creates a silent asymmetry: a platform engineer can define a flavor with
-`data.stateProxy`, the flavor will merge correctly into `asya/resolved-spec`,
-but the resulting context value is **never consumed**. The state proxy sidecar
-is never injected.
+2. **Context indirection**: The function writes to `asya/resolved-spec` context
+   key. Every downstream Go template step must dual-read from context + XR spec
+   with ~15 lines of boilerplate per step. The injector (which runs at Pod
+   admission time) has no access to composition context at all, so `stateProxy`
+   defined in a flavor is never injected.
 
-## Evidence
-
-**`src/function-asya-flavors/fn.go:221-238`** — `extractActorInlineSpec` only
-pulls `"scaling"` and `"workload"` from the XR for the final actor-wins
-override. `stateProxy` is never extracted or written to the context:
-
-```go
-for _, field := range []string{"scaling", "workload"} {
-    if v, ok := spec[field]; ok {
-        result[field] = v
-    }
-}
-```
-
-**`deploy/helm-charts/asya-crossplane/templates/composition-{sqs,rabbitmq,pubsub}.yaml`** —
-all three composition Go templates contain zero references to `stateProxy`
-(confirmed: `grep -c stateProxy` returns 0 for each). The templates read
-`$resolvedSpec.scaling` and `$resolvedSpec.workload` but nothing else.
-
-**`src/asya-injector/internal/webhook/asyncactor.go:162-210`** — the injector
-reads `stateProxy` directly from `unstructured.NestedSlice(spec, "stateProxy")`
-where `spec` is `asyncActor.Object["spec"]` — the raw user-written XR spec, not
-the composition context:
-
-```go
-stateProxies, found, _ := unstructured.NestedSlice(spec, "stateProxy")
-```
-
-**`deploy/helm-charts/asya-crew/templates/_helpers.tpl:236`** — the crew chart
-explicitly acknowledges the bypass in a comment:
-
-```
-Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig flavor)
-```
-
-This is why `x-sink` and `x-sump` work: the crew chart writes `spec.stateProxy`
-**inline** in the AsyncActor manifests (`sink.yaml`, `sump.yaml`). It does not
-use the flavor mechanism for this field.
-
-**`deploy/helm-charts/asya-crew/templates/persistence-flavor.yaml`** —
-creates an `EnvironmentConfig` with `data.stateProxy` (connector image, bucket
-env vars). This data is merged by `function-asya-flavors` into `asya/resolved-spec`
-but is never consumed downstream. Effectively dead code for the injection path.
-
-**`examples/asyas/actor-with-persistence-flavor.yaml`** — shows an actor with
-`flavors: [asya-persistence-s3]` and no inline `spec.stateProxy`. This example
-does not actually work: the state proxy sidecar will not be injected.
+3. **Over-engineered merge**: `merge.go` uses `strategicpatch` with full
+   `corev1.PodSpec` struct tags (~95 lines) for Kubernetes-aware list merge.
+   In practice, the only list that needs merge-by-key is `env` vars on
+   containers. All other flavor fields are scalars, dicts, or whole arrays
+   that replace (not merge).
 
 ## Root cause
 
-Two separate systems handle actor configuration injection:
+The function was designed for arbitrary Kubernetes strategic merge, but the
+actual use case is much simpler: deep merge dicts, replace arrays, with one
+special case for env var lists.
 
-1. **Crossplane composition pipeline** — runs at XR reconcile time, produces
-   Deployments/ScaledObjects, reads from `asya/resolved-spec` context.
-2. **Injector webhook** — runs at Pod admission time, reads directly from the
-   live `AsyncActor` object, has no access to Crossplane composition context.
+## Chosen approach
 
-The flavor pipeline only feeds system (1). System (2) is unaware of it.
+**Simplify `function-asya-flavors` and write resolved spec back onto the XR.**
 
-## Fix options
+### Architecture
 
-### Option A — Patch `stateProxy` from context back onto the XR spec
+1. Fetch EnvironmentConfigs via Requirements API (unchanged)
+2. Deep merge all fields with simple JSON merge (dicts recurse, scalars replace,
+   arrays replace by default)
+3. **One special case**: `workload.template.spec.containers[].env` and
+   `sidecar.env` — merge by `name` key instead of replacing (~30 lines)
+4. Apply actor inline spec as final override on **all** fields (no hardcoded
+   list — iterate all spec keys except `actor`, `transport`, `flavors`)
+5. Write resolved spec back onto XR via `SetDesiredCompositeResource`
+   (not to `asya/resolved-spec` context key)
 
-After `function-asya-flavors` writes `asya/resolved-spec`, add a composition
-step (or extend the function) that patches `stateProxy` from the resolved spec
-back onto the XR using `ToCompositeFieldPath`. The injector then reads it as
-if the user had written it inline.
+### What this fixes
 
-- Pro: injector unchanged, clean separation.
-- Con: XR spec mutation is unusual; requires a new patch step per composition.
+- **stateProxy gap**: The injector reads `stateProxy` from XR spec. If a flavor
+  sets it, the function writes it back to XR spec. Injector works unchanged.
+- **Any future field**: No hardcoded field list. A flavor that sets `resiliency`,
+  `sidecar`, `secretRefs`, or any other spec field works automatically.
+- **Template boilerplate**: Downstream Go templates read from `$xr.spec.*`
+  directly. Remove all `$resolvedSpec` dual-read logic from all 3 composition
+  templates.
 
-### Option B — Teach the injector to consult the flavor context
+### What gets removed
 
-Change the injector to also call the Crossplane API or a sidecar to resolve
-flavor data at admission time. This is complex and couples admission to the
-Crossplane control plane.
+- `merge.go` — replace `strategicpatch` + `ActorSpecSchema` + `corev1.PodSpec`
+  with a simple ~30-line env-var-merge function
+- `asya/resolved-spec` context key — no longer needed
+- `extractActorInlineSpec` hardcoded field list — replaced with dynamic iteration
+- All `$resolvedSpec` boilerplate in composition Go templates (~15 lines x N steps
+  x 3 compositions)
 
-- Pro: single source of truth for flavor data.
-- Con: adds latency and a hard dependency on Crossplane at admission time.
+### EnvironmentConfig syntax
 
-### Option C — Move stateProxy injection into the composition
+Flavor EnvironmentConfigs use **standard K8s syntax**, identical to the XRD spec:
 
-Instead of using the injector for `stateProxy`, let the Go template composition
-step embed the state proxy sidecar container directly into the Deployment
-template by reading `$resolvedSpec.stateProxy`. The injector would no longer
-need to handle this field.
+```yaml
+data:
+  stateProxy:
+    - name: checkpoints
+      mount: { path: /state/checkpoints }
+      connector:
+        image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
+        env:
+          - name: STATE_BUCKET
+            value: my-bucket
+  scaling:
+    minReplicas: 1
+    maxReplicas: 5
+  workload:
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          env:
+          - name: OPENAI_API_KEY
+            valueFrom:
+              secretKeyRef: { name: openai-creds, key: api-key }
+```
 
-- Pro: consistent with how `workload` is already handled.
-- Con: compositions become more complex; would require reading from resolved-spec
-  for stateProxy and generating sidecar containers and volume mounts in the
-  Go template.
+Env vars merge by `name` key across flavors (last wins for same name, different
+names accumulate). All other fields use replace semantics.
 
-### Option D — Drop stateProxy from flavor EnvironmentConfigs (simplify)
+### Limitations (accepted)
 
-Accept that `stateProxy` is always inline and remove `data.stateProxy` from the
-persistence `EnvironmentConfig`. Document clearly that flavors configure
-`scaling` and `workload` only. Update the `persistence-flavor.yaml` template to
-not emit a `stateProxy` key. Update the example actor manifest.
-
-- Pro: removes dead code, clarifies the mental model.
-- Con: loses the vision of a fully self-contained platform flavor.
-
-## Recommended fix
-
-**Option A — patch stateProxy from context back onto the XR spec.**
-
-### Why Option A wins
-
-The injector already does stateProxy injection correctly — it adds containers,
-volumes, env vars to pods at admission time (`state_proxy.go`). The flavor
-pipeline already merges `stateProxy` into `asya/resolved-spec`. The only missing
-piece is a `ToCompositeFieldPath` patch that writes the resolved `stateProxy`
-back onto `spec.stateProxy`, where the injector already reads it.
-
-The fix is tiny:
-1. Add `"stateProxy"` to `extractActorInlineSpec` field list in `fn.go` — so
-   actor-inline stateProxy participates in actor-wins merge (1 line).
-2. Add a `ToCompositeFieldPath` patch in each composition template to write
-   `resolved-spec.stateProxy` to `spec.stateProxy` (few lines per template).
-3. Zero changes to the injector.
-
-### Why Option C is worse
-
-Moving stateProxy injection into the composition means generating container
-specs (image, env vars, volume mounts, resource limits) inside Go templates:
-- Painful to write and debug in Helm/Go templating.
-- Duplicates well-tested logic in the injector (`state_proxy.go`).
-- Blurs the clean boundary: compositions handle Deployments/ScaledObjects at
-  structural level, the injector handles container-level mutation.
-
-### Why Option D is too conservative
-
-`persistence-overlay.yaml` exists so platform teams can standardize stateProxy
-config (connector image, bucket, region, creds) across actors. Dropping it means
-every actor copy-pastes that block — defeating the purpose of flavors.
-
-### Subtlety
-
-`ToCompositeFieldPath` patches to `spec.*` are less common than `status.*` but
-fully supported by Crossplane. The XR spec becomes a "resolved" view after
-composition — the correct mental model for "what the actor looks like after
-platform defaults are applied."
+- Flavors are cluster-scoped only (EnvironmentConfigs are cluster-scoped).
+  Namespace-scoped flavors via ConfigMaps tracked in [jgwn].
+- Env var merge only applies to `workload.template.spec.containers[].env` and
+  `sidecar.env`. Other list fields (e.g., `stateProxy` array) use replace
+  semantics — a flavor owns the entire `stateProxy` config.
 
 ## Affected files
 
-- `src/function-asya-flavors/fn.go` — `extractActorInlineSpec` (Options A, C)
-- `deploy/helm-charts/asya-crossplane/templates/composition-{sqs,rabbitmq,pubsub}.yaml` — Go template steps (Option C)
-- `deploy/helm-charts/asya-crew/templates/persistence-flavor.yaml` — emits dead `stateProxy` data (Option D)
-- `examples/asyas/actor-with-persistence-flavor.yaml` — broken example (Options C, D)
-- `docs/tutorials/actor-flavors.md` — corrected in PR #289 to reflect current reality
+- `src/function-asya-flavors/fn.go` — rewrite merge + write-back logic
+- `src/function-asya-flavors/merge.go` — replace with simple env-merge function
+- `src/function-asya-flavors/fn_test.go` — update tests
+- `src/function-asya-flavors/merge_test.go` — update tests
+- `deploy/helm-charts/asya-crossplane/templates/composition-{sqs,rabbitmq,pubsub}.yaml`
+  — remove `$resolvedSpec` dual-read boilerplate
+- `deploy/helm-charts/asya-crew/templates/persistence-flavor.yaml` — already correct
+- `deploy/helm-charts/asya-crew/templates/_helpers.tpl` — remove bypass comment
