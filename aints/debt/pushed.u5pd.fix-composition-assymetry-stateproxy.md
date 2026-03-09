@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/debt/u5pd.fix-composition-assymetry-stateproxy
   - branch:debt/u5pd.fix-composition-assymetry-stateproxy
+  - pr:290
 ---
+
 
 
 ## Problem
