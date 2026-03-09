@@ -8,7 +8,7 @@
 
 Cog is a **supported build path** for GPU/ML actors alongside Dockerfile and
 apko. DS writes `cog.yaml`, Asya runs `cog build` as an opaque command via
-`command.local`. Cog's CUDA/framework compatibility matrices are also
+`command`. Cog's CUDA/framework compatibility matrices are also
 extracted for standalone use (`asya resolve cuda`).
 
 ## Why the original rejection was revised
@@ -16,9 +16,10 @@ extracted for standalone use (`asya resolve cuda`).
 The original ADR rejected Cog entirely due to architectural conflicts. Two
 design decisions since then changed the calculus:
 
-1. **Opaque build commands**: Asya treats all build commands as shell strings
-   (`command.local`, `command.remote`). Cog is just another command — Asya
-   doesn't need to understand cog.yaml, just run `cog build -t ${..image}`.
+1. **Opaque build commands**: Asya treats all build commands as a single shell
+   string (`command`). Cog is just another command — Asya doesn't need to
+   understand cog.yaml, just run `cog build -t ${..image}`. To push the image,
+   use `asya k build --push` which appends a registry push.
 2. **Lock file deferred to v2**: The reproducibility gap (no lock file) is
    shared by ALL build paths in v1. This is no longer a Cog-specific concern.
 
@@ -57,8 +58,8 @@ teams can switch to a custom Dockerfile with `runtime` CUDA variants or apko
 `cog build` requires a Docker daemon. This prevents use with daemonless CI
 builders (Kaniko, Buildah) and on-cluster builds (Shipwright).
 
-**Mitigation**: Cog is for local DS builds (`command.local`). Remote/CI builds
-(`command.remote`) use Dockerfile or Shipwright directly.
+**Mitigation**: Cog works as a local `command` string. Remote/CI builds use
+their own pipelines or Shipwright (configured via the `shipwright:` field).
 
 ### 4. No reproducibility guarantees
 
@@ -72,9 +73,7 @@ build:
   - module: gpu_models
     path: "${var.project_root}/src/gpu-models"
     image: "${var.image_registry}/gpu-models:${arg:tag}"
-    command:
-      local: "cog build -t ${..image}"
-      remote: "cog build -t ${..image} && docker push ${..image}"
+    command: "cog build -t ${..image}"
 ```
 
 DS writes `cog.yaml` in the `path:` directory alongside their Python code.

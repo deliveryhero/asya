@@ -764,16 +764,18 @@ Build config (strategy + deps + code)
 ### 7.2 `asya k build` Command
 
 ```bash
-# Local build (default)
-asya k build my-actor --local
-# -> reads build config -> runs strategy (apko/buildpacks/docker) locally
-# -> pushes to configured registry
+# Build only (default)
+asya k build my-actor
+# -> reads build config -> runs command locally
+# -> image stays on machine, no registry push
 
-# On-cluster build
-asya k build my-actor --remote  # in asya config: builder=shipwright
-# -> uploads source to cluster
-# -> creates Shipwright BuildRun CR
-# -> waits for build -> image in registry
+# Build + push to registry
+asya k build my-actor --push
+# -> runs command + pushes image to configured registry
+
+# On-cluster build (future, requires shipwright: config)
+# asya k build my-actor --remote
+# -> creates Shipwright BuildRun CR, no local command needed
 ```
 
 ### 7.3 `asya k deploy` Command

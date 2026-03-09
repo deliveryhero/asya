@@ -782,7 +782,7 @@ step — compile stamps AsyncActor XRs directly into kustomize base.
 | **Build** | `asya k build` | source + build commands | OCI image |
 | **Deploy** | `asya k deploy` | effective manifests (kustomize build) | running pods/containers |
 
-Build and deploy use `--local`/`--remote` flags for execution context.
+Build defaults to local-only; `--push` adds a registry push.
 
 ### 8.1 Three-Layer Kustomize Structure
 
@@ -1252,7 +1252,7 @@ images (larger), Docker dependency (local builds only).
 asya compile flows/order.py
 asya k edit validate-order             # add scaling patch in common/
 asya k expose order-processing --description "Process orders" --input-schema-file schema.json
-asya k build order-processing --local --arg tag=v1
+asya k build order-processing --arg tag=v1
 asya k deploy order-processing --context stg
 # + kustomize build .asya/manifests/order-processing/overlays/stg/
 # + kubectl apply --server-side --field-manager=asya-flow-order-processing -f -
@@ -1399,7 +1399,7 @@ def test_router_modifies_route(vfs_fixture):
 - `asya compile`, `asya k status/logs/deploy` (with SSA)
 
 ### Phase 2: Build + deploy + testing
-- `asya k build` (opaque commands, `--local`/`--remote`)
+- `asya k build` (opaque command, `--push` for registry)
 - `asya k deploy/undeploy` for K8s (kustomize build | kubectl apply --server-side)
 - `asya k expose/unexpose` (configmap-flows.yaml generation + SSA apply)
 - `asya d up` (compile + generate docker-compose.yaml + start containers)

@@ -230,9 +230,7 @@ build:
   - module: shared_utils
     path: "${var.project_root}/libs/shared_utils"
     image: "${var.image_registry}/shared:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
-      remote: "docker build -t ${..image} . && docker push ${..image}"
+    command: "docker build -t ${..image} ."
 ```
 
 ```yaml
@@ -243,8 +241,7 @@ build:
   - module: e_commerce
     path: "./e_commerce"           # relative to THIS file
     image: "${var.image_registry}/ecom:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
+    command: "docker build -t ${..image} ."
 ```
 
 **Path resolution**: Two styles coexist for the `path:` field:
@@ -287,16 +284,13 @@ build:
   - module: shared_utils
     path: "${var.project_root}/libs/shared_utils"   # portable interpolation
     image: "${var.image_registry}/shared:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
-      remote: "docker build -t ${..image} . && docker push ${..image}"
+    command: "docker build -t ${..image} ."
 
   # From team-a (appended after root):
   - module: e_commerce
     path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
     image: "${var.image_registry}/ecom:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
+    command: "docker build -t ${..image} ."
 ```
 
 **Why not explicit `extend:`?**
@@ -376,9 +370,7 @@ build: []
   # - module: my_package
   #   path: "${var.project_root}/src/my-package"
   #   image: "${var.image_registry}/my-package:${arg:tag}"
-  #   command:
-  #     local: "docker build -t ${..image} ."
-  #     remote: "docker build -t ${..image} . && docker push ${..image}"
+  #   command: "docker build -t ${..image} ."
 
 compile:
   mode: manifests
@@ -494,17 +486,14 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce-package"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
-      remote: "docker build -t ${..image} . && docker push ${..image}"
+    command: "docker build -t ${..image} ."
 
   # GPU model with apko
   - module: gpu_models
     path: "${var.project_root}/src/gpu-models"
     image: "${var.image_registry}/gpu-models:${arg:tag}"
-    command:
-      local: "apko build apko.yaml ${..image}"
-      remote: "shp build upload gpu-models --image ${..image}"
+    command: "apko build apko.yaml ${..image}"
+    # shipwright: buildpacks-v3  # future: on-cluster build
 
   # Third-party, never built
   - module: langchain
@@ -514,8 +503,7 @@ build:
   # Dirty DS scripts (no module - just filesystem path)
   - path: "./src/notebooks/models"
     image: "${var.image_registry}/notebook-models:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
+    command: "docker build -t ${..image} ."
 ```
 
 **What's in**: module → path → image → build command. That's it.
@@ -544,12 +532,12 @@ repo-root-relative paths (stays as interpolation through merge).
 
 **`image:`** -- OCI image reference template with interpolation.
 
-**`command:`** -- shell commands for building the image:
-- `command.local` -- runs locally (build only, no push). Used by DS for
-  iteration and testing. Example: `docker build -t ${..image} .`
-- `command.remote` -- runs for remote/CI builds (build + push). Example:
-  `docker build -t ${..image} . && docker push ${..image}`, or
-  `shp build upload <name> --image ${..image}` for Shipwright.
+**`command:`** -- a single opaque shell string for building the image locally.
+`asya k build` runs the command (build only); `asya k build --push` runs the
+command and then pushes the image to the registry. Remote/on-cluster builds
+(e.g. Shipwright) are a separate mechanism via the `shipwright:` config field
+(future). CI ignores `command:` entirely and runs its own pipeline.
+Example: `docker build -t ${..image} .`
 - Entries without `command:` are never built by Asya (third-party images).
 
 ### 3.4 Variable Interpolation (OmegaConf)
@@ -671,10 +659,9 @@ build:
   #       ^^^^^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from var)
   #                                                  ^^^^^^^^^^^ → v1  (from --arg)
   # Final: ghcr.io/org/e-commerce:v1
-  command:
-    local: "docker build -t ${..image} ."
-    #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
-    # ${..image} goes up from command → list item, gets resolved image
+  command: "docker build -t ${..image} ."
+  #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
+  # ${..image} goes up from command → list item, gets resolved image
 ```
 
 ### 3.5 Build Commands Are Opaque
@@ -691,10 +678,12 @@ This means:
   `asya k build`
 - Asya is NOT a build system -- it's a command runner with context
 
-**What about Shipwright remote builds?** For Shipwright, `command.remote`
-is a `shp` CLI invocation. If deeper Shipwright integration is
-needed later (generating Build CRDs from config.yaml), that can be added
-as a plugin/extension without changing the core config schema.
+**What about Shipwright remote builds?** Shipwright is a separate config
+mechanism via the `shipwright:` field (e.g. `shipwright: buildpacks-v3`),
+not an opaque command. `asya k build --remote` would create a Shipwright
+BuildRun using this config. If deeper Shipwright integration is needed
+later (generating Build CRDs from config.yaml), that can be added as a
+plugin/extension without changing the core config schema.
 
 ### 3.6 Router Actor Default Image
 
@@ -742,7 +731,7 @@ Error: unresolved interpolation '${registy}'
 
 **Level 2 — Asya (semantic)**:
 - No unknown keys in reserved sections (`build:`, `compile:`) (catch typos)
-- `command.local` / `command.remote` are valid shell commands (basic syntax check)
+- `command` is a valid shell command (basic syntax check)
 - `path:` directories exist on disk (when building)
 - Image references in manifests resolve to a `build` entry (at compile time)
 - **Duplicate detection in concatenated lists**: after walk-up merge
@@ -997,36 +986,38 @@ CLI follows the `asya <noun> <verb>` pattern from the RFC
 (`.aint/aints/asya-lab/rfc.md` section 5):
 
 ```bash
-# Build a specific actor's image (--local = build only, no push)
-asya k build text-analyzer --local --arg tag=v1
+# Build a specific actor's image (build only, image stays local)
+asya k build text-analyzer --arg tag=v1
 
 # Build all images needed by a flow
-asya k build order-processing --local --arg tag=v1
+asya k build order-processing --arg tag=v1
 
-# Remote build (build + push, or Shipwright) — enough to test on K8s
-asya k build text-analyzer --remote --arg tag=v1
+# Build + push to registry — enough to test on K8s
+asya k build text-analyzer --push --arg tag=v1
 
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
-asya k build order-processing --local
+asya k build order-processing
 ```
 
-**Two build flags**:
-- `--local` → runs `command.local`. Enough to test actors in local docker
-  compose. Image stays on the machine, no registry push.
-- `--remote` → runs `command.remote`. Enough to test actors on K8s.
-  Typically includes registry push (or Shipwright cluster build).
+**Build flags**:
+- Default: `asya k build` runs `command` (build only, image stays local).
+  Enough to test actors in local docker compose.
+- `--push`: `asya k build --push` runs `command` + pushes the image to
+  the registry. Enough to test actors on K8s.
+- Future: `asya k build --remote` creates a Shipwright BuildRun using the
+  `shipwright:` config field (separate mechanism, not an opaque command).
 
 These flags interact with `--context` (see RFC `rfc.md`): `--context stg`
-implies remote builds (contexts are K8s-only; Docker uses `asya d *`). The
-`--local`/`--remote` flags are explicit overrides when context defaults
-aren't sufficient.
+implies `--push` (contexts are K8s-only; Docker uses `asya d *`). The
+`--push` flag is an explicit override when context defaults aren't
+sufficient.
 
 **Resolution**:
-- `asya k build <actor-name> --local` → reads manifest to find image
-  ref → matches image ref to config.yaml `build` entry → runs
-  `command.local` in the `path:` directory
-- `asya k build --remote` → same resolution but runs `command.remote`
+- `asya k build <actor-name>` → reads manifest to find image ref →
+  matches image ref to config.yaml `build` entry → runs `command` in
+  the `path:` directory
+- `asya k build --push` → same resolution, runs `command` + pushes image
 - `asya k build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
@@ -1039,10 +1030,9 @@ substitution.
 built-in caching or "skip if unchanged" logic. If a user needs conditional
 builds, they can use `${arg:*}` to pass flags to the build tool:
 ```yaml
-command:
-  local: "docker build ${arg:cache_flag} -t ${..image} ."
-  # asya k build foo --local --arg cache_flag="--no-cache"
-  # or: asya k build foo --local  (cache_flag must be provided or fail)
+command: "docker build ${arg:cache_flag} -t ${..image} ."
+# asya k build foo --arg cache_flag="--no-cache"
+# or: asya k build foo  (cache_flag must be provided or fail)
 ```
 OmegaConf default values for `arg` are not supported — missing args are a
 hard error. If a build command needs optional flags, use `${env:VAR,default}`
@@ -1061,7 +1051,7 @@ manifests in `.asya/manifests/`, (3) deployed state in current context
 
 **Verbose output**:
 ```
-$ asya k build text-analyzer --local --arg tag=v1
+$ asya k build text-analyzer --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
 [build] Dir: /proj/src/e-commerce-package
@@ -1145,9 +1135,8 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce-package"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command:
-      local: "apko build apko.yaml ${..image}"
-      remote: "shp build upload e-commerce --image ${..image}"
+    command: "apko build apko.yaml ${..image}"
+    # shipwright: buildpacks-v3  # future: on-cluster build
 ```
 
 ### 5.2 Dirty Layout (DS Experimentation)
@@ -1173,9 +1162,7 @@ build:
   - module: "./models"                # Filesystem path, not importable
     path: "./models"
     image: "ghcr.io/org/bert-models:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
-      remote: "docker build -t ${..image} . && docker push ${..image}"
+    command: "docker build -t ${..image} ."
 ```
 
 For the dirty layout, compilation from Jupyter uses the kernel's Python (which
@@ -1265,12 +1252,12 @@ asya k build text-analyzer --set var.image_registry=my-registry.io
 # Env vars (shell session — survives across commands)
 export ASYA_ARG_TAG=v1
 export ASYA_ARG_ENV=staging
-asya k build text-analyzer --local
+asya k build text-analyzer
 asya k deploy text-analyzer  # same variables, no repetition
 
 # Override a var constant from env (useful in CI)
 export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
-asya k build order-processing --local --arg tag=$CI_SHA
+asya k build order-processing --arg tag=$CI_SHA
 ```
 
 **In config.yaml**:
@@ -1284,9 +1271,8 @@ build:
     image: "${var.image_registry}/e-commerce:${arg:tag}"
     #       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ var (resolved first)
     #                                         ^^^^^^^^^^ arg (resolved at command time)
-    command:
-      local: "docker build -t ${..image} ."
-      #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
+    command: "docker build -t ${..image} ."
+    #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
 ```
 
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once
@@ -1398,7 +1384,7 @@ the tag.
       `asya init --strategy apko` can scaffold the right commands.
 
     **v2 extension path** (no schema break): Optional `build.intent:` field
-    alongside existing `command.local`/`command.remote` under `build[]`.
+    alongside existing `command` under `build[]`.
     When `intent` exists,
     Asya can auto-generate commands, compute `input_hash`, resolve CUDA.
     When absent, falls back to opaque commands. Additive change — v1 configs
