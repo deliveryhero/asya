@@ -238,7 +238,7 @@ actors (minimal, full, agentic-minimal, agentic-full). Contexts section is
 commented out — configured when ready to deploy. See
 `research-compiler-resolution.md` section 2.4.
 
-### 5.8 Command Data Sources
+### 5.9 Command Data Sources
 
 No CLI command uses the gateway's internal `/mesh/*` routes -- those are
 reserved for sidecar-to-gateway communication.
@@ -249,10 +249,12 @@ reserved for sidecar-to-gateway communication.
 | `asya flow stream <id>` | Gateway | MCP streamable HTTP or A2A subscribe |
 | `asya flow list` | Local + context | Decorator scan + manifests + K8s/Docker |
 | `asya actor list` | Local + context | Manifests + K8s/Docker |
-| `asya flow render` | Local | Compiled manifests → target artifacts (mode-dependent) |
+| `asya flow show <flow>` | Local | `kustomize build` → effective manifests |
+| `asya flow compose <flow>` | Local | Effective manifests → docker-compose.yaml |
 | `asya flow status <flow>` | Context | `kubectl get` or `docker compose ps` |
 | `asya flow logs <flow>` | Context | `kubectl logs` or `docker compose logs` |
 | `asya flow deploy/undeploy` | Context | `kubectl apply/delete` or `docker compose up/down` |
+| `asya flow edit <actor>` | Local | Opens/creates kustomize patch file |
 | `asya actor compile` | Local | Config + Python resolution (no K8s needed) |
 | `asya actor build` | Build tool | Opaque shell command from config.yaml |
 | `asya compiler-rule *` | Local | Reads/writes config.compiler.yaml |
@@ -261,7 +263,7 @@ reserved for sidecar-to-gateway communication.
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya msg trace <id>` | Observability | OpenTelemetry trace query |
 
-### 5.9 List Commands (Discovery)
+### 5.10 List Commands (Discovery)
 
 `asya flow list` and `asya actor list` show a unified outer-join table across
 three data sources: local source files, compiled manifests, and deployed state
@@ -305,12 +307,12 @@ and additional detail (handler FQN, image ref).
 (local compose). Rows with no local source/manifest but deployed = managed
 outside Asya.
 
-### 5.10 Protocol Handling
+### 5.11 Protocol Handling
 
 `asya flow call` and `asya flow expose` accept a `--protocol=mcp|a2a` flag.
 Default is configurable. DS should not need to care about MCP vs A2A.
 
-### 5.11 Log Display
+### 5.12 Log Display
 
 `asya flow logs <flow>` aggregates logs from all actors in the flow, prefixed
 with a colored actor name (like `docker compose logs`).
