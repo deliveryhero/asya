@@ -24,7 +24,12 @@ Remove `region`, `gcpProject`, `providerConfigRef`, and `irsa` from the AsyncAct
 - These already have Helm values defaults — compositions just stop reading per-actor overrides
 
 ### Injector
-- Remove `spec.region` read from `src/asya-injector/internal/webhook/asyncactor.go`
+- Stop reading `spec.region` and `spec.gcpProject` from the XR
+- The injector still needs these values to set `ASYA_AWS_REGION` / `ASYA_PUBSUB_PROJECT_ID`
+  on the sidecar container — but it should read them from its **own Helm config**
+  (e.g., `--set awsRegion=eu-west-1`) instead of from each XR
+- Update `src/asya-injector/internal/webhook/asyncactor.go` and `injection/config.go`
+- Update injector Helm chart values to accept `awsRegion` and `gcpProjectId`
 
 ### Consumers (update all that set these fields)
 - Examples in `examples/asyas/` (e.g., `fully-configured-actor.yaml`)
