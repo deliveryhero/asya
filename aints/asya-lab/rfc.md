@@ -191,7 +191,7 @@ target is git-committed. Prevents accidental loss of manual edits.
 
 - `asya flow compile` → won't overwrite dirty routers.py or base/ manifests
 - `asya flow compose` → won't overwrite dirty docker-compose.yaml
-- `asya compiler-rule add` → won't overwrite dirty config.compiler.yaml
+- `asya compiler-rule add` → won't overwrite dirty compiler/rules.yaml
 - `asya secret create` → won't overwrite dirty config.yaml
 - Override with `--force`
 
@@ -234,7 +234,7 @@ asya context use <name>              # switch context
 ```
 
 `asya init` uses [Copier](https://copier.readthedocs.io/) for scaffolding.
-Generates full `config.template.yaml` (AsyncActor CRD with `${dynamic:*}`
+Generates `compiler/templates/actor.yaml` (AsyncActor CRD with `${dynamic:*}`
 holes) so compile works out of the box. `--template` adds sample flows and
 actors (minimal, full, agentic-minimal, agentic-full). Contexts section is
 commented out — configured when ready to deploy. See
@@ -259,7 +259,7 @@ reserved for sidecar-to-gateway communication.
 | `asya flow edit <actor>` | Local | Opens/creates kustomize patch file |
 | `asya actor compile` | Local | Config + Python resolution (no K8s needed) |
 | `asya actor build` | Build tool | Opaque shell command from config.yaml |
-| `asya compiler-rule *` | Local | Reads/writes config.compiler.yaml |
+| `asya compiler-rule *` | Local | Reads/writes compiler/rules.yaml |
 | `asya secret *` | Local | Reads/writes config.yaml secrets: |
 | `asya context *` | Local | Reads/writes config.yaml contexts: / default_context: |
 | `asya msg send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
@@ -541,15 +541,34 @@ All files are loaded into one OmegaConf DictConfig (the library, not
 
 ```
 .asya/
-├── config.yaml              # root: var, build, compile, secrets, contexts
-├── config.template.yaml     # → merged under template: key
-└── config.compiler.yaml     # → merged under compiler: key
+├── config.yaml              # root: var, build, compiler, secrets, contexts
+├── compiler/                # → auto-merged under compiler: key
+│   ├── rules.yaml           # → compiler.rules (treat-as rules)
+│   └── templates/           # → compiler.templates
+│       ├── actor.yaml       # → compiler.templates.actor (AsyncActor CRD)
+│       └── kustomization.yaml  # → compiler.templates.kustomization
+├── manifests/               # kustomize output (per-flow subdirectories)
+│   └── <flow>/
+│       ├── kustomization.yaml   # auto-maintained by CLI
+│       ├── base/                # compiler output (regenerated)
+│       └── patches/             # user/UI edits (preserved)
+└── compose/                 # docker compose output
+    └── <flow>.yaml
 ```
 
-**Filename-to-key convention**: Files named `config.<section>.yaml` have their
-content placed under the `<section>:` key in the merged config. `config.yaml`
-itself is the root. On disk, `config.template.yaml` looks like a raw CRD; after
-loading, the compiler accesses it as `config.template`.
+**Directory-to-key convention**: directories under `.asya/` that match a root
+config key have their contents recursively merged under that key. Files become
+sub-keys (filename stem = key). Subdirectories create nested keys.
+
+- `.asya/config.yaml` — root keys (always loaded)
+- `.asya/compiler/rules.yaml` → `compiler.rules` in merged config
+- `.asya/compiler/templates/actor.yaml` → `compiler.templates.actor`
+
+Important user-facing settings (paths, scalars) stay in `config.yaml`.
+Complex structured content (rules, templates) is offloaded into directories
+for clarity. Both locations merge — you CAN put `compiler.rules` inline in
+`config.yaml` for small projects and offload to `compiler/rules.yaml` when
+the list grows.
 
 ### 7.2 config.yaml
 
@@ -569,10 +588,10 @@ build:
       local: "docker build -t ${..image} ."
       remote: "${.local} && docker push ${..image}"
 
-compile:
-  template: .asya/config.template.yaml
-  routers: "./src/compiled/${dynamic:flow}"      # where routers.py goes
-  manifests: ".asya/manifests/${dynamic:flow}"   # where base/*.yaml goes
+compiler:
+  routers: "${var.project_root}/compiled/${dynamic:flow_stem}"
+  manifests: ".asya/manifests/${dynamic:flow_stem}"
+  # rules and templates auto-merged from .asya/compiler/
 
 secrets:
   OPENAI_API_KEY:
@@ -602,14 +621,15 @@ contexts:
 default_context: stg
 ```
 
-### 7.3 config.template.yaml
+### 7.3 compiler/templates/actor.yaml
 
 Standalone YAML that looks exactly like the final output — a flat AsyncActor
-XR (v1alpha2 spec, see `xrd-v2/rfc.md`). On disk it's a raw CRD; after
-loading it's available as `config.template`. The `${dynamic:*}` holes are
-filled per-actor during compilation.
+XR (v1alpha2 spec, see `xrd-v2/rfc.md`). On disk it's a lintable CRD; after
+loading it's available as `config.compiler.templates.actor`. The `${dynamic:*}`
+holes are filled per-actor during compilation.
 
 ```yaml
+# .asya/compiler/templates/actor.yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -642,7 +662,7 @@ detected and sourced via `secrets:`.
 
 **Platform engineers customize the template** to set infra-tier defaults:
 ```yaml
-# Platform team adds to template:
+# Platform team adds to compiler/templates/actor.yaml:
 spec:
   # ...
   resiliency:
@@ -653,6 +673,58 @@ spec:
 
 These defaults become part of `base/` and can be overridden per-actor via
 kustomize patches.
+
+### 7.3.1 compiler/templates/kustomization.yaml
+
+Template for the auto-generated `kustomization.yaml` in each flow's manifest
+directory. The compiler stamps this once per flow, then updates `resources:`
+and `patches:` lists on subsequent compiles/edits.
+
+```yaml
+# .asya/compiler/templates/kustomization.yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources: "${dynamic:resources}"
+patches: "${dynamic:patches}"
+```
+
+Platform engineers can add default kustomize features:
+```yaml
+# Platform team adds:
+namespace: "${var.namespace}"
+commonLabels:
+  app.kubernetes.io/managed-by: asya
+  asya.sh/flow: "${dynamic:flow}"
+```
+
+### 7.3.2 compiler/rules.yaml
+
+Compiler rules are offloaded here when the list grows. For small projects,
+rules can also live inline in `config.yaml` under `compiler.rules:` — both
+sources merge via list concatenation (`ListMergeMode.EXTEND`).
+
+```yaml
+# .asya/compiler/rules.yaml
+- match: "tenacity.retry(stop=stop_after_attempt(X))"
+  treat-as: config
+  assign-to: spec.resiliency.retry.maxAttempts
+  where:
+    stop:
+      stop_after_attempt:
+        max_attempt_number: X
+  example: "@retry(stop=stop_after_attempt(3))"
+
+- match: "stamina.retry(attempts=X)"
+  treat-as: config
+  assign-to: spec.resiliency.retry.maxAttempts
+  where:
+    attempts: X
+  example: "@stamina.retry(attempts=5)"
+
+- match: "my_lib.helper"
+  treat-as: inline
+```
 
 ### 7.4 Resolver Syntax
 
@@ -703,18 +775,20 @@ env entries. The compiler constructs this list from:
   directly. OmegaConf handles interpolation (relative refs, lazy resolution),
   custom resolvers (`arg:`, `dynamic:`, `env:`), and merge with
   `ListMergeMode.EXTEND` for list concatenation. Asya adds: walk-up file
-  discovery, filename-to-key convention, semantic validation.
-- **Filename-to-key convention**: `config.<section>.yaml` → content placed
-  under `<section>:` key. `config.yaml` is the root. No explicit merge
-  directives needed.
+  discovery, directory-to-key convention, semantic validation.
+- **Directory-to-key convention**: directories under `.asya/` that match a
+  root config key have their contents recursively merged. Files become
+  sub-keys. Example: `.asya/compiler/rules.yaml` → `compiler.rules`.
+  Important scalars stay in `config.yaml`; complex structures offload to
+  directories when they grow.
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
   system. `command.local` and `command.remote` are shell strings with variable
   substitution. Any build tool works.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
-  All `.asya/config*.yaml` files merge root-first (dicts deep-merge, lists
-  concatenate via `ListMergeMode.EXTEND`).
+  All `.asya/config.yaml` files and content directories merge root-first
+  (dicts deep-merge, lists concatenate via `ListMergeMode.EXTEND`).
 - **Three resolver families**: `${var.*}` for config constants (native
   OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
   (custom resolvers). Dot = in config, colon = injected.
@@ -755,19 +829,19 @@ AsyncActor XR manifests (`base/*.yaml`). Both are read-only and regenerated
 on recompile.
 
 **`asya flow compile flows/order.py`:**
-1. Load `.asya/*.yaml` → merged OmegaConf config
+1. Load `.asya/config.yaml` + `.asya/compiler/` → merged OmegaConf config
 2. Parse flow AST → extract handler names
 3. Apply rules (treat-as classification, config extraction)
 4. Group into routers → Router IR
 5. For each actor: resolve handler → module → build entry → image,
-   set `dynamic:*` values, stamp config.template.yaml → write to `base/`
-6. Generate `kustomization.yaml` (resources list + patches references)
-7. Generate `routers.py` → write to `compile.routers` path
+   set `dynamic:*` values, stamp `compiler.templates.actor` → write to `base/`
+6. Stamp `compiler.templates.kustomization` → write `kustomization.yaml`
+7. Generate `routers.py` → write to `compiler.routers` path
 
 **`asya actor compile --handler e_commerce.validate.validate_order`:**
-1. Load `.asya/*.yaml` → merged OmegaConf config
+1. Load `.asya/config.yaml` + `.asya/compiler/` → merged OmegaConf config
 2. Resolve handler → module → build entry → image
-3. Set `dynamic:*` values, stamp config.template.yaml → write to `base/`
+3. Set `dynamic:*` values, stamp `compiler.templates.actor` → write to `base/`
 
 Same resolution code. Flow compile adds AST parsing + router generation.
 
@@ -835,7 +909,7 @@ Example (default verbosity):
 ```
 $ asya flow compile flows/order_processing.py
 [compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
-[compile] Config: /.asya/config.yaml, /.asya/config.template.yaml (walk-up)
+[compile] Config: /.asya/config.yaml, /.asya/compiler/ (walk-up)
 [compile] Handler: validate_order
            → import: e_commerce.validate.validate_order
            → module: e_commerce → image: ghcr.io/org/e-commerce:${arg:tag}
@@ -877,8 +951,8 @@ Error: <short description>
   hint: <actionable suggestion>
   config files loaded:
     1. /.asya/config.yaml
-    2. /.asya/config.template.yaml
-    3. /.asya/config.compiler.yaml
+    2. /.asya/compiler/rules.yaml
+    3. /.asya/compiler/templates/actor.yaml
     4. src/team-a/.asya/config.yaml
 ```
 
@@ -930,7 +1004,7 @@ Error: deploy failed
   hint: error from server (Forbidden): asyncactors.asya.sh is forbidden
   config files loaded:
     1. /.asya/config.yaml
-    2. /.asya/config.template.yaml
+    2. /.asya/compiler/templates/actor.yaml
 ```
 
 > **Full design**: `research-compiler-resolution.md` (section 4: stages,
@@ -952,7 +1026,8 @@ Every symbol the compiler encounters is classified into one of five actions:
 | `flow` | Sub-flow, compile recursively | Yes |
 | `config` | Strip and extract infrastructure metadata | No |
 
-Rules are declared in `compile.rules` in config.yaml. Most-specific pattern
+Rules are declared in `compiler.rules` (inline in config.yaml or offloaded to
+`compiler/rules.yaml`). Most-specific pattern
 wins. Inline comments (`# asya: <action>`) have highest priority.
 
 ### 9.2 Implemented Constructs
@@ -1216,8 +1291,8 @@ def test_router_modifies_route(vfs_fixture):
 ### Phase 1: Core SDK + CLI restructure
 - Package creation, migration from asya-cli
 - SDK extraction (compiler, MCP client)
-- `.asya/` config schema (config.yaml + config.template.yaml + config.compiler.yaml),
-  walk-up merge, `asya init`
+- `.asya/` config schema (config.yaml + compiler/ directory),
+  directory-to-key merge, walk-up merge, `asya init`
 - Kustomize-native compile (base/*.yaml + kustomization.yaml generation)
 - `asya flow edit` (create/open kustomize patches)
 - `asya flow show` (kustomize build → effective manifests)
