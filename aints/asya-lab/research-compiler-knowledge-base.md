@@ -427,12 +427,31 @@ The `env` target is a semantic shorthand — the compiler expands it to a K8s
 env entry list at `spec.workload.template.spec.containers[].env`. See
 "Environment Variable Detection" above.
 
-## Defaults
+## Defaults and Explicit Markers
+
+The default for same-package functions is `unfold` — the compiler expands their
+body into the current flow's routers. This is safe because:
+
+- **Actors are always explicit**: `@actor` decorator or `# asya: actor` comment.
+  No function becomes an actor boundary by default.
+- **Flows are always explicit**: `@flow` decorator or `# asya: flow` comment.
+- **Unfold of simple utilities is harmless**: a function that just does dict
+  mutations unfolds into inline mutations — same result as `inline`.
+- **Unfold of complex utilities fails loudly**: if the body contains unsupported
+  constructs (loops, complex logic), the compiler errors with a clear message
+  → user adds `# asya: inline`.
+
+| Marker | Syntax options | Effect |
+|--------|---------------|--------|
+| `actor` | `@actor`, `# asya: actor`, `actor(func)(p)` | Message boundary, separate deployment |
+| `flow` | `@flow`, `# asya: flow` | Sub-flow, compile recursively |
+| `inline` | `@inline`, `# asya: inline`, `inline(func)(p)` | Run verbatim in router |
+| `unfold` | `@unfold`, `# asya: unfold`, `unfold(func)(p)` | Expand body into current flow (default for same-package) |
 
 | Situation | Default behavior | Override mechanism |
 |-----------|-----------------|-------------------|
-| Same-package function, no rule | `unfold` (via `"."` rule) | Inline comment or specific rule |
-| External function, no rule | `inline` (via `"*"` rule) | Specific rule |
+| Same-package function, no rule | `unfold` (via `"."` rule) | Any marker above |
+| External function, no rule | `inline` (via `"*"` rule) | Any marker above |
 | Decorator, no rule | Keep at runtime | `treat-as: config` rule to strip |
 
 ## Research: Python Retry/Timeout Decorator Landscape
