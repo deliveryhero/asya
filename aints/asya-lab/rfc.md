@@ -515,9 +515,7 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command:
-      local: "docker build -t ${..image} ."
-      remote: "${.local} && docker push ${..image}"
+    command: "docker build -t ${..image} ."
 
 compiler:
   routers: "${var.project_root}/compiled/${dynamic:flow_stem}"
@@ -742,8 +740,10 @@ env entries. The compiler constructs this list from:
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
-  system. `command.local` and `command.remote` are shell strings with variable
-  substitution. Any build tool works.
+  system. `command` is a shell string with variable substitution — any build
+  tool works. `asya k build --push` appends a registry push after the build
+  command. On-cluster builds (Shipwright) are a separate mechanism, not a
+  shell command.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
   All `.asya/config.yaml` files and content directories merge root-first
   (dicts deep-merge, lists concatenate via `ListMergeMode.EXTEND`).
@@ -1060,13 +1060,13 @@ check `$?` for pass/fail; humans read the message.
 pipelines (`retry:` in GitHub Actions, Argo Workflows, etc.), not in the CLI
 tool.
 
-**Build command errors**: When `command.local` or `command.remote` exits
-non-zero, Asya forwards the build tool's stderr verbatim and exits 1:
+**Build command errors**: When `command` exits non-zero, Asya forwards the
+build tool's stderr verbatim and exits 1:
 ```
 [build] Running: docker build -t ghcr.io/org/e-commerce:v1 .
 [build] ...docker output...
 Error: build command failed (exit code 1)
-  in: /.asya/config.yaml:12 → build[0].command.local
+  in: /.asya/config.yaml:12 → build[0].command
   hint: check build output above
   config files loaded:
     1. /.asya/config.yaml
@@ -1171,27 +1171,23 @@ flows, the compiler clones the actor with a flow-scoped name.
 the flow name: `validate-order-foo-bar`. Standalone actors (deployed outside a
 flow) keep their original name: `validate-order`.
 
-**Compile-time collision detection**: The compiler checks existing manifests in
-`base/` before writing. If `validate-order-foo-bar.yaml` already exists (from a
-different flow sharing the same output directory), the compiler appends a numeric
-suffix: `validate-order-foo-bar-1`. This is a local file check — no cluster
-access needed at compile time.
+**Compile-time collision detection**: The compiler scans
+`.asya/manifests/*/base/*.yaml` — all locally-compiled flows, not just the
+current one. If `validate-order-foo-bar` already exists in another flow's
+manifests, the compiler appends a numeric suffix: `validate-order-foo-bar-1`.
+Local directory scan, no cluster access needed.
 
-**Apply-time collision protection**: Before applying, `asya k deploy` checks
-each actor name against the cluster:
+**Apply-time collision protection**: No pre-check needed — SSA handles this
+natively. Each flow applies with `--field-manager=asya-flow-<name>`. If two
+flows produce the same actor name, the second apply fails with an SSA field
+ownership conflict (both managers claim `spec.*`, `metadata.labels`, etc.).
+The CLI catches the SSA conflict error and produces a friendly message:
+*"Actor 'validate-order-foo-bar' already exists and is owned by flow 'baz'."*
 
-1. `kubectl get asyncactor <name>` — does it already exist?
-2. If yes, read `asya.sh/flow` label:
-   - Same flow → update (normal SSA apply)
-   - Different flow → **hard error**, refuse to apply
-   - No label (standalone actor) → **hard error**, refuse to apply
-3. If no → create (normal SSA apply)
-
-SSA field managers (`asya-flow-<name>`) provide defense-in-depth: two flows
-applying the same resource with different field managers would conflict on
-field ownership. But the pre-apply label check catches edge cases where the
-existing actor was created outside SSA (manual `kubectl apply`, standalone
-deploy).
+This also protects against collisions with standalone actors — client-side
+`kubectl apply` uses its own field manager, so SSA conflicts naturally. Zero
+overhead: no extra API calls, just error handling on the apply that was going
+to happen anyway.
 
 ### 10.2 What `asya k deploy` Does
 
