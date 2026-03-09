@@ -71,7 +71,7 @@ All commands support `--output json`. Run `git aint <cmd> --help` for full optio
 ### Worktrees
 
 All work should be done in a git worktree. `git aint pickup <ref>` automates this:
-- Creates branch `{epic}/{task}.{task_slug}` (e.g. `{epic}/{task}.{task_slug}`)
+- Creates branch `{dir}/{id}.{slug}` (e.g. `ci-setup/c9x8.fix-auth`)
 - Creates worktree in `.worktrees/` (configurable via `git config aint.worktree-dir`)
 - Tags the aint with `worktree:<path>` and `branch:<branch>`
 - Sets status to `active`
@@ -107,6 +107,6 @@ All work should be done in a git worktree. `git aint pickup <ref>` automates thi
 
 ## Conventions
 
-- **Branches**: `{epic}/{task}.{task_slug}` (e.g. `{epic}/{task}.{task_slug}`)
+- **Branches**: `{dir}/{id}.{slug}` (e.g. `ci-setup/c9x8.fix-auth`)
 - **Tags**: `worktree:<path>`, `branch:<branch>`, `pr:<number>`
 - **Dependencies**: aint IDs in frontmatter (e.g. `dependencies: [c9x8, d4m1]`)
