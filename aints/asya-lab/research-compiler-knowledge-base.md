@@ -389,6 +389,14 @@ This handles all calling conventions automatically:
 **Bare decorators**: `@retry` with no arguments — no `where:` children match,
 compiler strips the decorator and uses Asya defaults.
 
+**Hard requirement: well-configured Python environment.** `asya compile` must
+run in the project's virtualenv with all decorator/library packages installed.
+The compiler imports library packages referenced in extraction rules (tenacity,
+stamina, etc.) to call `inspect.signature` — same requirement as mypy or
+pyright. User handler code is never imported (only parsed via `ast.parse`),
+so heavy-init side effects (model loading, GPU) are not a concern. Only
+decorator/library packages are imported, and these are lightweight by nature.
+
 ### Context Managers
 
 Context managers (e.g., `async with asyncio.timeout(30):`) are matched by the

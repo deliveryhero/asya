@@ -1126,6 +1126,12 @@ to AsyncActor XR spec paths (e.g., `spec.resiliency.retry.maxAttempts`).
 The compiler uses `inspect.signature` at compile time to resolve parameter
 names. Each terminal `assign-to:` has an `example:` field for debugging.
 
+**Hard requirement**: `asya compile` must run in the project's virtualenv with
+all decorator/library packages installed (same as mypy/pyright). The compiler
+imports library packages referenced in extraction rules to call
+`inspect.signature`. User handler code is never imported — only parsed via
+`ast.parse`.
+
 Environment variables detected via `os.environ` / `os.getenv` rules are
 sourced from the `secrets:` section in `config.yaml`. Default values from
 `os.getenv("KEY", "default")` are captured automatically.
