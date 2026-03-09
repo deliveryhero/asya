@@ -8,7 +8,7 @@ metadata:
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-weight": "0"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   restartPolicy: Never
   containers:
@@ -56,7 +56,7 @@ spec:
         # RabbitMQ queue validation using rabbitmqctl
         echo "[.] Validating RabbitMQ queue..."
 
-        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
         RABBITMQ_POD="asya-rabbitmq-0"
 
         echo "Queue name: ${QUEUE_NAME}"
@@ -111,7 +111,7 @@ spec:
         echo "[.] Validating SQS queue..."
 
         AWS_REGION="${AWS_REGION:-us-east-1}"
-        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
 
         # Build endpoint flag for awscli v1 compatibility (v1 ignores AWS_ENDPOINT_URL)
         ENDPOINT_FLAG=""
@@ -178,7 +178,7 @@ spec:
         echo "[.] Validating Pub/Sub subscription..."
 
         PROJECT_ID="${PUBSUB_PROJECT_ID}"
-        SUBSCRIPTION_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        SUBSCRIPTION_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
         EMULATOR="${PUBSUB_EMULATOR_HOST}"
 
         echo "Project: ${PROJECT_ID}"
