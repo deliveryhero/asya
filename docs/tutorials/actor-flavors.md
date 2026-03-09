@@ -86,10 +86,12 @@ the last flavor to set a value wins, and the actor's inline spec overrides all.
 |---|---|
 | `scaling` | KEDA ScaledObject parameters (minReplicas, maxReplicas, pollingInterval, cooldownPeriod, queueLength) |
 | `workload` | Deployment template: containers, resources, env vars, volumes, tolerations, node selectors |
-| `stateProxy` | State proxy sidecar configuration for persistence connectors |
 
-Note: `stateProxy` can only come from a flavor, not from the actor's inline spec.
-This is intentional — storage infrastructure is a platform concern.
+`stateProxy` is **not** resolved through the flavor pipeline. The injector webhook
+reads `spec.stateProxy` directly from the live `AsyncActor` object — not from
+the composition context — so flavor-provided `stateProxy` data is never picked
+up. Write `spec.stateProxy` inline in the actor manifest, or let a Helm chart
+generate it (as `asya-crew` does for `x-sink` and `x-sump`).
 
 ---
 
@@ -151,15 +153,16 @@ data:
     queueLength: 2
 ```
 
-### Example: S3 persistence (managed by asya-crew)
+### Example: S3 persistence flavor (managed by asya-crew)
 
-The `asya-crew` chart can create a persistence flavor automatically when
-`persistence.enabled: true` is set. Platform engineers configure the crew chart;
-the resulting `EnvironmentConfig` wires up the `asya-state-proxy` sidecar and
-exposes the bucket mount to actors.
+The `asya-crew` chart creates a persistence `EnvironmentConfig` when
+`persistence.enabled: true` is set. Because `stateProxy` is not propagated
+through the flavor pipeline (see above), this `EnvironmentConfig` currently
+carries bucket and connector metadata as a reference — but you still need to
+write `spec.stateProxy` inline in your actor to activate the sidecar injection.
 
 ```yaml
-# In asya-crew Helm values:
+# In asya-crew Helm values (platform engineer):
 persistence:
   enabled: true
   backend: s3
@@ -168,9 +171,43 @@ persistence:
     region: eu-west-1
 ```
 
-This creates an `EnvironmentConfig` named `asya-persistence-s3` (by default)
-that injects the state proxy connector as a sidecar. Actor authors reference it
-by name; they never touch the connector image or bucket configuration.
+Actor manifest with inline stateProxy (actor author):
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: data-processor
+  namespace: my-project
+spec:
+  actor: data-processor
+  transport: sqs
+
+  stateProxy:
+  - name: checkpoints
+    mount:
+      path: /state/checkpoints
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0
+      env:
+      - name: STATE_BUCKET
+        value: my-checkpoints-bucket
+      - name: AWS_REGION
+        value: eu-west-1
+
+  workload:
+    kind: Deployment
+    template:
+      spec:
+        containers:
+        - name: asya-runtime
+          image: my-org/data-processor:latest
+          env:
+          - name: ASYA_HANDLER
+            value: processor.handle
+          - name: ASYA_PERSISTENCE_MOUNT
+            value: /state/checkpoints/data-processor
+```
 
 ---
 
@@ -213,12 +250,12 @@ author needs to know about.
 
 ### Example: combining multiple flavors
 
-Flavors compose. An actor can reference a scaling profile and a persistence
-flavor together:
+Flavors compose. An actor can reference several flavors to layer their
+`scaling` and `workload` configurations:
 
 ```yaml
 spec:
-  flavors: [high-throughput, asya-persistence-s3]
+  flavors: [gpu-standard, high-throughput]
 
   workload:
     kind: Deployment
@@ -226,18 +263,15 @@ spec:
       spec:
         containers:
         - name: asya-runtime
-          image: my-org/data-processor:latest
+          image: my-org/batch-inference:latest
           env:
           - name: ASYA_HANDLER
-            value: processor.handle
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints/data-processor
+            value: inference.handle
 ```
 
-`high-throughput` applies first, setting scaling parameters. `asya-persistence-s3`
-applies second, adding the state proxy sidecar. The actor's inline env vars
-(including `ASYA_PERSISTENCE_MOUNT`) apply last and are not affected by either
-flavor.
+`gpu-standard` applies first, setting GPU resources and tolerations.
+`high-throughput` applies second, overriding scaling parameters. The actor's
+inline workload (image, handler) applies last.
 
 ### Example: overriding a flavor value
 
