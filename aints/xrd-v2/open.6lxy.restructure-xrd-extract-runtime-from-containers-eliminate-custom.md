@@ -89,14 +89,15 @@ spec:
 - Must preserve workloadRef path for future bring-your-own-deployment support
 - Must preserve custom volume/secret mounting into workload
 
-## Scope
+## Implementation phases
 
-- XRD schema change (breaking)
-- All 3 compositions rewritten (render-deployment reads flat fields)
-- Injector updates (reads container spec from new paths)
-- All test manifests and examples updated
-- Migration guide for existing AsyncActors
-- Simplify function-asya-flavors to ~30 LOC flat merge
+| Phase | Aint | Title |
+|-------|------|-------|
+| 1 | `[8gc6]` | Remove leaked provider fields from XRD |
+| 2 | `[lfcf]` | Flatten workload structure, promote handler, rewrite flavor merge |
+| 3 | `[azb9]` | Update documentation for flat XRD |
+
+Dependency chain: `u5pd` → `8gc6` → `lfcf` → `azb9`
 
 ## Depends on
 
