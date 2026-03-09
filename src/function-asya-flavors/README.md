@@ -76,7 +76,7 @@ Crossplane Composition Pipeline (future)
 ```
 
 No custom Go code needed. The custom function can be dropped entirely.
-As of March 2026, this capability is not on the Crossplane roadmap.
+This capability is not currently on the Crossplane roadmap.
 
 ## Development
 

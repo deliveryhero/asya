@@ -94,9 +94,10 @@ func mergeByName(base, patch []interface{}) []interface{} {
 		}
 	}
 
-	// New items from patch (not in base)
+	// New items from patch (not in base), deduplicated
 	for _, name := range patchOrder {
 		if !seen[name] {
+			seen[name] = true
 			result = append(result, patchMap[name])
 		}
 	}

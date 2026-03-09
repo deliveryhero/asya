@@ -109,11 +109,18 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 		return errors.Wrapf(err, "cannot get desired composite resource")
 	}
 
-	// Build complete spec: observed base + merged flavor overrides.
-	// This ensures desired XR has all fields (infra + resolved flavors)
-	// so downstream pipeline steps reading from desired see the full spec.
+	// Build complete spec from infrastructure fields + resolved flavors.
+	// Only infrastructure fields are carried from observed spec to avoid
+	// "sticky" flavor data: if a flavor is removed from spec.flavors,
+	// its fields should not persist from the previous observed state.
 	oxrSpec, _ := oxr.Resource.Object["spec"].(map[string]interface{})
-	completeSpec := DeepMerge(oxrSpec, merged)
+	infraOnly := make(map[string]interface{})
+	for k := range infrastructureFields {
+		if v, ok := oxrSpec[k]; ok {
+			infraOnly[k] = v
+		}
+	}
+	completeSpec := DeepMerge(infraOnly, merged)
 
 	dxr.Resource.Object["spec"] = completeSpec
 

@@ -249,6 +249,19 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 	if container["image"] != "my-model:v1" {
 		t.Errorf("image: got %v, want my-model:v1 (actor inline override)", container["image"])
 	}
+
+	// Flavor's GPU resources should be preserved via deep merge
+	resources, ok := container["resources"].(map[string]interface{})
+	if !ok {
+		t.Fatal("container resources not found after merge")
+	}
+	limits, ok := resources["limits"].(map[string]interface{})
+	if !ok {
+		t.Fatal("container resource limits not found after merge")
+	}
+	if limits["nvidia.com/gpu"] != "1" {
+		t.Errorf("nvidia.com/gpu: got %v, want 1 (from flavor)", limits["nvidia.com/gpu"])
+	}
 }
 
 func TestRunFunction_MissingFlavorData(t *testing.T) {
