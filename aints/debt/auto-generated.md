@@ -10,16 +10,16 @@
 | ○ open | [1fm8] | P2 | Add load test Job to asya-quickstart chart | — | — | — |
 | ○ open | [1php] | P2 | Design SendWithDelay crew actor for transports without native delay | — | — | — |
 | ○ open | [1fwa] | P2 | Runtime 'Client disconnected' warnings in crew actors | — | — | — |
+| ○ open | [1msu] | P2 | Support kubectl logs asya/actor-name | — | — | — |
 | ○ open | [1f7w] | P2 | Refactor: Unify injected mounts under /opt/asya directory | — | — | — |
 | ○ open | [1k1b] | P2 | Merge asya-dlq-worker image into asya-crew (multi-stage build, shared image with command override) | — | — | — |
-| ○ open | [1msu] | P2 | Support kubectl logs asya/actor-name | — | — | — |
-| ○ open | [1jqk] | P3 | x-sump: emit OpenTelemetry metrics for hook outcomes | — | — | — |
-| ○ open | [pwx6] | P3 | Crossplane queue health monitoring: operator queue recreation not applicable | — | — | — |
+| ○ open | [1ffp] | P3 | Add helm template validation to pre-commit hooks | — | — | — |
 | ○ open | [1oa6] | P3 | Support match statement as conditional routing | — | — | — |
 | □ backlog | [pw0j] | P3 | XRD: Add comprehensive CEL validation for workload schema | — | — | — |
 | ○ open | [jgwn] | P3 | Support namespace-scoped flavors via ConfigMaps | — | — | — |
-| ○ open | [1ffp] | P3 | Add helm template validation to pre-commit hooks | — | — | — |
 | ○ open | [1omc] | P3 | Support del statement as payload mutation | — | — | — |
+| ○ open | [pwx6] | P3 | Crossplane queue health monitoring: operator queue recreation not applicable | — | — | — |
+| ○ open | [1jqk] | P3 | x-sump: emit OpenTelemetry metrics for hook outcomes | — | — | — |
 
 ### Recently closed
 - ✗ active [qh2y] create-transport-environmentconfi
