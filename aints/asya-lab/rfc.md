@@ -193,12 +193,21 @@ All file-generating commands show the git diff of their changes.
 ### 5.7 Project / Infrastructure
 
 ```bash
-asya init                            # scaffold .asya/ project directory
+asya init                            # scaffold .asya/ via Copier (full template, works immediately)
+asya init --template minimal         # + simple flow with two actors
+asya init --template agentic-full    # + full agentic flow example
 asya serve                           # start local HTTP/WS server for UI
 asya context list                    # list contexts
 asya context use <name>              # switch context
 # asya <actor/flow> promote                 # promote staging image to prod PR -> UNDEFINED, needs more design
 ```
+
+`asya init` uses [Copier](https://copier.readthedocs.io/) for scaffolding.
+Generates full `config.template.yaml` (AsyncActor CRD with `${dynamic:*}`
+holes) so compile works out of the box. `--template` adds sample flows and
+actors (minimal, full, agentic-minimal, agentic-full). Contexts section is
+commented out — configured when ready to deploy. See
+`research-compiler-resolution.md` section 2.4.
 
 ### 5.8 Command Data Sources
 
