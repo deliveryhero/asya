@@ -259,8 +259,6 @@ new-experiment     flows/exp.py      —             —             —
 legacy-flow        —                 —             —             2/2 Running
 ```
 
-COMPILED shows `N+M` = N handler actors + M generated routers.
-
 **Default output** (`asya actor list`):
 ```
 ACTOR              SOURCE              FLOW               DEPLOYED (k8s-stg)
@@ -643,6 +641,88 @@ $ asya flow compile flows/order_processing.py
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
+```
+
+### 8.3 Error Handling
+
+**Streams**: Normal output (tables, YAML, JSON) goes to stdout. Errors,
+progress, and verbose output go to stderr. `-q` suppresses stdout but not
+stderr. This enables `asya actor list -o json | jq` without error noise.
+
+**Output formats** (`-o` / `--output`):
+
+| Flag | Format | Use case |
+|------|--------|----------|
+| (default) | Human-readable table | Interactive terminal |
+| `-o wide` | Extended table (+ MANIFEST, handler FQN, image) | More detail |
+| `-o yaml` | YAML | Piping, scripting |
+| `-o json` | JSON | Piping, jq, programmatic access |
+
+**Color**: Error output is colorful (red for `Error:`, yellow for `hint:`,
+cyan for file paths). Color is auto-detected via `isatty()` and can be
+forced with `--color=always|never|auto` (default: `auto`).
+
+**Error format** (to stderr, colorful):
+```
+Error: <short description>
+  in: <file:line>
+  hint: <actionable suggestion>
+  config files loaded:
+    1. /.asya/config.yaml
+    2. /.asya/config.template.yaml
+    3. /.asya/config.compiler.yaml
+    4. src/team-a/.asya/config.yaml
+```
+
+Every error includes the full list of loaded config files (walk-up merge
+chain) so the user can see which files contributed to the effective config,
+and points to the specific file:line where the error originates.
+
+**Exit codes**:
+
+| Code | Meaning | When |
+|------|---------|------|
+| 0 | Success | Command completed |
+| 1 | Error | Any failure (config, compile, build, deploy) |
+| 2 | Usage error | Wrong arguments, missing required flags |
+
+One exit code for all errors — the error message provides detail. Scripts
+check `$?` for pass/fail; humans read the message.
+
+**Error categories**:
+
+| Category | Stage | Examples |
+|----------|-------|----------|
+| Config | Load | Invalid YAML, unknown keys, duplicate `module:`, unresolved interpolation, missing `.asya/` |
+| Compile | Compile | Handler can't be imported, no matching build entry, unsupported AST construct, invalid flow signature |
+| Build | Build | Build command exits non-zero (stderr forwarded), image push fails |
+| Deploy | Deploy | Context not configured, readonly violation, kubectl error, unresolved `${arg:*}` in manifest |
+| File safety | Any | Target file has uncommitted changes (use `--force` to override) |
+
+**No retry logic.** The CLI fails fast on first error. Retry belongs in CI
+pipelines (`retry:` in GitHub Actions, Argo Workflows, etc.), not in the CLI
+tool.
+
+**Build command errors**: When `command.local` or `command.remote` exits
+non-zero, Asya forwards the build tool's stderr verbatim and exits 1:
+```
+[build] Running: docker build -t ghcr.io/org/e-commerce:v1 .
+[build] ...docker output...
+Error: build command failed (exit code 1)
+  in: /.asya/config.yaml:12 → build[0].command.local
+  hint: check build output above
+  config files loaded:
+    1. /.asya/config.yaml
+```
+
+**Deploy errors**: kubectl/docker compose stderr is forwarded verbatim:
+```
+Error: deploy failed
+  in: kubectl apply -f .asya/manifests/order-processing/validate-order.yaml
+  hint: error from server (Forbidden): asyncactors.asya.sh is forbidden
+  config files loaded:
+    1. /.asya/config.yaml
+    2. /.asya/config.template.yaml
 ```
 
 > **Full design**: `research-compiler-resolution.md` (section 4: four stages,

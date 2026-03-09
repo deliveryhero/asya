@@ -162,15 +162,26 @@ def load_asya_dir(asya_dir: Path) -> DictConfig:
    with source file locations.
 
 **Why append-only lists?** No key detection needed, no silent overwrites,
-no merge-key configuration. The merge layer stays trivially simple. If two
-configs define entries that resolve to the same handler, the Asya semantic
-layer catches it at compile time with a clear error:
+no merge-key configuration. The merge layer stays trivially simple.
+
+**Duplicate detection** (Asya semantic layer, after merge): Each config list
+has a key field used for dedup. Duplicate key across configs = error. No
+last-writer-wins, no silent override.
+
+| List | Key field | Fallback key |
+|------|-----------|--------------|
+| `build:` | `module:` | `path:` (for entries without `module:`, e.g. standalone scripts) |
+| `compile.rules:` | `match:` | — |
+
 ```
 Error: duplicate build entry matching module 'langchain'
   defined in: /.asya/config.yaml:8
   and also in: src/team-a/.asya/config.yaml:3
-  hint: remove one definition
+  hint: remove of update one definition
 ```
+
+If a team needs to change an ancestor's entry, modify the source config
+directly — not via override from a child config.
 
 **Debuggability of overrides** (dicts DO deep-merge, child wins):
 verbose output traces the merge chain for every overridden value:
@@ -467,7 +478,9 @@ directory, not in config.yaml.
 
 `build` is a **list** of build entries, each identified by a `module:` field.
 OmegaConf relative interpolation (`${..image}`) works within list items.
-Walk-up merge unions lists by the `module:` key (see section 2.3).
+Walk-up merge concatenates lists (see section 2.3). Duplicates by `module:`
+(or `path:` for entries without `module:`) are detected at the semantic layer
+and produce errors.
 
 ```yaml
 # .asya/config.yaml
@@ -735,9 +748,9 @@ Error: unresolved interpolation '${registy}'
 - `path:` directories exist on disk (when building)
 - Image references in manifests resolve to a `build` entry (at compile time)
 - **Duplicate detection in concatenated lists**: after walk-up merge
-  concatenates lists (section 2.3), the Asya layer checks for entries that
-  resolve to the same handler. This is a semantic check — the merge layer
-  knows nothing about `module:` or handler resolution.
+  concatenates lists (section 2.3), the Asya layer checks for duplicate keys
+  (`module:` or `path:` for `build:`, `match:` for `compile.rules:`).
+  Duplicate = error with source file locations. No last-writer-wins.
 
 ```
 Error: duplicate build entry matching module 'langchain'
