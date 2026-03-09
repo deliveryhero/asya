@@ -292,7 +292,7 @@ spec:
 
 
 @pytest.mark.core
-@pytest.mark.timeout(300)
+@pytest.mark.timeout(450)
 def test_asyncactor_update_propagates(e2e_helper):
     """
     E2E: Test AsyncActor updates propagate to workload.
@@ -369,7 +369,7 @@ spec:
         assert wait_for_asyncactor_ready(
             "test-update",
             namespace=e2e_helper.namespace,
-            timeout=120,
+            timeout=270,  # pubsub needs extra time for GCP subscription provisioning + KEDA stabilization
         ), "AsyncActor should reach Ready=True"
 
         initial_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
