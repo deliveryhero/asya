@@ -49,7 +49,9 @@ asya_lab/
 ├── compile/              # Layered compiler
 │   ├── frontends/        # Flow DSL (+ future: simplified YAML, CRD)
 │   ├── ir.py             # Canonical actor spec IR
+│   ├── kustomize.py      # kustomization.yaml generation, patch management
 │   └── rules.py          # treat-as rules engine
+├── compose/              # Docker Compose translator (XR → docker-compose.yaml)
 ├── project/              # .asya/ config, actor discovery
 │   ├── config.py         # config.yaml loading + walk-up merge
 │   ├── discovery.py      # Actor discovery from local + pip packages
@@ -733,27 +735,24 @@ env entries. The compiler constructs this list from:
 
 ---
 
-## 8. Five Stages
+## 8. Three Stages
 
-The lifecycle is five stages. Compile is two-stage: Python analysis produces
-an editable intermediate, then render produces target-specific artifacts.
+The lifecycle is three stages: compile, build, deploy. No separate render
+step — compile stamps AsyncActor XRs directly into kustomize base.
 
 | Stage | CLI | Input | Output |
 |-------|-----|-------|--------|
-| **Compile** | `asya [flow\|actor] compile` | source + .asya/*.yaml | routers.py + compiled manifests (intermediate) |
-| **Render** | `asya [flow\|actor] render` | compiled manifests + context | target artifacts (K8s YAML, helm, docker-compose) |
+| **Compile** | `asya [flow\|actor] compile` | source + .asya/*.yaml | routers.py + base/*.yaml (kustomize base) |
 | **Build** | `asya [flow\|actor] build` | source + build commands | OCI image |
-| **Deploy** | `asya [flow\|actor] deploy` | rendered artifacts | running pods/containers |
-| **Runtime** | (automatic) | envelope | handler response |
+| **Deploy** | `asya [flow\|actor] deploy` | effective manifests (kustomize build) | running pods/containers |
 
 Build and deploy use `--local`/`--remote` flags for execution context.
 
-### 8.1 Two-Stage Compilation
+### 8.1 Kustomize-Native Compilation
 
-**Stage 1 — Compile** (Python → intermediate):
-
-Source of truth shifts from Python files to compiled manifests. The compiler
-extracts all information from Python AST into structured YAML:
+**Compile** produces two outputs: router Python code (`routers.py`) and
+AsyncActor XR manifests (`base/*.yaml`). Both are read-only and regenerated
+on recompile.
 
 **`asya flow compile flows/order.py`:**
 1. Load `.asya/*.yaml` → merged OmegaConf config
@@ -761,41 +760,63 @@ extracts all information from Python AST into structured YAML:
 3. Apply rules (treat-as classification, config extraction)
 4. Group into routers → Router IR
 5. For each actor: resolve handler → module → build entry → image,
-   set `dynamic:*` values, stamp config.template.yaml → write compiled manifest
-6. Generate routers.py → write to `compile.routers` path
+   set `dynamic:*` values, stamp config.template.yaml → write to `base/`
+6. Generate `kustomization.yaml` (resources list + patches references)
+7. Generate `routers.py` → write to `compile.routers` path
 
 **`asya actor compile --handler e_commerce.validate.validate_order`:**
 1. Load `.asya/*.yaml` → merged OmegaConf config
 2. Resolve handler → module → build entry → image
-3. Set `dynamic:*` values, stamp config.template.yaml → write compiled manifest
+3. Set `dynamic:*` values, stamp config.template.yaml → write to `base/`
 
 Same resolution code. Flow compile adds AST parsing + router generation.
 
-**Compiled manifests** are the editable intermediate. After compile, the user
-can modify them (add env vars, change scaling, override resiliency values)
-without recompiling. The Python source is no longer consulted until next
-compile.
-
-**Stage 2 — Render** (intermediate → target):
-
-Reads compiled manifests and produces deployment artifacts for the active
-context or explicit `--mode`:
-
-| Mode | Output | Used by |
-|------|--------|---------|
-| `manifests` | Raw AsyncActor YAML (resolve `${arg:*}`) | `kubectl apply`, GitOps |
-| `helm` | values.yaml for Helm chart | `helm install` |
-| `kustomize` | Patches against kustomize base | `kustomize build` |
-| `docker-compose` | docker-compose.yaml (no sidecar) | `docker compose up` |
-
-```bash
-asya flow render order-processing                  # uses context default mode
-asya flow render order-processing --mode helm      # explicit mode
-asya flow render order-processing --arg tag=v1     # resolve ${arg:*}
+**Directory structure** after compile:
+```
+.asya/manifests/order-processing/
+├── kustomization.yaml              # auto-generated, references base + patches
+├── base/                           # compiler output (regenerated on recompile)
+│   ├── validate-order.yaml
+│   ├── express-handler.yaml
+│   ├── router-start.yaml
+│   └── end-order-processing.yaml
+└── patches/                        # user/UI edits (preserved across recompiles)
+    └── validate-order.yaml         # created by `asya flow edit validate-order`
 ```
 
-Render is re-runnable: edit a compiled manifest, re-render, get updated
-artifacts. No Python recompilation needed.
+**Recompile safety**: `base/` is fully regenerated. `patches/` is never
+touched. The `kustomization.yaml` resources list is updated to match
+`base/`, and existing patch references are preserved.
+
+**User edits** go into kustomize strategic merge patches:
+```bash
+asya flow edit validate-order
+# opens $EDITOR on .asya/manifests/order-processing/patches/validate-order.yaml
+```
+
+**Effective manifests** = `kustomize build .asya/manifests/order-processing/`:
+```bash
+asya flow show order-processing    # prints effective manifests to stdout
+```
+
+**List merge behavior**: kustomize strategic merge patches merge `env[]` lists
+by the `name` key field — a patch adding `env: [{name: NEW_VAR, value: x}]`
+appends rather than replaces. `flavors[]` lists are also merged (appended) at
+any overlay level.
+
+### 8.1.1 Two-Tier Convention
+
+The compile output and user patches naturally map to the XRD v2 two-tier
+convention (see `xrd-v2/rfc.md`):
+
+| Tier | Fields | Written by | Kustomize layer |
+|---|---|---|---|
+| **App tier** | `actor`, `image`, `handler`, `env` | Compiler | `base/` |
+| **Infra tier** | `flavors`, `scaling`, `resources`, `tolerations`, `resiliency`, `secretRefs` | User/UI/CLI | `patches/` |
+
+The compiler owns the app tier in base. The user owns the infra tier in
+patches. `kustomize build` merges them. This separation means recompiling
+never destroys infrastructure configuration.
 
 ### 8.2 Verbosity Levels
 
@@ -821,12 +842,13 @@ $ asya flow compile flows/order_processing.py
 [compile] Handler: express_handler
            → import: e_commerce.express.express_handler
            → module: e_commerce (same image)
-[compile] Mode: manifests
 [compile] Routers → ./src/compiled/order-processing/routers.py
-[compile] Manifests → .asya/manifests/order-processing/
+[compile] Base → .asya/manifests/order-processing/base/
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
+           → end-order-processing.yaml
+[compile] Kustomization → .asya/manifests/order-processing/kustomization.yaml
 ```
 
 ### 8.3 Error Handling
@@ -904,14 +926,14 @@ Error: build command failed (exit code 1)
 **Deploy errors**: kubectl/docker compose stderr is forwarded verbatim:
 ```
 Error: deploy failed
-  in: kubectl apply -f .asya/manifests/order-processing/validate-order.yaml
+  in: kustomize build .asya/manifests/order-processing/ | kubectl apply -f -
   hint: error from server (Forbidden): asyncactors.asya.sh is forbidden
   config files loaded:
     1. /.asya/config.yaml
     2. /.asya/config.template.yaml
 ```
 
-> **Full design**: `research-compiler-resolution.md` (section 4: four stages,
+> **Full design**: `research-compiler-resolution.md` (section 4: stages,
 > Python environment detection, verbose output, resolution chain).
 
 ---
@@ -990,11 +1012,19 @@ flows, the actor is cloned.
 
 ### 10.2 What `asya flow deploy` Does
 
-1. Creates AsyncActor manifests for routers (with flow labels)
-2. Updates processor actor manifests (adds flow label)
-3. Marks entrypoint/exitpoint actors
-4. Creates ConfigMap with router code
-5. Supports `--output-dir` for GitOps
+For K8s contexts:
+1. Runs `kustomize build` on the flow's manifest directory (base + patches)
+2. Pipes effective manifests to `kubectl apply -f -`
+3. Prints each command before execution (`+` prefix, like `set -x`)
+
+For Docker contexts:
+1. Requires compose file generated by `asya flow compose` (errors if missing)
+2. Runs `docker compose -f <compose_file> up -d`
+
+For GitOps:
+1. `asya flow show <flow>` prints effective manifests to stdout
+2. User commits manifests directory (base + patches) to git
+3. FluxCD/ArgoCD picks up and applies
 
 ### 10.3 Router Actors
 
@@ -1041,14 +1071,28 @@ images (larger), Docker dependency (local builds only).
 
 **DS experimentation (staging)**: Fast, imperative, no git commit required.
 ```
-asya actor build my-actor --local --arg tag=v1
-asya actor deploy my-actor --context=k8s-stg
+asya flow compile flows/order.py
+asya flow edit validate-order          # add scaling patch
+asya flow build order-processing --local --arg tag=v1
+asya flow deploy order-processing --context=k8s-stg
+# + kustomize build .asya/manifests/order-processing/
+# + kubectl apply -f - --context=stg-cluster -n team-one
+```
+
+**Local testing (Docker Compose)**:
+```
+asya flow compile flows/order.py
+asya flow compose order-processing     # explicit: save docker-compose.yaml
+# + kustomize build .asya/manifests/order-processing/
+# [compose] Wrote .asya/compose/order-processing.yaml
+asya flow deploy order-processing --context=local
+# + docker compose -f .asya/compose/order-processing.yaml up -d
 ```
 
 **Production (GitOps)**: Declarative, reviewed, git-driven.
 ```
 asya promote my-actor --context=k8s-prod
-# -> verifies actor-image.lock, creates PR with source + lock + manifest
+# -> verifies actor-image.lock, creates PR with source + lock + manifests
 ```
 
 ### 12.2 Promotion (`asya promote`)
@@ -1174,12 +1218,16 @@ def test_router_modifies_route(vfs_fixture):
 - SDK extraction (compiler, MCP client)
 - `.asya/` config schema (config.yaml + config.template.yaml + config.compiler.yaml),
   walk-up merge, `asya init`
-- Compile stage with manifests mode (no separate template stage)
+- Kustomize-native compile (base/*.yaml + kustomization.yaml generation)
+- `asya flow edit` (create/open kustomize patches)
+- `asya flow show` (kustomize build → effective manifests)
 - Flow and actor commands (list, status, logs, compile)
 
 ### Phase 2: Build + deploy + testing
 - `asya [flow|actor] build` (opaque commands, `--local`/`--remote`)
-- `asya [flow|actor] deploy/undeploy` for K8s and Docker Compose
+- `asya [flow|actor] deploy/undeploy` for K8s (kustomize build | kubectl apply)
+- `asya flow compose` (effective manifests → docker-compose.yaml)
+- `asya [flow|actor] deploy/undeploy` for Docker Compose
 - `actor-image.lock` and `asya promote`
 - `asya_lab.testing` pytest fixtures
 
@@ -1192,7 +1240,6 @@ def test_router_modifies_route(vfs_fixture):
 
 ### Phase 4: Server + advanced features
 - `asya serve` local HTTP/WS server
-- Compile output modes: helm, kustomize
 - Protocol-agnostic `asya flow call` (MCP + A2A)
 
 ---
@@ -1217,13 +1264,14 @@ Detailed designs that inform this RFC:
 
 | Document | Covers |
 |---|---|
-| `research-compiler-resolution.md` | `.asya/` directory, config schema (three files), walk-up merge, OmegaConf resolvers, four stages, output modes, Python resolution |
+| `research-compiler-resolution.md` | `.asya/` directory, config schema (three files), walk-up merge, OmegaConf resolvers, stages, Python resolution |
 | `research-compiler-knowledge-base.md` | Compiler rules engine, `treat-as` values, pattern matching, config extraction, tenacity/stamina signatures |
 | `research-no-dockerfile.md` | Build strategies (apko, buildpacks, Cog, Wolfi/distroless), comparison matrix, golden paths |
 | `research-seamless-build.md` | Build execution (local, Shipwright, CI), promotion strategies, `actor-image.lock`, two user flows |
-| `artem-research-compiler-resolution.md` | Four stages overview, compile-time resolution chain, `asya.yaml` role |
+| `artem-research-compiler-resolution.md` | Stages overview, compile-time resolution chain, `asya.yaml` role |
 | `adr.no-cog.md` | Cog as supported GPU build path (revised) |
 | `adr.compiler-template-not-helm.md` | Output template uses OmegaConf resolvers, not Helm |
+| `xrd-v2/rfc.md` | Flat AsyncActor XRD v1alpha2 spec, two-tier convention, flavor overlap rules |
 
 ---
 
@@ -1235,11 +1283,11 @@ Detailed designs that inform this RFC:
 2. **Jupyter widget framework**: ipywidgets vs JupyterLab extensions vs static
    SVG.
 
-3. ~~**Docker Compose generation**~~: **Resolved**. `asya flow render
-   --mode docker-compose` generates a full `docker-compose.yaml` from
-   compiled manifests. No sidecar — lightweight Python orchestrator calls
-   runtimes via Unix socket. See section 6.2 (Docker Compose architecture)
-   and section 8.1 (two-stage compilation).
+3. ~~**Docker Compose generation**~~: **Resolved**. `asya flow compose`
+   explicitly generates `docker-compose.yaml` from effective K8s manifests
+   (kustomize build output). No sidecar — lightweight Python orchestrator
+   calls runtimes via Unix socket. The compose file is saved to disk and
+   committed to git. See section 6.2 (Docker Compose architecture).
 
 4. **Non-Python actors**: The `module:` field is Python-specific. Go actors,
    shell scripts, or pre-built images need a different matching strategy.
