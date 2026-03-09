@@ -1,7 +1,7 @@
 # RFC: Asya Lab -- Python SDK, CLI, and Jupyter Magics
 
-**Status**: Proposed (revised 2026-03-08)
-**Date**: 2026-02-27 (original), 2026-03-08 (revised)
+**Status**: Proposed (revised 2026-03-09)
+**Date**: 2026-02-27 (original), 2026-03-08 (revised), 2026-03-09 (kustomize-native)
 **Epic**: 1jux.asya-lab
 **Depends on**: 1jow (client UX design)
 **Supersedes**: 1jpc (client-cli)
