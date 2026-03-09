@@ -975,8 +975,10 @@ Detailed designs that inform this RFC:
 4. **Non-Python actors**: The `module:` field is Python-specific. Go actors,
    shell scripts, or pre-built images need a different matching strategy.
 
-5. **`${arg:tag}` lifecycle per output mode**: Should `${arg:*}` in config.template.yaml
-   always resolve at compile time, or be mode-dependent?
+5. ~~**`${arg:tag}` lifecycle per output mode**~~: **Resolved**. Pass-through
+   resolver: compile defers `${arg:*}` if not provided (literal pass-through),
+   deploy/build fail-fast if unresolved. For GitOps, pass `--arg` at compile
+   time. See `research-compiler-resolution.md` section 3.4.
 
 6. **Lock file vs opaque builds**: Opaque build commands limit `actor-image.lock`
    to tracking final image digest, not input reproducibility. Acceptable for v1;

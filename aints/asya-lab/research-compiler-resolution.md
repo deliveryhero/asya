@@ -610,14 +610,42 @@ asya actor build foo --arg tag=v1
 2. `ASYA_*` env vars
 3. Config file values (child > parent via walk-up merge)
 
-**Strict resolution**: OmegaConf MUST fail with an error on any unresolved
-interpolation. No silent empty string substitution. If `${arg:tag}` is
-referenced but no source provides a value, the command fails immediately:
+**Pass-through vs strict resolution**: `${arg:*}` uses a pass-through
+resolver — if no value is provided, the resolver returns the literal string
+`${arg:tag}` instead of failing. This allows compile to produce manifests
+with unresolved `${arg:*}` placeholders (resolved later at deploy time).
+
+```python
+def arg_resolver(key, default=MISSING):
+    if key in cli_args:
+        return cli_args[key]          # --arg tag=v1 → "v1"
+    if default is not MISSING:
+        return default                # ${arg:tag,latest} → "latest"
+    return f"${{arg:{key}}}"          # no value → literal "${arg:tag}"
 ```
+
+OmegaConf does not re-resolve strings returned by resolvers, so the literal
+`${arg:tag}` passes through to the output unchanged.
+
+**Fail-fast at point of use**: The command that **uses** a value must fail
+if any interpolation remains unresolved. This applies to ALL resolver types:
+
+| Resolver | Compile | Build | Deploy |
+|----------|---------|-------|--------|
+| `${var.*}` | Resolved | Resolved | N/A |
+| `${dynamic:*}` | Resolved | N/A | N/A |
+| `${arg:*}` | **Pass-through if missing** | Fail if missing | Fail if missing |
+| `${env:*}` | Resolved | Resolved | Resolved |
+
+```
+# asya flow deploy with unresolved ${arg:tag}:
 Error: unresolved interpolation '${arg:tag}'
-  in: images[0].image = "${var.image_registry}/e-commerce:${arg:tag}"
+  in: validate-order.yaml → spec.workload...image
   hint: pass --arg tag=<value> or set ASYA_ARG_TAG
 ```
+
+An unresolved `${dynamic:*}` in a manifest indicates a compiler bug — deploy
+must still fail-fast rather than silently producing broken YAML.
 
 **Example resolution**:
 ```yaml
@@ -1342,12 +1370,15 @@ the tag.
     When absent, falls back to opaque commands. Additive change — v1 configs
     remain valid.
 
-13. **`${arg:tag}` lifecycle per mode**: In `manifests` mode,
-    `${arg:tag}` stays unresolved in the generated YAML and is resolved at
-    deploy time. In `helm` mode, it becomes a values.yaml field resolved via
-    `--set image.tag=v1`. In `kustomize` mode, it uses the images
-    transformer. Should `${arg:*}` in `config.template.yaml` always resolve
-    at compile time, or should it be mode-dependent?
+13. ~~**`${arg:tag}` lifecycle per mode**~~: **Resolved**. Pass-through
+    resolver: during compile, the `arg` resolver returns the literal string
+    `${arg:tag}` when no value is provided (resolved if `--arg tag=v1` is
+    given). The generated manifest may contain unresolved `${arg:*}`
+    placeholders. The command that **uses** the value (deploy, build) must
+    fail-fast if any interpolation is still unresolved — including `${arg:*}`,
+    `${env:*}`, or `${dynamic:*}` (the latter would indicate a compiler bug).
+    For GitOps (ArgoCD/Flux), pass `--arg` at compile time to produce fully
+    resolved manifests.
 
 14. **Custom Helm chart support**: The helm mode generates values.yaml
     files. If a team uses a custom chart with a different values schema,

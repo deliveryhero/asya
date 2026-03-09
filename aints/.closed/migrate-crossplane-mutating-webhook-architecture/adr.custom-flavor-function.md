@@ -42,7 +42,10 @@ and provide them on the next reconciliation loop."
 `fromCompositeFieldPath` for label values, but requires a fixed number of
 selector entries defined at composition-write time. It cannot iterate a
 variable-length `spec.flavors[]` array. Pre-reserving N slots (one per
-possible flavor index) is fragile and verbose.
+possible flavor index) is fragile and verbose. Pre-reserving would work fine
+if only lists could be merged (critical for env lists - env vars defined in
+different flavors must be joined together in a long list, not overwritten
+by the next flavor).
 
 Only a custom function using the Requirements API can dynamically request N
 EnvironmentConfigs based on runtime XR state.
