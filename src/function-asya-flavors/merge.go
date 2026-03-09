@@ -1,94 +1,118 @@
 package main
 
-import (
-	"encoding/json"
-
-	"github.com/crossplane/function-sdk-go/errors"
-	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/util/strategicpatch"
-)
-
-// ActorSpecSchema provides strategic merge patch metadata for the AsyncActor spec.
-// The corev1.PodSpec embedded in TemplateSchema carries Kubernetes struct tags that
-// enable correct list merge semantics:
-//   - containers merge by "name"
-//   - env vars merge by "name"
-//   - tolerations merge by "key"
-//   - volumes merge by "name"
-//   - volumeMounts merge by "mountPath"
-//   - initContainers merge by "name"
-//
-// Top-level scalar fields (scaling, workload.kind, etc.) use standard deep merge.
-type ActorSpecSchema struct {
-	Scaling  *ScalingSchema  `json:"scaling,omitempty"`
-	Workload *WorkloadSchema `json:"workload,omitempty"`
-}
-
-// ScalingSchema mirrors the scaling portion of the AsyncActor spec.
-// All fields are scalars, so standard deep merge applies (later values override).
-type ScalingSchema struct {
-	Enabled         *bool `json:"enabled,omitempty"`
-	MinReplicas     *int  `json:"minReplicas,omitempty"`
-	MaxReplicas     *int  `json:"maxReplicas,omitempty"`
-	PollingInterval *int  `json:"pollingInterval,omitempty"`
-	CooldownPeriod  *int  `json:"cooldownPeriod,omitempty"`
-	QueueLength     *int  `json:"queueLength,omitempty"`
-}
-
-// WorkloadSchema mirrors the workload portion of the AsyncActor spec.
-type WorkloadSchema struct {
-	Kind     string          `json:"kind,omitempty"`
-	Replicas *int            `json:"replicas,omitempty"`
-	Template *TemplateSchema `json:"template,omitempty"`
-}
-
-// TemplateSchema embeds corev1.PodSpec to inherit Kubernetes strategic merge
-// patch annotations for correct list merge behavior.
-type TemplateSchema struct {
-	Spec corev1.PodSpec `json:"spec,omitempty"`
-}
-
-// MergeFlavors applies strategic merge patches sequentially for each flavor's data.
-// Flavors are merged left-to-right: later flavors override earlier ones.
-func MergeFlavors(flavorData []map[string]interface{}) (map[string]interface{}, error) {
-	if len(flavorData) == 0 {
-		return map[string]interface{}{}, nil
+// DeepMerge merges patch into base. Dicts merge recursively, arrays replace,
+// except arrays of objects with a "name" key which merge by name.
+func DeepMerge(base, patch map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{})
+	for k, v := range base {
+		result[k] = v
 	}
 
-	base := map[string]interface{}{}
-	for i, data := range flavorData {
-		var err error
-		base, err = ApplyStrategicMerge(base, data)
-		if err != nil {
-			return nil, errors.Wrapf(err, "cannot apply flavor at index %d", i)
+	for k, pv := range patch {
+		bv, exists := result[k]
+		if !exists {
+			result[k] = pv
+			continue
+		}
+
+		// Both are maps: recurse
+		bm, bOk := bv.(map[string]interface{})
+		pm, pOk := pv.(map[string]interface{})
+		if bOk && pOk {
+			result[k] = DeepMerge(bm, pm)
+			continue
+		}
+
+		// Both are arrays: check if name-keyed (merge by name) or replace
+		ba, bOk := bv.([]interface{})
+		pa, pOk := pv.([]interface{})
+		if bOk && pOk && isNameKeyedArray(ba) && isNameKeyedArray(pa) {
+			result[k] = mergeByName(ba, pa)
+			continue
+		}
+
+		// Default: replace
+		result[k] = pv
+	}
+
+	return result
+}
+
+// isNameKeyedArray returns true if all items are maps with a "name" string key.
+// Empty arrays return false (treated as replace).
+func isNameKeyedArray(arr []interface{}) bool {
+	if len(arr) == 0 {
+		return false
+	}
+
+	for _, item := range arr {
+		m, ok := item.(map[string]interface{})
+		if !ok {
+			return false
+		}
+
+		name, ok := m["name"]
+		if !ok {
+			return false
+		}
+
+		if _, ok := name.(string); !ok {
+			return false
 		}
 	}
 
-	return base, nil
+	return true
 }
 
-// ApplyStrategicMerge applies a strategic merge patch to the base map using
-// ActorSpecSchema for merge strategy metadata.
-func ApplyStrategicMerge(base, patch map[string]interface{}) (map[string]interface{}, error) {
-	baseJSON, err := json.Marshal(base)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot marshal base")
+// mergeByName merges two arrays of name-keyed objects. Same name = patch wins.
+// Different names accumulate. Order: base items first, then new patch items.
+func mergeByName(base, patch []interface{}) []interface{} {
+	patchMap := make(map[string]interface{})
+	var patchOrder []string
+
+	for _, item := range patch {
+		m := item.(map[string]interface{})
+		name := m["name"].(string)
+		patchMap[name] = item
+		patchOrder = append(patchOrder, name)
 	}
 
-	patchJSON, err := json.Marshal(patch)
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot marshal patch")
+	seen := make(map[string]bool)
+	var result []interface{}
+
+	// Base items first, with overrides from patch
+	for _, item := range base {
+		m := item.(map[string]interface{})
+		name := m["name"].(string)
+		seen[name] = true
+
+		if override, ok := patchMap[name]; ok {
+			result = append(result, override)
+		} else {
+			result = append(result, item)
+		}
 	}
 
-	mergedJSON, err := strategicpatch.StrategicMergePatch(baseJSON, patchJSON, &ActorSpecSchema{})
-	if err != nil {
-		return nil, errors.Wrap(err, "cannot apply strategic merge patch")
+	// New items from patch (not in base)
+	for _, name := range patchOrder {
+		if !seen[name] {
+			result = append(result, patchMap[name])
+		}
 	}
 
-	var result map[string]interface{}
-	if err := json.Unmarshal(mergedJSON, &result); err != nil {
-		return nil, errors.Wrap(err, "cannot unmarshal merged result")
+	return result
+}
+
+// MergeFlavors merges flavor data sequentially. Later flavors override earlier ones.
+func MergeFlavors(flavorData []map[string]interface{}) map[string]interface{} {
+	if len(flavorData) == 0 {
+		return map[string]interface{}{}
 	}
 
-	return result, nil
+	base := map[string]interface{}{}
+	for _, data := range flavorData {
+		base = DeepMerge(base, data)
+	}
+
+	return base
 }

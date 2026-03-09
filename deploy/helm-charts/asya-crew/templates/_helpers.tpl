@@ -233,7 +233,7 @@ helm.sh/chart: {{ include "asya-crew.chart" . }}
 {{- end }}
 
 {{/*
-Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig flavor)
+Persistence stateProxy spec (inline on AsyncActor, read by injector from XR spec)
 Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" "my-bucket")
 If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 */}}

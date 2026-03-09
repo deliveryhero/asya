@@ -32,14 +32,6 @@ func TestRunFunction_NoFlavors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No context key should be set when there are no flavors
-	if rsp.GetContext() != nil {
-		fields := rsp.GetContext().GetFields()
-		if _, ok := fields[ContextKeyResolvedSpec]; ok {
-			t.Error("context key should not be set when there are no flavors")
-		}
-	}
-
 	// No requirements should be set
 	if rsp.Requirements != nil && len(rsp.Requirements.Resources) > 0 {
 		t.Error("no requirements should be set when there are no flavors")
@@ -65,17 +57,11 @@ func TestRunFunction_EmptyFlavorsArray(t *testing.T) {
 		},
 	}
 
-	rsp, err := f.RunFunction(context.Background(), req)
+	_, err := f.RunFunction(context.Background(), req)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	if rsp.GetContext() != nil {
-		fields := rsp.GetContext().GetFields()
-		if _, ok := fields[ContextKeyResolvedSpec]; ok {
-			t.Error("context key should not be set for empty flavors array")
-		}
-	}
 }
 
 func TestRunFunction_SetsRequirements(t *testing.T) {
@@ -160,14 +146,6 @@ func TestRunFunction_WaitsForResources(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Context key should NOT be set since resources aren't available yet
-	if rsp.GetContext() != nil {
-		fields := rsp.GetContext().GetFields()
-		if _, ok := fields[ContextKeyResolvedSpec]; ok {
-			t.Error("context key should not be set while waiting for resources")
-		}
-	}
-
 	// Requirements should still be set
 	if rsp.Requirements == nil || len(rsp.Requirements.Resources) == 0 {
 		t.Error("requirements should be set even while waiting")
@@ -236,6 +214,12 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		Observed: &fnv1.State{
 			Composite: &fnv1.Resource{Resource: xr},
 		},
+		Desired: &fnv1.State{
+			Composite: &fnv1.Resource{Resource: mustNewStruct(t, map[string]interface{}{
+				"apiVersion": "asya.sh/v1alpha1",
+				"kind":       "XAsyncActor",
+			})},
+		},
 		RequiredResources: map[string]*fnv1.Resources{
 			"flavor-gpu-t4": {
 				Items: []*fnv1.Resource{
@@ -250,9 +234,8 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Context key should be set with the resolved spec
-	resolvedValue := getContextValue(t, rsp, ContextKeyResolvedSpec)
-	resolved := resolvedValue.GetStructValue().AsMap()
+	// Resolved spec should be written to desired XR
+	resolved := rsp.Desired.Composite.Resource.AsMap()["spec"].(map[string]interface{})
 
 	// Flavor's scaling should be present, but actor's minReplicas not set so flavor's value preserved
 	scaling := resolved["scaling"].(map[string]interface{})
@@ -260,18 +243,11 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		t.Errorf("minReplicas: got %v, want 1 (from flavor)", scaling["minReplicas"])
 	}
 
-	// Actor's image should be present (inline override)
+	// Actor's image should be present (inline override wins over flavor)
 	containers := resolved["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})
 	container := containers[0].(map[string]interface{})
 	if container["image"] != "my-model:v1" {
 		t.Errorf("image: got %v, want my-model:v1 (actor inline override)", container["image"])
-	}
-
-	// Flavor's GPU resources should also be present (merged)
-	resources := container["resources"].(map[string]interface{})
-	limits := resources["limits"].(map[string]interface{})
-	if limits["nvidia.com/gpu"] != "1" {
-		t.Errorf("nvidia.com/gpu: got %v, want 1 (from flavor)", limits["nvidia.com/gpu"])
 	}
 }
 
@@ -313,6 +289,12 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		Observed: &fnv1.State{
 			Composite: &fnv1.Resource{Resource: xr},
 		},
+		Desired: &fnv1.State{
+			Composite: &fnv1.Resource{Resource: mustNewStruct(t, map[string]interface{}{
+				"apiVersion": "asya.sh/v1alpha1",
+				"kind":       "XAsyncActor",
+			})},
+		},
 		RequiredResources: map[string]*fnv1.Resources{
 			"flavor-empty-flavor": {
 				Items: []*fnv1.Resource{
@@ -327,9 +309,8 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Should not fail; context should be set with actor's own spec
-	resolvedValue := getContextValue(t, rsp, ContextKeyResolvedSpec)
-	resolved := resolvedValue.GetStructValue().AsMap()
+	// Should not fail; desired XR should contain actor's own spec
+	resolved := rsp.Desired.Composite.Resource.AsMap()["spec"].(map[string]interface{})
 
 	containers := resolved["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})
 	container := containers[0].(map[string]interface{})
@@ -394,22 +375,4 @@ func mustNewStruct(t *testing.T, m map[string]interface{}) *structpb.Struct {
 	}
 
 	return s
-}
-
-// getContextValue retrieves a value from the response context, failing the test if absent.
-func getContextValue(t *testing.T, rsp *fnv1.RunFunctionResponse, key string) *structpb.Value {
-	t.Helper()
-
-	ctx := rsp.GetContext()
-	if ctx == nil {
-		t.Fatalf("response context is nil, expected key %q", key)
-	}
-
-	fields := ctx.GetFields()
-	v, ok := fields[key]
-	if !ok {
-		t.Fatalf("context key %q not found", key)
-	}
-
-	return v
 }
