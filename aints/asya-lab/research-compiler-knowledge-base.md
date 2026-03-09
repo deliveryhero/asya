@@ -87,9 +87,16 @@ rules:
             example: "@retry(wait=wait_random(max=N))"
       - param: retry
         where:
-          - param: exception_types
-            assign-to: spec.resiliency.nonRetryableErrors
-            example: "@retry(retry=retry_if_exception_type(E))"
+          - match: retry_if_exception_type
+            where:
+              - param: exception_types
+                assign-to: spec.resiliency.retryableErrors
+                example: "@retry(retry=retry_if_exception_type(E))"
+          - match: retry_if_not_exception_type
+            where:
+              - param: exception_types
+                assign-to: spec.resiliency.nonRetryableErrors
+                example: "@retry(retry=retry_if_not_exception_type(E))"
 
   - match: "stamina.retry"
     where:
@@ -411,7 +418,8 @@ spec paths:
 | `spec.resiliency.retry.backoffCoefficient` | float | 2.0 | Exponential base |
 | `spec.resiliency.retry.jitter` | bool | true | Jitter enabled |
 | `spec.resiliency.retry.maxWindow` | duration | (none) | Cumulative retry window |
-| `spec.resiliency.nonRetryableErrors` | csv | (none) | Exception blacklist |
+| `spec.resiliency.retryableErrors` | csv | (none) | Exception whitelist (only retry these) |
+| `spec.resiliency.nonRetryableErrors` | csv | (none) | Exception blacklist (don't retry these) |
 | `spec.resiliency.timeout` | duration | "5m" | Per-call timeout |
 | `env` | list | [] | K8s env entries (semantic shorthand) |
 
@@ -464,10 +472,22 @@ retry_if_exception_type(exception_types=<class 'Exception'>)
 
 ## Open Questions
 
-1. **`retry_if_exception_type` inversion**: Tenacity uses a whitelist ("retry ON
-   these"), Asya uses a blacklist (`nonRetryableErrors`). Should the compiler
-   handle the inversion automatically, or skip exception extraction and let users
-   configure manually?
+1. ~~**`retry_if_exception_type` inversion**~~ **Resolved**: Add `retryableErrors`
+   whitelist to the sidecar alongside `nonRetryableErrors`. No inversion needed —
+   the compiler maps directly:
+
+   | Tenacity | Asya spec path | Semantics |
+   |----------|---------------|-----------|
+   | `retry_if_exception_type(E)` | `spec.resiliency.retryableErrors` | Whitelist — only retry these |
+   | `retry_if_not_exception_type(E)` | `spec.resiliency.nonRetryableErrors` | Blacklist — don't retry these |
+
+   Both sides already speak FQNs: the runtime sends `module.qualname` via
+   `_fqn()` (builtins omit module prefix), the sidecar matches strings against
+   errorType + MRO ancestors. The compiler resolves FQNs at compile time via
+   `inspect` + the same `_fqn` logic.
+
+   Sidecar change: `isNonRetryableError` becomes `shouldRetry` checking both
+   lists (mutually exclusive). See aint [retryableErrors-sidecar].
 
 2. **Compile-time dependency requirement**: Rules with `where:` trees require
    the matched package to be installed at compile time for `inspect.signature`.

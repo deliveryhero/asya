@@ -146,6 +146,7 @@ flows:
           url: { type: string }
         required: [url]
 
+  # MCP tool + A2A skill
   - name: analyze-doc
     entrypoint: doc-analyzer
     description: "Analyze document themes"
@@ -160,6 +161,7 @@ flows:
       tags: [analysis, nlp]
       examples: ["Analyze this quarterly report for revenue trends"]
 
+  # A2A skill only
   - name: research-assistant
     entrypoint: research-agent
     description: "Research any topic and provide a summary"

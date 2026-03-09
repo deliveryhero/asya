@@ -76,7 +76,7 @@ my-project/
 
 Output path is configurable via `compile.manifests` in config.yaml (default:
 `.asya/manifests`). The compiler creates the directory structure on first
-`asya flow compile` invocation — `asya init` does NOT create it.
+`asya compile` invocation — `asya init` does NOT create it.
 
 ```yaml
 compile:
@@ -87,13 +87,13 @@ The compiler creates `actors/` and `flows/<flow-name>/` subdirectories
 under the output path as needed:
 
 ```
-asya flow compile src/team-a/flows/order.py
+asya compile src/team-a/flows/order.py
   → writes to src/team-a/.asya/manifests/flows/order/
 
-asya flow compile src/flows/simple.py
+asya compile src/flows/simple.py
   → writes to .asya/manifests/flows/simple/  (root .asya/)
 
-asya actor compile --handler e_commerce.validate.validate_order
+asya compile --handler e_commerce.validate.validate_order
   → writes to .asya/manifests/actors/validate-order.yaml
 ```
 
@@ -356,7 +356,7 @@ Templates are Copier templates bundled with `asya-cli`. New templates can be
 added without changing the CLI.
 
 The `manifests/` directory is NOT created by init — it appears on first
-`asya flow compile` invocation (see section 2.2). This avoids empty directories
+`asya compile` invocation (see section 2.2). This avoids empty directories
 in the repo before compilation has ever run.
 
 **Generated `config.yaml`**:
@@ -387,11 +387,9 @@ compile:
 
 # contexts: {}
   # stg:
-  #   type: kubernetes
   #   kubecontext: my-stg-cluster   # TODO: set your kubeconfig context
   #   namespace: "${var.namespace}"
-  # local:
-  #   type: docker
+  # NOTE: contexts are K8s-only. Docker Compose uses `asya d up` (no context).
 
 # default_context: stg
 ```
@@ -429,7 +427,7 @@ spec:
   future schema migrations via `copier update`. No interactive prompts by
   default.
 - **Full template out of the box**: `config.template.yaml` ships with the
-  complete AsyncActor CRD so `asya flow compile` works immediately after
+  complete AsyncActor CRD so `asya compile` works immediately after
   init. DS never needs to edit `${dynamic:*}` holes — they are filled by
   the compiler.
 - **Contexts commented out**: `contexts:` section is present but commented
@@ -439,7 +437,7 @@ spec:
   templates available (minimal, full, agentic-minimal, agentic-full).
   Extensible — new templates added without CLI changes.
 - **Manifests created on first compile**: Output directory
-  (`compile.manifests`) is created on first `asya flow compile` invocation, not
+  (`compile.manifests`) is created on first `asya compile` invocation, not
   init. Keeps the repo clean until compilation actually runs.
 - **Fully git-tracked**: No `.gitignore` inside `.asya/`. Everything is
   committed — config is source of truth, manifests are required for GitOps.
@@ -594,7 +592,7 @@ resolved at command time.
 - `${arg:*}` -- runtime values from CLI flags or env vars. No config-level
   definition — they exist only at runtime.
 - `${dynamic:*}` -- values inferred by the compiler at compile time. Not
-  user-settable — populated by `asya flow compile` or `asya actor compile`.
+  user-settable — populated by `asya compile`.
   Available keys: `actor`, `image`, `handler`, `env`.
 
 **Three override mechanisms** (all generic, zero Asya knowledge):
@@ -610,12 +608,12 @@ namespace is `ARG` for runtime args or `VAR` for config constants, key is
 UPPER_SNAKE_CASE of the config key.
 ```bash
 # These are equivalent:
-asya actor build foo --arg tag=v1
-ASYA_ARG_TAG=v1 asya actor build foo
+asya k build foo --arg tag=v1
+ASYA_ARG_TAG=v1 asya k build foo
 
 # Override a var constant from env (useful in CI):
 export ASYA_VAR_IMAGE_REGISTRY=my-registry.io
-asya actor build foo --arg tag=v1
+asya k build foo --arg tag=v1
 ```
 
 **Precedence** (highest wins):
@@ -651,7 +649,7 @@ if any interpolation remains unresolved. This applies to ALL resolver types:
 | `${env:*}` | Resolved | Resolved | Resolved |
 
 ```
-# asya flow deploy with unresolved ${arg:tag}:
+# asya k deploy with unresolved ${arg:tag}:
 Error: unresolved interpolation '${arg:tag}'
   in: validate-order.yaml → spec.workload...image
   hint: pass --arg tag=<value> or set ASYA_ARG_TAG
@@ -690,7 +688,7 @@ This means:
 - Any build tool works (docker, apko, pack, kaniko, nix, bazel, custom)
 - Future build tools work without Asya changes
 - Platform engineers write the commands once in root config; DS just run
-  `asya actor build`
+  `asya k build`
 - Asya is NOT a build system -- it's a command runner with context
 
 **What about Shipwright remote builds?** For Shipwright, `command.remote`
@@ -870,7 +868,7 @@ the final authority.
 
 #### Output modes (render stage)
 
-Output mode is a render-time concern (`asya flow render --mode`), not
+Output mode is a render-time concern (`asya k show --mode`), not
 compile-time. The `compile.mode` field in config sets the default:
 - **manifests** (default): Raw AsyncActor XR files (resolve `${arg:*}`)
 - **helm**: values.yaml files for Helm chart
@@ -885,7 +883,7 @@ substitution, not a template engine.
 
 ## 4. The Five Stages
 
-### 4.1 Compile Time (`asya flow compile`) — Stage 1
+### 4.1 Compile Time (`asya compile`) — Stage 1
 
 **Input**: flow source (Python) + `.asya/config*.yaml`
 **Available**: Python interpreter (kernel or `--python`)
@@ -896,7 +894,7 @@ After compile, the source of truth shifts from Python files to these
 manifests. The user can edit them (add env vars, change scaling) without
 recompiling.
 
-### 4.1a Render Time (`asya flow render`) — Stage 2
+### 4.1a Render Time (`asya k show`) — Stage 2
 
 **Input**: compiled manifests + context/mode
 **Output**: target-specific artifacts (K8s YAML, helm values, kustomize
@@ -932,7 +930,7 @@ maximally informative, showing exactly what resolved to what. No hidden
 resolutions. Example:
 
 ```
-$ asya flow compile flows/order_processing.py
+$ asya compile flows/order_processing.py
 [compile] Python: /home/user/.venv/bin/python (detected from VIRTUAL_ENV)
 [compile] Config (walk-up merge):
            1. /.asya/config.yaml (root)
@@ -950,7 +948,7 @@ $ asya flow compile flows/order_processing.py
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
-[compile] Next: asya flow render order-processing
+[compile] Next: asya k show order-processing
 ```
 
 **Verbosity levels**:
@@ -1000,17 +998,17 @@ CLI follows the `asya <noun> <verb>` pattern from the RFC
 
 ```bash
 # Build a specific actor's image (--local = build only, no push)
-asya actor build text-analyzer --local --arg tag=v1
+asya k build text-analyzer --local --arg tag=v1
 
 # Build all images needed by a flow
-asya flow build order-processing --local --arg tag=v1
+asya k build order-processing --local --arg tag=v1
 
 # Remote build (build + push, or Shipwright) — enough to test on K8s
-asya actor build text-analyzer --remote --arg tag=v1
+asya k build text-analyzer --remote --arg tag=v1
 
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
-asya flow build order-processing --local
+asya k build order-processing --local
 ```
 
 **Two build flags**:
@@ -1019,17 +1017,17 @@ asya flow build order-processing --local
 - `--remote` → runs `command.remote`. Enough to test actors on K8s.
   Typically includes registry push (or Shipwright cluster build).
 
-These flags interact with `--context` (see RFC `rfc.md`): `--context docker`
-implies local builds, `--context k8s-stg` implies remote builds. The
+These flags interact with `--context` (see RFC `rfc.md`): `--context stg`
+implies remote builds (contexts are K8s-only; Docker uses `asya d *`). The
 `--local`/`--remote` flags are explicit overrides when context defaults
 aren't sufficient.
 
 **Resolution**:
-- `asya actor build <actor-name> --local` → reads manifest to find image
+- `asya k build <actor-name> --local` → reads manifest to find image
   ref → matches image ref to config.yaml `build` entry → runs
   `command.local` in the `path:` directory
-- `asya actor build --remote` → same resolution but runs `command.remote`
-- `asya flow build <flow-name>` → finds all actors in flow → deduplicates
+- `asya k build --remote` → same resolution but runs `command.remote`
+- `asya k build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
@@ -1043,19 +1041,19 @@ builds, they can use `${arg:*}` to pass flags to the build tool:
 ```yaml
 command:
   local: "docker build ${arg:cache_flag} -t ${..image} ."
-  # asya actor build foo --local --arg cache_flag="--no-cache"
-  # or: asya actor build foo --local  (cache_flag must be provided or fail)
+  # asya k build foo --local --arg cache_flag="--no-cache"
+  # or: asya k build foo --local  (cache_flag must be provided or fail)
 ```
 OmegaConf default values for `arg` are not supported — missing args are a
 hard error. If a build command needs optional flags, use `${env:VAR,default}`
 instead (`${env:DOCKER_CACHE,}` resolves to empty string if unset).
 
-**Note**: `asya actor compile` generates manifests for standalone actors
-(not part of a flow). Input is CLI-driven: `asya actor compile --handler
+**Note**: `asya compile --handler` generates manifests for standalone actors
+(not part of a flow). Input is CLI-driven: `asya compile --handler
 e_commerce.validate.validate_order --arg tag=v1`. The generated manifest
 IS the persistent artifact — no actor list in config.yaml.
 
-**Discovery for list commands**: `asya flow list` and `asya actor list` show
+**Discovery for list commands**: `asya k status` show
 a unified outer-join table across three sources: (1) local `.py` files with
 `@actor`/`@flow` decorators (matched via compiler rules), (2) compiled
 manifests in `.asya/manifests/`, (3) deployed state in current context
@@ -1063,7 +1061,7 @@ manifests in `.asya/manifests/`, (3) deployed state in current context
 
 **Verbose output**:
 ```
-$ asya actor build text-analyzer --local --arg tag=v1
+$ asya k build text-analyzer --local --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
 [build] Dir: /proj/src/e-commerce-package
@@ -1080,17 +1078,16 @@ $ asya actor build text-analyzer --local --arg tag=v1
 
 ```bash
 # K8s staging (imperative)
-asya flow render order-processing --arg tag=v1   # render with resolved tag
-asya flow deploy order-processing                # kubectl apply
+asya k show order-processing --arg tag=v1   # render with resolved tag
+asya k deploy order-processing                   # kubectl apply
 
 # K8s production (GitOps)
-# 1. asya flow render order-processing --arg tag=v1
+# 1. asya k show order-processing --arg tag=v1
 # 2. Commit rendered manifests to git, create PR
 # 3. flux/argocd picks up and applies
 
 # Docker Compose (local dev)
-asya flow render order-processing --mode docker-compose --arg tag=v1
-asya flow deploy order-processing    # docker compose up -d
+asya d up order-processing --arg tag=v1    # auto-compile + compose + docker compose up
 ```
 
 The `--arg` / `ASYA_ARG_*` substitution is the same mechanism for
@@ -1226,7 +1223,7 @@ def resolve_handler(handler_ref: str, python_path: str) -> str:
 - `ast.unparse(call.func)` extracts handler name as string
 
 **Proposed changes**:
-- Add `--python` flag to `asya flow compile`
+- Add `--python` flag to `asya compile`
 - Auto-detect Python from venv / `uv run` / PATH
 - Use `importlib.util.find_spec()` (via subprocess to target Python) to resolve
   handler refs to filesystem paths
@@ -1255,25 +1252,25 @@ your Python environment, Asya can resolve it.
 
 ## 7. Variable Substitution
 
-All `asya actor/flow build/deploy` commands support OmegaConf-style variable
+All `asya k build/deploy` commands support OmegaConf-style variable
 interpolation in config.yaml fields. See section 3.4 for the full syntax
 reference.
 
 **Setting variables** via CLI flags or `ASYA_*` env vars:
 ```bash
 # CLI flags (single command)
-asya actor build text-analyzer --arg tag=v1 --arg env=staging
-asya actor build text-analyzer --set var.image_registry=my-registry.io
+asya k build text-analyzer --arg tag=v1 --arg env=staging
+asya k build text-analyzer --set var.image_registry=my-registry.io
 
 # Env vars (shell session — survives across commands)
 export ASYA_ARG_TAG=v1
 export ASYA_ARG_ENV=staging
-asya actor build text-analyzer --local
-asya actor deploy text-analyzer  # same variables, no repetition
+asya k build text-analyzer --local
+asya k deploy text-analyzer  # same variables, no repetition
 
 # Override a var constant from env (useful in CI)
 export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
-asya flow build order-processing --local --arg tag=$CI_SHA
+asya k build order-processing --local --arg tag=$CI_SHA
 ```
 
 **In config.yaml**:
@@ -1293,7 +1290,7 @@ build:
 ```
 
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once
-and then call `asya actor build` and `asya actor deploy` without repeating
+and then call `asya k build` and `asya k deploy` without repeating
 the tag.
 
 **Three namespaces** (see section 3.4):
@@ -1352,10 +1349,10 @@ the tag.
 9. ~~**`asya init` design**~~: Resolved. Static scaffold (like `git init`):
    creates `.asya/config.yaml` with full config (`var:` constants +
    `build` + `compile`). Output directory created on first
-   `asya flow compile` invocation, not init. See section 2.4.
+   `asya compile` invocation, not init. See section 2.4.
 
 10. ~~**Standalone actor compilation**~~: Resolved.
-    `asya actor compile --handler module.function` resolves handler → image
+    `asya compile --handler module.function` resolves handler → image
     and stamps config.template.yaml in one step. No separate template verb.
 
 11. **Non-Python actors**: The current design assumes Python handlers.

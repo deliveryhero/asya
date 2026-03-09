@@ -15,7 +15,7 @@ Allow namespace-scoped flavors by reading from ConfigMaps (labeled asya.sh/flavo
 
 ## Design
 
-Extend function-asya-flavors to:
+Extend `function-asya-flavors` to:
 1. Get claim namespace from XR label crossplane.io/claim-namespace
 2. For each flavor name, look up a ConfigMap by label in the claim namespace via direct Kubernetes API call
 3. Fall back to cluster-scoped EnvironmentConfig if not found in namespace
