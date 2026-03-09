@@ -47,7 +47,6 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 TRANSPORT = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-GCP_PROJECT = os.getenv("ASYA_PUBSUB_PROJECT_ID", "")
 
 
 def _actor_manifest(
@@ -65,14 +64,9 @@ def _actor_manifest(
     image_pull_policy: str = "IfNotPresent",
     transport: str | None = None,
     flavors: list[str] | None = None,
-    gcp_project: str | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
     transport = transport or TRANSPORT
-
-    # on the sidecar. Default to the value from the test environment.
-    if gcp_project is None and transport == "pubsub":
-        gcp_project = GCP_PROJECT
 
     scaling_block = f"""\
   scaling:
