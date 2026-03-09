@@ -3,6 +3,7 @@
 **Status**: Accepted
 **Date**: 2026-03-06
 **Amended**: 2026-03-08 — polling chosen over fsnotify (see "Watcher implementation" below)
+**Amended**: 2026-03-09 — per-flow data keys + server-side apply (see "Per-flow data keys and SSA" below)
 **Context**: Gateway flow exposure design (brainstorming session)
 **Supersedes**: `expose-flows-to-gateway/` epic (DB-backed `POST /mesh/expose` approach)
 **Related**: A2A RFC section 8.4 (Registration API), section 13.4 (Tools Table)
@@ -114,9 +115,27 @@ rules:
 
 ## `flows.yaml` Schema
 
+The original schema used a single `flows:` list in one data key. With the
+per-flow data keys amendment (2026-03-09), each flow gets its own data key
+in the ConfigMap. The gateway reads all `*.yaml` keys.
+
+**Per-flow data key format** (one key per flow):
+```yaml
+# data key: extract-text.yaml
+name: extract-text
+entrypoint: text-extractor
+description: "Extract text from PDF"
+mcp:
+  inputSchema:
+    type: object
+    properties:
+      url: { type: string }
+    required: [url]
+```
+
+**Original format** (single `flows.yaml` key with list — superseded):
 ```yaml
 flows:
-  # MCP-only tool
   - name: extract-text
     entrypoint: text-extractor
     description: "Extract text from PDF"
@@ -127,7 +146,6 @@ flows:
           url: { type: string }
         required: [url]
 
-  # MCP tool + A2A skill
   - name: analyze-doc
     entrypoint: doc-analyzer
     description: "Analyze document themes"
@@ -142,7 +160,6 @@ flows:
       tags: [analysis, nlp]
       examples: ["Analyze this quarterly report for revenue trends"]
 
-  # A2A-only skill (conversational agent)
   - name: research-assistant
     entrypoint: research-agent
     description: "Research any topic and provide a summary"
@@ -191,57 +208,89 @@ flows:
 
 ---
 
-## `asya flow expose` CLI
+## `asya k expose` CLI
+
+**Amendment (2026-03-09)**: Command renamed from `asya flow expose` to
+`asya k expose` per the k/d command split (see `adr.k-d-command-split.md`).
 
 Restricted to flows only. Single actors must first be compiled to a single-actor
 flow (see aint `[zmuh]`).
 
 ### Mechanics
 
-1. Find entrypoint: `kubectl get asya -l asya.sh/flow=<flow>,asya.sh/flow-role=entrypoint`
-2. Read existing ConfigMap `gateway-flows`
-3. Merge new flow entry from CLI flags or YAML file
-4. `kubectl apply` (K8s RBAC validates)
+1. Find entrypoint from compiled manifests in `base/` (label
+   `asya.sh/flow-role=entrypoint`). No K8s API call needed.
+2. Generate `configmap-flows.yaml` ConfigMap manifest with per-flow data key
+3. Write to `.asya/manifests/<flow>/base/configmap-flows.yaml`
+4. Update `base/kustomization.yaml` resources list
+5. On next `asya k deploy`, applied via `kubectl apply --server-side`
+   with `--field-manager=asya-flow-<name>` (K8s RBAC validates)
 
-### YAML File Input
-
-`asya flow expose` must accept YAML files in addition to CLI flags:
+### CLI Flags
 
 ```bash
-# From CLI flags
-asya flow expose order-processing \
+# MCP tool (--mcp is default if neither --mcp nor --a2a specified)
+asya k expose order-processing \
   --description "Process orders" \
-  --input-schema-file schema.json \
-  --a2a --a2a-tags orders,processing
+  --input-schema-file schema.json
 
-# From YAML file (same schema as flows.yaml entries)
-asya flow expose -f flow-expose.yaml
+# A2A skill
+asya k expose research-assistant \
+  --description "Research any topic" \
+  --a2a --tags research,general \
+  --examples "What are trends in renewable energy?"
 
-# From stdin
-cat flow-expose.yaml | asya flow expose -f -
+# Both protocols
+asya k expose analyze-doc \
+  --description "Analyze document themes" \
+  --mcp --input-schema-file schema.json \
+  --a2a --tags analysis,nlp
 ```
 
-The YAML file uses the same schema as a single entry in `flows.yaml`:
+| Flag | Protocol | Description |
+|------|----------|-------------|
+| `--description` | shared | Flow description (required) |
+| `--timeout` | shared | E2E timeout in seconds |
+| `--mcp` | MCP | Enable MCP tool exposure (default) |
+| `--input-schema` | MCP | JSON Schema inline |
+| `--input-schema-file` | MCP | JSON Schema from file |
+| `--a2a` | A2A | Enable A2A skill exposure |
+| `--tags` | A2A | Comma-separated tags |
+| `--examples` | A2A | Example prompts (repeatable) |
+| `--input-modes` | A2A | MIME types (default: application/json) |
+| `--output-modes` | A2A | MIME types (default: application/json) |
+
+### Generated ConfigMap Manifest
 
 ```yaml
-name: order-processing
-entrypoint: start-order-processing
-description: "Process an order end-to-end"
-timeout: 300
-mcp:
-  inputSchema:
-    type: object
-    properties:
-      order_id: { type: string }
-    required: [order_id]
-a2a:
-  tags: [orders, processing]
+# .asya/manifests/order-processing/base/configmap-flows.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-flows
+  labels:
+    asya.sh/component: gateway
+    asya.sh/config-type: flows
+data:
+  order-processing.yaml: |
+    name: order-processing
+    entrypoint: start-order-processing
+    description: "Process an order end-to-end"
+    mcp:
+      inputSchema:
+        type: object
+        properties:
+          order_id: { type: string }
+        required: [order_id]
 ```
 
 ### Removal
 
 ```bash
-asya flow unexpose order-processing --context k8s-stg
+asya k unexpose order-processing
+# + removes base/configmap-flows.yaml
+# + kubectl patch configmap gateway-flows --type=json \
+#     -p '[{"op":"remove","path":"/data/order-processing.yaml"}]'
 ```
 
 ---
@@ -277,13 +326,37 @@ period (~60 s default).
 Poll interval is configurable via `ASYA_CONFIG_POLL_INTERVAL` (Go duration
 string, e.g. `"10s"`, `"30s"`). Default: `10s`.
 
+### Per-flow data keys and SSA
+
+**Amendment (2026-03-09)**: The original design used a single `data.flows.yaml`
+key with a list of all flows. This is replaced by **per-flow data keys** — each
+flow gets its own key in the ConfigMap (e.g., `data.order-processing.yaml`).
+
+**Rationale**: Each flow's `configmap-flows.yaml` is a K8s ConfigMap manifest
+in the flow's `base/` directory (three-layer kustomize structure, see asya-lab
+RFC section 8.1). Multiple flows deploy independently via `kubectl apply
+--server-side --field-manager=asya-flow-<name>`. Per-flow data keys + SSA
+field managers ensure no conflicts — each flow's field manager owns only its
+data key. No patching ceremony, no merge conflicts.
+
+**Gateway change**: Read all `*.yaml` keys from the ConfigMap data (not just
+`flows.yaml`). Each key contains a single flow entry. Trivial change (~5 LOC):
+iterate `data` map instead of parsing `flows:` list from one key.
+
+**GitOps**: ArgoCD and FluxCD must be configured for server-side apply:
+- ArgoCD: `syncOptions: [ServerSideApply=true]`
+- FluxCD: `spec.serverSideApply: true`
+
+Without SSA, client-side apply would wipe other flows' data keys.
+
 ### What Changes
 
 - `toolstore.Registry` reads from YAML files instead of PostgreSQL
 - Polling watcher on mounted config directory (`toolstore.Watch`, ~40 LOC); FNV-64a hash of name+mtime+size detects changes
 - Reload YAML into in-memory atomic cache on fingerprint change
+- Registry reads all `*.yaml` data keys from ConfigMap (each key = one flow entry)
 - Remove `tools` DB table and migration
-- `POST /mesh/expose` removed (write path is kubectl)
+- `POST /mesh/expose` removed (write path is kubectl/SSA)
 - `GET /mesh/expose` removed (not served by any mode; mesh pod has no registry)
 - Agent Card regenerated on each reload from `a2a:`-enabled flows
 
@@ -332,10 +405,16 @@ string, e.g. `"10s"`, `"30s"`). Default: `10s`.
 2. **ConfigMap corruption** -- a malformed `kubectl patch` could break all flows
    for all replicas. Mitigation: gateway validates YAML on reload; if invalid,
    keeps previous valid config and logs error.
-3. **Race on concurrent patches** -- two `asya flow expose` calls patching the
-   ConfigMap simultaneously could conflict. Mitigation: `kubectl apply` uses
-   resource versioning (optimistic concurrency); one call wins, the other retries.
-4. **ConfigMap size creep** -- large `inputSchema` definitions could push toward
+3. **Race on concurrent deploys** -- two `asya k deploy` calls applying the
+   ConfigMap simultaneously could conflict. Mitigation: server-side apply uses
+   per-flow field managers (`asya-flow-<name>`), so concurrent deploys of
+   different flows never conflict. Same-flow concurrent deploys use K8s
+   resource versioning (optimistic concurrency).
+4. **GitOps tools must use SSA** -- ArgoCD/FluxCD default to client-side apply,
+   which would wipe other flows' data keys. Mitigation: document SSA
+   configuration requirement (`syncOptions: [ServerSideApply=true]` for ArgoCD,
+   `spec.serverSideApply: true` for FluxCD).
+5. **ConfigMap size creep** -- large `inputSchema` definitions could push toward
    the 1 MiB limit. Mitigation: warn in CLI when ConfigMap exceeds 500 KiB.
 
 ## Limitations
@@ -380,13 +459,15 @@ See patch notes in `rfc.md` for details.
 After implementation, the YAML schema and behavior must be documented in
 `docs/usage/flow-expose.md`, covering:
 
-- Full `flows.yaml` schema reference with examples
-- `asya flow expose` / `asya flow unexpose` CLI usage
-- YAML file input format (`-f` flag)
+- Per-flow data key schema reference with examples
+- `asya k expose` / `asya k unexpose` CLI usage
+- `configmap-flows.yaml` manifest format
 - RBAC setup for platform engineers
 - Eventual consistency behavior and expectations
 - ConfigMap size limits and monitoring
-- Troubleshooting (stale config, validation errors, concurrent patches)
+- Server-side apply requirement (asya CLI, ArgoCD, FluxCD configuration)
+- Three-layer kustomize structure (`base/configmap-flows.yaml`, overlay `$patch: delete`)
+- Troubleshooting (stale config, validation errors, SSA field manager conflicts)
 
 ---
 
