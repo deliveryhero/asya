@@ -182,11 +182,12 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
-            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
-            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- $xrSpec := $xr.spec -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource .desired.composite.resource.spec -}}`}}
+            {{`{{- $xrSpec = .desired.composite.resource.spec -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $actorName := $xrSpec.actor -}}`}}
             {{`{{- $gcpProject := "`}}{{ .Values.gcpProviderConfig.projectId }}{{`" -}}`}}
             {{`{{- $userLabels := dict -}}`}}
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
@@ -205,8 +206,8 @@ spec:
                 {{`{{- end -}}`}}
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $scaling := $xr.spec.scaling -}}`}}
-            {{`{{- $workload := $xr.spec.workload -}}`}}
+            {{`{{- $scaling := $xrSpec.scaling -}}`}}
+            {{`{{- $workload := $xrSpec.workload -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
               {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
@@ -319,19 +320,20 @@ spec:
         inline:
           template: |
             {{`{{- $xr := .observed.composite.resource -}}`}}
-            {{`{{- if and .desired .desired.composite .desired.composite.resource -}}`}}
-            {{`{{- $xr = .desired.composite.resource -}}`}}
+            {{`{{- $xrSpec := $xr.spec -}}`}}
+            {{`{{- if and .desired .desired.composite .desired.composite.resource .desired.composite.resource.spec -}}`}}
+            {{`{{- $xrSpec = .desired.composite.resource.spec -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $namespace := index $xr.metadata.labels "crossplane.io/claim-namespace" -}}`}}
-            {{`{{- $actorName := $xr.spec.actor -}}`}}
+            {{`{{- $actorName := $xrSpec.actor -}}`}}
             {{`{{- $userLabels := dict -}}`}}
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $workload := $xr.spec.workload -}}`}}
-            {{`{{- $scaling := $xr.spec.scaling -}}`}}
+            {{`{{- $workload := $xrSpec.workload -}}`}}
+            {{`{{- $scaling := $xrSpec.scaling -}}`}}
             {{`{{- /* Create Deployment from workload spec */ -}}`}}
-            {{`{{- if hasKey $xr.spec "workload" -}}`}}
+            {{`{{- if hasKey $xrSpec "workload" -}}`}}
             {{`{{- $workloadKind := "Deployment" -}}`}}
             {{`{{- if hasKey $workload "kind" -}}`}}
               {{`{{- $workloadKind = $workload.kind -}}`}}
