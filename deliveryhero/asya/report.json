@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "51395baf4719e9cacccf59575a5340535f68376d",
+  "commit": "a7974bc83a6a293e788076cb37d285cfe7fe18f5",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -25328,21 +25328,21 @@
         "code": 166,
         "comment": 29,
         "blank": 44,
-        "path": "src/function-asya-overlays/fn.go",
+        "path": "src/function-asya-flavors/fn.go",
         "language": "Go"
       },
       {
         "code": 28,
         "comment": 4,
         "blank": 6,
-        "path": "src/function-asya-overlays/main.go",
+        "path": "src/function-asya-flavors/main.go",
         "language": "Go"
       },
       {
         "code": 60,
         "comment": 20,
         "blank": 14,
-        "path": "src/function-asya-overlays/merge.go",
+        "path": "src/function-asya-flavors/merge.go",
         "language": "Go"
       },
       {
@@ -25694,14 +25694,14 @@
         "code": 341,
         "comment": 16,
         "blank": 58,
-        "path": "src/function-asya-overlays/fn_test.go",
+        "path": "src/function-asya-flavors/fn_test.go",
         "language": "Go"
       },
       {
         "code": 501,
         "comment": 12,
         "blank": 51,
-        "path": "src/function-asya-overlays/merge_test.go",
+        "path": "src/function-asya-flavors/merge_test.go",
         "language": "Go"
       },
       {
@@ -25790,6 +25790,6 @@
       }
     ]
   },
-  "test_execution_time": 321000000000,
-  "timestamp": "2026-03-08T21:31:09.013634507Z"
+  "test_execution_time": 333000000000,
+  "timestamp": "2026-03-09T19:36:35.346703466Z"
 }
