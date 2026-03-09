@@ -55,12 +55,11 @@ spec:
 
 ```yaml
 spec:
-  # --- Required ---
+  # ============================================================
+  # APP TIER — compiler-filled from Python code (DS writes flow.py)
+  # ============================================================
   actor: my-actor                          # queue naming, routing identity
-  transport: sqs                           # enum: sqs | rabbitmq | pubsub
   image: my-image:latest                   # runtime container image
-
-  # --- Code (removed by workloadRef) ---
   handler: my_module.process               # ASYA_HANDLER value
   env:                                     # runtime container env vars
     - name: MODEL_NAME
@@ -70,16 +69,18 @@ spec:
       nvidia.com/gpu: "1"
     requests:
       memory: 4Gi
+  resiliency:                              # from @retry decorator extraction
+    retry:
+      maxAttempts: 3
+      policy: exponential
 
-  # --- Scheduling (removed by workloadRef) ---
-  tolerations:                             # pod-level tolerations
-    - key: nvidia.com/gpu
-      operator: Exists
-      effect: NoSchedule
-  nodeSelector:                            # pod-level node selector
-    gpu-type: a100
+  # ============================================================
+  # INFRA TIER — from flavors, platform config, or DS via UI/CLI
+  # ============================================================
+  transport: sqs                           # enum: sqs | rabbitmq | pubsub
+  flavors: [gpu-a100, high-throughput]
 
-  # --- Scaling (KEDA — always present) ---
+  # --- Scaling (KEDA) ---
   scaling:
     enabled: true
     minReplicas: 0
@@ -88,7 +89,15 @@ spec:
     cooldownPeriod: 300
     queueLength: 5
 
-  # --- State (always present) ---
+  # --- Scheduling ---
+  tolerations:                             # pod-level tolerations
+    - key: nvidia.com/gpu
+      operator: Exists
+      effect: NoSchedule
+  nodeSelector:                            # pod-level node selector
+    gpu-type: a100
+
+  # --- State ---
   stateProxy:
     - name: memory
       mount: {path: /state/memory}
@@ -96,21 +105,12 @@ spec:
       connector:
         image: ghcr.io/deliveryhero/asya-state-proxy-s3:latest
 
-  # --- Error handling (always present) ---
-  resiliency:
-    retry:
-      maxAttempts: 3
-      policy: exponential
-
-  # --- Secrets (always present) ---
+  # --- Secrets ---
   secretRefs:
     - secretName: api-keys
       keys:
         - key: openai-key
           envVar: OPENAI_API_KEY
-
-  # --- Flavors (always present) ---
-  flavors: [gpu-a100, high-throughput]
 
   # --- Power-user (rarely needed) ---
   replicas: 1                              # only when scaling.enabled=false
@@ -123,6 +123,61 @@ spec:
   # workloadRef:
   #   name: my-existing-deployment         # bring your own Deployment
 ```
+
+### Two-tier convention
+
+The XRD is structurally flat — all fields live under `spec` with no nesting
+like `spec.app` or `spec.infra`. But conceptually, fields fall into two tiers:
+
+**App tier** (compiler-filled from Python code):
+- `actor`, `image`, `handler`, `env`, `resources`, `resiliency`
+- Source: the asya-lab compiler extracts these from `flow.py` AST
+- In `config.template.yaml`: `${dynamic:*}` placeholders
+
+**Infra tier** (from flavors, platform config, or DS via UI/CLI):
+- `transport`, `flavors`, `scaling`, `tolerations`, `nodeSelector`,
+  `stateProxy`, `secretRefs`, `volumes`, `volumeMounts`, `replicas`, `sidecar`
+- Source: EnvironmentConfigs (flavors), Helm values, or deploy-time args
+- In `config.template.yaml`: `${var.*}` (config constants) or `${arg:*}`
+  (deploy-time overrides like `asya deploy --arg max_replicas=20`)
+
+This distinction is a **convention, not a structural boundary** in the XRD:
+
+1. The compiler stamps fields by path — `spec.scaling.maxReplicas` not
+   `spec.infra.scaling.maxReplicas`
+2. DS may override infra fields inline — `scaling: {maxReplicas: 20}` stays
+   at root level
+3. Flavors merge at root level — no nesting indirection
+
+The convention is expressed through:
+- Comment sections in `config.template.yaml` (as shown in the full spec above)
+- asya-lab UI/CLI grouping (shows "your code" vs "infrastructure")
+- Documentation (this RFC, tutorials)
+
+### Two-tier convention with workloadRef
+
+When `workloadRef` is used, the app tier shrinks to just identity fields:
+
+```yaml
+spec:
+  # --- App tier (minimal with workloadRef) ---
+  actor: my-actor
+  handler: my_module.process
+
+  # --- Replaces image/env/resources ---
+  workloadRef:
+    name: my-existing-deployment
+
+  # --- Infra tier (unchanged) ---
+  transport: sqs
+  flavors: [gpu-a100]
+  scaling:
+    maxReplicas: 10
+```
+
+The DS understands: "I'm pointing at my existing Deployment instead of
+letting Asya create one." The infra tier stays identical regardless of
+whether Asya creates the Deployment or the user brings their own.
 
 ### Removed fields
 
@@ -183,15 +238,16 @@ be referenced from cluster-scoped EnvironmentConfigs.
 
 ## Impact on workloadRef
 
-The flat structure makes workloadRef transition clean. Fields are categorized:
+The flat structure makes workloadRef transition clean. The two-tier convention
+(see above) maps directly to what survives workloadRef:
 
-**Survive workloadRef** (Asya's job regardless of who owns the Deployment):
-- `actor`, `transport`, `flavors`
+**Survive workloadRef** (infra tier + identity):
+- `actor`, `handler`, `transport`, `flavors`
 - `scaling`, `resiliency`
 - `stateProxy`, `secretRefs`
 
-**Removed by workloadRef** (the user's Deployment owns these):
-- `image`, `handler`, `env`, `resources`
+**Removed by workloadRef** (app tier deployment fields):
+- `image`, `env`, `resources`
 - `tolerations`, `nodeSelector`, `volumes`, `volumeMounts`
 - `replicas`, `sidecar`
 
