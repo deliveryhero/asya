@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment
   - branch:xrd-v2/af25.phase-1-5-remove-injector-render-full-deployment
+  - pr:293
 dependencies:
   - 8gc6
 ---
+
 
 
 ## Summary
