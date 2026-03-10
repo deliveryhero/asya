@@ -15,7 +15,7 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.config import ConfigLoader
+from asya_lab.config.config import ConfigLoader, FlowContext
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -30,23 +30,20 @@ def _is_kebab_case(target: str) -> bool:
 
 
 def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
-    """Resolve compiled output dir from config (compiler.routers), fall back to .asya/compiled."""
-    from asya_lab.config.config import ConfigLoader
+    """Resolve compiled output dir from config (compiler.routers)."""
+    import dataclasses
+
     from asya_lab.config.discovery import find_asya_dir
 
     asya_dir = find_asya_dir(source_path.parent)
     if not asya_dir:
-        return (source_path.parent / ".asya" / "compiled").resolve()
+        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
+        sys.exit(1)
 
-    try:
-        flow_name = flow_function.replace("_", "-")
-        loader = ConfigLoader(
-            dynamic_values={"flow_function": flow_function, "flow_name": flow_name, "flow": flow_name}
-        )
-        config = loader.load(source_path.parent)
-        return config.resolve_path("compiler.routers")
-    except Exception:
-        return (source_path.parent / ".asya" / "compiled").resolve()
+    flow_ctx = FlowContext.from_flow_function(flow_function)
+    loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
+    config = loader.load(source_path.parent)
+    return config.resolve_path("compiler.routers")
 
 
 def _compile_flow_file(
@@ -125,11 +122,11 @@ def _compile_dotted_target(
         from asya_lab.config.discovery import find_asya_dir
 
         asya_dir = find_asya_dir(Path.cwd())
-        if asya_dir:
-            config = ConfigLoader().load(asya_dir.parent)
-            resolved_dir = config.with_values(flow_name="_").resolve_path("compiler.manifests").parent
-        else:
-            resolved_dir = Path.cwd() / ".asya" / "manifests"
+        if asya_dir is None:
+            click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
+            sys.exit(1)
+        config = ConfigLoader().load(asya_dir.parent)
+        resolved_dir = config.with_values(FlowContext.placeholder()).resolve_path("compiler.manifests").parent
     resolved_dir.mkdir(parents=True, exist_ok=True)
 
     click.echo(f"[+] Compiling single actor '{actor_name}' from {target}")
@@ -158,7 +155,7 @@ def _recompile_kebab_target(
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.with_values(flow_name=target).resolve_path("compiler.manifests")
+    manifests_dir = config.with_values(FlowContext.from_flow_name(target)).resolve_path("compiler.manifests")
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
         sys.exit(1)

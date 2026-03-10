@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import dataclasses
+
 import pytest
 import yaml
 from asya_lab.compiler.stamper import ManifestStamper
-from asya_lab.config.config import ConfigLoader
+from asya_lab.config.config import ConfigLoader, FlowContext
 from asya_lab.flow.grouper import Router
 from omegaconf import OmegaConf
 
@@ -124,7 +126,8 @@ def router_code():
 
 
 def _make_stamper(flow_name, routers, router_code, config, template_path, flow_function=None):
-    loader = ConfigLoader()
+    flow_ctx = FlowContext.from_flow_name(flow_name)
+    loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
     templates_dir = template_path.parent
     return ManifestStamper(
         flow_name=flow_name,

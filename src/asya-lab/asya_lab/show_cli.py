@@ -8,7 +8,7 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.config import ConfigLoader
+from asya_lab.config.config import ConfigLoader, FlowContext
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
 
 
@@ -26,7 +26,7 @@ def show(target: str, ctx: str | None) -> None:
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    flow_dir = config.with_values(flow_name=target).resolve_path("compiler.manifests")
+    flow_dir = config.with_values(FlowContext.from_flow_name(target)).resolve_path("compiler.manifests")
     if not flow_dir.is_dir():
         click.echo(f"[-] Flow not found: {flow_dir}", err=True)
         sys.exit(1)

@@ -104,6 +104,9 @@ class ManifestStamper:
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
 
+        # Snapshot the base dynamic values (flow context) for reset between templates
+        self._base_dynamic_values = dict(config_loader.dynamic_values)
+
     def stamp(self, output_dir: Path) -> list[str]:
         """Generate kustomize-structured manifests.
 
@@ -164,18 +167,14 @@ class ManifestStamper:
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve all interpolations."""
-        self.config_loader.dynamic_values = {
-            "actor_name": actor.name,
-            "actor": actor.name,
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "flow_role": actor.flow_role,
-            "handler": actor.handler,
-            "image": actor.image,
-            "env": "[]",
-        }
-        _set_active_loader(self.config_loader)
+        self._set_dynamic_values(
+            actor_name=actor.name,
+            actor=actor.name,
+            flow_role=actor.flow_role,
+            handler=actor.handler,
+            image=actor.image,
+            env="[]",
+        )
 
         template = OmegaConf.load(self.template_path)
 
@@ -213,13 +212,7 @@ class ManifestStamper:
 
     def _resolve_configmap_template(self) -> dict:
         """Load configmap template and resolve interpolations."""
-        self.config_loader.dynamic_values = {
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "router_code": "",
-        }
-        _set_active_loader(self.config_loader)
+        self._set_dynamic_values(router_code="")
 
         template = OmegaConf.load(self.configmap_routers_template_path)
 
@@ -244,13 +237,7 @@ class ManifestStamper:
 
     def _resolve_kustomization_template(self, resources: list[str]) -> dict:
         """Load kustomization template and resolve interpolations."""
-        self.config_loader.dynamic_values = {
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "resources": "[]",
-        }
-        _set_active_loader(self.config_loader)
+        self._set_dynamic_values(resources="[]")
 
         template = OmegaConf.load(self.kustomization_template_path)
 
@@ -436,6 +423,13 @@ Each overlay builds on top of `common/`.
         return "router"
 
     # ── config resolution helpers ───────────────────────────────────
+
+    def _set_dynamic_values(self, **extras: str) -> None:
+        """Reset dynamic values to the base flow context plus extras."""
+        values = dict(self._base_dynamic_values)
+        values.update(extras)
+        self.config_loader.dynamic_values = values
+        _set_active_loader(self.config_loader)
 
     def _resolve_var(self, key: str, default: str) -> str:
         """Resolve a var.* value from the config."""

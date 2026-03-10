@@ -15,8 +15,10 @@ def _stamp_manifests(
     compiler: FlowCompiler, flow_file: str, output_dir: str, manifests_dir: str | None, verbose: bool
 ) -> None:
     """Stamp kustomize-structured manifests after flow compilation."""
+    import dataclasses
+
     from asya_lab.compiler.stamper import ManifestStamper
-    from asya_lab.config.config import ConfigLoader
+    from asya_lab.config.config import ConfigLoader, FlowContext
     from asya_lab.config.discovery import find_asya_dir
 
     source_path = Path(flow_file).resolve()
@@ -43,9 +45,8 @@ def _stamp_manifests(
 
     flow_name = flow_function.replace("_", "-")
 
-    config_loader = ConfigLoader(
-        dynamic_values={"flow_function": flow_function, "flow_name": flow_name, "flow": flow_name}
-    )
+    flow_ctx = FlowContext.from_flow_function(flow_function)
+    config_loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
     config = config_loader.load(source_path.parent)
 
     # Determine manifest output directory

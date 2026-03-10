@@ -14,6 +14,7 @@ Accessing a field with unresolved interpolations raises ConfigNotFinalizedError.
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import os
 import re
@@ -28,6 +29,45 @@ from asya_lab.config.discovery import MANIFESTS_DIR, collect_asya_dirs
 log = logging.getLogger(__name__)
 
 _RELATIVE_PATH_PATTERN = re.compile(r"^\./")
+
+
+# ---------------------------------------------------------------------------
+# FlowContext — typed bundle of dynamic values for path resolution
+# ---------------------------------------------------------------------------
+
+
+@dataclasses.dataclass(frozen=True)
+class FlowContext:
+    """Typed bundle of dynamic values derived from a flow.
+
+    Ensures all three naming variants are always provided together.
+    Use factory methods instead of the constructor directly.
+    """
+
+    flow_function: str  # Python name: underscores (e.g. "order_processing")
+    flow_name: str  # K8s name: hyphens (e.g. "order-processing")
+    flow: str  # Alias for flow_name (for ${dynamic:flow} in templates)
+
+    @classmethod
+    def from_flow_name(cls, flow_name: str) -> FlowContext:
+        """Create from a kebab-case K8s name (e.g. "order-processing")."""
+        flow_function = flow_name.replace("-", "_")
+        return cls(flow_function=flow_function, flow_name=flow_name, flow=flow_name)
+
+    @classmethod
+    def from_flow_function(cls, flow_function: str) -> FlowContext:
+        """Create from a Python function name (e.g. "order_processing")."""
+        flow_name = flow_function.replace("_", "-")
+        return cls(flow_function=flow_function, flow_name=flow_name, flow=flow_name)
+
+    @classmethod
+    def placeholder(cls) -> FlowContext:
+        """Dummy context for resolving the manifests root directory.
+
+        The resolved path's leaf is stripped via .parent, so the value
+        doesn't matter — it just needs to be non-empty.
+        """
+        return cls(flow_function="_", flow_name="_", flow="_")
 
 
 # ---------------------------------------------------------------------------
@@ -50,41 +90,48 @@ class AsyaConfig:
     Purely syntactic — does not know the meaning of specific resolver types.
     Tracks whether interpolations are resolved and gives helpful errors
     listing which fields remain unresolved.
+
+    Note: ``__getattr__`` proxies to the underlying DictConfig, but only
+    as a fallback — Python calls ``__getattr__`` only when normal attribute
+    lookup (``self.__dict__``, class descriptors) fails.  So private attrs
+    like ``self._cfg`` set in ``__init__`` are found normally.
     """
 
     def __init__(self, cfg: DictConfig, loader: ConfigLoader, asya_dir: Path) -> None:
-        object.__setattr__(self, "_cfg", cfg)
-        object.__setattr__(self, "_loader", loader)
-        object.__setattr__(self, "_asya_dir", asya_dir)
+        self._cfg = cfg
+        self._loader = loader
+        self._asya_dir = asya_dir
 
     # -- identity / location ------------------------------------------------
 
     @property
     def asya_dir(self) -> Path:
         """The .asya/ directory this config was loaded from."""
-        return object.__getattribute__(self, "_asya_dir")
+        return self._asya_dir
 
     @property
     def project_root(self) -> Path:
         """Parent of .asya/ — the project root directory."""
-        return self.asya_dir.parent
+        return self._asya_dir.parent
 
     @property
     def raw(self) -> DictConfig:
         """The underlying OmegaConf DictConfig (for OmegaConf.to_container etc)."""
-        return object.__getattribute__(self, "_cfg")
+        return self._cfg
 
     # -- two-phase initialization -------------------------------------------
 
-    def with_values(self, **values: str) -> AsyaConfig:
+    def with_values(self, ctx: FlowContext | None = None, **extras: str) -> AsyaConfig:
         """Supply values for unresolved interpolations.
 
-        Values are keyed by resolver variable name (e.g. ``flow_name``).
+        Accepts a FlowContext for the standard flow triple, plus optional
+        **extras for template-specific values (actor_name, handler, etc.).
         Returns self for chaining.
         """
-        loader = object.__getattribute__(self, "_loader")
-        loader.dynamic_values.update(values)
-        _set_active_loader(loader)
+        if ctx is not None:
+            self._loader.dynamic_values.update(dataclasses.asdict(ctx))
+        self._loader.dynamic_values.update(extras)
+        _set_active_loader(self._loader)
         return self
 
     # -- path resolution ----------------------------------------------------
@@ -96,9 +143,8 @@ class AsyaConfig:
         Raises ConfigNotFinalizedError if the value has unresolved interpolations.
         """
         self._activate()
-        cfg = object.__getattribute__(self, "_cfg")
         try:
-            node: Any = cfg
+            node: Any = self._cfg
             for part in dotted_key.split("."):
                 node = getattr(node, part)
             return (self.project_root / str(node)).resolve()
@@ -114,57 +160,49 @@ class AsyaConfig:
         field whose value cannot be resolved with the current set of values.
         """
         self._activate()
-        cfg = object.__getattribute__(self, "_cfg")
         result: dict[str, str] = {}
-        _collect_unresolved(cfg, "", result)
+        _collect_unresolved(self._cfg, "", result)
         return result
 
     # -- DictConfig proxy ---------------------------------------------------
 
     def get(self, key: str, default: Any = None) -> Any:
         self._activate()
-        cfg = object.__getattribute__(self, "_cfg")
         try:
-            return cfg.get(key, default)
+            return self._cfg.get(key, default)
         except Exception as e:
             self._raise_if_unresolved(key, e)
 
     def __getattr__(self, name: str) -> Any:
-        cfg = object.__getattribute__(self, "_cfg")
         self._activate()
         try:
-            return getattr(cfg, name)
+            return getattr(self._cfg, name)
         except AttributeError:
             raise
         except Exception as e:
             self._raise_if_unresolved(name, e)
 
     def __contains__(self, key: object) -> bool:
-        cfg = object.__getattribute__(self, "_cfg")
-        return key in cfg
+        return key in self._cfg
 
     def __iter__(self):
-        cfg = object.__getattribute__(self, "_cfg")
-        return iter(cfg)
+        return iter(self._cfg)
 
     def __getitem__(self, key: str) -> Any:
         self._activate()
-        cfg = object.__getattribute__(self, "_cfg")
         try:
-            return cfg[key]
+            return self._cfg[key]
         except Exception as e:
             self._raise_if_unresolved(key, e)
 
     def __setitem__(self, key: str, value: Any) -> None:
-        cfg = object.__getattribute__(self, "_cfg")
-        cfg[key] = value
+        self._cfg[key] = value
 
     # -- internals ----------------------------------------------------------
 
     def _activate(self) -> None:
         """Ensure this config's loader is the active resolver provider."""
-        loader = object.__getattribute__(self, "_loader")
-        _set_active_loader(loader)
+        _set_active_loader(self._loader)
 
     def _raise_if_unresolved(self, key: str, cause: Exception) -> NoReturn:
         """Re-raise as ConfigNotFinalizedError if unresolved fields exist."""

@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.config.config import ConfigLoader
+from asya_lab.config.config import ConfigLoader, FlowContext
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 
 
@@ -71,7 +71,7 @@ def status() -> None:
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.with_values(flow_name="_").resolve_path("compiler.manifests").parent
+    manifests_dir = config.with_values(FlowContext.placeholder()).resolve_path("compiler.manifests").parent
     if not manifests_dir.is_dir():
         click.echo(_format_table([]))
         return
