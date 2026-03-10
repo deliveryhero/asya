@@ -528,42 +528,37 @@ All files are loaded into one OmegaConf DictConfig (the library, not
     └── <flow>.yaml
 ```
 
-**Directory-to-key convention**: directories under `.asya/` that match a root
-config key have their contents recursively merged under that key. Files become
-sub-keys (filename stem = key). Subdirectories create nested keys.
+**Filename-to-key convention**: config files use dotted names to nest into
+the config tree. Templates are NOT part of the config tree — they are loaded
+on-demand by the stamper using `{{ key }}` substitution.
 
 - `.asya/config.yaml` — root keys (always loaded)
-- `.asya/compiler/rules.yaml` → `compiler.rules` in merged config
-- `.asya/compiler/templates/actor.yaml` → `compiler.templates.actor`
-- `.asya/compiler/templates/configmap_routers.yaml` → `compiler.templates.configmap_routers`
-- `.asya/compiler/templates/kustomization.yaml` → `compiler.templates.kustomization`
+- `.asya/config.compiler.rules.yaml` → `compiler.rules` in merged config
+- `.asya/compiler/templates/*.yaml` — template files, NOT loaded into config
 
 Important user-facing settings (paths, scalars) stay in `config.yaml`.
-Complex structured content (rules, templates) is offloaded into directories
-for clarity. Both locations merge — you CAN put `compiler.rules` inline in
-`config.yaml` for small projects and offload to `compiler/rules.yaml` when
-the list grows.
+Rules can live inline in `config.yaml` under `compiler.rules:` for small
+projects and offload to `config.compiler.rules.yaml` when the list grows.
 
 ### 7.2 config.yaml
 
 ```yaml
-var:
-  project_root: "."
-  image_registry: ghcr.io/org
+templates:
   namespace: team-one
   transport: sqs
   router_image: python:3.13-slim
+  max_replicas: 5
 
 build:
   - module: e_commerce
-    path: "${var.project_root}/src/e-commerce"
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
+    path: "./src/e-commerce"
+    image: "${templates.image_registry}/e-commerce:${arg:tag}"
     command: "docker build -t ${.image} ."
 
 compiler:
-  routers: "${var.project_root}/compiled/${dynamic:flow_function}"
-  manifests: ".asya/manifests/${dynamic:flow_function}"
-  # rules and templates auto-merged from .asya/compiler/
+  routers: "./compiled"
+  manifests: ".asya/manifests"
+  image_registry: ghcr.io/org
 
 secrets:
   OPENAI_API_KEY:
@@ -577,7 +572,7 @@ contexts:
   stg:
     type: kubernetes
     kubecontext: my-stg-cluster
-    namespace: "${var.namespace}"
+    namespace: "${templates.namespace}"
     gateway: https://gw.stg.internal
   prod:
     type: kubernetes
@@ -593,108 +588,128 @@ contexts:
 default_context: stg
 ```
 
-### 7.3 compiler/templates/actor.yaml
+The `templates:` section defines values available as `{{ key }}` in template
+files (`.asya/compiler/templates/*.yaml`). Values participate in walk-up
+merge — a child `.asya/config.yaml` can override `templates.namespace`.
 
-Standalone YAML that looks exactly like the final output — a flat AsyncActor
-XR (v1alpha2 spec, see `xrd-v2/rfc.md`). On disk it's a lintable CRD; after
-loading it's available as `config.compiler.templates.actor`. The `${dynamic:*}`
-holes are filled per-actor during compilation.
+Config paths (`compiler.routers`, `compiler.manifests`) are base directories.
+Code appends flow-specific suffixes at runtime (e.g. `/ flow_name`).
+The `./` prefix is resolved relative to the project root (parent of `.asya/`)
+by the config loader.
+
+### 7.3 compiler/templates/ (template files)
+
+Template files are NOT part of the config tree. They use `{{ key }}` syntax
+for all interpolation — both config values (from `templates:` section) and
+compiler-output values. Resolution is simple regex string replacement
+followed by `yaml.safe_load()`.
+
+Templates are split by actor role:
+
+#### 7.3.1 compiler/templates/actor.yaml (handler actors)
 
 ```yaml
 # .asya/compiler/templates/actor.yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: "${dynamic:actor}"
-  namespace: "${var.namespace}"
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
   labels:
-    asya.sh/flow: "${dynamic:flow}"
-    asya.sh/flow-role: "${dynamic:flow_role}"
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
 spec:
-  actor: "${dynamic:actor}"
-  image: "${dynamic:image}"
-  handler: "${dynamic:handler}"
-  transport: "${var.transport}"
-  env: "${dynamic:env}"
+  actor: "{{ actor_name }}"
+  image: "{{ image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicas: 0
-    maxReplicas: "${arg:max_replicas,5}"
+    maxReplicas: "{{ max_replicas }}"
 ```
 
-The template uses the **flat XRD v2 spec** — `image`, `handler`, `env` are
+#### 7.3.2 compiler/templates/router.yaml (router actors)
+
+```yaml
+# .asya/compiler/templates/router.yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
+spec:
+  actor: "{{ actor_name }}"
+  image: "{{ router_image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 2
+```
+
+The templates use the **flat XRD v2 spec** — `image`, `handler` are
 top-level fields under `spec`, not buried inside
-`workload.template.spec.containers[]`. This makes the template trivially
+`workload.template.spec.containers[]`. This makes templates trivially
 readable and directly maps to what `asya k edit` exposes.
 
-`${dynamic:env}` is an OmegaConf subtree resolver — it returns the full K8s
-env list (including `ASYA_HANDLER`, router mappings, and env vars detected from
-handler code). See `research-compiler-knowledge-base.md` for how env vars are
-detected and sourced via `secrets:`.
+The `spec.env` field is NOT in templates — it's added programmatically by the
+stamper (ASYA_HANDLER mappings, router env vars, detected env vars from code).
 
-**Platform engineers customize the template** to set infra-tier defaults:
+**Platform engineers customize templates** to set infra-tier defaults:
 ```yaml
 # Platform team adds to compiler/templates/actor.yaml:
 spec:
-  # ...
   resiliency:
     retry:
       policy: exponential
-      maxAttempts: "${var.default_retry_attempts}"
+      maxAttempts: "{{ default_retry_attempts }}"
 ```
 
 These defaults become part of `base/` and can be overridden per-actor via
-kustomize patches.
+kustomize patches. Custom template variables must be added to the `templates:`
+section in config.yaml.
 
-### 7.3.1 compiler/templates/configmap_routers.yaml
+#### 7.3.3 compiler/templates/configmap_routers.yaml
 
 ConfigMap template for baking compiled router code into a K8s ConfigMap.
-Available as `config.compiler.templates.configmap_routers`. Router actors mount
-this ConfigMap to get their routing logic — no custom image build needed.
+Router actors mount this ConfigMap for routing logic — no custom image needed.
 
 ```yaml
 # .asya/compiler/templates/configmap_routers.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "${dynamic:flow}-routers"
-  namespace: "${var.namespace}"
+  name: "{{ flow_name }}-routers"
+  namespace: "{{ namespace }}"
   labels:
-    asya.sh/flow: "${dynamic:flow}"
+    asya.sh/flow: "{{ flow_name }}"
     asya.sh/managed-by: asya-compiler
-data:
-  routers.py: "${dynamic:router_code}"
 ```
 
-Platform engineers customize this template to add annotations, labels, or
-additional data keys:
-```yaml
-# Platform team adds to compiler/templates/configmap_routers.yaml:
-metadata:
-  annotations:
-    config.kubernetes.io/origin: asya-compiler
-```
+The `data.routers.py` field is added programmatically by the stamper.
 
-### 7.3.2 compiler/templates/kustomization.yaml
+#### 7.3.4 compiler/templates/kustomization.yaml
 
 Kustomization template used for all three layers (base, common, overlays).
-Available as `config.compiler.templates.kustomization`. The `${dynamic:resources}`
-placeholder is replaced with the actual resource list per layer.
+The `resources` list is added programmatically by the stamper.
 
 ```yaml
 # .asya/compiler/templates/kustomization.yaml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: "${dynamic:resources}"
 ```
 
-### 7.3.3 Kustomize Layer Output
+### 7.3.5 Kustomize Layer Output
 
 **Constraint**: Stamped manifests are real K8s resources consumed by kustomize.
-They MUST NOT contain unresolved OmegaConf interpolations (`${var.*}`,
-`${dynamic:*}`, `${arg:*}`). All interpolations are resolved at compile time
-by the stamper. If a value cannot be resolved, the compiler must fail fast
-rather than emit a broken manifest.
+They MUST NOT contain unresolved interpolations (`{{ key }}`, `${arg:*}`).
+All values are resolved at compile time by the stamper. If a value cannot be
+resolved, the compiler must fail fast rather than emit a broken manifest.
 
 The compiler generates `kustomization.yaml` for each layer using the
 kustomization template. Templates are stamped once per flow, then updated on
@@ -709,7 +724,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../base
-patches: "${dynamic:patches}"
 ```
 
 **overlays/\<context\>/kustomization.yaml** (generated by `asya init` or first deploy):
@@ -718,15 +732,6 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
   - ../../common
-namespace: "${var.namespace}"
-```
-
-Platform engineers can add default kustomize features to any layer template:
-```yaml
-# Platform team adds to overlays template:
-commonLabels:
-  app.kubernetes.io/managed-by: asya
-  asya.sh/flow: "${dynamic:flow}"
 ```
 
 **Per-context exposure control**: To expose a flow only on stg, add
@@ -741,14 +746,14 @@ metadata:
 $patch: delete
 ```
 
-### 7.3.4 compiler/rules.yaml
+### 7.3.6 config.compiler.rules.yaml
 
 Compiler rules are offloaded here when the list grows. For small projects,
 rules can also live inline in `config.yaml` under `compiler.rules:` — both
 sources merge via list concatenation (`ListMergeMode.EXTEND`).
 
 ```yaml
-# .asya/compiler/rules.yaml
+# .asya/config.compiler.rules.yaml
 - match: "tenacity.retry(stop=stop_after_attempt(X))"
   treat-as: config
   assign-to: spec.resiliency.retry.maxAttempts
@@ -775,8 +780,8 @@ Two naming domains exist throughout the system:
 
 | Domain | Convention | Examples | Used in |
 |--------|-----------|----------|---------|
-| **Python function** | underscores | `my_flow`, `handler_a`, `start_my_flow` | Source code, `spec.handler`, router function names, `${dynamic:flow_function}` |
-| **K8s / Asya** | hyphens | `my-flow`, `handler-a`, `start-my-flow` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `${dynamic:flow}`, `${dynamic:actor}` |
+| **Python function** | underscores | `my_flow`, `handler_a`, `start_my_flow` | Source code, `spec.handler`, router function names, `{{ flow_function }}` in templates |
+| **K8s / Asya** | hyphens | `my-flow`, `handler-a`, `start-my-flow` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `{{ flow_name }}`, `{{ actor_name }}` in templates |
 
 **Conversion rule**: replace `_` with `-`. The compiler (parser, grouper,
 codegen) works exclusively with Python function names. The stamper converts
@@ -788,52 +793,65 @@ keep the Python form since they reference Python functions (e.g.
 - `flow_function` / `actor_function` — the Python function name (underscores)
 - `flow_name` / `actor.name` — the K8s name (hyphens)
 
-**In templates**: `${dynamic:flow}` resolves to the K8s name (`my-flow`).
-`${dynamic:flow_function}` resolves to the Python name (`my_flow`) — used
-in config paths like `compiler.manifests`.
+**In templates**: `{{ flow_name }}` resolves to the K8s name (`my-flow`).
+`{{ flow_function }}` resolves to the Python name (`my_flow`).
+Config paths (`compiler.manifests`) are base directories — the code appends
+the flow-specific suffix.
 
-### 7.5 Resolver Syntax
+### 7.5 Interpolation Syntax
 
-Two families, distinguished by separator:
+Two systems, used in different file types:
+
+**Config files** (`config.yaml`, `config.*.yaml`) use OmegaConf:
 
 | Syntax | Source | Resolves when |
 |--------|--------|---------------|
-| `${var.x}` | Config tree (native OmegaConf) | After merge |
+| `${templates.x}` | Config tree (native OmegaConf) | After merge |
 | `${.image}` | Relative sibling key (native OmegaConf) | After merge |
-| `${arg:tag}` | CLI `--arg tag=v1` (custom resolver) | At command time |
-| `${arg:x,default}` | CLI with fallback (custom resolver) | At command time |
-| `${dynamic:actor}` | Compiler-computed (custom resolver) | Per actor, at compile time |
-| `${env:HOME}` | Environment variable (custom resolver) | At command time |
+| `${arg:tag}` | CLI `--arg tag=v1` (custom resolver) | At load time |
+| `${arg:x,default}` | CLI with fallback (custom resolver) | At load time |
+| `${env:HOME}` | Environment variable (custom resolver) | At load time |
 
-**Rule of thumb**: dot = value is in a `.yaml` file. Colon = value is injected
-from outside. Missing values are a hard error (no silent fallback).
-
-### 7.6 `${dynamic:*}` Resolver Keys
+**Template files** (`.asya/compiler/templates/*.yaml`) use `{{ key }}`:
 
 | Key | Source | Example |
 |-----|--------|---------|
-| `dynamic:actor` | Actor name, kebab-cased | `"validate-order"` |
-| `dynamic:handler` | Fully qualified Python path | `"e_commerce.validate.validate_order"` |
-| `dynamic:image` | Resolved OCI image ref | `"ghcr.io/org/e-commerce:${arg:tag}"` |
-| `dynamic:flow` | Flow name, kebab-cased | `"order-processing"` |
-| `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
-| `dynamic:env` | K8s env list (subtree resolver) | `[{name: "ASYA_HANDLER", value: "..."}]` |
+| `{{ actor_name }}` | Compiler output (TemplateContext) | `"validate-order"` |
+| `{{ flow_name }}` | Compiler output (TemplateContext) | `"order-processing"` |
+| `{{ flow_function }}` | Compiler output (TemplateContext) | `"order_processing"` |
+| `{{ flow_role }}` | Compiler output (TemplateContext) | `"entrypoint"`, `"router"` |
+| `{{ handler }}` | Compiler output (TemplateContext) | `"routers.start_order_processing"` |
+| `{{ image }}` | Compiler output (TemplateContext) | `"ghcr.io/org/e-commerce:v1"` |
+| `{{ namespace }}` | Config `templates.namespace` | `"default"` |
+| `{{ transport }}` | Config `templates.transport` | `"sqs"` |
+| `{{ router_image }}` | Config `templates.router_image` | `"python:3.13-slim"` |
+| `{{ max_replicas }}` | Config `templates.max_replicas` | `"5"` |
 
-These are values the compiler **always** computes per actor. They exist only
-in-memory during compilation — no intermediate file.
+Config is always fully resolved at load time — no deferred interpolation.
+Template `{{ key }}` substitution happens at compile time by the stamper.
 
-Resiliency values (`spec.resiliency.retry.*`, `spec.resiliency.timeout`) are
-**not** `${dynamic:*}` resolvers — they are placed directly at XR spec paths
-via compiler rules (`assign-to: spec.*`). See
-`research-compiler-knowledge-base.md`.
+### 7.6 Template Context
 
-`${dynamic:env}` is an OmegaConf subtree resolver that returns a list of K8s
-env entries. The compiler constructs this list from:
+The stamper builds a flat context dict from three sources:
+
+1. **Compiler output** (`TemplateContext` dataclass) — fixed, typed, per-actor
+2. **Config `templates.*`** — user-defined, pre-resolved from config
+3. **CLI `--arg`** — pre-resolved from command line
+
+Compiler output keys are reserved names. If `templates.actor_name` exists
+in config, it's an error at compile time.
+
+The `spec.env` field is NOT a template variable. The stamper constructs it
+programmatically from:
 - `ASYA_HANDLER` (always present)
 - `ASYA_HANDLER_*` router mappings (for router actors)
 - Env vars detected from handler code (`os.environ`, `os.getenv`)
 - Default values extracted from `os.getenv("KEY", "default")`
 - Secret refs from `secrets:` section in config.yaml
+
+Resiliency values (`spec.resiliency.retry.*`, `spec.resiliency.timeout`) are
+placed directly at XR spec paths via compiler rules (`assign-to: spec.*`).
+See `research-compiler-knowledge-base.md`.
 
 ### 7.7 Key Design Decisions
 
