@@ -1,0 +1,31 @@
+services:
+  # Peer container: long-lived receiver used by the cross_container scenario.
+  # Stays alive (receive-loop mode) until Docker Compose stops it on tester exit.
+  receiver:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile.socket-tester
+    command: ["--mode=receive-loop", "--queue=xc-recv", "--mesh-dir=/mesh"]
+    volumes:
+    - mesh:/mesh
+    healthcheck:
+      # Socket file appears once receiver calls Receive() and startListener().
+      test: ["CMD", "test", "-S", "/mesh/xc-recv.sock"]
+      interval: 1s
+      timeout: 1s
+      retries: 30
+
+  # Tester container: runs all scenarios then exits; exit code drives CI result.
+  tester:
+    build:
+      context: ../../../src/asya-sidecar
+      dockerfile: Dockerfile.socket-tester
+    command: ["--mode=test", "--mesh-dir=/mesh", "--cross-queue=xc-recv"]
+    depends_on:
+      receiver:
+        condition: service_healthy
+    volumes:
+    - mesh:/mesh
+
+volumes:
+  mesh:
