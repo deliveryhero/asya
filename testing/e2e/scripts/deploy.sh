@@ -169,7 +169,7 @@ time {
   helm repo update crossplane-stable > /dev/null 2>&1
   helm upgrade --install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace \
-    --set 'args={--max-reconcile-rate=50}' \
+    --set 'args={--max-reconcile-rate=50,--poll-interval=10s}' \
     --set resourcesCrossplane.limits.cpu=2000m \
     --set resourcesCrossplane.limits.memory=2Gi \
     --set resourcesCrossplane.requests.cpu=500m \
@@ -541,11 +541,38 @@ time {
 }
 echo
 
+# Phase 7b: Stagger XR reconciliation to break backoff synchronization
+#
+# All actors are created simultaneously by Helm, so they share Crossplane's
+# poll-interval cycle and all hit the same retry timer together. Without
+# staggering, all 40+ actors converge in a single burst after 14 minutes
+# (pubsub) or 12 minutes (sqs). Annotating each XAsyncActor XR 1s apart
+# offsets their poll cycles so each actor converges independently.
+echo "[.] Phase 7b: Staggering actor reconciliation..."
+time {
+  # Allow Crossplane a moment to create XRs from the claims we just deployed
+  sleep 5
+
+  STAGGER_COUNT=0
+  while IFS= read -r xr; do
+    [ -z "$xr" ] && continue
+    kubectl annotate "$xr" "asya.sh/stagger=$(date +%s%N)" \
+      --overwrite > /dev/null 2>&1
+    sleep 1
+    STAGGER_COUNT=$((STAGGER_COUNT + 1))
+  done < <(kubectl get xasyncactors \
+    -l "crossplane.io/claim-namespace=$NAMESPACE" \
+    --no-headers -o name 2>/dev/null | sort)
+
+  echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
+}
+echo
+
 # Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
 echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
 time {
   if ! kubectl wait --for=condition=Ready asyncactor --all \
-    -n "$NAMESPACE" --timeout=1200s; then
+    -n "$NAMESPACE" --timeout=300s; then
     echo "[!] Warning: Not all AsyncActors reconciled"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
