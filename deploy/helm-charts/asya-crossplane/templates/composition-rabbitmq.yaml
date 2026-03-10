@@ -398,6 +398,11 @@ spec:
                             periodSeconds: 10
                             timeoutSeconds: 3
                             failureThreshold: 3
+                        {{`{{- range $workload.template.spec.containers }}`}}
+                        {{`{{- if ne .name "asya-runtime" }}`}}
+                        - {{`{{ . | toYaml | nindent 26 }}`}}
+                        {{`{{- end }}`}}
+                        {{`{{- end }}`}}
                         - name: asya-sidecar
                           image: {{`{{ $sidecarImage }}`}}
                           imagePullPolicy: {{`{{ $sidecarImagePullPolicy }}`}}
