@@ -869,6 +869,21 @@ class TestFanOutIntegration:
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
+    def test_list_wrapped_gather_compiles_to_valid_python(self):
+        code = self._compile_flow("""
+            async def flow(p: dict) -> dict:
+                p["analysis"] = list(await asyncio.gather(
+                    agent_a(p["text"]),
+                    agent_b(p["text"]),
+                    agent_c(p["text"]),
+                ))
+                return p
+        """)
+        try:
+            _parse_code(code)
+        except SyntaxError as e:
+            pytest.fail(f"Compilation failed: {e}")
+
     def test_fanout_between_actors_compiles(self):
         code = self._compile_flow("""
             def flow(p: dict) -> dict:

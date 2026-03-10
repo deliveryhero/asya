@@ -357,6 +357,48 @@ class TestAsyncioGatherFanOut:
         assert isinstance(fanout, FanOutCall)
         assert fanout.lineno == 3
 
+    def test_parse_list_wrapped_gather_with_explicit_args(self):
+        """list(await asyncio.gather(...)) is equivalent to await asyncio.gather(...)."""
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p["analysis"] = list(await asyncio.gather(
+                    agent_a(p["text"]),
+                    agent_b(p["text"]),
+                    agent_c(p["text"]),
+                ))
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/analysis"
+        assert fanout.pattern == "gather"
+        assert len(fanout.actor_calls) == 3
+        assert fanout.actor_calls[0][0] == "agent_a"
+        assert fanout.actor_calls[1][0] == "agent_b"
+        assert fanout.actor_calls[2][0] == "agent_c"
+
+    def test_parse_list_wrapped_gather_with_generator(self):
+        """list(await asyncio.gather(*(...))) is equivalent to the unwrapped form."""
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p["results"] = list(await asyncio.gather(*(agent(t) for t in p["topics"])))
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/results"
+        assert fanout.pattern == "gather"
+        assert fanout.actor_calls[0][0] == "agent"
+        assert fanout.iter_var == "t"
+
 
 class TestFanOutTargetKey:
     """Test aggregation_key extraction from assignment target."""
