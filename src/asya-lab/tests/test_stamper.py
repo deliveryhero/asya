@@ -42,6 +42,31 @@ def template_dir(tmp_path):
         },
     }
     (templates_dir / "actor.yaml").write_text(yaml.dump(template, sort_keys=False))
+
+    configmap_template = {
+        "apiVersion": "v1",
+        "kind": "ConfigMap",
+        "metadata": {
+            "name": "${dynamic:flow}-routers",
+            "namespace": "${var.namespace}",
+            "labels": {
+                "asya.sh/flow": "${dynamic:flow}",
+                "asya.sh/managed-by": "asya-compiler",
+            },
+        },
+        "data": {
+            "routers.py": "${dynamic:router_code}",
+        },
+    }
+    (templates_dir / "configmap-routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
+
+    kustomization_template = {
+        "apiVersion": "kustomize.config.k8s.io/v1beta1",
+        "kind": "Kustomization",
+        "resources": "${dynamic:resources}",
+    }
+    (templates_dir / "kustomization.yaml").write_text(yaml.dump(kustomization_template, sort_keys=False))
+
     return templates_dir / "actor.yaml"
 
 
@@ -100,6 +125,7 @@ def router_code():
 
 def _make_stamper(flow_name, routers, router_code, config, template_path):
     loader = ConfigLoader()
+    templates_dir = template_path.parent
     return ManifestStamper(
         flow_name=flow_name,
         routers=routers,
@@ -107,6 +133,8 @@ def _make_stamper(flow_name, routers, router_code, config, template_path):
         config=config,
         config_loader=loader,
         template_path=template_path,
+        configmap_template_path=templates_dir / "configmap-routers.yaml",
+        kustomization_template_path=templates_dir / "kustomization.yaml",
     )
 
 

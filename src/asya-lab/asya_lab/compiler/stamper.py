@@ -53,6 +53,8 @@ class ManifestStamper:
         config: DictConfig,
         config_loader: ConfigLoader,
         template_path: Path,
+        configmap_template_path: Path | None = None,
+        kustomization_template_path: Path | None = None,
     ) -> None:
         self.flow_name = flow_name
         self.routers = routers
@@ -60,6 +62,8 @@ class ManifestStamper:
         self.config = config
         self.config_loader = config_loader
         self.template_path = template_path
+        self.configmap_template_path = configmap_template_path
+        self.kustomization_template_path = kustomization_template_path
 
     def stamp(self, output_dir: Path) -> list[str]:
         """Generate kustomize-structured manifests.
@@ -117,7 +121,7 @@ class ManifestStamper:
         self.config_loader.dynamic_values = {
             "actor": actor.name,
             "flow": self.flow_name,
-            "flow_stem": self.flow_name,
+            "flow_function": self.flow_name,
             "flow_role": actor.flow_role,
             "handler": actor.handler,
             "image": actor.image,
@@ -137,32 +141,76 @@ class ManifestStamper:
         return resolved
 
     def _stamp_configmap(self, path: Path) -> None:
-        """Generate ConfigMap containing router code."""
-        namespace = self._resolve_var("namespace", "default")
-        cm = {
-            "apiVersion": "v1",
-            "kind": "ConfigMap",
-            "metadata": {
-                "name": f"{self.flow_name}-routers",
-                "namespace": namespace,
-                "labels": {
-                    "asya.sh/flow": self.flow_name,
-                    "asya.sh/managed-by": "asya-compiler",
+        """Generate ConfigMap containing router code from template."""
+        if self.configmap_template_path and self.configmap_template_path.exists():
+            cm = self._resolve_configmap_template()
+        else:
+            namespace = self._resolve_var("namespace", "default")
+            cm = {
+                "apiVersion": "v1",
+                "kind": "ConfigMap",
+                "metadata": {
+                    "name": f"{self.flow_name}-routers",
+                    "namespace": namespace,
+                    "labels": {
+                        "asya.sh/flow": self.flow_name,
+                        "asya.sh/managed-by": "asya-compiler",
+                    },
                 },
-            },
-            "data": {
-                "routers.py": self.router_code,
-            },
-        }
+                "data": {},
+            }
+        cm.setdefault("data", {})
+        cm["data"]["routers.py"] = self.router_code
         path.write_text(yaml.dump(cm, default_flow_style=False, sort_keys=False))
 
-    def _write_kustomization(self, path: Path, resources: list[str]) -> None:
-        kust = {
-            "apiVersion": "kustomize.config.k8s.io/v1beta1",
-            "kind": "Kustomization",
-            "resources": sorted(resources),
+    def _resolve_configmap_template(self) -> dict:
+        """Load configmap template and resolve interpolations."""
+        self.config_loader.dynamic_values = {
+            "flow": self.flow_name,
+            "flow_function": self.flow_name,
+            "router_code": "",
         }
+        _set_active_loader(self.config_loader)
+
+        template = OmegaConf.load(self.configmap_template_path)
+
+        wrapper = OmegaConf.create({})
+        if "var" in self.config:
+            wrapper["var"] = self.config["var"]
+        wrapper["_tmpl"] = template
+
+        resolved = OmegaConf.to_container(wrapper["_tmpl"], resolve=True)
+        return resolved
+
+    def _write_kustomization(self, path: Path, resources: list[str]) -> None:
+        if self.kustomization_template_path and self.kustomization_template_path.exists():
+            kust = self._resolve_kustomization_template(resources)
+        else:
+            kust = {
+                "apiVersion": "kustomize.config.k8s.io/v1beta1",
+                "kind": "Kustomization",
+            }
+        kust["resources"] = sorted(resources)
         path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+
+    def _resolve_kustomization_template(self, resources: list[str]) -> dict:
+        """Load kustomization template and resolve interpolations."""
+        self.config_loader.dynamic_values = {
+            "flow": self.flow_name,
+            "flow_function": self.flow_name,
+            "resources": "[]",
+        }
+        _set_active_loader(self.config_loader)
+
+        template = OmegaConf.load(self.kustomization_template_path)
+
+        wrapper = OmegaConf.create({})
+        if "var" in self.config:
+            wrapper["var"] = self.config["var"]
+        wrapper["_tmpl"] = template
+
+        resolved = OmegaConf.to_container(wrapper["_tmpl"], resolve=True)
+        return resolved
 
     # ── common/ layer (created once, never overwritten) ─────────────
 
@@ -172,12 +220,7 @@ class ManifestStamper:
             return []
 
         common_dir.mkdir(parents=True, exist_ok=True)
-        kust = {
-            "apiVersion": "kustomize.config.k8s.io/v1beta1",
-            "kind": "Kustomization",
-            "resources": ["../base"],
-        }
-        kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+        self._write_kustomization(kust_path, ["../base"])
         return ["common/kustomization.yaml"]
 
     # ── overlays/<context>/ layer (created once per context) ────────
@@ -195,12 +238,7 @@ class ManifestStamper:
                 continue
 
             ctx_dir.mkdir(parents=True, exist_ok=True)
-            kust = {
-                "apiVersion": "kustomize.config.k8s.io/v1beta1",
-                "kind": "Kustomization",
-                "resources": ["../../common"],
-            }
-            kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+            self._write_kustomization(kust_path, ["../../common"])
             generated.append(f"overlays/{ctx_name}/kustomization.yaml")
 
         return generated
@@ -242,15 +280,6 @@ class ManifestStamper:
                     )
 
         return router_actors + list(handler_actors.values())
-
-    def _collect_handler_names(self) -> set[str]:
-        """Collect all non-router actor names referenced in the flow."""
-        names: set[str] = set()
-        for router in self.routers:
-            for actor_name in self._get_referenced_actors(router):
-                if not self._is_router_name(actor_name):
-                    names.add(actor_name)
-        return names
 
     def _get_referenced_actors(self, router: Router) -> list[str]:
         """Get all actor names referenced by a router."""
@@ -298,7 +327,7 @@ class ManifestStamper:
         try:
             if "var" in self.config and key in self.config["var"]:
                 return str(self.config["var"][key])
-        except Exception:
+        except Exception:  # nosec B110
             pass
         return default
 
@@ -316,7 +345,7 @@ class ManifestStamper:
                 module = str(entry.get("module", ""))
                 if module and handler_name.startswith(module.replace(".", "_")):
                     return str(entry["image"])
-        except Exception:
+        except Exception:  # nosec B110
             pass
 
         return f"${{var.image_registry}}/{handler_name}:latest"
@@ -326,6 +355,6 @@ class ManifestStamper:
         try:
             if "contexts" in self.config:
                 return list(self.config["contexts"].keys())
-        except Exception:
+        except Exception:  # nosec B110
             pass
         return []

@@ -15,8 +15,8 @@ var:
   router_image: "python:3.13-slim"
 
 compiler:
-  routers: "${{var.project_root}}/compiled/${{dynamic:flow_stem}}"
-  manifests: ".asya/manifests/${{dynamic:flow_stem}}"
+  routers: "${{var.project_root}}/compiled/${{dynamic:flow_function}}"
+  manifests: ".asya/manifests/${{dynamic:flow_function}}"
 """
 
 _ACTOR_TEMPLATE = """\
@@ -38,6 +38,25 @@ spec:
     enabled: true
     minReplicas: 0
     maxReplicas: "${arg:max_replicas,5}"
+"""
+
+_CONFIGMAP_TEMPLATE = """\
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "${dynamic:flow}-routers"
+  namespace: "${var.namespace}"
+  labels:
+    asya.sh/flow: "${dynamic:flow}"
+    asya.sh/managed-by: asya-compiler
+data:
+  routers.py: "${dynamic:router_code}"
+"""
+
+_KUSTOMIZATION_TEMPLATE = """\
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources: "${dynamic:resources}"
 """
 
 _RULES_YAML = """\
@@ -86,6 +105,14 @@ def init_project(
     actor_template = templates_dir / "actor.yaml"
     if not actor_template.exists():
         actor_template.write_text(_ACTOR_TEMPLATE)
+
+    configmap_template = templates_dir / "configmap-routers.yaml"
+    if not configmap_template.exists():
+        configmap_template.write_text(_CONFIGMAP_TEMPLATE)
+
+    kustomization_template = templates_dir / "kustomization.yaml"
+    if not kustomization_template.exists():
+        kustomization_template.write_text(_KUSTOMIZATION_TEMPLATE)
 
     # compiler/rules.yaml
     rules_file = asya_dir / "compiler" / "rules.yaml"

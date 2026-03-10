@@ -54,6 +54,10 @@ def _stamp_manifests(
     router_code_path = Path(output_dir) / "routers.py"
     router_code = router_code_path.read_text()
 
+    templates_dir = template_path.parent
+    configmap_template = templates_dir / "configmap-routers.yaml"
+    kustomization_template = templates_dir / "kustomization.yaml"
+
     stamper = ManifestStamper(
         flow_name=flow_name,
         routers=compiler.routers,
@@ -61,6 +65,8 @@ def _stamp_manifests(
         config=config,
         config_loader=config_loader,
         template_path=template_path,
+        configmap_template_path=configmap_template if configmap_template.exists() else None,
+        kustomization_template_path=kustomization_template if kustomization_template.exists() else None,
     )
 
     generated = stamper.stamp(resolved_dir)
@@ -75,7 +81,7 @@ def flow():
     """Flow DSL compiler for Asya."""
 
 
-@flow.command()
+@flow.command("compile")
 @click.argument("flow_file")
 @click.option("--output-dir", "-o", required=True, help="Output directory for compiled files")
 @click.option(
@@ -95,7 +101,9 @@ def flow():
 @click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + PNG)")
 @click.option("--plot-width", type=int, default=50, help="Max width for plot node labels (default: 50)")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files in output directory")
-def compile(flow_file, output_dir, manifests_dir, no_manifests, max_iterations, verbose, plot, plot_width, overwrite):
+def compile_cmd(
+    flow_file, output_dir, manifests_dir, no_manifests, max_iterations, verbose, plot, plot_width, overwrite
+):
     """Compile flow to routers and kustomize manifests."""
     try:
         compiler = FlowCompiler(verbose=verbose, max_iterations=max_iterations)
