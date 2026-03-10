@@ -288,8 +288,10 @@ the deployed state column.
 
 ### 5.8 Protocol Handling
 
-`asya k call` and `asya expose` accept a `--protocol=mcp|a2a` flag.
-Default is configurable. DS should not need to care about MCP vs A2A.
+`asya k call` accepts a `--protocol=mcp|a2a` flag (default configurable).
+`asya expose` uses `--mcp` and `--a2a` flags (both can be combined; default
+is MCP if neither specified). Each protocol has its own options — see
+section 8.1.2 for the full flag table.
 
 ### 5.9 Apply Semantics
 
@@ -1044,8 +1046,10 @@ flows deploying independently never overwrite each other's keys.
 | `--input-schema` | MCP | JSON Schema inline |
 | `--input-schema-file` | MCP | JSON Schema from file |
 | `--a2a` | A2A | Enable A2A skill exposure |
-| `--tags` | A2A | Comma-separated tags |
+| `--tags` | A2A | Comma-separated skill tags |
 | `--examples` | A2A | Example prompts (repeatable) |
+| `--input-modes` | A2A | Comma-separated input MIME types (default: application/json) |
+| `--output-modes` | A2A | Comma-separated output MIME types (default: application/json) |
 
 **Entrypoint auto-detection**: reads compiled manifests in `base/`, finds the
 actor with label `asya.sh/flow-role: entrypoint`. No K8s API call needed.
