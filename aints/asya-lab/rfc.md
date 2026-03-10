@@ -1346,11 +1346,43 @@ config, and render rich interactive output.
 %asya k stream <task-id>
 ```
 
-### 15.3 Interactive Visualization
+### 15.3 Visualization
 
-Flow compilation renders an interactive graph inline. Nodes are actors/routers,
-edges are message routes. Clicking a node reveals configuration, live logs,
-and queue depth.
+**Two tiers**: static files for sharing, interactive widgets for live work.
+
+**Static output** (`--plot`):
+```python
+%asya compile order_processing --plot                # DOT + PNG (default)
+%asya compile order_processing --plot --format svg   # DOT + SVG
+```
+Saves to `.asya/flows/plots/<flow>/` (configurable via `config.plots.dir`).
+Same behavior in CLI and Jupyter — deterministic files, no JS dependency.
+Formats: `png` (default), `svg`, `dot`.
+
+**Interactive widget** (default in Jupyter):
+```python
+%asya compile order_processing   # → anywidget inline (no --plot needed)
+%asya k status order-processing  # → live status widget
+```
+In Jupyter, `%asya compile` renders an interactive graph inline via anywidget.
+Nodes are actors/routers, edges are message routes. Clicking a node reveals
+configuration, live logs, and queue depth. The widget uses `@asya/ui` React
+components — the same components rendered in VSCode, standalone web, and Jupyter.
+
+### 15.4 `@asya/ui` React Component Reuse
+
+`@asya/ui` is a host-agnostic React component library. Components receive data
+via props and emit events via callbacks. Each surface provides the data bridge:
+
+| Surface | Host mechanism | Data bridge |
+|---|---|---|
+| Jupyter | anywidget | Python model ↔ widget state ↔ React props |
+| VSCode extension | webview panel | Extension host ↔ `postMessage` ↔ React props |
+| `asya serve` | standalone web | HTTP/WebSocket ↔ React state ↔ React props |
+
+The components don't know where they're running. anywidget wraps them as
+ipywidgets for Jupyter; VSCode renders them in webview iframes; the standalone
+web app mounts them directly.
 
 ---
 
@@ -1459,8 +1491,12 @@ Detailed designs that inform this RFC:
 1. **Click vs argparse**: Current CLI uses argparse. Should the new CLI use
    Click?
 
-2. **Jupyter widget framework**: ipywidgets vs JupyterLab extensions vs static
-   SVG.
+2. ~~**Jupyter widget framework**~~: **Resolved**. Two tiers: static files
+   (DOT + PNG/SVG via `--plot --format`) for sharing, anywidget + `@asya/ui`
+   React components for interactive Jupyter widgets. No JupyterLab extension
+   needed — anywidget works in JupyterLab, classic Notebook v7, VS Code
+   notebooks, and Colab. Same React components reused in VSCode webview panels
+   and `asya serve`. See §15.3–15.4.
 
 3. ~~**Docker Compose generation**~~: **Resolved**. Docker Compose now uses
    sidecar + socket transport (same architecture as K8s, no orchestrator).
