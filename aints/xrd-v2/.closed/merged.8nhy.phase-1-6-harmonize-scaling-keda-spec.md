@@ -10,6 +10,7 @@ dependencies:
 ---
 
 
+
 ## Goal
 
 Fully align `AsyncActor.spec.scaling` field names and structure with the KEDA
