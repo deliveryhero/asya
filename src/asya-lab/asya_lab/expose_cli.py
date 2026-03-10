@@ -67,20 +67,46 @@ def _build_flow_config(
     entrypoint: str,
     description: str,
     timeout: int | None,
-    protocol: str,
+    *,
+    mcp: bool,
+    a2a: bool,
     input_schema: dict | None,
+    tags: str | None,
+    examples: tuple[str, ...],
+    input_modes: str | None,
+    output_modes: str | None,
 ) -> dict:
-    """Build the flow configuration data for the ConfigMap."""
+    """Build the flow configuration data for the ConfigMap.
+
+    Per ADR configmap-flow-registry: mcp: present = MCP tool,
+    a2a: present = A2A skill, both = both.
+    """
     flow_data: dict = {
         "name": flow_name,
         "entrypoint": entrypoint,
         "description": description,
-        "protocol": protocol,
     }
     if timeout is not None:
         flow_data["timeout"] = timeout
-    if input_schema is not None:
-        flow_data["input_schema"] = input_schema
+
+    if mcp:
+        mcp_section: dict = {}
+        if input_schema is not None:
+            mcp_section["inputSchema"] = input_schema
+        flow_data["mcp"] = mcp_section
+
+    if a2a:
+        a2a_section: dict = {}
+        if tags:
+            a2a_section["tags"] = [t.strip() for t in tags.split(",")]
+        if examples:
+            a2a_section["examples"] = list(examples)
+        if input_modes:
+            a2a_section["input_modes"] = [m.strip() for m in input_modes.split(",")]
+        if output_modes:
+            a2a_section["output_modes"] = [m.strip() for m in output_modes.split(",")]
+        flow_data["a2a"] = a2a_section
+
     return flow_data
 
 
@@ -172,26 +198,67 @@ CONFIGMAP_FILENAME = "configmap-flows.yaml"
 @click.option("--description", "-d", required=True, help="Flow description")
 @click.option("--timeout", "-t", type=int, default=None, help="End-to-end timeout in seconds")
 @click.option(
-    "--protocol",
-    "-p",
-    type=click.Choice(["mcp", "a2a"]),
-    default="mcp",
-    help="Protocol to expose (default: mcp)",
+    "--mcp", "enable_mcp", is_flag=True, default=False, help="Expose as MCP tool (default if neither --mcp nor --a2a)"
 )
-@click.option("--input-schema", "input_schema_inline", default=None, help="JSON Schema inline")
-@click.option("--input-schema-file", "input_schema_file", default=None, help="JSON Schema from file")
-def expose(target, description, timeout, protocol, input_schema_inline, input_schema_file):
+@click.option("--input-schema", "input_schema_inline", default=None, help="MCP: JSON Schema inline")
+@click.option("--input-schema-file", "input_schema_file", default=None, help="MCP: JSON Schema from file")
+@click.option("--a2a", "enable_a2a", is_flag=True, default=False, help="Expose as A2A skill")
+@click.option("--tags", default=None, help="A2A: comma-separated skill tags")
+@click.option("--examples", multiple=True, help="A2A: example prompts (repeatable)")
+@click.option("--input-modes", default=None, help="A2A: comma-separated input MIME types")
+@click.option("--output-modes", default=None, help="A2A: comma-separated output MIME types")
+def expose(
+    target,
+    description,
+    timeout,
+    enable_mcp,
+    input_schema_inline,
+    input_schema_file,
+    enable_a2a,
+    tags,
+    examples,
+    input_modes,
+    output_modes,
+):
     """Expose a compiled flow to the gateway via ConfigMap.
 
     TARGET is a flow name in kebab-case or a .py file path.
+
+    \b
+    MCP tool (default):
+      asya expose my-flow -d "Process orders" --input-schema-file schema.json
+
+    \b
+    A2A skill:
+      asya expose my-flow -d "Research topics" --a2a --tags research,general
+
+    \b
+    Both protocols:
+      asya expose my-flow -d "Analyze docs" --mcp --a2a --tags analysis
     """
+    # Default to MCP if neither flag specified
+    if not enable_mcp and not enable_a2a:
+        enable_mcp = True
+
     flow_name = _resolve_flow_name(target)
     base_dir = _find_base_dir(flow_name)
     entrypoint = _find_entrypoint(base_dir)
     input_schema = _resolve_input_schema(input_schema_inline, input_schema_file)
     namespace = _resolve_namespace()
 
-    flow_data = _build_flow_config(flow_name, entrypoint, description, timeout, protocol, input_schema)
+    flow_data = _build_flow_config(
+        flow_name,
+        entrypoint,
+        description,
+        timeout,
+        mcp=enable_mcp,
+        a2a=enable_a2a,
+        input_schema=input_schema,
+        tags=tags,
+        examples=examples,
+        input_modes=input_modes,
+        output_modes=output_modes,
+    )
     configmap = _build_configmap(flow_name, namespace, flow_data)
 
     cm_path = base_dir / CONFIGMAP_FILENAME
@@ -200,7 +267,13 @@ def expose(target, description, timeout, protocol, input_schema_inline, input_sc
 
     _update_kustomization_add(base_dir, CONFIGMAP_FILENAME)
     click.echo(f"[+] Updated kustomization.yaml with {CONFIGMAP_FILENAME}")
-    click.echo(f"[+] Flow '{flow_name}' exposed via {protocol} (entrypoint: {entrypoint})")
+
+    protocols = []
+    if enable_mcp:
+        protocols.append("mcp")
+    if enable_a2a:
+        protocols.append("a2a")
+    click.echo(f"[+] Flow '{flow_name}' exposed via {'+'.join(protocols)} (entrypoint: {entrypoint})")
 
 
 @click.command("unexpose")

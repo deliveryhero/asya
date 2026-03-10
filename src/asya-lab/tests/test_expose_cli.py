@@ -93,14 +93,15 @@ def test_expose_creates_configmap(tmp_path: Path):
     assert flow_data["name"] == "my-flow"
     assert flow_data["entrypoint"] == "start-my-flow"
     assert flow_data["description"] == "Test flow"
-    assert flow_data["protocol"] == "mcp"
+    assert "mcp" in flow_data
+    assert "a2a" not in flow_data
 
     kust = yaml.safe_load((base_dir / "kustomization.yaml").read_text())
     assert CONFIGMAP_FILENAME in kust["resources"]
 
 
-def test_expose_with_options(tmp_path: Path):
-    """Run expose with timeout, protocol, and input-schema options."""
+def test_expose_mcp_with_schema(tmp_path: Path):
+    """Run expose with MCP input schema."""
     base_dir = _setup_base_dir(tmp_path)
 
     runner = CliRunner()
@@ -111,13 +112,12 @@ def test_expose_with_options(tmp_path: Path):
             [
                 "my-flow",
                 "--description",
-                "A2A flow",
+                "MCP flow",
                 "--timeout",
                 "30",
-                "--protocol",
-                "a2a",
+                "--mcp",
                 "--input-schema",
-                '{"type": "object"}',
+                '{"type": "object", "properties": {"url": {"type": "string"}}}',
             ],
         )
 
@@ -126,8 +126,79 @@ def test_expose_with_options(tmp_path: Path):
     cm = yaml.safe_load((base_dir / CONFIGMAP_FILENAME).read_text())
     flow_data = yaml.safe_load(cm["data"]["my-flow.yaml"])
     assert flow_data["timeout"] == 30
-    assert flow_data["protocol"] == "a2a"
-    assert flow_data["input_schema"] == {"type": "object"}
+    assert flow_data["mcp"]["inputSchema"] == {"type": "object", "properties": {"url": {"type": "string"}}}
+    assert "a2a" not in flow_data
+
+
+def test_expose_a2a_with_options(tmp_path: Path):
+    """Run expose with A2A skill options."""
+    base_dir = _setup_base_dir(tmp_path)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        os.chdir(tmp_path)
+        result = runner.invoke(
+            expose,
+            [
+                "my-flow",
+                "--description",
+                "Research assistant",
+                "--a2a",
+                "--tags",
+                "research,general",
+                "--examples",
+                "What are trends in renewable energy?",
+                "--examples",
+                "Summarize this paper",
+                "--input-modes",
+                "text/plain,application/json",
+                "--output-modes",
+                "text/plain",
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+
+    cm = yaml.safe_load((base_dir / CONFIGMAP_FILENAME).read_text())
+    flow_data = yaml.safe_load(cm["data"]["my-flow.yaml"])
+    assert "mcp" not in flow_data
+    assert flow_data["a2a"]["tags"] == ["research", "general"]
+    assert flow_data["a2a"]["examples"] == ["What are trends in renewable energy?", "Summarize this paper"]
+    assert flow_data["a2a"]["input_modes"] == ["text/plain", "application/json"]
+    assert flow_data["a2a"]["output_modes"] == ["text/plain"]
+
+
+def test_expose_both_protocols(tmp_path: Path):
+    """Run expose with both MCP and A2A enabled."""
+    base_dir = _setup_base_dir(tmp_path)
+
+    runner = CliRunner()
+    with runner.isolated_filesystem(temp_dir=tmp_path):
+        os.chdir(tmp_path)
+        result = runner.invoke(
+            expose,
+            [
+                "my-flow",
+                "--description",
+                "Dual protocol",
+                "--mcp",
+                "--input-schema",
+                '{"type": "object"}',
+                "--a2a",
+                "--tags",
+                "analysis,nlp",
+            ],
+        )
+
+    assert result.exit_code == 0, result.output
+    assert "mcp+a2a" in result.output
+
+    cm = yaml.safe_load((base_dir / CONFIGMAP_FILENAME).read_text())
+    flow_data = yaml.safe_load(cm["data"]["my-flow.yaml"])
+    assert "mcp" in flow_data
+    assert flow_data["mcp"]["inputSchema"] == {"type": "object"}
+    assert "a2a" in flow_data
+    assert flow_data["a2a"]["tags"] == ["analysis", "nlp"]
 
 
 def test_unexpose_removes_configmap(tmp_path: Path):
