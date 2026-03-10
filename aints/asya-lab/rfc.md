@@ -761,7 +761,30 @@ sources merge via list concatenation (`ListMergeMode.EXTEND`).
   treat-as: inline
 ```
 
-### 7.4 Resolver Syntax
+### 7.4 Naming Convention: Function Names vs K8s Names
+
+Two naming domains exist throughout the system:
+
+| Domain | Convention | Examples | Used in |
+|--------|-----------|----------|---------|
+| **Python function** | underscores | `my_flow`, `handler_a`, `start_my_flow` | Source code, `spec.handler`, router function names, `${dynamic:flow_function}` |
+| **K8s / Asya** | hyphens | `my-flow`, `handler-a`, `start-my-flow` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `${dynamic:flow}`, `${dynamic:actor}` |
+
+**Conversion rule**: replace `_` with `-`. The compiler (parser, grouper,
+codegen) works exclusively with Python function names. The stamper converts
+to K8s names for all manifest output. Handler references (`spec.handler`)
+keep the Python form since they reference Python functions (e.g.
+`routers.start_my_flow`).
+
+**Variable naming in code**:
+- `flow_function` / `actor_function` — the Python function name (underscores)
+- `flow_name` / `actor.name` — the K8s name (hyphens)
+
+**In templates**: `${dynamic:flow}` resolves to the K8s name (`my-flow`).
+`${dynamic:flow_function}` resolves to the Python name (`my_flow`) — used
+in config paths like `compiler.manifests`.
+
+### 7.5 Resolver Syntax
 
 Two families, distinguished by separator:
 
@@ -777,7 +800,7 @@ Two families, distinguished by separator:
 **Rule of thumb**: dot = value is in a `.yaml` file. Colon = value is injected
 from outside. Missing values are a hard error (no silent fallback).
 
-### 7.5 `${dynamic:*}` Resolver Keys
+### 7.6 `${dynamic:*}` Resolver Keys
 
 | Key | Source | Example |
 |-----|--------|---------|
@@ -804,7 +827,7 @@ env entries. The compiler constructs this list from:
 - Default values extracted from `os.getenv("KEY", "default")`
 - Secret refs from `secrets:` section in config.yaml
 
-### 7.6 Key Design Decisions
+### 7.7 Key Design Decisions
 
 - **OmegaConf is a real dependency**: Not "inspired by" — the library is used
   directly. OmegaConf handles interpolation (relative refs, lazy resolution),

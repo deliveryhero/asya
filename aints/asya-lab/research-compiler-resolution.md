@@ -789,7 +789,21 @@ Error: unknown key 'iamges' at top level
 Semantic validation runs after OmegaConf produces the effective config.
 Both levels produce errors with source file location and actionable hints.
 
-### 3.8 Compile and Output Configuration
+### 3.8 Naming Convention: Function Names vs K8s Names
+
+Two naming domains exist:
+
+| Domain | Convention | Examples | Used in |
+|--------|-----------|----------|---------|
+| **Python function** | underscores | `my_flow`, `handler_a` | Source code, `spec.handler`, router functions, `${dynamic:flow_function}` |
+| **K8s / Asya** | hyphens | `my-flow`, `handler-a` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `${dynamic:flow}` |
+
+**Conversion**: `_` → `-`. The compiler works with function names. The stamper
+converts to K8s names for all output. `spec.handler` keeps the Python form.
+
+**In code**: `flow_function` = Python name, `flow_name` = K8s name.
+
+### 3.9 Compile and Output Configuration
 
 Compilation produces BOTH router code and deployment files in a single stage.
 There is no separate template stage.
