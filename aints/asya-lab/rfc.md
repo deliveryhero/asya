@@ -784,6 +784,9 @@ env entries. The compiler constructs this list from:
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
   All `.asya/config.yaml` files and content directories merge root-first
   (dicts deep-merge, lists concatenate via `ListMergeMode.EXTEND`).
+  Duplicate list entries (same key field, e.g. `module:`) are an error by
+  default. A child entry can explicitly replace a parent entry by setting
+  `override: true` — without the marker, duplicates are caught at compile time.
 - **Three resolver families**: `${var.*}` for config constants (native
   OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
   (custom resolvers). Dot = in config, colon = injected.

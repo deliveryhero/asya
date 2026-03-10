@@ -165,8 +165,8 @@ def load_asya_dir(asya_dir: Path) -> DictConfig:
 no merge-key configuration. The merge layer stays trivially simple.
 
 **Duplicate detection** (Asya semantic layer, after merge): Each config list
-has a key field used for dedup. Duplicate key across configs = error. No
-last-writer-wins, no silent override.
+has a key field used for dedup. Duplicate key across configs = error by
+default. No last-writer-wins, no silent override.
 
 | List | Key field | Fallback key |
 |------|-----------|--------------|
@@ -177,11 +177,25 @@ last-writer-wins, no silent override.
 Error: duplicate build entry matching module 'langchain'
   defined in: /.asya/config.yaml:8
   and also in: src/team-a/.asya/config.yaml:3
-  hint: remove of update one definition
+  hint: remove or update one definition, or add 'override: true' to the child entry
 ```
 
-If a team needs to change an ancestor's entry, modify the source config
-directly — not via override from a child config.
+**Explicit override**: A child entry can replace a parent entry with the same
+key by setting `override: true`. Without the marker, duplicate = error.
+
+```yaml
+# src/team-a/.asya/config.yaml
+build:
+  - module: langchain
+    override: true              # explicitly replaces root's langchain entry
+    image: ghcr.io/team-a/langchain:v3
+    command: "docker build -t ${.image} ."
+```
+
+This keeps the default behavior safe (accidental duplicates are caught) while
+enabling monorepo teams to intentionally diverge from root configuration.
+The `override: true` marker applies to all list types (`build:`,
+`compile.rules:`) — any entry with a key field supports it.
 
 **Debuggability of overrides** (dicts DO deep-merge, child wins):
 verbose output traces the merge chain for every overridden value:

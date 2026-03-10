@@ -358,7 +358,7 @@ directories are read-only from the active project's perspective.
 
 ## 5. Provider Pattern — Data Bridge
 
-### 4.1 Context Interface
+### 5.1 Context Interface
 
 ```tsx
 interface AsyaContextValue {
@@ -417,7 +417,7 @@ interface TaskProgress {
 }
 ```
 
-### 4.2 Data Source: `asya serve` and Direct Python
+### 5.2 Data Source: `asya serve` and Direct Python
 
 React components need two kinds of data:
 
@@ -841,7 +841,7 @@ modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
 
 ---
 
-## 11. Resolved Questions
+## 12. Resolved Questions
 
 1. ~~**Graph JSON emission**~~: **Resolved**. Always emit graph JSON alongside
    DOT (~5KB, negligible). Additionally, always render PNG to the configured
@@ -851,7 +851,7 @@ modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
    always available as a fallback and for CI/docs/README.
 
 2. ~~**Live status polling interval**~~: **Resolved**. No polling — WebSocket
-   backed by K8s watch API pushes actor status changes instantly. See §4.2.
+   backed by K8s watch API pushes actor status changes instantly. See §5.2.
 
 3. ~~**Storybook hosting**~~: **Resolved**. Local-only (`npm run storybook`).
    Storybook is a component catalog for developing and reviewing UI components
@@ -866,7 +866,7 @@ modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
    expect it. Use CSS custom properties for all design tokens — light/dark
    switch is just swapping token values.
 
-## 12. Resolved Questions (continued)
+## 13. Resolved Questions (continued)
 
 6. ~~**`asya serve` port management**~~: **Resolved**. Dynamic port selection
    from an ephemeral range. `asya serve` picks a free port, prints it to
