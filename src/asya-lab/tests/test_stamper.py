@@ -202,7 +202,7 @@ class TestBaseLayer:
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap_routers.yaml").read_text())
+        cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap-routers.yaml").read_text())
         assert cm["kind"] == "ConfigMap"
         assert cm["metadata"]["name"] == "my-flow-routers"
         assert "routers.py" in cm["data"]
@@ -214,7 +214,7 @@ class TestBaseLayer:
 
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
         resources = kust["resources"]
-        assert "configmap_routers.yaml" in resources
+        assert "configmap-routers.yaml" in resources
         assert "start-my-flow.yaml" in resources
         assert "handler-a.yaml" in resources
 
@@ -305,7 +305,7 @@ class TestReturnedFiles:
         generated = stamper.stamp(tmp_path / "manifests")
 
         assert any("base/kustomization.yaml" in g for g in generated)
-        assert any("base/configmap_routers.yaml" in g for g in generated)
+        assert any("base/configmap-routers.yaml" in g for g in generated)
         assert any("common/kustomization.yaml" in g for g in generated)
 
     def test_second_stamp_skips_existing_common(self, tmp_path, sequential_routers, router_code, config, template_dir):

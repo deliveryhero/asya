@@ -119,7 +119,7 @@ class ManifestStamper:
             resources.append(filename)
             generated.append(f"base/{filename}")
 
-        cm_filename = "configmap_routers.yaml"
+        cm_filename = "configmap-routers.yaml"
         self._stamp_configmap(base_dir / cm_filename)
         resources.append(cm_filename)
         generated.append(f"base/{cm_filename}")
