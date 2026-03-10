@@ -65,8 +65,9 @@ func NewSocketTransport(cfg SocketConfig) (*SocketTransport, error) {
 }
 
 // sockPath returns the filesystem path for the socket of a given queue.
+// filepath.Base strips any directory components so queueName cannot escape meshDir.
 func (t *SocketTransport) sockPath(queueName string) string {
-	return filepath.Join(t.meshDir, queueName+".sock")
+	return filepath.Join(t.meshDir, filepath.Base(queueName)+".sock")
 }
 
 // startListener starts listening on <meshDir>/<queueName>.sock.
@@ -188,10 +189,12 @@ func (t *SocketTransport) Send(ctx context.Context, queueName string, body []byt
 
 		slog.Debug("Socket transport: waiting for actor socket",
 			"path", path, "attempt", attempt, "error", err)
+		timer := time.NewTimer(retryInterval)
 		select {
 		case <-ctx.Done():
+			timer.Stop()
 			return ctx.Err()
-		case <-time.After(retryInterval): // poll until target actor socket is ready
+		case <-timer.C: // poll until target actor socket is ready
 		}
 	}
 	defer func() { _ = conn.Close() }()
@@ -250,6 +253,9 @@ func (t *SocketTransport) Close() error {
 	return err
 }
 
+// maxFrameSize caps the allocation in readFramed to prevent OOM from malformed senders.
+const maxFrameSize = 100 * 1024 * 1024 // 100 MB
+
 // readFramed reads a 4-byte big-endian length-prefixed message from r.
 func readFramed(r io.Reader) ([]byte, error) {
 	var length uint32
@@ -258,6 +264,9 @@ func readFramed(r io.Reader) ([]byte, error) {
 	}
 	if length == 0 {
 		return []byte{}, nil
+	}
+	if length > maxFrameSize {
+		return nil, fmt.Errorf("message too large: %d bytes (max %d)", length, maxFrameSize)
 	}
 	body := make([]byte, length)
 	if _, err := io.ReadFull(r, body); err != nil {
