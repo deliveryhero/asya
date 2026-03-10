@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 from asya_lab.k_cli import (
+    KubeRunner,
     _find_flow_for_actor,
     apply,
     context_group,
@@ -16,6 +17,14 @@ from asya_lab.k_cli import (
     logs,
 )
 from click.testing import CliRunner
+
+
+def _mock_runner(*, namespace=None, ctx_name=None):
+    """Create a mock KubeRunner with sensible defaults."""
+    runner = MagicMock(spec=KubeRunner)
+    runner.namespace = namespace
+    runner._ctx_name = ctx_name
+    return runner
 
 
 # ---------------------------------------------------------------------------
@@ -77,10 +86,7 @@ def test_apply_success(mock_run, tmp_path):
     ]
 
     runner = CliRunner()
-    with (
-        patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir),
-        patch("asya_lab.k_cli._resolve_context", return_value=None),
-    ):
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(apply, ["my-flow"])
 
     assert result.exit_code == 0
@@ -92,7 +98,14 @@ def test_apply_success(mock_run, tmp_path):
 def test_apply_with_context(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir(exist_ok=True)
-    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
+    config = {
+        "compiler": {"manifests": ".asya/manifests"},
+        "contexts": {
+            "stg": {"kubecontext": "my-stg", "namespace": "team-one"},
+        },
+        "default_context": "stg",
+    }
+    (asya_dir / "config.yaml").write_text(yaml.dump(config))
     overlay_dir = asya_dir / "manifests" / "my-flow" / "overlays" / "stg"
     overlay_dir.mkdir(parents=True)
     (overlay_dir / "kustomization.yaml").write_text("resources: [../../base]")
@@ -102,13 +115,8 @@ def test_apply_with_context(mock_run, tmp_path):
         MagicMock(returncode=0, stdout="applied\n", stderr=""),
     ]
 
-    context = {"kubecontext": "my-stg", "namespace": "team-one"}
-
     runner = CliRunner()
-    with (
-        patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir),
-        patch("asya_lab.k_cli._resolve_context", return_value=context),
-    ):
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(apply, ["my-flow", "--context", "stg"])
 
     assert result.exit_code == 0
@@ -122,18 +130,17 @@ def test_apply_with_context(mock_run, tmp_path):
 def test_apply_readonly_context(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir(exist_ok=True)
-    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
-    base_dir = asya_dir / "manifests" / "my-flow" / "base"
-    base_dir.mkdir(parents=True)
-    (base_dir / "kustomization.yaml").write_text("resources: []")
-
-    context = {"kubecontext": "my-prod", "namespace": "prod", "readonly": True}
+    config = {
+        "compiler": {"manifests": ".asya/manifests"},
+        "contexts": {
+            "prod": {"kubecontext": "my-prod", "namespace": "prod", "readonly": True},
+        },
+        "default_context": "prod",
+    }
+    (asya_dir / "config.yaml").write_text(yaml.dump(config))
 
     runner = CliRunner()
-    with (
-        patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir),
-        patch("asya_lab.k_cli._resolve_context", return_value=context),
-    ):
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(apply, ["my-flow"])
 
     assert result.exit_code != 0
@@ -152,10 +159,7 @@ def test_apply_kustomize_failure(mock_run, tmp_path):
     mock_run.return_value = MagicMock(returncode=1, stdout="", stderr="kustomize error")
 
     runner = CliRunner()
-    with (
-        patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir),
-        patch("asya_lab.k_cli._resolve_context", return_value=None),
-    ):
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(apply, ["my-flow"])
 
     assert result.exit_code != 0
@@ -173,30 +177,34 @@ def test_delete_help():
     assert "target" in result.output.lower()
 
 
-@patch("asya_lab.k_cli._run_cmd")
-def test_delete_success(mock_run):
-    mock_run.return_value = MagicMock(returncode=0)
+@patch("asya_lab.k_cli.KubeRunner")
+def test_delete_success(mock_kube_runner):
+    mock_runner = _mock_runner()
+    mock_runner.kubectl.return_value = MagicMock(returncode=0)
+    mock_kube_runner.return_value = mock_runner
 
     runner = CliRunner()
-    with patch("asya_lab.k_cli._resolve_context", return_value=None):
-        result = runner.invoke(delete, ["my-flow"])
+    result = runner.invoke(delete, ["my-flow"])
 
     assert result.exit_code == 0
-    cmd = mock_run.call_args[0][0]
-    assert "kubectl" in cmd
-    assert "delete" in cmd
-    assert "asya.sh/flow=my-flow" in cmd
+    mock_runner.check_readonly.assert_called_once_with("delete")
+    mock_runner.kubectl.assert_called_once()
+    args = mock_runner.kubectl.call_args[0]
+    assert "delete" in args
+    assert "asyncactor" in args
+    assert "asya.sh/flow=my-flow" in args
 
 
-def test_delete_readonly_context():
-    context = {"kubecontext": "prod", "namespace": "prod", "readonly": True}
+@patch("asya_lab.k_cli.KubeRunner")
+def test_delete_readonly_context(mock_kube_runner):
+    mock_runner = _mock_runner()
+    mock_runner.check_readonly.side_effect = SystemExit(1)
+    mock_kube_runner.return_value = mock_runner
 
     runner = CliRunner()
-    with patch("asya_lab.k_cli._resolve_context", return_value=context):
-        result = runner.invoke(delete, ["my-flow"])
+    result = runner.invoke(delete, ["my-flow"])
 
     assert result.exit_code != 0
-    assert "readonly" in result.output.lower()
 
 
 # ---------------------------------------------------------------------------
@@ -211,19 +219,20 @@ def test_k_status_help():
     assert "target" in result.output.lower()
 
 
-@patch("asya_lab.k_cli._run_cmd")
-def test_k_status_success(mock_run):
-    mock_run.return_value = MagicMock(returncode=0, stdout="NAME  STATUS\nactor-a  Running\n")
+@patch("asya_lab.k_cli.KubeRunner")
+def test_k_status_success(mock_kube_runner):
+    mock_runner = _mock_runner()
+    mock_runner.kubectl.return_value = MagicMock(returncode=0, stdout="NAME  STATUS\nactor-a  Running\n")
+    mock_kube_runner.return_value = mock_runner
 
     runner = CliRunner()
-    with patch("asya_lab.k_cli._resolve_context", return_value=None):
-        result = runner.invoke(k_status, ["my-flow"])
+    result = runner.invoke(k_status, ["my-flow"])
 
     assert result.exit_code == 0
-    cmd = mock_run.call_args[0][0]
-    assert "kubectl" in cmd
-    assert "get" in cmd
-    assert "asyncactor" in cmd
+    assert "actor-a" in result.output
+    args = mock_runner.kubectl.call_args[0]
+    assert "get" in args
+    assert "asyncactor" in args
 
 
 # ---------------------------------------------------------------------------
@@ -240,34 +249,36 @@ def test_logs_help():
     assert "--container" in result.output
 
 
-@patch("asya_lab.k_cli._run_cmd")
-def test_logs_success(mock_run):
-    mock_run.return_value = MagicMock(returncode=0)
+@patch("asya_lab.k_cli.KubeRunner")
+def test_logs_success(mock_kube_runner):
+    mock_runner = _mock_runner()
+    mock_runner.kubectl.return_value = MagicMock(returncode=0)
+    mock_kube_runner.return_value = mock_runner
 
     runner = CliRunner()
-    with patch("asya_lab.k_cli._resolve_context", return_value=None):
-        result = runner.invoke(logs, ["my-flow"])
+    result = runner.invoke(logs, ["my-flow"])
 
     assert result.exit_code == 0
-    cmd = mock_run.call_args[0][0]
-    assert "kubectl" in cmd
-    assert "logs" in cmd
-    assert "asya-runtime" in cmd  # default container
+    args = mock_runner.kubectl.call_args[0]
+    assert "logs" in args
+    assert "asya-runtime" in args  # default container
 
 
-@patch("asya_lab.k_cli._run_cmd")
-def test_logs_with_follow_and_tail(mock_run):
-    mock_run.return_value = MagicMock(returncode=0)
+@patch("asya_lab.k_cli.KubeRunner")
+def test_logs_with_follow_and_tail(mock_kube_runner):
+    mock_runner = _mock_runner()
+    mock_runner.kubectl.return_value = MagicMock(returncode=0)
+    mock_kube_runner.return_value = mock_runner
 
     runner = CliRunner()
-    with patch("asya_lab.k_cli._resolve_context", return_value=None):
-        result = runner.invoke(logs, ["my-flow", "--follow", "--tail", "100"])
+    result = runner.invoke(logs, ["my-flow", "--follow", "--tail", "100"])
 
     assert result.exit_code == 0
-    cmd = mock_run.call_args[0][0]
-    assert "-f" in cmd
-    assert "--tail" in cmd
-    assert "100" in cmd
+    args, kwargs = mock_runner.kubectl.call_args
+    all_args = list(args)
+    assert "-f" in all_args
+    assert "--tail" in all_args
+    assert "100" in all_args
 
 
 # ---------------------------------------------------------------------------
@@ -441,16 +452,72 @@ def test_apply_uses_correct_field_manager(mock_run, tmp_path):
     ]
 
     runner = CliRunner()
-    with (
-        patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir),
-        patch("asya_lab.k_cli._resolve_context", return_value=None),
-    ):
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(apply, ["order-processing"])
 
     assert result.exit_code == 0
     apply_call = mock_run.call_args_list[1]
     apply_cmd = apply_call[0][0]
     assert "--field-manager=asya-flow-order-processing" in apply_cmd
+
+
+# ---------------------------------------------------------------------------
+# KubeRunner
+# ---------------------------------------------------------------------------
+
+
+def test_kube_runner_no_asya_dir():
+    """KubeRunner gracefully handles missing .asya/ for context loading."""
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
+        runner = KubeRunner()
+    assert runner.namespace is None
+
+
+def test_kube_runner_with_context(tmp_path):
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    config = {
+        "contexts": {
+            "stg": {"kubecontext": "my-stg", "namespace": "team-one"},
+        },
+        "default_context": "stg",
+    }
+    (asya_dir / "config.yaml").write_text(yaml.dump(config))
+
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
+        runner = KubeRunner("stg")
+    assert runner.namespace == "team-one"
+
+
+def test_kube_runner_kubectl_appends_namespace(tmp_path):
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    config = {
+        "contexts": {
+            "stg": {"kubecontext": "my-stg", "namespace": "team-one"},
+        },
+    }
+    (asya_dir / "config.yaml").write_text(yaml.dump(config))
+
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
+        runner = KubeRunner("stg")
+
+    with patch.object(KubeRunner, "run_cmd", return_value=MagicMock(returncode=0)) as mock_run:
+        runner.kubectl("get", "pods")
+
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "get", "pods", "-n", "team-one"]
+
+
+def test_kube_runner_kubectl_no_namespace():
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
+        runner = KubeRunner()
+
+    with patch.object(KubeRunner, "run_cmd", return_value=MagicMock(returncode=0)) as mock_run:
+        runner.kubectl("get", "pods")
+
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "get", "pods"]
 
 
 # ---------------------------------------------------------------------------

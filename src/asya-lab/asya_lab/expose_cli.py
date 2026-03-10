@@ -140,7 +140,7 @@ def _resolve_namespace() -> str:
     try:
         project = AsyaProject.from_dir(asya_dir.parent)
         return str(project.cfg.templates.namespace)
-    except Exception:
+    except (FileNotFoundError, KeyError, AttributeError):
         return "default"
 
 

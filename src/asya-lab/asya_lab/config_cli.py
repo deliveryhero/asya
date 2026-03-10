@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 from omegaconf import OmegaConf
+from omegaconf.errors import OmegaConfBaseException
 
 
 @click.group()
@@ -43,7 +44,7 @@ def get(key, start_dir, args, output_format):
 
     try:
         value = OmegaConf.select(project.cfg, key)
-    except Exception as e:
+    except OmegaConfBaseException as e:
         click.echo(f"Error resolving '{key}': {e}", err=True)
         sys.exit(1)
 

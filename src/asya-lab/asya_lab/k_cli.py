@@ -23,89 +23,114 @@ from asya_lab.config.project import AsyaProject
 
 
 # ---------------------------------------------------------------------------
-# Helpers
+# KubeRunner — holds project context, exposes kubectl methods
 # ---------------------------------------------------------------------------
 
 
-def _find_manifests_dir(target: str) -> Path:
-    """Locate the manifest directory for a compiled flow/actor."""
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
+class KubeRunner:
+    """Project-aware kubectl command runner.
 
-    project = AsyaProject.from_dir(asya_dir.parent)
-    manifests_dir = project.resolve_path("compiler.manifests") / target
-    if not manifests_dir.is_dir():
-        click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
-        click.echo("[-] Run 'asya compile' first.", err=True)
-        sys.exit(1)
+    Encapsulates .asya/ project loading, context/namespace resolution,
+    manifest directory lookup, and kubectl execution.
+    """
 
-    return manifests_dir
+    def __init__(self, ctx: str | None = None) -> None:
+        self._asya_dir = find_asya_dir(Path.cwd())
+        self._project: AsyaProject | None = None
+        self._ctx_name = ctx
+        self._context_config = self._load_context(ctx)
+        self.namespace: str | None = self._context_config.get("namespace") if self._context_config else None
 
+    @property
+    def project(self) -> AsyaProject:
+        """Lazily load AsyaProject (fails fast if .asya/ missing)."""
+        if self._project is None:
+            if self._asya_dir is None:
+                click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
+                sys.exit(1)
+            self._project = AsyaProject.from_dir(self._asya_dir.parent)
+        return self._project
 
-def _resolve_overlay(manifests_dir: Path, ctx: str | None) -> Path:
-    """Resolve the kustomize overlay path for the given context."""
-    if ctx:
-        overlay = manifests_dir / OVERLAYS_DIR / ctx
-    elif (manifests_dir / COMMON_DIR).is_dir():
-        overlay = manifests_dir / COMMON_DIR
-    else:
-        overlay = manifests_dir / BASE_DIR
-
-    if not overlay.is_dir():
-        if ctx:
-            click.echo(f"[-] Overlay not found: {overlay}", err=True)
-            click.echo(f"[-] Create it with: mkdir -p {overlay}", err=True)
-        else:
-            click.echo(f"[-] Kustomize path not found: {overlay}", err=True)
-        sys.exit(1)
-
-    return overlay
-
-
-def _resolve_context(ctx: str | None) -> dict | None:
-    """Load context configuration from .asya/config.yaml."""
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        return None
-
-    try:
-        project = AsyaProject.from_dir(asya_dir.parent)
-    except Exception:
-        return None
-
-    contexts = project.cfg.get("contexts")
-    if not contexts:
-        return None
-
-    if ctx is None:
-        ctx = project.cfg.get("default_context")
-        if ctx is None:
+    def _load_context(self, ctx: str | None) -> dict | None:
+        """Load context configuration from .asya/config.yaml."""
+        if self._asya_dir is None:
             return None
 
-    if ctx not in contexts:
-        click.echo(f"[-] Context '{ctx}' not found in config", err=True)
-        available = list(contexts.keys())
-        click.echo(f"[-] Available contexts: {', '.join(available)}", err=True)
-        sys.exit(1)
+        try:
+            project = AsyaProject.from_dir(self._asya_dir.parent)
+            self._project = project
+        except (FileNotFoundError, KeyError):
+            return None
 
-    return dict(contexts[ctx])
+        contexts = project.cfg.get("contexts")
+        if not contexts:
+            return None
+
+        if ctx is None:
+            ctx = project.cfg.get("default_context")
+            if ctx is None:
+                return None
+
+        if ctx not in contexts:
+            click.echo(f"[-] Context '{ctx}' not found in config", err=True)
+            available = list(contexts.keys())
+            click.echo(f"[-] Available contexts: {', '.join(available)}", err=True)
+            sys.exit(1)
+
+        return dict(contexts[ctx])
+
+    def check_readonly(self, action: str) -> None:
+        """Fail if the context is marked readonly."""
+        if self._context_config and self._context_config.get("readonly"):
+            click.echo(f"[-] Context is readonly: {action} is not allowed", err=True)
+            click.echo("[-] Production writes should happen via GitOps (commit + PR)", err=True)
+            sys.exit(1)
+
+    def find_manifests(self, target: str) -> Path:
+        """Locate the manifest directory for a compiled flow/actor."""
+        manifests_dir = self.project.resolve_path("compiler.manifests") / target
+        if not manifests_dir.is_dir():
+            click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
+            click.echo("[-] Run 'asya compile' first.", err=True)
+            sys.exit(1)
+        return manifests_dir
+
+    def resolve_overlay(self, manifests_dir: Path) -> Path:
+        """Resolve the kustomize overlay path for the current context."""
+        if self._ctx_name:
+            overlay = manifests_dir / OVERLAYS_DIR / self._ctx_name
+        elif (manifests_dir / COMMON_DIR).is_dir():
+            overlay = manifests_dir / COMMON_DIR
+        else:
+            overlay = manifests_dir / BASE_DIR
+
+        if not overlay.is_dir():
+            if self._ctx_name:
+                click.echo(f"[-] Overlay not found: {overlay}", err=True)
+                click.echo(f"[-] Create it with: mkdir -p {overlay}", err=True)
+            else:
+                click.echo(f"[-] Kustomize path not found: {overlay}", err=True)
+            sys.exit(1)
+
+        return overlay
+
+    @staticmethod
+    def run_cmd(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+        """Run a shell command, printing it first with + prefix."""
+        click.echo(f"+ {' '.join(cmd)}")
+        return subprocess.run(cmd, check=False, **kwargs)  # nosec B603
+
+    def kubectl(self, *args: str, **kwargs) -> subprocess.CompletedProcess:
+        """Run kubectl with automatic namespace injection."""
+        cmd = ["kubectl", *args]
+        if self.namespace:
+            cmd.extend(["-n", self.namespace])
+        return self.run_cmd(cmd, **kwargs)
 
 
-def _check_readonly(context: dict | None, action: str) -> None:
-    """Fail if the context is marked readonly."""
-    if context and context.get("readonly"):
-        click.echo(f"[-] Context is readonly: {action} is not allowed", err=True)
-        click.echo("[-] Production writes should happen via GitOps (commit + PR)", err=True)
-        sys.exit(1)
-
-
-def _resolve_namespace(context: dict | None) -> str | None:
-    """Extract namespace from context config."""
-    if context:
-        return context.get("namespace")
-    return None
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
@@ -128,12 +153,6 @@ def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
     return None
 
 
-def _run_cmd(cmd: list[str], verbose: bool = False, **kwargs) -> subprocess.CompletedProcess:
-    """Run a shell command, printing it first with + prefix."""
-    click.echo(f"+ {' '.join(cmd)}")
-    return subprocess.run(cmd, check=False, **kwargs)  # nosec B603
-
-
 # ---------------------------------------------------------------------------
 # asya k apply
 # ---------------------------------------------------------------------------
@@ -151,14 +170,13 @@ def apply(target: str, ctx: str, verbose: bool) -> None:
     Uses kustomize build piped to kubectl apply --server-side with
     per-flow field manager for safe, idempotent deploys.
     """
-    context = _resolve_context(ctx)
-    _check_readonly(context, "apply")
+    runner = KubeRunner(ctx)
+    runner.check_readonly("apply")
 
-    manifests_dir = _find_manifests_dir(target)
-    overlay = _resolve_overlay(manifests_dir, ctx)
+    manifests_dir = runner.find_manifests(target)
+    overlay = runner.resolve_overlay(manifests_dir)
 
     field_manager = f"asya-flow-{target}"
-    namespace = _resolve_namespace(context)
 
     # kustomize build
     kustomize_cmd = ["kubectl", "kustomize", str(overlay)]
@@ -184,8 +202,8 @@ def apply(target: str, ctx: str, verbose: bool) -> None:
         "-f",
         "-",
     ]
-    if namespace:
-        apply_cmd.extend(["-n", namespace])
+    if runner.namespace:
+        apply_cmd.extend(["-n", runner.namespace])
 
     click.echo(f"+ {' '.join(apply_cmd)}")
 
@@ -217,22 +235,10 @@ def delete(target: str, ctx: str) -> None:
 
     TARGET is the flow name. Deletes all resources with label asya.sh/flow=<name>.
     """
-    context = _resolve_context(ctx)
-    _check_readonly(context, "delete")
+    runner = KubeRunner(ctx)
+    runner.check_readonly("delete")
 
-    namespace = _resolve_namespace(context)
-
-    cmd = [
-        "kubectl",
-        "delete",
-        "asyncactor",
-        "-l",
-        f"asya.sh/flow={target}",
-    ]
-    if namespace:
-        cmd.extend(["-n", namespace])
-
-    result = _run_cmd(cmd)
+    result = runner.kubectl("delete", "asyncactor", "-l", f"asya.sh/flow={target}")
     if result.returncode != 0:
         sys.exit(result.returncode)
 
@@ -250,22 +256,18 @@ def k_status(target: str, ctx: str) -> None:
 
     TARGET is the flow name. Shows replicas, phase, and pod status.
     """
-    context = _resolve_context(ctx)
-    namespace = _resolve_namespace(context)
+    runner = KubeRunner(ctx)
 
-    cmd = [
-        "kubectl",
+    result = runner.kubectl(
         "get",
         "asyncactor",
         "-l",
         f"asya.sh/flow={target}",
         "-o",
         "wide",
-    ]
-    if namespace:
-        cmd.extend(["-n", namespace])
-
-    result = _run_cmd(cmd, capture_output=True, text=True)
+        capture_output=True,
+        text=True,
+    )
     if result.stdout:
         click.echo(result.stdout, nl=False)
     if result.returncode != 0:
@@ -289,26 +291,23 @@ def logs(target: str, ctx: str, follow: bool, tail: int | None, container: str) 
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
     """
-    context = _resolve_context(ctx)
-    namespace = _resolve_namespace(context)
+    runner = KubeRunner(ctx)
 
-    cmd = [
-        "kubectl",
+    extra_args: list[str] = []
+    if follow:
+        extra_args.append("-f")
+    if tail is not None:
+        extra_args.extend(["--tail", str(tail)])
+
+    result = runner.kubectl(
         "logs",
         "-l",
         f"asya.sh/flow={target}",
         "-c",
         container,
         "--prefix",
-    ]
-    if namespace:
-        cmd.extend(["-n", namespace])
-    if follow:
-        cmd.append("-f")
-    if tail is not None:
-        cmd.extend(["--tail", str(tail)])
-
-    result = _run_cmd(cmd)
+        *extra_args,
+    )
     if result.returncode != 0:
         sys.exit(result.returncode)
 
@@ -347,14 +346,8 @@ def edit(actor_name: str) -> None:
     """
     import os
 
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
-
-    # Find which flow this actor belongs to
-    project = AsyaProject.from_dir(asya_dir.parent)
-    manifests_dir = project.resolve_path("compiler.manifests")
+    runner = KubeRunner()
+    manifests_dir = runner.project.resolve_path("compiler.manifests")
     if not manifests_dir.is_dir():
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)
@@ -418,7 +411,7 @@ def context_list() -> None:
 
     try:
         project = AsyaProject.from_dir(asya_dir.parent)
-    except Exception as e:
+    except (FileNotFoundError, KeyError) as e:
         click.echo(f"[-] Failed to load config: {e}", err=True)
         sys.exit(1)
 

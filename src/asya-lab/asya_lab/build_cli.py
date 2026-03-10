@@ -42,7 +42,7 @@ def _find_flow_images(target: str, asya_dir: Path) -> set[str]:
     try:
         project = AsyaProject.from_dir(asya_dir.parent)
         manifests_dir = project.resolve_path("compiler.manifests") / target / BASE_DIR
-    except Exception:
+    except (FileNotFoundError, KeyError, AttributeError):
         return set()
     if not manifests_dir.is_dir():
         return set()
