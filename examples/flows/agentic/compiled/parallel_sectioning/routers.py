@@ -15,51 +15,47 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_parallel_sectioning(payload: dict):
+async def start_parallel_sectioning(payload: dict):
     """Entrypoint for flow 'parallel_sectioning'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("fanout_parallel_sectioning_line_42"))
+    _next.append(resolve("fanout_parallel_sectioning_line_44"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_parallel_sectioning_line_42(payload: dict):
-    """Fan-out router: dispatches sentiment_analyzer, topic_extractor, entity_recognizer in parallel (line 42)"""
-    state = payload
+async def fanout_parallel_sectioning_line_44(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 44)"""
+    p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_parallel_sectioning_line_42")
+    _agg = resolve("fanin_parallel_sectioning_line_44")
 
-    _specialists = [
-        resolve("sentiment_analyzer"),
-        resolve("topic_extractor"),
-        resolve("entity_recognizer"),
-    ]
+    _slices = []
+    _slices.append((resolve("sentiment_analyzer"), p['text']))
+    _slices.append((resolve("topic_extractor"), p['text']))
+    _slices.append((resolve("entity_recognizer"), p['text']))
 
-    _n = len(_specialists) + 1
+    _n = len(_slices) + 1
     _fan_in = {
+        "actor": _agg,
         "origin_id": origin_id,
         "slice_count": _n,
         "aggregation_key": "/analysis",
     }
 
-    # Index 0: parent payload forwarded to fan-in aggregator
+    # Index 0: parent payload forwarded to aggregator
     yield "SET", ".route.next", [_agg, resolve("aggregator")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
+    yield copy.deepcopy(p)
 
-    for _i, _actor in enumerate(_specialists):
+    for _i, (_actor, _payload) in enumerate(_slices):
         yield "SET", ".route.next", [_actor, _agg]
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
-        yield state["text"]
+        yield _payload
 
-def fanin_parallel_sectioning_line_42(payload: dict):
-    """Fan-in collector for parallel_sectioning: aggregates slice results into payload['analysis'] (line 42)"""
-    yield payload
-
-def end_parallel_sectioning(payload: dict):
+async def end_parallel_sectioning(payload: dict):
     """Exitpoint for flow 'parallel_sectioning'"""
     yield "SET", ".route.next", []
     yield payload

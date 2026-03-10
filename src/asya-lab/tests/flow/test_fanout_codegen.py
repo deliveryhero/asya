@@ -105,8 +105,45 @@ class AbiFrame:
         self.headers = copy.deepcopy(headers)
 
 
+async def _drive_abi_generator_async(gen, msg_ctx: dict) -> list[AbiFrame]:
+    """Drive an async ABI generator, dispatching GET/SET/DEL operations on msg_ctx."""
+    frames: list[AbiFrame] = []
+    value = None
+    try:
+        value = await gen.asend(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = await gen.asend(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = await gen.asend(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = await gen.asend(None)
+            else:
+                frames.append(
+                    AbiFrame(
+                        payload=value,
+                        route_next=msg_ctx.get("route", {}).get("next", []),
+                        headers=msg_ctx.get("headers", {}),
+                    )
+                )
+                value = await gen.asend(None)
+    except StopAsyncIteration:
+        pass
+    return frames
+
+
 def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
-    """Drive an ABI generator, dispatching GET/SET/DEL operations on msg_ctx.
+    """Drive an ABI generator (sync or async), dispatching GET/SET/DEL operations on msg_ctx.
 
     msg_ctx is a dict like:
         {"id": "...", "route": {"prev": [...], "next": [...]}, "headers": {...}, "status": {...}}
@@ -117,6 +154,10 @@ def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
     - ("DEL", path) -> delete value, respond with None
     - anything else -> a payload frame, snapshot state as AbiFrame
     """
+    import asyncio
+    import inspect
+    if inspect.isasyncgen(gen):
+        return asyncio.run(_drive_abi_generator_async(gen, msg_ctx))
     frames: list[AbiFrame] = []
     value = None
     try:
@@ -356,7 +397,7 @@ class TestFanOutCodeValidity:
         tree = _parse_code(code)
 
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name.startswith("fanout_")
+            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1, "Expected exactly one fanout_ function"
 
@@ -461,7 +502,7 @@ class TestFanOutCodeStructure:
         # Find the fanout function
         tree = _parse_code(code)
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name.startswith("fanout_")
+            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1
 

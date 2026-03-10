@@ -176,7 +176,7 @@ class CodeGenerator:
 
     def _generate_start_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
         lines.append("    _next = []")
 
@@ -198,7 +198,7 @@ class CodeGenerator:
 
     def _generate_end_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
         lines.append('    yield "SET", ".route.next", []')
         lines.append("    yield payload")
@@ -234,7 +234,7 @@ class CodeGenerator:
 
     def _generate_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append('    """Router for control flow and payload mutations"""')
         lines.append("    p = payload")
         lines.append("    _next = []")
@@ -281,7 +281,7 @@ class CodeGenerator:
         after_agg = agg_actors[1:] if agg_actors else []
 
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
         lines.append("    p = payload")
         lines.append("")
@@ -344,7 +344,7 @@ class CodeGenerator:
 
     def _generate_loop_back_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         if router.guard_max_iter is not None:
             lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
         else:
@@ -377,7 +377,7 @@ class CodeGenerator:
 
     def _generate_try_enter_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
         lines.append("    _next = []")
         lines.append(f'    yield "SET", ".headers._on_error", resolve("{router.except_dispatch_name}")')
@@ -395,7 +395,7 @@ class CodeGenerator:
 
     def _generate_try_exit_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append('    """Try-exit router: clears _on_error header (success path)"""')
         lines.append("    _next = []")
         lines.append('    headers = yield "GET", ".headers"')
@@ -419,7 +419,7 @@ class CodeGenerator:
 
     def _generate_except_dispatch_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
         lines.append("    p = payload")
         lines.append("    _next = []")
@@ -472,7 +472,7 @@ class CodeGenerator:
 
     def _generate_reraise_router(self, router: Router) -> str:
         lines = []
-        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f"async def {router.name}(payload: dict):")
         lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
         lines.append('    _error_type = yield "GET", ".status.error.type"')
         lines.append('    _error_msg = yield "GET", ".status.error.message"')
