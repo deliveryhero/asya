@@ -287,7 +287,7 @@ metadata:
   name: handler-a
 spec:
   scaling:
-    maxReplicas: 20
+    maxReplicaCount: 20
 ```
 
 Then add it to `common/kustomization.yaml`:

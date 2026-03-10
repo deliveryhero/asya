@@ -36,8 +36,8 @@ spec:
   env: "${dynamic:env}"
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: "${arg:max_replicas,5}"
+    minReplicaCount: 0
+    maxReplicaCount: "${arg:max_replicas,5}"
 """
 
 _CONFIGMAP_TEMPLATE = """\
