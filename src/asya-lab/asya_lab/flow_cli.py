@@ -32,12 +32,15 @@ def _stamp_manifests(
         click.echo("[!] Run 'asya init' to create one; skipping manifest stamping", err=True)
         return
 
+    # Naming convention (see rfc.md section 7.4):
+    #   flow_function: Python function name with underscores (e.g. "my_flow")
+    #   flow_name:     K8s/Asya name with hyphens (e.g. "my-flow")
+    # The compiler works with flow_function; the stamper works with flow_name.
     flow_function = compiler.flow_name
     if not flow_function:
         click.echo("[!] No flow name available; skipping manifest stamping", err=True)
         return
 
-    # Flow name uses hyphens (K8s convention), function name uses underscores
     flow_name = flow_function.replace("_", "-")
     click.echo(f"[+] Using flow name '{flow_name}'")
 
@@ -119,9 +122,12 @@ def compile_cmd(
 
         actor = compiler.single_actor_name
         if actor is not None:
+            # flow_name from compiler is the Python function name (underscores);
+            # asya.sh/flow label uses the K8s name (hyphens)
+            flow_label = compiler.flow_name.replace("_", "-") if compiler.flow_name else ""
             click.echo("[+] Single-actor flow detected: no router actor needed")
             click.echo(f"[+] Apply these labels to actor '{actor}':")
-            click.echo(f"[+]   asya.sh/flow: {compiler.flow_name}")
+            click.echo(f"[+]   asya.sh/flow: {flow_label}")
             click.echo("[+]   asya.sh/flow-role: entrypoint")
 
         if plot:

@@ -27,7 +27,12 @@ _ROUTER_PREFIXES = ("start_", "end_", "router_", "except_", "loop_", "fanout_")
 
 @dataclass
 class ActorInfo:
-    """Collected metadata for a single actor manifest."""
+    """Collected metadata for a single actor manifest.
+
+    Naming convention:
+      name:    K8s name with hyphens (e.g. "handler-a", "start-my-flow")
+      handler: Python function reference with underscores (e.g. "handler_a", "routers.start_my_flow")
+    """
 
     name: str
     handler: str
@@ -39,6 +44,15 @@ class ActorInfo:
 
 class ManifestStamper:
     """Stamps AsyncActor manifests into a kustomize directory structure.
+
+    Naming convention (see rfc.md section 7.4):
+      flow_function / actor_function: Python function name, underscores (my_flow)
+      flow_name / actor name:         K8s/Asya name, hyphens (my-flow)
+
+    The compiler (parser, grouper, codegen) works with function names.
+    The stamper converts to K8s names for all output: filenames, metadata,
+    labels, ConfigMap names. Handler references (spec.handler) keep the
+    Python form since they reference Python functions.
 
     Templates follow the directory-to-key convention:
       .asya/compiler/templates/actor.yaml              → compiler.templates.actor
