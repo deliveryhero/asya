@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite
   - branch:xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite
+  - pr:303
 dependencies:
   - af25
 ---
+
 
 
 ## Summary
