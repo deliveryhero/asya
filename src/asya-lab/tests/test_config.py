@@ -101,7 +101,7 @@ class TestWalkUpMerge:
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("var:\n  name: root\n")
         cfg = load_effective_config(tmp_path)
-        assert OmegaConf.to_container(cfg)["var"]["name"] == "root"
+        assert OmegaConf.to_container(cfg.raw)["var"]["name"] == "root"
 
     def test_child_overrides_parent(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
@@ -114,7 +114,7 @@ class TestWalkUpMerge:
         team_asya.mkdir()
         (team_asya / "config.yaml").write_text("var:\n  registry: ghcr.io/team\n")
         cfg = load_effective_config(team_dir)
-        container = OmegaConf.to_container(cfg)
+        container = OmegaConf.to_container(cfg.raw)
         assert container["var"]["name"] == "root"
         assert container["var"]["registry"] == "ghcr.io/team"
 
@@ -178,7 +178,7 @@ class TestCustomResolvers:
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("var:\n  actor: ${dynamic:actor}\n")
         cfg = load_effective_config(tmp_path)
-        with pytest.raises(InterpolationResolutionError, match="only available during compilation"):
+        with pytest.raises(InterpolationResolutionError, match="not provided"):
             _ = cfg.var.actor
 
 
@@ -192,6 +192,6 @@ class TestSectionMerge:
         compiler_dir.mkdir()
         (compiler_dir / "rules.yaml").write_text("- match: test\n")
         cfg = load_effective_config(tmp_path)
-        container = OmegaConf.to_container(cfg, resolve=False)
+        container = OmegaConf.to_container(cfg.raw, resolve=False)
         assert "manifests" in container["compiler"]
         assert "rules" in container["compiler"]

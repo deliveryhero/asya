@@ -5,8 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 
-# Canonical subdirectory names under .asya/
+# Default directory name for manifests output (used as fallback when config
+# is unavailable, e.g. during `asya init`). Prefer config.resolve_path("compiler.manifests")
+# for config-driven path resolution.
 MANIFESTS_DIR = "manifests"
+
+# Kustomize layer names within a flow's manifest directory.
+# These are structural (kustomize convention), not configurable.
 BASE_DIR = "base"
 COMMON_DIR = "common"
 OVERLAYS_DIR = "overlays"

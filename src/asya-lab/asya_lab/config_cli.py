@@ -42,7 +42,7 @@ def get(key, start_dir, args, output_format):
         sys.exit(1)
 
     try:
-        value = OmegaConf.select(cfg, key)
+        value = OmegaConf.select(cfg.raw, key)
     except Exception as e:
         click.echo(f"Error resolving '{key}': {e}", err=True)
         sys.exit(1)

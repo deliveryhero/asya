@@ -8,7 +8,8 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.discovery import find_asya_dir
+from asya_lab.config.config import ConfigLoader
+from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
 
 
 @click.command()
@@ -24,17 +25,18 @@ def show(target: str, ctx: str | None) -> None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    flow_dir = asya_dir / "manifests" / target
+    config = ConfigLoader().load(asya_dir.parent)
+    flow_dir = config.with_values(flow_name=target).resolve_path("compiler.manifests")
     if not flow_dir.is_dir():
         click.echo(f"[-] Flow not found: {flow_dir}", err=True)
         sys.exit(1)
 
     if ctx:
-        kustomize_path = flow_dir / "overlays" / ctx
-    elif (flow_dir / "common").is_dir():
-        kustomize_path = flow_dir / "common"
+        kustomize_path = flow_dir / OVERLAYS_DIR / ctx
+    elif (flow_dir / COMMON_DIR).is_dir():
+        kustomize_path = flow_dir / COMMON_DIR
     else:
-        kustomize_path = flow_dir / "base"
+        kustomize_path = flow_dir / BASE_DIR
 
     if not kustomize_path.is_dir():
         click.echo(f"[-] Kustomize path not found: {kustomize_path}", err=True)

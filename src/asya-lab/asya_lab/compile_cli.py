@@ -15,6 +15,7 @@ from pathlib import Path
 
 import click
 
+from asya_lab.config.config import ConfigLoader
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -43,8 +44,7 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
             dynamic_values={"flow_function": flow_function, "flow_name": flow_name, "flow": flow_name}
         )
         config = loader.load(source_path.parent)
-        routers_path = str(config.compiler.routers)
-        return (asya_dir.parent / routers_path).resolve()
+        return config.resolve_path("compiler.routers")
     except Exception:
         return (source_path.parent / ".asya" / "compiled").resolve()
 
@@ -119,7 +119,17 @@ def _compile_dotted_target(
 ) -> None:
     """Compile a single actor manifest from a dotted module.Class.method reference."""
     actor_name = actor_name_override or target.rsplit(".", 1)[-1].replace("_", "-")
-    resolved_dir = Path(output_dir).resolve() if output_dir else Path.cwd() / ".asya" / "manifests"
+    if output_dir:
+        resolved_dir = Path(output_dir).resolve()
+    else:
+        from asya_lab.config.discovery import find_asya_dir
+
+        asya_dir = find_asya_dir(Path.cwd())
+        if asya_dir:
+            config = ConfigLoader().load(asya_dir.parent)
+            resolved_dir = config.with_values(flow_name="_").resolve_path("compiler.manifests").parent
+        else:
+            resolved_dir = Path.cwd() / ".asya" / "manifests"
     resolved_dir.mkdir(parents=True, exist_ok=True)
 
     click.echo(f"[+] Compiling single actor '{actor_name}' from {target}")
@@ -147,7 +157,8 @@ def _recompile_kebab_target(
         click.echo("[-] Run 'asya init' to create one", err=True)
         sys.exit(1)
 
-    manifests_dir = asya_dir / "manifests" / target
+    config = ConfigLoader().load(asya_dir.parent)
+    manifests_dir = config.with_values(flow_name=target).resolve_path("compiler.manifests")
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
         sys.exit(1)

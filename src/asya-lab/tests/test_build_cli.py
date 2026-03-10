@@ -56,7 +56,10 @@ def test_extract_image_none():
 
 
 def test_find_flow_images(tmp_path):
-    base_dir = tmp_path / ".asya" / "manifests" / "my-flow" / "base"
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
+    base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 
     actor_manifest = {
@@ -99,6 +102,8 @@ def test_resolve_entries_by_module():
 
 def test_resolve_entries_by_flow_name(tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "order-processing" / "base"
     base_dir.mkdir(parents=True)
 
@@ -235,6 +240,8 @@ def test_build_command_failure(mock_run, tmp_path):
 def test_build_deduplicates_images(tmp_path):
     """Multiple actors sharing an image should only build once."""
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 

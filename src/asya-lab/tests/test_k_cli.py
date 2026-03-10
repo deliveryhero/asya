@@ -51,6 +51,7 @@ def test_apply_help():
 def test_apply_missing_manifests(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     (asya_dir / "manifests").mkdir()
 
     runner = CliRunner()
@@ -63,6 +64,8 @@ def test_apply_missing_manifests(tmp_path):
 @patch("asya_lab.k_cli.subprocess.run")
 def test_apply_success(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
     (base_dir / "kustomization.yaml").write_text("resources: []")
@@ -88,6 +91,8 @@ def test_apply_success(mock_run, tmp_path):
 @patch("asya_lab.k_cli.subprocess.run")
 def test_apply_with_context(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     overlay_dir = asya_dir / "manifests" / "my-flow" / "overlays" / "stg"
     overlay_dir.mkdir(parents=True)
     (overlay_dir / "kustomization.yaml").write_text("resources: [../../base]")
@@ -116,6 +121,8 @@ def test_apply_with_context(mock_run, tmp_path):
 
 def test_apply_readonly_context(tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
     (base_dir / "kustomization.yaml").write_text("resources: []")
@@ -136,6 +143,8 @@ def test_apply_readonly_context(tmp_path):
 @patch("asya_lab.k_cli.subprocess.run")
 def test_apply_kustomize_failure(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
     (base_dir / "kustomization.yaml").write_text("resources: []")
@@ -283,6 +292,8 @@ def test_edit_no_asya_dir():
 
 def test_edit_actor_not_found(tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     manifests_dir = asya_dir / "manifests"
     manifests_dir.mkdir(parents=True)
 
@@ -296,6 +307,8 @@ def test_edit_actor_not_found(tmp_path):
 @patch("os.execvp")
 def test_edit_creates_patch_and_opens_editor(mock_execvp, tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 
@@ -416,6 +429,8 @@ def test_context_use_nonexistent(tmp_path):
 @patch("asya_lab.k_cli.subprocess.run")
 def test_apply_uses_correct_field_manager(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
     base_dir = asya_dir / "manifests" / "order-processing" / "base"
     base_dir.mkdir(parents=True)
     (base_dir / "kustomization.yaml").write_text("resources: []")

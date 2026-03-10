@@ -4,6 +4,12 @@ Two-layer architecture:
 1. OmegaConf (syntactic): YAML loading, interpolation, merge with ListMergeMode.EXTEND.
 2. Asya (semantic): walk-up file discovery, filename-to-key convention,
    directory-to-key convention, schema validation.
+
+Config objects support two-phase initialization:
+  Phase 1 (load):         var/env/arg resolvers work; dynamic fields deferred.
+  Phase 2 (with_values):  caller supplies remaining values; all fields resolve.
+
+Accessing a field with unresolved interpolations raises ConfigNotFinalizedError.
 """
 
 from __future__ import annotations
@@ -12,15 +18,170 @@ import logging
 import os
 import re
 from pathlib import Path
+from typing import Any, NoReturn
 
 from omegaconf import DictConfig, ListMergeMode, OmegaConf
 
-from asya_lab.config.discovery import collect_asya_dirs
+from asya_lab.config.discovery import MANIFESTS_DIR, collect_asya_dirs
 
 
 log = logging.getLogger(__name__)
 
 _RELATIVE_PATH_PATTERN = re.compile(r"^\./")
+
+
+# ---------------------------------------------------------------------------
+# Exceptions
+# ---------------------------------------------------------------------------
+
+
+class ConfigNotFinalizedError(Exception):
+    """Raised when accessing a config value with unresolved interpolations."""
+
+
+# ---------------------------------------------------------------------------
+# AsyaConfig — two-phase config wrapper
+# ---------------------------------------------------------------------------
+
+
+class AsyaConfig:
+    """Two-phase config wrapper around OmegaConf DictConfig.
+
+    Purely syntactic — does not know the meaning of specific resolver types.
+    Tracks whether interpolations are resolved and gives helpful errors
+    listing which fields remain unresolved.
+    """
+
+    def __init__(self, cfg: DictConfig, loader: ConfigLoader, asya_dir: Path) -> None:
+        object.__setattr__(self, "_cfg", cfg)
+        object.__setattr__(self, "_loader", loader)
+        object.__setattr__(self, "_asya_dir", asya_dir)
+
+    # -- identity / location ------------------------------------------------
+
+    @property
+    def asya_dir(self) -> Path:
+        """The .asya/ directory this config was loaded from."""
+        return object.__getattribute__(self, "_asya_dir")
+
+    @property
+    def project_root(self) -> Path:
+        """Parent of .asya/ — the project root directory."""
+        return self.asya_dir.parent
+
+    @property
+    def raw(self) -> DictConfig:
+        """The underlying OmegaConf DictConfig (for OmegaConf.to_container etc)."""
+        return object.__getattribute__(self, "_cfg")
+
+    # -- two-phase initialization -------------------------------------------
+
+    def with_values(self, **values: str) -> AsyaConfig:
+        """Supply values for unresolved interpolations.
+
+        Values are keyed by resolver variable name (e.g. ``flow_name``).
+        Returns self for chaining.
+        """
+        loader = object.__getattribute__(self, "_loader")
+        loader.dynamic_values.update(values)
+        _set_active_loader(loader)
+        return self
+
+    # -- path resolution ----------------------------------------------------
+
+    def resolve_path(self, dotted_key: str) -> Path:
+        """Resolve a dotted config key to an absolute path.
+
+        The raw config value is treated as a path relative to *project_root*.
+        Raises ConfigNotFinalizedError if the value has unresolved interpolations.
+        """
+        self._activate()
+        cfg = object.__getattribute__(self, "_cfg")
+        try:
+            node: Any = cfg
+            for part in dotted_key.split("."):
+                node = getattr(node, part)
+            return (self.project_root / str(node)).resolve()
+        except Exception as e:
+            self._raise_if_unresolved(dotted_key, e)
+
+    # -- introspection ------------------------------------------------------
+
+    def unresolved(self) -> dict[str, str]:
+        """Scan config and return unresolved fields.
+
+        Returns ``{dotted.path: raw_interpolation_or_error}`` for every
+        field whose value cannot be resolved with the current set of values.
+        """
+        self._activate()
+        cfg = object.__getattribute__(self, "_cfg")
+        result: dict[str, str] = {}
+        _collect_unresolved(cfg, "", result)
+        return result
+
+    # -- DictConfig proxy ---------------------------------------------------
+
+    def get(self, key: str, default: Any = None) -> Any:
+        self._activate()
+        cfg = object.__getattribute__(self, "_cfg")
+        try:
+            return cfg.get(key, default)
+        except Exception as e:
+            self._raise_if_unresolved(key, e)
+
+    def __getattr__(self, name: str) -> Any:
+        cfg = object.__getattribute__(self, "_cfg")
+        self._activate()
+        try:
+            return getattr(cfg, name)
+        except AttributeError:
+            raise
+        except Exception as e:
+            self._raise_if_unresolved(name, e)
+
+    def __contains__(self, key: object) -> bool:
+        cfg = object.__getattribute__(self, "_cfg")
+        return key in cfg
+
+    def __iter__(self):
+        cfg = object.__getattribute__(self, "_cfg")
+        return iter(cfg)
+
+    def __getitem__(self, key: str) -> Any:
+        self._activate()
+        cfg = object.__getattribute__(self, "_cfg")
+        try:
+            return cfg[key]
+        except Exception as e:
+            self._raise_if_unresolved(key, e)
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        cfg = object.__getattribute__(self, "_cfg")
+        cfg[key] = value
+
+    # -- internals ----------------------------------------------------------
+
+    def _activate(self) -> None:
+        """Ensure this config's loader is the active resolver provider."""
+        loader = object.__getattribute__(self, "_loader")
+        _set_active_loader(loader)
+
+    def _raise_if_unresolved(self, key: str, cause: Exception) -> NoReturn:
+        """Re-raise as ConfigNotFinalizedError if unresolved fields exist."""
+        pending = self.unresolved()
+        if pending:
+            fields = "\n".join(f"  {k}: {v}" for k, v in pending.items())
+            raise ConfigNotFinalizedError(
+                f"Cannot resolve '{key}': config has unresolved interpolations.\n"
+                f"Unresolved fields:\n{fields}\n"
+                f"Provide values via config.with_values(...)"
+            ) from cause
+        raise cause
+
+
+# ---------------------------------------------------------------------------
+# ConfigLoader
+# ---------------------------------------------------------------------------
 
 
 class ConfigLoader:
@@ -68,11 +229,12 @@ class ConfigLoader:
             use_cache=False,
         )
 
-    def load(self, start_dir: Path) -> DictConfig:
+    def load(self, start_dir: Path) -> AsyaConfig:
         """Walk up from start_dir, collect and merge all .asya/ configs.
 
-        Merges root-first (outermost config is base, most local overrides).
-        Uses OmegaConf with ListMergeMode.EXTEND for list concatenation.
+        Returns an AsyaConfig that may have unresolved interpolations.
+        Call ``.with_values(...)`` to supply missing values before accessing
+        fields that depend on them.
         """
         _set_active_loader(self)
 
@@ -83,9 +245,17 @@ class ConfigLoader:
         configs = [load_asya_dir(d) for d in asya_dirs]
 
         if len(configs) == 1:
-            return configs[0]
+            cfg = configs[0]
+        else:
+            cfg = OmegaConf.merge(*configs, list_merge_mode=ListMergeMode.EXTEND)
 
-        return OmegaConf.merge(*configs, list_merge_mode=ListMergeMode.EXTEND)
+        # Nearest (most local) .asya/ dir is last in the list
+        return AsyaConfig(cfg, self, asya_dirs[-1])
+
+
+# ---------------------------------------------------------------------------
+# Module-level resolver state
+# ---------------------------------------------------------------------------
 
 
 _active_loader: ConfigLoader | None = None
@@ -109,7 +279,12 @@ def _resolve_dynamic(key: str) -> str:
     """Resolve ${dynamic:key} from active loader."""
     if _active_loader and key in _active_loader.dynamic_values:
         return _active_loader.dynamic_values[key]
-    raise KeyError(f"${{dynamic:{key}}} is only available during compilation")
+    raise KeyError(f"${{{key}}} not provided — call config.with_values({key}=...)")
+
+
+# ---------------------------------------------------------------------------
+# Config file loading
+# ---------------------------------------------------------------------------
 
 
 def _resolve_relative_paths(cfg: DictConfig, base_dir: Path) -> None:
@@ -178,7 +353,7 @@ def load_asya_dir(asya_dir: Path) -> DictConfig:
     for subdir in sorted(asya_dir.iterdir()):
         if not subdir.is_dir():
             continue
-        if subdir.name in ("manifests", "compose"):
+        if subdir.name in (MANIFESTS_DIR, "compose"):
             continue
         dir_cfg = _load_directory_recursive(subdir)
         if dir_cfg:
@@ -216,11 +391,31 @@ def _load_directory_recursive(directory: Path) -> DictConfig | None:
     return result if has_content else None
 
 
+def _collect_unresolved(cfg: DictConfig, prefix: str, result: dict[str, str]) -> None:
+    """Walk config tree and collect fields with unresolved interpolations."""
+    for key in cfg:
+        path = f"{prefix}.{key}" if prefix else str(key)
+        try:
+            node = cfg._get_node(key)
+        except Exception:
+            result[path] = "<inaccessible>"
+            continue
+        if node is None:
+            continue
+        if OmegaConf.is_dict(node):
+            _collect_unresolved(node, path, result)
+        else:
+            try:
+                _ = cfg[key]  # trigger resolution
+            except Exception as e:
+                result[path] = str(e)
+
+
 def load_effective_config(
     start_dir: Path,
     *,
     arg_values: dict[str, str] | None = None,
-) -> DictConfig:
+) -> AsyaConfig:
     """Convenience wrapper: create a ConfigLoader and load config.
 
     Prefer using ConfigLoader directly for repeated operations or
