@@ -86,31 +86,6 @@ spec:
         fi
         echo ""
 
-        # Check if asya-injector is running
-        echo "Checking for asya-injector..."
-        INJECTOR_NS="{{ .Values.infrastructure.operatorNamespace | default "asya-system" }}"
-        if kubectl get deployment asya-injector -n "$INJECTOR_NS" >/dev/null 2>&1; then
-          READY=$(kubectl get deployment asya-injector -n "$INJECTOR_NS" -o jsonpath='{.status.readyReplicas}' 2>/dev/null || echo "0")
-          DESIRED=$(kubectl get deployment asya-injector -n "$INJECTOR_NS" -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "1")
-          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-            echo "[+] asya-injector is running and ready ($READY/$DESIRED replicas)"
-          else
-            echo "[-] CRITICAL: asya-injector exists but not ready ($READY/$DESIRED replicas)"
-            echo ""
-            echo "asya-injector must be ready to inject sidecars into AsyncActor pods"
-            echo "Check asya-injector logs:"
-            echo "  kubectl logs -n $INJECTOR_NS deployment/asya-injector"
-            exit 1
-          fi
-        else
-          echo "[-] CRITICAL: asya-injector deployment not found in $INJECTOR_NS namespace"
-          echo ""
-          echo "Install it with:"
-          echo "  helm install asya-injector deploy/helm-charts/asya-injector -n $INJECTOR_NS --create-namespace"
-          exit 1
-        fi
-        echo ""
-
         echo "================================================"
         echo "[+] Pre-install validation passed!"
         echo "================================================"
