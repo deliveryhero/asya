@@ -1259,7 +1259,21 @@ For GitOps (readonly contexts):
 
 Local Docker testing is handled separately by `asya d up` (see section 12).
 
-### 10.3 Router Actors
+### 10.3 Rollback (Deferred)
+
+No `asya k rollback` command in v0. Three rollback paths exist without it:
+
+| Path | Command | When |
+|------|---------|------|
+| K8s native | `kubectl rollout undo deployment/<actor>` | Quick undo of last pod change |
+| Git + apply | `git revert <commit>` then `asya k apply` | Manifest-level rollback |
+| GitOps | Revert PR in CI/CD | Production (readonly contexts) |
+
+A dedicated rollback command is deferred — it requires defining "previous
+version" semantics (git history? internal version log?) which is tightly
+coupled to the git/GitOps strategy (see §12.2).
+
+### 10.4 Router Actors
 
 Routers are lightweight (pure Python routing logic). They use the
 `${var.router_image}` base image with code injected via ConfigMap. No custom
