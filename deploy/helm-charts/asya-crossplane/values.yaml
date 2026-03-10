@@ -81,7 +81,7 @@ runtime:
   # Create asya-runtime ConfigMap in actor namespace
   enabled: true
 
-# Sidecar injection configuration (replaces asya-injector chart)
+# Sidecar injection configuration for actor pods
 sidecar:
   # Sidecar container image
   image: "ghcr.io/deliveryhero/asya-sidecar:latest"
@@ -95,7 +95,7 @@ sidecar:
   runtimeConfigMap: "asya-runtime"
   # Gateway URL for progress reporting (leave empty to disable)
   gatewayURL: ""
-  # AWS credentials secret name (injected into sidecar via envFrom, for non-IRSA environments)
+  # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
   awsCredsSecret: ""
   # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
   sqsEndpoint: ""
@@ -109,6 +109,10 @@ sidecar:
   pubsubEndpoint: ""
   # GCP credentials secret name (injected into sidecar via envFrom)
   gcpCredsSecret: ""
+  # AWS region for SQS queue access (cluster-wide)
+  awsRegion: "us-east-1"
+  # GCP project ID for Pub/Sub access (cluster-wide)
+  gcpProjectId: ""
 
 # KEDA authentication configuration (SQS)
 keda:
