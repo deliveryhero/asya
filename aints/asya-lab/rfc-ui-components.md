@@ -2,14 +2,12 @@
 
 **Status**: Proposed
 **Date**: 2026-03-10
-**Epic**: asya-ui
-**Depends on**: asya-lab (provides `asya serve` backend, compiler, SDK)
+**Epic**: asya-lab
 **Supersedes**: Previous asya-ui RFC (pnpm monorepo at `src/asya-ui/`)
 
 **Related docs**:
-- `../asya-lab/rfc.md` §15.3–15.4 — Jupyter visualization and `@asya/ui` reuse
-- `../asya-lab/research-compiler-resolution.md` — compiler output (DOT, manifests)
-- Epic asya-lab — Python SDK, CLI, `asya serve`
+- `rfc.md` §15.3–15.4 — Jupyter visualization and `@asya/ui` reuse
+- `research-compiler-resolution.md` — compiler output (DOT, manifests)
 - Epic asya-lens — Docker image packaging
 
 ---

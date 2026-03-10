@@ -3,7 +3,7 @@
 **Status**: Proposed (revised 2026-03-10)
 **Date**: 2026-02-27 (original), 2026-03-10 (updated references)
 **Epic**: asya-lens
-**Depends on**: asya-lab (Python SDK + `asya serve`), asya-ui (`@asya/ui` components)
+**Depends on**: asya-lab (Python SDK + `asya serve` + `@asya/ui` components)
 
 ---
 
@@ -70,11 +70,11 @@ provides a browser-based window into Asya actor meshes.
 2. User opens browser, gets VSCode environment
 3. Asya extension activates, spawns `asya serve` as subprocess
 4. `asya serve` discovers `.asya/` via walk-up from working directory
-   (see `asya-ui/rfc.md` §4 for resolution algorithm)
+   (see `asya-lab/rfc-ui-components.md` §4 for resolution algorithm)
 5. Extension webview connects directly to `asya serve` via HTTP + WebSocket
-   (no postMessage relay for data — see `asya-ui/rfc.md` §7)
+   (no postMessage relay for data — see `asya-lab/rfc-ui-components.md` §7)
 6. `asya serve` uses in-cluster K8s config for live actor status
-   (K8s Python SDK watch API — see `asya-ui/rfc.md` §5.2)
+   (K8s Python SDK watch API — see `asya-lab/rfc-ui-components.md` §5.2)
 
 ### 3.3 Data Flow
 
@@ -94,7 +94,7 @@ Webview (React)  --HTTP/WS-->  asya serve  --K8s SDK-->  K8s API server
 - REST API for static data (config, manifests, graph JSON)
 - WebSocket `/ws/actors` for live actor status (K8s watch fan-out)
 - SSE for log streaming and gateway task progress
-- Full API spec in `asya-ui/rfc.md` §5.2
+- Full API spec in `asya-lab/rfc-ui-components.md` §5.2
 
 ---
 
@@ -229,7 +229,7 @@ The service account needs permissions to:
 ## 7. Context Awareness
 
 `asya-lens` uses the same `.asya/` resolution as all asya tools (see
-`asya-ui/rfc.md` §4):
+`asya-lab/rfc-ui-components.md` §4):
 
 - `.asya/config.yaml` inside the container defines contexts, transports, etc.
 - In IDE mode, users may have their own `.asya/` in their workspace (PVC) —
@@ -282,5 +282,4 @@ them in order.
 
 | Epic | Relationship |
 |---|---|
-| asya-lab | Python SDK, CLI, `asya serve` backend — packaged inside this image |
-| asya-ui | `@asya/ui` React components, provider pattern, graph schema — bundled here |
+| asya-lab | Python SDK, CLI, `asya serve`, `@asya/ui` React components — all packaged inside this image |
