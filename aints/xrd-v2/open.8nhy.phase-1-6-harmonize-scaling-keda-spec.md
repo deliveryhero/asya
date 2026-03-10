@@ -54,12 +54,37 @@ Keep as-is (already match KEDA or are Asya-specific shortcuts):
 
 ### Files to touch
 
-- `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml`
+**Core XRD + compositions** (schema + rendering):
+- `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml` — rename fields, add `additionalTriggers`
 - `deploy/helm-charts/asya-crossplane/templates/composition-sqs.yaml`
 - `deploy/helm-charts/asya-crossplane/templates/composition-rabbitmq.yaml`
 - `deploy/helm-charts/asya-crossplane/templates/composition-pubsub.yaml`
-- `examples/asyas/` — update any manifests using `minReplicas`/`maxReplicas`
-- E2E test assertions on ScaledObject fields or AsyncActor spec validation
+
+**Examples** (update field names in all AsyncActor manifests):
+- `examples/asyas/` — grep for `minReplicas`/`maxReplicas` and rename
+
+**Helm chart values and READMEs**:
+- `deploy/helm-charts/asya-crossplane/values.yaml` — if scaling defaults are documented there
+- `deploy/helm-charts/asya-actor/` — any references to scaling field names in values/templates
+- `deploy/helm-charts/asya-playground/` — same
+- `deploy/helm-charts/*/README.md` — update field name docs
+
+**E2E tests**:
+- `testing/e2e/tests/test_crossplane_e2e.py` — assertions on ScaledObject `spec.minReplicaCount`/`maxReplicaCount`
+- `testing/e2e/tests/` — grep for `minReplicas`/`maxReplicas` in any test that creates/inspects AsyncActors
+- `testing/e2e/charts/` — any AsyncActor manifests used as test fixtures
+
+**Documentation**:
+- `docs/` — grep for `minReplicas`/`maxReplicas`; update all `.md` files that document scaling
+- `docs/architecture/`, `docs/install/`, `docs/quickstart/` — update AsyncActor spec examples
+- `CONTRIBUTING.md` — if it mentions scaling fields
+- `README.md` — if it has a scaling example
+
+**Sweep command** (run after implementation to catch stragglers):
+```bash
+grep -r "minReplicas\|maxReplicas" --include="*.yaml" --include="*.md" --include="*.py" \
+  --exclude-dir=".git" --exclude-dir=".aint" .
+```
 
 ## Resulting user-facing syntax
 
