@@ -121,6 +121,7 @@ See `adr.k-d-command-split.md` for the rationale.
 
 ```bash
 asya compile <target>               # Python -> manifests + routers (no cluster needed)
+asya build <target>                 # build images locally (opaque shell command from config)
 asya expose <target>                # generate gateway ConfigMap in base/ (no cluster needed)
 asya show <target> [--context ctx]  # kustomize build -> effective manifests (no cluster needed)
 asya status                         # local source of truth (compiled manifests, CRs)
@@ -167,7 +168,6 @@ previous output cleanly.
 
 ```bash
 asya k edit <actor-name>            # open kustomize patch in common/ for actor
-asya k build <target>               # build + push images to registry
 asya k apply <target>               # auto-compile if .py, kustomize build | kubectl apply --server-side
 asya k delete <target>              # kubectl delete
 asya k status <target>              # live cluster state: replicas, queue depth
@@ -259,7 +259,7 @@ reserved for sidecar-to-gateway communication.
 | `asya k send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya k trace <id>` | Observability | OpenTelemetry trace query |
 | `asya k edit <actor>` | Local | Opens/creates kustomize patch file |
-| `asya k build <target>` | Build tool | Opaque shell command from config.yaml |
+| `asya build <target>` | Build tool | Opaque shell command from config.yaml |
 | `asya k secret *` | Local | Reads/writes config.yaml secrets: |
 | `asya k context *` | Local | Reads/writes config.yaml contexts: |
 | `asya config get <key>` | Local | Read merged config value (dot-path) |
@@ -851,7 +851,7 @@ env entries. The compiler constructs this list from:
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
   system. `command` is a shell string with variable substitution — any build
-  tool works. `asya k build --push` appends a registry push after the build
+  tool works. `asya build --push` appends a registry push after the build
   command. On-cluster builds (Shipwright) are a separate mechanism, not a
   shell command.
 - **Walk-up recursive merge**: Nested `.asya/` directories support monorepos.
@@ -892,7 +892,7 @@ step — compile stamps AsyncActor XRs directly into kustomize base.
 | Stage | CLI | Input | Output |
 |-------|-----|-------|--------|
 | **Compile** | `asya compile` | source + .asya/*.yaml | routers.py + base/*.yaml (kustomize base) |
-| **Build** | `asya k build` | source + build commands | OCI image |
+| **Build** | `asya build` | source + build commands | OCI image |
 | **Apply** | `asya k apply` | effective manifests (kustomize build) | running pods/containers |
 
 Build defaults to local-only; `--push` adds a registry push.
@@ -1180,7 +1180,7 @@ check `$?` for pass/fail; humans read the message.
 pipelines (`retry:` in GitHub Actions, Argo Workflows, etc.), not in the CLI
 tool.
 
-**Multi-image builds**: When a flow has multiple unique images, `asya k build`
+**Multi-image builds**: When a flow has multiple unique images, `asya build`
 runs them sequentially with `[build 1/N]` progress prefixes, fail-fast on
 first error. Parallel builds deferred until real bottleneck observed.
 
@@ -1396,7 +1396,7 @@ images (larger), Docker dependency (local builds only).
 asya compile flows/order.py
 asya k edit validate-order             # add scaling patch in common/
 asya expose order-processing --description "Process orders" --input-schema-file schema.json
-asya k build order-processing --arg tag=v1
+asya build order-processing --arg tag=v1
 asya k apply order-processing --context stg
 # + kustomize build .asya/manifests/order-processing/overlays/stg/
 # + kubectl apply --server-side --field-manager=asya-flow-order-processing -f -
@@ -1578,7 +1578,7 @@ def test_router_modifies_route(vfs_fixture):
 - `asya compile`, `asya k status/logs/apply` (with SSA)
 
 ### Phase 2: Build + deploy + testing
-- `asya k build` (opaque command, `--push` for registry)
+- `asya build` (opaque command, `--push` for registry)
 - `asya k apply/delete` for K8s (kustomize build | kubectl apply --server-side)
 - `asya expose/unexpose` (configmap-flows.yaml generation + SSA apply)
 - `asya d up` (compile + generate docker-compose.yaml + start containers)

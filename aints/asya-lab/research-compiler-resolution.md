@@ -568,7 +568,7 @@ repo-root-relative paths (stays as interpolation through merge).
 **`image:`** -- OCI image reference template with interpolation.
 
 **`command:`** -- a single opaque shell string for building the image locally.
-`asya k build` runs the command (build only); `asya k build --push` runs the
+`asya build` runs the command (build only); `asya build --push` runs the
 command and then pushes the image to the registry. Remote/on-cluster builds
 (e.g. Shipwright) are a separate mechanism via the `shipwright:` config field
 (future). CI ignores `command:` entirely and runs its own pipeline.
@@ -630,12 +630,12 @@ namespace is `ARG` for runtime args or `VAR` for config constants, key is
 UPPER_SNAKE_CASE of the config key.
 ```bash
 # These are equivalent:
-asya k build foo --arg tag=v1
-ASYA_ARG_TAG=v1 asya k build foo
+asya build foo --arg tag=v1
+ASYA_ARG_TAG=v1 asya build foo
 
 # Override a var constant from env (useful in CI):
 export ASYA_VAR_IMAGE_REGISTRY=my-registry.io
-asya k build foo --arg tag=v1
+asya build foo --arg tag=v1
 ```
 
 **Precedence** (highest wins):
@@ -709,12 +709,12 @@ This means:
 - Any build tool works (docker, apko, pack, kaniko, nix, bazel, custom)
 - Future build tools work without Asya changes
 - Platform engineers write the commands once in root config; DS just run
-  `asya k build`
+  `asya build`
 - Asya is NOT a build system -- it's a command runner with context
 
 **What about Shipwright remote builds?** Shipwright is a separate config
 mechanism via the `shipwright:` field (e.g. `shipwright: buildpacks-v3`),
-not an opaque command. `asya k build --remote` would create a Shipwright
+not an opaque command. `asya build --remote` would create a Shipwright
 BuildRun using this config. If deeper Shipwright integration is needed
 later (generating Build CRDs from config.yaml), that can be added as a
 plugin/extension without changing the core config schema.
@@ -1040,25 +1040,25 @@ CLI follows the `asya <noun> <verb>` pattern from the RFC
 
 ```bash
 # Build a specific actor's image (build only, image stays local)
-asya k build text-analyzer --arg tag=v1
+asya build text-analyzer --arg tag=v1
 
 # Build all images needed by a flow
-asya k build order-processing --arg tag=v1
+asya build order-processing --arg tag=v1
 
 # Build + push to registry — enough to test on K8s
-asya k build text-analyzer --push --arg tag=v1
+asya build text-analyzer --push --arg tag=v1
 
 # Variables via environment (useful in notebooks)
 export ASYA_ARG_TAG=v1
-asya k build order-processing
+asya build order-processing
 ```
 
 **Build flags**:
-- Default: `asya k build` runs `command` (build only, image stays local).
+- Default: `asya build` runs `command` (build only, image stays local).
   Enough to test actors in local docker compose.
-- `--push`: `asya k build --push` runs `command` + pushes the image to
+- `--push`: `asya build --push` runs `command` + pushes the image to
   the registry. Enough to test actors on K8s.
-- Future: `asya k build --remote` creates a Shipwright BuildRun using the
+- Future: `asya build --remote` creates a Shipwright BuildRun using the
   `shipwright:` config field (separate mechanism, not an opaque command).
 
 These flags interact with `--context` (see RFC `rfc.md`): `--context stg`
@@ -1067,11 +1067,11 @@ implies `--push` (contexts are K8s-only; Docker uses `asya d *`). The
 sufficient.
 
 **Resolution**:
-- `asya k build <actor-name>` → reads manifest to find image ref →
+- `asya build <actor-name>` → reads manifest to find image ref →
   matches image ref to config.yaml `build` entry → runs `command` in
   the `path:` directory
-- `asya k build --push` → same resolution, runs `command` + pushes image
-- `asya k build <flow-name>` → finds all actors in flow → deduplicates
+- `asya build --push` → same resolution, runs `command` + pushes image
+- `asya build <flow-name>` → finds all actors in flow → deduplicates
   by image (multiple actors may share the same image) → builds each unique
   image once
 
@@ -1084,8 +1084,8 @@ built-in caching or "skip if unchanged" logic. If a user needs conditional
 builds, they can use `${arg:*}` to pass flags to the build tool:
 ```yaml
 command: "docker build ${arg:cache_flag} -t ${.image} ."
-# asya k build foo --arg cache_flag="--no-cache"
-# or: asya k build foo  (cache_flag must be provided or fail)
+# asya build foo --arg cache_flag="--no-cache"
+# or: asya build foo  (cache_flag must be provided or fail)
 ```
 OmegaConf default values for `arg` are not supported — missing args are a
 hard error. If a build command needs optional flags, use `${env:VAR,default}`
@@ -1104,7 +1104,7 @@ manifests in `.asya/manifests/`, (3) deployed state in current context
 
 **Verbose output**:
 ```
-$ asya k build text-analyzer --arg tag=v1
+$ asya build text-analyzer --arg tag=v1
 [build] Actor: text-analyzer
 [build] Image entry: e_commerce (from manifest image ref)
 [build] Dir: /proj/src/e-commerce-package
@@ -1292,25 +1292,25 @@ your Python environment, Asya can resolve it.
 
 ## 7. Variable Substitution
 
-All `asya k build/deploy` commands support OmegaConf-style variable
+All `asya build/deploy` commands support OmegaConf-style variable
 interpolation in config.yaml fields. See section 3.4 for the full syntax
 reference.
 
 **Setting variables** via CLI flags or `ASYA_*` env vars:
 ```bash
 # CLI flags (single command)
-asya k build text-analyzer --arg tag=v1 --arg env=staging
-asya k build text-analyzer --set var.image_registry=my-registry.io
+asya build text-analyzer --arg tag=v1 --arg env=staging
+asya build text-analyzer --set var.image_registry=my-registry.io
 
 # Env vars (shell session — survives across commands)
 export ASYA_ARG_TAG=v1
 export ASYA_ARG_ENV=staging
-asya k build text-analyzer
+asya build text-analyzer
 asya k apply text-analyzer  # same variables, no repetition
 
 # Override a var constant from env (useful in CI)
 export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
-asya k build order-processing --arg tag=$CI_SHA
+asya build order-processing --arg tag=$CI_SHA
 ```
 
 **In config.yaml**:
@@ -1329,7 +1329,7 @@ build:
 ```
 
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once
-and then call `asya k build` and `asya k apply` without repeating
+and then call `asya build` and `asya k apply` without repeating
 the tag.
 
 **Three namespaces** (see section 3.4):

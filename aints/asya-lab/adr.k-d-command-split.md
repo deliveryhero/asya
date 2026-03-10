@@ -24,6 +24,7 @@ a local testing tool, not a deployment target.
 
 ```
 asya compile <target>               # Python -> manifests + routers (local only)
+asya build <target>                 # build images locally (opaque shell command)
 asya expose <target>                # generate gateway ConfigMap in base/ (local only)
 asya show <target> [--context ctx]  # kustomize build -> effective manifests (local only)
 asya status                         # local source of truth (compiled manifests)
@@ -31,7 +32,6 @@ asya init [--template <name>]       # scaffold .asya/
 asya serve                          # local UI server
 
 asya k edit <actor-name>            # open kustomize patch
-asya k build <target>               # build + push images
 asya k apply <target>               # auto-compile if .py, kustomize build | kubectl apply --server-side
 asya k delete <target>              # kubectl delete by flow labels
 asya k status <target>              # live cluster state

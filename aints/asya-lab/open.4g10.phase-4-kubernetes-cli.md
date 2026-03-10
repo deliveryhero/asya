@@ -1,5 +1,5 @@
 ---
-title: "Phase 4: Kubernetes CLI (apply, delete, build, status, logs)"
+title: "Phase 4: Kubernetes CLI (apply, delete, status, logs) + asya build"
 priority: 2 # medium
 dependencies:
   - 5ifn
@@ -7,7 +7,11 @@ dependencies:
 
 ## Scope
 
-All `asya k` commands that interact with a Kubernetes cluster, plus image building.
+Kubernetes commands (`asya k`) that interact with a cluster, plus `asya build`
+(top-level, local-only image building).
+
+`build` is top-level because it runs locally (Docker/Podman on developer machine),
+not on a K8s cluster. Same rationale as `compile` — see `adr.k-d-command-split.md`.
 
 ### 4a. asya k apply <target> [--context ctx]
 
@@ -24,9 +28,9 @@ All `asya k` commands that interact with a Kubernetes cluster, plus image buildi
 - Deletes all actors in the flow (routers + processors)
 - Readonly contexts: error
 
-### 4c. asya k build <target>
+### 4c. asya build <target>
 
-Thin command runner for image building:
+Thin command runner for image building (top-level, no cluster needed):
 
 1. Resolve target to build entries in config (module → image + command)
 2. Run opaque shell `command` with variable substitution (`${.image}`, `${arg:tag}`)
@@ -34,11 +38,11 @@ Thin command runner for image building:
 4. Multi-image builds: sequential, fail-fast, `[build 1/N]` progress prefixes
 
 ```bash
-asya k build order-processing --arg tag=v1.2
+asya build order-processing --arg tag=v1.2
 # [build 1/2] docker build -t ghcr.io/org/ecom:v1.2 .
 # [build 2/2] docker build -t ghcr.io/org/shared:v1.2 .
 
-asya k build order-processing --arg tag=v1.2 --push
+asya build order-processing --arg tag=v1.2 --push
 # [build 1/2] docker build -t ghcr.io/org/ecom:v1.2 .
 # [push  1/2] docker push ghcr.io/org/ecom:v1.2
 ```
@@ -72,6 +76,7 @@ asya k build order-processing --arg tag=v1.2 --push
 
 ## References
 
+- `.aint/aints/asya-lab/rfc.md` §5.1 — top-level commands (asya build)
 - `.aint/aints/asya-lab/rfc.md` §5.2 — Kubernetes commands
 - `.aint/aints/asya-lab/rfc.md` §5.9 — apply semantics, SSA, idempotency
 - `.aint/aints/asya-lab/rfc.md` §5.10 — readonly enforcement

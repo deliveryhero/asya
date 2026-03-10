@@ -19,7 +19,7 @@ design decisions since then changed the calculus:
 1. **Opaque build commands**: Asya treats all build commands as a single shell
    string (`command`). Cog is just another command — Asya doesn't need to
    understand cog.yaml, just run `cog build -t ${.image}`. To push the image,
-   use `asya k build --push` which appends a registry push.
+   use `asya build --push` which appends a registry push.
 2. **Lock file deferred to v2**: The reproducibility gap (no lock file) is
    shared by ALL build paths in v1. This is no longer a Cog-specific concern.
 
