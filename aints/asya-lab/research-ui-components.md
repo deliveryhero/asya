@@ -283,9 +283,16 @@ asya serve (Python, FastAPI)
 ├── GET  /api/actors/<name>/status           ← kubectl get asyncactor (live)
 ├── GET  /api/actors/<name>/logs             ← kubectl logs (SSE stream)
 ├── POST /api/flows/<flow>/compile           ← trigger recompilation
-├── /mesh/*                                  ← gateway proxy (task tracking)
+├── GET  /api/gateway                        ← gateway URL from context config
+├── POST /api/gateway/call                   ← proxy MCP tools/call to gateway
+├── GET  /api/gateway/stream/<id>            ← proxy MCP streamable HTTP
 └── /ws/status                               ← WebSocket for live updates
 ```
+
+Gateway interaction goes through `asya serve` as a proxy to the external
+gateway URL (`contexts.<name>.gateway`). The gateway's `/mesh/*` endpoints
+are cluster-internal (sidecar progress reporting) — never exposed to users.
+User-facing calls use MCP (`tools/call`) or A2A (`message/send`) protocol.
 
 `readonly: true` contexts (prod) reject all PUT/POST requests. The API
 enforces the read/write boundary — React components don't need to know
@@ -327,7 +334,7 @@ function HttpAsyaProvider({ baseUrl, children }) {
   // GET /api/flows/<flow>/manifests → actors[]
   // GET /api/actors/<name>/status   → ActorStatus
   // GET /api/actors/<name>/logs     → SSE → logLines[]
-  // GET /mesh/<id>/stream           → SSE → taskProgress
+  // GET /api/gateway/stream/<id>    → SSE → taskProgress
   // PUT /api/flows/<flow>/manifests/<actor> → write (if !readonly)
 }
 ```
