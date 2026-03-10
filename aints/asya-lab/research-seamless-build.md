@@ -566,7 +566,12 @@ work with uncommitted files.
 4. Repeat
 ```
 
-### 4.2 Flow B: Production via GitOps
+### 4.2 Flow B: Production via GitOps (DEFERRED)
+
+> **Status**: `asya promote` is deferred. The promotion workflow (image pinning,
+> lock file verification, PR creation) is tightly coupled to git/GitOps CI/CD
+> strategy. The research below captures design options for when this is revisited.
+> For now, users commit `.asya/manifests/` to git manually.
 
 **Goal**: Promote tested staging actor to production via PR.
 

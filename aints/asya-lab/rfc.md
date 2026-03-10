@@ -279,8 +279,7 @@ errors and asks to undeploy first. Identical version exits 0 (idempotent).
 ### 5.10 Read-Only Enforcement
 
 Contexts with `readonly: true` block write operations:
-- `asya k deploy/undeploy` → error
-- `asya promote` → error (production writes happen via GitOps PR)
+- `asya k deploy/undeploy` → error (production writes happen via GitOps PR)
 
 Read operations always allowed: `status`, `logs`, `call`, `stream`.
 
@@ -1266,22 +1265,25 @@ asya d up flows/order.py
 
 **Production (GitOps)**: Declarative, reviewed, git-driven.
 ```
-asya promote my-actor --context=k8s-prod
-# -> verifies actor-image.lock, creates PR with source + lock + manifests
+git add .asya/manifests/order-processing/
+git commit -m "promote order-processing to prod"
+git push  # ArgoCD/Flux watches overlays/prod/
 ```
 
-### 12.2 Promotion (`asya promote`)
+### 12.2 Promotion (deferred)
 
-Three promotion strategies:
+`asya promote` is deferred. The promotion workflow (image pinning, lock file
+verification, PR creation) is tightly coupled to git/GitOps CI/CD strategy
+and needs design once the base compile/build/deploy flow is validated.
 
-| Strategy | What's in PR | Rebuild? | Same as staging? |
-|---|---|---|---|
-| **A: Lock only** | Lock + manifest | No | Yes |
-| **B: Source only** | Source + config | Yes (CI) | No |
-| **C: Source+Lock** (default) | Source + lock + manifest | No (verify only) | Yes |
+For now, users commit `.asya/manifests/` to git manually. The three-layer
+kustomize structure already supports this: `base/` has compiler output,
+`common/` has user patches, `overlays/prod/` has production overrides.
+ArgoCD/Flux runs `kustomize build overlays/prod/` from the committed directory.
 
-`actor-image.lock` maps build inputs (handler code, requirements, build config)
-to a pinned image digest. `asya promote` enforces consistency.
+See `research-seamless-build.md` §4 for promotion strategy research
+(lock file model, three strategies, CI behavior) — to be revisited when
+designing `asya promote`.
 
 ### 12.3 Build Execution
 
@@ -1403,7 +1405,7 @@ def test_router_modifies_route(vfs_fixture):
 - `asya k deploy/undeploy` for K8s (kustomize build | kubectl apply --server-side)
 - `asya k expose/unexpose` (configmap-flows.yaml generation + SSA apply)
 - `asya d up` (compile + generate docker-compose.yaml + start containers)
-- `actor-image.lock` and `asya promote`
+- `actor-image.lock` (deferred: `asya promote` designed later with GitOps/CI)
 - `asya_lab.testing` pytest fixtures
 
 ### Phase 3: Message operations + Jupyter
