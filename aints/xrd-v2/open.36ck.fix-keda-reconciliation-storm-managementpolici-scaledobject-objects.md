@@ -46,9 +46,33 @@ Apply `watch: false` to ScaledObject Objects only. Keep watches on Deployment Ob
 (XR readiness depends on Deployment health). TriggerAuthentication Objects can also
 use `watch: false` (KEDA updates their status too, though less frequently).
 
+`watch: false` only disables the inbound watch (provider-kubernetes reacting to external changes). It doesn't affect the outbound lifecycle:
+
+- XR deleted → Crossplane deletes all composed resources → Object CR deleted → provider-kubernetes deletes the ScaledObject
+
+That's the normal Crossplane ownership chain. `watch` controls observation, not ownership. The delete path is driven by Crossplane's garbage collection (composed resources
+are owned by the XR), which works regardless of watch settings.
+
+Same for create and update — if you change spec.scaling.maxReplicas on the XR, Crossplane re-reconciles, renders a new ScaledObject spec, and provider-kubernetes applies
+it. The watch: false just means provider-kubernetes won't react when KEDA writes back status on that ScaledObject.
+
 Trade-off: XR won't reflect real-time ScaledObject health. Acceptable because XR
 readiness depends on Deployment + Queue, not ScaledObject. KEDA scaling works
 independently regardless of Crossplane status tracking.
+
+In practice, **this risk is low** for Asya because:
+
+1. Nobody manually edits ScaledObjects — they're managed by Crossplane, not humans
+2. If deleted, Crossplane re-creates on next reconcile — the poll-interval still triggers periodic reconciliation (just not on every KEDA status write). The ScaledObject
+gets recreated within 1 poll cycle.
+3. KEDA itself validates the ScaledObject — if the spec is wrong, KEDA reports errors in its own metrics/events, independent of Crossplane
+
+The **one real risk**: if KEDA is completely broken (CRD removed, operator down), Crossplane won't know the ScaledObject is unhealthy. Autoscaling silently stops. But this
+would be caught by:
+- KEDA's own health monitoring
+- Actors stuck at 0 replicas (visible in the XR's status.infrastructure.workload.readyReplicas)
+- Alerting on queue depth growing without scaling response
+
 
 ## Testing
 
