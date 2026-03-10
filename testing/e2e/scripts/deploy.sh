@@ -108,11 +108,6 @@ time {
   "$ROOT_DIR/src/build-images.sh" asya-gateway asya-sidecar asya-crew asya-testing &
   BUILD_PID=$!
 
-  # Build injector image separately (not in build-images.sh registry)
-  echo "[.] Building asya-injector image..."
-  docker build -t "${IMAGE_PREFIX}asya-injector:latest" "$ROOT_DIR/src/asya-injector/" > /dev/null 2>&1 &
-  INJECTOR_BUILD_PID=$!
-
   # Build Crossplane function image (will be pushed to local registry in Phase 3)
   echo "[.] Building function-asya-flavors image..."
   docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
@@ -140,12 +135,6 @@ time {
   fi
   echo "[+] Framework Docker images built"
 
-  if ! wait "$INJECTOR_BUILD_PID"; then
-    echo "[-] Injector image build failed"
-    exit 1
-  fi
-  echo "[+] Injector image built"
-
   if ! wait "$FUNCTION_BUILD_PID"; then
     echo "[-] function-asya-flavors build failed"
     exit 1
@@ -172,12 +161,9 @@ time {
 }
 echo
 
-# Phase 2: Install cluster-level infrastructure (cert-manager + Crossplane core)
+# Phase 2: Install cluster-level infrastructure (Crossplane core)
 echo "[.] Phase 2: Installing cluster-level infrastructure..."
 time {
-  echo "[.] Installing cert-manager..."
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml > /dev/null 2>&1
-
   echo "[.] Installing Crossplane core..."
   helm repo add crossplane-stable https://charts.crossplane.io/stable --force-update > /dev/null 2>&1
   helm repo update crossplane-stable > /dev/null 2>&1
@@ -185,15 +171,11 @@ time {
     --namespace crossplane-system --create-namespace \
     --wait --timeout 5m > /dev/null 2>&1
 
-  echo "[.] Waiting for cert-manager webhooks..."
-  kubectl wait --for=condition=available deployment/cert-manager-webhook \
-    -n cert-manager --timeout=3m > /dev/null 2>&1
-
   echo "[.] Waiting for Crossplane pods..."
   kubectl wait --for=condition=available deployment/crossplane \
     -n crossplane-system --timeout=3m > /dev/null 2>&1
 
-  echo "[+] cert-manager and Crossplane core installed"
+  echo "[+] Crossplane core installed"
 }
 echo
 
@@ -224,7 +206,6 @@ time {
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
-    "asya-injector:latest"
   )
 
   if [[ "$PROFILE" == "sqs-s3" ]]; then
@@ -477,9 +458,6 @@ time {
     echo "=== Crossplane Provider Logs ==="
     kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 --all-containers=true || true
     echo ""
-    echo "=== Injector Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=50 || true
-    echo ""
     echo "=== Migration Job Logs ==="
     kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/component=migration --tail=50 || true
     exit 1
@@ -535,40 +513,6 @@ time {
 }
 echo
 
-# Phase 6c: Wait for asya-injector webhook TLS to be ready
-# cert-manager's cainjector asynchronously injects the CA bundle into the
-# MutatingWebhookConfiguration after the Certificate is issued. Without this
-# wait, AsyncActor creation in Phase 7 fails with "x509: certificate signed
-# by unknown authority" because the API server hasn't received the CA bundle yet.
-echo "[.] Phase 6c: Waiting for asya-injector webhook TLS..."
-time {
-  echo "[.] Waiting for Certificate to be issued..."
-  if ! kubectl wait --for=condition=Ready certificate/asya-injector-tls \
-    -n "$SYSTEM_NAMESPACE" --timeout=120s 2> /dev/null; then
-    echo "[-] Certificate not ready after 120s"
-    kubectl get certificate -n "$SYSTEM_NAMESPACE" || true
-    exit 1
-  fi
-  echo "[+] Certificate issued"
-
-  echo "[.] Waiting for CA bundle injection into webhook..."
-  for i in $(seq 1 30); do
-    CA_BUNDLE=$(kubectl get mutatingwebhookconfiguration asya-injector \
-      -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2> /dev/null)
-    if [ -n "$CA_BUNDLE" ]; then
-      echo "[+] CA bundle injected into MutatingWebhookConfiguration"
-      break
-    fi
-    if [ "$i" -eq 30 ]; then
-      echo "[-] Timeout waiting for CA bundle injection (60s)"
-      kubectl get mutatingwebhookconfiguration asya-injector -o yaml || true
-      exit 1
-    fi
-    sleep 2 # Poll for cainjector to update the webhook config
-  done
-}
-echo
-
 # Phase 7: Deploy application layer with Helmfile (test actors + system actors)
 echo "[.] Phase 7: Deploying application layer (actors)..."
 time {
@@ -584,9 +528,6 @@ time {
     echo ""
     echo "=== Crossplane Provider Logs ==="
     kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=100 --all-containers=true || true
-    echo ""
-    echo "=== Injector Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=100 || true
     echo ""
     echo "=== Failed Actor Pods (if any) ==="
     kubectl describe pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor | grep -A 20 "State.*Waiting\|State.*Terminated" || true
@@ -729,10 +670,6 @@ echo
 LOGS_DIR="$SCRIPT_DIR/../.logs"
 mkdir -p "$LOGS_DIR"
 
-INJECTOR_LOGS="$LOGS_DIR/injector-$(date +%Y%m%d-%H%M%S).log"
-echo "[.] Saving injector logs to: $INJECTOR_LOGS"
-kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=1000 > "$INJECTOR_LOGS" 2>&1 || true
-
 CROSSPLANE_LOGS="$LOGS_DIR/crossplane-$(date +%Y%m%d-%H%M%S).log"
 echo "[.] Saving Crossplane provider logs to: $CROSSPLANE_LOGS"
 kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=1000 --all-containers=true > "$CROSSPLANE_LOGS" 2>&1 || true
@@ -741,7 +678,6 @@ echo "[+] Logs saved"
 echo
 
 echo "=== Deployment Complete (Crossplane) ==="
-echo "Injector logs saved to: $INJECTOR_LOGS"
 echo "Crossplane logs saved to: $CROSSPLANE_LOGS"
 echo ""
 echo "Next steps (from the current directory):"
