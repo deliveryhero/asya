@@ -1218,8 +1218,9 @@ Flow deployment uses labels + CLI tooling (no separate AsyncFlow CRD).
 | `asya.sh/flow` | Flow membership (1:M) | Flow name |
 | `asya.sh/flow-role` | Role within flow | `entrypoint`, `exitpoint`, `router`, `processor` |
 
-One actor belongs to at most one flow. If the same handler is needed in multiple
-flows, the compiler clones the actor with a flow-scoped name.
+One actor belongs to at most one flow. If the same handler is used in multiple
+flows, each flow gets its own actor (same handler, flow-scoped name, independent
+queue and scaling).
 
 **Naming convention**: Actors compiled within flow `foo-bar` are postfixed with
 the flow name: `validate-order-foo-bar`. Standalone actors (deployed outside a

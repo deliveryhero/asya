@@ -379,9 +379,20 @@ interface AsyaContextValue {
   context: string;  // k8s-stg, k8s-prod, docker
   readonly: boolean;
 
+  // --- Connection state ---
+  connectionState: ConnectionState;
+  connectionError?: string;  // human-readable message
+
   // --- Interactions (host-handled) ---
   onNodeClick?: (nodeId: string) => void;
 }
+
+type ConnectionState =
+  | 'connecting'    // initial load / asya serve starting
+  | 'connected'     // everything healthy
+  | 'reconnecting'  // WebSocket dropped, retrying (stale data shown)
+  | 'degraded'      // K8s unreachable — static data works, live data shows "—"
+  | 'error';        // fatal — no .asya/ found, asya serve won't start
 
 interface ActorInfo {
   name: string;
@@ -561,6 +572,39 @@ No HTTP — data flows through anywidget's traitlets sync mechanism.
 | **Total (React side)** | **~310** | **Low** |
 
 Components stay pure and testable — mock the provider for unit tests.
+
+### 5.5 Error and Loading States
+
+One `connectionState` on the provider — no per-component error tracking.
+Components check `connectionState` and render accordingly.
+
+**State transitions and UI behavior**:
+
+| State | Trigger | UI behavior |
+|---|---|---|
+| `connecting` | Initial load, `asya serve` starting | Skeleton/spinner overlay on FlowDiagram |
+| `connected` | WebSocket open, data loaded | Normal rendering |
+| `reconnecting` | WebSocket drops, `asya serve` restart | Banner: "Reconnecting..." + stale data shown dimmed |
+| `degraded` | K8s unreachable, no kubeconfig, RBAC denied | Graph renders from local files, live columns show "—", yellow banner |
+| `error` | No `.asya/` found, `asya serve` won't start | Full-screen error with `connectionError` message |
+
+**Key insight**: static data (graph JSON, manifests) comes from local `.asya/`
+files — it always works. Only live data (replicas, queue depth, logs) degrades
+when the cluster is unreachable. So `degraded` = "graph visible, live status
+unavailable."
+
+**Specific scenarios**:
+
+| Scenario | connectionState | Notes |
+|---|---|---|
+| No flows compiled yet | `connected` | Empty `actors[]` — component shows "No flows. Run `asya flow compile`." |
+| Compile fails | `connected` | Compile API returns error — toast/inline with compiler output |
+| Gateway unreachable | `degraded` | Flows and actors visible, MCP tool calls fail with message |
+| Pod not found (logs) | `connected` | `subscribeLogs` returns empty — LogViewer shows "No logs available" |
+
+**Reconnect strategy**: exponential backoff (1s, 2s, 4s, ... cap at 30s) for
+WebSocket. On reconnect, full resync — provider re-fetches actor list and
+re-subscribes to watched actors. No stale subscription state.
 
 ---
 
