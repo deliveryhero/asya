@@ -27,7 +27,7 @@ def test_asya_lab_help():
     assert result.returncode == 0
     output = result.stdout.lower()
     assert "asya" in output
-    for subcmd in ("config", "flow", "init", "mcp"):
+    for subcmd in ("compile", "config", "expose", "flow", "init", "mcp", "show", "status", "unexpose"):
         assert subcmd in output, f"Expected '{subcmd}' in help output"
 
 
