@@ -543,11 +543,12 @@ echo
 
 # Phase 7b: Stagger XR reconciliation to break backoff synchronization
 #
-# All actors are created simultaneously by Helm, so they share Crossplane's
-# poll-interval cycle and all hit the same retry timer together. Without
-# staggering, all 40+ actors converge in a single burst after 14 minutes
-# (pubsub) or 12 minutes (sqs). Annotating each XAsyncActor XR 1s apart
-# offsets their poll cycles so each actor converges independently.
+# All actors are created simultaneously by Helm, so their poll timers all
+# start at t=0. Without staggering, every 10s poll fires for all 40+ actors
+# at once. Each annotation triggers an immediate reconcile which resets the
+# actor's poll timer to (annotation_time + poll-interval), spreading them
+# across different poll windows. 1s sleep between actors × 40 actors = 40s
+# of spread — more than enough to desynchronize the 10s poll cycles.
 echo "[.] Phase 7b: Staggering actor reconciliation..."
 time {
   # Allow Crossplane a moment to create XRs from the claims we just deployed
@@ -562,7 +563,7 @@ time {
     STAGGER_COUNT=$((STAGGER_COUNT + 1))
   done < <(kubectl get xasyncactors \
     -l "crossplane.io/claim-namespace=$NAMESPACE" \
-    --no-headers -o name 2>/dev/null | sort)
+    --no-headers -o name 2> /dev/null | sort)
 
   echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
 }
