@@ -21,11 +21,9 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
   helm install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace
   ```
-- Asya compositions and injector installed:
+- Asya compositions installed:
   ```bash
   kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-  helm install asya-injector deploy/helm-charts/asya-injector \
-    -n asya-system --create-namespace
   ```
 - KEDA installed (if scaling is enabled):
   ```bash
@@ -183,7 +181,6 @@ healthChecks:
 Check dependencies:
 ```bash
 kubectl get xrd asyncactors.asya.sh
-kubectl get deployment asya-injector -n asya-system
 kubectl get deployment crossplane -n crossplane-system
 kubectl get crd scaledobjects.keda.sh
 ```

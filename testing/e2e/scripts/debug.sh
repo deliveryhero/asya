@@ -15,13 +15,12 @@
 #
 # Environment Variables:
 #   NAMESPACE         - K8s namespace for Asya components (default: e2e)
-#   SYSTEM_NAMESPACE  - K8s namespace for injector (default: asya-system)
+#   SYSTEM_NAMESPACE  - K8s namespace for system components (default: asya-system)
 #   CLUSTER_NAME      - Kind cluster name (default: asya-e2e-{profile})
 #   TAIL              - Number of log lines for main components (default: 50)
 #   ACTOR_TAIL        - Number of log lines for actors (default: 20)
 #
 # Components monitored:
-#   - Asya Injector (deployment and pods)
 #   - Crossplane Providers (pods in crossplane-system)
 #   - Asya Gateway (deployment and pods)
 #   - RabbitMQ (statefulset and pods)

@@ -1,12 +1,11 @@
 # Getting Started with Asya🎭 (Crossplane Architecture)
 
 This quickstart deploys Asya using **Crossplane Compositions** for infrastructure management
-and the **asya-injector webhook** for sidecar injection, replacing the monolithic asya-operator.
+and inline sidecar rendering, replacing the monolithic asya-operator.
 
 ## What You'll Learn
 
 - Deploy Crossplane providers and compositions for SQS + KEDA + Kubernetes resources
-- Deploy the asya-injector mutating webhook for automatic sidecar injection
 - Create your first AsyncActor using a Crossplane claim
 - Test autoscaling: scale-from-zero, process messages, scale-to-zero
 - Delete an actor and verify all resources are cleaned up
@@ -32,9 +31,6 @@ From the repository root:
 ```bash
 # Build sidecar
 docker build -t asya-sidecar:latest -f src/asya-sidecar/Dockerfile src/asya-sidecar/
-
-# Build injector
-docker build -t asya-injector:latest -f src/asya-injector/Dockerfile src/asya-injector/
 ```
 
 Create a test actor handler:
@@ -61,19 +57,11 @@ docker build -t test-actor:latest /tmp/test-actor/
 Load all images into Kind:
 
 ```bash
-kind load docker-image asya-sidecar:latest asya-injector:latest test-actor:latest \
+kind load docker-image asya-sidecar:latest test-actor:latest \
   --name asya-crossplane
 ```
 
 ## 3. Install Infrastructure
-
-### cert-manager (for webhook TLS)
-
-```bash
-kubectl cluster-info --context kind-asya-crossplane
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
-kubectl wait --for=condition=Available deployment/cert-manager-webhook -n cert-manager --timeout=120s
-```
 
 ### Crossplane
 
@@ -288,29 +276,7 @@ kubectl get xrd xasyncactors.asya.sh
 # Should show ESTABLISHED=True, OFFERED=True
 ```
 
-## 7. Install Asya Injector
-
-```bash
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  --namespace asya-system --create-namespace \
-  --set config.sidecarImage=asya-sidecar:latest \
-  --set config.sidecarImagePullPolicy=Never \
-  --set config.sqsEndpoint=http://localstack.localstack.svc.cluster.local:4566 \
-  --set config.awsCredsSecret=aws-creds \
-  --set image.repository=asya-injector \
-  --set image.tag=latest \
-  --set image.pullPolicy=Never \
-  --wait --timeout 180s
-```
-
-Verify the webhook is registered:
-
-```bash
-kubectl get mutatingwebhookconfigurations
-# Should show asya-injector
-```
-
-## 8. Deploy Your First Actor
+## 7. Deploy Your First Actor
 
 ```bash
 kubectl apply -f - <<'EOF'
@@ -483,9 +449,8 @@ kubectl delete secret asya-gateway-postgresql -n default
 kubectl delete deployment asya-gateway-postgresql -n default
 kubectl delete service asya-gateway-postgresql -n default
 
-# Remove Crossplane and Injector
+# Remove Crossplane
 helm uninstall asya-crossplane
-helm uninstall asya-injector -n asya-system
 
 # Remove KEDA
 helm uninstall keda -n keda
@@ -568,7 +533,7 @@ Your pipeline results are now automatically persisted to S3: whenever an actor f
 Asya uses namespace separation to distinguish infrastructure from business logic:
 
 **asya-system namespace** (infrastructure layer):
-- Crossplane + asya-injector (watches AsyncActors across all namespaces)
+- Crossplane (watches AsyncActors across all namespaces)
 - LocalStack / infrastructure services
 - KEDA (monitors queues across all namespaces)
 - Prometheus / Grafana (when installed)
@@ -581,7 +546,7 @@ Asya uses namespace separation to distinguish infrastructure from business logic
 
 **Why this separation?**
 
-Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single injector in asya-system.
+Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance.
 
 ## Add Gateway (Optional)
 
@@ -954,7 +919,6 @@ See [AWS EKS Installation](../install/aws-eks.md) for full production guide.
          (user handler)        (message router)
 ```
 
-- **Crossplane Compositions** manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects
-- **asya-injector webhook** injects the sidecar at pod creation time
+- **Crossplane Compositions** manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects, and render the sidecar inline into actor pods
 - **KEDA** handles autoscaling based on SQS queue depth
 - Deletion of the AsyncActor claim cascades to all managed resources

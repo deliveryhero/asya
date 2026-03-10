@@ -111,13 +111,3 @@ crossplane:
       secretRef:
         name: rabbitmq-secret
         hostKey: host
-
-injector:
-  image:
-    tag: latest
-    pullPolicy: Never
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sidecarImagePullPolicy: Never
-    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
-    rabbitmqURL: amqp://guest:guest@asya-rabbitmq.asya-e2e.svc.cluster.local:5672/

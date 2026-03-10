@@ -153,8 +153,8 @@ S3 connector. This flavor is added automatically when `ASYA_STORAGE=gcs`.
 
 **Location**: `testing/e2e/`
 
-Full Kubernetes deployment with Crossplane, the injector, gateway, KEDA, and crew
-actors. Transport is selected at the profile level.
+Full Kubernetes deployment with Crossplane, gateway, KEDA, and crew actors.
+Transport is selected at the profile level.
 
 Active profiles in CI:
 
@@ -265,9 +265,9 @@ this:
 
 ### `gcpProject` requirement in AsyncActor manifests
 
-The injector sets `ASYA_PUBSUB_PROJECT_ID` on sidecar containers only if the
-AsyncActor spec has a non-empty `gcpProject` field. Without it, the sidecar calls
-`pubsub.NewClient(ctx, "", ...)` and crashes immediately with
+The Crossplane composition sets `ASYA_PUBSUB_PROJECT_ID` on sidecar containers
+only if the AsyncActor spec has a non-empty `gcpProject` field. Without it, the
+sidecar calls `pubsub.NewClient(ctx, "", ...)` and crashes immediately with
 `"projectID string is empty"`.
 
 Every inline AsyncActor manifest in tests must include `gcpProject` for Pub/Sub.
@@ -339,7 +339,7 @@ timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.
 - Add Crossplane composition `composition-<transport>.yaml` — downstream
   steps read from `$xr.spec.*` (desired XR); select the correct KEDA
   trigger type
-- Wire the injector to set transport-specific env vars on sidecar containers
+- Wire the Crossplane composition to set transport-specific env vars on sidecar containers
 - Grep existing tests for `ASYA_TRANSPORT` and `transport == "sqs"` — add new
   transport branches or skip conditions as needed
 - Add the new profile to the `e2e-tests` matrix in `.github/workflows/ci.yml`

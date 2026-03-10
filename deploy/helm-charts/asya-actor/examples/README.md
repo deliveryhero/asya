@@ -60,10 +60,8 @@ helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace
 
-# Install Asya compositions and injector
+# Install Asya compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-helm install asya-injector deploy/helm-charts/asya-injector \
-  -n asya-system --create-namespace
 
 # Install KEDA (for autoscaling)
 helm repo add kedacore https://kedacore.github.io/charts
@@ -198,10 +196,6 @@ kubectl get xrd asyncactors.asya.sh
 kubectl get deployment crossplane -n crossplane-system
 kubectl logs -n crossplane-system deployment/crossplane
 
-# Check injector
-kubectl get deployment asya-injector -n asya-system
-kubectl logs -n asya-system deployment/asya-injector
-
 # Check KEDA
 kubectl get crd scaledobjects.keda.sh
 ```
@@ -240,9 +234,6 @@ helm uninstall my-echo
 
 # Uninstall crew
 helm uninstall asya-crew
-
-# Uninstall injector
-helm uninstall asya-injector -n asya-system
 
 # Uninstall Crossplane
 helm uninstall crossplane -n crossplane-system

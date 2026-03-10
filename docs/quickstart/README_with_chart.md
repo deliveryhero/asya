@@ -1,14 +1,14 @@
 # Getting Started with Asya Playground Chart
 
 One-command quickstart using the `asya-playground` umbrella Helm chart.
-This chart bundles KEDA, Crossplane providers, the injector webhook, crew actors,
+This chart bundles KEDA, Crossplane providers, crew actors,
 and sample infrastructure (LocalStack for SQS/S3) into a single Helm release.
 
 ## What You'll Deploy
 
 - **KEDA** for autoscaling actors based on SQS queue depth
 - **Crossplane providers** + XRDs + Compositions for AsyncActor lifecycle management
-- **asya-injector webhook** for automatic sidecar injection
+- **Crossplane compositions** with inline sidecar rendering
 - **Crew actors** (x-sink, x-sump) for pipeline completion
 - **LocalStack** for SQS and S3 emulation
 - **Hello-world actor** to verify the installation
@@ -29,13 +29,9 @@ kind create cluster --name asya-playground --wait 60s
 
 ## 2. Install Cluster Prerequisites
 
-The playground chart requires Crossplane and cert-manager to be installed first:
+The playground chart requires Crossplane to be installed first:
 
 ```bash
-# cert-manager (for injector webhook TLS)
-kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
-kubectl wait --for=condition=Available deployment --all -n cert-manager --timeout=120s
-
 # Crossplane (for provider-based infrastructure management)
 helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm install crossplane crossplane-stable/crossplane \
@@ -50,14 +46,9 @@ From the repository root:
 # Build all component images
 make build-images
 
-# Build injector image
-docker build -t ghcr.io/deliveryhero/asya-injector:latest \
-  -f src/asya-injector/Dockerfile src/asya-injector/
-
 # Load into Kind
 kind load docker-image \
   ghcr.io/deliveryhero/asya-sidecar:latest \
-  ghcr.io/deliveryhero/asya-injector:latest \
   ghcr.io/deliveryhero/asya-crew:latest \
   ghcr.io/deliveryhero/asya-gateway:latest \
   --name asya-playground
@@ -103,9 +94,6 @@ helm install asya . -n asya-demo --create-namespace \
   --set asya-crossplane.providerConfigs.install=false \
   --set asya-crossplane.actorNamespace=asya-demo \
   --set asya-crossplane.awsProviderConfig.endpoint.url=http://localstack-sqs.asya-demo:4566 \
-  --set asya-injector.config.sqsEndpoint=http://localstack-sqs.asya-demo:4566 \
-  --set asya-injector.image.pullPolicy=Never \
-  --set asya-injector.config.sidecarImagePullPolicy=Never \
   --set enableAsyaCrew=false \
   --set enableAsyaGateway=false \
   --set sampleMonitoring.enabled=false \
@@ -161,7 +149,7 @@ helm upgrade asya . -n asya-demo \
 kubectl get pods -n asya-demo
 
 # Expected output:
-# asya-asya-injector-...   1/1     Running
+# crossplane-...           1/1     Running
 # x-sump-...               2/2     Running
 # x-sink-...               2/2     Running
 # hello-...                 0/0    (scaled to zero by KEDA)
@@ -209,7 +197,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli -n asya-demo 
 # Watch the hello deployment scale up (takes ~30s for KEDA to detect the message)
 kubectl get deployment hello -n asya-demo -w
 
-# Once the pod appears, check it has 2 containers (runtime + injected sidecar)
+# Once the pod appears, check it has 2 containers (runtime + sidecar rendered inline)
 kubectl get pods -n asya-demo -l asya.sh/actor=hello
 # Should show: 2/2 Running
 ```
@@ -264,25 +252,25 @@ The crew chart defaults to `Chart.AppVersion` for the image tag. Set explicitly:
 
 ### Sidecar crashes with gateway health check failure
 
-If the gateway is not installed, clear the gateway URL from the injector:
+If the gateway is not installed, clear the gateway URL in the asya-crossplane chart values:
 
 ```bash
---set asya-injector.config.gatewayURL=""
+--set asya-crossplane.sidecar.gatewayURL=""
 ```
 
-Then delete affected pods to trigger re-injection:
+Then delete affected pods to trigger reconciliation:
 
 ```bash
-kubectl delete pods -n asya-demo -l asya.sh/inject=true
+kubectl delete pods -n asya-demo -l asya.sh/actor
 ```
 
 ### Pods show 1/2 containers
 
-The sidecar injection webhook may not have started yet. Check the injector pod:
+The Crossplane composition may not have finished reconciling. Check the AsyncActor status:
 
 ```bash
-kubectl get pods -n asya-demo -l app.kubernetes.io/name=asya-injector
-kubectl logs -n asya-demo -l app.kubernetes.io/name=asya-injector
+kubectl get asyncactor -n asya-demo
+kubectl describe asyncactor hello -n asya-demo
 ```
 
 ## What's Next?

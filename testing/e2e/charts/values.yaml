@@ -29,14 +29,6 @@ crossplane:
   functions:
     flavorsPackagePullPolicy: Never
 
-injector:
-  image:
-    tag: latest
-    pullPolicy: Never
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sidecarImagePullPolicy: Never
-
 gateway:
   image:
     repository: ghcr.io/deliveryhero/asya-gateway

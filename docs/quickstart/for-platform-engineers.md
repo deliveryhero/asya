@@ -4,7 +4,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 ## What You'll Learn
 
-- Install and configure Crossplane with Asya compositions and injector webhook
+- Install and configure Crossplane with Asya compositions
 - Deploy gateway and crew actors for pipeline completion
 - Support data science teams with templates and IAM configuration
 - Set up monitoring with Prometheus and troubleshoot common issues
@@ -14,7 +14,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 As platform engineer, you:
 
-- Deploy Crossplane compositions and asya-injector webhook
+- Deploy Crossplane compositions
 - Configure transports (SQS, RabbitMQ)
 - Manage IAM roles and permissions
 - Monitor system health
@@ -44,15 +44,11 @@ helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace
 ```
 
-### 3. Install Asya Compositions and Injector
+### 3. Install Asya Compositions
 
 ```bash
 # Install Asya XRDs and Compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-# Install asya-injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
 ```
 
 ### 4. Configure Transports
@@ -128,9 +124,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ -f crew-values.yaml
 ```bash
 # Check Crossplane
 kubectl get pods -n crossplane-system
-
-# Check injector webhook
-kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda
@@ -236,7 +229,7 @@ kubectl create secret generic rabbitmq-secret \
 
 ### Prometheus Metrics
 
-**Important**: The injector webhook does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
+**Important**: Asya does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
 
 **Key sidecar metrics** (namespace: `asya_actor`):
 
@@ -324,11 +317,6 @@ histogram_quantile(0.95, rate(asya_actor_processing_duration_seconds_bucket{queu
 **View Crossplane logs**:
 ```bash
 kubectl logs -n crossplane-system deploy/crossplane -f
-```
-
-**View injector webhook logs**:
-```bash
-kubectl logs -n asya-system deploy/asya-injector -f
 ```
 
 **View actor logs**:
@@ -517,10 +505,6 @@ helm upgrade crossplane crossplane-stable/crossplane \
 
 # Upgrade Asya compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-# Upgrade injector webhook
-helm upgrade asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system
 
 # Upgrade gateway
 helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ \

@@ -5,7 +5,7 @@ Full demo package showing Asya🎭 in action with sample actors, flows, and infr
 ## Overview
 
 The `asya-playground` chart is a complete demonstration package that bundles:
-- **Crossplane + Injector** - XRDs, Compositions, and sidecar injection webhook for AsyncActor resources
+- **Crossplane** - XRDs and Compositions for AsyncActor resources (sidecar rendered inline)
 - **Crew Actors** - System actors (x-sink, x-sump)
 - **Gateway** - MCP gateway with PostgreSQL backend
 - **Sample Actors** - Hello-world actor for validation and testing
@@ -25,7 +25,6 @@ This chart is ideal for:
 - Helm 3.8+
 - kubectl configured for your cluster
 - [Crossplane](https://crossplane.io/) installed in the cluster
-- [cert-manager](https://cert-manager.io/) installed (required by asya-injector webhook TLS)
 
 For production deployments, install components separately with proper cloud services and custom configurations.
 
@@ -181,7 +180,7 @@ Sample infrastructure provides quick-start transport and storage backends for de
 All components are installed in the release namespace (`--namespace` flag or `default`).
 
 For production deployments with separate namespaces:
-- Install Crossplane and injector in `asya-system` using their respective charts
+- Install Crossplane in `asya-system` using its respective chart
 - Install this bundle (gateway + actors + infrastructure) in a dedicated namespace
 
 ### Hello Actor Configuration
@@ -291,7 +290,6 @@ kubectl delete pvc minio-data -n asya-playground
 ┌─────────────────────────────────────────────────────┐
 │ Release namespace (e.g., default or asya-demo)       │
 │ - asya-crossplane (XRDs, Compositions, Providers)    │
-│ - asya-injector (sidecar injection webhook)          │
 │ - asya-gateway + PostgreSQL                          │
 │ - asya-crew (x-sink, x-sump)                         │
 │ - hello-world actor                                  │
@@ -304,18 +302,11 @@ kubectl delete pvc minio-data -n asya-playground
 ```
 
 **Note**: For production, consider installing components in separate namespaces:
-- Crossplane + Injector in `asya-system`
+- Crossplane in `crossplane-system`, asya-crossplane in `asya-system`
 - Gateway + actors in dedicated namespaces per environment
 - Use cloud services instead of sample infrastructure
 
 ## Troubleshooting
-
-### Pods not starting
-
-Check injector logs:
-```bash
-kubectl logs -n asya-system -l app.kubernetes.io/name=asya-injector
-```
 
 ### Actor not scaling
 
@@ -359,8 +350,7 @@ kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
 ## Dependencies
 
 This umbrella chart depends on:
-- `asya-crossplane` (>=0.1.0) - XRDs, Compositions, Crossplane providers
-- `asya-injector` (>=0.1.0) - Sidecar injection webhook
+- `asya-crossplane` (>=0.1.0) - XRDs, Compositions, Crossplane providers (includes inline sidecar rendering)
 - `asya-crew` (>=0.4.0) - System actors
 - `asya-gateway` (>=0.4.0) - MCP gateway
 
@@ -374,7 +364,7 @@ Load testing capabilities for stress-testing actor pipelines are tracked in a se
 
 **IMPORTANT**: This quickstart chart is designed for demos and learning. For production deployments, consider:
 
-1. **Install components separately** - Use individual charts (asya-crossplane, asya-injector, asya-gateway, asya-crew) with custom configurations
+1. **Install components separately** - Use individual charts (asya-crossplane, asya-gateway, asya-crew) with custom configurations
 2. **Use cloud services** - Replace sample infrastructure with AWS SQS/S3, hosted RabbitMQ, managed PostgreSQL
 3. **Configure IAM roles** - Set up proper AWS IAM roles for SQS/S3 access
 4. **Set resource limits** - Configure appropriate CPU/memory limits for your workload

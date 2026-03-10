@@ -30,7 +30,7 @@ global:
 #     --set kube-prometheus-stack.namespaceOverride=monitoring
 #
 # This deploys:
-#   - asya-demo: Crossplane, Injector, Gateway, Crew, Actors, KEDA
+#   - asya-demo: Crossplane, Gateway, Crew, Actors, KEDA
 #   - monitoring: Prometheus, Grafana, dashboards, PodMonitors
 #   - asya-infra: LocalStack SQS, S3, MinIO, PostgreSQL
 namespaces:

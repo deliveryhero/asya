@@ -103,7 +103,7 @@ def retrieve(query: str, top_k: int = 10) -> list[Candidate]:
         ("Actor mesh enables event-driven AI workloads on Kubernetes.", "docs/architecture.md"),
         ("KEDA autoscaling allows scale-to-zero for idle actors.", "docs/scaling.md"),
         ("Envelope passing routes messages between actors via queues.", "docs/protocol.md"),
-        ("The sidecar injects into actor pods via a mutating webhook.", "docs/injector.md"),
+        ("The sidecar is rendered inline into actor pods by Crossplane compositions.", "docs/crossplane.md"),
         ("Crossplane compositions manage queue lifecycle declaratively.", "docs/crossplane.md"),
     ]
     return [
