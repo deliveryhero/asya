@@ -10,7 +10,7 @@ UPD 2026-03-07: NOTE: Asya is a thin command runner for builds, not a build syst
 UPD 2026-03-09: NOTE: The Docker Compose deployment path described in this doc
 is superseded by the K8s/Docker command split in `adr.k-d-command-split.md`.
 Command references below have been updated to reflect the new CLI surface
-(`asya k build`, `asya k deploy`, etc.).
+(`asya k build`, `asya k apply`, etc.).
 
 **Scope**: This doc covers image build execution and deployment workflows.
 It does NOT cover:
@@ -199,7 +199,7 @@ asya k build my-actor --builder=shipwright
 # 3. Image pushed to registry
 # No git commit, no local Docker.
 
-asya k deploy my-actor --context stg
+asya k apply my-actor --context stg
 # -> creates/updates AsyncActor CR referencing built image
 ```
 
@@ -543,7 +543,7 @@ based on their policy.
 1. DS writes handler code
 2. DS runs: asya k build my-actor --push
    (builds locally or triggers on-cluster build, pushes to registry)
-3. DS runs: asya k deploy my-actor --context stg
+3. DS runs: asya k apply my-actor --context stg
    (creates/updates AsyncActor CR on staging)
 4. DS tests against real queues
 5. Repeat 1-4 until satisfied
@@ -562,7 +562,7 @@ work with uncommitted files.
 1. DS writes handler code
 2. DS runs: asya k build my-actor --builder=shipwright --push
    (uploads source to cluster, Shipwright builds + pushes)
-3. DS runs: asya k deploy my-actor --context stg
+3. DS runs: asya k apply my-actor --context stg
 4. Repeat
 ```
 
@@ -634,7 +634,7 @@ spec:
 **State lifecycle**:
 ```
 Local working dir (ephemeral, uncommitted)
-  -> asya k build + asya k deploy (staging, OCI-driven)
+  -> asya k build + asya k apply (staging, OCI-driven)
   -> asya promote (generates git-tracked files + PR)
   -> PR review + merge (production, Git-driven)
   -> ArgoCD/Flux deploys to prod
@@ -759,7 +759,7 @@ source of truth for what's deployed.
 Build config (strategy + deps + code)
   |
   +-- Experimentation: local files, gitignored, imperative deploys
-  |     asya k build -> asya k deploy --context stg
+  |     asya k build -> asya k apply --context stg
   |
   +-- Production: committed to git, CI builds, GitOps deploys
         asya promote -> PR -> CI -> ArgoCD/Flux
@@ -783,16 +783,16 @@ asya k build my-actor --push
 # -> creates Shipwright BuildRun CR, no local command needed
 ```
 
-### 7.3 `asya k deploy` Command
+### 7.3 `asya k apply` Command
 
 ```bash
 # Imperative deploy to staging
-asya k deploy my-actor --context stg
+asya k apply my-actor --context stg
 # -> creates/updates AsyncActor CR
 # -> references latest built image
 
 # Writes manifest for GitOps
-asya k deploy my-actor --context prod --dry-run > asyncactor.yaml
+asya k apply my-actor --context prod --dry-run > asyncactor.yaml
 # -> generates manifest for git commit
 ```
 

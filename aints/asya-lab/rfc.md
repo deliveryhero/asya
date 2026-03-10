@@ -86,8 +86,8 @@ asya.compile("my_flows/order_processing.py")
 asya.compile("e_commerce.validate.validate_order")  # single actor
 
 # --- K8s Operations ---
-asya.k.deploy("order-processing", context="k8s-stg")
-asya.k.undeploy("order-processing", context="k8s-stg")
+asya.k.apply("order-processing", context="k8s-stg")
+asya.k.delete("order-processing", context="k8s-stg")
 asya.k.status("order-processing")
 asya.k.logs("order-processing")
 asya.k.call("analyze", {"text": "hello"}, protocol="mcp")
@@ -121,6 +121,9 @@ See `adr.k-d-command-split.md` for the rationale.
 
 ```bash
 asya compile <target>               # Python -> manifests + routers (no cluster needed)
+asya expose <target>                # generate gateway ConfigMap in base/ (no cluster needed)
+asya show <target> [--context ctx]  # kustomize build -> effective manifests (no cluster needed)
+asya status                         # local source of truth (compiled manifests, CRs)
 asya init [--template <name>]       # scaffold .asya/ via Copier
 asya serve                          # start local HTTP/WS server for UI
 ```
@@ -133,19 +136,44 @@ asya serve                          # start local HTTP/WS server for UI
 | `e_commerce.validate.process` | Dotted path, no file | Compile single actor manifest |
 | `order-processing` | Kebab-case name | Recompile from existing manifests |
 
+**Naming flags** (`--flow` and `--actor`):
+
+Both flags accept a single name (when unambiguous) or a `<source>=<name>` mapping:
+
+```bash
+# Auto-derive all names (kebab-case from function names)
+asya compile order.py
+
+# Override flow name (one @flow per file, unambiguous)
+asya compile order.py --flow my-order-flow
+
+# Override single actor name (errors if multiple @actor in file)
+asya compile handler.py --actor my-handler
+
+# Explicit mapping (repeatable, source can be function name or FQN)
+asya compile order.py --flow my-flow \
+  --actor validate_order=validator \
+  --actor e_commerce.processing.express_handler=express
+```
+
+Default names are derived from function names via kebab-case conversion
+(`order_processing` -> `order-processing`). Unspecified actors keep their
+auto-derived names; users can rename them later in kustomize overlays.
+
+Both `asya compile` and `asya expose` are idempotent — re-running overwrites
+previous output cleanly.
+
 ### 5.2 Kubernetes Commands (`asya k`)
 
 ```bash
 asya k edit <actor-name>            # open kustomize patch in common/ for actor
-asya k show <target>                # print effective manifests (kustomize build overlay)
 asya k build <target>               # build + push images to registry
-asya k deploy <target>              # auto-compile if .py, kubectl apply
-asya k undeploy <target>            # kubectl delete
-asya k status <target>              # replicas, queue depth
+asya k apply <target>               # auto-compile if .py, kustomize build | kubectl apply --server-side
+asya k delete <target>              # kubectl delete
+asya k status <target>              # live cluster state: replicas, queue depth
 asya k logs <target>                # kubectl logs (colored per-actor)
 asya k call <target> '{}'           # call via gateway
 asya k stream <id>                  # stream results via gateway SSE
-asya k expose <target>              # generate configmap-flows.yaml in base/ + apply to gateway
 asya k send <target> '{}'           # send envelope to queue
 asya k trace <id>                   # distributed trace
 asya k secret create|remove|list|show  # K8s secretKeyRef mappings
@@ -154,12 +182,12 @@ asya k context list|use             # switch K8s context
 
 Aliases: `asya k` = `asya k8s` = `asya kubernetes`.
 
-`asya k deploy` auto-compiles when given a `.py` file:
+`asya k apply` auto-compiles when given a `.py` file:
 ```
-$ asya k deploy flows/order.py --context stg
+$ asya k apply flows/order.py --context stg
 [compile] 4 actors, 2 routers → .asya/manifests/order-processing/
-[deploy]  kustomize build .asya/manifests/order-processing/overlays/stg/
-[deploy]  kubectl apply --server-side --field-manager=asya-flow-order-processing -f -
+[apply]   kustomize build .asya/manifests/order-processing/overlays/stg/
+[apply]   kubectl apply --server-side --field-manager=asya-flow-order-processing -f -
 asyncactor.asya.sh/validate-order serverside-applied
 asyncactor.asya.sh/router-start-order-processing serverside-applied
 configmap/gateway-flows serverside-applied
@@ -219,15 +247,18 @@ reserved for sidecar-to-gateway communication.
 | Command | Backend | Protocol / API |
 |---------|---------|---------------|
 | `asya compile <target>` | Local | Config + Python resolution |
-| `asya k deploy <target>` | K8s | `kustomize build overlay \| kubectl apply --server-side -f -` |
-| `asya k status <target>` | K8s | `kubectl get asyncactor` |
+| `asya expose <target>` | Local | Generate `configmap-flows.yaml` in `base/` |
+| `asya show <target>` | Local | `kustomize build` → effective manifests |
+| `asya status` | Local | Source of truth from compiled manifests |
+| `asya k apply <target>` | K8s | `kustomize build overlay \| kubectl apply --server-side -f -` |
+| `asya k delete <target>` | K8s | `kubectl delete` by flow labels |
+| `asya k status <target>` | K8s | `kubectl get asyncactor` (live cluster state) |
 | `asya k logs <target>` | K8s | `kubectl logs -l asya.sh/flow=<name>` |
 | `asya k call <target>` | Gateway | MCP `tools/call` or A2A `message/send` |
 | `asya k stream <id>` | Gateway | MCP streamable HTTP or A2A subscribe |
 | `asya k send <target>` | MQ | Direct queue publish (SQS/RabbitMQ API) |
 | `asya k trace <id>` | Observability | OpenTelemetry trace query |
 | `asya k edit <actor>` | Local | Opens/creates kustomize patch file |
-| `asya k show <target>` | Local | `kustomize build` → effective manifests |
 | `asya k build <target>` | Build tool | Opaque shell command from config.yaml |
 | `asya k secret *` | Local | Reads/writes config.yaml secrets: |
 | `asya k context *` | Local | Reads/writes config.yaml contexts: |
@@ -240,8 +271,9 @@ reserved for sidecar-to-gateway communication.
 
 ### 5.7 List and Discovery
 
-`asya k status` shows a unified outer-join table across three data sources:
-local source files, compiled manifests, and deployed state.
+`asya status` (local) shows a unified outer-join table across two local data
+sources: source files and compiled manifests. `asya k status` (cluster) adds
+the deployed state column.
 
 **Discovery**: Scan `.py` files under `var.project_root` for `@actor` and
 `@flow` decorators, matched against compiler rules.
@@ -252,16 +284,16 @@ local source files, compiled manifests, and deployed state.
 |--------|--------|----------------|
 | SOURCE | `.py` files with `@flow`/`@actor` decorators | Always (pre-compile) |
 | COMPILED | `.asya/manifests/<flow>/` YAML files | After `asya compile` |
-| DEPLOYED | K8s `asyncactor` resources | After `asya k deploy` |
+| DEPLOYED | K8s `asyncactor` resources | After `asya k apply` |
 
 ### 5.8 Protocol Handling
 
-`asya k call` and `asya k expose` accept a `--protocol=mcp|a2a` flag.
+`asya k call` and `asya expose` accept a `--protocol=mcp|a2a` flag.
 Default is configurable. DS should not need to care about MCP vs A2A.
 
-### 5.9 Deploy Semantics
+### 5.9 Apply Semantics
 
-`asya k deploy` runs `kustomize build` on the context-specific overlay
+`asya k apply` runs `kustomize build` on the context-specific overlay
 (merges base → common → overlay), pipes effective manifests to
 `kubectl apply --server-side` with a per-flow field manager.
 
@@ -276,12 +308,12 @@ conflicts. Each flow's field manager owns only its data key. Since asya fully
 manages kubectl, mixed apply mode risks are eliminated.
 
 Safety rule: checks for existing deployment. If a different version exists,
-errors and asks to undeploy first. Identical version exits 0 (idempotent).
+errors and asks to delete first. Identical version exits 0 (idempotent).
 
 ### 5.10 Read-Only Enforcement
 
 Contexts with `readonly: true` block write operations:
-- `asya k deploy/undeploy` → error (production writes happen via GitOps PR)
+- `asya k apply/delete` → error (production writes happen via GitOps PR)
 
 Read operations always allowed: `status`, `logs`, `call`, `stream`.
 
@@ -320,7 +352,7 @@ contexts:
     kubecontext: my-prod-cluster
     namespace: prod
     gateway: https://gw.prod.internal
-    readonly: true                  # blocks deploy/undeploy, allows status/logs/call
+    readonly: true                  # blocks apply/delete, allows status/logs/call
 
 default_context: stg
 ```
@@ -330,7 +362,7 @@ default_context: stg
 - `kubecontext` (required): kubeconfig context name
 - `namespace` (required): K8s namespace
 - `gateway` (optional): gateway URL for `call`/`stream`
-- `readonly` (optional, default `false`): blocks deploy/undeploy/promote
+- `readonly` (optional, default `false`): blocks apply/delete
 
 ### 6.3 Resolution Order
 
@@ -476,7 +508,7 @@ All files are loaded into one OmegaConf DictConfig (the library, not
 │       ├── base/                # layer 1: compiler output (regenerated)
 │       │   ├── kustomization.yaml
 │       │   ├── <actor>.yaml     # AsyncActor XRs
-│       │   └── configmap-flows.yaml  # gateway exposure (if asya k expose ran)
+│       │   └── configmap-flows.yaml  # gateway exposure (if asya expose ran)
 │       ├── common/              # layer 2: shared user customizations (preserved)
 │       │   ├── kustomization.yaml    # resources: ../base + patches
 │       │   └── <actor>.yaml          # infra-tier patches (scaling, resources, etc.)
@@ -647,7 +679,7 @@ commonLabels:
 ```
 
 **Per-context exposure control**: To expose a flow only on stg, add
-`configmap-flows.yaml` to base/ (via `asya k expose`) and add a `$patch: delete`
+`configmap-flows.yaml` to base/ (via `asya expose`) and add a `$patch: delete`
 in the prod overlay to exclude it:
 ```yaml
 # overlays/prod/remove-expose.yaml
@@ -761,7 +793,7 @@ env entries. The compiler constructs this list from:
   `common/` (shared user customizations, preserved) → `overlays/<context>/`
   (per-context overrides). `kustomize build overlays/<ctx>/` merges all three
   layers. Docker Compose is generated from effective manifests by `asya d up`.
-- **Server-side apply**: `asya k deploy` always uses `kubectl apply --server-side`
+- **Server-side apply**: `asya k apply` always uses `kubectl apply --server-side`
   with `--field-manager=asya-flow-<name>`. This allows multiple flows to
   contribute data keys to the shared `gateway-flows` ConfigMap without conflicts.
   Since asya fully manages kubectl, mixed apply mode risks don't apply.
@@ -777,14 +809,14 @@ env entries. The compiler constructs this list from:
 
 ## 8. Three Stages
 
-The lifecycle is three stages: compile, build, deploy. No separate render
+The lifecycle is three stages: compile, build, apply. No separate render
 step — compile stamps AsyncActor XRs directly into kustomize base.
 
 | Stage | CLI | Input | Output |
 |-------|-----|-------|--------|
 | **Compile** | `asya compile` | source + .asya/*.yaml | routers.py + base/*.yaml (kustomize base) |
 | **Build** | `asya k build` | source + build commands | OCI image |
-| **Deploy** | `asya k deploy` | effective manifests (kustomize build) | running pods/containers |
+| **Apply** | `asya k apply` | effective manifests (kustomize build) | running pods/containers |
 
 Build defaults to local-only; `--push` adds a registry push.
 
@@ -831,7 +863,7 @@ Same resolution code. Flow compile adds AST parsing + router generation.
 │   ├── express-handler.yaml
 │   ├── router-start.yaml
 │   ├── end-order-processing.yaml
-│   └── configmap-flows.yaml           # gateway exposure (created by asya k expose)
+│   └── configmap-flows.yaml           # gateway exposure (created by asya expose)
 ├── common/                            # layer 2: shared customizations (preserved)
 │   ├── kustomization.yaml             # resources: ../base + patches
 │   └── validate-order.yaml            # infra-tier patch (created by asya k edit)
@@ -860,7 +892,7 @@ will provide structured editing commands for these patches.
 
 **Effective manifests** = `kustomize build` on the context overlay:
 ```bash
-asya k show order-processing --context stg
+asya show order-processing --context stg
 # kustomize build .asya/manifests/order-processing/overlays/stg/
 ```
 
@@ -893,7 +925,7 @@ three. Recompiling never destroys infrastructure or per-context configuration.
 
 ### 8.1.2 Gateway Exposure (`configmap-flows.yaml`)
 
-`asya k expose` generates a ConfigMap manifest in `base/configmap-flows.yaml`.
+`asya expose` generates a ConfigMap manifest in `base/configmap-flows.yaml`.
 Each flow contributes a single data key to the shared `gateway-flows` ConfigMap:
 
 ```yaml
@@ -919,7 +951,7 @@ data:
 ```
 
 **Server-side apply with per-flow field managers** prevents conflicts.
-`asya k deploy` always uses:
+`asya k apply` always uses:
 ```bash
 kubectl apply --server-side --field-manager=asya-flow-<flow-name> -f -
 ```
@@ -927,7 +959,7 @@ kubectl apply --server-side --field-manager=asya-flow-<flow-name> -f -
 Each flow's field manager owns only its data key in the ConfigMap. Multiple
 flows deploying independently never overwrite each other's keys.
 
-**CLI flags** for `asya k expose`:
+**CLI flags** for `asya expose`:
 
 | Flag | Protocol | Description |
 |------|----------|-------------|
@@ -947,7 +979,7 @@ actor with label `asya.sh/flow-role: entrypoint`. No K8s API call needed.
 see it by default). To exclude on a specific context, add a `$patch: delete`
 in that context's overlay (see section 7.3.1).
 
-**Unexpose**: `asya k unexpose <flow>` removes `configmap-flows.yaml` from
+**Unexpose**: `asya unexpose <flow>` removes `configmap-flows.yaml` from
 `base/` and applies a JSON patch to remove the data key from the ConfigMap:
 ```bash
 kubectl patch configmap gateway-flows --type=json \
@@ -966,9 +998,9 @@ keys:
 - **ArgoCD**: `syncOptions: [ServerSideApply=true]` on the Application
 - **FluxCD**: `spec.serverSideApply: true` on the Kustomization resource
 
-`asya k deploy` on readonly contexts generates manifests but does not apply:
+`asya k apply` on readonly contexts generates manifests but does not apply:
 ```bash
-asya k deploy order-processing --context prod
+asya k apply order-processing --context prod
 # context "prod" is readonly — commit manifests and apply via GitOps
 ```
 
@@ -1062,7 +1094,7 @@ check `$?` for pass/fail; humans read the message.
 | Config | Load | Invalid YAML, unknown keys, duplicate `module:`, unresolved interpolation, missing `.asya/` |
 | Compile | Compile | Handler can't be imported, no matching build entry, unsupported AST construct, invalid flow signature |
 | Build | Build | Build command exits non-zero (stderr forwarded), image push fails |
-| Deploy | Deploy | Context not configured, readonly violation, kubectl error, unresolved `${arg:*}` in manifest |
+| Apply | Apply | Context not configured, readonly violation, kubectl error, unresolved `${arg:*}` in manifest |
 | File safety | Any | Target file has uncommitted changes (use `--force` to override) |
 
 **No retry logic.** The CLI fails fast on first error. Retry belongs in CI
@@ -1090,9 +1122,9 @@ Error: build command failed (exit code 1)
     1. /.asya/config.yaml
 ```
 
-**Deploy errors**: kubectl/docker compose stderr is forwarded verbatim:
+**Apply errors**: kubectl/docker compose stderr is forwarded verbatim:
 ```
-Error: deploy failed
+Error: apply failed
   in: kustomize build .asya/manifests/order-processing/overlays/stg/ | kubectl apply --server-side -f -
   hint: error from server (Forbidden): asyncactors.asya.sh is forbidden
   config files loaded:
@@ -1207,7 +1239,7 @@ This also protects against collisions with standalone actors — client-side
 overhead: no extra API calls, just error handling on the apply that was going
 to happen anyway.
 
-### 10.2 What `asya k deploy` Does
+### 10.2 What `asya k apply` Does
 
 For K8s contexts:
 1. Selects overlay for the active context (`overlays/<context>/`)
@@ -1216,7 +1248,7 @@ For K8s contexts:
 4. Prints each command before execution (`+` prefix, like `set -x`)
 
 For GitOps (readonly contexts):
-1. `asya k show <flow>` prints effective manifests to stdout
+1. `asya show <flow>` prints effective manifests to stdout
 2. User commits manifests directory (base + common + overlays) to git
 3. FluxCD/ArgoCD picks up and applies with SSA (must be configured, see 8.1.3)
 
@@ -1269,9 +1301,9 @@ images (larger), Docker dependency (local builds only).
 ```
 asya compile flows/order.py
 asya k edit validate-order             # add scaling patch in common/
-asya k expose order-processing --description "Process orders" --input-schema-file schema.json
+asya expose order-processing --description "Process orders" --input-schema-file schema.json
 asya k build order-processing --arg tag=v1
-asya k deploy order-processing --context stg
+asya k apply order-processing --context stg
 # + kustomize build .asya/manifests/order-processing/overlays/stg/
 # + kubectl apply --server-side --field-manager=asya-flow-order-processing -f -
 ```
@@ -1448,13 +1480,13 @@ def test_router_modifies_route(vfs_fixture):
   directory-to-key merge, walk-up merge, `asya init`
 - Three-layer kustomize compile (base/ + common/ + overlays/)
 - `asya k edit` (create/open patches in common/)
-- `asya k show` (kustomize build overlay → effective manifests)
-- `asya compile`, `asya k status/logs/deploy` (with SSA)
+- `asya show` (kustomize build overlay → effective manifests)
+- `asya compile`, `asya k status/logs/apply` (with SSA)
 
 ### Phase 2: Build + deploy + testing
 - `asya k build` (opaque command, `--push` for registry)
-- `asya k deploy/undeploy` for K8s (kustomize build | kubectl apply --server-side)
-- `asya k expose/unexpose` (configmap-flows.yaml generation + SSA apply)
+- `asya k apply/delete` for K8s (kustomize build | kubectl apply --server-side)
+- `asya expose/unexpose` (configmap-flows.yaml generation + SSA apply)
 - `asya d up` (compile + generate docker-compose.yaml + start containers)
 - `actor-image.lock` (deferred: `asya promote` designed later with GitOps/CI)
 - `asya_lab.testing` pytest fixtures
@@ -1480,8 +1512,8 @@ def test_router_modifies_route(vfs_fixture):
 | 1jpc (Client CLI) | Superseded by this RFC |
 | 1juv (Asya UI) | `@asya/ui` bundle goes into `[ui]` extra |
 | 1juy (Asya Lens) | Docker image that packages `asya-lab[ui,deploy]` |
-| 1is3 (GitOps Flow Design) | Informs deploy/undeploy semantics |
-| 1g2t (Gateway Dynamic Tool Exposure) | Powers `asya k expose` |
+| 1is3 (GitOps Flow Design) | Informs apply/delete semantics |
+| 1g2t (Gateway Dynamic Tool Exposure) | Powers `asya expose` |
 | 1iu4 (Local Testing Workflow) | Informs Docker Compose context |
 
 ---

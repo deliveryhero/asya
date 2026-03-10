@@ -24,19 +24,20 @@ a local testing tool, not a deployment target.
 
 ```
 asya compile <target>               # Python -> manifests + routers (local only)
+asya expose <target>                # generate gateway ConfigMap in base/ (local only)
+asya show <target> [--context ctx]  # kustomize build -> effective manifests (local only)
+asya status                         # local source of truth (compiled manifests)
 asya init [--template <name>]       # scaffold .asya/
 asya serve                          # local UI server
 
 asya k edit <actor-name>            # open kustomize patch
-asya k show <target>                # kustomize build -> effective manifests
 asya k build <target>               # build + push images
-asya k deploy <target>              # auto-compile if .py, kubectl apply
-asya k undeploy <target>
-asya k status <target>
+asya k apply <target>               # auto-compile if .py, kustomize build | kubectl apply --server-side
+asya k delete <target>              # kubectl delete by flow labels
+asya k status <target>              # live cluster state
 asya k logs <target>
 asya k call <target> '{}'           # gateway call
 asya k stream <id>                  # gateway stream SSE
-asya k expose <target>              # register flow with gateway
 asya k send <target> '{}'           # send envelope to queue
 asya k trace <id>                   # distributed trace
 asya k secret create|remove|list|show
@@ -59,7 +60,7 @@ Aliases: `asya k` = `asya kube` = `asya kubernetes`, `asya d` = `asya docker`.
 | `e_commerce.validate.process` | Dotted path, no file | Single handler (actor) |
 | `order-processing` | Kebab-case name | Look up in `.asya/manifests/` |
 
-`asya k deploy` and `asya d up` auto-compile when given a `.py` file.
+`asya k apply` and `asya d up` auto-compile when given a `.py` file.
 
 ## Key Design Changes
 
@@ -72,7 +73,7 @@ actor (one handler). From the user's perspective, they compile/deploy "a thing."
 ### 2. `compile` is top-level
 
 `compile` produces manifests and router code. It does not interact with K8s or
-Docker. Both `asya k deploy` and `asya d up` reuse compilation output. Putting
+Docker. Both `asya k apply` and `asya d up` reuse compilation output. Putting
 it under `k` would be misleading — it is a local-only operation.
 
 ### 3. Docker Compose uses sidecar + socket transport (no orchestrator)
@@ -157,4 +158,7 @@ error messages.
 - A socket transport implementation is needed in the sidecar (Go)
 - `asya msg send` splits into `asya k send` (queue) and `asya d send` (socket)
 - `asya flow compose` becomes `asya d up` (auto-compile + compose + start)
+- `asya k expose` becomes `asya expose` (top-level, local only — writes gateway ConfigMap to base/)
+- `asya k deploy/undeploy` become `asya k apply/delete` (k8s-native verbs)
+- `asya k show` becomes `asya show` (top-level, no cluster needed)
 - Integration tests benefit from socket transport (lighter, no external infra)

@@ -636,7 +636,7 @@ if any interpolation remains unresolved. This applies to ALL resolver types:
 | `${env:*}` | Resolved | Resolved | Resolved |
 
 ```
-# asya k deploy with unresolved ${arg:tag}:
+# asya k apply with unresolved ${arg:tag}:
 Error: unresolved interpolation '${arg:tag}'
   in: validate-order.yaml → spec.workload...image
   hint: pass --arg tag=<value> or set ASYA_ARG_TAG
@@ -856,7 +856,7 @@ the final authority.
 
 #### Output modes (render stage)
 
-Output mode is a render-time concern (`asya k show --mode`), not
+Output mode is a render-time concern (`asya show --mode`), not
 compile-time. The `compile.mode` field in config sets the default:
 - **manifests** (default): Raw AsyncActor XR files (resolve `${arg:*}`)
 - **helm**: values.yaml files for Helm chart
@@ -882,7 +882,7 @@ After compile, the source of truth shifts from Python files to these
 manifests. The user can edit them (add env vars, change scaling) without
 recompiling.
 
-### 4.1a Render Time (`asya k show`) — Stage 2
+### 4.1a Render Time (`asya show`) — Stage 2
 
 **Input**: compiled manifests + context/mode
 **Output**: target-specific artifacts (K8s YAML, helm values, kustomize
@@ -936,7 +936,7 @@ $ asya compile flows/order_processing.py
            → validate-order.yaml
            → express-handler.yaml
            → router-start.yaml
-[compile] Next: asya k show order-processing
+[compile] Next: asya show order-processing
 ```
 
 **Verbosity levels**:
@@ -1067,11 +1067,11 @@ $ asya k build text-analyzer --arg tag=v1
 
 ```bash
 # K8s staging (imperative)
-asya k show order-processing --arg tag=v1   # render with resolved tag
-asya k deploy order-processing                   # kubectl apply
+asya show order-processing --arg tag=v1   # render with resolved tag
+asya k apply order-processing                   # kubectl apply
 
 # K8s production (GitOps)
-# 1. asya k show order-processing --arg tag=v1
+# 1. asya show order-processing --arg tag=v1
 # 2. Commit rendered manifests to git, create PR
 # 3. flux/argocd picks up and applies
 
@@ -1252,7 +1252,7 @@ asya k build text-analyzer --set var.image_registry=my-registry.io
 export ASYA_ARG_TAG=v1
 export ASYA_ARG_ENV=staging
 asya k build text-analyzer
-asya k deploy text-analyzer  # same variables, no repetition
+asya k apply text-analyzer  # same variables, no repetition
 
 # Override a var constant from env (useful in CI)
 export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
@@ -1275,7 +1275,7 @@ build:
 ```
 
 **In notebooks**: DS can `export ASYA_ARG_TAG=experiment-42` once
-and then call `asya k build` and `asya k deploy` without repeating
+and then call `asya k build` and `asya k apply` without repeating
 the tag.
 
 **Three namespaces** (see section 3.4):
