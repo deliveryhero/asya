@@ -98,10 +98,10 @@ def _compile_flow_file(
 
     if plot:
         try:
-            dot_file, png_path = compiler.generate_plot(str(compiled_dir))
+            dot_file, svg_path = compiler.generate_plot(str(compiled_dir))
             click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-            if png_path:
-                click.echo(f"[+] Generated graphviz png plot: {png_path}")
+            if svg_path:
+                click.echo(f"[+] Generated graphviz svg plot: {svg_path}")
         except (ImportError, RuntimeError) as e:
             click.echo(f"[!] Warning: {e}", err=True)
         except Exception as e:

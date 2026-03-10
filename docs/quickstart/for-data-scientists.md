@@ -372,7 +372,7 @@ Each square depicts a separate actor (blue - user actor, yellow-ish - new genera
 
 Note, there's no free variables, **all state transfer** happens through payload variable `p`.
 
-![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png)
+![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.svg)
 
 
 
@@ -414,7 +414,7 @@ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 
 # Options:
 #   --verbose, -v              Show verbose output
-#   --plot                     Generate flow.dot and flow.png
+#   --plot                     Generate flow.dot and flow.svg
 #   --plot-width WIDTH         Maximum width for node labels (default: 50)
 #   --overwrite               Overwrite existing output directory
 #   --disable-infinite-loop-check  Skip infinite loop detection
@@ -425,7 +425,7 @@ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 compiled/
 ├── routers.py       # Generated router actors (Python)
 ├── flow.dot         # Flow diagram (GraphViz format)
-└── flow.png         # Flow visualization (if --plot enabled)
+└── flow.svg         # Flow visualization (if --plot enabled)
 ```
 
 **Example Output**:
@@ -433,7 +433,7 @@ compiled/
 $ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 [+] Successfully compiled flow to: compiled/routers.py
 [+] Generated graphviz dot file: compiled/flow.dot
-[+] Generated graphviz png plot: compiled/flow.png
+[+] Generated graphviz svg plot: compiled/flow.svg
 ```
 
 ### Understanding Generated Routers
@@ -456,7 +456,7 @@ def sample_flow(p: dict) -> dict:
 
 **Generated Flow**:
 
-![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.png)
+![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.svg)
 
 
 **Generated Routers** (see `compiled/routers.py`):
@@ -760,7 +760,7 @@ asya flow compile ml_pipeline_flow.py --output-dir ./compiled/ --plot
 - `router_ml_pipeline_flow_line_13_if` - Model selection
 - `end_ml_pipeline_flow` - Exit router
 
-**Visualize**: Open `compiled/flow.png` to see the control flow diagram.
+**Visualize**: Open `compiled/flow.svg` to see the control flow diagram.
 
 **Deploy**: Package routers and handlers, deploy as AsyncActor CRDs (see `examples/flows/compiled/README.md` for complete deployment examples).
 

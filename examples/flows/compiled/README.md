@@ -19,7 +19,7 @@ compiled/
 ├── if_else_simple/                     # Simple if-else example
 │   ├── routers.py                      # Generated routers
 │   ├── flow.dot                        # GraphViz code for graph visualization
-│   └── flow.png                        # Flow visualization
+│   └── flow.svg                        # Flow visualization
 ├── if_elif_else/                       # Multi-branch conditional
 │   └── routers.py
 ├── if_nested/                          # Nested conditionals
@@ -80,7 +80,7 @@ cat if_else_simple/routers.py
 View the flow diagram (if generated with `--plot`):
 
 ```bash
-open if_else_simple/flow.png
+open if_else_simple/flow.svg
 ```
 
 ## Router Naming Convention

@@ -112,7 +112,7 @@ def flow():
     help=f"Max iterations for while-True loops (default: {DEFAULT_MAX_LOOP_ITERATIONS})",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + PNG)")
+@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG)")
 @click.option("--plot-width", type=int, default=50, help="Max width for plot node labels (default: 50)")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files in output directory")
 def compile_cmd(
@@ -137,10 +137,10 @@ def compile_cmd(
 
         if plot:
             try:
-                dot_file, png_path = compiler.generate_plot(output_dir, plot_width=plot_width)
+                dot_file, svg_path = compiler.generate_plot(output_dir, plot_width=plot_width)
                 click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-                if png_path:
-                    click.echo(f"[+] Generated graphviz png plot: {png_path}")
+                if svg_path:
+                    click.echo(f"[+] Generated graphviz svg plot: {svg_path}")
             except ImportError as e:
                 click.echo(f"[!] Warning: {e}", err=True)
             except RuntimeError as e:

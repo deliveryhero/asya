@@ -99,35 +99,35 @@ class FlowCompiler:
         dot_file = output_path / "flow.dot"
         dot_file.write_text(dot_content)
 
-        png_path = None
+        svg_path = None
         try:
             import subprocess  # nosec B404
 
             subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
 
-            png_file = output_path / "flow.png"
+            svg_file = output_path / "flow.svg"
 
             result = subprocess.run(  # nosec B603, B607
-                ["dot", "-Tpng", str(dot_file), "-o", str(png_file)],
+                ["dot", "-Tsvg", str(dot_file), "-o", str(svg_file)],
                 capture_output=True,
                 text=True,
                 check=True,
             )
 
             if result.returncode == 0:
-                png_path = str(png_file)
+                svg_path = str(svg_file)
             else:
                 raise RuntimeError(f"graphviz dot failed: {result.stderr}")
 
         except FileNotFoundError as e:
             raise ImportError(
-                "graphviz 'dot' command not found. Install graphviz to generate PNG plots. "
+                "graphviz 'dot' command not found. Install graphviz to generate SVG plots. "
                 "On Ubuntu/Debian: apt-get install graphviz"
             ) from e
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"graphviz dot failed: {e.stderr}") from e
 
-        return str(dot_file), png_path
+        return str(dot_file), svg_path
 
     @property
     def single_actor_name(self) -> str | None:

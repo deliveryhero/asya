@@ -408,7 +408,7 @@ asya flow validate pipeline.py
 |---|---|
 | `routers.py` | Router functions + `resolve()` handler resolution |
 | `flow.dot` | Graphviz diagram source (with `--plot`) |
-| `flow.png` | Visual flow diagram (with `--plot`) |
+| `flow.svg` | Visual flow diagram (with `--plot`) |
 
 ### Router naming
 
