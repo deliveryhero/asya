@@ -23,14 +23,6 @@ spec:
     cooldownPeriod: 60
     queueLength: 1
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.timeout_handler
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.timeout_handler

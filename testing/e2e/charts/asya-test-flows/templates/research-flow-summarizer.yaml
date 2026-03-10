@@ -26,14 +26,6 @@ spec:
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.research_flow.flow.summarizer
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.research_flow.flow.summarizer

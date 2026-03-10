@@ -15,21 +15,12 @@ spec:
   # Reference to operator-configured transport
   transport: sqs
 
-  # Your runtime container
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          env:
-          - name: ASYA_HANDLER
-            value: "echo_handler.process"
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 512Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
+  image: python:3.13-slim
+  handler: echo_handler.process
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

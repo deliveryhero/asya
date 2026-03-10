@@ -16,31 +16,23 @@ spec:
     maxReplicaCount: 5
     queueLength: 2 # Lower for expensive GPU workloads
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-llm-server:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "model_server.inference"
-          resources:
-            requests:
-              cpu: 2000m
-              memory: 8Gi
-            limits:
-              nvidia.com/gpu: 1 # Request 1 GPU
-              cpu: 4000m
-              memory: 16Gi
+  image: my-llm-server:latest
+  handler: model_server.inference
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 8Gi
+    limits:
+      nvidia.com/gpu: 1 # Request 1 GPU
+      cpu: 4000m
+      memory: 16Gi
 
-        # Schedule only on GPU nodes
-        nodeSelector:
-          accelerator: nvidia-tesla-t4
+  # Schedule only on GPU nodes
+  nodeSelector:
+    accelerator: nvidia-tesla-t4
 
-        # Tolerate GPU node taints
-        tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
+  # Tolerate GPU node taints
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule

@@ -16,30 +16,21 @@ spec:
     maxReplicaCount: 10
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-custom-runtime:latest
-          env:
-          # Handler configuration (REQUIRED)
-          - name: ASYA_HANDLER
-            value: "my_module.MyClass.process"
+  image: my-custom-runtime:latest
+  handler: my_module.MyClass.process
+  env:
+  # Logging configuration (optional, default: "INFO")
+  - name: ASYA_LOG_LEVEL
+    value: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
-          # Logging configuration (optional, default: "INFO")
-          - name: ASYA_LOG_LEVEL
-            value: "DEBUG" # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  # Validation (optional, default: "true")
+  - name: ASYA_ENABLE_VALIDATION
+    value: "true" # Validate message structure
 
-          # Validation (optional, default: "true")
-          - name: ASYA_ENABLE_VALIDATION
-            value: "true" # Validate message structure
-
-          resources:
-            requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
