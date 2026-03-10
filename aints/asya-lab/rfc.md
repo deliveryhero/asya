@@ -1069,6 +1069,10 @@ check `$?` for pass/fail; humans read the message.
 pipelines (`retry:` in GitHub Actions, Argo Workflows, etc.), not in the CLI
 tool.
 
+**Multi-image builds**: When a flow has multiple unique images, `asya k build`
+runs them sequentially with `[build 1/N]` progress prefixes, fail-fast on
+first error. Parallel builds deferred until real bottleneck observed.
+
 **Build command errors**: When `command` exits non-zero, Asya forwards the
 build tool's stderr verbatim and exits 1:
 ```
