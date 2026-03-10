@@ -176,7 +176,7 @@ asya_actor_active_messages{queue="asya-my-actor"}
     severity: info
   annotations:
     summary: "Actor {{ $labels.horizontalpodautoscaler }} at max replicas"
-    description: "Consider increasing maxReplicas if queue continues to grow"
+    description: "Consider increasing maxReplicaCount if queue continues to grow"
 ```
 
 **High processing latency**:

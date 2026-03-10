@@ -809,7 +809,7 @@ spec:                       metadata:
     - gpu-t4       --------&gt;    asya.sh/flavor: gpu-t4
     - persistence  --------&gt;    asya.sh/flavor: persistence
   workload: ...             data:
-                              scaling: { minReplicas: 1 }
+                              scaling: { minReplicaCount: 1 }
                               workload: { template: ... }
 </code></pre></div>
 <ol>
@@ -836,12 +836,12 @@ spec:                       metadata:
 <tr>
 <td>Scalars</td>
 <td>Last writer wins</td>
-<td><code>scaling.minReplicas: 2</code> overrides <code>1</code></td>
+<td><code>scaling.minReplicaCount: 2</code> overrides <code>1</code></td>
 </tr>
 <tr>
 <td>Dicts/objects</td>
 <td>Deep merge</td>
-<td><code>scaling.maxReplicas</code> added alongside <code>minReplicas</code></td>
+<td><code>scaling.maxReplicaCount</code> added alongside <code>minReplicaCount</code></td>
 </tr>
 <tr>
 <td>Arrays of name-keyed objects</td>
@@ -881,12 +881,12 @@ If you need tolerations from multiple sources, combine them in a single flavor.<
 <span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-creds</span>
 <span class="w">                </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 </code></pre></div>
 <h2 id="actor-wins-override">Actor-wins override<a class="headerlink" href="#actor-wins-override" title="Permanent link">&para;</a></h2>
 <p>The actor's inline spec always takes precedence. If a flavor sets
-<code>scaling.minReplicas: 1</code> and the actor sets <code>scaling.minReplicas: 3</code>,
+<code>scaling.minReplicaCount: 1</code> and the actor sets <code>scaling.minReplicaCount: 3</code>,
 the actor's value wins.</p>
 <p>Infrastructure fields (<code>actor</code>, <code>transport</code>, <code>flavors</code>, <code>region</code>,
 <code>gcpProject</code>, <code>providerConfigRef</code>, <code>irsa</code>) are excluded from the merge.</p>

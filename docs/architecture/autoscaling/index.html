@@ -880,7 +880,7 @@
 <p><strong>Scale to zero</strong>:</p>
 <ul>
 <li>0 messages → 0 pods → $0 cost</li>
-<li>Queue fills → Spin up to maxReplicas in seconds</li>
+<li>Queue fills → Spin up to maxReplicaCount in seconds</li>
 </ul>
 <p><strong>Independent scaling</strong>:</p>
 <ul>
@@ -902,8 +902,8 @@
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">            </span><span class="c1"># Enable KEDA autoscaling</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">           </span><span class="c1"># Minimum pods (0 for scale-to-zero)</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w">         </span><span class="c1"># Maximum pods</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">           </span><span class="c1"># Minimum pods (0 for scale-to-zero)</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w">         </span><span class="c1"># Maximum pods</span>
 <span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">           </span><span class="c1"># Target messages per replica</span>
 <span class="w">    </span><span class="nt">cooldownPeriod</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w">       </span><span class="c1"># Seconds before scaling down (default: 60s)</span>
 <span class="w">    </span><span class="nt">pollingInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w">      </span><span class="c1"># How often KEDA checks queue depth (default: 10s)</span>
@@ -911,8 +911,8 @@
 <p><strong>Parameters</strong>:</p>
 <ul>
 <li><code>enabled</code>: Enable/disable KEDA autoscaling (default: false)</li>
-<li><code>minReplicas</code>: Minimum pods (default: 0 for scale-to-zero)</li>
-<li><code>maxReplicas</code>: Maximum pods (default: 50)</li>
+<li><code>minReplicaCount</code>: Minimum pods (default: 0 for scale-to-zero)</li>
+<li><code>maxReplicaCount</code>: Maximum pods (default: 50)</li>
 <li><code>queueLength</code>: Target messages per replica (default: 5)</li>
 <li><code>cooldownPeriod</code>: Delay before scaling down in seconds (default: 60)</li>
 <li><code>pollingInterval</code>: Queue check frequency in seconds (default: 10)</li>
@@ -921,8 +921,8 @@
 <p>For fine-grained KEDA behavior, use the <code>scaling.advanced</code> sub-object:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
 <span class="w">    </span><span class="nt">advanced</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">restoreToOriginalReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">      </span><span class="nt">formula</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;queue&quot;</span>
@@ -982,7 +982,7 @@
 <h3 id="idle-workload">Idle Workload<a class="headerlink" href="#idle-workload" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Queue: 0 messages</li>
-<li>Replicas: 0 (minReplicas=0)</li>
+<li>Replicas: 0 (minReplicaCount=0)</li>
 <li>Cost: $0</li>
 </ul>
 <h3 id="low-load">Low Load<a class="headerlink" href="#low-load" title="Permanent link">&para;</a></h3>
@@ -994,7 +994,7 @@
 <h3 id="high-load">High Load<a class="headerlink" href="#high-load" title="Permanent link">&para;</a></h3>
 <ul>
 <li>Queue: 250 messages, queueLength=5</li>
-<li>Replicas: 50 (capped at maxReplicas)</li>
+<li>Replicas: 50 (capped at maxReplicaCount)</li>
 <li>Processing: ~5 messages per replica</li>
 </ul>
 <h3 id="burst">Burst<a class="headerlink" href="#burst" title="Permanent link">&para;</a></h3>

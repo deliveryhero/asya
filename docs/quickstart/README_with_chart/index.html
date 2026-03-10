@@ -928,8 +928,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactors<span class
 
 <span class="c1"># Expected:</span>
 <span class="c1"># hello       Napping    (scaled to 0, waiting for messages)</span>
-<span class="c1"># x-sink      Creating   (running with minReplicas=1)</span>
-<span class="c1"># x-sump      Creating   (running with minReplicas=1)</span>
+<span class="c1"># x-sink      Creating   (running with minReplicaCount=1)</span>
+<span class="c1"># x-sump      Creating   (running with minReplicaCount=1)</span>
 
 <span class="c1"># Check SQS queues were created</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io

@@ -308,8 +308,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
   workload:
     kind: Deployment
     template:
@@ -348,7 +348,7 @@ kubectl get sqsqueue
 
 - Use Spot Instances for GPU nodes
 - Enable cluster autoscaler scale-to-zero
-- Use KEDA scale-to-zero (`minReplicas: 0`)
+- Use KEDA scale-to-zero (`minReplicaCount: 0`)
 - Set appropriate `queueLength` for scaling efficiency
 - Monitor SQS costs (first 1M requests free)
 

@@ -1089,8 +1089,8 @@ For example, actors <code>x-sink</code> and <code>x-sump</code> are the common f
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
 <span class="w">    </span><span class="nt">template</span><span class="p">:</span>
@@ -1123,7 +1123,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>sqsqueue
 <ul>
 <li>Use Spot Instances for GPU nodes</li>
 <li>Enable cluster autoscaler scale-to-zero</li>
-<li>Use KEDA scale-to-zero (<code>minReplicas: 0</code>)</li>
+<li>Use KEDA scale-to-zero (<code>minReplicaCount: 0</code>)</li>
 <li>Set appropriate <code>queueLength</code> for scaling efficiency</li>
 <li>Monitor SQS costs (first 1M requests free)</li>
 </ul>

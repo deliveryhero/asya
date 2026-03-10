@@ -1096,8 +1096,8 @@ sleep<span class="w"> </span><span class="m">3</span>
 <span class="s">  providerConfigRef: localstack</span>
 <span class="s">  scaling:</span>
 <span class="s">    enabled: true</span>
-<span class="s">    minReplicas: 0</span>
-<span class="s">    maxReplicas: 10</span>
+<span class="s">    minReplicaCount: 0</span>
+<span class="s">    maxReplicaCount: 10</span>
 <span class="s">    pollingInterval: 10</span>
 <span class="s">    cooldownPeriod: 30</span>
 <span class="s">    queueLength: 5</span>
@@ -1172,7 +1172,7 @@ sleep<span class="w"> </span><span class="m">3</span>
 </code></pre></div>
 <p>Watch replicas scale up:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-w
-<span class="c1"># READY should increase beyond 1 (up to maxReplicas=10)</span>
+<span class="c1"># READY should increase beyond 1 (up to maxReplicaCount=10)</span>
 </code></pre></div>
 <p>After all messages are processed and the cooldown period passes, replicas scale back to zero.</p>
 <h2 id="11-test-resilience">11. Test Resilience<a class="headerlink" href="#11-test-resilience" title="Permanent link">&para;</a></h2>

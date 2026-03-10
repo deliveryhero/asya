@@ -966,8 +966,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># or rabbitmq</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
 <span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 <span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
@@ -990,8 +990,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor
 <p><strong>Key fields to explain</strong>:
 - <code>spec.transport</code>: Which transport to use (ask platform team)
 - <code>spec.scaling.enabled</code>: Enable KEDA autoscaling (default: false)
-- <code>spec.scaling.minReplicas</code>: Minimum pods (0 for scale-to-zero)
-- <code>spec.scaling.maxReplicas</code>: Maximum pods
+- <code>spec.scaling.minReplicaCount</code>: Minimum pods (0 for scale-to-zero)
+- <code>spec.scaling.maxReplicaCount</code>: Maximum pods
 - <code>spec.scaling.queueLength</code>: Messages per replica target
 - <code>spec.workload.kind</code>: Deployment
 - <code>env.ASYA_HANDLER</code>: Handler path (<code>module.function</code> or <code>module.Class.method</code>)</p>
@@ -1171,7 +1171,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> <
 </code></pre></div>
 <p><strong>Status values</strong>:
 - <code>Running</code> - Healthy
-- <code>Napping</code> - Scaled to zero (normal with minReplicas=0)
+- <code>Napping</code> - Scaled to zero (normal with minReplicaCount=0)
 - <code>Creating</code> - Initial deployment
 - <code>RuntimeError</code> - Runtime container crashing
 - <code>SidecarError</code> - Sidecar container crashing
@@ -1182,8 +1182,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> <
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">          </span><span class="c1"># Scale to zero when idle</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w">         </span><span class="c1"># Max replicas</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">          </span><span class="c1"># Scale to zero when idle</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span><span class="w">         </span><span class="c1"># Max replicas</span>
 <span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span><span class="w">          </span><span class="c1"># Target: 5 messages per replica</span>
 <span class="w">    </span><span class="nt">pollingInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span><span class="w">     </span><span class="c1"># Check queue every 10s</span>
 <span class="w">    </span><span class="nt">cooldownPeriod</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">60</span><span class="w">      </span><span class="c1"># Wait 60s before scaling down</span>
@@ -1213,7 +1213,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> <
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">  </span><span class="c1"># $0 when idle</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span><span class="w">  </span><span class="c1"># $0 when idle</span>
 </code></pre></div></p>
 <p><strong>Set appropriate queueLength</strong>:
 - Higher = fewer pods, slower processing, lower cost

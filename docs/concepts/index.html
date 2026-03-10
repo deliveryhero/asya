@@ -951,7 +951,7 @@
 <li>Scale to zero - eliminate idle resource costs</li>
 <li>Handle bursty workloads efficiently</li>
 </ul>
-<p><strong>Integration</strong>: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.</p>
+<p><strong>Integration</strong>: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicaCount.</p>
 <p><strong>Example</strong>: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).</p>
 <p><strong>See</strong>: <a href="../architecture/autoscaling/">architecture/autoscaling.md</a> for details.</p>
 <h2 id="mcp-gateway-optional">MCP Gateway (Optional)<a class="headerlink" href="#mcp-gateway-optional" title="Permanent link">&para;</a></h2>

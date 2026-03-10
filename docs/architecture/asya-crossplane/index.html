@@ -916,8 +916,8 @@
 <li>Waits for queue URL from SQS Queue status</li>
 <li>References TriggerAuthentication for AWS credentials</li>
 <li>Configures autoscaling policies (scale-up aggressive, scale-down gradual)</li>
-<li>Min replicas: <code>spec.scaling.minReplicas</code> (default: 0)</li>
-<li>Max replicas: <code>spec.scaling.maxReplicas</code> (default: 10)</li>
+<li>Min replicas: <code>spec.scaling.minReplicaCount</code> (default: 0)</li>
+<li>Max replicas: <code>spec.scaling.maxReplicaCount</code> (default: 10)</li>
 <li>
 <p>Queue length target: <code>spec.scaling.queueLength</code> (default: 5 messages/replica)</p>
 </li>
@@ -1039,8 +1039,8 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">    </span><span class="nt">minReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">    </span><span class="nt">maxReplicas</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
 <span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
 <span class="w">    </span><span class="nt">pollingInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
 <span class="w">    </span><span class="nt">cooldownPeriod</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>

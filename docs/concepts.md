@@ -130,7 +130,7 @@ An actor is a stateless (by default) workload that:
 - Scale to zero - eliminate idle resource costs
 - Handle bursty workloads efficiently
 
-**Integration**: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicas.
+**Integration**: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicaCount.
 
 **Example**: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).
 

@@ -19,7 +19,7 @@ An actor is a **stateless workload** that:
 
 ## Actor Lifecycle States
 
-- **Napping**: `minReplicas=0`, no pods running, queue empty
+- **Napping**: `minReplicaCount=0`, no pods running, queue empty
 - **Running**: Active pods processing messages
 - **Scaling**: KEDA adjusting replica count based on queue depth
 - **Failing**: Pods crashing, requires intervention
@@ -60,8 +60,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
     queueLength: 5
   workload:
     kind: Deployment
@@ -225,8 +225,8 @@ actors:
   - name: text-processor
     transport: sqs
     scaling:
-      minReplicas: 0
-      maxReplicas: 50
+      minReplicaCount: 0
+      maxReplicaCount: 50
     image: my-processor:v1
     handler: processor.TextProcessor.process
 ```
