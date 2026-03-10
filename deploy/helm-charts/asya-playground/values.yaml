@@ -229,15 +229,6 @@ asya-crossplane:
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
 
-# Injector configuration (passed to asya-injector chart)
-# Mutating webhook that injects asya-sidecar into actor pods
-asya-injector:
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sqsEndpoint: "" # Set dynamically via helpers
-    gatewayURL: "" # Set dynamically via helpers
-    awsCredsSecret: aws-creds
-
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults
 asya-crew:
