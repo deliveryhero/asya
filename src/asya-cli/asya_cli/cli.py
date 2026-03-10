@@ -44,6 +44,8 @@ def main() -> None:
 
     subparsers.add_parser("mcp", help="MCP gateway tools", add_help=False)
     subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
+    subparsers.add_parser("init", help="Scaffold .asya/ project directory", add_help=False)
+    subparsers.add_parser("config", help="Project configuration", add_help=False)
 
     args, remaining = parser.parse_known_args()
 
@@ -56,6 +58,14 @@ def main() -> None:
         from asya_cli.flow_cli import main as flow_main
 
         flow_main(remaining)
+    elif args.command == "init":
+        from asya_cli.init import main_init
+
+        main_init(remaining)
+    elif args.command == "config":
+        from asya_cli.config_cli import main_config
+
+        main_config(remaining)
     else:
         parser.print_help()
         sys.exit(1)
