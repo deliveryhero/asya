@@ -58,10 +58,11 @@ def _actor_manifest(
     max_replicas: int = 5,
     queue_length: int = 10,
     replicas: int | None = None,
-    extra_containers: str = "",
     extra_runtime_env: str = "",
     image: str = "ghcr.io/deliveryhero/asya-testing:latest",
     image_pull_policy: str = "IfNotPresent",
+    handler: str = "asya_testing.handlers.payload.echo_handler",
+    python_executable: str | None = None,
     transport: str | None = None,
     flavors: list[str] | None = None,
 ) -> str:
@@ -80,15 +81,15 @@ def _actor_manifest(
   scaling:
     enabled: false"""
 
-    replicas_line = f"\n    replicas: {replicas}" if replicas is not None else ""
+    replicas_line = f"\n  replicas: {replicas}" if replicas is not None else ""
+    python_exec_line = f"\n  pythonExecutable: {python_executable}" if python_executable is not None else ""
 
     flavors_block = ""
     if flavors:
         flavor_lines = "\n".join(f"    - {f}" for f in flavors)
         flavors_block = f"\n  flavors:\n{flavor_lines}"
 
-
-    extra_env_block = f"\n{extra_runtime_env}" if extra_runtime_env else ""
+    env_block = f"\n  env:\n{extra_runtime_env}" if extra_runtime_env else ""
 
     return f"""
 apiVersion: asya.sh/v1alpha1
@@ -103,18 +104,9 @@ spec:
     matchLabels:
       asya.sh/transport: {transport}
 {scaling_block}
-  workload:
-    kind: Deployment{replicas_line}
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {image}
-          imagePullPolicy: {image_pull_policy}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler{extra_env_block}
-{extra_containers}"""
+  image: {image}
+  imagePullPolicy: {image_pull_policy}
+  handler: {handler}{replicas_line}{python_exec_line}{env_block}"""
 
 
 def _cleanup_actor(name: str, namespace: str) -> None:
@@ -220,17 +212,9 @@ spec:
     minReplicaCount: 1
     maxReplicaCount: 5
     queueLength: 10
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -320,17 +304,9 @@ spec:
     minReplicaCount: 1
     maxReplicaCount: 5
     queueLength: 10
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     updated_manifest = f"""
@@ -350,17 +326,9 @@ spec:
     minReplicaCount: 3
     maxReplicaCount: 10
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -450,17 +418,9 @@ spec:
       target: "3"
       activationTarget: "1"
       metricType: AverageValue
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -533,17 +493,9 @@ spec:
   scaling:
     advanced:
       formula: "queue"
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -584,14 +536,9 @@ metadata:
 spec:
   actor: test-invalid-transport
   transport: nonexistent-transport
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -611,6 +558,210 @@ spec:
 
     finally:
         kubectl_delete("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
+
+
+@pytest.mark.core
+def test_asyncactor_missing_required_field_rejected(e2e_helper):
+    """
+    E2E: Test that AsyncActor missing a required field is rejected at admission.
+
+    The XRD marks image and handler as required. kubectl apply without them must
+    fail at the Kubernetes API level — Crossplane never receives the object.
+
+    Scenario:
+    1. Attempt to create AsyncActor without 'image'
+    2. kubectl apply should fail (non-zero exit code)
+    3. Error message should mention the missing field
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-missing-image
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: test-missing-image
+  transport: {_transport}
+  handler: asya_testing.handlers.payload.echo_handler
+"""
+    try:
+        logger.info("Attempting to create AsyncActor without required 'image' field...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, (
+            "kubectl apply should fail when required field 'image' is missing"
+        )
+
+        stderr = result.stderr.decode()
+        logger.info(f"Admission rejection stderr: {stderr}")
+        assert "image" in stderr or "Required value" in stderr or "required" in stderr.lower(), (
+            f"Error message should reference the missing required field, got: {stderr}"
+        )
+
+        logger.info("[+] Missing required 'image' field rejected at admission as expected")
+
+    finally:
+        kubectl_delete("asyncactor", "test-missing-image", namespace=e2e_helper.namespace)
+
+
+@pytest.mark.core
+def test_asyncactor_invalid_image_pull_policy_rejected(e2e_helper):
+    """
+    E2E: Test that an invalid imagePullPolicy enum value is rejected at admission.
+
+    The XRD defines imagePullPolicy as enum: [Always, IfNotPresent, Never].
+    Any other value must be rejected immediately by the Kubernetes API server.
+
+    Scenario:
+    1. Attempt to create AsyncActor with imagePullPolicy: Lazy
+    2. kubectl apply should fail (non-zero exit code)
+    3. Error message should reference the invalid value
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-bad-pull-policy
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: test-bad-pull-policy
+  transport: {_transport}
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: Lazy
+  handler: asya_testing.handlers.payload.echo_handler
+"""
+    try:
+        logger.info("Attempting to create AsyncActor with imagePullPolicy: Lazy...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, (
+            "kubectl apply should fail for imagePullPolicy not in [Always, IfNotPresent, Never]"
+        )
+
+        stderr = result.stderr.decode()
+        logger.info(f"Admission rejection stderr: {stderr}")
+        assert "Lazy" in stderr or "Unsupported value" in stderr or "Invalid value" in stderr, (
+            f"Error message should reference the invalid imagePullPolicy value, got: {stderr}"
+        )
+
+        logger.info("[+] Invalid imagePullPolicy rejected at admission as expected")
+
+    finally:
+        kubectl_delete("asyncactor", "test-bad-pull-policy", namespace=e2e_helper.namespace)
+
+
+@pytest.mark.core
+def test_asyncactor_invalid_actor_name_pattern_rejected(e2e_helper):
+    """
+    E2E: Test that an actor name violating the DNS label pattern is rejected.
+
+    The XRD enforces pattern: ^[a-z0-9]([a-z0-9-]*[a-z0-9])?$ on spec.actor,
+    meaning uppercase letters and underscores are not allowed. The API server
+    evaluates this regex at admission and rejects non-conforming values.
+
+    Scenario:
+    1. Attempt to create AsyncActor with spec.actor containing uppercase letters
+    2. kubectl apply should fail (non-zero exit code)
+    3. Error message should reference the pattern constraint
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    invalid_manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-bad-actor-name
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: Invalid_Actor_Name
+  transport: {_transport}
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+"""
+    try:
+        logger.info("Attempting to create AsyncActor with actor name 'Invalid_Actor_Name'...")
+        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode != 0, (
+            "kubectl apply should fail when spec.actor contains uppercase letters or underscores"
+        )
+
+        stderr = result.stderr.decode()
+        logger.info(f"Admission rejection stderr: {stderr}")
+        assert (
+            "Invalid_Actor_Name" in stderr
+            or "pattern" in stderr.lower()
+            or "Does not match" in stderr
+            or "Invalid value" in stderr
+        ), (
+            f"Error message should reference the pattern constraint, got: {stderr}"
+        )
+
+        logger.info("[+] Invalid actor name pattern rejected at admission as expected")
+
+    finally:
+        kubectl_delete("asyncactor", "test-bad-actor-name", namespace=e2e_helper.namespace)
+
+
+@pytest.mark.core
+def test_asyncactor_loosely_typed_volumes_accepted_by_schema(e2e_helper):
+    """
+    E2E: Demonstrate that volumes with arbitrary shape passes XRD schema validation.
+
+    The XRD uses x-kubernetes-preserve-unknown-fields: true for 'volumes'. This
+    means the CRD admission webhook accepts any object shape — even nonsensical
+    values — because the schema does not describe the structure.
+
+    Rejection (if any) happens later when Crossplane renders the Deployment and
+    Kubernetes validates the resulting Pod spec against its own schema.
+
+    Scenario:
+    1. Create AsyncActor with a volumes entry containing an unknown key
+    2. kubectl apply SUCCEEDS (non-zero exit code would be a test failure)
+    3. The AsyncActor resource is created in the cluster
+
+    This test documents the validation boundary: XRD schema vs. Pod spec validation.
+    """
+    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
+    actor_name = "test-loose-volumes"
+    manifest = f"""
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: {actor_name}
+  namespace: {e2e_helper.namespace}
+spec:
+  actor: {actor_name}
+  transport: {_transport}
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  volumes:
+    - name: nonsense-volume
+      unknownVolumeType:
+        someKey: 42
+"""
+    try:
+        logger.info(
+            "Applying AsyncActor with a nonsensical volume entry "
+            "(expect XRD schema to accept it)..."
+        )
+        result = kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
+
+        assert result.returncode == 0, (
+            "kubectl apply should SUCCEED: volumes uses x-kubernetes-preserve-unknown-fields: true, "
+            f"so the XRD schema accepts any object shape. stderr: {result.stderr.decode()}"
+        )
+
+        logger.info(
+            "[+] AsyncActor with nonsensical volumes accepted by XRD schema as expected. "
+            "Downstream rejection (if volume type is invalid) occurs at the Deployment level."
+        )
+
+    finally:
+        _cleanup_actor(actor_name, e2e_helper.namespace)
 
 
 @pytest.mark.core
@@ -643,17 +794,9 @@ spec:
     enabled: true
     minReplicaCount: 1
     maxReplicaCount: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -718,14 +861,9 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: false
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: nonexistent/broken-image:latest
-          imagePullPolicy: Always
+  image: nonexistent/broken-image:latest
+  imagePullPolicy: Always
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -797,18 +935,10 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: false
-  workload:
-    replicas: 1
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  replicas: 1
 """
 
     try:
@@ -902,17 +1032,9 @@ spec:
     minReplicaCount: 1
     maxReplicaCount: 3
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
 """
 
     try:
@@ -1251,7 +1373,7 @@ def test_asyncactor_replicas_update_scaling_disabled(e2e_helper):
         assert deployment["spec"]["replicas"] == 1, "Initial replicas should be 1"
 
         logger.info("Patching AsyncActor to replicas=3...")
-        _kubectl_patch("asyncactor", name, '{"spec":{"workload":{"replicas":3}}}', namespace=e2e_helper.namespace)
+        _kubectl_patch("asyncactor", name, '{"spec":{"replicas":3}}', namespace=e2e_helper.namespace)
 
         logger.info("Waiting for Deployment to update...")
         for _attempt in range(30):
@@ -1493,26 +1615,20 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
 @pytest.mark.timeout(300)
 def test_sidecar_injection_multi_container(e2e_helper):
     """
-    E2E: Test sidecar rendering with multiple user containers.
+    E2E: Test sidecar rendering with flat spec (runtime + sidecar containers).
 
     Scenario:
-    1. Create AsyncActor with asya-runtime + helper containers
-    2. Verify Pod has 3 containers (sidecar rendered by Crossplane composition)
+    1. Create AsyncActor using flat spec
+    2. Verify Pod has 2 containers (asya-runtime + asya-sidecar rendered by Crossplane composition)
     3. Verify all container names are correct
 
-    Expected: Sidecar appended alongside user-defined containers
+    Expected: Sidecar injected alongside the runtime container
     """
     name = "test-multi-container"
-    extra = """\
-        - name: helper
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          command: ["sleep", "3600"]
-"""
-    manifest = _actor_manifest(name, e2e_helper.namespace, scaling_enabled=False, extra_containers=extra)
+    manifest = _actor_manifest(name, e2e_helper.namespace, scaling_enabled=False)
 
     try:
-        logger.info("Creating AsyncActor with multiple containers...")
+        logger.info("Creating AsyncActor...")
         kubectl_apply(manifest, namespace=e2e_helper.namespace)
 
         logger.info("Waiting for AsyncActor to be ready...")
@@ -1525,14 +1641,13 @@ def test_sidecar_injection_multi_container(e2e_helper):
         container_names = [c["name"] for c in containers]
         logger.info(f"Pod containers: {container_names}")
 
-        assert len(containers) == 3, (
-            f"Pod should have 3 containers (runtime + helper + sidecar), got {len(containers)}: {container_names}"
+        assert len(containers) == 2, (
+            f"Pod should have 2 containers (runtime + sidecar), got {len(containers)}: {container_names}"
         )
         assert "asya-sidecar" in container_names, "Sidecar should be present (rendered by Crossplane composition)"
         assert "asya-runtime" in container_names, "Runtime container should exist"
-        assert "helper" in container_names, "Helper container should exist"
 
-        logger.info("[+] Multi-container sidecar rendering verified")
+        logger.info("[+] Sidecar rendering verified")
 
     except Exception:
         log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
@@ -1708,6 +1823,54 @@ def test_crossplane_resilience_after_provider_restart(e2e_helper):
 
 
 @pytest.mark.core
+@pytest.mark.timeout(300)
+def test_asyncactor_custom_python_executable(e2e_helper):
+    """
+    E2E: Test that spec.pythonExecutable overrides the runtime container command.
+
+    Scenario:
+    1. Create AsyncActor with pythonExecutable: /usr/bin/python3
+    2. Crossplane renders Deployment with command: [/usr/bin/python3, <runtime_path>]
+    3. Verify pod container command starts with /usr/bin/python3
+
+    Expected: Deployment command reflects the custom pythonExecutable value.
+    """
+    actor_name = "test-python-exec"
+    manifest = _actor_manifest(
+        actor_name,
+        e2e_helper.namespace,
+        scaling_enabled=False,
+        python_executable="/usr/bin/python3",
+    )
+
+    try:
+        logger.info("Creating AsyncActor with custom pythonExecutable...")
+        kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for Deployment to be created...")
+        assert wait_for_resource("deployment", actor_name, namespace=e2e_helper.namespace, timeout=120), (
+            "Deployment should be created by Crossplane"
+        )
+
+        logger.info("Verifying runtime container command...")
+        containers = _get_pod_containers(actor_name, e2e_helper.namespace)
+        runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
+        assert runtime is not None, "asya-runtime container must exist"
+        command = runtime.get("command", [])
+        assert len(command) >= 1, f"Container should have a command, got: {command}"
+        assert command[0] == "/usr/bin/python3", (
+            f"Container command should start with /usr/bin/python3, got: {command[0]}"
+        )
+        logger.info(f"[+] Runtime command: {command}")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(actor_name, e2e_helper.namespace)
+
+
+@pytest.mark.core
 @pytest.mark.timeout(600)
 def test_asyncactor_flavors_resolved(e2e_helper):
     """
@@ -1767,8 +1930,8 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         # --- Scenario 2: multiple flavors + env var override ---
         logger.info("Creating actor with multiple flavors and env var override...")
         override_env = """\
-          - name: FLAVOR_EXTRA_VAR
-            value: from-actor"""
+  - name: FLAVOR_EXTRA_VAR
+    value: from-actor"""
         manifest = _actor_manifest(
             actor_multi,
             e2e_helper.namespace,

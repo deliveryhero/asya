@@ -389,7 +389,7 @@ spec:
                           image: {{`{{ $xrSpec.image | quote }}`}}
                           imagePullPolicy: {{`{{ $xrSpec.imagePullPolicy | default "IfNotPresent" }}`}}
                           command:
-                          - python3
+                          - {{`{{ $xrSpec.pythonExecutable | default "python3" }}`}}
                           - {{`{{ $runtimeMountPath }}`}}
                           env:
                           - name: ASYA_SOCKET_DIR

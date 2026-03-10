@@ -82,6 +82,15 @@ spec:
                     Injected as ASYA_HANDLER env var into the runtime container.
                   minLength: 1
 
+                pythonExecutable:
+                  type: string
+                  description: >-
+                    Python executable used to launch the runtime container.
+                    Override when the container image does not have 'python3' on PATH
+                    (e.g. '/usr/bin/python', 'python3.12').
+                  default: python3
+                  minLength: 1
+
                 replicas:
                   type: integer
                   description: Number of replicas (only used when scaling is disabled)
