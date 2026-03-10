@@ -1,9 +1,14 @@
 ---
 title: Add socket transport component test suite
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/asya-lab/8su9.add-socket-transport-component-test-suite
+  - branch:asya-lab/8su9.add-socket-transport-component-test-suite
 dependencies:
   - cavw
 ---
+
 
 Create testing/component/transport/ — a dedicated Docker Compose test suite for the socket transport.
 
