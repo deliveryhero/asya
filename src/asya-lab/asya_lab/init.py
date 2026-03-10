@@ -5,6 +5,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from asya_lab.config.discovery import MANIFESTS_DIR
+
 
 _ROOT_CONFIG = """\
 var:
@@ -123,7 +125,7 @@ def init_project(
         rules_file.write_text(_RULES_YAML)
 
     # manifests/
-    manifests_dir = asya_dir / "manifests"
+    manifests_dir = asya_dir / MANIFESTS_DIR
     manifests_dir.mkdir(exist_ok=True)
 
     # .gitignore: add .env.secret

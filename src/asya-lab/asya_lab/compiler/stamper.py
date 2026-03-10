@@ -17,6 +17,7 @@ import yaml
 from omegaconf import DictConfig, OmegaConf
 
 from asya_lab.config.config import ConfigLoader, _set_active_loader
+from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.flow.grouper import Router
 
 
@@ -108,9 +109,9 @@ class ManifestStamper:
 
         Returns list of generated file paths (relative to output_dir).
         """
-        base_dir = output_dir / "base"
-        common_dir = output_dir / "common"
-        overlays_dir = output_dir / "overlays"
+        base_dir = output_dir / BASE_DIR
+        common_dir = output_dir / COMMON_DIR
+        overlays_dir = output_dir / OVERLAYS_DIR
 
         generated = []
 

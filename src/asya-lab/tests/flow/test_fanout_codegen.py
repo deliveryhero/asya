@@ -834,67 +834,79 @@ class TestFanOutIntegration:
         return code
 
     def test_comprehension_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_literal_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     sentiment_analyzer(p["text"]),
                     topic_extractor(p["text"]),
                 ]
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_gather_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(*(research_agent(t) for t in p["topics"]))
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_fanout_between_actors_compiles(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p = preprocessor(p)
                 p["results"] = [agent(t) for t in p["items"]]
                 p = postprocessor(p)
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_fanout_no_resolve_fanin(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         assert "_resolve_fanin" not in code
 
     def test_two_fanouts_share_one_copy_import(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]
                 return p
-        """)
+        """
+        )
         assert code.count("import copy") == 1, "copy import should be emitted exactly once"
