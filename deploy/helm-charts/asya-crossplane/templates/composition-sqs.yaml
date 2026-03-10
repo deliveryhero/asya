@@ -538,7 +538,7 @@ spec:
                           - name: ASYA_TRANSPORT
                             value: sqs
                           - name: ASYA_AWS_REGION
-                            value: {{ .Values.sidecar.awsRegion | default (.Values.awsRegion | default "us-east-1") | quote }}
+                            value: {{ coalesce .Values.sidecar.awsRegion .Values.awsRegion "us-east-1" | quote }}
                           {{`{{- if ne $queueURL "" }}`}}
                           - name: ASYA_QUEUE_URL
                             value: {{`{{ $queueURL }}`}}
