@@ -260,8 +260,10 @@ class FlowParser:
 
     def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
         call = stmt.value
-        # Unwrap await: `p = await handler(p)` → extract the Call
-        if isinstance(call, ast.Await):
+        # Unwrap await: `p = await handler(p)` → extract the Call.
+        # Track is_await before unwrapping so we can preserve it in generated code.
+        is_await = isinstance(call, ast.Await)
+        if isinstance(call, ast.Await):  # isinstance guard lets mypy narrow call.value
             call = call.value
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
@@ -297,8 +299,32 @@ class FlowParser:
                     f"got {type(inner).__name__}"
                 )
 
+            # Inline comment directive takes priority over the call-site wrapper
+            directive = self._directives.get(stmt.lineno)
+            if directive is not None:
+                if directive.treat_as not in _VALID_DIRECTIVES:
+                    raise FlowCompileError(
+                        f"{self.filename}:{stmt.lineno}: Unknown directive '{directive.treat_as}'. "
+                        f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
+                    )
+                if directive.treat_as == "inline":
+                    code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
+                    return Mutation(lineno=stmt.lineno, code=code)
+                elif directive.treat_as == "actor":
+                    if directive.name:
+                        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_.-]*$", directive.name):
+                            raise FlowCompileError(
+                                f"{self.filename}:{stmt.lineno}: Invalid actor name in directive: '{directive.name}'"
+                            )
+                        return ActorCall(lineno=stmt.lineno, name=directive.name)
+                    return ActorCall(lineno=stmt.lineno, name=inner_name)
+                elif directive.treat_as in ("flow", "unfold", "config"):
+                    raise FlowCompileError(
+                        f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
+                    )
+
             if wrapper_name == "inline":
-                code = f"p = {inner_name}(p)"
+                code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
                 return Mutation(lineno=stmt.lineno, code=code)
 
             # wrapper_name == "actor"
@@ -342,6 +368,10 @@ class FlowParser:
                 return Mutation(lineno=stmt.lineno, code=code)
             elif directive.treat_as == "actor":
                 if directive.name:
+                    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_.-]*$", directive.name):
+                        raise FlowCompileError(
+                            f"{self.filename}:{stmt.lineno}: Invalid actor name in directive: '{directive.name}'"
+                        )
                     actor_name = directive.name
             elif directive.treat_as in ("flow", "unfold", "config"):
                 raise FlowCompileError(

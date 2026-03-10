@@ -62,6 +62,15 @@ class TestInlineCommentDirectives:
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "my-handler"
 
+    def test_treat_as_actor_invalid_name_raises_error(self):
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:
+                p = handler(p)  # asya: actor name=bad'name
+                return p
+        """)
+        with pytest.raises(FlowCompileError, match="Invalid actor name"):
+            FlowParser(source, "test.py").parse()
+
     def test_unknown_treat_as_value_raises_error(self):
         source = textwrap.dedent("""
             def my_flow(p: dict) -> dict:
@@ -168,6 +177,38 @@ class TestCallSiteDecoration:
                 return p
         """)
         with pytest.raises(FlowCompileError):
+            FlowParser(source, "test.py").parse()
+
+    def test_inline_directive_overrides_actor_wrapper(self):
+        # Inline comment has higher priority than call-site wrapper.
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:
+                p = actor(stamp_timestamp)(p)  # asya: inline
+                return p
+        """)
+        _, ops = FlowParser(source, "test.py").parse()
+        assert isinstance(ops[0], Mutation)
+        assert "stamp_timestamp" in ops[0].code
+
+    def test_await_preserved_for_inline_call_site_wrapper(self):
+        source = textwrap.dedent("""
+            async def my_flow(p: dict) -> dict:
+                p = await inline(enrich)(p)
+                return p
+        """)
+        _, ops = FlowParser(source, "test.py").parse()
+        assert isinstance(ops[0], Mutation)
+        assert "await" in ops[0].code
+        assert "enrich" in ops[0].code
+
+    def test_call_site_actor_name_override_validation(self):
+        # Directive name= on a call-site wrapper must also be validated.
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:
+                p = actor(handler)(p)  # asya: actor name=bad'name
+                return p
+        """)
+        with pytest.raises(FlowCompileError, match="Invalid actor name"):
             FlowParser(source, "test.py").parse()
 
 
