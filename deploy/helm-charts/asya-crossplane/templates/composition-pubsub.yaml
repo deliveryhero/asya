@@ -503,9 +503,9 @@ spec:
                             value: error-end
                           - name: ASYA_TRANSPORT
                             value: pubsub
-                          {{- if .Values.gcpProviderConfig.projectId }}
+                          {{- if .Values.sidecar.gcpProjectId }}
                           - name: ASYA_PUBSUB_PROJECT_ID
-                            value: {{ .Values.gcpProviderConfig.projectId | quote }}
+                            value: {{ .Values.sidecar.gcpProjectId | quote }}
                           {{- end }}
                           {{- if .Values.sidecar.pubsubEndpoint }}
                           - name: ASYA_PUBSUB_ENDPOINT
