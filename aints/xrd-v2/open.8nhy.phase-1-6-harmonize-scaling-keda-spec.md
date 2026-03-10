@@ -11,6 +11,14 @@ Fully align `AsyncActor.spec.scaling` field names and structure with the KEDA
 ScaledObject spec (keda.sh/docs/2.19/reference/scaledobject-spec/).
 Breaking changes — no backward compatibility.
 
+## Naming rationale: `scaling` not `autoscaling`
+
+Keep the XRD field as `spec.scaling`. The `autoscaling.keda.sh/paused` annotation
+uses `autoscaling` as an API group namespace prefix, not as a naming convention for
+CRD fields. Kubernetes itself uses `scaling` idiomatically (`kubectl scale`, Argo
+Rollouts, etc.). The HPA API group is `autoscaling/v1` but HPA is a different resource.
+`spec.scaling` is clear, concise, and consistent with Kubernetes conventions.
+
 ## Changes
 
 ### XRD (`xrd-asyncactor.yaml`)
