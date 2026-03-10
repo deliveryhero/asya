@@ -5,7 +5,11 @@
 {{- $transport := $actor.transport | default $.Values.transport }}
 {{- $scaling := $actor.scaling | default $.Values.default.scaling }}
 {{- $timeout := $actor.timeout }}
-{{- $workload := $actor.workload | default $.Values.default.workload }}
+{{- $image := $actor.image | default $.Values.default.image }}
+{{- $imagePullPolicy := $actor.imagePullPolicy | default $.Values.default.imagePullPolicy | default "IfNotPresent" }}
+{{- $handler := $actor.handler | default $.Values.default.handler }}
+{{- $env := $actor.env | default $.Values.default.env | default list }}
+{{- $resources := $actor.resources | default $.Values.default.resources }}
 {{- $healthChecks := $actor.healthChecks | default $.Values.default.healthChecks }}
 ---
 apiVersion: asya.sh/v1alpha1
@@ -43,6 +47,15 @@ spec:
     {{- toYaml $timeout | nindent 4 }}
   {{- end }}
 
-  workload:
-    {{- toYaml $workload | nindent 4 }}
+  image: {{ $image }}
+  imagePullPolicy: {{ $imagePullPolicy }}
+  handler: {{ $handler }}
+  {{- if $env }}
+  env:
+    {{- toYaml $env | nindent 4 }}
+  {{- end }}
+  {{- if $resources }}
+  resources:
+    {{- toYaml $resources | nindent 4 }}
+  {{- end }}
 {{- end }}

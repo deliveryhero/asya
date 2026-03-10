@@ -28,25 +28,21 @@ spec:
     {{- toYaml $resume.scaling | nindent 4 }}
   {{- end }}
 
-  workload:
-    kind: {{ $resume.workload.kind }}
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ include "asya-crew.x-resume.image" . }}
-          imagePullPolicy: {{ include "asya-crew.x-resume.imagePullPolicy" . }}
-          env:
-          {{- range $key, $value := $resume.env }}
-          {{- if ne $value "" }}
-          - name: {{ $key }}
-            value: {{ $value | quote }}
-          {{- end }}
-          {{- end }}
-          - name: ASYA_HANDLER
-            value: asya_crew.resume.resume_handler
-          {{- with $resume.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+  image: {{ include "asya-crew.x-resume.image" . }}
+  imagePullPolicy: {{ include "asya-crew.x-resume.imagePullPolicy" . }}
+  handler: asya_crew.resume.resume_handler
+  {{- $envList := list }}
+  {{- range $key, $value := $resume.env }}
+  {{- if ne $value "" }}
+  {{- $envList = append $envList (dict "name" $key "value" $value) }}
+  {{- end }}
+  {{- end }}
+  {{- if $envList }}
+  env:
+    {{- toYaml $envList | nindent 4 }}
+  {{- end }}
+  {{- with $resume.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}
