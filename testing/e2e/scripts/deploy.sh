@@ -573,7 +573,7 @@ echo
 echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
 time {
   if ! kubectl wait --for=condition=Ready asyncactor --all \
-    -n "$NAMESPACE" --timeout=300s; then
+    -n "$NAMESPACE" --timeout=600s; then
     echo "[!] Warning: Not all AsyncActors reconciled"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
