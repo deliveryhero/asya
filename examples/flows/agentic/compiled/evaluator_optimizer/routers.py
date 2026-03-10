@@ -19,17 +19,17 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 def start_evaluator_optimizer(payload: dict):
     """Entrypoint for flow 'evaluator_optimizer'"""
     _next = []
-    state = payload
-    state['iteration'] = 0
+    p = payload
+    p['iteration'] = 0
     _next.append(resolve("router_evaluator_optimizer_line_54_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
 def router_evaluator_optimizer_line_68_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['iteration'] >= MAX_ITERATIONS:
+    if p['iteration'] >= MAX_ITERATIONS:
         _next.append(resolve("polisher"))
     else:
         pass
@@ -39,9 +39,9 @@ def router_evaluator_optimizer_line_68_if(payload: dict):
 
 def router_evaluator_optimizer_line_64_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('score', 0) >= SCORE_THRESHOLD:
+    if p.get('score', 0) >= SCORE_THRESHOLD:
         _next.append(resolve("polisher"))
     else:
         _next.append(resolve("router_evaluator_optimizer_line_68_if"))
@@ -51,9 +51,9 @@ def router_evaluator_optimizer_line_64_if(payload: dict):
 
 def router_evaluator_optimizer_line_55_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['iteration'] += 1
+    p['iteration'] += 1
     _next.append(resolve("generator"))
     _next.append(resolve("evaluator"))
     _next.append(resolve("router_evaluator_optimizer_line_64_if"))
@@ -63,7 +63,7 @@ def router_evaluator_optimizer_line_55_seq(payload: dict):
 
 def router_evaluator_optimizer_line_54_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
     _self = resolve("router_evaluator_optimizer_line_54_loop_back_0")
     _prev = yield "GET", ".route.prev"

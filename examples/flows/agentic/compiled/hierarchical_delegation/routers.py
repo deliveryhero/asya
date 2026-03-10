@@ -23,9 +23,9 @@ def start_hierarchical_delegation(payload: dict):
 
 def router_hierarchical_delegation_line_63_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('subtask') == 'api':
+    if p.get('subtask') == 'api':
         _next.append(resolve("api_specialist"))
         _next.append(resolve("final_assembler"))
     else:
@@ -37,9 +37,9 @@ def router_hierarchical_delegation_line_63_if(payload: dict):
 
 def router_hierarchical_delegation_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('subtask') == 'sql':
+    if p.get('subtask') == 'sql':
         _next.append(resolve("sql_specialist"))
         _next.append(resolve("final_assembler"))
     else:
@@ -50,9 +50,9 @@ def router_hierarchical_delegation_line_61_if(payload: dict):
 
 def router_hierarchical_delegation_line_74_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('subtask') == 'edit':
+    if p.get('subtask') == 'edit':
         _next.append(resolve("editor"))
         _next.append(resolve("final_assembler"))
     else:
@@ -64,9 +64,9 @@ def router_hierarchical_delegation_line_74_if(payload: dict):
 
 def router_hierarchical_delegation_line_72_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('subtask') == 'write':
+    if p.get('subtask') == 'write':
         _next.append(resolve("writer"))
         _next.append(resolve("final_assembler"))
     else:
@@ -77,9 +77,9 @@ def router_hierarchical_delegation_line_72_if(payload: dict):
 
 def router_hierarchical_delegation_line_68_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('domain') == 'content':
+    if p.get('domain') == 'content':
         _next.append(resolve("content_team_lead"))
         _next.append(resolve("router_hierarchical_delegation_line_72_if"))
     else:
@@ -91,9 +91,9 @@ def router_hierarchical_delegation_line_68_if(payload: dict):
 
 def router_hierarchical_delegation_line_57_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('domain') == 'data':
+    if p.get('domain') == 'data':
         _next.append(resolve("data_team_lead"))
         _next.append(resolve("router_hierarchical_delegation_line_61_if"))
     else:

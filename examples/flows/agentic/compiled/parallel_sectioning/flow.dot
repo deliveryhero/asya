@@ -4,25 +4,14 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_parallel_sectioning(state)</i></td></tr></table>>];
-  fanout_parallel_sectioning_line_42 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanout_parallel_sectioning_l…(state)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:literal]</b></td></tr></table>>];
-  end_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_parallel_sectioning(state)</i></td></tr></table>>];
-  aggregator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await aggregator(state)</i></td></tr></table>>];
-  entity_recognizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await entity_recognizer(state)</i></td></tr></table>>];
-  fanin_parallel_sectioning_line_42 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await fanin_parallel_sectioning_li…(state)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  preprocessor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await preprocessor(state)</i></td></tr></table>>];
-  sentiment_analyzer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await sentiment_analyzer(state)</i></td></tr></table>>];
-  topic_extractor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await topic_extractor(state)</i></td></tr></table>>];
+  start_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_parallel_sectioning(p)</i></td></tr></table>>];
+  router_parallel_sectioning_line_44_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_parallel_sectioning_line_44_s…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['analysis'] = list(await asyncio.ga…p['text'])))</td></tr></table>>];
+  end_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_parallel_sectioning(p)</i></td></tr></table>>];
+  aggregator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await aggregator(p)</i></td></tr></table>>];
+  preprocessor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await preprocessor(p)</i></td></tr></table>>];
 
   aggregator -> end_parallel_sectioning;
-  entity_recognizer -> fanin_parallel_sectioning_line_42 [color=slateblue4, style=dashed];
-  fanin_parallel_sectioning_line_42 -> aggregator;
-  fanout_parallel_sectioning_line_42 -> entity_recognizer [color=mediumpurple4, label="slice 3", style=bold];
-  fanout_parallel_sectioning_line_42 -> fanin_parallel_sectioning_line_42 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  fanout_parallel_sectioning_line_42 -> sentiment_analyzer [color=mediumpurple4, label="slice 1", style=bold];
-  fanout_parallel_sectioning_line_42 -> topic_extractor [color=mediumpurple4, label="slice 2", style=bold];
-  preprocessor -> fanout_parallel_sectioning_line_42;
-  sentiment_analyzer -> fanin_parallel_sectioning_line_42 [color=slateblue4, style=dashed];
+  preprocessor -> router_parallel_sectioning_line_44_seq;
+  router_parallel_sectioning_line_44_seq -> aggregator;
   start_parallel_sectioning -> preprocessor;
-  topic_extractor -> fanin_parallel_sectioning_line_42 [color=slateblue4, style=dashed];
 }
