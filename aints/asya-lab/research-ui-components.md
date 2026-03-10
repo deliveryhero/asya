@@ -681,21 +681,41 @@ modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
 
 ---
 
-## 11. Open Questions
+## 11. Resolved Questions
 
-1. **Graph JSON emission**: Should the compiler emit graph JSON alongside DOT
-   automatically, or only when `--interactive` is passed? Automatic is
-   simpler (always available for Jupyter), but adds ~5KB per compilation.
+1. ~~**Graph JSON emission**~~: **Resolved**. Always emit graph JSON alongside
+   DOT (~5KB, negligible). Additionally, always render PNG to the configured
+   plots directory (`config.plots.dir`, default `.asya/flows/plots/`) — keeps
+   a gallery of all flow graphs on disk. In interactive environments (Jupyter,
+   VSCode), show the interactive React Flow widget by default. Static PNG is
+   always available as a fallback and for CI/docs/README.
 
-2. **Live status polling interval**: How often should providers poll for actor
-   status? Too fast = API load; too slow = stale data. Consider: 5s default,
-   configurable per host.
+2. ~~**Live status polling interval**~~: **Resolved**. No polling — WebSocket
+   backed by K8s watch API pushes actor status changes instantly. See §4.2.
 
-3. **Storybook hosting**: Host Storybook on GitHub Pages for design review, or
-   keep local-only?
+3. ~~**Storybook hosting**~~: **Resolved**. Local-only (`npm run storybook`).
+   Storybook is a component catalog for developing and reviewing UI components
+   in isolation. Local is sufficient for a small team. Add GitHub Pages
+   hosting later if non-developers need to review visual designs.
 
-4. **Accessibility**: React Flow supports keyboard navigation. Should we add
-   ARIA labels to ActorNode components from day one?
+4. ~~**Accessibility**~~: **Resolved**. ARIA labels from day one. Colors are
+   supplementary — state must be distinguishable without color (role badges,
+   border patterns). React Flow provides keyboard navigation out of the box.
 
-5. **Dark mode**: VSCode has dark mode. Should `@asya/ui` ship with dark theme
-   tokens from the start, or add later?
+5. ~~**Dark mode**~~: **Resolved**. Ship dark theme from start. VSCode users
+   expect it. Use CSS custom properties for all design tokens — light/dark
+   switch is just swapping token values.
+
+## 12. Open Questions
+
+1. **`asya serve` port management**: Fixed port (e.g., 8741) or random free
+   port? VSCode extension needs to discover the port. Options: fixed default
+   with `--port` override, or write port to a lockfile (`.asya/.serve.port`).
+
+2. **`asya serve` authentication**: Runs on localhost, but in shared dev
+   environments (asya-lens on a server) it might be accessible to others.
+   Token-based auth? Or rely on network isolation?
+
+3. **Graph JSON vs DOT layout divergence**: Graph JSON lets React Flow/dagre
+   compute layout independently. The static DOT uses graphviz layout. Layouts
+   will differ slightly. Acceptable? Or should graph JSON include layout hints?
