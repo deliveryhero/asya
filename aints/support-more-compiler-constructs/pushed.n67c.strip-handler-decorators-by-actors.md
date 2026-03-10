@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Resolution
 
 This question has been answered by the compiler rules design brainstorm
