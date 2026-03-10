@@ -559,7 +559,7 @@ spec:
                           - name: ASYA_IS_END_ACTOR
                             value: "true"
                           {{`{{- end }}`}}
-                          {{`{{- range $xrSpec.sidecar.env | default list }}`}}
+                          {{`{{- range (($xrSpec.sidecar | default dict).env | default list) }}`}}
                           - name: {{`{{ .name }}`}}
                             value: {{`{{ .value | quote }}`}}
                           {{`{{- end }}`}}
@@ -640,6 +640,7 @@ spec:
                         - name: state-sockets
                           emptyDir: {}
                         {{`{{- end }}`}}
+                        {{`{{- if and (hasKey $workload "template") (hasKey $workload.template "spec") }}`}}
                         {{`{{- range $workload.template.spec.volumes | default list }}`}}
                         - {{`{{ . | toYaml | nindent 10 }}`}}
                         {{`{{- end }}`}}
@@ -654,6 +655,7 @@ spec:
                         {{`{{- with $workload.template.spec.tolerations }}`}}
                         tolerations:
                           {{`{{- . | toYaml | nindent 10 }}`}}
+                        {{`{{- end }}`}}
                         {{`{{- end }}`}}
               providerConfigRef:
                 name: {{ .Values.kubernetesProviderConfig.name }}
