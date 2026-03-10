@@ -45,6 +45,16 @@ Open aints to address during or after this phase:
 - [20c9] Don't generate empty start/end routers
 - [ia37] Per-scope semantics for context managers
 
+## Pre-flight cleanup from Phase 1
+
+Before starting, remove the temporary `workflow_dispatch` trigger from
+`.github/workflows/release.yml` (added to test PyPI trusted publishing).
+Search for `workflow_dispatch` and `test_pypi` in the file and remove
+the `workflow_dispatch:` block from the `on:` trigger, the
+`github.event_name == 'workflow_dispatch'` branch in the version step,
+and restore the original `if:` condition on `publish-pypi` to just
+`github.event.action == 'published'`.
+
 ## Dependencies
 
 - [pyt1] Phase 1: Config system
