@@ -59,3 +59,9 @@ Note: `decompose` (old name) → `unfold`. PR #280 implements `actor` and `inlin
 
 See [1mhs] - it supports custom decorators `@actor`.
 See [1fmi] - it wants to support tenacity `@retry`.
+
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — full treat-as
+  system design, five action values, extraction mechanism
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary

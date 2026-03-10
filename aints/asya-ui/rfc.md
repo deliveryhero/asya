@@ -1,9 +1,14 @@
 # RFC: Asya UI -- TypeScript Workspace
 
-**Status**: Proposed
+**Status**: Superseded by `asya-lab/research-ui-components.md`
 **Date**: 2026-02-27
 **Epic**: 1juv.asya-ui
 **Depends on**: 1jow (client UX design), 1jux (asya-lab SDK)
+**Superseded by**: Epic 1jux (asya-lab) — UI work folded into
+`aints/asya-lab/research-ui-components.md`. Key changes: source moved to
+`src/asya-lab/ui/` (colocated, not separate pnpm monorepo), webview talks
+directly to `asya serve` (no postMessage relay), Jupyter is Phase 3 (not
+future), anywidget integration fully designed.
 
 ---
 

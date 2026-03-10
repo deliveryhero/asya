@@ -90,5 +90,10 @@ Both paths are needed for the full rules system.
 - Unit: config extraction from stamina `@retry` with kwargs
 - Integration: full flow with mixed decorators compiles correctly
 
-See `.aint/aints/asya-lab/research-compiler-knowledge-base.md` for extraction
-design and tenacity signature research.
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — extraction
+  design, tenacity/stamina signature research, `inspect.signature` mechanism
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary, treat-as system
+- `.aint/aints/asya-lab/rfc.md` §9.3 — hard requirement: compiler runs in
+  project's virtualenv with packages installed for `inspect.signature`

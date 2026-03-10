@@ -109,3 +109,17 @@ extraction design.
 - Unit: reject unknown context manager (no rule)
 - Unit: nested context managers
 - Unit: context manager with multiple `withitem`s (`with a() as x, b() as y:`)
+
+## Known limitation
+
+This PR implements **per-actor** config application (each actor in the scope
+gets the config independently). The correct semantics is **per-scope** (e.g.,
+`asyncio.timeout(30)` should be a pipeline-level deadline, not per-actor
+timeout). Per-scope semantics is tracked in [ia37].
+
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — extraction
+  design, `inspect.signature` at compile time
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary
+- Aint [ia37] — per-scope semantics (follow-up to this PR)

@@ -119,5 +119,8 @@ operation type (actor boundary vs inline mutation vs flow).
 - Unit: `p = unknown_wrapper(handler)(p)` → error (no matching rule)
 - Unit: `p = actor(module.handler)(p)` → ActorCall with name="module.handler"
 
-See `.aint/aints/asya-lab/research-compiler-knowledge-base.md` for the
-full rules system design.
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — full rules
+  system design, marker matrix
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary

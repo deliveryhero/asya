@@ -34,12 +34,26 @@ The `@flow` and `@unfold` markers use the same decorator detection mechanism as 
 ### `@unfold` semantics
 - Expand the function body into the current flow's routers
 - No boundary — the function's operations merge into the parent flow
-- This is already the default for same-package functions (`"."` rule), so `@unfold` is mainly useful for overriding the `"*"` rule on external functions
+- This is already the default for same-package functions, so `@unfold` is
+  mainly useful for explicitly unfolding external functions that would
+  otherwise require an `@actor` or `@flow` marker
+
+### Default resolution (no marker)
+- Same-package function, no marker → `unfold` (expand body)
+- External function, no marker → error (must be explicitly marked with
+  `@actor`, `@flow`, `@inline`, or `@unfold`)
 
 ## Testing
 - Unit: `@flow` decorator → FlowCall (recursive compilation)
 - Unit: `@unfold` decorator → unfold (body expansion)
 - Unit: `flow(sub_pipeline)(p)` call-site → FlowCall
 - Unit: `unfold(helper)(p)` call-site → unfold
-- Unit: `@flow` on external function → overrides `"*"` inline default
-- Unit: `@unfold` on external function → overrides `"*"` inline default
+- Unit: `@flow` on external function → overrides default error
+- Unit: `@unfold` on external function → overrides default error
+- Unit: external function without marker → FlowCompileError
+
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — full marker
+  matrix, defaults and explicit markers section
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary

@@ -38,8 +38,9 @@ deployment details are managed in manifests via CLI/UI.
 
 Priority order (highest to lowest):
 1. Inline comment (`# asya: <action>`)
-2. Matching compiler rule from `asya.yaml`
-3. Default (unfold for same-package, inline for external)
+2. Matching compiler rule from `compiler/rules.yaml`
+3. Default: unfold for same-package functions, error for external (actors
+   must be explicitly marked with `@actor`, flows with `@flow`)
 
 ### Comment syntax
 
@@ -99,5 +100,9 @@ an operation (actor boundary vs inline vs unfold).
 - Unit: directive overrides matching compiler rule
 - Unit: unknown action word → FlowCompileError
 
-See `.aint/aints/asya-lab/research-compiler-knowledge-base.md` for the
-full rules resolution priority design.
+## References
+
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — full rules
+  resolution priority design, treat-as system, extraction examples
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary
+- `.aint/aints/asya-lab/rfc.md` §7.3.2 — `compiler/rules.yaml` schema

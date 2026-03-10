@@ -281,14 +281,16 @@ editable.
 
 ### 3.6 Edge Rendering
 
+Matches the 5 edge types from §3.2 — JSON is the source of truth, DOT will
+be patched later to align.
+
 | Edge type | Style | Color | Label |
 |---|---|---|---|
-| Sequential | Solid | Black | — |
-| Conditional TRUE | Solid | Green (#16a34a) | "TRUE" |
-| Conditional FALSE | Solid | Red (#dc2626) | "FALSE" |
-| Fan-out | Solid | Purple (#9333ea) | "slice N" |
-| Fan-in | Dashed | Slate (#475569) | — |
-| Error/sump | Dashed | Gray (#9ca3af) | — |
+| `sequential` | Solid | Black | — |
+| `true` | Solid | Green (#16a34a) | "TRUE" |
+| `false` | Solid | Red (#dc2626) | "FALSE" |
+| `except` | Dashed | Gray (#9ca3af) | "except Type" |
+| `fanout` | Solid | Purple (#9333ea) | "slice N" |
 
 ---
 
@@ -616,12 +618,13 @@ anywidget bridges Python ↔ JavaScript in Jupyter notebooks:
 
 ```python
 # Python side
+import pathlib
 import anywidget
 import traitlets
 
 class FlowWidget(anywidget.AnyWidget):
-    _esm = "flow_widget.js"          # JS bundle (React app)
-    _css = "flow_widget.css"         # Styles
+    _esm = pathlib.Path(__file__).parent / "static" / "flow_widget.js"
+    _css = pathlib.Path(__file__).parent / "static" / "flow_widget.css"
 
     # Synced state (Python ↔ JS, bidirectional)
     graph = traitlets.Dict({}).tag(sync=True)
@@ -631,7 +634,8 @@ class FlowWidget(anywidget.AnyWidget):
 ```
 
 ```js
-// JS side (flow_widget.js)
+// JS side — src/asya-lab/ui/src/widgets/flow_widget.tsx
+// This is the anywidget entry point. Vite bundles it with all deps.
 export function render({ model, el }) {
   const root = createRoot(el);
   root.render(
@@ -647,7 +651,72 @@ export function render({ model, el }) {
 }
 ```
 
-### 6.2 Jupyter Magic Integration
+### 6.2 JS Bundle → Python Wheel Pipeline
+
+The anywidget JS bundle is built from `@asya/ui` source and embedded in the
+Python wheel as package data. Gitignored — built locally by `make build` and
+in CI by the publish workflow.
+
+```
+Build pipeline:
+
+src/asya-lab/ui/                              ← @asya/ui source
+  src/widgets/flow_widget.tsx                 ← anywidget entry point
+  vite.config.ts                              ← widget build config
+
+    ↓  npm run build:widget (Vite, library mode)
+
+src/asya-lab/asya_lab/static/                 ← build output (gitignored)
+  flow_widget.js                              ← single bundle (~110KB gzip)
+  flow_widget.css                             ← styles
+
+    ↓  uv build (pyproject.toml includes static/)
+
+asya_lab-*.whl
+  asya_lab/static/flow_widget.js
+  asya_lab/static/flow_widget.css
+```
+
+**Gitignored, not committed**: `asya_lab/static/*.js` and `asya_lab/static/*.css`
+are in `.gitignore`. Keeps the repo clean — no binary JS blobs in git history.
+Built locally by `make build` and in CI before `uv build`.
+
+**pyproject.toml** includes static files in the wheel:
+
+```toml
+[tool.setuptools.package-data]
+asya_lab = ["static/*.js", "static/*.css"]
+```
+
+**Makefile target** chains both builds:
+
+```makefile
+# src/asya-lab/Makefile
+build:
+	cd ui && npm run build:widget    # Vite → asya_lab/static/
+	uv build                         # Python wheel (includes static/)
+```
+
+**Vite config** for the widget bundle (library mode, single file output):
+
+```ts
+// src/asya-lab/ui/vite.config.ts
+export default defineConfig({
+  build: {
+    lib: {
+      entry: 'src/widgets/flow_widget.tsx',
+      formats: ['es'],
+      fileName: 'flow_widget',
+    },
+    outDir: '../asya_lab/static',
+    rollupOptions: {
+      // Bundle everything — no externals for anywidget
+    },
+  },
+});
+```
+
+### 6.3 Jupyter Magic Integration
 
 ```python
 # asya_lab/jupyter/magics.py
@@ -667,7 +736,7 @@ def asya(self, line):
         display(widget)
 ```
 
-### 6.3 Bundle Size Considerations
+### 6.4 Bundle Size Considerations
 
 | Dependency | Size (minified + gzip) |
 |---|---|

@@ -1,7 +1,12 @@
 ---
 title: "Asya UI: TypeScript Workspace (React Components + VSCode Extension)"
 priority: 3 # low
+status: superseded
 ---
+
+> **Superseded** by epic 1jux (asya-lab). UI design moved to
+> `aints/asya-lab/research-ui-components.md`. Source location changed from
+> `src/asya-ui/` to `src/asya-lab/ui/`.
 
 
 TypeScript pnpm monorepo workspace containing all client-side UI code: the shared

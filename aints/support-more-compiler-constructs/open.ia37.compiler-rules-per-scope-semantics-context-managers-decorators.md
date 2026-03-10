@@ -47,7 +47,10 @@ Per-scope for decorators and single calls already matches current behavior:
 
 ## References
 
-- Research: `.aint/aints/asya-lab/research-compiler-knowledge-base.md` (open
-  question 3, line 498) — documents the per-actor design and this open question
-- Aint [2t1q] — context manager implementation (per-actor, needs updating)
-- Related: `deadline_at` mechanism in gateway (see [zjt4])
+- `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — documents the
+  per-actor design and this open question (§ open questions)
+- `.aint/aints/asya-lab/rfc.md` §9.1 — compiler rules summary
+- Aint [2t1q] — context manager implementation (per-actor, needs updating
+  to per-scope once this aint is implemented)
+- Aint [zjt4] — `deadline_at` SLA enforcement (prerequisite for scope-level
+  timeout implementation)
