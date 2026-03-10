@@ -1,9 +1,9 @@
 # RFC: Asya Lens -- Self-Hosted Dashboard and IDE
 
-**Status**: Proposed
-**Date**: 2026-02-27
-**Epic**: 1juy.asya-lens
-**Depends on**: 1jux (asya-lab), 1juv (asya-ui)
+**Status**: Proposed (revised 2026-03-10)
+**Date**: 2026-02-27 (original), 2026-03-10 (updated references)
+**Epic**: asya-lens
+**Depends on**: asya-lab (Python SDK + `asya serve`), asya-ui (`@asya/ui` components)
 
 ---
 
@@ -43,13 +43,13 @@ provides a browser-based window into Asya actor meshes.
 |            v                                          |
 |  +------------------+                                 |
 |  | asya serve       |  (FastAPI, from asya-lab[ui])   |
-|  | REST + WebSocket |                                 |
+|  | REST + WS        |  K8s Python SDK for live data   |
 |  +--------+---------+                                 |
 |            |                                          |
-|  kubectl / helm / Docker (from asya-lab[deploy])      |
+|  .asya/ config (mounted or baked in)                  |
 +------------------------------------------------------+
          |
-    ASYA_CONTEXT -> target cluster / compose project
+    in-cluster config -> target K8s API server
 ```
 
 ### 3.1 Components Inside the Image
@@ -57,9 +57,10 @@ provides a browser-based window into Asya actor meshes.
 | Component | Source | Purpose |
 |---|---|---|
 | code-server | `codercom/code-server` base image | Browser-based VSCode |
-| Asya VSCode extension | `.vsix` from `src/asya-ui/packages/vscode/` | Editor integration, panels |
-| `asya-lab[ui,deploy]` | PyPI / wheel | SDK, CLI, FastAPI server, kubectl/helm wrappers |
-| kubectl | Official binary | K8s interaction |
+| Asya VSCode extension | `.vsix` built from `src/asya-lab/ui/` | Editor integration, webview panels |
+| `asya-lab[ui,deploy]` | PyPI / wheel | SDK, CLI, FastAPI server, `@asya/ui` SPA |
+| K8s Python SDK | `kubernetes` pip package (dep of asya-lab) | Native watch API for live actor status |
+| kubectl | Official binary | Fallback CLI, log streaming |
 | helm | Official binary | Chart management |
 | Python 3.13+ | System package | Runtime for asya-lab |
 
@@ -68,8 +69,32 @@ provides a browser-based window into Asya actor meshes.
 1. Container starts code-server on configured port (default 8443)
 2. User opens browser, gets VSCode environment
 3. Asya extension activates, spawns `asya serve` as subprocess
-4. Extension panels (flow diagram, status, logs) are immediately available
-5. `asya serve` reads ASYA_CONTEXT to determine target cluster/namespace
+4. `asya serve` discovers `.asya/` via walk-up from working directory
+   (see `asya-ui/rfc.md` §4 for resolution algorithm)
+5. Extension webview connects directly to `asya serve` via HTTP + WebSocket
+   (no postMessage relay for data — see `asya-ui/rfc.md` §7)
+6. `asya serve` uses in-cluster K8s config for live actor status
+   (K8s Python SDK watch API — see `asya-ui/rfc.md` §5.2)
+
+### 3.3 Data Flow
+
+The webview talks directly to `asya serve` — the extension host is thin:
+
+```
+Webview (React)  --HTTP/WS-->  asya serve  --K8s SDK-->  K8s API server
+     |                             |
+     |                        local .asya/ files
+     |                        (config, manifests, graph JSON)
+     |
+     +--postMessage-->  Extension Host  (only for VSCode-specific actions:
+                                         open file, show notification)
+```
+
+`asya serve` provides:
+- REST API for static data (config, manifests, graph JSON)
+- WebSocket `/ws/actors` for live actor status (K8s watch fan-out)
+- SSE for log streaming and gateway task progress
+- Full API spec in `asya-ui/rfc.md` §5.2
 
 ---
 
@@ -90,8 +115,7 @@ Configuration:
 # Helm values for dashboard mode
 asya-lens:
   mode: dashboard          # optional: can hint at default panel
-  context: k8s-prod
-  readonly: true           # disable config editing
+  readonly: true           # disable config editing, enforced by asya serve
 ```
 
 ### 4.2 IDE Mode
@@ -105,7 +129,6 @@ Configuration:
 # Helm values for IDE mode
 asya-lens:
   mode: ide
-  context: k8s-stg
   persistence:
     enabled: true
     size: 10Gi             # PVC for user workspace
@@ -145,6 +168,9 @@ COPY asya-vscode.vsix /tmp/
 RUN code-server --install-extension /tmp/asya-vscode.vsix \
     && rm /tmp/asya-vscode.vsix
 
+# Seed .asya/ config for in-cluster context (optional, can be mounted)
+COPY .asya/ /home/coder/.asya/
+
 EXPOSE 8443
 ```
 
@@ -170,11 +196,6 @@ replicaCount: 1
 image:
   repository: ghcr.io/deliveryhero/asya-lens
   tag: latest
-
-context:
-  name: k8s-prod           # ASYA_CONTEXT value
-  namespace: production     # target namespace for actor operations
-  kubeconfig: ""            # empty = use in-cluster config
 
 auth:
   enabled: true
@@ -207,11 +228,14 @@ The service account needs permissions to:
 
 ## 7. Context Awareness
 
-`asya-lens` is context-aware via the same mechanism as the CLI:
+`asya-lens` uses the same `.asya/` resolution as all asya tools (see
+`asya-ui/rfc.md` §4):
 
-- `ASYA_CONTEXT` environment variable (set via Helm values)
-- In-cluster kubeconfig for K8s targets
-- Can target a different cluster via explicit kubeconfig mount
+- `.asya/config.yaml` inside the container defines contexts, transports, etc.
+- In IDE mode, users may have their own `.asya/` in their workspace (PVC) —
+  it takes precedence over the baked-in one (nearest-wins walk-up)
+- In dashboard mode, the baked-in `.asya/` is the only one (no user workspace)
+- `asya serve` uses in-cluster kubeconfig automatically when running inside K8s
 
 For multi-cluster visibility, deploy one `asya-lens` per cluster or use a
 kubeconfig with multiple contexts and switch via the UI.
@@ -223,27 +247,34 @@ kubeconfig with multiple contexts and switch via the UI.
 - code-server supports password authentication and can be placed behind an
   ingress with SSO (OAuth2 proxy, Dex, etc.)
 - Dashboard mode should use read-only RBAC to prevent accidental changes
+- `asya serve` enforces `readonly: true` at the API level — PUT/POST requests
+  are rejected regardless of RBAC (defense in depth)
 - The container runs as non-root (code-server default)
 - Secrets (kubeconfig, passwords) should be mounted from K8s secrets, not
   baked into the image
+- `asya serve` binds to `127.0.0.1` inside the container — only code-server's
+  webview can reach it. External access goes through code-server's auth.
 
 ---
 
 ## 9. Build Pipeline
 
 ```
-1. Build @asya/ui components (pnpm build in src/asya-ui/)
-2. Build VSCode extension (.vsix) (pnpm build in src/asya-ui/packages/vscode/)
-3. Build asya-lab wheel (uv build in src/asya-lab/)
+1. Build @asya/ui + widget bundle:
+   cd src/asya-lab/ui && npm run build && npm run build:widget
+2. Build asya-lab wheel (includes @asya/ui static assets):
+   cd src/asya-lab && uv build
+3. Build VSCode extension (.vsix):
+   cd src/asya-lab/ui && npm run build:vscode
 4. Build asya-lens Docker image:
    - FROM codercom/code-server
-   - COPY asya-vscode.vsix
    - pip install asya-lab[ui,deploy]
-   - code-server --install-extension
+   - COPY asya-vscode.vsix + code-server --install-extension
 ```
 
-Dependencies: asya-lens depends on both asya-lab (wheel) and asya-ui (vsix)
-build artifacts. CI must build them in order.
+Dependencies: asya-lens depends on asya-lab (wheel, includes `@asya/ui` SPA)
+and the VSCode extension (.vsix, built from `src/asya-lab/ui/`). CI builds
+them in order.
 
 ---
 
@@ -251,6 +282,5 @@ build artifacts. CI must build them in order.
 
 | Epic | Relationship |
 |---|---|
-| 1jux (Asya Lab) | Python SDK packaged inside this image |
-| 1juv (Asya UI) | VSCode extension and React components bundled here |
-| 1jow (Client UX Design) | Parent design document |
+| asya-lab | Python SDK, CLI, `asya serve` backend — packaged inside this image |
+| asya-ui | `@asya/ui` React components, provider pattern, graph schema — bundled here |

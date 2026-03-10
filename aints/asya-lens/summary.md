@@ -1,45 +1,25 @@
 ---
 title: "Asya Lens: Self-Hosted Dashboard and IDE"
-priority: 2 # medium
+priority: 2
 ---
 
-
-Single Docker image (`asya-lens`) that serves as both a shared status dashboard and
-a self-hosted development environment. Built on code-server with the Asya VSCode
-extension and `asya-lab[ui]` pre-installed.
+Single Docker image (`asya-lens`) that serves as both a shared status dashboard
+and a self-hosted development environment. Built on code-server with the Asya
+VSCode extension and `asya-lab[ui,deploy]` pre-installed.
 
 ## Scope
 
-- Docker image: `asya-lens` (GHCR)
-- Base: code-server (self-hosted VSCode in the browser)
-- Bundled: Asya VSCode extension (`.vsix`), `asya-lab[ui,deploy]`, kubectl, helm
+- Docker image: `asya-lens` (GHCR), based on code-server
+- Bundled: Asya VSCode extension (`.vsix` from `src/asya-lab/ui/`),
+  `asya-lab[ui,deploy]` wheel, kubectl, helm
 - Two usage modes:
-  - **Dashboard mode**: shared status display (wall monitor, CI, ops team)
-  - **IDE mode**: full development environment for data scientists
-- Helm chart for K8s deployment
-- Context-aware via ASYA_CONTEXT
-
-## Image Naming Decision
-
-`asya-lens` was chosen because:
-- Practical: a lens is something you look through to observe
-- Works for both modes: looking at status (dashboard) and into code (IDE)
-- Short and memorable
-
-Rejected alternatives: `asya-dashboard` (undersells IDE capability),
-`asya-studio`/`asya-console` (user preference), `asya-workbench` (generic).
-
-## Architecture
-
-- code-server provides the browser-based VSCode environment
-- The VSCode extension spawns `asya serve` internally (same as local VSCode)
-- `asya serve` provides the REST/WebSocket API for all UI operations
-- In dashboard mode, users access the web UI panels directly
-- In IDE mode, users get the full code-server experience with Asya integration
-- Same image, same entry point -- usage determines the experience
+  - **Dashboard mode**: read-only status display (wall monitor, ops team)
+  - **IDE mode**: full development environment for data scientists (PVC)
+- Helm chart for K8s deployment (`deploy/helm-charts/asya-lens/`)
+- Context-aware via `.asya/config.yaml` (walk-up resolution, in-cluster config)
+- `asya serve` uses K8s Python SDK with in-cluster config for live status
 
 ## Related Epics
 
-- 1jux: Asya Lab -- Python SDK packaged inside this image
-- 1juv: Asya UI -- VSCode extension and React components bundled here
-- 1jow: Client UX Design (parent design document)
+- asya-lab: Python SDK, CLI, `asya serve` backend packaged inside this image
+- asya-ui: `@asya/ui` React components and VSCode extension bundled here
