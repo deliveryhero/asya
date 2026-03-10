@@ -16,7 +16,7 @@ This chart creates an AsyncActor CRD resource. The 🎭 operator will automatica
 - Scaling parameters (KEDA)
 
 **Python Runtime Requirements:**
-- Container image must have `python3` in PATH (or override via `workload.pythonExecutable`)
+- Container image must have `python3` in PATH (or override via `pythonExecutable`)
 - Handler function must be importable (set `PYTHONPATH` environment variable)
 
 ## Prerequisites
@@ -37,8 +37,8 @@ This chart creates an AsyncActor CRD resource. The 🎭 operator will automatica
 helm install my-actor ./testing/e2e/charts/asya-test-actor \
   --set name=my-actor \
   --set transport=rabbitmq \
-  --set workload.template.spec.containers[0].env[0].name=ASYA_HANDLER \
-  --set workload.template.spec.containers[0].env[0].value="my_module.handler"
+  --set workload.image=my-image:latest \
+  --set workload.imagePullPolicy=IfNotPresent
 ```
 
 Note: The actor name (`my-actor`) is automatically used as the queue name.
@@ -63,22 +63,8 @@ scaling:
   queueLength: 5
 
 workload:
-  kind: Deployment
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: python:3.13-slim
-        env:
-          - name: ASYA_HANDLER
-            value: "my_module.handler"
-        resources:
-          limits:
-            cpu: 1000m
-            memory: 1Gi
-          requests:
-            cpu: 100m
-            memory: 256Mi
+  image: python:3.13-slim
+  imagePullPolicy: IfNotPresent
 ```
 
 Install:
@@ -162,83 +148,30 @@ The activation threshold determines when to scale from 0 to 1 replica. For examp
 - `activationTarget: "10"` means scale to 1 replica when queue > 10 messages
 - Without this, any message in the queue will trigger scaling from 0 to 1
 
-### Workload Configuration
+### Actor Configuration
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload kind (must be `Deployment`) | `Deployment` |
-| `workload.replicas` | Number of replicas (ignored if scaling enabled) | `1` |
-| `workload.pythonExecutable` | Python executable path for runtime | `python3` |
-| `workload.template.spec.containers` | Container definitions | See examples |
+| `workload.image` | Runtime container image | `ghcr.io/deliveryhero/asya-testing:latest` |
+| `workload.imagePullPolicy` | Image pull policy | `Never` |
+| `pythonExecutable` | Python executable path for runtime | `python3` |
+| `replicas` | Number of replicas (ignored if scaling enabled) | `1` |
 
 **IMPORTANT:**
 - Do NOT set `command` on your runtime container - the operator automatically injects it
 - Do NOT try to configure the sidecar - the operator handles it automatically
+- The `handler` field is hardcoded per actor template (each actor has its own handler)
 
 #### Python Runtime Configuration
 
 The operator injects `command: ["python3", "/opt/asya/asya_runtime.py"]` into all runtime containers. Your container must meet these requirements:
 
-1. **Python availability**: `python3` must be in PATH (or override via `workload.pythonExecutable`)
-2. **Handler importability**: Your function must be importable via `ASYA_HANDLER`
+1. **Python availability**: `python3` must be in PATH (or override via `pythonExecutable`)
+2. **Handler importability**: Your function must be importable
 
 **Custom Python executable:**
 ```yaml
-workload:
-  pythonExecutable: "/opt/conda/bin/python"  # Or "python3.11"
-```
-
-**Handler import resolution:**
-```yaml
-# Standalone script at /app/script.py with function 'process'
-env:
-  - name: PYTHONPATH
-    value: "/app"
-  - name: ASYA_HANDLER
-    value: "script.process"
-
-# Package at /app/my_pkg/handler.py with function 'predict'
-env:
-  - name: PYTHONPATH
-    value: "/app"
-  - name: ASYA_HANDLER
-    value: "my_pkg.handler.predict"
-```
-
-#### Workload Kinds
-
-The 🎭 operator supports `Deployment` as the workload kind for AsyncActor resources:
-
-##### Deployment
-
-**Use when:** Your actor is stateless and handles messages independently
-
-**Characteristics:**
-- ✅ Stateless message processing
-- ✅ Replicas can be created/destroyed freely
-- ✅ Best for scale-to-zero with KEDA
-- ✅ Rolling updates supported
-- ❌ No persistent storage per pod
-- ❌ No stable network identity
-
-**Example use cases:**
-- Image processing actors
-- Text analysis/NLP actors
-- API integration actors
-- Data transformation actors
-
-**Configuration:**
-```yaml
-workload:
-  kind: Deployment  # or omit (Deployment is default)
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: python:3.13-slim
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.process"
+pythonExecutable: "/opt/conda/bin/python"  # Or "python3.11"
 ```
 
 ## Examples
@@ -254,14 +187,8 @@ namespace: asya
 transport: rabbitmq
 
 workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: python:3.13-slim
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.echo"
+  image: python:3.13-slim
+  imagePullPolicy: IfNotPresent
 ```
 
 ### Example 2: Actor with Custom Image and Resources
@@ -280,23 +207,8 @@ scaling:
   queueLength: 10
 
 workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-registry.io/nlp-model:v1.0
-        env:
-          - name: ASYA_HANDLER
-            value: "nlp_handlers.process"
-          - name: MODEL_PATH
-            value: "/models/bert"
-        resources:
-          limits:
-            cpu: 4000m
-            memory: 8Gi
-          requests:
-            cpu: 2000m
-            memory: 4Gi
+  image: my-registry.io/nlp-model:v1.0
+  imagePullPolicy: IfNotPresent
 ```
 
 ### Example 3: GPU Actor with Scale-to-Zero
@@ -315,23 +227,8 @@ scaling:
   queueLength: 1  # One message per GPU
 
 workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: nvidia/cuda:12.0-runtime-ubuntu22.04
-        env:
-          - name: ASYA_HANDLER
-            value: "gpu_handlers.inference"
-        resources:
-          limits:
-            nvidia.com/gpu: 1
-            memory: 16Gi
-            cpu: 4000m
-          requests:
-            nvidia.com/gpu: 1
-            memory: 8Gi
-            cpu: 2000m
+  image: nvidia/cuda:12.0-runtime-ubuntu22.04
+  imagePullPolicy: IfNotPresent
 ```
 
 ### Example 4: Advanced Scaling with Custom Formula
@@ -358,18 +255,8 @@ scaling:
     metricType: "AverageValue"
 
 workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: python:3.13-slim
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.batch_process"
-        resources:
-          limits:
-            cpu: 2000m
-            memory: 2Gi
+  image: python:3.13-slim
+  imagePullPolicy: IfNotPresent
 ```
 
 ### Example 5: SQS Transport
@@ -383,16 +270,8 @@ namespace: asya
 transport: sqs
 
 workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: python:3.13-slim
-        env:
-          - name: ASYA_HANDLER
-            value: "handlers.process"
-          - name: AWS_REGION
-            value: "us-east-1"
+  image: python:3.13-slim
+  imagePullPolicy: IfNotPresent
 ```
 
 ## Using in Helmfile
@@ -409,14 +288,8 @@ releases:
         # Actor name automatically used as queue name
         transport: rabbitmq
         workload:
-          template:
-            spec:
-              containers:
-              - name: asya-runtime
-                image: python:3.13-slim
-                env:
-                  - name: ASYA_HANDLER
-                    value: "handlers.echo"
+          image: python:3.13-slim
+          imagePullPolicy: IfNotPresent
 
   - name: actor-nlp
     chart: ./testing/e2e/charts/asya-test-actor
@@ -426,14 +299,8 @@ releases:
         # Actor name automatically used as queue name
         transport: rabbitmq
         workload:
-          template:
-            spec:
-              containers:
-              - name: asya-runtime
-                image: my-registry.io/nlp-model:v1.0
-                env:
-                  - name: ASYA_HANDLER
-                    value: "handlers.nlp"
+          image: my-registry.io/nlp-model:v1.0
+          imagePullPolicy: IfNotPresent
 ```
 
 ## What the Operator Automatically Injects
@@ -451,7 +318,7 @@ When you create an AsyncActor resource using this chart, the operator will:
    - Mounts asya_runtime.py from ConfigMap
 
 3. **Create supporting resources**:
-   - Deployment based on `workload.kind`
+   - Deployment (always `Deployment` kind)
    - KEDA ScaledObject (if scaling enabled)
    - Required volumes and volume mounts
 

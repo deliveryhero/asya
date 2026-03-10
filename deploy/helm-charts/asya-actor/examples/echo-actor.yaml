@@ -13,26 +13,19 @@ default:
     cooldownPeriod: 60
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
-          - name: ASYA_INCLUDE_ROUTE_INFO
-            value: 'true'
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.echo_handler
+  env:
+  - name: ASYA_INCLUDE_ROUTE_INFO
+    value: 'true'
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
 
   healthChecks:
     preInstall:

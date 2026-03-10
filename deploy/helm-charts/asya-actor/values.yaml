@@ -2,7 +2,7 @@
 # This is a generic chart for deploying AsyncActors
 #
 # MODE 1: Single Actor Deployment
-#   Set name, namespace, transport, and workload
+#   Set name, namespace, transport, image, handler, and optional fields
 #
 # MODE 2: Multi-Actor Deployment
 #   Set actors list instead of individual fields
@@ -42,7 +42,7 @@ actors: []
 #   handler: module.handler_two
 
 # Default configuration applied to all actors
-# Each actor can override by specifying scaling/workload/healthChecks
+# Each actor can override by specifying scaling, image, handler, env, resources, or healthChecks
 default:
   # Scaling configuration (optional)
   scaling:
