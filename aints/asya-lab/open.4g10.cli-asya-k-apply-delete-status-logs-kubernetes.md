@@ -1,13 +1,15 @@
 ---
-title: "CLI: asya k apply/delete/status/logs (Kubernetes interaction)"
+title: "Phase 4: Kubernetes CLI (apply, delete, build, status, logs)"
 priority: 2 # medium
+dependencies:
+  - 5ifn
 ---
 
 ## Scope
 
-Implement Kubernetes-facing CLI commands under `asya k`:
+All `asya k` commands that interact with a Kubernetes cluster, plus image building.
 
-### asya k apply <target> [--context ctx]
+### 4a. asya k apply <target> [--context ctx]
 
 1. Auto-compile if given `.py` file
 2. Select overlay for active context
@@ -16,24 +18,48 @@ Implement Kubernetes-facing CLI commands under `asya k`:
 5. Idempotent (SSA merges, re-running is safe)
 6. Readonly contexts: error with hint to use GitOps
 
-### asya k delete <target> [--context ctx]
+### 4b. asya k delete <target> [--context ctx]
 
 - `kubectl delete` by flow labels (`asya.sh/flow=<name>`)
 - Deletes all actors in the flow (routers + processors)
 - Readonly contexts: error
 
-### asya k status <target> [--context ctx]
+### 4c. asya k build <target>
+
+Thin command runner for image building:
+
+1. Resolve target to build entries in config (module → image + command)
+2. Run opaque shell `command` with variable substitution (`${.image}`, `${arg:tag}`)
+3. `--push` flag appends registry push after build
+4. Multi-image builds: sequential, fail-fast, `[build 1/N]` progress prefixes
+
+```bash
+asya k build order-processing --arg tag=v1.2
+# [build 1/2] docker build -t ghcr.io/org/ecom:v1.2 .
+# [build 2/2] docker build -t ghcr.io/org/shared:v1.2 .
+
+asya k build order-processing --arg tag=v1.2 --push
+# [build 1/2] docker build -t ghcr.io/org/ecom:v1.2 .
+# [push  1/2] docker push ghcr.io/org/ecom:v1.2
+```
+
+- Asya is a thin command runner, not a build system
+- `command` is a single shell string
+- Unresolved `${arg:*}` at build time = hard error
+- No Asya-imposed image tag convention (CD concern)
+
+### 4d. asya k status <target> [--context ctx]
 
 - Live cluster state: `kubectl get asyncactor -l asya.sh/flow=<name>`
 - Shows replicas, queue depth, pod status
 - Adds DEPLOYED column to the status table (extends `asya status`)
 
-### asya k logs <target> [--context ctx]
+### 4e. asya k logs <target> [--context ctx]
 
 - `kubectl logs -l asya.sh/flow=<name>` with colored per-actor output
 - Follow mode with `--follow`
 
-### Supporting commands
+### 4f. Supporting commands
 
 - `asya k context list|use` — switch K8s context
 - `asya k secret create|remove|list|show` — K8s secretKeyRef mappings
@@ -42,9 +68,7 @@ Implement Kubernetes-facing CLI commands under `asya k`:
 
 ## Dependencies
 
-- [leuo] Show/status (for local status table)
-- [hox4] Manifest stamping (for manifest directory structure)
-- [pyt1] Config system (for contexts, readonly enforcement)
+- [5ifn] Phase 3: Local CLI
 
 ## References
 
@@ -53,3 +77,6 @@ Implement Kubernetes-facing CLI commands under `asya k`:
 - `.aint/aints/asya-lab/rfc.md` §5.10 — readonly enforcement
 - `.aint/aints/asya-lab/rfc.md` §10.2 — what asya k apply does
 - `.aint/aints/asya-lab/rfc.md` §10.3 — rollback (deferred)
+- `.aint/aints/asya-lab/rfc.md` §11 — image building, three build paths
+- `.aint/aints/asya-lab/research-seamless-build.md` §7 — build command design
+- `.aint/aints/asya-lab/research-compiler-resolution.md` §2 — build entry schema

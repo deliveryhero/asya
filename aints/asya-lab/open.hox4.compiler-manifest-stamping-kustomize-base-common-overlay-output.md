@@ -1,6 +1,8 @@
 ---
-title: "Compiler: manifest stamping (kustomize base/common/overlay output)"
+title: "Phase 2: Compiler manifest stamping (kustomize output)"
 priority: 2 # medium
+dependencies:
+  - pyt1
 ---
 
 ## Scope
@@ -24,13 +26,28 @@ just `routers.py`. After compilation, `.asya/manifests/<flow>/` should contain:
   resolved per actor (name, handler, image, env vars)
 - **Kustomization templates**: generate `kustomization.yaml` per layer with
   correct resource/patch references
-- **`--flow`/`--actor` naming**: support naming flags for flow and actor names
-  (single name when unambiguous, `func=name` mapping for multiple)
 - **Idempotent**: re-running compile with same input produces identical output
+
+## Compiler construct prerequisites
+
+These aints in `support-more-compiler-constructs/` should be merged first
+(pushed PRs #278, #280, #281):
+
+- [pyn3] Inline comment overrides (`# asya: <action>`)
+- [n67c] Strip handler decorators by actors
+- [srn2] Decorator detection and rule-based resolution
+- [xx8t] Call-site decorator application (`actor(handler)(p)`)
+- [2t1q] Context managers (`with`/`async with`)
+
+Open aints to address during or after this phase:
+
+- [w1br] `@flow` and `@unfold` markers
+- [20c9] Don't generate empty start/end routers
+- [ia37] Per-scope semantics for context managers
 
 ## Dependencies
 
-- [pyt1] Config system (for loading templates, build entries, var interpolation)
+- [pyt1] Phase 1: Config system
 
 ## References
 
