@@ -11,7 +11,6 @@ graph LR
     subgraph "Asya Framework"
         Gateway[Gateway<br/>MCP API]
         Crossplane[Crossplane<br/>Compositions]
-        Injector[Injector<br/>Webhook]
     end
 
     subgraph "Your Actors"
@@ -36,16 +35,12 @@ graph LR
     Crossplane -.->|deploys| A1
     Crossplane -.->|deploys| A2
     Crossplane -.->|deploys| A3
-    Injector -.->|injects sidecar| A1
-    Injector -.->|injects sidecar| A2
-    Injector -.->|injects sidecar| A3
     KEDA -.->|scales| A1
     KEDA -.->|scales| A2
     KEDA -.->|scales| A3
 
     style Gateway fill:#e1f5ff
     style Crossplane fill:#fff3cd
-    style Injector fill:#fff3cd
     style A1 fill:#d4edda
     style A2 fill:#d4edda
     style A3 fill:#d4edda
@@ -55,8 +50,7 @@ graph LR
 
 ### Framework Components
 
-- **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, and KEDA autoscaling
-- **[Injector](asya-injector.md)**: Mutating webhook that injects asya-sidecar and asya-runtime into actor pods
+- **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, render the sidecar inline, and configure KEDA autoscaling
 - **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
 - **[CLI](asya-lab.md)**: Command-line tool for interacting with the gateway (MCP client)
 
@@ -97,9 +91,9 @@ Each actor pod contains two containers:
    - Creates queue (`asya-{namespace}-{actor_name}`)
    - Creates Deployment
    - Creates KEDA ScaledObject (if scaling enabled)
-3. Injector webhook mutates pod spec:
-   - Injects sidecar container
-   - Injects runtime entrypoint and ConfigMap
+3. Crossplane composition renders the full pod spec:
+   - Sidecar container
+   - Runtime entrypoint and ConfigMap
 4. KEDA monitors queue depth, scales pods 0→N
 5. Sidecar consumes messages, routes to runtime
 6. Runtime executes handler, returns results

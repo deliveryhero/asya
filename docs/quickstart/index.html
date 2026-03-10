@@ -554,23 +554,6 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-injector/"
-        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
-
-        
-        Injector
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-                
-                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/architecture/asya-gateway/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -866,11 +849,10 @@
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>This quickstart deploys Asya using <strong>Crossplane Compositions</strong> for infrastructure management
-and the <strong>asya-injector webhook</strong> for sidecar injection, replacing the monolithic asya-operator.</p>
+and inline sidecar rendering, replacing the monolithic asya-operator.</p>
 <h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Deploy Crossplane providers and compositions for SQS + KEDA + Kubernetes resources</li>
-<li>Deploy the asya-injector mutating webhook for automatic sidecar injection</li>
 <li>Create your first AsyncActor using a Crossplane claim</li>
 <li>Test autoscaling: scale-from-zero, process messages, scale-to-zero</li>
 <li>Delete an actor and verify all resources are cleaned up</li>
@@ -890,9 +872,6 @@ and the <strong>asya-injector webhook</strong> for sidecar injection, replacing 
 <p>From the repository root:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Build sidecar</span>
 docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>-f<span class="w"> </span>src/asya-sidecar/Dockerfile<span class="w"> </span>src/asya-sidecar/
-
-<span class="c1"># Build injector</span>
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-injector:latest<span class="w"> </span>-f<span class="w"> </span>src/asya-injector/Dockerfile<span class="w"> </span>src/asya-injector/
 </code></pre></div>
 <p>Create a test actor handler:</p>
 <div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/test-actor
@@ -913,15 +892,10 @@ cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/test-actor/Dockerfil
 docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>test-actor:latest<span class="w"> </span>/tmp/test-actor/
 </code></pre></div>
 <p>Load all images into Kind:</p>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>asya-injector:latest<span class="w"> </span>test-actor:latest<span class="w"> </span><span class="se">\</span>
+<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>test-actor:latest<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--name<span class="w"> </span>asya-crossplane
 </code></pre></div>
 <h2 id="3-install-infrastructure">3. Install Infrastructure<a class="headerlink" href="#3-install-infrastructure" title="Permanent link">&para;</a></h2>
-<h3 id="cert-manager-for-webhook-tls">cert-manager (for webhook TLS)<a class="headerlink" href="#cert-manager-for-webhook-tls" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>cluster-info<span class="w"> </span>--context<span class="w"> </span>kind-asya-crossplane
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/cert-manager/cert-manager/releases/download/v1.17.1/cert-manager.yaml
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Available<span class="w"> </span>deployment/cert-manager-webhook<span class="w"> </span>-n<span class="w"> </span>cert-manager<span class="w"> </span>--timeout<span class="o">=</span>120s
-</code></pre></div>
 <h3 id="crossplane">Crossplane<a class="headerlink" href="#crossplane" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>crossplane-stable<span class="w"> </span>https://charts.crossplane.io/stable
 helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
@@ -1107,23 +1081,7 @@ sleep<span class="w"> </span><span class="m">3</span>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>xrd<span class="w"> </span>xasyncactors.asya.sh
 <span class="c1"># Should show ESTABLISHED=True, OFFERED=True</span>
 </code></pre></div>
-<h2 id="7-install-asya-injector">7. Install Asya Injector<a class="headerlink" href="#7-install-asya-injector" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sidecarImage<span class="o">=</span>asya-sidecar:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sidecarImagePullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.sqsEndpoint<span class="o">=</span>http://localstack.localstack.svc.cluster.local:4566<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>config.awsCredsSecret<span class="o">=</span>aws-creds<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.repository<span class="o">=</span>asya-injector<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span>latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span>image.pullPolicy<span class="o">=</span>Never<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>180s
-</code></pre></div>
-<p>Verify the webhook is registered:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>mutatingwebhookconfigurations
-<span class="c1"># Should show asya-injector</span>
-</code></pre></div>
-<h2 id="8-deploy-your-first-actor">8. Deploy Your First Actor<a class="headerlink" href="#8-deploy-your-first-actor" title="Permanent link">&para;</a></h2>
+<h2 id="7-deploy-your-first-actor">7. Deploy Your First Actor<a class="headerlink" href="#7-deploy-your-first-actor" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">apiVersion: asya.sh/v1alpha1</span>
 <span class="s">kind: AsyncActor</span>
@@ -1256,9 +1214,8 @@ kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="
 kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
 kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
 
-<span class="c1"># Remove Crossplane and Injector</span>
+<span class="c1"># Remove Crossplane</span>
 helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crossplane
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-injector<span class="w"> </span>-n<span class="w"> </span>asya-system
 
 <span class="c1"># Remove KEDA</span>
 helm<span class="w"> </span>uninstall<span class="w"> </span>keda<span class="w"> </span>-n<span class="w"> </span>keda
@@ -1324,7 +1281,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <h2 id="namespace-architecture">Namespace Architecture<a class="headerlink" href="#namespace-architecture" title="Permanent link">&para;</a></h2>
 <p>Asya uses namespace separation to distinguish infrastructure from business logic:</p>
 <p><strong>asya-system namespace</strong> (infrastructure layer):
-- Crossplane + asya-injector (watches AsyncActors across all namespaces)
+- Crossplane (watches AsyncActors across all namespaces)
 - LocalStack / infrastructure services
 - KEDA (monitors queues across all namespaces)
 - Prometheus / Grafana (when installed)</p>
@@ -1334,7 +1291,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 - Async actors and flows (your ML/AI workloads)
 - Crew actors (x-sink, x-sump - part of the pipelines)</p>
 <p><strong>Why this separation?</strong></p>
-<p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance served by a single injector in asya-system.</p>
+<p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance.</p>
 <h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
 <p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, task tracking</p>
 <h3 id="1-install-postgresql">1. Install PostgreSQL<a class="headerlink" href="#1-install-postgresql" title="Permanent link">&para;</a></h3>
@@ -1618,8 +1575,7 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
          (user handler)        (message router)
 </code></pre></div>
 <ul>
-<li><strong>Crossplane Compositions</strong> manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects</li>
-<li><strong>asya-injector webhook</strong> injects the sidecar at pod creation time</li>
+<li><strong>Crossplane Compositions</strong> manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects, and render the sidecar inline into actor pods</li>
 <li><strong>KEDA</strong> handles autoscaling based on SQS queue depth</li>
 <li>Deletion of the AsyncActor claim cascades to all managed resources</li>
 </ul>
@@ -1785,12 +1741,6 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../architecture/asya-injector/">
-                            
-                            Injector
-                            
-                        </a>
-                        
                         <a class="text-2xl font-medium" href="../architecture/asya-gateway/">
                             
                             Gateway
@@ -1927,12 +1877,6 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
         </a>
         
         
-        <a href="#cert-manager-for-webhook-tls"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            cert-manager (for webhook TLS)
-        </a>
-        
         <a href="#crossplane"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
@@ -1978,18 +1922,10 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
         
 
         
-        <a href="#7-install-asya-injector"
+        <a href="#7-deploy-your-first-actor"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            7. Install Asya Injector
-        </a>
-        
-
-        
-        <a href="#8-deploy-your-first-actor"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            8. Deploy Your First Actor
+            7. Deploy Your First Actor
         </a>
         
 

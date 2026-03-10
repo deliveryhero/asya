@@ -554,23 +554,6 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-injector/"
-        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
-
-        
-        Injector
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-                
-                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/architecture/asya-gateway/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -835,7 +818,7 @@
             data-slot="button"
             id="next-button"
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/architecture/asya-injector/"
+            href="/docs/architecture/asya-gateway/"
           >
             <span class="sr-only">Next</span>
             <svg
@@ -1029,9 +1012,7 @@
 <p><strong>Prerequisites</strong>:
 - Crossplane installed with AWS Provider (SQS) and Kubernetes Provider
 - Function Go-Templating installed
-- KEDA installed
-- cert-manager installed (for injector webhook TLS)
-- asya-injector deployed</p>
+- KEDA installed</p>
 <p><strong>Installation</strong>:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install Crossplane compositions and XRD</span>
 helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span class="w"> </span>deploy/helm-charts/asya-crossplane/<span class="w"> </span><span class="se">\</span>
@@ -1039,10 +1020,6 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 <span class="w">  </span>--set<span class="w"> </span>awsProviderConfig.credentialsSource<span class="o">=</span>Secret<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span><span class="nv">awsAccountId</span><span class="o">=</span><span class="m">123456789012</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span><span class="nv">actorNamespace</span><span class="o">=</span>asya-e2e
-
-<span class="c1"># Install injector webhook</span>
-helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace
 </code></pre></div>
 <p><strong>Configuration</strong> (via <code>values.yaml</code>):
 - <code>providers.aws.sqsVersion</code>: AWS SQS provider version
@@ -1083,7 +1060,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span cl
 <span class="w">                </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100m</span>
 <span class="w">                </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256Mi</span>
 </code></pre></div>
-<p><strong>Important</strong>: The <code>asya-runtime</code> container must NOT define <code>command</code> field - the injector manages the entrypoint.</p>
+<p><strong>Important</strong>: The <code>asya-runtime</code> container must NOT define <code>command</code> field - the Crossplane composition manages the entrypoint.</p>
 <h2 id="cel-validation">CEL Validation<a class="headerlink" href="#cel-validation" title="Permanent link">&para;</a></h2>
 <p>The XRD includes CEL (Common Expression Language) validations enforced at admission time:</p>
 <ol>
@@ -1118,7 +1095,7 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span cl
 <tr>
 <td>Sidecar Injection</td>
 <td>Operator injects directly</td>
-<td>Injector webhook via labels</td>
+<td>Crossplane composition renders inline</td>
 </tr>
 <tr>
 <td>CEL Validation</td>
@@ -1210,8 +1187,8 @@ kubectl<span class="w"> </span>get<span class="w"> </span>managed<span class="w"
     
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/docs/architecture/asya-injector/">
-        <span class="max-[500px]:hidden">Injector</span>
+        href="/docs/architecture/asya-gateway/">
+        <span class="max-[500px]:hidden">Gateway</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right ">
@@ -1349,12 +1326,6 @@ kubectl<span class="w"> </span>get<span class="w"> </span>managed<span class="w"
                         <a class="text-2xl font-medium" href="./">
                             
                             Crossplane
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../asya-injector/">
-                            
-                            Injector
                             
                         </a>
                         

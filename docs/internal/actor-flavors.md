@@ -26,7 +26,7 @@ spec:                       metadata:
    flavors override earlier ones).
 5. The actor's inline spec is applied last (actor always wins).
 6. The resolved spec is written back onto the XR's desired state.
-7. Downstream composition steps and the injector read from `$xr.spec.*`.
+7. Downstream composition steps read from `$xr.spec.*`.
 
 ## Merge semantics
 

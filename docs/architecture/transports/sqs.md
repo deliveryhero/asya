@@ -33,7 +33,7 @@ spec:
   transport: sqs
 ```
 
-**Sidecar environment variables** (injected by injector webhook):
+**Sidecar environment variables** (rendered by Crossplane composition):
 
 - `ASYA_TRANSPORT=sqs`
 - `ASYA_AWS_REGION` → from `config.region`

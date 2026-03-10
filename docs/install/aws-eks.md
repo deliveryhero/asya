@@ -220,14 +220,7 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -f crossplane-values.yaml
 ```
 
-### 4. Install Asya Injector
-
-```bash
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
-```
-
-### 5. Install Gateway (Optional)
+### 4. Install Gateway (Optional)
 
 ```yaml
 # gateway-values.yaml
@@ -338,9 +331,6 @@ kubectl apply -f my-actor.yaml
 ```bash
 # Check Crossplane
 kubectl get pods -n crossplane-system
-
-# Check injector
-kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda

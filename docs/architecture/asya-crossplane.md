@@ -180,8 +180,6 @@ Crossplane manages all resources via composite resource ownership:
 - Crossplane installed with AWS Provider (SQS) and Kubernetes Provider
 - Function Go-Templating installed
 - KEDA installed
-- cert-manager installed (for injector webhook TLS)
-- asya-injector deployed
 
 **Installation**:
 
@@ -192,10 +190,6 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --set awsProviderConfig.credentialsSource=Secret \
   --set awsAccountId=123456789012 \
   --set actorNamespace=asya-e2e
-
-# Install injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  --namespace asya-system --create-namespace
 ```
 
 **Configuration** (via `values.yaml`):
@@ -241,7 +235,7 @@ spec:
                 memory: 256Mi
 ```
 
-**Important**: The `asya-runtime` container must NOT define `command` field - the injector manages the entrypoint.
+**Important**: The `asya-runtime` container must NOT define `command` field - the Crossplane composition manages the entrypoint.
 
 ## CEL Validation
 
@@ -262,7 +256,7 @@ The XRD includes CEL (Common Expression Language) validations enforced at admiss
 |---------|---------------|-----------------|
 | Queue Management | Operator creates queues via SDK | Crossplane AWS Provider |
 | Deployment | Operator creates Deployment | Crossplane Kubernetes Provider |
-| Sidecar Injection | Operator injects directly | Injector webhook via labels |
+| Sidecar Injection | Operator injects directly | Crossplane composition renders inline |
 | CEL Validation | In operator code | In XRD schema |
 | Credential Management | Operator copies secrets | IRSA via ServiceAccount annotations |
 | Status Model | Operator calculates status | Composition aggregates status |

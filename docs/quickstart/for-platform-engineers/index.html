@@ -554,23 +554,6 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-injector/"
-        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
-
-        
-        Injector
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-                
-                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/architecture/asya-gateway/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -868,7 +851,7 @@
     <p>Deploy and manage Asya🎭 infrastructure.</p>
 <h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Install and configure Crossplane with Asya compositions and injector webhook</li>
+<li>Install and configure Crossplane with Asya compositions</li>
 <li>Deploy gateway and crew actors for pipeline completion</li>
 <li>Support data science teams with templates and IAM configuration</li>
 <li>Set up monitoring with Prometheus and troubleshoot common issues</li>
@@ -877,7 +860,7 @@
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
 <p>As platform engineer, you:</p>
 <ul>
-<li>Deploy Crossplane compositions and asya-injector webhook</li>
+<li>Deploy Crossplane compositions</li>
 <li>Configure transports (SQS, RabbitMQ)</li>
 <li>Manage IAM roles and permissions</li>
 <li>Monitor system health</li>
@@ -900,13 +883,9 @@ helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> 
 helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace
 </code></pre></div>
-<h3 id="3-install-asya-compositions-and-injector">3. Install Asya Compositions and Injector<a class="headerlink" href="#3-install-asya-compositions-and-injector" title="Permanent link">&para;</a></h3>
+<h3 id="3-install-asya-compositions">3. Install Asya Compositions<a class="headerlink" href="#3-install-asya-compositions" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Install Asya XRDs and Compositions</span>
 kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-<span class="c1"># Install asya-injector webhook</span>
-helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace
 </code></pre></div>
 <h3 id="4-configure-transports">4. Configure Transports<a class="headerlink" href="#4-configure-transports" title="Permanent link">&para;</a></h3>
 <p><strong>For AWS (SQS)</strong>: Configure transport in AsyncActor resources
@@ -966,9 +945,6 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-injector<span cl
 <h3 id="7-verify-installation">7. Verify Installation<a class="headerlink" href="#7-verify-installation" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Check Crossplane</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>crossplane-system
-
-<span class="c1"># Check injector webhook</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>asya-system
 
 <span class="c1"># Check KEDA</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>keda
@@ -1054,7 +1030,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor
 </code></pre></div></p>
 <h2 id="monitoring">Monitoring<a class="headerlink" href="#monitoring" title="Permanent link">&para;</a></h2>
 <h3 id="prometheus-metrics">Prometheus Metrics<a class="headerlink" href="#prometheus-metrics" title="Permanent link">&para;</a></h3>
-<p><strong>Important</strong>: The injector webhook does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.</p>
+<p><strong>Important</strong>: Asya does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.</p>
 <p><strong>Key sidecar metrics</strong> (namespace: <code>asya_actor</code>):</p>
 <ul>
 <li><code>asya_actor_processing_duration_seconds{queue}</code> - Processing time</li>
@@ -1123,9 +1099,6 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor
 <h3 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h3>
 <p><strong>View Crossplane logs</strong>:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>crossplane-system<span class="w"> </span>deploy/crossplane<span class="w"> </span>-f
-</code></pre></div></p>
-<p><strong>View injector webhook logs</strong>:
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-system<span class="w"> </span>deploy/asya-injector<span class="w"> </span>-f
 </code></pre></div></p>
 <p><strong>View actor logs</strong>:
 <div class="highlight"><pre><span></span><code><span class="c1"># Runtime logs (handler output)</span>
@@ -1269,10 +1242,6 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>crossplane<span class
 
 <span class="c1"># Upgrade Asya compositions</span>
 kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-<span class="c1"># Upgrade injector webhook</span>
-helm<span class="w"> </span>upgrade<span class="w"> </span>asya-injector<span class="w"> </span>deploy/helm-charts/asya-injector/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>asya-system
 
 <span class="c1"># Upgrade gateway</span>
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-gateway<span class="w"> </span>deploy/helm-charts/asya-gateway/<span class="w"> </span><span class="se">\</span>
@@ -1452,12 +1421,6 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class=
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../architecture/asya-injector/">
-                            
-                            Injector
-                            
-                        </a>
-                        
                         <a class="text-2xl font-medium" href="../../architecture/asya-gateway/">
                             
                             Gateway
@@ -1598,10 +1561,10 @@ helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class=
             2. Install Crossplane
         </a>
         
-        <a href="#3-install-asya-compositions-and-injector"
+        <a href="#3-install-asya-compositions"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            3. Install Asya Compositions and Injector
+            3. Install Asya Compositions
         </a>
         
         <a href="#4-configure-transports"

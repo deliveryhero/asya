@@ -554,23 +554,6 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-injector/"
-        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
-
-        
-        Injector
-        
-
-        
-
-        
-
-        
-    </a>
-</li>
-                
-                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/architecture/asya-gateway/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -904,7 +887,7 @@
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 </code></pre></div></p>
-<p><strong>Sidecar environment variables</strong> (injected by injector webhook):</p>
+<p><strong>Sidecar environment variables</strong> (rendered by Crossplane composition):</p>
 <ul>
 <li><code>ASYA_TRANSPORT=rabbitmq</code></li>
 <li><code>ASYA_RABBITMQ_HOST</code> → from <code>config.host</code></li>
@@ -948,7 +931,7 @@
 <span class="nt">data</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;base64-encoded-password&gt;</span>
 </code></pre></div></p>
-<p><strong>Injector webhook injects</strong> secret reference into sidecar environment via <code>SecretKeyRef</code>.</p>
+<p><strong>Crossplane composition renders</strong> secret reference into sidecar environment via <code>SecretKeyRef</code>.</p>
 <h2 id="keda-scaler">KEDA Scaler<a class="headerlink" href="#keda-scaler" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code><span class="nt">triggers</span><span class="p">:</span>
 
@@ -1157,12 +1140,6 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
                         <a class="text-2xl font-medium" href="../../asya-crossplane/">
                             
                             Crossplane
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../asya-injector/">
-                            
-                            Injector
                             
                         </a>
                         

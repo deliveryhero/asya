@@ -20,8 +20,7 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
   - [Actors](architecture/asya-actor.md) - Stateless workloads with message-based communication
   - [Sidecar](architecture/asya-sidecar.md) - Message routing and transport management
   - [Runtime](architecture/asya-runtime.md) - User code execution environment
-  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management
-  - [Injector Webhook](architecture/asya-injector.md) - Sidecar injection
+  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management (includes inline sidecar rendering)
   - [Gateway](architecture/asya-gateway.md) - Optional MCP HTTP API
   - [Crew](architecture/asya-crew.md) - System actors for flow maintenance
   - [Autoscaling](architecture/autoscaling.md) - KEDA integration details
