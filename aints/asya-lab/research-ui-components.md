@@ -442,49 +442,61 @@ is embedded in the Python package (`asya-lab[jupyter]`), no CDN dependency.
 ### 6.1 Webview Panel Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│  VSCode Extension Host (Node.js)            │
-│  ┌─────────────────┐                        │
-│  │ kubectl exec    │ → actor status, logs   │
-│  │ gateway API     │ → task progress, SSE   │
-│  │ file watcher    │ → manifest changes     │
-│  └────────┬────────┘                        │
-│           │ postMessage                     │
-│  ┌────────▼────────────────────────────┐    │
-│  │  Webview Panel (iframe)             │    │
-│  │  ┌──────────────────────────┐       │    │
-│  │  │  VSCodeAsyaProvider      │       │    │
-│  │  │  ┌────────────────────┐  │       │    │
-│  │  │  │  FlowDiagram       │  │       │    │
-│  │  │  │  ActorDetail       │  │       │    │
-│  │  │  │  LogViewer         │  │       │    │
-│  │  │  └────────────────────┘  │       │    │
-│  │  └──────────────────────────┘       │    │
-│  └─────────────────────────────────────┘    │
-└─────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  VSCode Extension Host (Node.js)                 │
+│  ┌───────────────────┐                           │
+│  │ asya serve        │ ← starts as subprocess    │
+│  │ (localhost:PORT)   │                           │
+│  └────────┬──────────┘                           │
+│           │ HTTP / SSE / WebSocket               │
+│  ┌────────▼──────────────────────────────────┐   │
+│  │  Webview Panel (iframe)                   │   │
+│  │  ┌────────────────────────────────────┐   │   │
+│  │  │  HttpAsyaProvider baseUrl=:PORT    │   │   │
+│  │  │  ┌────────────────────────────┐    │   │   │
+│  │  │  │  FlowDiagram               │    │   │   │
+│  │  │  │  ActorDetail               │    │   │   │
+│  │  │  │  LogViewer                 │    │   │   │
+│  │  │  └────────────────────────────┘    │   │   │
+│  │  └────────────────────────────────────┘   │   │
+│  └───────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────┘
 ```
+
+The webview uses the same `HttpAsyaProvider` as the standalone web app —
+it talks directly to `asya serve` via HTTP. No `postMessage` bridge needed
+for data. The extension host's only jobs are:
+
+1. Start `asya serve` as a subprocess on activate
+2. Stop `asya serve` on deactivate
+3. Handle VSCode-specific actions (open files, navigate to source)
 
 ### 6.2 Extension Host Responsibilities
 
-The extension host (Node.js) is the data boundary. It:
+The extension host is thin — `asya serve` does the heavy lifting:
 
-1. Reads manifests from `.asya/manifests/` (graph JSON, actor YAML)
-2. Runs `kubectl get asyncactor -o json` for live status
-3. Connects to gateway SSE for task streaming
-4. Sends structured messages to webview via `postMessage`
-5. Receives click events from webview (e.g., "open actor config file")
+1. **Lifecycle**: start/stop `asya serve` subprocess, pick free port
+2. **VSCode actions**: handle webview click events that need VSCode APIs
+   (opening files, showing notifications, navigating to source code)
+3. **Port forwarding**: if webview can't reach localhost directly (remote
+   development), extension host proxies requests
 
-The webview is a sandboxed iframe — it cannot access the filesystem, kubectl,
-or network directly. All data flows through `postMessage`.
+The webview iframe connects to `asya serve` directly for all data. No
+serialization through `postMessage` for data — only for VSCode-specific
+actions (open file, show dialog).
 
 ### 6.3 VSCode-Specific Interactions
 
-| User action | Webview event | Extension host response |
+| User action | Mechanism | Response |
 |---|---|---|
-| Click actor node | `{ type: 'selectNode', id: '...' }` | Open `ActorDetail` with full config |
-| Click "Open Config" | `{ type: 'openFile', path: '...' }` | `vscode.workspace.openTextDocument()` |
-| Click "View Logs" | `{ type: 'streamLogs', actor: '...' }` | Start kubectl logs, stream via postMessage |
-| Click "Scale" | `{ type: 'scale', actor: '...', replicas: N }` | `kubectl scale` (Phase 4+, staging only) |
+| Click actor node | HTTP: `GET /api/actors/<name>` | `ActorDetail` renders in side panel |
+| Click "Open Config" | postMessage → extension host | `vscode.workspace.openTextDocument()` |
+| Click "View Logs" | HTTP: `GET /api/actors/<name>/logs` (SSE) | `LogViewer` streams inline |
+| Edit manifest | HTTP: `PUT /api/flows/<flow>/manifests/<actor>` | `asya serve` writes to disk |
+| Click "Scale" | Deferred to Phase 4+ | — |
+
+Only "Open Config" needs `postMessage` (VSCode API). Everything else goes
+through `asya serve` HTTP.
 
 ---
 

@@ -231,6 +231,8 @@ reserved for sidecar-to-gateway communication.
 | `asya k build <target>` | Build tool | Opaque shell command from config.yaml |
 | `asya k secret *` | Local | Reads/writes config.yaml secrets: |
 | `asya k context *` | Local | Reads/writes config.yaml contexts: |
+| `asya config get <key>` | Local | Read merged config value (dot-path) |
+| `asya serve` | Local | Start local API server (FastAPI) |
 | `asya d up <target>` | Docker | Compile + compose + `docker compose up -d` |
 | `asya d down <target>` | Docker | `docker compose down` |
 | `asya d send <target>` | Docker | Write to Unix socket |
