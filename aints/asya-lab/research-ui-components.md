@@ -292,7 +292,71 @@ editable.
 
 ---
 
-## 4. Provider Pattern — Data Bridge
+## 4. Project Discovery (`.asya/` Resolution)
+
+All asya commands — CLI, `asya serve`, Jupyter magics — use the same
+resolution mechanism to find the project root. No `--project-dir` flag.
+
+### 4.1 Resolution Algorithm
+
+Walk up from the **working directory** until finding `.asya/`:
+
+```
+Working dir: /foo/bar/baz/
+Walk up:     /foo/bar/baz/ → /foo/bar/ → /foo/ → /
+Found:       /foo/bar/.asya/  ← nearest = active project (read-write)
+Keep going:  /foo/.asya/      ← parent = inherited config (read-only)
+```
+
+- **Nearest `.asya/`** — the active project. All writes go here.
+- **Parent `.asya/` directories** — inherited. Config merges (nearest wins).
+  Everything inherits: contexts, transports, flavors, flows, etc.
+- **Sibling `.asya/` directories** — invisible. `/foo/kek/.asya/` is not
+  in the walk-up path from `/foo/bar/`, so it's ignored.
+- **No `.asya/` found** — error: `No .asya/ directory found. Run 'asya init'.`
+
+### 4.2 Working Directory Sources
+
+| Context | Working dir determined by |
+|---|---|
+| CLI (`asya flow compile`, `asya serve`) | CWD, or `--working-dir` flag |
+| Jupyter magic (`%asya compile`) | Notebook file path |
+| VSCode extension | Workspace folder path |
+
+`--working-dir` is the only override — it shifts the walk-up starting point.
+No `--project-dir`, no env var. Simple.
+
+### 4.3 Config Merge Semantics
+
+Parent configs merge like CSS cascade — nearest wins per key:
+
+```
+/foo/.asya/config.yaml         (parent)     /foo/bar/.asya/config.yaml   (active)
+contexts:                                   contexts:
+  prod:                                       stg:
+    gateway: gw.prod.example.com                gateway: gw.stg.example.com
+    readonly: true
+transports:                                 flows:
+  sqs: ...                                    order-processing: ...
+
+Merged result:
+  contexts.prod    → from parent (inherited)
+  contexts.stg     → from active (local)
+  transports.sqs   → from parent (inherited)
+  flows.*          → from active (local)
+```
+
+Active project can override any inherited key. Parent is never written to.
+
+### 4.4 Write Target
+
+All mutations — `asya flow compile` output, manifest edits via `asya serve`,
+config changes — write to the nearest `.asya/` only. Parent `.asya/`
+directories are read-only from the active project's perspective.
+
+---
+
+## 5. Provider Pattern — Data Bridge
 
 ### 4.1 Context Interface
 
@@ -448,7 +512,7 @@ The Python side pushes data to the anywidget model. For live data (status,
 logs), the Python side uses the K8s Python SDK watch API directly and pushes
 to the model.
 
-### 4.3 Provider Implementations
+### 5.3 Provider Implementations
 
 Two providers, same `AsyaContextValue` interface:
 
@@ -485,7 +549,7 @@ function AnywidgetAsyaProvider({ model, children }) {
 Python side sets model attributes; React side reacts to changes.
 No HTTP — data flows through anywidget's traitlets sync mechanism.
 
-### 4.4 Complexity Assessment
+### 5.4 Complexity Assessment
 
 | Piece | Lines (approx.) | Complexity |
 |---|---|---|
@@ -500,9 +564,9 @@ Components stay pure and testable — mock the provider for unit tests.
 
 ---
 
-## 5. Anywidget Integration (Jupyter)
+## 6. Anywidget Integration (Jupyter)
 
-### 5.1 How Anywidget Works
+### 6.1 How Anywidget Works
 
 anywidget bridges Python ↔ JavaScript in Jupyter notebooks:
 
@@ -539,7 +603,7 @@ export function render({ model, el }) {
 }
 ```
 
-### 5.2 Jupyter Magic Integration
+### 6.2 Jupyter Magic Integration
 
 ```python
 # asya_lab/jupyter/magics.py
@@ -559,7 +623,7 @@ def asya(self, line):
         display(widget)
 ```
 
-### 5.3 Bundle Size Considerations
+### 6.3 Bundle Size Considerations
 
 | Dependency | Size (minified + gzip) |
 |---|---|
@@ -574,9 +638,9 @@ is embedded in the Python package (`asya-lab[jupyter]`), no CDN dependency.
 
 ---
 
-## 6. VSCode Extension Integration
+## 7. VSCode Extension Integration
 
-### 6.1 Webview Panel Architecture
+### 7.1 Webview Panel Architecture
 
 ```
 ┌──────────────────────────────────────────────────┐
@@ -608,7 +672,7 @@ for data. The extension host's only jobs are:
 2. Stop `asya serve` on deactivate
 3. Handle VSCode-specific actions (open files, navigate to source)
 
-### 6.2 Extension Host Responsibilities
+### 7.2 Extension Host Responsibilities
 
 The extension host is thin — `asya serve` does the heavy lifting:
 
@@ -622,7 +686,7 @@ The webview iframe connects to `asya serve` directly for all data. No
 serialization through `postMessage` for data — only for VSCode-specific
 actions (open file, show dialog).
 
-### 6.3 VSCode-Specific Interactions
+### 7.3 VSCode-Specific Interactions
 
 | User action | Mechanism | Response |
 |---|---|---|
@@ -637,7 +701,7 @@ through `asya serve` HTTP.
 
 ---
 
-## 7. Static Output — Graphviz (Separate Path)
+## 8. Static Output — Graphviz (Separate Path)
 
 Static PNG/SVG output is NOT rendered by React Flow. It uses the existing
 Graphviz DOT pipeline:
@@ -666,9 +730,9 @@ so static and interactive views look consistent, even though layouts differ
 
 ---
 
-## 8. Design Tokens and Theming
+## 9. Design Tokens and Theming
 
-### 8.1 Status Colors
+### 9.1 Status Colors
 
 ```ts
 export const STATUS_COLORS = {
@@ -680,19 +744,16 @@ export const STATUS_COLORS = {
 } as const;
 ```
 
-### 8.2 Role Colors (Node Fill)
+### 9.2 Type Colors (Node Fill)
 
 ```ts
-export const ROLE_COLORS = {
-  entrypoint: '#f0fdf4',  // light green
-  exitpoint:  '#f0fdf4',  // light green
-  router:     '#fefce8',  // light wheat (conditional)
-  fanout:     '#eff6ff',  // light blue
-  processor:  '#eff6ff',  // light blue
+export const TYPE_COLORS = {
+  router: '#fefce8',  // light wheat — auto-generated nodes
+  actor:  '#eff6ff',  // light blue  — user-defined handlers
 } as const;
 ```
 
-### 8.3 Log Level Colors
+### 9.3 Log Level Colors
 
 ```ts
 export const LOG_COLORS = {
@@ -707,9 +768,9 @@ Colors match the DOT generator output for visual consistency.
 
 ---
 
-## 9. Testing Strategy
+## 10. Testing Strategy
 
-### 9.1 Component Tests
+### 10.1 Component Tests
 
 ```bash
 npm test                    # Vitest + React Testing Library
@@ -736,13 +797,13 @@ test('ActorNode shows replica count', () => {
 });
 ```
 
-### 9.2 Visual Regression
+### 10.2 Visual Regression
 
 Storybook stories for each component + Chromatic (or Percy) for visual
 regression testing. Each component has stories for all states (running,
 error, scaled-to-zero, etc.).
 
-### 9.3 Integration Tests
+### 10.3 Integration Tests
 
 Each host provider is tested with its real transport:
 - Web provider: MSW (Mock Service Worker) for HTTP/SSE
@@ -751,9 +812,9 @@ Each host provider is tested with its real transport:
 
 ---
 
-## 10. Build and Distribution
+## 11. Build and Distribution
 
-### 10.1 Build Pipeline
+### 11.1 Build Pipeline
 
 ```
 @asya/ui (npm package)

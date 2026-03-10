@@ -307,8 +307,9 @@ to contribute data keys to the shared `gateway-flows` ConfigMap without
 conflicts. Each flow's field manager owns only its data key. Since asya fully
 manages kubectl, mixed apply mode risks are eliminated.
 
-Safety rule: checks for existing deployment. If a different version exists,
-errors and asks to delete first. Identical version exits 0 (idempotent).
+**Idempotent by design**: `apply` (not `deploy`) signals declarative semantics —
+running it twice with the same manifests is a no-op. SSA merges fields rather
+than replacing, so `asya k apply` is always safe to re-run.
 
 ### 5.10 Read-Only Enforcement
 
