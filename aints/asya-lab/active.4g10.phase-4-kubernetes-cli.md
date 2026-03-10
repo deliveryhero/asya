@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/4g10.phase-4-kubernetes-cli
   - branch:asya-lab/4g10.phase-4-kubernetes-cli
+  - pr:298
 dependencies:
   - 5ifn
 ---
+
 
 
 ## Scope
