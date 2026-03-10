@@ -16,7 +16,7 @@
 
 **Name**: `@asya/ui`
 **Published to**: npm (or GitHub Packages)
-**Versioned**: independently from `asya-lab` Python package
+**Versioned**: same version as `asya-lab` Python package (one tag, both publish)
 **Consumers**: three host applications, one shared library
 
 ```

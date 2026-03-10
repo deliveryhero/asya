@@ -88,8 +88,8 @@ build pipeline that ties them together.
 - Widget bundle build (`npm run build:widget`) before `uv build` in the
   existing asya-lab publish workflow
 - `asya-lab[jupyter]` wheel includes built JS in `asya_lab/static/`
-- `@asya/ui` published to npm (or GitHub Packages) on tag — independent
-  versioning from `asya-lab` Python package
+- `@asya/ui` published to npm (or GitHub Packages) on tag — same version
+  as `asya-lab` Python package (one tag, both publish)
 - `asya-lab[ui]` SPA bundle served by `asya serve` from `ui/dist/`
 - Pre-commit: add `npm run lint` + `npm run typecheck` for `src/asya-lab/ui/`
 
