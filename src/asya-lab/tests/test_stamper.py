@@ -123,11 +123,12 @@ def router_code():
     return "# Auto-generated\ndef start_my_flow(payload):\n    yield payload\n\ndef end_my_flow(payload):\n    yield payload\n"
 
 
-def _make_stamper(flow_name, routers, router_code, config, template_path):
+def _make_stamper(flow_name, routers, router_code, config, template_path, flow_function=None):
     loader = ConfigLoader()
     templates_dir = template_path.parent
     return ManifestStamper(
         flow_name=flow_name,
+        flow_function=flow_function or flow_name.replace("-", "_"),
         routers=routers,
         router_code=router_code,
         config=config,
@@ -140,12 +141,12 @@ def _make_stamper(flow_name, routers, router_code, config, template_path):
 
 class TestBaseLayer:
     def test_base_dir_created(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
         assert (tmp_path / "manifests" / "base").is_dir()
 
     def test_base_contains_kustomization(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         kust_path = tmp_path / "manifests" / "base" / "kustomization.yaml"
@@ -156,70 +157,70 @@ class TestBaseLayer:
         assert "resources" in kust
 
     def test_base_contains_actor_manifests(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         base = tmp_path / "manifests" / "base"
         # 2 router actors + 2 handler actors + configmap + kustomization
-        assert (base / "start_my_flow.yaml").exists()
-        assert (base / "end_my_flow.yaml").exists()
-        assert (base / "handler_a.yaml").exists()
-        assert (base / "handler_b.yaml").exists()
+        assert (base / "start-my-flow.yaml").exists()
+        assert (base / "end-my-flow.yaml").exists()
+        assert (base / "handler-a.yaml").exists()
+        assert (base / "handler-b.yaml").exists()
 
     def test_actor_manifest_has_correct_metadata(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "handler_a.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "handler-a.yaml").read_text())
         assert actor["apiVersion"] == "asya.sh/v1alpha1"
         assert actor["kind"] == "AsyncActor"
-        assert actor["metadata"]["name"] == "handler_a"
+        assert actor["metadata"]["name"] == "handler-a"
         assert actor["metadata"]["namespace"] == "test-ns"
-        assert actor["metadata"]["labels"]["asya.sh/flow"] == "my_flow"
+        assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
         assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "handler"
 
     def test_router_actor_uses_router_image(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start_my_flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
         assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "entrypoint"
 
     def test_router_actor_has_handler_env(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start_my_flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start-my-flow.yaml").read_text())
         env = actor["spec"]["env"]
         env_names = {e["name"] for e in env}
         assert "ASYA_HANDLER_HANDLER_A" in env_names
         assert "ASYA_HANDLER_HANDLER_B" in env_names
 
     def test_configmap_contains_router_code(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap_routers.yaml").read_text())
         assert cm["kind"] == "ConfigMap"
-        assert cm["metadata"]["name"] == "my_flow-routers"
+        assert cm["metadata"]["name"] == "my-flow-routers"
         assert "routers.py" in cm["data"]
         assert "start_my_flow" in cm["data"]["routers.py"]
 
     def test_kustomization_lists_all_resources(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
         resources = kust["resources"]
         assert "configmap_routers.yaml" in resources
-        assert "start_my_flow.yaml" in resources
-        assert "handler_a.yaml" in resources
+        assert "start-my-flow.yaml" in resources
+        assert "handler-a.yaml" in resources
 
     def test_recompile_regenerates_base(self, tmp_path, sequential_routers, router_code, config, template_dir):
         out = tmp_path / "manifests"
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
 
         stamper.stamp(out)
         # Add a stale file
@@ -227,12 +228,12 @@ class TestBaseLayer:
 
         stamper.stamp(out)
         assert not (out / "base" / "stale.yaml").exists()
-        assert (out / "base" / "start_my_flow.yaml").exists()
+        assert (out / "base" / "start-my-flow.yaml").exists()
 
 
 class TestCommonLayer:
     def test_common_created_on_first_stamp(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         kust = yaml.safe_load((tmp_path / "manifests" / "common" / "kustomization.yaml").read_text())
@@ -240,7 +241,7 @@ class TestCommonLayer:
 
     def test_common_preserved_on_recompile(self, tmp_path, sequential_routers, router_code, config, template_dir):
         out = tmp_path / "manifests"
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
 
         stamper.stamp(out)
         # User adds a patch
@@ -253,14 +254,14 @@ class TestCommonLayer:
 
 class TestOverlaysLayer:
     def test_no_overlays_without_contexts(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
         assert not (tmp_path / "manifests" / "overlays").exists()
 
     def test_overlays_created_from_contexts(
         self, tmp_path, sequential_routers, router_code, config_with_contexts, template_dir
     ):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config_with_contexts, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config_with_contexts, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
         for ctx in ("stg", "prod"):
@@ -271,7 +272,7 @@ class TestOverlaysLayer:
         self, tmp_path, sequential_routers, router_code, config_with_contexts, template_dir
     ):
         out = tmp_path / "manifests"
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config_with_contexts, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config_with_contexts, template_dir)
 
         stamper.stamp(out)
         # User adds a patch to stg overlay
@@ -286,7 +287,7 @@ class TestIdempotency:
         self, tmp_path, sequential_routers, router_code, config, template_dir
     ):
         out = tmp_path / "manifests"
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
 
         stamper.stamp(out)
         first_run = {}
@@ -300,7 +301,7 @@ class TestIdempotency:
 
 class TestReturnedFiles:
     def test_stamp_returns_generated_paths(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         generated = stamper.stamp(tmp_path / "manifests")
 
         assert any("base/kustomization.yaml" in g for g in generated)
@@ -308,7 +309,7 @@ class TestReturnedFiles:
         assert any("common/kustomization.yaml" in g for g in generated)
 
     def test_second_stamp_skips_existing_common(self, tmp_path, sequential_routers, router_code, config, template_dir):
-        stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
         generated = stamper.stamp(tmp_path / "manifests")
 

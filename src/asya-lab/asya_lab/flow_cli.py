@@ -32,10 +32,14 @@ def _stamp_manifests(
         click.echo("[!] Run 'asya init' to create one; skipping manifest stamping", err=True)
         return
 
-    flow_name = compiler.flow_name
-    if not flow_name:
+    flow_function = compiler.flow_name
+    if not flow_function:
         click.echo("[!] No flow name available; skipping manifest stamping", err=True)
         return
+
+    # Flow name uses hyphens (K8s convention), function name uses underscores
+    flow_name = flow_function.replace("_", "-")
+    click.echo(f"[+] Using flow name '{flow_name}'")
 
     config_loader = ConfigLoader()
     config = config_loader.load(source_path.parent)
@@ -61,6 +65,7 @@ def _stamp_manifests(
 
     stamper = ManifestStamper(
         flow_name=flow_name,
+        flow_function=flow_function,
         routers=compiler.routers,
         router_code=router_code,
         config=config,

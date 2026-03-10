@@ -52,6 +52,7 @@ class ManifestStamper:
         self,
         *,
         flow_name: str,
+        flow_function: str,
         routers: list[Router],
         router_code: str,
         config: DictConfig,
@@ -61,6 +62,7 @@ class ManifestStamper:
         kustomization_template_path: Path | None = None,
     ) -> None:
         self.flow_name = flow_name
+        self.flow_function = flow_function
         self.routers = routers
         self.router_code = router_code
         self.config = config
@@ -125,7 +127,7 @@ class ManifestStamper:
         self.config_loader.dynamic_values = {
             "actor": actor.name,
             "flow": self.flow_name,
-            "flow_function": self.flow_name,
+            "flow_function": self.flow_function,
             "flow_role": actor.flow_role,
             "handler": actor.handler,
             "image": actor.image,
@@ -171,7 +173,7 @@ class ManifestStamper:
         """Load configmap template and resolve interpolations."""
         self.config_loader.dynamic_values = {
             "flow": self.flow_name,
-            "flow_function": self.flow_name,
+            "flow_function": self.flow_function,
             "router_code": "",
         }
         _set_active_loader(self.config_loader)
@@ -201,7 +203,7 @@ class ManifestStamper:
         """Load kustomization template and resolve interpolations."""
         self.config_loader.dynamic_values = {
             "flow": self.flow_name,
-            "flow_function": self.flow_name,
+            "flow_function": self.flow_function,
             "resources": "[]",
         }
         _set_active_loader(self.config_loader)
@@ -259,9 +261,10 @@ class ManifestStamper:
             # Router env: ASYA_HANDLER_* mappings for the resolve() function
             handler_env = self._build_handler_env(router)
 
+            # Actor name uses hyphens (K8s convention), handler stays as Python reference
             router_actors.append(
                 ActorInfo(
-                    name=router.name,
+                    name=self._to_k8s_name(router.name),
                     handler=f"routers.{router.name}",
                     image=router_image,
                     flow_role=self._router_flow_role(router.name),
@@ -276,14 +279,20 @@ class ManifestStamper:
                     continue
                 if actor_name not in handler_actors:
                     image = self._resolve_handler_image(actor_name)
+                    k8s_name = self._to_k8s_name(actor_name)
                     handler_actors[actor_name] = ActorInfo(
-                        name=actor_name,
+                        name=k8s_name,
                         handler=actor_name,
                         image=image,
                         flow_role="handler",
                     )
 
         return router_actors + list(handler_actors.values())
+
+    @staticmethod
+    def _to_k8s_name(name: str) -> str:
+        """Convert Python name (underscores) to K8s name (hyphens)."""
+        return name.replace("_", "-")
 
     def _get_referenced_actors(self, router: Router) -> list[str]:
         """Get all actor names referenced by a router."""
@@ -310,8 +319,9 @@ class ManifestStamper:
         for actor_name in self._get_referenced_actors(router):
             if self._is_router_name(actor_name):
                 continue
+            k8s_name = self._to_k8s_name(actor_name)
             env_var_name = f"ASYA_HANDLER_{actor_name.upper().replace('-', '_')}"
-            env.append({"name": env_var_name, "value": actor_name})
+            env.append({"name": env_var_name, "value": k8s_name})
         return env
 
     def _is_router_name(self, name: str) -> bool:
