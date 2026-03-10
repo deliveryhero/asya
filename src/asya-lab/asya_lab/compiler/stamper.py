@@ -264,8 +264,13 @@ class ManifestStamper:
             return []
 
         generated: list[str] = []
+        resolved_overlays = overlays_dir.resolve()
         for ctx_name in contexts:
             ctx_dir = overlays_dir / ctx_name
+            # Guard against path traversal in context names (e.g. "../../")
+            if not ctx_dir.resolve().is_relative_to(resolved_overlays):
+                log.warning("Skipping context '%s': path escapes output directory", ctx_name)
+                continue
             kust_path = ctx_dir / "kustomization.yaml"
             if kust_path.exists():
                 continue
