@@ -247,7 +247,7 @@ spec:
             {{`{{- if and $scaling (hasKey $scaling "advanced") -}}`}}
             {{`{{- $advanced = $scaling.advanced -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $workloadName := $actorName -}}`}
+            {{`{{- $workloadName := $actorName -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
