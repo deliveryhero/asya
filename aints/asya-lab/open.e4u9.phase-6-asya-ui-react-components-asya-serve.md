@@ -81,6 +81,18 @@ build pipeline that ties them together.
 - `asya serve` unit tests (FastAPI TestClient)
 - WebSocket + SSE integration tests (mock K8s watch)
 
+### 6h. CI and publishing
+
+- GitHub Actions workflow: `npm ci && npm run build && npm test && npm run lint`
+  in `src/asya-lab/ui/`
+- Widget bundle build (`npm run build:widget`) before `uv build` in the
+  existing asya-lab publish workflow
+- `asya-lab[jupyter]` wheel includes built JS in `asya_lab/static/`
+- `@asya/ui` published to npm (or GitHub Packages) on tag — independent
+  versioning from `asya-lab` Python package
+- `asya-lab[ui]` SPA bundle served by `asya serve` from `ui/dist/`
+- Pre-commit: add `npm run lint` + `npm run typecheck` for `src/asya-lab/ui/`
+
 ## Out of scope (later phases)
 
 - VSCode extension (asya-lens epic, separate build)
