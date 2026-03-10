@@ -412,8 +412,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
   workload:
     kind: Deployment
     template:
@@ -432,8 +432,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
   workload:
     kind: Deployment
     template:

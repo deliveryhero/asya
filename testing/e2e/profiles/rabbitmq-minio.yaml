@@ -53,7 +53,7 @@ crew:
       AWS_SECRET_ACCESS_KEY: "minioadmin"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
   x-sump:
     transport: rabbitmq
     env:
@@ -63,7 +63,7 @@ crew:
       AWS_SECRET_ACCESS_KEY: "minioadmin"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
 
 gateway:
   transports:

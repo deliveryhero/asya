@@ -168,8 +168,8 @@ metadata:
 spec:
   transport: sqs       # Ask platform team which transport is supported
   scaling:
-    minReplicas: 0     # Scale to zero when idle
-    maxReplicas: 50    # Max replicas
+    minReplicaCount: 0     # Scale to zero when idle
+    maxReplicaCount: 50    # Max replicas
     queueLength: 5     # Messages per replica
   workload:
     kind: Deployment
@@ -647,8 +647,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment

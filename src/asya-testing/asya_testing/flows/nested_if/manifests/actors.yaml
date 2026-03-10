@@ -9,8 +9,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -36,8 +36,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -63,8 +63,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -90,8 +90,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -117,8 +117,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -144,8 +144,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -171,8 +171,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -198,8 +198,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -225,8 +225,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -252,8 +252,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -279,8 +279,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -306,8 +306,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -333,8 +333,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -360,8 +360,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:
@@ -387,8 +387,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
   workload:

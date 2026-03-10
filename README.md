@@ -112,8 +112,8 @@ spec:
   transport: sqs  # or rabbitmq
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 100
+    minReplicaCount: 0
+    maxReplicaCount: 100
     queueLength: 5  # Target: 5 messages per pod
   workload:
     kind: Deployment

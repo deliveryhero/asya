@@ -64,8 +64,8 @@ x-sink:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
   workload:
     template:
       spec:
@@ -83,8 +83,8 @@ x-sump:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
   workload:
     template:
       spec:
@@ -176,8 +176,8 @@ actors:
   - name: text-processor
     transport: sqs
     scaling:
-      minReplicas: 0
-      maxReplicas: 50
+      minReplicaCount: 0
+      maxReplicaCount: 50
       queueLength: 5
     image: my-processor:v1
     handler: processor.TextProcessor.process
@@ -188,8 +188,8 @@ actors:
   - name: image-processor
     transport: sqs
     scaling:
-      minReplicas: 0
-      maxReplicas: 20
+      minReplicaCount: 0
+      maxReplicaCount: 20
     image: my-image:v1
     handler: image.process
     resources:

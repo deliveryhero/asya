@@ -58,8 +58,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 0
-  maxReplicas: 10
+  minReplicaCount: 0
+  maxReplicaCount: 10
   queueLength: 5
 
 workload:
@@ -123,8 +123,8 @@ Actor names are resolved to actual queue names based on the transport type (see 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `scaling.enabled` | Enable KEDA autoscaling | `true` |
-| `scaling.minReplicas` | Minimum replicas (0 = scale to zero) | `0` |
-| `scaling.maxReplicas` | Maximum replicas | `10` |
+| `scaling.minReplicaCount` | Minimum replicas (0 = scale to zero) | `0` |
+| `scaling.maxReplicaCount` | Maximum replicas | `10` |
 | `scaling.pollingInterval` | Polling interval (seconds) | `10` |
 | `scaling.cooldownPeriod` | Cooldown period (seconds) | `60` |
 | `scaling.queueLength` | Messages per replica | `5` |
@@ -275,8 +275,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 1
-  maxReplicas: 20
+  minReplicaCount: 1
+  maxReplicaCount: 20
   queueLength: 10
 
 workload:
@@ -310,8 +310,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 0  # Scale to zero when idle
-  maxReplicas: 5
+  minReplicaCount: 0  # Scale to zero when idle
+  maxReplicaCount: 5
   queueLength: 1  # One message per GPU
 
 workload:
@@ -345,8 +345,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 0
-  maxReplicas: 50
+  minReplicaCount: 0
+  maxReplicaCount: 50
   pollingInterval: 10
   cooldownPeriod: 60
   queueLength: 10  # Base threshold (used if no formula)

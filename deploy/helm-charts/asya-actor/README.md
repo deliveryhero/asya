@@ -56,8 +56,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 20
+  minReplicaCount: 2
+  maxReplicaCount: 20
   queueLength: 10
 
 workload:
@@ -99,8 +99,8 @@ helm install text-processor deploy/helm-charts/asya-actor \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `scaling.enabled` | Enable KEDA autoscaling | `true` |
-| `scaling.minReplicas` | Minimum replicas | `1` |
-| `scaling.maxReplicas` | Maximum replicas | `10` |
+| `scaling.minReplicaCount` | Minimum replicas | `1` |
+| `scaling.maxReplicaCount` | Maximum replicas | `10` |
 | `scaling.pollingInterval` | KEDA polling interval (seconds) | `10` |
 | `scaling.cooldownPeriod` | KEDA cooldown period (seconds) | `60` |
 | `scaling.queueLength` | Target queue length per replica | `5` |

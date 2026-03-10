@@ -67,10 +67,10 @@ spec:
                     enabled:
                       type: boolean
                       default: true
-                    minReplicas:
+                    minReplicaCount:
                       type: integer
                       default: 0
-                    maxReplicas:
+                    maxReplicaCount:
                       type: integer
                       default: 10
                     pollingInterval:
@@ -118,6 +118,15 @@ spec:
                         - required:
                             - formula
                             - target
+                    additionalTriggers:
+                      type: array
+                      description: >-
+                        Extra KEDA trigger objects appended after the auto-generated
+                        primary queue trigger. The composition always owns the primary
+                        queue trigger; supply only additional triggers here.
+                      items:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
 
                 workload:
                   type: object

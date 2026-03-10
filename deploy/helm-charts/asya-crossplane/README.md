@@ -122,8 +122,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
 
   workload:

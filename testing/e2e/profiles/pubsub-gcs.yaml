@@ -64,7 +64,7 @@ crew:
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
   x-sump:
     transport: pubsub
     env:
@@ -73,7 +73,7 @@ crew:
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
 
 gateway:
   routes:

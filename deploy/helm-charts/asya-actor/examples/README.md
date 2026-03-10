@@ -167,8 +167,8 @@ healthChecks:
 ```yaml
 scaling:
   enabled: true
-  minReplicas: 0  # Scale to zero when idle
-  maxReplicas: 1
+  minReplicaCount: 0  # Scale to zero when idle
+  maxReplicaCount: 1
   queueLength: 1
 ```
 
@@ -177,8 +177,8 @@ scaling:
 ```yaml
 scaling:
   enabled: true
-  minReplicas: 5
-  maxReplicas: 100
+  minReplicaCount: 5
+  maxReplicaCount: 100
   pollingInterval: 5     # Check every 5s
   cooldownPeriod: 30     # Scale down after 30s
   queueLength: 2         # Scale up at 2 messages per replica

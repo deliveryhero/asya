@@ -162,8 +162,8 @@ kubectl get asyncactors -n asya-demo
 
 # Expected:
 # hello       Napping    (scaled to 0, waiting for messages)
-# x-sink      Creating   (running with minReplicas=1)
-# x-sump      Creating   (running with minReplicas=1)
+# x-sink      Creating   (running with minReplicaCount=1)
+# x-sump      Creating   (running with minReplicaCount=1)
 
 # Check SQS queues were created
 kubectl get queue.sqs.aws.upbound.io

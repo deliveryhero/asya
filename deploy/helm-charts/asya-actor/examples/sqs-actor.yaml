@@ -7,8 +7,8 @@ transport: sqs
 default:
   scaling:
     enabled: true
-    minReplicas: 2
-    maxReplicas: 50
+    minReplicaCount: 2
+    maxReplicaCount: 50
     pollingInterval: 15
     cooldownPeriod: 120
     queueLength: 10

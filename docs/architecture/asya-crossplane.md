@@ -68,8 +68,8 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
    - Waits for queue URL from SQS Queue status
    - References TriggerAuthentication for AWS credentials
    - Configures autoscaling policies (scale-up aggressive, scale-down gradual)
-   - Min replicas: `spec.scaling.minReplicas` (default: 0)
-   - Max replicas: `spec.scaling.maxReplicas` (default: 10)
+   - Min replicas: `spec.scaling.minReplicaCount` (default: 0)
+   - Max replicas: `spec.scaling.maxReplicaCount` (default: 10)
    - Queue length target: `spec.scaling.queueLength` (default: 5 messages/replica)
 
 5. **render-deployment**: Creates Deployment
@@ -213,8 +213,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
     pollingInterval: 30
     cooldownPeriod: 300

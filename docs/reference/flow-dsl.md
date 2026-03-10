@@ -488,8 +488,8 @@ spec:
   transport: sqs
   handler: handlers.analyze_sentiment
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
   resources:
     requests:
       nvidia.com/gpu: 1

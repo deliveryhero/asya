@@ -189,8 +189,8 @@ metadata:
 spec:
   transport: rabbitmq
   scaling:
-    minReplicas: 0
-    maxReplicas: 5
+    minReplicaCount: 0
+    maxReplicaCount: 5
   workload:
     kind: Deployment
     template:

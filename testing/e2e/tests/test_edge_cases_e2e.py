@@ -506,7 +506,7 @@ def test_keda_scales_actor_under_load_e2e(e2e_helper):
             logger.info(f"KEDA scaled up: {initial_pods} → {current_pods} pods")
             break
 
-    # With minReplicas=1, scale-up may not occur if processing is fast
+    # With minReplicaCount=1, scale-up may not occur if processing is fast
     # Verify that at least we maintained the minimum replica count
     if max_pods <= initial_pods:
         logger.warning(f"KEDA did not scale above initial {initial_pods} pods (processing may have been too fast)")

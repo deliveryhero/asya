@@ -13,8 +13,8 @@ metadata:
     asya.sh/flavor: asya-test-actor
 data:
   scaling:
-    minReplicas: 1
-    maxReplicas: 3
+    minReplicaCount: 1
+    maxReplicaCount: 3
     queueLength: 10
   workload:
     template:

@@ -90,8 +90,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment
@@ -224,8 +224,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 50
+    minReplicaCount: 1
+    maxReplicaCount: 50
     pollingInterval: 10
     cooldownPeriod: 60
     queueLength: 10
@@ -292,8 +292,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 5
+    minReplicaCount: 0
+    maxReplicaCount: 5
     queueLength: 10
   workload:
     kind: Deployment
@@ -322,8 +322,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 20
+    minReplicaCount: 1
+    maxReplicaCount: 20
     queueLength: 5
   workload:
     kind: Deployment
@@ -358,9 +358,9 @@ spec:
                 break
 
         assert updated_scaled["spec"]["minReplicaCount"] == 1, \
-            "ScaledObject should be updated with new minReplicas"
+            "ScaledObject should be updated with new minReplicaCount"
         assert updated_scaled["spec"]["maxReplicaCount"] == 20, \
-            "ScaledObject should be updated with new maxReplicas"
+            "ScaledObject should be updated with new maxReplicaCount"
 
         triggers = updated_scaled["spec"]["triggers"]
         if transport == "sqs":
@@ -401,8 +401,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
   workload:
     kind: Deployment
     template:
@@ -482,8 +482,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
   workload:
     kind: Deployment
     template:
@@ -548,8 +548,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment
@@ -581,8 +581,8 @@ spec:
 
         assert hpa["spec"]["scaleTargetRef"]["name"] == actor_name
         assert hpa["spec"]["scaleTargetRef"]["kind"] == "Deployment"
-        assert hpa["spec"]["minReplicas"] == 1
-        assert hpa["spec"]["maxReplicas"] == 10
+        assert hpa["spec"]["minReplicaCount"] == 1
+        assert hpa["spec"]["maxReplicaCount"] == 10
 
         logger.info("[+] HPA created by KEDA with correct configuration")
 
@@ -598,7 +598,7 @@ spec:
 def test_workload_recovers_after_pod_kill(ensure_keda_installed, namespace):
     """Test that workload recovers after pod is killed.
 
-    With KEDA ScaledObject (minReplicas=1), the Deployment controller
+    With KEDA ScaledObject (minReplicaCount=1), the Deployment controller
     should recreate the pod after it's deleted. The AsyncActor infrastructure
     status should reflect the recovery.
     """
@@ -619,8 +619,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
   workload:
     kind: Deployment
@@ -694,8 +694,8 @@ spec:
   transport: {transport}
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment

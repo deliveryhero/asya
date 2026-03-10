@@ -17,8 +17,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 5
+    minReplicaCount: 0
+    maxReplicaCount: 5
     pollingInterval: 5
     cooldownPeriod: 60
     queueLength: 1

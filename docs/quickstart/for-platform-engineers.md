@@ -150,8 +150,8 @@ spec:
   transport: sqs  # or rabbitmq
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
     queueLength: 5
   workload:
     kind: Deployment
@@ -175,8 +175,8 @@ spec:
 **Key fields to explain**:
 - `spec.transport`: Which transport to use (ask platform team)
 - `spec.scaling.enabled`: Enable KEDA autoscaling (default: false)
-- `spec.scaling.minReplicas`: Minimum pods (0 for scale-to-zero)
-- `spec.scaling.maxReplicas`: Maximum pods
+- `spec.scaling.minReplicaCount`: Minimum pods (0 for scale-to-zero)
+- `spec.scaling.maxReplicaCount`: Maximum pods
 - `spec.scaling.queueLength`: Messages per replica target
 - `spec.workload.kind`: Deployment
 - `env.ASYA_HANDLER`: Handler path (`module.function` or `module.Class.method`)
@@ -413,7 +413,7 @@ kubectl get asya my-actor
 
 **Status values**:
 - `Running` - Healthy
-- `Napping` - Scaled to zero (normal with minReplicas=0)
+- `Napping` - Scaled to zero (normal with minReplicaCount=0)
 - `Creating` - Initial deployment
 - `RuntimeError` - Runtime container crashing
 - `SidecarError` - Sidecar container crashing
@@ -428,8 +428,8 @@ kubectl get asya my-actor
 spec:
   scaling:
     enabled: true
-    minReplicas: 0          # Scale to zero when idle
-    maxReplicas: 50         # Max replicas
+    minReplicaCount: 0          # Scale to zero when idle
+    maxReplicaCount: 50         # Max replicas
     queueLength: 5          # Target: 5 messages per replica
     pollingInterval: 10     # Check queue every 10s
     cooldownPeriod: 60      # Wait 60s before scaling down
@@ -468,7 +468,7 @@ spec:
 spec:
   scaling:
     enabled: true
-    minReplicas: 0  # $0 when idle
+    minReplicaCount: 0  # $0 when idle
 ```
 
 **Set appropriate queueLength**:

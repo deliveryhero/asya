@@ -71,8 +71,8 @@ def _actor_manifest(
     scaling_block = f"""\
   scaling:
     enabled: {str(scaling_enabled).lower()}
-    minReplicas: {min_replicas}
-    maxReplicas: {max_replicas}
+    minReplicaCount: {min_replicas}
+    maxReplicaCount: {max_replicas}
     queueLength: {queue_length}"""
 
     if not scaling_enabled:
@@ -217,8 +217,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 10
   workload:
     kind: Deployment
@@ -317,8 +317,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 10
   workload:
     kind: Deployment
@@ -347,8 +347,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 10
+    minReplicaCount: 3
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment
@@ -387,8 +387,8 @@ spec:
             updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
             if updated_scaled["spec"].get("minReplicaCount") == 3:
                 break
-        assert updated_scaled["spec"]["minReplicaCount"] == 3, "ScaledObject should be updated with new minReplicas"
-        assert updated_scaled["spec"]["maxReplicaCount"] == 10, "ScaledObject should be updated with new maxReplicas"
+        assert updated_scaled["spec"]["minReplicaCount"] == 3, "ScaledObject should be updated with new minReplicaCount"
+        assert updated_scaled["spec"]["maxReplicaCount"] == 10, "ScaledObject should be updated with new maxReplicaCount"
 
         triggers = updated_scaled["spec"]["triggers"]
         transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
@@ -441,8 +441,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     queueLength: 5
     advanced:
       restoreToOriginalReplicaCount: true
@@ -641,8 +641,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
   workload:
     kind: Deployment
     template:
@@ -899,8 +899,8 @@ spec:
       asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 3
+    minReplicaCount: 1
+    maxReplicaCount: 3
     queueLength: 5
   workload:
     kind: Deployment
@@ -1312,7 +1312,7 @@ def test_asyncactor_scaling_toggle(e2e_helper):
         _kubectl_patch(
             "asyncactor",
             name,
-            '{"spec":{"scaling":{"enabled":true,"minReplicas":1,"maxReplicas":5,"queueLength":10}}}',
+            '{"spec":{"scaling":{"enabled":true,"minReplicaCount":1,"maxReplicaCount":5,"queueLength":10}}}',
             namespace=e2e_helper.namespace,
         )
 

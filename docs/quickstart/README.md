@@ -293,8 +293,8 @@ spec:
   providerConfigRef: localstack
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     pollingInterval: 10
     cooldownPeriod: 30
     queueLength: 5
@@ -392,7 +392,7 @@ Watch replicas scale up:
 
 ```bash
 kubectl get deployment hello -n default -w
-# READY should increase beyond 1 (up to maxReplicas=10)
+# READY should increase beyond 1 (up to maxReplicaCount=10)
 ```
 
 After all messages are processed and the cooldown period passes, replicas scale back to zero.

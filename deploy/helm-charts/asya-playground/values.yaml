@@ -53,8 +53,8 @@ helloActor:
     tag: "3.13-slim"
   handler: "hello_handler.process"
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
     pollingInterval: 30
   resources:
@@ -437,8 +437,8 @@ testingActors:
       memory: 128Mi
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     pollingInterval: 15
     queueLength: 5
   slow:

@@ -219,8 +219,8 @@ spec:
             {{`{{- $cooldownPeriod := 300 -}}`}}
             {{`{{- $queueLength := 5 -}}`}}
             {{`{{- if $scaling -}}`}}
-              {{`{{- if hasKey $scaling "minReplicas" }}{{ $minReplicas = $scaling.minReplicas }}{{ end -}}`}}
-              {{`{{- if hasKey $scaling "maxReplicas" }}{{ $maxReplicas = $scaling.maxReplicas }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "minReplicaCount" }}{{ $minReplicas = $scaling.minReplicaCount }}{{ end -}}`}}
+              {{`{{- if hasKey $scaling "maxReplicaCount" }}{{ $maxReplicas = $scaling.maxReplicaCount }}{{ end -}}`}}
               {{`{{- if hasKey $scaling "pollingInterval" }}{{ $pollingInterval = $scaling.pollingInterval }}{{ end -}}`}}
               {{`{{- if hasKey $scaling "cooldownPeriod" }}{{ $cooldownPeriod = $scaling.cooldownPeriod }}{{ end -}}`}}
               {{`{{- if hasKey $scaling "queueLength" }}{{ $queueLength = $scaling.queueLength }}{{ end -}}`}}
@@ -273,6 +273,9 @@ spec:
                           subscriptionName: projects/{{`{{ $gcpProject }}`}}/subscriptions/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                           mode: SubscriptionSize
                           value: "{{`{{ $queueLength }}`}}"
+                      {{`{{- range ($scaling.additionalTriggers | default list) }}`}}
+                      - {{`{{ toYaml . | nindent 24 }}`}}
+                      {{`{{- end }}`}}
                     advanced:
                       {{`{{- if and $advanced (hasKey $advanced "restoreToOriginalReplicaCount") }}`}}
                       restoreToOriginalReplicaCount: {{`{{ $advanced.restoreToOriginalReplicaCount }}`}}

@@ -188,8 +188,8 @@ For production deployments with separate namespaces:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `helloActor.name` | Actor name | `hello` |
-| `helloActor.scaling.minReplicas` | Minimum replicas | `0` |
-| `helloActor.scaling.maxReplicas` | Maximum replicas | `10` |
+| `helloActor.scaling.minReplicaCount` | Minimum replicas | `0` |
+| `helloActor.scaling.maxReplicaCount` | Maximum replicas | `10` |
 | `helloActor.scaling.queueLength` | Messages per replica | `5` |
 
 See `values.yaml` for complete configuration options.
