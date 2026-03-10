@@ -2,7 +2,7 @@
 
 Unified entry point that dispatches to the appropriate compilation strategy
 based on the target argument:
-  - *.py file   -> compile flow from source (FlowCompiler + ManifestStamper)
+  - *.py file   -> compile flow from source (FlowCompiler + ManifestTemplater)
   - dotted name -> compile single actor manifest
   - kebab-case  -> recompile from existing manifests in .asya/
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.config import ConfigLoader
+from asya_lab.config.project import AsyaProject
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -38,8 +38,8 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(source_path.parent)
-    return config.resolve_path("compiler.routers") / flow_function
+    project = AsyaProject.from_dir(source_path.parent)
+    return project.resolve_path("compiler.routers") / flow_function
 
 
 def _compile_flow_file(
@@ -121,8 +121,8 @@ def _compile_dotted_target(
         if asya_dir is None:
             click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
             sys.exit(1)
-        config = ConfigLoader().load(asya_dir.parent)
-        resolved_dir = config.resolve_path("compiler.manifests")
+        project = AsyaProject.from_dir(asya_dir.parent)
+        resolved_dir = project.resolve_path("compiler.manifests")
     resolved_dir.mkdir(parents=True, exist_ok=True)
 
     click.echo(f"[+] Compiling single actor '{actor_name}' from {target}")
@@ -150,8 +150,8 @@ def _recompile_kebab_target(
         click.echo("[-] Run 'asya init' to create one", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.resolve_path("compiler.manifests") / target
+    project = AsyaProject.from_dir(asya_dir.parent)
+    manifests_dir = project.resolve_path("compiler.manifests") / target
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
         sys.exit(1)

@@ -13,13 +13,13 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import (
     BASE_DIR,
     COMMON_DIR,
     OVERLAYS_DIR,
     find_asya_dir,
 )
+from asya_lab.config.project import AsyaProject
 
 
 # ---------------------------------------------------------------------------
@@ -34,8 +34,8 @@ def _find_manifests_dir(target: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.resolve_path("compiler.manifests") / target
+    project = AsyaProject.from_dir(asya_dir.parent)
+    manifests_dir = project.resolve_path("compiler.manifests") / target
     if not manifests_dir.is_dir():
         click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
         click.echo("[-] Run 'asya compile' first.", err=True)
@@ -70,18 +70,17 @@ def _resolve_context(ctx: str | None) -> dict | None:
     if asya_dir is None:
         return None
 
-    loader = ConfigLoader()
     try:
-        config = loader.load(asya_dir.parent)
+        project = AsyaProject.from_dir(asya_dir.parent)
     except Exception:
         return None
 
-    contexts = config.get("contexts")
+    contexts = project.cfg.get("contexts")
     if not contexts:
         return None
 
     if ctx is None:
-        ctx = config.get("default_context")
+        ctx = project.cfg.get("default_context")
         if ctx is None:
             return None
 
@@ -354,8 +353,8 @@ def edit(actor_name: str) -> None:
         sys.exit(1)
 
     # Find which flow this actor belongs to
-    config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.resolve_path("compiler.manifests")
+    project = AsyaProject.from_dir(asya_dir.parent)
+    manifests_dir = project.resolve_path("compiler.manifests")
     if not manifests_dir.is_dir():
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)
@@ -417,19 +416,18 @@ def context_list() -> None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    loader = ConfigLoader()
     try:
-        config = loader.load(asya_dir.parent)
+        project = AsyaProject.from_dir(asya_dir.parent)
     except Exception as e:
         click.echo(f"[-] Failed to load config: {e}", err=True)
         sys.exit(1)
 
-    contexts = config.get("contexts")
+    contexts = project.cfg.get("contexts")
     if not contexts:
         click.echo("No contexts configured in .asya/config.yaml")
         return
 
-    default_ctx = config.get("default_context")
+    default_ctx = project.cfg.get("default_context")
 
     for name in contexts:
         ctx = contexts[name]

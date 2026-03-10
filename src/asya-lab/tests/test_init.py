@@ -90,8 +90,8 @@ class TestInitConfig:
         (tmp_path / ".git").mkdir()
         init_project(tmp_path, image_registry="ghcr.io/test")
 
-        from asya_lab.config.config import load_effective_config
+        from asya_lab.config.project import AsyaProject
 
-        cfg = load_effective_config(tmp_path)
+        cfg = AsyaProject.from_dir(tmp_path).cfg
         assert cfg.compiler.image_registry == "ghcr.io/test"
         assert cfg.templates.transport == "sqs"

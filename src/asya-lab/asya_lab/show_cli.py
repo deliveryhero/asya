@@ -8,8 +8,8 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 @click.command()
@@ -25,8 +25,8 @@ def show(target: str, ctx: str | None) -> None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(asya_dir.parent)
-    flow_dir = config.resolve_path("compiler.manifests") / target
+    project = AsyaProject.from_dir(asya_dir.parent)
+    flow_dir = project.resolve_path("compiler.manifests") / target
     if not flow_dir.is_dir():
         click.echo(f"[-] Flow not found: {flow_dir}", err=True)
         sys.exit(1)

@@ -3,7 +3,8 @@
 from pathlib import Path
 
 import pytest
-from asya_lab.config.config import load_asya_dir, load_effective_config
+from asya_lab.config.project import AsyaProject
+from asya_lab.config.store import ConfigStore
 from omegaconf import OmegaConf
 from omegaconf.errors import InterpolationResolutionError
 
@@ -13,16 +14,16 @@ class TestFilenameToKey:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  name: test\n")
-        cfg = load_asya_dir(asya_dir)
-        assert OmegaConf.to_container(cfg) == {"templates": {"name": "test"}}
+        store = ConfigStore(tmp_path)
+        assert OmegaConf.to_container(store.cfg) == {"templates": {"name": "test"}}
 
     def test_section_config(self, tmp_path: Path) -> None:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  name: test\n")
         (asya_dir / "config.compiler.yaml").write_text("manifests: ./out\n")
-        cfg = load_asya_dir(asya_dir)
-        container = OmegaConf.to_container(cfg)
+        store = ConfigStore(tmp_path)
+        container = OmegaConf.to_container(store.cfg)
         assert container["templates"] == {"name": "test"}
         assert "compiler" in container
         assert container["compiler"]["manifests"] is not None
@@ -33,8 +34,8 @@ class TestFilenameToKey:
         (asya_dir / "config.yaml").write_text("{}")
         (asya_dir / "config.compiler.yaml").write_text("rules: []\n")
         (asya_dir / "config.template.yaml").write_text("actor: default\n")
-        cfg = load_asya_dir(asya_dir)
-        container = OmegaConf.to_container(cfg)
+        store = ConfigStore(tmp_path)
+        container = OmegaConf.to_container(store.cfg)
         assert container["compiler"] == {"rules": []}
         assert container["template"] == {"actor": "default"}
 
@@ -45,8 +46,8 @@ class TestDottedSectionSupport:
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("{}")
         (asya_dir / "config.compiler.rules.yaml").write_text("- match: test\n  treat-as: inline\n")
-        cfg = load_asya_dir(asya_dir)
-        container = OmegaConf.to_container(cfg)
+        store = ConfigStore(tmp_path)
+        container = OmegaConf.to_container(store.cfg)
         assert "compiler" in container
         assert "rules" in container["compiler"]
         assert len(container["compiler"]["rules"]) > 0
@@ -57,8 +58,8 @@ class TestRelativePathResolution:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  base_path: ./\n")
-        cfg = load_asya_dir(asya_dir)
-        resolved = OmegaConf.to_container(cfg, resolve=False)
+        store = ConfigStore(tmp_path)
+        resolved = OmegaConf.to_container(store.cfg, resolve=False)
         assert not resolved["templates"]["base_path"].startswith("./")
         assert str(tmp_path) in resolved["templates"]["base_path"]
 
@@ -66,8 +67,8 @@ class TestRelativePathResolution:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  root: ./\ncompiler:\n  out: ${templates.root}/compiled\n")
-        cfg = load_asya_dir(asya_dir)
-        resolved = OmegaConf.to_container(cfg, resolve=False)
+        store = ConfigStore(tmp_path)
+        resolved = OmegaConf.to_container(store.cfg, resolve=False)
         assert "${templates.root}" in resolved["compiler"]["out"]
 
 
@@ -77,8 +78,8 @@ class TestWalkUpMerge:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  name: root\n")
-        cfg = load_effective_config(tmp_path)
-        assert OmegaConf.to_container(cfg.raw)["templates"]["name"] == "root"
+        project = AsyaProject.from_dir(tmp_path)
+        assert OmegaConf.to_container(project.cfg)["templates"]["name"] == "root"
 
     def test_child_overrides_parent(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
@@ -90,15 +91,15 @@ class TestWalkUpMerge:
         team_asya = team_dir / ".asya"
         team_asya.mkdir()
         (team_asya / "config.yaml").write_text("templates:\n  registry: ghcr.io/team\n")
-        cfg = load_effective_config(team_dir)
-        container = OmegaConf.to_container(cfg.raw)
+        project = AsyaProject.from_dir(team_dir)
+        container = OmegaConf.to_container(project.cfg)
         assert container["templates"]["name"] == "root"
         assert container["templates"]["registry"] == "ghcr.io/team"
 
     def test_no_asya_raises(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         with pytest.raises(FileNotFoundError, match="No .asya/ directory found"):
-            load_effective_config(tmp_path)
+            AsyaProject.from_dir(tmp_path)
 
     def test_interpolation_across_levels(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
@@ -110,8 +111,8 @@ class TestWalkUpMerge:
         team_asya = team_dir / ".asya"
         team_asya.mkdir()
         (team_asya / "config.yaml").write_text("templates:\n  image: ${templates.org}/app\n")
-        cfg = load_effective_config(team_dir)
-        assert cfg.templates.image == "my-org/app"
+        project = AsyaProject.from_dir(team_dir)
+        assert project.cfg.templates.image == "my-org/app"
 
 
 class TestCustomResolvers:
@@ -121,33 +122,33 @@ class TestCustomResolvers:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  val: ${env:ASYA_TEST_VAR}\n")
-        cfg = load_effective_config(tmp_path)
-        assert cfg.templates.val == "hello"
+        project = AsyaProject.from_dir(tmp_path)
+        assert project.cfg.templates.val == "hello"
 
     def test_arg_resolver(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  tag: ${arg:tag}\n")
-        cfg = load_effective_config(tmp_path, arg_values={"tag": "v1.0"})
-        assert cfg.templates.tag == "v1.0"
+        project = AsyaProject.from_dir(tmp_path, arg_values={"tag": "v1.0"})
+        assert project.cfg.templates.tag == "v1.0"
 
     def test_arg_resolver_with_default(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  replicas: ${arg:replicas,5}\n")
-        cfg = load_effective_config(tmp_path)
-        assert cfg.templates.replicas == "5"
+        project = AsyaProject.from_dir(tmp_path)
+        assert project.cfg.templates.replicas == "5"
 
     def test_arg_resolver_missing_raises(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("templates:\n  tag: ${arg:tag}\n")
-        cfg = load_effective_config(tmp_path)
+        project = AsyaProject.from_dir(tmp_path)
         with pytest.raises(InterpolationResolutionError, match="Missing --arg tag"):
-            _ = cfg.templates.tag
+            _ = project.cfg.templates.tag
 
 
 class TestSectionMerge:
@@ -157,7 +158,7 @@ class TestSectionMerge:
         asya_dir.mkdir()
         (asya_dir / "config.yaml").write_text("compiler:\n  manifests: ./out\n")
         (asya_dir / "config.compiler.rules.yaml").write_text("- match: test\n")
-        cfg = load_effective_config(tmp_path)
-        container = OmegaConf.to_container(cfg.raw, resolve=False)
+        project = AsyaProject.from_dir(tmp_path)
+        container = OmegaConf.to_container(project.cfg, resolve=False)
         assert "manifests" in container["compiler"]
         assert "rules" in container["compiler"]

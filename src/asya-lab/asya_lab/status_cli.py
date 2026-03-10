@@ -8,8 +8,8 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 def _scan_flows(manifests_dir: Path) -> list[dict[str, str]]:
@@ -70,8 +70,8 @@ def status() -> None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.resolve_path("compiler.manifests")
+    project = AsyaProject.from_dir(asya_dir.parent)
+    manifests_dir = project.resolve_path("compiler.manifests")
     if not manifests_dir.is_dir():
         click.echo(_format_table([]))
         return

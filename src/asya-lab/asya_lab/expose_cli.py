@@ -9,9 +9,9 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.compiler.stamper import _Dumper
-from asya_lab.config.config import ConfigLoader
+from asya_lab.compiler.templater import _Dumper
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 def _resolve_flow_name(target: str) -> str:
@@ -33,8 +33,8 @@ def _find_base_dir(flow_name: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    config = ConfigLoader().load(asya_dir.parent)
-    base_dir = config.resolve_path("compiler.manifests") / flow_name / BASE_DIR
+    project = AsyaProject.from_dir(asya_dir.parent)
+    base_dir = project.resolve_path("compiler.manifests") / flow_name / BASE_DIR
     if not base_dir.is_dir():
         click.echo(
             f"[-] Manifest directory not found: {base_dir}\n[-] Run 'asya flow compile' first.",
@@ -133,16 +133,13 @@ def _build_configmap(flow_name: str, namespace: str, flow_data: dict) -> dict:
 
 def _resolve_namespace() -> str:
     """Resolve namespace from .asya/ config, falling back to default."""
-    from asya_lab.config.config import ConfigLoader
-
     asya_dir = find_asya_dir(Path.cwd())
     if asya_dir is None:
         return "default"
 
-    loader = ConfigLoader()
-    config = loader.load(asya_dir.parent)
     try:
-        return str(config.templates.namespace)
+        project = AsyaProject.from_dir(asya_dir.parent)
+        return str(project.cfg.templates.namespace)
     except Exception:
         return "default"
 

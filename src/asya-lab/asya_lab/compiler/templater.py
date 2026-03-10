@@ -14,12 +14,11 @@ import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 import yaml
-from omegaconf.errors import OmegaConfBaseException
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
+from asya_lab.config.project import AsyaProject
 from asya_lab.flow.grouper import Router
 
 
@@ -87,7 +86,7 @@ def _resolve_template_string(text: str, context: dict[str, str]) -> str:
     return _TEMPLATE_RE.sub(_replace, text)
 
 
-class ManifestStamper:
+class ManifestTemplater:
     """Stamps AsyncActor manifests into a kustomize directory structure.
 
     Naming convention (see rfc.md section 7.4):
@@ -95,7 +94,7 @@ class ManifestStamper:
       flow_name / actor name:         K8s/Asya name, hyphens (my-flow)
 
     The compiler (parser, grouper, codegen) works with function names.
-    The stamper converts to K8s names for all output: filenames, metadata,
+    The templater converts to K8s names for all output: filenames, metadata,
     labels, ConfigMap names. Handler references (spec.handler) keep the
     Python form since they reference Python functions.
 
@@ -112,7 +111,7 @@ class ManifestStamper:
         flow_function: str,
         routers: list[Router],
         router_code: str,
-        config: Any,
+        project: AsyaProject,
         actor_template_path: Path,
         router_template_path: Path | None = None,
         configmap_routers_template_path: Path | None = None,
@@ -122,7 +121,7 @@ class ManifestStamper:
         self.flow_function = flow_function
         self.routers = routers
         self.router_code = router_code
-        self.config = config
+        self.project = project
         self.actor_template_path = actor_template_path
         self.router_template_path = router_template_path
         self.configmap_routers_template_path = configmap_routers_template_path
@@ -146,7 +145,7 @@ class ManifestStamper:
 
         return generated
 
-    # ── base/ layer (fully regenerated) ─────────────────────────────
+    # -- base/ layer (fully regenerated) ------------------------------------
 
     def _stamp_base(self, base_dir: Path) -> list[str]:
         if base_dir.exists():
@@ -204,8 +203,7 @@ class ManifestStamper:
             image=actor.image,
         )
 
-        # Build flat context: TemplateContext + config templates.*
-        context = self._build_template_context()
+        context = self.project.build_template_context()
         # TemplateContext values (override config if collision — reserved names)
         context.update({k: str(v) for k, v in dataclasses.asdict(tc).items()})
 
@@ -217,7 +215,8 @@ class ManifestStamper:
         if self.configmap_routers_template_path and self.configmap_routers_template_path.exists():
             cm = self._resolve_configmap_template()
         else:
-            namespace = self._resolve_config("templates", "namespace", "default")
+            context = self.project.build_template_context()
+            namespace = context.get("namespace", "default")
             cm = {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",
@@ -239,7 +238,7 @@ class ManifestStamper:
         """Load configmap template and resolve {{ key }} placeholders."""
         assert self.configmap_routers_template_path is not None
         text = self.configmap_routers_template_path.read_text()
-        context = self._build_template_context()
+        context = self.project.build_template_context()
         context["flow_name"] = self.flow_name
         context["flow_function"] = self.flow_function
         resolved_text = _resolve_template_string(text, context)
@@ -260,13 +259,13 @@ class ManifestStamper:
         """Load kustomization template and resolve {{ key }} placeholders."""
         assert self.kustomization_template_path is not None
         text = self.kustomization_template_path.read_text()
-        context = self._build_template_context()
+        context = self.project.build_template_context()
         context["flow_name"] = self.flow_name
         context["flow_function"] = self.flow_function
         resolved_text = _resolve_template_string(text, context)
         return yaml.safe_load(resolved_text)
 
-    # ── README (created once) ───────────────────────────────────────
+    # -- README (created once) ----------------------------------------------
 
     _README = """\
 # Kustomize Manifest Structure
@@ -318,7 +317,7 @@ Each overlay builds on top of `common/`.
         output_dir.mkdir(parents=True, exist_ok=True)
         readme_path.write_text(self._README)
 
-    # ── common/ layer (created once, never overwritten) ─────────────
+    # -- common/ layer (created once, never overwritten) --------------------
 
     def _stamp_common(self, common_dir: Path) -> list[str]:
         kust_path = common_dir / "kustomization.yaml"
@@ -329,10 +328,10 @@ Each overlay builds on top of `common/`.
         self._write_kustomization(kust_path, ["../base"])
         return ["common/kustomization.yaml"]
 
-    # ── overlays/<context>/ layer (created once per context) ────────
+    # -- overlays/<context>/ layer (created once per context) ---------------
 
     def _stamp_overlays(self, overlays_dir: Path) -> list[str]:
-        contexts = self._get_contexts()
+        contexts = self.project.get_contexts()
         if not contexts:
             return []
 
@@ -354,19 +353,18 @@ Each overlay builds on top of `common/`.
 
         return generated
 
-    # ── actor collection ────────────────────────────────────────────
+    # -- actor collection ---------------------------------------------------
 
     def _collect_actors(self) -> list[ActorInfo]:
         """Collect all actors from the compiled flow."""
-        router_image = self._resolve_config("templates", "router_image", "python:3.13-slim")
+        context = self.project.build_template_context()
+        router_image = context.get("router_image", "python:3.13-slim")
         handler_actors: dict[str, ActorInfo] = {}
         router_actors: list[ActorInfo] = []
 
         for router in self.routers:
-            # Router env: ASYA_HANDLER_* mappings for the resolve() function
             handler_env = self._build_handler_env(router)
 
-            # Actor name uses hyphens (K8s convention), handler stays as Python reference
             router_actors.append(
                 ActorInfo(
                     name=self._to_k8s_name(router.name),
@@ -378,12 +376,11 @@ Each overlay builds on top of `common/`.
                 )
             )
 
-            # Collect handler actor names (non-router actors)
             for actor_name in self._get_referenced_actors(router):
                 if self._is_router_name(actor_name):
                     continue
                 if actor_name not in handler_actors:
-                    image = self._resolve_handler_image(actor_name)
+                    image = self.project.resolve_image(actor_name)
                     k8s_name = self._to_k8s_name(actor_name)
                     handler_actors[actor_name] = ActorInfo(
                         name=k8s_name,
@@ -415,11 +412,7 @@ Each overlay builds on top of `common/`.
         return actors
 
     def _build_handler_env(self, router: Router) -> list[dict[str, str]]:
-        """Build ASYA_HANDLER_* env vars for a router actor.
-
-        These mappings allow the resolve() function in routers.py to
-        map handler short names to actor queue names at runtime.
-        """
+        """Build ASYA_HANDLER_* env vars for a router actor."""
         env: list[dict[str, str]] = []
         for actor_name in self._get_referenced_actors(router):
             if self._is_router_name(actor_name):
@@ -438,60 +431,3 @@ Each overlay builds on top of `common/`.
         if name.startswith("end_"):
             return "exitpoint"
         return "router"
-
-    # ── config resolution helpers ───────────────────────────────────
-
-    def _build_template_context(self) -> dict[str, str]:
-        """Build template context from config `templates:` section."""
-        context: dict[str, str] = {}
-        try:
-            templates_cfg = self.config.get("templates")
-            if templates_cfg:
-                for key in templates_cfg:
-                    context[str(key)] = str(templates_cfg[key])
-        except (OmegaConfBaseException, AttributeError):
-            log.debug("Could not read templates config section")
-        return context
-
-    def _resolve_config(self, section: str, key: str, default: str) -> str:
-        """Resolve a value from a config section."""
-        try:
-            cfg_section = self.config.get(section)
-            if cfg_section and key in cfg_section:
-                return str(cfg_section[key])
-        except (OmegaConfBaseException, AttributeError):
-            log.warning("Error resolving '%s.%s', falling back to default '%s'", section, key, default)
-        return default
-
-    def _resolve_handler_image(self, handler_name: str) -> str:
-        """Resolve handler name to a concrete image reference.
-
-        Stamped manifests are real K8s resources (applied via kustomize),
-        so they must not contain template placeholders.
-        All values must be fully resolved at compile time.
-        """
-        if "build" in self.config:
-            try:
-                build_entries = self.config["build"]
-                for entry in build_entries:
-                    module = str(entry.get("module", ""))
-                    if module and handler_name.startswith(module.replace(".", "_")):
-                        return str(entry["image"])
-            except (OmegaConfBaseException, AttributeError, KeyError, TypeError):
-                log.warning("Error resolving handler image for '%s' from build config", handler_name)
-
-        # Resolve image_registry from compiler config; use handler K8s name in image path
-        registry = self._resolve_config("compiler", "image_registry", "")
-        k8s_name = self._to_k8s_name(handler_name)
-        if registry:
-            return f"{registry}/{k8s_name}:latest"
-        return f"{k8s_name}:latest"
-
-    def _get_contexts(self) -> list[str]:
-        """Get context names from config."""
-        try:
-            if "contexts" in self.config:
-                return list(self.config["contexts"].keys())
-        except (OmegaConfBaseException, AttributeError):
-            log.warning("Error getting contexts from config, falling back to empty list")
-        return []

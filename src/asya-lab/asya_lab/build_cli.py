@@ -14,35 +14,34 @@ from pathlib import Path
 
 import click
 import yaml
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
-from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 def _load_build_entries(
     start_dir: Path,
     arg_values: dict[str, str],
-) -> tuple[list[dict], DictConfig]:
-    """Load build entries from config, returning (build_list, full_config)."""
-    loader = ConfigLoader(arg_values=arg_values)
-    config = loader.load(start_dir)
+) -> tuple[list[dict], AsyaProject]:
+    """Load build entries from config, returning (build_list, project)."""
+    project = AsyaProject.from_dir(start_dir, arg_values=arg_values)
 
-    build_list = config.get("build")
+    build_list = project.cfg.get("build")
     if not build_list:
         click.echo("[-] No build entries in config", err=True)
         click.echo("[-] Add a 'build:' section to .asya/config.yaml", err=True)
         sys.exit(1)
 
     resolved = [OmegaConf.to_container(entry, resolve=True) for entry in build_list]
-    return resolved, config
+    return resolved, project
 
 
 def _find_flow_images(target: str, asya_dir: Path) -> set[str]:
     """Find unique image references from compiled manifests for a flow."""
     try:
-        config = ConfigLoader().load(asya_dir.parent)
-        manifests_dir = config.resolve_path("compiler.manifests") / target / BASE_DIR
+        project = AsyaProject.from_dir(asya_dir.parent)
+        manifests_dir = project.resolve_path("compiler.manifests") / target / BASE_DIR
     except Exception:
         return set()
     if not manifests_dir.is_dir():
@@ -232,7 +231,7 @@ def build(target: str, args: tuple[str, ...], push: bool, verbose: bool) -> None
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    build_entries, _config = _load_build_entries(asya_dir.parent, arg_values)
+    build_entries, _project = _load_build_entries(asya_dir.parent, arg_values)
     entries = _resolve_entries_for_target(target, build_entries, asya_dir)
 
     # Deduplicate by image

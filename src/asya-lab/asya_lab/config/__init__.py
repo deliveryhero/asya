@@ -1,15 +1,11 @@
-from asya_lab.config.config import (
-    AsyaConfig,
-    ConfigLoader,
-    load_effective_config,
-)
 from asya_lab.config.discovery import find_asya_dir, find_git_root
+from asya_lab.config.project import AsyaProject
+from asya_lab.config.store import ConfigStore
 
 
 __all__ = [
-    "AsyaConfig",
-    "ConfigLoader",
+    "AsyaProject",
+    "ConfigStore",
     "find_asya_dir",
     "find_git_root",
-    "load_effective_config",
 ]
