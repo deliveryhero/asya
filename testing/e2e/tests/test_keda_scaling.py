@@ -581,8 +581,8 @@ spec:
 
         assert hpa["spec"]["scaleTargetRef"]["name"] == actor_name
         assert hpa["spec"]["scaleTargetRef"]["kind"] == "Deployment"
-        assert hpa["spec"]["minReplicaCount"] == 1
-        assert hpa["spec"]["maxReplicaCount"] == 10
+        assert hpa["spec"]["minReplicas"] == 1
+        assert hpa["spec"]["maxReplicas"] == 10
 
         logger.info("[+] HPA created by KEDA with correct configuration")
 
