@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "f1b3441b1a45dff7e1b3a116fc1b593c6bc7a316",
+  "commit": "38683a390a78be6ea7550fb3f09c8ee9dd3024c1",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -23249,7 +23249,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 32286,
+    "code": 32606,
     "test": 21835,
     "code_files": [
       {
@@ -24548,10 +24548,24 @@
         "language": "Python"
       },
       {
-        "code": 46,
-        "comment": 12,
-        "blank": 17,
+        "code": 40,
+        "comment": 3,
+        "blank": 16,
         "path": "src/asya-lab/asya_lab/cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 2,
+        "comment": 1,
+        "blank": 3,
+        "path": "src/asya-lab/asya_lab/compiler/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 275,
+        "comment": 58,
+        "blank": 78,
+        "path": "src/asya-lab/asya_lab/compiler/stamper.py",
         "language": "Python"
       },
       {
@@ -24576,9 +24590,9 @@
         "language": "Python"
       },
       {
-        "code": 68,
-        "comment": 3,
-        "blank": 15,
+        "code": 50,
+        "comment": 4,
+        "blank": 14,
         "path": "src/asya-lab/asya_lab/config_cli.py",
         "language": "Python"
       },
@@ -24639,17 +24653,24 @@
         "language": "Python"
       },
       {
-        "code": 144,
-        "comment": 16,
-        "blank": 32,
+        "code": 168,
+        "comment": 15,
+        "blank": 38,
         "path": "src/asya-lab/asya_lab/flow_cli.py",
         "language": "Python"
       },
       {
-        "code": 73,
-        "comment": 58,
-        "blank": 30,
+        "code": 81,
+        "comment": 76,
+        "blank": 34,
         "path": "src/asya-lab/asya_lab/init.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 2,
+        "blank": 10,
+        "path": "src/asya-lab/asya_lab/init_cli.py",
         "language": "Python"
       },
       {
@@ -24678,6 +24699,13 @@
         "comment": 25,
         "blank": 56,
         "path": "src/asya-lab/asya_lab/mcp/port_forward.py",
+        "language": "Python"
+      },
+      {
+        "code": 12,
+        "comment": 2,
+        "blank": 6,
+        "path": "src/asya-lab/asya_lab/mcp_cli.py",
         "language": "Python"
       },
       {
@@ -25818,6 +25846,6 @@
       }
     ]
   },
-  "test_execution_time": 336000000000,
-  "timestamp": "2026-03-10T15:27:53.356988782Z"
+  "test_execution_time": 352000000000,
+  "timestamp": "2026-03-10T16:49:01.015148461Z"
 }
