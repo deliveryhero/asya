@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/pyt1.phase-1-config-system-asya-init
   - branch:asya-lab/pyt1.phase-1-config-system-asya-init
+  - pr:295
 ---
+
 
 
 ## Scope
