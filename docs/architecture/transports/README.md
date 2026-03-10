@@ -10,6 +10,7 @@ Transport layer is abstracted - sidecar implements transport interface, allowing
 
 - **[SQS](sqs.md)**: AWS-managed queue service
 - **[RabbitMQ](rabbitmq.md)**: Self-hosted open-source message broker
+- **[Socket](socket.md)**: Unix domain sockets on a shared Docker volume — local testing only ⚠️
 
 ## Planned Transports
 
