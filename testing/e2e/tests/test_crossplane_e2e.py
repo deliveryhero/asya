@@ -99,6 +99,9 @@ metadata:
 spec:
   actor: {name}
   transport: {transport}{flavors_block}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -209,6 +212,9 @@ metadata:
 spec:
   actor: test-lifecycle
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -306,6 +312,9 @@ metadata:
 spec:
   actor: test-update
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -333,6 +342,9 @@ metadata:
 spec:
   actor: test-update
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 3
@@ -424,6 +436,9 @@ metadata:
 spec:
   actor: test-scaling-advanced
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -512,6 +527,9 @@ metadata:
 spec:
   actor: test-advanced-no-target
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     advanced:
       formula: "queue"
@@ -618,6 +636,9 @@ metadata:
 spec:
   actor: test-status
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
@@ -692,6 +713,9 @@ metadata:
 spec:
   actor: test-broken-image
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -768,6 +792,9 @@ metadata:
 spec:
   actor: test-sidecar-env
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -867,6 +894,9 @@ metadata:
 spec:
   actor: test-labels
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicas: 1
