@@ -35,39 +35,24 @@ class KubeRunner:
     """
 
     def __init__(self, ctx: str | None = None) -> None:
-        self._asya_dir = find_asya_dir(Path.cwd())
-        self._project: AsyaProject | None = None
+        asya_dir = find_asya_dir(Path.cwd())
+        if asya_dir is None:
+            click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
+            sys.exit(1)
+
+        self.project = AsyaProject.from_dir(asya_dir.parent)
         self._ctx_name = ctx
-        self._context_config = self._load_context(ctx)
+        self._context_config = self._resolve_context(ctx)
         self.namespace: str | None = self._context_config.get("namespace") if self._context_config else None
 
-    @property
-    def project(self) -> AsyaProject:
-        """Lazily load AsyaProject (fails fast if .asya/ missing)."""
-        if self._project is None:
-            if self._asya_dir is None:
-                click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-                sys.exit(1)
-            self._project = AsyaProject.from_dir(self._asya_dir.parent)
-        return self._project
-
-    def _load_context(self, ctx: str | None) -> dict | None:
-        """Load context configuration from .asya/config.yaml."""
-        if self._asya_dir is None:
-            return None
-
-        try:
-            project = AsyaProject.from_dir(self._asya_dir.parent)
-            self._project = project
-        except (FileNotFoundError, KeyError):
-            return None
-
-        contexts = project.cfg.get("contexts")
+    def _resolve_context(self, ctx: str | None) -> dict | None:
+        """Resolve context configuration. Returns None only when contexts are not configured."""
+        contexts = self.project.cfg.get("contexts")
         if not contexts:
             return None
 
         if ctx is None:
-            ctx = project.cfg.get("default_context")
+            ctx = self.project.cfg.get("default_context")
             if ctx is None:
                 return None
 

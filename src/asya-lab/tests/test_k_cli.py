@@ -467,10 +467,11 @@ def test_apply_uses_correct_field_manager(mock_run, tmp_path):
 
 
 def test_kube_runner_no_asya_dir():
-    """KubeRunner gracefully handles missing .asya/ for context loading."""
-    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
-        runner = KubeRunner()
-    assert runner.namespace is None
+    """KubeRunner fails fast when .asya/ directory is missing."""
+    import pytest
+
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=None), pytest.raises(SystemExit):
+        KubeRunner()
 
 
 def test_kube_runner_with_context(tmp_path):
@@ -509,8 +510,12 @@ def test_kube_runner_kubectl_appends_namespace(tmp_path):
     assert cmd == ["kubectl", "get", "pods", "-n", "team-one"]
 
 
-def test_kube_runner_kubectl_no_namespace():
-    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
+def test_kube_runner_kubectl_no_namespace(tmp_path):
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text("templates:\n  namespace: default\n")
+
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         runner = KubeRunner()
 
     with patch.object(KubeRunner, "run_cmd", return_value=MagicMock(returncode=0)) as mock_run:
