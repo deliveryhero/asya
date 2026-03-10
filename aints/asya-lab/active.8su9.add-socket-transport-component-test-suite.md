@@ -9,25 +9,23 @@ dependencies:
   - cavw
 ---
 
+Create testing/component/transport/ — a Docker Compose component test for SocketTransport methods in isolation.
 
-Create testing/component/transport/ — a dedicated Docker Compose test suite for the socket transport.
+Scope: tests only the Transport interface (Send, Receive, Requeue, Ack, Close, SendWithDelay).
+No sidecar, no runtime, no routing logic, no x-sink/x-sump.
 
-The tester container acts as x-sink AND x-sump (listens on those sockets directly), so no crew actors or message broker infrastructure is needed. Tests inject envelopes by connecting to actor sockets and capture results from x-sink/x-sump listeners.
+Implementation (Option A): a small Go binary cmd/socket-tester in src/asya-sidecar that exercises
+SocketTransport directly. Docker Compose mounts a named volume as the mesh dir and runs the binary
+as the tester container; exit code 0 = pass.
 
-Covers all transport edge cases:
-- Happy path: message delivered echo actor → x-sink
-- Error → x-sump
-- OOM → x-sump
-- Timeout → x-sump
-- Fan-out (multiple yields) → multiple messages in x-sink
-- Empty response (abort) → x-sink
-- Large payload (framing correctness)
-- Unicode content
-- Null values
-- Multi-hop routing (actor A routes to actor B → x-sink)
-- Route override via ABI SET .route.next
-- Retry behavior (fail-once handler)
-- FIFO message ordering
-- Purge/isolation between tests
+Scenarios:
+- Basic send/receive: body delivered unchanged
+- Large payload (1MB): framing with 4-byte length prefix handles big messages
+- FIFO ordering: 10 sequential sends arrive in order
+- Requeue: requeued message re-delivered before next network message
+- Sender retry: sender starts before receiver socket exists, retries until ready
+- Context cancellation: Receive unblocks promptly on ctx.Done()
+- SendWithDelay: returns ErrDelayNotSupported
+- Cross-container: receiver and sender in separate containers sharing mesh volume
 
 Will be extended in dxo1 to parametrize across transports.
