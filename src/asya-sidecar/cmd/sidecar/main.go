@@ -212,6 +212,15 @@ func main() {
 		slog.Info("Pub/Sub transport initialized",
 			"projectID", cfg.PubSubProjectID,
 			"endpoint", cfg.PubSubEndpoint)
+	case "socket":
+		tp, err = transport.NewSocketTransport(transport.SocketConfig{
+			MeshDir: cfg.MeshDir,
+		})
+		if err != nil {
+			slog.Error("Failed to create socket transport", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Socket transport initialized", "meshDir", cfg.MeshDir)
 	default:
 		slog.Error("Unsupported transport type", "transport", cfg.TransportType)
 		os.Exit(1)
