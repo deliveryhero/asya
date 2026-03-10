@@ -1,7 +1,12 @@
 ---
 title: Implement socket transport in sidecar for local testing (Docker Compose + integration tests)
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing
+  - branch:asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing
 ---
+
 
 
 Implement a Unix socket transport (`ASYA_TRANSPORT=socket`) in the Go sidecar for local Docker Compose testing. This transport replaces message queues (SQS/RabbitMQ) with Unix domain sockets, enabling full flow testing locally without external infrastructure.
