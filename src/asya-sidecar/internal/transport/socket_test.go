@@ -214,6 +214,52 @@ func TestNewSocketTransport_EmptyMeshDir(t *testing.T) {
 	}
 }
 
+func TestSockPath_NoPathTraversal(t *testing.T) {
+	tp, dir := newTestSocketTransport(t)
+	t.Cleanup(func() { _ = tp.Close() })
+
+	cases := []struct {
+		queue string
+		want  string // expected base name of the socket file
+	}{
+		{"actor", "actor.sock"},
+		{"../evil", "evil.sock"},
+		{"../../etc/passwd", "passwd.sock"},
+		{"sub/dir/actor", "actor.sock"},
+	}
+	for _, c := range cases {
+		got := tp.sockPath(c.queue)
+		wantPath := filepath.Join(dir, c.want)
+		if got != wantPath {
+			t.Errorf("sockPath(%q): got %q, want %q", c.queue, got, wantPath)
+		}
+	}
+}
+
+func TestReadFramed_OversizeRejected(t *testing.T) {
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatalf("os.Pipe: %v", err)
+	}
+
+	// Write a length field that exceeds maxFrameSize without sending any body bytes.
+	go func() {
+		buf := make([]byte, 4)
+		buf[0] = 0x10 // 0x10_00_00_01 = 268435457 bytes > 100 MB
+		buf[1] = 0x00
+		buf[2] = 0x00
+		buf[3] = 0x01
+		_, _ = w.Write(buf)
+		_ = w.Close()
+	}()
+
+	_, readErr := readFramed(r)
+	_ = r.Close()
+	if readErr == nil {
+		t.Error("expected error for oversize frame, got nil")
+	}
+}
+
 func TestSocketFraming(t *testing.T) {
 	cases := [][]byte{
 		{},
