@@ -494,7 +494,7 @@ spec:
                           {{`{{- end }}`}}
                           {{`{{- with $runtimeContainer.resources }}`}}
                           resources:
-                            {{`{{- . | toYaml | nindent 12 }}`}}
+                            {{`{{- . | toYaml | nindent 16 }}`}}
                           {{`{{- end }}`}}
                           startupProbe:
                             exec:
@@ -621,7 +621,7 @@ spec:
                           {{`{{- end }}`}}
                           {{`{{- with .connector.resources }}`}}
                           resources:
-                            {{`{{- . | toYaml | nindent 12 }}`}}
+                            {{`{{- . | toYaml | nindent 16 }}`}}
                           {{`{{- end }}`}}
                           volumeMounts:
                           - name: state-sockets
@@ -642,19 +642,19 @@ spec:
                         {{`{{- end }}`}}
                         {{`{{- if and (hasKey $workload "template") (hasKey $workload.template "spec") }}`}}
                         {{`{{- range $workload.template.spec.volumes | default list }}`}}
-                        - {{`{{ . | toYaml | nindent 10 }}`}}
+                        - {{`{{ . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- with $workload.template.spec.nodeSelector }}`}}
                         nodeSelector:
-                          {{`{{- . | toYaml | nindent 10 }}`}}
+                          {{`{{- . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- with $workload.template.spec.affinity }}`}}
                         affinity:
-                          {{`{{- . | toYaml | nindent 10 }}`}}
+                          {{`{{- . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- with $workload.template.spec.tolerations }}`}}
                         tolerations:
-                          {{`{{- . | toYaml | nindent 10 }}`}}
+                          {{`{{- . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
                         {{`{{- end }}`}}
               providerConfigRef:
