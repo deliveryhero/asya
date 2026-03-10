@@ -80,3 +80,22 @@ would be caught by:
 - sqs-s3 also affected when LocalStack SQS unavailable
 - Verify XR version no longer climbs rapidly after fix
 - Verify Phase 8 timeout can return to 300s once storm eliminated
+
+
+##  Docs
+
+Update docs `docs/internal/`. Something like docs/internal/composition-watch-policy.md — short doc explaining why ScaledObject/TriggerAuthentication Objects use `watch: false` and what the trade-off is. The aint [36ck] already has the rationale written out — just move it into a doc.
+
+## Printer columns
+
+No change needed. Look at the current columns:
+
+additionalPrinterColumns:
+- name: Status    → .status.phase
+- name: Ready     → .status.infrastructure.workload.readyReplicas
+- name: Replicas  → .status.infrastructure.workload.replicas
+- name: Transport → .spec.transport
+- name: Queue     → .status.queueUrl
+
+These all come from Deployment status and Queue status — both still have watch: true. ScaledObject status was never surfaced in kubectl get asyncactor output. So nothing
+changes from the user's perspective.
