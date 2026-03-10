@@ -75,7 +75,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: triggerauthentication
             spec:
-              watch: true
+              watch: false
               forProvider:
                 manifest:
                   apiVersion: keda.sh/v1alpha1
@@ -155,7 +155,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
             spec:
-              watch: true
+              watch: false
               forProvider:
                 manifest:
                   apiVersion: keda.sh/v1alpha1
