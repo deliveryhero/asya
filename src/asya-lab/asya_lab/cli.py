@@ -1,24 +1,14 @@
 #!/usr/bin/env python3
-"""
-Main CLI entry point for asya developer tools.
+"""Main CLI entry point for asya developer tools."""
 
-Usage:
-    asya mcp call <tool-name> [args]
-    asya mcp list
-    asya mcp show <tool-name>
-    asya mcp status <task-id>
-    asya mcp stream <task-id>
-    asya mcp port-forward [options]
-    asya flow <subcommand> [args]
-"""
+from __future__ import annotations
 
-import argparse
-import sys
 from importlib.metadata import PackageNotFoundError, version
+
+import click
 
 
 def get_version() -> str:
-    """Get version from package metadata in v1.2.3 format."""
     try:
         pkg_version = version("asya-lab")
         return f"v{pkg_version}"
@@ -26,49 +16,43 @@ def get_version() -> str:
         return "v0.0.0-dev"
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        prog="asya",
-        description="Developer tools for debugging and operating Asya framework",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
+class LazyGroup(click.Group):
+    """Click group that defers subcommand imports until invoked."""
 
-    parser.add_argument(
-        "--version",
-        action="version",
-        version=get_version(),
-        help="Show version and exit",
-    )
+    def __init__(self, *args, lazy_subcommands: dict[str, str] | None = None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._lazy_subcommands: dict[str, str] = lazy_subcommands or {}
 
-    subparsers = parser.add_subparsers(dest="command", required=True, help="Available commands")
+    def list_commands(self, ctx: click.Context) -> list[str]:
+        base = super().list_commands(ctx)
+        lazy = sorted(self._lazy_subcommands.keys())
+        return base + lazy
 
-    subparsers.add_parser("mcp", help="MCP gateway tools", add_help=False)
-    subparsers.add_parser("flow", help="Flow DSL compiler", add_help=False)
-    subparsers.add_parser("init", help="Scaffold .asya/ project directory", add_help=False)
-    subparsers.add_parser("config", help="Project configuration", add_help=False)
+    def get_command(self, ctx: click.Context, cmd_name: str) -> click.BaseCommand | None:
+        if cmd_name in self._lazy_subcommands:
+            return self._load_lazy(cmd_name)
+        return super().get_command(ctx, cmd_name)
 
-    args, remaining = parser.parse_known_args()
+    def _load_lazy(self, cmd_name: str) -> click.BaseCommand:
+        import importlib
 
-    if args.command == "mcp":
-        from asya_lab.mcp.commands import main as mcp_main
+        module_path, attr_name = self._lazy_subcommands[cmd_name].rsplit(":", 1)
+        mod = importlib.import_module(module_path)
+        return getattr(mod, attr_name)
 
-        sys.argv = ["asya mcp", *remaining]
-        mcp_main()
-    elif args.command == "flow":
-        from asya_lab.flow_cli import main as flow_main
 
-        flow_main(remaining)
-    elif args.command == "init":
-        from asya_lab.init import main_init
-
-        main_init(remaining)
-    elif args.command == "config":
-        from asya_lab.config_cli import main_config
-
-        main_config(remaining)
-    else:
-        parser.print_help()
-        sys.exit(1)
+@click.group(
+    cls=LazyGroup,
+    lazy_subcommands={
+        "flow": "asya_lab.flow_cli:flow",
+        "mcp": "asya_lab.mcp_cli:mcp",
+        "init": "asya_lab.init_cli:init",
+        "config": "asya_lab.config_cli:config",
+    },
+)
+@click.version_option(version=get_version(), prog_name="asya")
+def main():
+    """Developer tools for debugging and operating Asya framework."""
 
 
 if __name__ == "__main__":

@@ -3,12 +3,6 @@ name: Release
 on:
   release:
     types: [created, published]
-  workflow_dispatch:
-    inputs:
-      test_pypi:
-        description: "Test PyPI publish (alpha version)"
-        type: boolean
-        default: true
 
 concurrency:
   group: release-management
@@ -111,7 +105,7 @@ jobs:
     name: Publish asya-lab to PyPI
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event.action == 'published' || github.event_name == 'workflow_dispatch'
+    if: github.event.action == 'published'
     environment: pypi
     permissions:
       contents: read
@@ -131,12 +125,8 @@ jobs:
     - name: Determine version
       id: version
       run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          VERSION="0.0.1a1"
-        else
-          TAG="${{ github.event.release.tag_name }}"
-          VERSION="${TAG#v}"
-        fi
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "[.] Publishing version: ${VERSION}"
 

@@ -129,7 +129,7 @@ def main() -> None:
     client = AsyaGatewayClient(base_url=args.url)
 
     if args.command == "list":
-        import yaml  # type: ignore[import-untyped]
+        import yaml
 
         result = client.list_tools()
         tools = result.get("result", {}).get("tools", [])

@@ -3,7 +3,13 @@ name = "asya-lab"
 version = "0.1.0"
 description = "Developer tools for debugging and operating Asya framework"
 requires-python = ">=3.9"
-dependencies = ["requests", "tqdm", "pyyaml", "omegaconf>=2.4.0.dev4"]
+dependencies = [
+  "click>=8.1",
+  "requests",
+  "tqdm",
+  "pyyaml",
+  "omegaconf>=2.4.0.dev4",
+]
 
 [project.optional-dependencies]
 diagram = ["graphviz>=0.20.0"]

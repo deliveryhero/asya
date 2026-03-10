@@ -34,7 +34,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
   # Run the command in the background using '&'
   (
     echo "[.] Compiling: $flow_name"
-    uv run --with-editable src/asya-lab --with pydantic asya flow compile "$flow_file" -o "$output_dir" --plot --overwrite
+    uv run --with-editable src/asya-lab --with pydantic asya flow compile "$flow_file" -o "$output_dir" --plot --overwrite --no-manifests
   ) &
 
   # Store the process ID of the background task

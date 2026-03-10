@@ -89,7 +89,7 @@ repos:
   - id: mypy
     files: ^src/.*\.py$
     exclude: ^src/(asya-runtime|asya-state-proxy/tests)/
-    additional_dependencies: [types-requests, boto3-stubs]
+    additional_dependencies: [types-requests, types-PyYAML, boto3-stubs]
 
 # Python security linting
 - repo: https://github.com/PyCQA/bandit
