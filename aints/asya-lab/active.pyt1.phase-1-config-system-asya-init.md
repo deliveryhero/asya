@@ -1,7 +1,12 @@
 ---
 title: "Phase 1: Config system + asya init"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/asya-lab/pyt1.phase-1-config-system-asya-init
+  - branch:asya-lab/pyt1.phase-1-config-system-asya-init
 ---
+
 
 ## Scope
 
