@@ -106,7 +106,7 @@ def init_project(
     if not actor_template.exists():
         actor_template.write_text(_ACTOR_TEMPLATE)
 
-    configmap_template = templates_dir / "configmap-routers.yaml"
+    configmap_template = templates_dir / "configmap_routers.yaml"
     if not configmap_template.exists():
         configmap_template.write_text(_CONFIGMAP_TEMPLATE)
 

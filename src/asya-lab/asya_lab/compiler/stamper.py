@@ -53,7 +53,7 @@ class ManifestStamper:
         config: DictConfig,
         config_loader: ConfigLoader,
         template_path: Path,
-        configmap_template_path: Path | None = None,
+        configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
     ) -> None:
         self.flow_name = flow_name
@@ -62,7 +62,7 @@ class ManifestStamper:
         self.config = config
         self.config_loader = config_loader
         self.template_path = template_path
-        self.configmap_template_path = configmap_template_path
+        self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
 
     def stamp(self, output_dir: Path) -> list[str]:
@@ -99,7 +99,7 @@ class ManifestStamper:
             resources.append(filename)
             generated.append(f"base/{filename}")
 
-        cm_filename = "configmap-routers.yaml"
+        cm_filename = "configmap_routers.yaml"
         self._stamp_configmap(base_dir / cm_filename)
         resources.append(cm_filename)
         generated.append(f"base/{cm_filename}")
@@ -142,7 +142,7 @@ class ManifestStamper:
 
     def _stamp_configmap(self, path: Path) -> None:
         """Generate ConfigMap containing router code from template."""
-        if self.configmap_template_path and self.configmap_template_path.exists():
+        if self.configmap_routers_template_path and self.configmap_routers_template_path.exists():
             cm = self._resolve_configmap_template()
         else:
             namespace = self._resolve_var("namespace", "default")
@@ -172,7 +172,7 @@ class ManifestStamper:
         }
         _set_active_loader(self.config_loader)
 
-        template = OmegaConf.load(self.configmap_template_path)
+        template = OmegaConf.load(self.configmap_routers_template_path)
 
         wrapper = OmegaConf.create({})
         if "var" in self.config:

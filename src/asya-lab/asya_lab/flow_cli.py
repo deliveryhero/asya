@@ -55,7 +55,7 @@ def _stamp_manifests(
     router_code = router_code_path.read_text()
 
     templates_dir = template_path.parent
-    configmap_template = templates_dir / "configmap-routers.yaml"
+    configmap_template = templates_dir / "configmap_routers.yaml"
     kustomization_template = templates_dir / "kustomization.yaml"
 
     stamper = ManifestStamper(
@@ -65,7 +65,7 @@ def _stamp_manifests(
         config=config,
         config_loader=config_loader,
         template_path=template_path,
-        configmap_template_path=configmap_template if configmap_template.exists() else None,
+        configmap_routers_template_path=configmap_template if configmap_template.exists() else None,
         kustomization_template_path=kustomization_template if kustomization_template.exists() else None,
     )
 

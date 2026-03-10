@@ -58,7 +58,7 @@ def template_dir(tmp_path):
             "routers.py": "${dynamic:router_code}",
         },
     }
-    (templates_dir / "configmap-routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
+    (templates_dir / "configmap_routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
 
     kustomization_template = {
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
@@ -133,7 +133,7 @@ def _make_stamper(flow_name, routers, router_code, config, template_path):
         config=config,
         config_loader=loader,
         template_path=template_path,
-        configmap_template_path=templates_dir / "configmap-routers.yaml",
+        configmap_routers_template_path=templates_dir / "configmap_routers.yaml",
         kustomization_template_path=templates_dir / "kustomization.yaml",
     )
 
@@ -201,7 +201,7 @@ class TestBaseLayer:
         stamper = _make_stamper("my_flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap-routers.yaml").read_text())
+        cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap_routers.yaml").read_text())
         assert cm["kind"] == "ConfigMap"
         assert cm["metadata"]["name"] == "my_flow-routers"
         assert "routers.py" in cm["data"]
@@ -213,7 +213,7 @@ class TestBaseLayer:
 
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
         resources = kust["resources"]
-        assert "configmap-routers.yaml" in resources
+        assert "configmap_routers.yaml" in resources
         assert "start_my_flow.yaml" in resources
         assert "handler_a.yaml" in resources
 
@@ -304,7 +304,7 @@ class TestReturnedFiles:
         generated = stamper.stamp(tmp_path / "manifests")
 
         assert any("base/kustomization.yaml" in g for g in generated)
-        assert any("base/configmap-routers.yaml" in g for g in generated)
+        assert any("base/configmap_routers.yaml" in g for g in generated)
         assert any("common/kustomization.yaml" in g for g in generated)
 
     def test_second_stamp_skips_existing_common(self, tmp_path, sequential_routers, router_code, config, template_dir):
