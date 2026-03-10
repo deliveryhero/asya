@@ -62,7 +62,7 @@ Flow compilation is automatic via pre-commit hook:
 Manual compilation (happens with pre-commit as well):
 ```bash
 cd testing/e2e/flows/nested_if
-uv run --with-editable ../../../../src/asya-cli asya flow compile flow.py -p -o .
+uv run --with-editable ../../../../src/asya-lab asya flow compile flow.py -p -o .
 ```
 
 ## Deployment

@@ -5,7 +5,7 @@ import textwrap
 
 import pytest
 
-from asya_cli.flow import FlowCompiler
+from asya_lab.flow import FlowCompiler
 
 from .conftest import _drive_abi, _drive_abi_multi, _make_msg_ctx
 

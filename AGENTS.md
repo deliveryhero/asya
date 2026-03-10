@@ -19,7 +19,7 @@ Core components (all in `src/`):
 - **asya-crew** (Python): system actors — `x-sink` (persist results), `x-sump` (DLQ handling),
   `x-pause` (checkpoint envelope to S3 and signal `paused`), `x-resume` (restore envelope from S3
   and re-inject into the mesh)
-- **asya-cli** (Python): CLI tools (`asya mcp ...`, `asya flow ...`) for debugging and flow compilation
+- **asya-lab** (Python): CLI tools (`asya mcp ...`, `asya flow ...`) for debugging and flow compilation
 - **asya-testing** (Python): shared test fixtures and utilities
 - **asya-state-proxy** (Go): optional sidecar that gives actors virtual persistent state via filesystem
   emulation; actors read/write `/state/...` paths, runtime intercepts Python file I/O and forwards to the

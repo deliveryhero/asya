@@ -43,7 +43,7 @@ nav:
   - Injector: architecture/asya-injector.md
   - Gateway: architecture/asya-gateway.md
   - Crew: architecture/asya-crew.md
-  - CLI Tools: architecture/asya-cli.md
+  - CLI Tools: architecture/asya-lab.md
   - Autoscaling: architecture/autoscaling.md
   - Observability: architecture/observability.md
   - Actor-Actor Protocol: architecture/protocols/actor-actor.md

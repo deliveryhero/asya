@@ -4,9 +4,9 @@ This directory contains example flows demonstrating the Asya Flow DSL compiler c
 
 ## Quick Start
 
-Install `asya-cli`:
+Install `asya-lab`:
 ```bash
-uv pip install "git+https://github.com/deliveryhero/asya#subdirectory=src/asya-cli"
+uv pip install "git+https://github.com/deliveryhero/asya#subdirectory=src/asya-lab"
 uv run asya --version
 ```
 Compile a flow:

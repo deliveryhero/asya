@@ -4,7 +4,7 @@ import textwrap
 from pathlib import Path
 import pytest
 
-from asya_cli.flow import FlowCompiler
+from asya_lab.flow import FlowCompiler
 
 
 class TestExampleFlows:

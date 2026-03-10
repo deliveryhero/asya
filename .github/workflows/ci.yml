@@ -63,7 +63,6 @@ jobs:
       fail-fast: false
       matrix:
         component:
-        - asya-cli
         - asya-crew
         - asya-gateway
         - asya-injector

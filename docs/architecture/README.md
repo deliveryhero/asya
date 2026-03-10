@@ -58,7 +58,7 @@ graph LR
 - **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, and KEDA autoscaling
 - **[Injector](asya-injector.md)**: Mutating webhook that injects asya-sidecar and asya-runtime into actor pods
 - **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
-- **[CLI](asya-cli.md)**: Command-line tool for interacting with the gateway (MCP client)
+- **[CLI](asya-lab.md)**: Command-line tool for interacting with the gateway (MCP client)
 
 ### Actor Components
 
