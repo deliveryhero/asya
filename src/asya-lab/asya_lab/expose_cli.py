@@ -177,8 +177,7 @@ def _update_kustomization_remove(base_dir: Path, resource: str) -> None:
 def _resolve_input_schema(schema_inline: str | None, schema_file: str | None) -> dict | None:
     """Parse input schema from inline JSON or file path."""
     if schema_inline and schema_file:
-        click.echo("[-] Specify only one of --input-schema or --input-schema-file", err=True)
-        sys.exit(1)
+        raise click.BadParameter("Specify only one of --input-schema or --input-schema-file")
 
     if schema_inline:
         return json.loads(schema_inline)

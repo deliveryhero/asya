@@ -22,6 +22,7 @@ def test_status_with_compiled_flow(tmp_path):
 
     kustomization = {
         "resources": [
+            "configmap-routers.yaml",
             "actor-router-1.yaml",
             "actor-router-2.yaml",
             "actor-router-3.yaml",
@@ -42,7 +43,7 @@ def test_status_with_compiled_flow(tmp_path):
     assert "EXPOSED" in result.output
     assert "order-processing" in result.output
     assert "compiled" in result.output
-    assert "4" in result.output
+    assert "3" in result.output  # excludes configmap-routers and configmap-flows
     assert "yes" in result.output
 
 

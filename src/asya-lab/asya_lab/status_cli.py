@@ -35,7 +35,8 @@ def _scan_flows(manifests_dir: Path) -> list[dict[str, str]]:
             kustomization = yaml.safe_load(kustomization_path.read_text())
             if isinstance(kustomization, dict):
                 resources = kustomization.get("resources", [])
-                flow_info["actors"] = str(len(resources))
+                actor_resources = [r for r in resources if not r.startswith("configmap-")]
+                flow_info["actors"] = str(len(actor_resources))
                 if "configmap-flows.yaml" in resources:
                     flow_info["exposed"] = "yes"
 
