@@ -128,7 +128,7 @@ class ManifestStamper:
             shutil.rmtree(base_dir)
         base_dir.mkdir(parents=True)
 
-        (base_dir / "DO_NOT_EDIT.md").write_text(
+        (base_dir / "AUTO-GENERATED.md").write_text(
             "This directory is fully regenerated on every `asya compile`.\n"
             "Any manual changes will be lost.\n\n"
             "Put your customizations in `../common/` as kustomize patches.\n"
