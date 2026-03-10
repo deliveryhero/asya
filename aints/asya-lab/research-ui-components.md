@@ -829,7 +829,7 @@ Consumers bundle @asya/ui into their output:
 └── asya-lab[ui]             # Vite → SPA → served by asya serve
 ```
 
-### 10.2 Dependency Policy
+### 11.2 Dependency Policy
 
 `@asya/ui` has minimal dependencies:
 - `react`, `react-dom` — peer dependency
