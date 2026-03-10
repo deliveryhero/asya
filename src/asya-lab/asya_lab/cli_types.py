@@ -14,7 +14,7 @@ import click
 
 
 _NAME_RE = re.compile(r"^[a-z][a-z0-9_-]*$")
-_SNAKE_RE = re.compile(r"^[a-z_][a-z0-9_.]*$")
+_DOTTED_NAME_RE = re.compile(r"^[a-z_][a-z0-9_.]*$")  # module.path.function
 
 
 def _to_kebab(name: str) -> str:
@@ -61,7 +61,7 @@ class AsyaRefType(click.ParamType):
             source = Path(file_part)
             if source.suffix != ".py":
                 self.fail(f"expected .py file before ':', got '{file_part}'", param, ctx)
-            if not _SNAKE_RE.match(func):
+            if not _DOTTED_NAME_RE.match(func):
                 self.fail(f"function name must be valid Python identifier, got '{func}'", param, ctx)
             return AsyaRef(name=_to_kebab(func), function=func, source=source)
 

@@ -148,30 +148,40 @@ class ConfigStore:
 
         Mutates the config in-place. Only processes string values that start
         with './'. Skips values containing ${...} interpolations.
+
+        Uses OmegaConf.to_container(resolve=False) to get raw values without
+        triggering interpolation, then OmegaConf.update() to write back.
         """
-        for key in cfg:
-            if OmegaConf.is_missing(cfg, key):
-                continue
-            val = cfg._get_node(key)
-            if val is None:
-                continue
-            if OmegaConf.is_dict(val):
-                ConfigStore._resolve_relative_paths(val, base_dir)
-            elif OmegaConf.is_list(val):
-                for i in range(len(val)):
-                    item = val._get_node(i)
-                    if OmegaConf.is_dict(item):
-                        ConfigStore._resolve_relative_paths(item, base_dir)
-                    elif hasattr(item, "_value") and isinstance(item._value(), str):
-                        raw = item._value()
-                        if _RELATIVE_PATH_PATTERN.match(raw) and "${" not in raw:
-                            resolved = str((base_dir / raw).resolve())
-                            OmegaConf.update(val, i, resolved)
-            elif hasattr(val, "_value"):
-                raw = val._value()
-                if isinstance(raw, str) and _RELATIVE_PATH_PATTERN.match(raw) and "${" not in raw:
-                    resolved = str((base_dir / raw).resolve())
-                    OmegaConf.update(cfg, key, resolved)
+        raw = OmegaConf.to_container(cfg, resolve=False)
+        ConfigStore._walk_and_resolve(cfg, raw, base_dir, prefix="")
+
+    @staticmethod
+    def _walk_and_resolve(cfg: DictConfig, raw: dict | list, base_dir: Path, prefix: str) -> None:
+        """Walk raw container and resolve ./ paths back into cfg."""
+        if isinstance(raw, dict):
+            for key, value in raw.items():
+                dotted = f"{prefix}.{key}" if prefix else str(key)
+                if isinstance(value, dict):
+                    sub = OmegaConf.select(cfg, dotted)
+                    if OmegaConf.is_dict(sub):
+                        ConfigStore._walk_and_resolve(cfg, value, base_dir, dotted)
+                elif isinstance(value, list):
+                    ConfigStore._walk_and_resolve(cfg, value, base_dir, dotted)
+                elif isinstance(value, str):
+                    if _RELATIVE_PATH_PATTERN.match(value) and "${" not in value:
+                        resolved = str((base_dir / value).resolve())
+                        OmegaConf.update(cfg, dotted, resolved)
+        elif isinstance(raw, list):
+            for i, item in enumerate(raw):
+                dotted = f"{prefix}.{i}" if prefix else str(i)
+                if isinstance(item, dict):
+                    sub = OmegaConf.select(cfg, dotted)
+                    if OmegaConf.is_dict(sub):
+                        ConfigStore._walk_and_resolve(cfg, item, base_dir, dotted)
+                elif isinstance(item, str):
+                    if _RELATIVE_PATH_PATTERN.match(item) and "${" not in item:
+                        resolved = str((base_dir / item).resolve())
+                        OmegaConf.update(cfg, dotted, resolved)
 
     # -- resolver registration (once per process) ---------------------------
 

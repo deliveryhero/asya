@@ -67,7 +67,10 @@ class AsyaProject:
         """
         node: Any = self._store.cfg
         for part in dotted_key.split("."):
-            node = getattr(node, part)
+            try:
+                node = getattr(node, part)
+            except AttributeError:
+                raise KeyError(f"Config key '{dotted_key}' not found (missing '{part}')") from None
         project_root = self._store.asya_dirs[-1].parent
         return (project_root / str(node)).resolve()
 

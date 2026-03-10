@@ -38,12 +38,11 @@ def _load_build_entries(
     return resolved, project
 
 
-def _find_flow_images(target: str, asya_dir: Path) -> set[str]:
+def _find_flow_images(target: str, project: AsyaProject) -> set[str]:
     """Find unique image references from compiled manifests for a flow."""
     try:
-        project = AsyaProject.from_dir(asya_dir.parent)
         manifests_dir = project.resolve_path("compiler.manifests") / target / BASE_DIR
-    except (FileNotFoundError, KeyError, AttributeError):
+    except (KeyError, AttributeError):
         return set()
     if not manifests_dir.is_dir():
         return set()
@@ -81,7 +80,7 @@ def _extract_image(doc: dict) -> str | None:
 def _resolve_entries_for_target(
     target: AsyaRef,
     build_entries: list[dict],
-    asya_dir: Path | None,
+    project: AsyaProject | None,
 ) -> list[dict]:
     """Resolve which build entries to execute for the given target.
 
@@ -100,8 +99,8 @@ def _resolve_entries_for_target(
             return [entry]
 
     # Try matching by flow name (from compiled manifests)
-    if asya_dir:
-        flow_images = _find_flow_images(target.name, asya_dir)
+    if project:
+        flow_images = _find_flow_images(target.name, project)
         if flow_images:
             matched = []
             for entry in resolved:
@@ -125,6 +124,16 @@ def _resolve_entries_for_target(
 
 
 _ALLOWED_BUILD_CMD = re.compile(r"^(docker|podman|nerdctl|buildah|bazel|make|nix-build|ko|pack|earthly|kaniko)\b")
+
+_PUSHABLE_TOOLS = {"docker", "podman", "nerdctl", "buildah"}
+
+
+def _infer_build_tool(command: str) -> str:
+    """Infer the container tool from a build command for push."""
+    first_word = command.lstrip().split()[0] if command.strip() else ""
+    if first_word in _PUSHABLE_TOOLS:
+        return first_word
+    return "docker"
 
 
 def _validate_build_command(command: str) -> None:
@@ -157,14 +166,14 @@ def _run_build(entry: dict, push: bool, verbose: bool, index: int = 0, total: in
     prefix = f"[build {index + 1}/{total}] " if total > 1 else "[build] "
 
     if verbose:
-        click.echo(f"{prefix}Module: {entry.get('module', '?')}")
-        click.echo(f"{prefix}Image: {image}")
-        click.echo(f"{prefix}Dir: {build_path}")
-        click.echo(f"{prefix}Command: {command}")
+        click.echo(f"{prefix}Module: {entry.get('module', '?')}", err=True)
+        click.echo(f"{prefix}Image: {image}", err=True)
+        click.echo(f"{prefix}Dir: {build_path}", err=True)
+        click.echo(f"{prefix}Command: {command}", err=True)
 
     _validate_build_command(command)
 
-    click.echo(f"{prefix}+ {command}")
+    click.echo(f"{prefix}+ {command}", err=True)
 
     # shell=True is intentional: build commands are opaque shell strings
     # from .asya/config.yaml (may contain pipes, redirects, env expansion).
@@ -184,8 +193,9 @@ def _run_build(entry: dict, push: bool, verbose: bool, index: int = 0, total: in
 
     if push and image:
         push_prefix = f"[push  {index + 1}/{total}] " if total > 1 else "[push] "
-        push_cmd = ["docker", "push", image]
-        click.echo(f"{push_prefix}+ {' '.join(push_cmd)}")
+        push_tool = _infer_build_tool(command)
+        push_cmd = [push_tool, "push", image]
+        click.echo(f"{push_prefix}+ {' '.join(push_cmd)}", err=True)
 
         result = subprocess.run(  # nosec B603
             push_cmd,
@@ -233,16 +243,17 @@ def build(target: AsyaRef, args: tuple[str, ...], push: bool, verbose: bool) -> 
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    build_entries, _project = _load_build_entries(asya_dir.parent, arg_values)
-    entries = _resolve_entries_for_target(target, build_entries, asya_dir)
+    build_entries, project = _load_build_entries(asya_dir.parent, arg_values)
+    entries = _resolve_entries_for_target(target, build_entries, project)
 
-    # Deduplicate by image
+    # Deduplicate by image (skip entries without an image)
     seen_images: set[str] = set()
     unique_entries: list[dict] = []
     for entry in entries:
         image = entry.get("image", "")
-        if image not in seen_images:
-            seen_images.add(image)
+        if not image or image not in seen_images:
+            if image:
+                seen_images.add(image)
             unique_entries.append(entry)
 
     total = len(unique_entries)

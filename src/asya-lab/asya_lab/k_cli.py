@@ -6,6 +6,7 @@ edit, context, secret.
 
 from __future__ import annotations
 
+import re
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -103,7 +104,7 @@ class KubeRunner:
     @staticmethod
     def run_cmd(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
         """Run a shell command, printing it first with + prefix."""
-        click.echo(f"+ {' '.join(cmd)}")
+        click.echo(f"+ {' '.join(cmd)}", err=True)
         return subprocess.run(cmd, check=False, **kwargs)  # nosec B603
 
     def kubectl(self, *args: str, **kwargs) -> subprocess.CompletedProcess:
@@ -112,6 +113,38 @@ class KubeRunner:
         if self.namespace:
             cmd.extend(["-n", self.namespace])
         return self.run_cmd(cmd, **kwargs)
+
+    def kustomize_apply(self, overlay: Path, field_manager: str) -> None:
+        """Run kustomize build piped to kubectl apply --server-side."""
+        kustomize_result = self.kubectl("kustomize", str(overlay), capture_output=True, text=True)
+        if kustomize_result.returncode != 0:
+            click.echo(kustomize_result.stderr, err=True)
+            sys.exit(kustomize_result.returncode)
+
+        apply_cmd = [
+            "kubectl",
+            "apply",
+            "--server-side",
+            f"--field-manager={field_manager}",
+            "-f",
+            "-",
+        ]
+        if self.namespace:
+            apply_cmd.extend(["-n", self.namespace])
+
+        click.echo(f"+ {' '.join(apply_cmd)}", err=True)
+        apply_result = subprocess.run(  # nosec B603, B607
+            apply_cmd,
+            input=kustomize_result.stdout,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if apply_result.stdout:
+            click.echo(apply_result.stdout, nl=False)
+        if apply_result.returncode != 0:
+            click.echo(apply_result.stderr, err=True)
+            sys.exit(apply_result.returncode)
 
 
 # ---------------------------------------------------------------------------
@@ -162,50 +195,7 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     manifests_dir = runner.find_manifests(target.name)
     overlay = runner.resolve_overlay(manifests_dir)
 
-    field_manager = f"asya-flow-{target.name}"
-
-    # kustomize build
-    kustomize_cmd = ["kubectl", "kustomize", str(overlay)]
-    click.echo(f"+ {' '.join(kustomize_cmd)}")
-
-    kustomize_result = subprocess.run(  # nosec B603, B607
-        kustomize_cmd,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    if kustomize_result.returncode != 0:
-        click.echo(kustomize_result.stderr, err=True)
-        sys.exit(kustomize_result.returncode)
-
-    # kubectl apply --server-side
-    apply_cmd = [
-        "kubectl",
-        "apply",
-        "--server-side",
-        f"--field-manager={field_manager}",
-        "-f",
-        "-",
-    ]
-    if runner.namespace:
-        apply_cmd.extend(["-n", runner.namespace])
-
-    click.echo(f"+ {' '.join(apply_cmd)}")
-
-    apply_result = subprocess.run(  # nosec B603, B607
-        apply_cmd,
-        input=kustomize_result.stdout,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    if apply_result.stdout:
-        click.echo(apply_result.stdout, nl=False)
-    if apply_result.returncode != 0:
-        click.echo(apply_result.stderr, err=True)
-        sys.exit(apply_result.returncode)
+    runner.kustomize_apply(overlay, field_manager=f"asya-flow-{target.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -435,7 +425,8 @@ def context_use(name: str) -> None:
         click.echo(f"[-] Config not found: {config_path}", err=True)
         sys.exit(1)
 
-    config = yaml.safe_load(config_path.read_text()) or {}
+    text = config_path.read_text()
+    config = yaml.safe_load(text) or {}
 
     contexts = config.get("contexts", {})
     if name not in contexts:
@@ -445,8 +436,14 @@ def context_use(name: str) -> None:
             click.echo(f"[-] Available: {', '.join(available)}", err=True)
         sys.exit(1)
 
-    config["default_context"] = name
-    config_path.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
+    # Targeted replacement to preserve YAML comments and formatting
+    pattern = re.compile(r"^default_context:.*$", re.MULTILINE)
+    new_line = f"default_context: {name}"
+    if pattern.search(text):
+        text = pattern.sub(new_line, text)
+    else:
+        text = text.rstrip() + f"\n{new_line}\n"
+    config_path.write_text(text)
     click.echo(f"[+] Default context set to '{name}'")
 
 

@@ -82,12 +82,22 @@ def test_find_flow_images(tmp_path):
     # kustomization.yaml should be skipped
     (base_dir / "kustomization.yaml").write_text("resources: []")
 
-    images = _find_flow_images("my-flow", tmp_path / ".asya")
+    from asya_lab.config.project import AsyaProject
+
+    project = AsyaProject.from_dir(tmp_path)
+    images = _find_flow_images("my-flow", project)
     assert images == {"ghcr.io/org/image-a:v1", "ghcr.io/org/image-b:v1"}
 
 
 def test_find_flow_images_missing_dir(tmp_path):
-    images = _find_flow_images("nonexistent", tmp_path / ".asya")
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
+
+    from asya_lab.config.project import AsyaProject
+
+    project = AsyaProject.from_dir(tmp_path)
+    images = _find_flow_images("nonexistent", project)
     assert images == set()
 
 
@@ -121,8 +131,11 @@ def test_resolve_entries_by_flow_name(tmp_path):
         {"module": "e_commerce", "image": "ghcr.io/org/ecom:v1", "command": "docker build ."},
         {"module": "ml_models", "image": "ghcr.io/org/ml:v1", "command": "docker build ."},
     ]
+    from asya_lab.config.project import AsyaProject
+
+    project = AsyaProject.from_dir(tmp_path)
     result = _resolve_entries_for_target(
-        AsyaRef(name="order-processing", function="order_processing"), entries, asya_dir
+        AsyaRef(name="order-processing", function="order_processing"), entries, project
     )
     assert len(result) == 1
     assert result[0]["module"] == "e_commerce"
@@ -262,7 +275,10 @@ def test_build_deduplicates_images(tmp_path):
     entries = [
         {"module": "shared", "image": "ghcr.io/org/shared:v1", "command": "docker build ."},
     ]
-    result = _resolve_entries_for_target(AsyaRef(name="my-flow", function="my_flow"), entries, asya_dir)
+    from asya_lab.config.project import AsyaProject
+
+    project = AsyaProject.from_dir(tmp_path)
+    result = _resolve_entries_for_target(AsyaRef(name="my-flow", function="my_flow"), entries, project)
     assert len(result) == 1
 
 
