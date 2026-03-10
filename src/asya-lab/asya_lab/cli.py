@@ -49,7 +49,6 @@ class LazyGroup(click.Group):
         "expose": "asya_lab.expose_cli:expose",
         "flow": "asya_lab.flow_cli:flow",
         "init": "asya_lab.init_cli:init",
-        "mcp": "asya_lab.mcp_cli:mcp",
         "show": "asya_lab.show_cli:show",
         "status": "asya_lab.status_cli:status",
         "unexpose": "asya_lab.expose_cli:unexpose",

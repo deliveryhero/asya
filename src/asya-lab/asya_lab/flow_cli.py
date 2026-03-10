@@ -42,7 +42,6 @@ def _stamp_manifests(
         return
 
     flow_name = flow_function.replace("_", "-")
-    click.echo(f"[+] Using flow name '{flow_name}'")
 
     config_loader = ConfigLoader()
     config = config_loader.load(source_path.parent)
