@@ -77,17 +77,25 @@ self-dialing. The next `Receive()` call drains this channel before blocking on
 
 ## Docker Compose Setup
 
+All containers that share the mesh volume **must run as the same UID**. The socket
+file is created by the receiving sidecar and owned by that UID; peer containers can
+only connect to it if they share the same owner. Docker handles this automatically
+when all services use the same image and no `user:` override is set.
+
+The mesh directory must exist before the transport starts. Docker creates it
+automatically when a named volume is mounted.
+
 ```yaml
 services:
   actor-a-sidecar:
-    image: asya-sidecar
+    image: asya-sidecar      # all services use the same image → same UID
     environment:
       ASYA_TRANSPORT: socket
       ASYA_SOCKET_MESH_DIR: /mesh
       ASYA_ACTOR_NAME: actor-a
       ASYA_NAMESPACE: local
     volumes:
-      - mesh:/mesh
+      - mesh:/mesh            # Docker creates /mesh; transport does not mkdir it
 
   actor-b-sidecar:
     image: asya-sidecar
@@ -121,10 +129,10 @@ The tester binary (`src/asya-sidecar/cmd/socket-tester/`) covers: basic round-tr
 
 ## Security Notes
 
-- Socket file permissions are set to `0666` so that sidecar containers running as
-  different UIDs can connect. This is acceptable on an ephemeral Docker test volume
-  with no external network exposure.
-- Queue names are sanitised with `filepath.Base` before constructing the socket path,
-  preventing path traversal (`../evil` → `evil.sock`).
-- Incoming message length is capped at 100 MB; larger frames are rejected with an
-  error to prevent OOM from malformed senders.
+- **UID requirement**: the transport does not chmod socket files. All containers
+  sharing the mesh volume must run as the same UID (the default when a single image
+  is used throughout a Compose file). Do not mix images that run as different users.
+- **Queue name sanitisation**: `filepath.Base` is applied to every queue name before
+  constructing the socket path, preventing path traversal (`../evil` → `evil.sock`).
+- **Frame size cap**: incoming message length is capped at 100 MB; frames that
+  advertise a larger length are rejected before any allocation is made.

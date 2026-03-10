@@ -51,12 +51,13 @@ type SocketConfig struct {
 }
 
 // NewSocketTransport creates a new Unix socket transport.
+// MeshDir must already exist (created by the Docker volume mount or the test harness).
 func NewSocketTransport(cfg SocketConfig) (*SocketTransport, error) {
 	if cfg.MeshDir == "" {
 		return nil, fmt.Errorf("socket transport: MeshDir must not be empty")
 	}
-	if err := os.MkdirAll(cfg.MeshDir, 0o755); err != nil { //nolint:gosec // #nosec G301 -- shared Docker volume needs group read/execute
-		return nil, fmt.Errorf("socket transport: create mesh dir %s: %w", cfg.MeshDir, err)
+	if _, err := os.Stat(cfg.MeshDir); err != nil {
+		return nil, fmt.Errorf("socket transport: mesh dir %s must exist before starting (mount the Docker volume first): %w", cfg.MeshDir, err)
 	}
 	return &SocketTransport{
 		meshDir:   cfg.MeshDir,
@@ -83,13 +84,12 @@ func (t *SocketTransport) startListener(queueName string) error {
 	path := t.sockPath(queueName)
 	_ = os.Remove(path) // remove stale socket from a previous run
 
+	// All containers sharing the mesh volume must run as the same UID so that
+	// the socket file created here (owned by this process) is connectable by
+	// peer containers without needing world-writable permissions.
 	l, err := net.Listen("unix", path)
 	if err != nil {
 		return fmt.Errorf("socket transport: listen on %s: %w", path, err)
-	}
-	if err := os.Chmod(path, 0o666); err != nil { //nolint:gosec // #nosec G302 -- socket must be world-writable for cross-container delivery on a shared volume
-		_ = l.Close()
-		return fmt.Errorf("socket transport: chmod %s: %w", path, err)
 	}
 
 	t.listener = l
