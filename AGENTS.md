@@ -11,7 +11,10 @@ each envelope, not managed by a central coordinator.
 
 Core components (all in `src/`):
 - **asya-sidecar** (Go): envelope router injected into actor pods; Queue → Sidecar → Runtime → Sidecar → Next Queue
-- **asya-runtime** (Python): lightweight socket server loaded via ConfigMap; executes user handler, returns result
+- **asya-runtime** (Python): lightweight socket server loaded via ConfigMap; executes user handler,
+  returns result. Source of truth: `src/asya-runtime/asya_runtime.py` (single file, no deps).
+  `deploy/helm-charts/asya-crossplane/files/asya_runtime.py` is a symlink — editing the source
+  automatically reflects in the Crossplane chart's ConfigMap. No manual sync needed.
 - **asya-gateway** (Go): optional MCP/HTTP gateway; exposes async actor pipelines as synchronous HTTP
 - **asya-crew** (Python): system actors — `x-sink` (persist results), `x-sump` (DLQ handling),
   `x-pause` (checkpoint envelope to S3 and signal `paused`), `x-resume` (restore envelope from S3
