@@ -52,6 +52,17 @@ spec:
         echo "Queue name: $TEST_ACTOR"
         echo ""
 
+        # Wait for the AsyncActor XR to become Ready — guarantees queue creation completed
+        echo "[.] Waiting for AsyncActor '$TEST_ACTOR' to become Ready..."
+        if ! kubectl wait asyncactor/$TEST_ACTOR -n {{ .Release.Namespace }} \
+            --for=condition=Ready --timeout=120s; then
+          echo "[-] AsyncActor '$TEST_ACTOR' did not become Ready within 120s"
+          kubectl describe asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} | grep -A 10 "Conditions:" || true
+          exit 1
+        fi
+        echo "[+] AsyncActor '$TEST_ACTOR' is Ready"
+        echo ""
+
         {{- if eq .Values.transport "rabbitmq" }}
         # RabbitMQ queue validation using rabbitmqctl
         echo "[.] Validating RabbitMQ queue..."

@@ -169,6 +169,10 @@ time {
   helm repo update crossplane-stable > /dev/null 2>&1
   helm upgrade --install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace \
+    --set 'args={--max-reconcile-rate=50}' \
+    --set resourcesCrossplane.limits.cpu=2000m \
+    --set resourcesCrossplane.limits.memory=2Gi \
+    --set resourcesCrossplane.requests.cpu=500m \
     --wait --timeout 5m > /dev/null 2>&1
 
   echo "[.] Waiting for Crossplane pods..."
