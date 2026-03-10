@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
+from omegaconf.errors import OmegaConfBaseException
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.flow.grouper import Router
@@ -187,10 +188,9 @@ class ManifestStamper:
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve {{ key }} placeholders."""
-        template_path = (
-            self.router_template_path if actor.is_router and self.router_template_path else self.actor_template_path
-        )
-        if template_path is None or not template_path.exists():
+        if actor.is_router and self.router_template_path and self.router_template_path.exists():
+            template_path = self.router_template_path
+        else:
             template_path = self.actor_template_path
 
         text = template_path.read_text()
@@ -204,16 +204,8 @@ class ManifestStamper:
             image=actor.image,
         )
 
-        # Build flat context: TemplateContext + config templates.* + CLI args
-        context: dict[str, str] = {}
-        # Config templates.* values
-        try:
-            templates_cfg = self.config.get("templates")
-            if templates_cfg:
-                for key in templates_cfg:
-                    context[str(key)] = str(templates_cfg[key])
-        except Exception:  # nosec B110
-            pass
+        # Build flat context: TemplateContext + config templates.*
+        context = self._build_template_context()
         # TemplateContext values (override config if collision — reserved names)
         context.update({k: str(v) for k, v in dataclasses.asdict(tc).items()})
 
@@ -247,14 +239,7 @@ class ManifestStamper:
         """Load configmap template and resolve {{ key }} placeholders."""
         assert self.configmap_routers_template_path is not None
         text = self.configmap_routers_template_path.read_text()
-        context: dict[str, str] = {}
-        try:
-            templates_cfg = self.config.get("templates")
-            if templates_cfg:
-                for key in templates_cfg:
-                    context[str(key)] = str(templates_cfg[key])
-        except Exception:  # nosec B110
-            pass
+        context = self._build_template_context()
         context["flow_name"] = self.flow_name
         context["flow_function"] = self.flow_function
         resolved_text = _resolve_template_string(text, context)
@@ -275,14 +260,7 @@ class ManifestStamper:
         """Load kustomization template and resolve {{ key }} placeholders."""
         assert self.kustomization_template_path is not None
         text = self.kustomization_template_path.read_text()
-        context: dict[str, str] = {}
-        try:
-            templates_cfg = self.config.get("templates")
-            if templates_cfg:
-                for key in templates_cfg:
-                    context[str(key)] = str(templates_cfg[key])
-        except Exception:  # nosec B110
-            pass
+        context = self._build_template_context()
         context["flow_name"] = self.flow_name
         context["flow_function"] = self.flow_function
         resolved_text = _resolve_template_string(text, context)
@@ -463,13 +441,25 @@ Each overlay builds on top of `common/`.
 
     # ── config resolution helpers ───────────────────────────────────
 
+    def _build_template_context(self) -> dict[str, str]:
+        """Build template context from config `templates:` section."""
+        context: dict[str, str] = {}
+        try:
+            templates_cfg = self.config.get("templates")
+            if templates_cfg:
+                for key in templates_cfg:
+                    context[str(key)] = str(templates_cfg[key])
+        except (OmegaConfBaseException, AttributeError):
+            log.debug("Could not read templates config section")
+        return context
+
     def _resolve_config(self, section: str, key: str, default: str) -> str:
         """Resolve a value from a config section."""
         try:
             cfg_section = self.config.get(section)
             if cfg_section and key in cfg_section:
                 return str(cfg_section[key])
-        except Exception:  # nosec B110
+        except (OmegaConfBaseException, AttributeError):
             log.warning("Error resolving '%s.%s', falling back to default '%s'", section, key, default)
         return default
 
@@ -487,7 +477,7 @@ Each overlay builds on top of `common/`.
                     module = str(entry.get("module", ""))
                     if module and handler_name.startswith(module.replace(".", "_")):
                         return str(entry["image"])
-            except Exception:  # nosec B110
+            except (OmegaConfBaseException, AttributeError, KeyError, TypeError):
                 log.warning("Error resolving handler image for '%s' from build config", handler_name)
 
         # Resolve image_registry from compiler config; use handler K8s name in image path
@@ -502,6 +492,6 @@ Each overlay builds on top of `common/`.
         try:
             if "contexts" in self.config:
                 return list(self.config["contexts"].keys())
-        except Exception:  # nosec B110
+        except (OmegaConfBaseException, AttributeError):
             log.warning("Error getting contexts from config, falling back to empty list")
         return []

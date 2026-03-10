@@ -9,7 +9,6 @@ Config is fully resolved at load time using env and arg resolvers.
 
 from __future__ import annotations
 
-import dataclasses
 import logging
 import os
 import re
@@ -24,44 +23,6 @@ from asya_lab.config.discovery import collect_asya_dirs
 log = logging.getLogger(__name__)
 
 _RELATIVE_PATH_PATTERN = re.compile(r"^\./")
-
-
-# ---------------------------------------------------------------------------
-# FlowContext — typed bundle of dynamic values for path resolution
-# ---------------------------------------------------------------------------
-
-
-@dataclasses.dataclass(frozen=True)
-class FlowContext:
-    """Typed bundle of dynamic values derived from a flow.
-
-    Ensures both naming variants are always provided together.
-    Use factory methods instead of the constructor directly.
-    """
-
-    flow_function: str  # Python name: underscores (e.g. "order_processing")
-    flow_name: str  # K8s name: hyphens (e.g. "order-processing")
-
-    @classmethod
-    def from_flow_name(cls, flow_name: str) -> FlowContext:
-        """Create from a kebab-case K8s name (e.g. "order-processing")."""
-        flow_function = flow_name.replace("-", "_")
-        return cls(flow_function=flow_function, flow_name=flow_name)
-
-    @classmethod
-    def from_flow_function(cls, flow_function: str) -> FlowContext:
-        """Create from a Python function name (e.g. "order_processing")."""
-        flow_name = flow_function.replace("_", "-")
-        return cls(flow_function=flow_function, flow_name=flow_name)
-
-    @classmethod
-    def placeholder(cls) -> FlowContext:
-        """Dummy context for resolving the manifests root directory.
-
-        The resolved path's leaf is stripped via .parent, so the value
-        doesn't matter — it just needs to be non-empty.
-        """
-        return cls(flow_function="_", flow_name="_")
 
 
 # ---------------------------------------------------------------------------
