@@ -271,7 +271,8 @@ Two data paths serve these to React:
 #### Path A: `asya serve` (VSCode + standalone web)
 
 `asya serve` is a local FastAPI server that reads `.asya/` and exposes it
-via HTTP. It's the single backend for VSCode webview and standalone web.
+via HTTP + WebSocket. It's the single backend for VSCode webview and
+standalone web.
 
 ```
 asya serve (Python, FastAPI)
@@ -280,18 +281,44 @@ asya serve (Python, FastAPI)
 ├── GET  /api/flows/<flow>/graph             ← graph JSON for React Flow
 ├── GET  /api/flows/<flow>/manifests         ← XRD manifests (base/common/overlay)
 ├── PUT  /api/flows/<flow>/manifests/<actor> ← write manifest (non-readonly ctx)
-├── GET  /api/actors/<name>/status           ← kubectl get asyncactor (live)
 ├── GET  /api/actors/<name>/logs             ← kubectl logs (SSE stream)
 ├── POST /api/flows/<flow>/compile           ← trigger recompilation
 ├── GET  /api/gateway                        ← gateway URL from context config
 ├── POST /api/gateway/call                   ← proxy MCP tools/call to gateway
-└── GET  /api/gateway/stream/<id>            ← proxy MCP streamable HTTP
+├── GET  /api/gateway/stream/<id>            ← proxy gateway SSE (task progress)
+└── WS   /ws/actors                          ← WebSocket: live actor status
 ```
 
-Gateway interaction goes through `asya serve` as a proxy to the external
-gateway URL (`contexts.<name>.gateway`). The gateway's `/mesh/*` endpoints
-are cluster-internal (sidecar progress reporting) — never exposed to users.
-User-facing calls use MCP (`tools/call`) or A2A (`message/send`) protocol.
+**K8s Python SDK (not kubectl)**: `asya serve` uses the `kubernetes` Python
+client library directly — no subprocess spawning. Benefits:
+- Native **watch API**: `watch.Watch().stream()` on AsyncActor resources.
+  One persistent connection to the K8s API server pushes all changes.
+- Connection pooling, proper auth (kubeconfig or in-cluster service account)
+- Works with in-cluster config when running inside K8s (asya-lens)
+
+**WebSocket for actor status** (`/ws/actors`): `asya serve` watches
+AsyncActor resources via K8s watch API and fans out changes to connected
+WebSocket clients. One watch per resource type, one WebSocket per browser
+tab, multiplexed. Client subscribes to actors it cares about:
+
+```json
+// Client → Server: subscribe
+{"subscribe": ["validate-order-foo-bar", "express-handler-foo-bar"]}
+
+// Server → Client: status change (pushed instantly)
+{"actor": "validate-order-foo-bar", "status": {
+  "replicas": 3, "desiredReplicas": 3,
+  "queueDepth": 12, "state": "running"
+}}
+```
+
+No polling — the K8s watch API pushes events in milliseconds.
+
+**SSE for task streaming**: Gateway task progress (`/mesh/{id}/stream`) is
+already SSE — `asya serve` proxies it. The gateway's `/mesh/*` endpoints
+are cluster-internal (sidecar progress reporting) — `asya serve` proxies
+via the external gateway URL (`contexts.<name>.gateway`). User-facing calls
+use MCP (`tools/call`) or A2A (`message/send`) protocol.
 
 `readonly: true` contexts (prod) reject all PUT/POST requests. The API
 enforces the read/write boundary — React components don't need to know
@@ -319,26 +346,31 @@ manifests = read_manifests("order")  # reads XRD YAML files
 ```
 
 The Python side pushes data to the anywidget model. For live data (status,
-logs), the Python side talks to kubectl/gateway directly and pushes updates
+logs), the Python side uses the K8s Python SDK watch API directly and pushes
 to the model.
 
 ### 4.3 Provider Implementations
 
 Two providers, same `AsyaContextValue` interface:
 
-#### HTTP Provider (VSCode + standalone web)
+#### HTTP + WebSocket Provider (VSCode + standalone web)
 
 ```tsx
 function HttpAsyaProvider({ baseUrl, children }) {
-  // GET /api/flows/<flow>/manifests → actors[]
-  // GET /api/actors/<name>/status   → ActorStatus
-  // GET /api/actors/<name>/logs     → SSE → logLines[]
-  // GET /api/gateway/stream/<id>    → SSE → taskProgress
-  // PUT /api/flows/<flow>/manifests/<actor> → write (if !readonly)
+  // REST:
+  //   GET /api/flows/<flow>/manifests → actors[] (initial load)
+  //   GET /api/actors/<name>/logs     → SSE → logLines[]
+  //   GET /api/gateway/stream/<id>    → SSE → taskProgress
+  //   PUT /api/flows/<flow>/manifests/<actor> → write (if !readonly)
+  //
+  // WebSocket:
+  //   WS /ws/actors → subscribe to actor status changes (K8s watch)
+  //   Replaces polling — instant updates on scale, crash, state change
 }
 ```
 
 Single `baseUrl` prop — points to `asya serve` at `localhost:<port>`.
+WebSocket connection opens on mount, subscribes to visible actors.
 
 #### Anywidget Provider (Jupyter)
 
