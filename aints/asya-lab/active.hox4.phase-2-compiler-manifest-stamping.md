@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/hox4.phase-2-compiler-manifest-stamping
   - branch:asya-lab/hox4.phase-2-compiler-manifest-stamping
+  - pr:296
 dependencies:
   - pyt1
 ---
+
 
 
 ## Scope
