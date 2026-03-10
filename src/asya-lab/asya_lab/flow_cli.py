@@ -55,6 +55,10 @@ def _stamp_manifests(
             manifests_path = str(config.compiler.manifests)
             resolved_dir = (asya_dir.parent / manifests_path).resolve()
         except Exception:
+            click.echo(
+                f"[!] Could not resolve manifests path from config, using default: .asya/manifests/{flow_name}",
+                err=True,
+            )
             resolved_dir = (asya_dir / "manifests" / flow_name).resolve()
 
     # Read the compiled router code

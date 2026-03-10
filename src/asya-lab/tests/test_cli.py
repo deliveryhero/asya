@@ -25,7 +25,10 @@ def test_asya_lab_help():
         check=False,
     )
     assert result.returncode == 0
-    assert "asya" in result.stdout.lower()
+    output = result.stdout.lower()
+    assert "asya" in output
+    for subcmd in ("config", "flow", "init", "mcp"):
+        assert subcmd in output, f"Expected '{subcmd}' in help output"
 
 
 def test_asya_mcp_help():
@@ -38,7 +41,8 @@ def test_asya_mcp_help():
     )
     assert result.returncode == 0
     output = result.stdout.lower() + result.stderr.lower()
-    assert "mcp" in output or "call" in output
+    assert "mcp" in output
+    assert "call" in output
 
 
 def test_asya_mcp_call_help():

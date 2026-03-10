@@ -369,7 +369,7 @@ class ManifestStamper:
             if "var" in self.config and key in self.config["var"]:
                 return str(self.config["var"][key])
         except Exception:  # nosec B110
-            pass
+            log.warning("Error resolving 'var.%s', falling back to default '%s'", key, default)
         return default
 
     def _resolve_handler_image(self, handler_name: str) -> str:
@@ -387,7 +387,7 @@ class ManifestStamper:
                     if module and handler_name.startswith(module.replace(".", "_")):
                         return str(entry["image"])
             except Exception:  # nosec B110
-                pass
+                log.warning("Error resolving handler image for '%s' from build config", handler_name)
 
         # Resolve image_registry from var config; use handler K8s name in image path
         registry = self._resolve_var("image_registry", "")
@@ -402,5 +402,5 @@ class ManifestStamper:
             if "contexts" in self.config:
                 return list(self.config["contexts"].keys())
         except Exception:  # nosec B110
-            pass
+            log.warning("Error getting contexts from config, falling back to empty list")
         return []
