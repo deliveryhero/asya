@@ -40,8 +40,12 @@ class ActorInfo:
 class ManifestStamper:
     """Stamps AsyncActor manifests into a kustomize directory structure.
 
-    Uses the actor template from .asya/compiler/templates/actor.yaml,
-    resolving ${dynamic:*}, ${var:*}, and ${arg:*} interpolations.
+    Templates follow the directory-to-key convention:
+      .asya/compiler/templates/actor.yaml              → compiler.templates.actor
+      .asya/compiler/templates/configmap_routers.yaml  → compiler.templates.configmap_routers
+      .asya/compiler/templates/kustomization.yaml      → compiler.templates.kustomization
+
+    All templates support ${dynamic:*}, ${var:*}, and ${arg:*} interpolations.
     """
 
     def __init__(

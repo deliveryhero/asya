@@ -98,7 +98,10 @@ def init_project(
     if not config_file.exists():
         config_file.write_text(_ROOT_CONFIG.format(image_registry=image_registry))
 
-    # compiler/templates/actor.yaml
+    # compiler/templates/ — directory-to-key convention:
+    #   compiler/templates/actor.yaml              → compiler.templates.actor
+    #   compiler/templates/configmap_routers.yaml  → compiler.templates.configmap_routers
+    #   compiler/templates/kustomization.yaml      → compiler.templates.kustomization
     templates_dir = asya_dir / "compiler" / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)
 

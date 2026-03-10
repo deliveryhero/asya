@@ -54,6 +54,7 @@ def _stamp_manifests(
     router_code_path = Path(output_dir) / "routers.py"
     router_code = router_code_path.read_text()
 
+    # Templates follow directory-to-key convention (see rfc.md section 7.1)
     templates_dir = template_path.parent
     configmap_template = templates_dir / "configmap_routers.yaml"
     kustomization_template = templates_dir / "kustomization.yaml"
