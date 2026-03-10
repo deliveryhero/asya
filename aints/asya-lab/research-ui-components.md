@@ -706,16 +706,21 @@ modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
    expect it. Use CSS custom properties for all design tokens — light/dark
    switch is just swapping token values.
 
-## 12. Open Questions
+## 12. Resolved Questions (continued)
 
-1. **`asya serve` port management**: Fixed port (e.g., 8741) or random free
-   port? VSCode extension needs to discover the port. Options: fixed default
-   with `--port` override, or write port to a lockfile (`.asya/.serve.port`).
+6. ~~**`asya serve` port management**~~: **Resolved**. Dynamic port selection
+   from an ephemeral range. `asya serve` picks a free port, prints it to
+   stdout on startup (e.g., `Listening on http://localhost:54321`). VSCode
+   extension parses stdout to discover the port. `--port` flag for explicit
+   override. No lockfile needed — stdout is the discovery mechanism.
 
-2. **`asya serve` authentication**: Runs on localhost, but in shared dev
-   environments (asya-lens on a server) it might be accessible to others.
-   Token-based auth? Or rely on network isolation?
+7. ~~**`asya serve` authentication**~~: **Resolved (deferred)**. Localhost-only
+   for now — bind to `127.0.0.1`, no auth. When asya-lens runs on shared
+   servers, add token-based auth (bearer token generated on startup, printed
+   to stdout alongside port). Tracked as future security hardening task.
 
-3. **Graph JSON vs DOT layout divergence**: Graph JSON lets React Flow/dagre
-   compute layout independently. The static DOT uses graphviz layout. Layouts
-   will differ slightly. Acceptable? Or should graph JSON include layout hints?
+8. ~~**Graph JSON vs DOT layout divergence**~~: **Resolved (deferred)**.
+   Implement dagre layout first, evaluate visually against existing
+   `examples/flows/**/*.py` compiled graphs. If dagre output is acceptable,
+   keep two independent layout engines. If not, consider layout hints in
+   graph JSON. Decision after visual comparison.
