@@ -3,6 +3,12 @@ name: Release
 on:
   release:
     types: [created, published]
+  workflow_dispatch:
+    inputs:
+      test_pypi:
+        description: "Test PyPI publish (alpha version)"
+        type: boolean
+        default: true
 
 concurrency:
   group: release-management
@@ -105,7 +111,7 @@ jobs:
     name: Publish asya-lab to PyPI
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    if: github.event.action == 'published'
+    if: github.event.action == 'published' || github.event_name == 'workflow_dispatch'
     environment: pypi
     permissions:
       contents: read
@@ -122,18 +128,25 @@ jobs:
     - name: Install build tools
       run: pip install build
 
-    - name: Extract version from tag
+    - name: Determine version
       id: version
       run: |
-        TAG="${{ github.event.release.tag_name }}"
-        VERSION="${TAG#v}"
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          VERSION="0.0.1a1"
+        else
+          TAG="${{ github.event.release.tag_name }}"
+          VERSION="${TAG#v}"
+        fi
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "[.] Publishing version: ${VERSION}"
 
-    - name: Set package version from tag
+    - name: Set package version
       working-directory: src/asya-lab
       run: |
         VERSION="${{ steps.version.outputs.version }}"
         sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+        echo "[.] pyproject.toml version set to: ${VERSION}"
+        grep "^version" pyproject.toml
 
     - name: Build package
       working-directory: src/asya-lab
