@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import ast
+import re
 
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.ir import (
     ActorCall,
+    AsyaDirective,
     Break,
     Condition,
     Continue,
@@ -19,6 +21,13 @@ from asya_lab.flow.ir import (
     TryExcept,
     WhileLoop,
 )
+
+
+_DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)(?:\s+name=(\S+))?")
+
+_KNOWN_WRAPPERS = frozenset({"actor", "flow", "inline", "unfold"})
+
+_VALID_DIRECTIVES = frozenset({"actor", "flow", "inline", "unfold", "config"})
 
 
 # Parameter names accepted in flow function signatures.
@@ -58,6 +67,9 @@ class FlowParser:
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
+        self._source_lines: list[str] = source_code.splitlines()
+        self._directives: dict[int, AsyaDirective] = self._extract_directives()
+        self._decorator_index: dict[str, str] = {}
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -65,6 +77,7 @@ class FlowParser:
         except SyntaxError as e:
             raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
 
+        self._decorator_index = self._build_decorator_index(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
             raise FlowCompileError("No flow function found (signature: def name(p: dict) -> dict)")
@@ -82,6 +95,37 @@ class FlowParser:
 
         operations = self._parse_body(flow_func.body)
         return self.flow_name, operations
+
+    def _extract_directives(self) -> dict[int, AsyaDirective]:
+        directives: dict[int, AsyaDirective] = {}
+        for i, line in enumerate(self._source_lines, 1):
+            m = _DIRECTIVE_PATTERN.search(line)
+            if m:
+                directives[i] = AsyaDirective(treat_as=m.group(1), name=m.group(2))
+        return directives
+
+    def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
+        """Map function name to treat-as value for same-file definitions.
+
+        Scans module-level function definitions for @actor or @inline decorators.
+        Returns e.g. {"handler": "actor", "uuid_inject": "inline"}.
+        Only the first matching known decorator per function is recorded.
+        Unknown decorators are skipped silently.
+        """
+        index: dict[str, str] = {}
+        for node in tree.body:
+            if not isinstance(node, _FUNC_DEF_TYPES):
+                continue
+            for dec in node.decorator_list:
+                dec_name: str | None = None
+                if isinstance(dec, ast.Name):
+                    dec_name = dec.id
+                elif isinstance(dec, ast.Attribute):
+                    dec_name = ast.unparse(dec)
+                if dec_name in _KNOWN_WRAPPERS:
+                    index[node.name] = dec_name
+                    break  # first matching decorator wins
+        return index
 
     def get_class_methods(self) -> set[str]:
         """Return set of handler names that are class methods."""
@@ -214,13 +258,51 @@ class FlowParser:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall:
+    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
         call = stmt.value
         # Unwrap await: `p = await handler(p)` → extract the Call
         if isinstance(call, ast.Await):
             call = call.value
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
+
+        # Handle call-site decoration: actor(handler)(p) or inline(fn)(p)
+        if isinstance(call.func, ast.Call):
+            outer = call.func
+            if isinstance(outer.func, ast.Name):
+                wrapper_name = outer.func.id
+            elif isinstance(outer.func, ast.Attribute):
+                wrapper_name = ast.unparse(outer.func)
+            else:
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call-site decorator expression")
+
+            if wrapper_name not in _KNOWN_WRAPPERS:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Unknown call-site decorator '{wrapper_name}'. "
+                    f"Supported: {', '.join(sorted(_KNOWN_WRAPPERS))}"
+                )
+
+            if len(outer.args) != 1:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Call-site decorator must take exactly one argument"
+                )
+            inner = outer.args[0]
+            if isinstance(inner, ast.Name):
+                inner_name = inner.id
+            elif isinstance(inner, ast.Attribute):
+                inner_name = ast.unparse(inner)
+            else:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Call-site decorator argument must be a function name, "
+                    f"got {type(inner).__name__}"
+                )
+
+            if wrapper_name == "inline":
+                code = f"p = {inner_name}(p)"
+                return Mutation(lineno=stmt.lineno, code=code)
+
+            # wrapper_name == "actor"
+            return ActorCall(lineno=stmt.lineno, name=inner_name)
 
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
@@ -246,6 +328,29 @@ class FlowParser:
 
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
+
+        # Apply inline comment directive override if present (highest priority)
+        directive = self._directives.get(stmt.lineno)
+        if directive is not None:
+            if directive.treat_as not in _VALID_DIRECTIVES:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Unknown directive '{directive.treat_as}'. "
+                    f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
+                )
+            if directive.treat_as == "inline":
+                code = ast.unparse(stmt)
+                return Mutation(lineno=stmt.lineno, code=code)
+            elif directive.treat_as == "actor":
+                if directive.name:
+                    actor_name = directive.name
+            elif directive.treat_as in ("flow", "unfold", "config"):
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
+                )
+        # Definition-site decorator (lower priority than inline comment)
+        elif actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
+            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+            # "actor" -> fall through to return ActorCall
 
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 
