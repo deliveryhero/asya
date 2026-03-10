@@ -13,11 +13,22 @@ Core components (all in `src/`):
 - **asya-sidecar** (Go): envelope router injected into actor pods; Queue → Sidecar → Runtime → Sidecar → Next Queue
 - **asya-runtime** (Python): lightweight socket server loaded via ConfigMap; executes user handler, returns result
 - **asya-gateway** (Go): optional MCP/HTTP gateway; exposes async actor pipelines as synchronous HTTP
-- **asya-crew** (Python): system actors — `x-sink` (persist results), `x-sump` (DLQ handling)
+- **asya-crew** (Python): system actors — `x-sink` (persist results), `x-sump` (DLQ handling),
+  `x-pause` (checkpoint envelope to S3 and signal `paused`), `x-resume` (restore envelope from S3
+  and re-inject into the mesh)
 - **asya-cli** (Python): CLI tools (`asya mcp ...`, `asya flow ...`) for debugging and flow compilation
 - **asya-testing** (Python): shared test fixtures and utilities
+- **asya-state-proxy** (Go): optional sidecar that gives actors virtual persistent state via filesystem
+  emulation; actors read/write `/state/...` paths, runtime intercepts Python file I/O and forwards to the
+  proxy over Unix socket; proxy translates to actual storage backend (S3, GCS, Redis, NATS KV) with
+  configurable LWW or CAS guarantees; actors remain stateless Deployments — no StatefulSets
 
 See [docs/architecture/](docs/architecture/) for component deep-dives.
+
+**Examples** (`examples/`):
+- `asyas/` — real-world AsyncActor CRD manifests; use as reference when writing or reviewing actor specs
+- `flows/` — real-world flow DSL files ready for `asya flow compile`; more user-facing flows coming
+- `flows/agentic/` — agentic flows (multi-turn, pause/resume, tool use); growing as Asya's agentic surface expands
 
 ## Quick Reference
 
@@ -105,6 +116,74 @@ profile assembly.
 - Only `.route.next` and `.headers` are writable; `.route.prev`, `.route.curr`, `.id` are read-only
 
 See [docs/architecture/protocols/actor-actor.md](docs/architecture/protocols/actor-actor.md).
+
+## Agentic Capabilities
+
+Asya's strategic goal is to provide the full agentic tool surface that frameworks like Google ADK,
+Mastra, and LangGraph provide — but on a stateless, queue-based, K8s-native mesh. Agentic patterns
+are in `examples/flows/agentic/`. See the framework survey in
+`.aint/aints/agentic-umbrella/survey-agentic-frameworks.md`.
+
+### Actor vs Flow
+
+Both actors and flows share a `dict -> dict` signature, but they are fundamentally different:
+
+- **Actor**: a deployed CRD (`AsyncActor`), runs as a pod with a sidecar, can yield FLY events,
+  abort, fan-out (multiple yields), or return `None`
+- **Flow**: ephemeral — no CRD, no pod, just a Python file that describes a pipeline as familiar
+  Python control flow (`if/else`, sequential calls). The Flow DSL compiler transforms it into a
+  group of router actors using **CPS (continuation-passing style)**: instead of calling the next
+  function, each step sends a message to the next actor's queue.
+
+Because flows compile to message-passing chains, they can only use actors that map payload **1:1**:
+- ✅ `return payload` (function actor)
+- ✅ exactly one `yield payload` (generator actor, no FLY yields)
+- ❌ `yield "FLY", ...` — not supported in flows (FLY is actor-only)
+- ❌ multiple yields / fan-out — not supported in flows
+- ❌ returning `None` (abort) — not supported in flows
+
+### ABI Yield Protocol
+
+Generator handlers communicate with the runtime via structured yields. Full spec:
+`docs/reference/abi-protocol.md`.
+
+| Yield form | Effect |
+|---|---|
+| `yield payload` | Emit envelope downstream (to next actor in route) |
+| `yield "GET", ".route.prev"` | Read envelope metadata |
+| `yield "SET", ".route.next", [...]` | Overwrite routing |
+| `yield "FLY", {...}` | Stream event upstream to gateway (ephemeral SSE, not persisted) |
+
+**FLY vs history**: FLY events reach only connected SSE clients — use for streaming tokens and live
+progress. For data that must survive pause/resume or be readable by downstream actors, append to
+`payload.a2a.task.history[]` instead.
+
+### Pause / Resume (Human-in-the-Loop)
+
+An actor signals a pause by routing to `x-pause` (via `yield "SET", ".route.next", ["x-pause"]`).
+The `x-pause` crew actor checkpoints the full envelope (payload + route + headers) to S3 and reports
+`paused` status to the gateway. The gateway maps `paused` → A2A `input_required`.
+
+On resume, the client POSTs new input to the gateway, which routes to `x-resume`. The `x-resume`
+actor fetches the checkpointed envelope from S3, merges the new input into the payload, and
+re-dispatches to the mesh — continuing from where the pipeline stopped.
+
+### Gateway Routes (asya-gateway)
+
+Three fixed namespaces (optional `ASYA_BASE_PREFIX` prepended to all):
+
+| Namespace | Audience | Purpose |
+|---|---|---|
+| `/a2a/` | External AI agents, orchestrators | Full A2A protocol (SendMessage, GetTask, Subscribe, pause/resume, push notifications) |
+| `/mcp/` | LLM clients, developers | MCP Streamable HTTP + legacy SSE, REST tool invocation |
+| `/mesh/` | Sidecars, operators | Progress/FLY/final reporting from sidecars; tool/skill registration (`POST /mesh/expose`) |
+
+Special root routes (unaffected by base prefix):
+- `/.well-known/agent.json` — A2A Agent Card discovery
+- `/health` — K8s liveness/readiness probe
+
+A2A task state mapping: `pending` → `submitted`, `processing` → `working`, `succeeded` → `completed`,
+`paused` → `input_required`, `failed` → `failed`, `canceled` → `canceled`.
 
 ## AI Automation Policies
 
