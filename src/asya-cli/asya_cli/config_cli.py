@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -29,6 +30,13 @@ def main_config(args: list[str]) -> None:
         action="append",
         default=[],
         help="Set arg resolver value (key=value), repeatable",
+    )
+    get_parser.add_argument(
+        "-o",
+        "--output",
+        choices=["yaml", "json"],
+        default="yaml",
+        help="Output format (default: yaml)",
     )
 
     parsed = parser.parse_args(args)
@@ -67,6 +75,12 @@ def _cmd_get(parsed: argparse.Namespace) -> None:
         sys.exit(1)
 
     if OmegaConf.is_dict(value) or OmegaConf.is_list(value):
-        print(OmegaConf.to_yaml(value), end="")
+        container = OmegaConf.to_container(value, resolve=True)
+        if parsed.output == "json":
+            print(json.dumps(container, indent=2))
+        else:
+            print(OmegaConf.to_yaml(value), end="")
+    elif parsed.output == "json":
+        print(json.dumps(value))
     else:
         print(value)
