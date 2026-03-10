@@ -294,3 +294,37 @@ The project follows [Semantic Versioning](https://semver.org/):
 - **Patch** (0.0.X): Bug fixes and other changes (labels: `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`)
 
 Release-drafter automatically suggests the next version based on PR labels.
+
+## Deployment Rules
+
+### Bitnami Policy
+
+**Never use Bitnami Helm charts or images.** Bitnami has removed many container images from Docker Hub,
+causing deployment failures.
+
+Use official upstream images instead:
+- RabbitMQ: `rabbitmq:3.13-management`
+- PostgreSQL: `postgres:15-alpine`
+- MinIO: `minio/minio:latest`
+
+Use simple Kubernetes manifests (stored in `testing/e2e/manifests/`) instead of complex Helm charts for
+infrastructure in tests.
+
+### Helm Chart Dependencies Policy
+
+**Never modify `Chart.yaml` to use `file://` dependencies.**
+
+Two `Chart.yaml` files exist per chart:
+- `Chart.yaml` — production: uses `https://asya.sh/charts` (remote OCI registry)
+- `Chart.yaml.local` — development: uses `file://` for local testing with unpublished changes
+
+For local testing with unpublished chart changes:
+```bash
+cp Chart.yaml.local Chart.yaml
+helm dependency build .
+# Test locally...
+git checkout Chart.yaml  # Revert before committing
+```
+
+Never commit `Chart.yaml` with `file://` paths or a `Chart.lock` generated from `Chart.yaml.local`.
+A pre-commit hook (`.pre-commit-hooks/check-chart-locks.sh`) enforces this.

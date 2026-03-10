@@ -1,805 +1,189 @@
 # CLAUDE.md
 
-AI developer guidance for the Asya🎭 project.
+AI developer guidance for the Asya project.
 
 ## Project Overview
 
-Asya🎭 is an Actor Mesh framework for deploying AI workloads on Kubernetes using:
-- **Crossplane Compositions** for declarative actor deployment
-- **Sidecar injection webhook** (asya-injector) for automatic sidecar injection
-- **Sidecar pattern** (Go) for message routing with pluggable transports
-- **KEDA autoscaling** for event-driven, scale-to-zero workloads
-- **MCP gateway** (optional) for task tracking and API integration
-- **Choreography (decentralized)** instead of centralized orchestration
-- **Envelope passing** each envelope contains "route" which allows actors send envelopes each other
-- **Synchronous MCP-compliant HTTP gateway** for exposing async actors routes (pipelines) via sync HTTP
+Asya is an Actor Mesh framework for running AI workloads on Kubernetes using
+choreography (decentralized) instead of centralized orchestration. Actors
+communicate by passing envelopes through message queues; routing is embedded in
+each envelope, not managed by a central coordinator.
+
+Core components (all in `src/`):
+- **asya-sidecar** (Go): envelope router injected into actor pods; Queue → Sidecar → Runtime → Sidecar → Next Queue
+- **asya-runtime** (Python): lightweight socket server loaded via ConfigMap; executes user handler, returns result
+- **asya-gateway** (Go): optional MCP/HTTP gateway; exposes async actor pipelines as synchronous HTTP
+- **asya-crew** (Python): system actors — `x-sink` (persist results), `x-sump` (DLQ handling)
+- **asya-cli** (Python): CLI tools (`asya mcp ...`, `asya flow ...`) for debugging and flow compilation
+- **asya-testing** (Python): shared test fixtures and utilities
+
+See [docs/architecture/](docs/architecture/) for component deep-dives.
 
 ## Quick Reference
 
-### Prerequisites
-- **uv** (required for Python): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- Go 1.24+, Python 3.7+ (asya-runtime), Python 3.13+ (other components), Docker, Make
+**Prerequisites**: uv (`curl -LsSf https://astral.sh/uv/install.sh | sh`), Go 1.24+, Python 3.13+, Docker, Make
 
-### Essential Commands
 ```bash
+make setup              # Install uv, pre-commit hooks, sync Go deps
 make build              # Build all components
+make build-images       # Build Docker images
+make build-go           # Build Go components only
 make test-unit          # Unit tests (Go + Python)
-make test-component     # Component tests (single component + lightweight mocks)
-make test-integration   # Integration tests (requires Docker)
-make test-e2e           # End-to-end tests (requires Kind cluster)
-make test               # Run all unit + integration tests
-make lint               # Run linters with auto-fix
-make cov                # Run all tests with coverage
+make test-component     # Component tests (Docker Compose)
+make test-integration   # Integration tests (Docker Compose)
+make test-e2e           # E2E tests (Kind cluster)
+make lint               # Run all linters with auto-fix
+make clean              # Remove build artifacts
 ```
 
-Try to use `make <target>` instead of direct commands whenever possible. Add new Makefile targets for repeated tasks.
+Prefer `make <target>`. Add new Makefile targets instead of repeating raw commands.
 
-## Repository Structure
+## Testing Strategy
 
-```
-asya/
-├── src/                     # Framework components (Go/Python)
-│   ├── asya-gateway/        # MCP gateway
-│   ├── asya-sidecar/        # Actor sidecar
-│   ├── asya-runtime/        # Actor runtime base (Python)
-│   ├── asya-crew/           # System actors with reserved roles
-│   ├── asya-injector/       # Mutating webhook for sidecar injection
-│   ├── asya-testing/        # Testing fixtures, utilities and shared test code
-│   └── asya-cli/            # CLI tools for debugging and operating
-├── deploy/helm-charts/      # Helm charts
-│   ├── asya-actor/          # Generic actor Helm chart
-│   ├── asya-crew/           # Crew actors Helm chart
-│   ├── asya-crossplane/     # Crossplane compositions + XRDs
-│   ├── asya-injector/       # Sidecar injection webhook
-│   └── asya-gateway/        # Gateway Helm chart
-├── testing/                 # Test suites (all except unit tests that are in src/)
-│   ├── component/           # Component tests (single component tests without mocks in docker compose)
-│   ├── integration/         # Integration tests (multi-component tests in docker compose)
-│   ├── e2e/                 # End-to-end tests (Kind cluster)
-│   └── shared/              # Shared test utilities (mostly for docker compose configurations)
-└── examples/                # Example AsyncActor CRDs
-    └── asyas/               # AsyncActor deployment examples
-```
+**Hierarchy**:
+1. **Unit** (`make test-unit`): fast, no external deps — `src/{component}/tests/`
+2. **Component** (`make test-component`): single component in Docker Compose — `testing/component/{component}/`
+3. **Integration** (`make test-integration`): multi-component Docker Compose — `testing/integration/{suite}/`
+4. **E2E** (`make test-e2e`): full stack in Kind cluster — `testing/e2e/`
 
-## Component Overview
+**Trust CI**: Component, integration, and e2e tests cannot be parallelized across PRs. For multi-PR work,
+push and observe CI logs rather than running all suites locally.
 
-All components are in `src/`. See [docs/architecture/](docs/architecture/) for detailed documentation.
+**Critical rules**:
+- Unit tests must mock all external services
+- Component/integration tests run inside Docker Compose — no port-forwarding
+- Only E2E tests may use `kubectl port-forward`
+- Prefer Docker Compose over Kind; use Kind only for K8s-specific features (CRDs, KEDA, Crossplane)
 
-### asya-gateway (Go)
-MCP gateway with JSON-RPC 2.0, task tracking, and SSE streaming. Tools configurable via YAML (`src/asya-gateway/config/README.md`). Optional component for API integration.
+**E2E local debugging** (only when user explicitly permits Kind cluster access):
 
-### asya-sidecar (Go)
-Envelope router injected into actor pods. Consumes from RabbitMQ/SQS, forwards to runtime via Unix socket, routes responses. Pluggable transport layer.
+Kind cluster recreation costs 15-25 minutes. Never `make down && make up` to fix a flaky test.
+Use the fast-path instead:
 
-**Envelope Flow**: Queue → Sidecar → Runtime (Unix socket) → Sidecar → Next Queue
-
-### asya-runtime (Python)
-Lightweight socket server injected via ConfigMap. Loads user function, executes handler logic, returns results or errors.
-
-**Python 3.7+ compatibility**: Runtime uses backward-compatible type hints (`typing.Dict`/`List`) to support older AI model frameworks and legacy inference servers.
-
-**Source of truth**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
-
-**Symlinks for embedding**:
-- `deploy/helm-charts/asya-crossplane/files/asya_runtime.py` → Crossplane chart embeds runtime into ConfigMap
-
-**How it's deployed**: The `asya-crossplane` Helm chart reads `asya_runtime.py` via symlink, stores it in a ConfigMap, which the `asya-injector` webhook mounts into actor pods at `/opt/asya/asya_runtime.py`.
-
-**IMPORTANT**: When modifying `src/asya-runtime/asya_runtime.py`, the symlink automatically reflects changes. No manual sync needed.
-
-**Async Support**: Handlers can be `async def` — the runtime auto-detects and uses `asyncio.run()`. Async is preferred for AI workloads (LLM APIs, HTTP clients). Sync handlers remain fully supported.
-
-**Handler Types**:
-- **Function handler**: `ASYA_HANDLER=module.function` → Direct function call (simple, stateless handlers)
-- **Class handler**: `ASYA_HANDLER=module.Class.method` → Stateful handlers with initialization (model loading, preprocessing setup)
-
-**Handler signature**: Handlers receive only the payload and return a result dict:
-```python
-# Function handler: ASYA_HANDLER=my_module.process
-async def process(payload: dict) -> dict:
-    return {"result": ...}
-
-# Class handler: ASYA_HANDLER=my_module.Processor.process
-class Processor:
-    def __init__(self, model_path: str = "/models/default"):
-        # __init__ arguments must have default value
-        self.model = load_model(model_path)  # Init once, always sync
-
-    async def process(self, payload: dict) -> dict:
-        return {"result": await self.model.predict(payload)}
-```
-
-**Envelope Metadata**: Generator handlers access envelope metadata (route, headers, status)
-via the **yield-based ABI protocol**. Four verbs: GET, SET, DEL, FLY. Function handlers
-have no metadata access — use generators if needed. See
-`docs/reference/abi-protocol.md`.
-
-```python
-# Read metadata
-prev = yield "GET", ".route.prev"
-
-# Overwrite routing (replaces entire route.next)
-yield "SET", ".route.next", ["actor_a", "actor_b"]
-
-# Prepend to routing (inserts before existing actors via slice)
-yield "SET", ".route.next[:0]", ["actor_a", "actor_b"]
-
-# Stream upstream (SSE)
-yield "FLY", {"type": "text_delta", "token": "hello"}
-
-# Emit downstream frame
-yield payload
-```
-
-### asya-crew (Python)
-System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because `route.curr` is `""` meaning the route is exhausted, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
-
-### asya-injector (Go)
-Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME, ASYA_NAMESPACE), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
-
-### asya-testing (Python)
-Shared testing utilities and fixtures used across component, integration, and e2e tests. Provides common assertions, mock helpers, and test data builders.
-
-### asya-cli (Python)
-Command-line tools for debugging and operating the Asya🎭 framework:
-
-**MCP Gateway Commands**:
-- **asya mcp call**: Call MCP tools on asya-gateway
-- **asya mcp list**: List available tools
-- **asya mcp show**: Show tool configuration
-- **asya mcp status**: Check task status
-- **asya mcp stream**: Stream task updates
-- **asya mcp port-forward**: Quick kubectl port-forward helper for accessing asya-gateway
-
-**Flow DSL Commands**:
-- **asya flow compile**: Compile flow DSL to router actors
-- **asya flow validate**: Validate flow syntax without compiling
-
-## Asya Flow DSL
-
-**Purpose**: Simplify complex actor pipeline development by writing Python-like flow definitions instead of manually configuring routes and actors.
-
-### Overview
-
-The Flow DSL compiler transforms Python-based workflow descriptions into router-based actor networks. Instead of manually managing envelope routes and creating router actors, you write familiar Python code with conditionals, and the compiler generates optimized router actors automatically.
-
-**Key Benefits**:
-- Write actor pipelines in familiar Python syntax
-- Automatic router generation and optimization
-- Compile-time validation of flow logic
-- Visual flow diagrams with Graphviz integration
-
-### Quick Example
-
-**Flow Definition** (`my_flow.py`):
-```python
-def order_processing(p: dict) -> dict:
-    p = validate_order(p)
-
-    if not p.get("valid", False):
-        p["status"] = "rejected"
-        return p
-
-    if p["order_type"] == "express":
-        p = express_handler(p)
-    else:
-        p = standard_handler(p)
-
-    p = payment_processor(p)
-    return p
-```
-
-**Compile**:
 ```bash
-asya flow compile my_flow.py --output-dir compiled/ --plot
+make build-images
+kind load docker-image {image}:{tag} --name asya-e2e-{profile}
+helm upgrade -n {namespace} {release} deploy/helm-charts/{chart}/ --reuse-values
+kubectl rollout restart -n {namespace} deployment/{name}
 ```
 
-**Generated Output**:
-- `compiled/routers.py` - Router implementations
-- `compiled/flow.dot` - Graphviz diagram
-- `compiled/flow.png` - Visual flow diagram (requires graphviz)
+Run with fail-fast: `make trigger-tests PYTEST_OPTS="-vv -x" PROFILE="sqs-s3" 2>&1 | tee /tmp/tests.txt`
 
-### Flow DSL Syntax
+**Lessons from field debugging**:
+1. **Assert intent, not syntax** — composition tests that match exact variable names (e.g. `$xr.spec.actor`)
+   break on refactors; assert the behavioral intent instead
+2. **XRD field removals cascade** — when removing a field from an XRD, immediately grep for it in test code
+   and helpers
+3. **Helm test pod namespacing** — test pods inherit `Release.Namespace`; secrets may live in a different
+   namespace (e.g. `asya-system`); verify before referencing; `deploy.sh` is canonical for what exists in
+   the actor namespace at test time
+4. **Chaos tests need sequential workers** — pod-kill tests interfere with parallel pytest workers; use
+   `-p no:xdist` when debugging
+5. **CI-only failures are usually namespace/credential issues** — local dev often papers over these because
+   secrets are created ad-hoc; CI is strict about what exists where
 
-**Function Signature** (required):
-```python
-def <flow_name>(p: dict) -> dict:
-    return p
-```
-
-**Supported Operations**:
-
-1. **Actor Calls** - Process payload through handlers:
-   ```python
-   p = handler_function(p)
-
-   # Class-based handlers (stateful)
-   model = MLModel()  # Only default args allowed
-   p = model.predict(p)
-   ```
-
-2. **Payload Mutations** - Modify payload inline:
-   ```python
-   p["status"] = "processing"
-   p["count"] += 1
-   p["nested"]["key"] = "value"
-   ```
-
-3. **Conditionals** - Branch execution:
-   ```python
-   if p["type"] == "A":
-       p = handler_a(p)
-   elif p["type"] == "B":
-       p = handler_b(p)
-   else:
-       p = handler_default(p)
-   ```
-
-4. **Early Returns** - Exit flow conditionally:
-   ```python
-   if p.get("skip", False):
-       return p
-   ```
-
-**Limitations**:
-- Loops (`for`, `while`) not yet supported
-- Parameter must be named `p` or `payload`
-- Actor calls must pass `p` as only argument
-- Class instantiation must use only default arguments
-
-### CLI Commands
-
-**Validate Flow**:
-```bash
-asya flow validate my_flow.py
-```
-
-**Compile Flow**:
-```bash
-asya flow compile my_flow.py --output-dir compiled/ [options]
-```
-
-Options:
-- `--plot` - Generate flow diagram (DOT and PNG)
-- `--plot-width N` - Max width for plot labels (default: 50)
-- `--overwrite` - Overwrite existing files
-- `--verbose` - Show detailed output
-
-### Deployment
-
-1. **Compile flow** to generate routers
-2. **Deploy router actors** as AsyncActors (use generated `routers.py`)
-3. **Deploy handler actors** for each handler function
-4. **Configure environment variables** to map handlers to actors
-
-**Example Router Actor**:
-```yaml
-apiVersion: asya.dev/v1alpha1
-kind: AsyncActor
-metadata:
-  name: start-order-processing
-spec:
-  image: my-routers:latest
-  transport: rabbitmq
-  handler: compiled_routers.start_order_processing
-  env:
-    - name: ASYA_HANDLER_VALIDATE_ORDER
-      value: "handlers.validate_order"
-    - name: ASYA_HANDLER_EXPRESS_HANDLER
-      value: "handlers.express_handler"
-```
-
-**Generated routers use the ABI yield protocol to dynamically modify routes.**
-
-### How It Works
-
-1. **Parser** - Extracts operations from Python AST, validates syntax
-2. **Grouper** - Groups operations into optimized routers, batches mutations
-3. **Code Generator** - Generates router Python code with `resolve()` function
-4. **Dot Generator** (optional) - Creates visual flow diagrams
-
-**Router Types**:
-- **Start Router** - Entry point with initial mutations
-- **Mutation Router** - Executes payload mutations, routes to next actors
-- **Conditional Router** - Evaluates conditions, routes to branches
-- **End Router** - Exit point
-
-See `docs/architecture/asya-flow.md` for complete documentation.
-
-## Development Workflow
-
-**Setup**: `make setup` (install uv, pre-commit hooks, sync Go deps)
-
-**Building**: `make build` (all components), `make build-images` (Docker images), `make build-go` (Go only)
-
-**Testing**:
-```bash
-# Run all unit tests (Go + Python)
-make test-unit
-
-# Run unit tests for specific components
-make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
-make -C src/asya-gateway test-unit    # Go gateway unit tests only
-make -C src/asya-runtime test-unit    # Python runtime unit tests only
-
-# Run all component tests
-make test-component
-
-# Run all integration tests (requires Docker Compose)
-make test-integration
-
-# Clean up integration test Docker resources
-make clean-integration
-
-# Run specific integration test suites
-make -C testing/integration/sidecar-runtime test   # Sidecar ↔ Runtime
-make -C testing/integration/gateway-actors test    # Gateway ↔ Actors
-
-# Run all tests (unit + integration)
-make test
-
-# Run end-to-end tests (requires Kind cluster)
-make test-e2e
-# or:
-# cd testing/e2e
-# export PROFILE=sqs-s3  # for now, testing e2e only sqs-s3
-# make up
-# make trigger-tests 2>&1 | tee /tmp/tests.txt
-```
-
-**Code Coverage**:
-
-The project uses **octocov** for code coverage reporting - a fully open-source solution that runs in GitHub Actions without external services.
-
-**Linting**: `make lint` (auto-fix enabled via pre-commit)
-
-Linting tools with auto-fix capabilities:
-- ✅ **Auto-fix enabled**: yamlfmt, shfmt, prettier (JSON), taplo (TOML), ruff, go fmt, golangci-lint
-- ❌ **Validation only**: yamllint, shellcheck, mypy, bandit, vulture, actionlint, helm-lint
-
-**Quick fix**: Just run `make lint` - most formatting issues are automatically fixed. Only validation-only tools (security, type checking) require manual fixes.
-
-**Cleaning**: `make clean` (remove build artifacts), `make clean-integration`, `make clean-e2e` (remove Docker/Kind resources)
-
-**Issue Tracking with Beads**:
-
-**⚠️ CRITICAL**: Never manually edit `.beads/` files! Always use the `bd` CLI tool for all issue operations:
-- Create: `bd create --title="..." --type=task|bug|feature`
-- Update: `bd update <id> --status=in_progress|completed`
-- Close: `bd close <id>`
-- Sync: `bd sync`
-
-Direct file edits can corrupt the issue database and break git-portable sync mode. The `bd` CLI ensures proper JSONL formatting and conflict resolution.
-
-## Test Hierarchy
-
-Tests are organized by scope and dependencies with **strict isolation rules**:
-
-1. **Unit tests** (`make test-unit`): Fast, no external dependencies
-   - **Location**: Embedded in `src/{component}/tests/`
-   - Test individual functions, classes, modules
-   - No Docker, RabbitMQ, or K8s required
-
-2. **Component tests** (`make test-component`): Single component with minimal infrastructure
-   - **Location**: `testing/component/{component}/`
-   - Uses Docker Compose for minimal infrastructure (RabbitMQ, PostgreSQL, etc.)
-   - Tests single component behavior in isolation
-   - **Structure**: Component-specific, may use `compose/`, `profiles/`, `tests/`, `Makefile`
-
-3. **Integration tests** (`make test-integration`): Multiple components together
-   - **Location**: `testing/integration/{suite}/`
-   - Uses Docker Compose for multi-component scenarios
-   - Tests sidecar ↔ runtime ↔ gateway interactions
-   - **Structure**: `compose/`, `profiles/`, `tests/`, `Makefile`
-
-4. **End-to-end tests** (`make test-e2e`): Full stack in Kind cluster
-   - **Location**: `testing/e2e/`
-   - Full Kubernetes deployment with Crossplane, injector, gateway, actors
-   - Tests user scenarios and autoscaling
-
-### E2E Test Fixing Strategy
-
-**CRITICAL**: Kind cluster recreation is expensive (15-25 minutes). Avoid `make down` / `make up` cycles during debugging.
-
-**Fast iteration workflow** (avoid full redeployment):
-1. Patch code in `src/{component}/`
-2. Rebuild images: `make build-images`
-3. Load images to Kind: `kind load docker-image {image}:{tag} --name asya-e2e-{profile}`
-4. Upgrade only affected deployments/Helm charts:
-   - Crossplane: `helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system`
-   - Injector: `helm upgrade -n asya-system asya-injector deploy/helm-charts/asya-injector/`
-   - Gateway: `helm upgrade -n asya-e2e asya-gateway deploy/helm-charts/asya-gateway/`
-   - Crew: `helm upgrade -n asya-e2e asya-crew deploy/helm-charts/asya-crew/`
-5. Restart pods if needed: `kubectl rollout restart -n {namespace} deployment/{name}`
-
-**Test execution**:
-- Run with fail-fast: `make trigger-tests PYTEST_OPTS="-vv -x" PROFILE="sqs-s3" 2>&1 | tee /tmp/tests.txt`
-- Fix one test at a time: `-x` flag stops on first failure
-- Monitor frequently: Check test output every 1 minute, do NOT sleep long
-- Log to file: Always use `tee` to capture full output for analysis
-
-### Testing Infrastructure Rules
-
-**Critical rules for all tests:**
-
-1. **No port-forwarding in unit/component/integration tests**
-   - Unit tests MUST mock third-party services
-   - Component/Integration test code MUST run inside Docker Compose, services communicate via Docker networks
-   - Only E2E tests can use `kubectl port-forward`
-
-2. **Prefer Docker Compose over Kind**
-   - Use Docker Compose for integration tests when possible
-   - Use Kind only for E2E tests requiring Kubernetes features (Crossplane, KEDA, CRDs)
-
-3. **Shared infrastructure**
-   - Reusable Docker Compose files in `testing/shared/compose/`
-   - Third-party configs in `testing/shared/compose/configs/`
-   - Environment files in `testing/shared/compose/envs/`
-
-### Test Structure (Component/Integration)
-
-```
-testing/{level}/{suite}/
-├── Makefile                       # Test targets: test, test-one, cov, down, clean
-├── compose/                       # Local service definitions
-│   ├── tester.yml                 # Test runner service
-│   └── testing-actors.yml         # Suite-specific actors
-├── profiles/                      # Test profiles (transport/storage combinations)
-│   ├── .env.sqs                   # ASYA_TRANSPORT=sqs
-│   ├── .env.rabbitmq              # ASYA_TRANSPORT=rabbitmq
-│   ├── sqs.yml                    # Profile: SQS transport
-│   └── rabbitmq.yml               # Profile: RabbitMQ transport
-└── tests/                         # Pytest test files
-```
-
-**Makefile patterns:**
-- **Separate Docker Compose projects per transport**: `COMPOSE_PROJECT := {suite}-$(ASYA_TRANSPORT)`
-- **Required environment variables**: `ASYA_TRANSPORT`, `ASYA_STORAGE`
-- **Coverage directory**: `.coverage/{test-suite}/{transport}/cov.json`
-- **Standard targets**: `test`, `test-one`, `cov`, `down`, `clean`
-
-**Dynamic parametrization** via environment variables:
-```bash
-# Component test
-make test-one ASYA_TRANSPORT=sqs
-
-# Integration test with multiple variables
-make test-one ASYA_TRANSPORT=rabbitmq ASYA_STORAGE=minio
-```
-
-**Profile assembly** uses Docker Compose `include:` directive:
-```yaml
-# profiles/rabbitmq.yml
-include:
-  - path: ../../../shared/compose/rabbitmq.yml  # Shared infrastructure
-services:
-  tester:
-    extends:
-      file: ../compose/tester.yml
-      service: tester
-    env_file:
-      - ../../../shared/compose/envs/.env.${ASYA_TRANSPORT}  # → .env.rabbitmq
-```
-
-See CONTRIBUTING.md for complete testing documentation.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed test structure, Makefile patterns, and Docker Compose
+profile assembly.
 
 ## Envelope Protocol
 
 ```json
 {
   "id": "<envelope-id>",
-  "parent_id": "<original-envelope-id>",  // optional, for fanout tracking
+  "parent_id": "<original-id>",
   "route": {"prev": [], "curr": "q1", "next": ["q2"]},
-  "headers": {"trace_id": "...", "priority": "high"},  // optional routing metadata
-  "payload": <arbitrary JSON>
+  "headers": {"trace_id": "..."},
+  "payload": {}
 }
 ```
 
-**Fields**:
-- `id`: Unique envelope identifier
-- `parent_id` (optional): Original envelope ID for fanout children (see docs/architecture/protocols/actor-actor.md)
-- `route`: Routing information with processed actors, current actor, and pending actors
-- `headers` (optional): Routing-specific metadata (trace IDs, priorities, etc.)
-- `payload`: Arbitrary JSON data processed by actors
+- **Runtime** (not sidecar) shifts the route: `prev` grows, `curr` advances, `next` shrinks
+- `x-sink` and `x-sump` are **automatic** — never include them in route configs
+  - Empty `route.curr` or `None` return → sidecar routes to `x-sink`
+  - Runtime error → sidecar acks and routes to `x-sump`
+- Modify routing from a generator handler: `yield "SET", ".route.next", ["actor_a"]`
+- Only `.route.next` and `.headers` are writable; `.route.prev`, `.route.curr`, `.id` are read-only
 
-Runtime (not sidecar!) shifts the route after processing: `prev` grows, `curr` advances to `next[0]`, `next` shrinks.
-
-**Automatic end routing** (NEVER configure explicitly):
-- When `route.curr` is `""` (empty string, set by runtime at end-of-route, or when runtime returned `None`) → sidecar routes to `x-sink` queue automatically
-- When errors occur in runtime → sidecar acks the message and routes to `x-sump` queue automatically
-- When errors occur in sidecar → sidecar nacks the message and it's automatically sent to DLQ (configured by the queue)
-- **IMPORTANT**: Never include `x-sink` or `x-sump` in route configurations - they are managed by the sidecar
-
-**Route Modification**: Generator handlers modify routing via ABI yields:
-`yield "SET", ".route.next", ["actor_a", "actor_b"]`. Only `.route.next` and
-`.headers` are writable; `.route.prev`, `.route.curr`, and `.id` are read-only.
-
-## Transport Configuration
-
-**Transport selection**: Transport type (SQS) is specified in the AsyncActor XRD claim via the `transport` field. The Crossplane composition creates the appropriate queue resources.
-
-**Actor transport reference**: AsyncActors reference a transport by name:
-```yaml
-spec:
-  transport: sqs  # Validated by XRD enum
-```
-
-### Queue Management
-
-**IMPORTANT**: All envelope queues are automatically managed by Crossplane providers (e.g., `provider-aws-sqs`).
-
-**Queue naming convention**: `asya-{namespace}-{actor_name}`
-- Example: Actor `text-analyzer` in namespace `prod` → Queue `asya-prod-text-analyzer`
-- Example: Actor `image-processor` in namespace `dev` → Queue `asya-dev-image-processor`
-- System actors: `asya-{namespace}-x-sink`, `asya-{namespace}-x-sump`
-- Enables multi-namespace deployments with actors of the same name in different namespaces
-
-**IAM granularity**: The `asya-` prefix enables fine-grained IAM policies:
-```json
-{
-  "Effect": "Allow",
-  "Action": ["sqs:SendMessage", "sqs:ReceiveMessage"],
-  "Resource": "arn:aws:sqs:*:*:asya-*"
-}
-```
-
-**Lifecycle**: Queues are created/deleted automatically by Crossplane when AsyncActor claims are created/deleted. Never create queues manually.
-
-### Transport Credentials
-
-**Credential management**: Credentials are configured via Crossplane `ProviderConfig` for queue management and injector `awsCredsSecret` for sidecar message operations.
-
-1. **Crossplane Provider Credentials** (in `crossplane-system` namespace)
-   - Used by: Crossplane AWS provider for queue management (create/delete/configure)
-   - Secret: Configured in `ProviderConfig` (e.g., `aws-creds`)
-   - Permissions: Admin-level queue operations
-
-2. **Actor Credentials** (in actor's namespace)
-   - Used by: Sidecar containers for message operations (send/receive/delete)
-   - Secret: Configured via injector `awsCredsSecret` setting
-   - For production: Use IRSA (IAM Roles for Service Accounts) instead of static credentials
-
-## Key Deployment Facts
-
-**Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management.
-
-**Injector chart** (`deploy/helm-charts/asya-injector/`): Deploys the mutating webhook for sidecar injection. Requires cert-manager for TLS.
-
-**E2E deployment**: `make test-e2e` deploys full stack to Kind cluster, runs tests, and cleans up automatically
-
-**E2E tests**: Validate MCP tools, SSE streaming, multi-actor pipelines, error handling, autoscaling
+See [docs/architecture/protocols/actor-actor.md](docs/architecture/protocols/actor-actor.md).
 
 ## AI Automation Policies
 
-### Bitnami Policy
+### Worktree Isolation
 
-**NEVER use Bitnami Helm charts or images.** Bitnami has removed many container images from Docker Hub, causing deployment failures.
+**All feature work must be done in a git worktree.** Never implement features directly on `main`.
 
-**Required**:
-- Use official upstream images (e.g., `rabbitmq:3.13-management`, `postgres:15-alpine`, `minio/minio:latest`)
-- Use simple Kubernetes manifests instead of complex Helm charts for infrastructure
-- Store manifests in `testing/e2e/manifests/`
+1. `git aint pickup <ref>` — creates worktree in `.worktrees/<epic>/<task>.<slug>` and feature branch
+2. Work exclusively in the worktree
+3. Commit, push, create a PR — never merge directly
 
-**Examples**:
-```yaml
-# Good - official image
-image: minio/minio:latest
+### Command Hierarchy
 
-# Bad - Bitnami chart
-chart: oci://registry-1.docker.io/bitnamicharts/minio
-```
+1. **Prefer**: `make <target>`
+2. **Last resort**: direct commands only if no Makefile target exists
 
-### Helm Chart Dependencies Policy
+Add new Makefile targets instead of repeating raw commands.
 
-**NEVER modify `Chart.yaml` to use `file://` dependencies.** The main `Chart.yaml` must always use `https://asya.sh/charts` for published chart versions.
+### Cheap Subagents for Mechanical Fixes
 
-**Two Chart.yaml files exist**:
-- `Chart.yaml` - Production: uses `https://asya.sh/charts` (remote OCI registry)
-- `Chart.yaml.local` - Development: uses `file://` for local testing with unpublished changes
+Use Haiku/Sonnet subagents for lint errors and unit test failures — these are mechanical fixes.
 
-**For local testing with unpublished chart changes**:
-```bash
-cp Chart.yaml.local Chart.yaml
-helm dependency build .
-# Test locally...
-git checkout Chart.yaml  # Revert before committing
-```
+**Pattern**: Run `make lint` or `make test-unit` → capture errors → spawn `Task` subagent with
+`model: "haiku"` → pass errors and file paths → verify with re-run.
 
-**NEVER commit**:
-- `Chart.yaml` with `file://` paths
-- `Chart.lock` generated from `Chart.yaml.local` (will contain `file://` paths)
-
-**Enforcement**: Pre-commit hook `.pre-commit-hooks/check-chart-locks.sh` validates that no `Chart.lock` files contain `file://` paths.
-
-**Rationale**: The `file://` pattern is only for E2E tests and local development. Published charts must reference the remote repository so users can install them without the source code.
-
-### Worktree Isolation Policy
-
-**All feature implementation MUST be done by agents in a git worktree.** Agents must never implement features directly on the main branch.
-
-**Required workflow**:
-1. Pick up an aint: `git aint pickup <ref>` — creates a worktree in `.worktrees/` and a feature branch
-2. Work exclusively inside the worktree at `.worktrees/<epic>/<task>.<slug>`
-3. Commit, push, and create a PR from the worktree branch
-4. Never merge directly — use PR workflow
-
-**Worktree location**: `.worktrees/` (gitignored from main branch). Structure: `.worktrees/<epic>/<task>.<slug>`.
-
-**Rationale**: Worktree isolation prevents accidental commits to main, enables parallel agent work on independent tasks, and ensures every feature goes through code review via PR.
-
-### Command Execution Hierarchy
-1. **Prefer**: `make <target>` (e.g., `make test`, `make build`)
-2. **Last resort**: Direct commands only if no Makefile target exists
-
-**Rule**: Add new Makefile targets instead of repeating raw commands. See `.claude/settings.local.json` for automation config.
-
-### Cheap Subagents for Lint and Test Fixes
-
-**Use Sonnet subagents (`model: "haiku"`) for fixing lint errors and unit test failures.** These are mechanical fixes that don't require expensive reasoning.
-
-**When to use**: After running `make lint` or `make test-unit` and getting failures, spawn subagents on Haiku or Sonnet to fix them instead of fixing inline on Opus.
-
-**Pattern**:
-1. Run `make lint` or `make test-unit` on Opus — capture the error output
-2. Spawn a `Task` subagent with `model: "haiku"` and `subagent_type: "Bash"` or `subagent_type: "general-purpose"`
-3. Pass the error output and file paths in the prompt
-4. Let the subagent fix the errors and verify with a re-run
-
-**Example prompt for subagent**:
-```
-Fix the following lint errors in the given files. After fixing, run `make lint`
-to verify all errors are resolved.
-
-Errors:
-<paste error output>
-```
-
-**What Sonnet handles well**:
-- Formatting fixes (ruff, gofmt, yamlfmt, prettier)
-- Import ordering and unused imports
-- Type annotation issues (mypy)
-- Simple test assertion fixes
-- Missing docstrings or comment adjustments
-
-**What stays on Opus**:
-- Diagnosing *why* a test fails (root cause analysis)
-- Architectural decisions about how to restructure code
-- Complex refactoring that caused the errors
-
-**Rationale**: Sonnet is significantly cheaper than Opus but perfectly capable of mechanical fixes. Reserve Opus context for design decisions and complex reasoning.
+**Haiku handles**: formatting (ruff, gofmt, yamlfmt), import ordering, simple assertion fixes.
+**Keep on Opus**: root cause analysis, architectural decisions, complex refactoring.
 
 ### Documentation Policy
 
-**NEVER proactively create documentation files** (*.md, README.md, design docs) unless explicitly requested by the user.
-
-**Exceptions**:
-- User explicitly asks for documentation
-- Required by user story/task
-- Updating existing documentation to reflect code changes
-
-**Rationale**: Documentation should be created intentionally, not as a side-effect of every code change. Over-documentation creates maintenance burden.
+Never proactively create documentation files (*.md, README.md, design docs) unless explicitly
+requested. Updating existing docs to reflect code changes is fine.
 
 ### Code Comment Policy
 
-**Never use transitional comments** that reference previous code state ("no need to", "increased from", "instead of").
+Never use transitional comments ("instead of", "increased from", "no need to"). Comments explain
+what/why the current code does — not how it differs from before.
 
-**Good**: Explain what/why the code does
-```python
-poll_interval = 0.1  # 100ms polling interval
-```
+### Environment Variable Defaults
 
-**Bad**: Reference how it differs from before
-```python
-# Increased timeout for multi-actor processing
-result = ...
-```
+Never add defaults to env vars in code or docker-compose files. All required env vars must be passed
+explicitly from Makefile. Fail fast on missing config.
 
-### Defaults for Environment Variables
-
-**NEVER add defaults to environment variables in code or docker-compose files.** Follow fail-fast strategy.
-
-**Required**: All required environment variables MUST be passed from Makefile to docker-compose explicitly. If a variable is missing, docker-compose should fail immediately.
-
-**Good** (testing/integration/sidecar-runtime/compose/tester.yml):
 ```yaml
-volumes:
-- ${COVERAGE_DIR}:/app/.coverage:rw
-- ${COVERAGERC}:/app/.coveragerc:ro
+- ${COVERAGE_DIR}:/app/.coverage:rw              # good
+- ${COVERAGE_DIR:-.coverage}:/app/.coverage:rw   # bad — hides missing config
 ```
-
-**Bad**: Adding defaults that hide missing configuration
-```yaml
-volumes:
-- ${COVERAGE_DIR:-.coverage}:/app/.coverage:rw  # Don't do this
-```
-
-**Rationale**: Defaults hide configuration errors. Better to fail fast when required variables are missing than silently use wrong paths.
 
 ### Sleep Policy
 
-**Never use `time.Sleep`/`time.sleep` in production code.** Sleep makes tests flaky and hides bugs.
-
-**Only allowed in tests**: Polling loops, test simulations, timeout testing. **Must have inline comment** explaining purpose.
-
-**Good**:
-```python
-time.sleep(poll_interval)  # Poll RabbitMQ API for new messages
-```
-
-**Bad**: No comment, or used in production code.
-
-**Alternatives**: Channels/wait groups (Go), blocking operations with timeouts, health check endpoints.
+Never use `time.Sleep`/`time.sleep` in production code. In tests, polling sleeps are allowed but must
+have an inline comment explaining purpose.
 
 ### Emoji Policy
 
-**Strict emoji restrictions** to maintain professional codebase:
-
-**Documentation files** (.md) - ONLY basic status emojis allowed:
-- ✅ (check mark) - yes/supported/allowed
-- ❌ (cross mark) - no/unsupported/forbidden
-- ⚠️ (warning) - warnings/caveats
-- 🟢 (green circle) - good/easy
-- 🟡 (yellow circle) - medium quality/medium difficulty
-- 🔴 (red circle) - bad/hard
-
-**Code files** (.py, .go, .sh, .yaml) - NO emojis allowed:
-
-Use text status indicators instead:
-```bash
-echo "[+] Success message"
-echo "[-] Failure message"
-echo "[!] Warning/attention message"
-echo "[.] In progress message"
-```
-
-**Test data** - Unicode test strings allowed, but NO decorative emojis.
-
-**Examples**:
-```python
-# Bad - emoji in logger
-logger.info("✓ Test passed")
-
-# Good - text marker
-logger.info("[+] Test passed")
-```
-
-```yaml
-# Bad - emoji in comment
-# ✓ Working deployment
-
-# Good - text marker
-# - Working deployment
-```
+**In .md files**: only ✅ ❌ ⚠️ 🟢 🟡 🔴 allowed.
+**In code files** (.py, .go, .sh, .yaml): no emojis. Use `[+]` / `[-]` / `[!]` / `[.]` text markers.
 
 ## Landing the Plane (Session Completion)
 
-**When ending a work session**, you MUST complete ALL steps below. Work is NOT complete until `git push` succeeds.
+Work is **not complete** until `git push` succeeds. Do not stop before pushing.
 
-**MANDATORY WORKFLOW:**
-
-1. **File issues for remaining work** - Create issues for anything that needs follow-up
-2. **Run quality gates** (if code changed) - Tests, linters, builds
-3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+1. File issues for remaining work
+2. Run quality gates (if code changed): tests, lint, build
+3. Update issue status (close finished, update in-progress)
+4. Push:
    ```bash
    git pull --rebase
-   bd sync
+   git aint sync
    git push
-   git status  # MUST show "up to date with origin"
+   git status  # must show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+5. Clean up stashes, prune remote branches
+6. Provide context for next session
 
-**CRITICAL RULES:**
-- Work is NOT complete until `git push` succeeds
-- NEVER stop before pushing - that leaves work stranded locally
-- NEVER say "ready to push when you are" - YOU must push
-- If push fails, resolve and retry until it succeeds
+Never say "ready to push when you are" — you must push.
 
-# git-aint
+## git-aint
 
-This project uses [git-aint](https://github.com/atemate/git-aint) for issue
-tracking. Run `git aint init` to initialize (idempotent). `.aint/` is a git
-worktree on branch `aint-sync`, shared across all agents. See `.aint/AGENTS.md`
-for usage instructions.
+This project uses [git-aint](https://github.com/atemate/git-aint) for issue tracking. Run
+`git aint init` to initialize (idempotent). `.aint/` is a git worktree on branch `aint-sync`,
+shared across all agents. See [.aint/AGENTS.md](.aint/AGENTS.md) for full usage.
