@@ -1,9 +1,14 @@
 ---
 title: "Phase 2: Flatten workload structure, promote handler, rewrite flavor merge"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite
+  - branch:xrd-v2/lfcf.phase-2-flatten-workload-structure-promote-handler-rewrite
 dependencies:
   - af25
 ---
+
 
 ## Summary
 
