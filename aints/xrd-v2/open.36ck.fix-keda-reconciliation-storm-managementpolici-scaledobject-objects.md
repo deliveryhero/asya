@@ -23,12 +23,32 @@ the parent XR reconcile. Fix: prevent provider-kubernetes from tracking status w
 
 ## Fix
 
-Set managementPolicies on ScaledObject Objects in all three compositions:
+Set `watch: false` on ScaledObject Object specs in all three compositions:
 
-    managementPolicies: ["Create", "Observe", "Delete"]
+```yaml
+apiVersion: kubernetes.crossplane.io/v1alpha2
+kind: Object
+spec:
+  watch: false  # Don't react to KEDA status writes
+  forProvider:
+    manifest:
+      apiVersion: keda.sh/v1alpha1
+      kind: ScaledObject
+      ...
+```
 
-This prevents provider-kubernetes from writing back on status changes, breaking the
-feedback loop. Same pattern already used for pubsub subscriptions (read-only observe).
+`managementPolicies` is NOT the right fix — removing "Update" stops provider-kubernetes
+from pushing changes TO the ScaledObject, but the storm is caused by provider-kubernetes
+watching changes FROM the ScaledObject (KEDA status writes). The `watch` field controls
+the watch subscription itself.
+
+Apply `watch: false` to ScaledObject Objects only. Keep watches on Deployment Objects
+(XR readiness depends on Deployment health). TriggerAuthentication Objects can also
+use `watch: false` (KEDA updates their status too, though less frequently).
+
+Trade-off: XR won't reflect real-time ScaledObject health. Acceptable because XR
+readiness depends on Deployment + Queue, not ScaledObject. KEDA scaling works
+independently regardless of Crossplane status tracking.
 
 ## Testing
 
