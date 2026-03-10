@@ -7,6 +7,7 @@ No cluster needed -- builds run locally via Docker/Podman/etc.
 
 from __future__ import annotations
 
+import re
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -118,6 +119,27 @@ def _resolve_entries_for_target(
     sys.exit(1)
 
 
+_ALLOWED_BUILD_CMD = re.compile(r"^(docker|podman|nerdctl|buildah|bazel|make|nix-build|ko|pack|earthly|kaniko)\b")
+
+
+def _validate_build_command(command: str) -> None:
+    """Validate that a build command starts with a known build tool.
+
+    Build commands come from .asya/config.yaml which is a trusted local file
+    written by the same developer who runs the CLI. This validation is a
+    defense-in-depth check, not a security boundary.
+    """
+    stripped = command.lstrip()
+    if not _ALLOWED_BUILD_CMD.match(stripped):
+        click.echo(f"[-] Rejected build command: {command}", err=True)
+        click.echo(
+            "[-] Command must start with a known build tool "
+            "(docker, podman, nerdctl, buildah, bazel, make, nix-build, ko, pack, earthly, kaniko)",
+            err=True,
+        )
+        sys.exit(1)
+
+
 def _run_build(entry: dict, push: bool, verbose: bool, index: int = 0, total: int = 1) -> None:
     """Execute a single build entry's command."""
     command = entry.get("command")
@@ -135,8 +157,15 @@ def _run_build(entry: dict, push: bool, verbose: bool, index: int = 0, total: in
         click.echo(f"{prefix}Dir: {build_path}")
         click.echo(f"{prefix}Command: {command}")
 
+    _validate_build_command(command)
+
     click.echo(f"{prefix}+ {command}")
 
+    # shell=True is intentional: build commands are opaque shell strings
+    # from .asya/config.yaml (may contain pipes, redirects, env expansion).
+    # This is a local developer CLI — the user who writes config.yaml is
+    # the same user who runs the command. See RFC §7.7 "Build commands
+    # are opaque" and research-compiler-resolution.md §3.5.
     result = subprocess.run(  # nosec B602
         command,
         shell=True,
@@ -150,12 +179,11 @@ def _run_build(entry: dict, push: bool, verbose: bool, index: int = 0, total: in
 
     if push and image:
         push_prefix = f"[push  {index + 1}/{total}] " if total > 1 else "[push] "
-        push_cmd = f"docker push {image}"
-        click.echo(f"{push_prefix}+ {push_cmd}")
+        push_cmd = ["docker", "push", image]
+        click.echo(f"{push_prefix}+ {' '.join(push_cmd)}")
 
-        result = subprocess.run(  # nosec B602
+        result = subprocess.run(  # nosec B603
             push_cmd,
-            shell=True,
             cwd=build_path,
             check=False,
         )

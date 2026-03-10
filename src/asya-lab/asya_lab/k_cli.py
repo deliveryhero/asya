@@ -103,6 +103,26 @@ def _resolve_namespace(context: dict | None) -> str | None:
     return None
 
 
+def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
+    """Find which flow an actor belongs to by searching compiled manifests."""
+    for flow_dir in manifests_dir.iterdir():
+        if not flow_dir.is_dir():
+            continue
+        base_dir = flow_dir / "base"
+        if not base_dir.is_dir():
+            continue
+        for yaml_file in base_dir.glob("*.yaml"):
+            if yaml_file.name == "kustomization.yaml":
+                continue
+            try:
+                for doc in yaml.safe_load_all(yaml_file.read_text()):
+                    if isinstance(doc, dict) and doc.get("metadata", {}).get("name") == actor_name:
+                        return flow_dir.name
+            except yaml.YAMLError:
+                continue
+    return None
+
+
 def _run_cmd(cmd: list[str], verbose: bool = False, **kwargs) -> subprocess.CompletedProcess:
     """Run a shell command, printing it first with + prefix."""
     click.echo(f"+ {' '.join(cmd)}")
@@ -333,24 +353,7 @@ def edit(actor_name: str) -> None:
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)
 
-    target_flow = None
-    for flow_dir in manifests_dir.iterdir():
-        if not flow_dir.is_dir():
-            continue
-        base_dir = flow_dir / "base"
-        if not base_dir.is_dir():
-            continue
-        for yaml_file in base_dir.glob("*.yaml"):
-            if yaml_file.name in ("kustomization.yaml",):
-                continue
-            for doc in yaml.safe_load_all(yaml_file.read_text()):
-                if isinstance(doc, dict) and doc.get("metadata", {}).get("name") == actor_name:
-                    target_flow = flow_dir.name
-                    break
-            if target_flow:
-                break
-        if target_flow:
-            break
+    target_flow = _find_flow_for_actor(manifests_dir, actor_name)
 
     if not target_flow:
         click.echo(f"[-] Actor '{actor_name}' not found in any compiled flow", err=True)

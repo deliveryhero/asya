@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import yaml
 from asya_lab.k_cli import (
+    _find_flow_for_actor,
     apply,
     context_group,
     delete,
@@ -435,3 +436,63 @@ def test_apply_uses_correct_field_manager(mock_run, tmp_path):
     apply_call = mock_run.call_args_list[1]
     apply_cmd = apply_call[0][0]
     assert "--field-manager=asya-flow-order-processing" in apply_cmd
+
+
+# ---------------------------------------------------------------------------
+# _find_flow_for_actor helper
+# ---------------------------------------------------------------------------
+
+
+def test_find_flow_for_actor_found(tmp_path):
+    manifests_dir = tmp_path / "manifests"
+    base_dir = manifests_dir / "my-flow" / "base"
+    base_dir.mkdir(parents=True)
+
+    manifest = {
+        "apiVersion": "asya.sh/v1alpha1",
+        "kind": "AsyncActor",
+        "metadata": {"name": "validate-order"},
+        "spec": {"image": "test:v1"},
+    }
+    (base_dir / "asyncactor-validate-order.yaml").write_text(yaml.dump(manifest))
+
+    result = _find_flow_for_actor(manifests_dir, "validate-order")
+    assert result == "my-flow"
+
+
+def test_find_flow_for_actor_not_found(tmp_path):
+    manifests_dir = tmp_path / "manifests"
+    base_dir = manifests_dir / "my-flow" / "base"
+    base_dir.mkdir(parents=True)
+    (base_dir / "kustomization.yaml").write_text("resources: []")
+
+    result = _find_flow_for_actor(manifests_dir, "nonexistent")
+    assert result is None
+
+
+def test_find_flow_for_actor_skips_kustomization(tmp_path):
+    manifests_dir = tmp_path / "manifests"
+    base_dir = manifests_dir / "my-flow" / "base"
+    base_dir.mkdir(parents=True)
+
+    # kustomization.yaml has metadata.name but should be skipped
+    kust = {
+        "apiVersion": "kustomize.config.k8s.io/v1beta1",
+        "kind": "Kustomization",
+        "metadata": {"name": "target-actor"},
+    }
+    (base_dir / "kustomization.yaml").write_text(yaml.dump(kust))
+
+    result = _find_flow_for_actor(manifests_dir, "target-actor")
+    assert result is None
+
+
+def test_find_flow_for_actor_handles_malformed_yaml(tmp_path):
+    manifests_dir = tmp_path / "manifests"
+    base_dir = manifests_dir / "my-flow" / "base"
+    base_dir.mkdir(parents=True)
+
+    (base_dir / "bad.yaml").write_text(": invalid: yaml: {{{}}")
+
+    result = _find_flow_for_actor(manifests_dir, "any-actor")
+    assert result is None
