@@ -545,6 +545,18 @@ time {
     echo "[!] Warning: Not all AsyncActors reconciled"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
+    echo "[.] Checking Crossplane composed Object resources (provider-kubernetes):"
+    kubectl get objects.kubernetes.crossplane.io -A 2>/dev/null || echo "  (no Object resources found or CRD not installed)"
+    echo "[.] Checking Deployments in $NAMESPACE:"
+    kubectl get deployments -n "$NAMESPACE" 2>/dev/null || echo "  (no Deployments found)"
+    echo "[.] Conditions on test-echo AsyncActor XR (first actor):"
+    kubectl describe asyncactor test-echo -n "$NAMESPACE" 2>/dev/null | grep -A 30 "Conditions:" | head -35 || true
+    echo "[.] provider-kubernetes pod logs (last 80 lines):"
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision -c provider-kubernetes --tail=80 2>/dev/null \
+      || kubectl logs -n crossplane-system -l app=provider-kubernetes --tail=80 2>/dev/null \
+      || echo "  (could not retrieve provider-kubernetes logs)"
+    echo "[.] Crossplane manager events in $NAMESPACE:"
+    kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' 2>/dev/null | tail -20 || true
   else
     TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
     echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
