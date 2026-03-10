@@ -1073,6 +1073,11 @@ tool.
 runs them sequentially with `[build 1/N]` progress prefixes, fail-fast on
 first error. Parallel builds deferred until real bottleneck observed.
 
+**Image tags**: No Asya-imposed convention — tagging is a CD concern. Users
+provide tags via `--arg tag=<value>`. Recommended: use feature/branch names
+(e.g., `--arg tag=add-validation`) to avoid conflicts between developers
+sharing a registry.
+
 **Build command errors**: When `command` exits non-zero, Asya forwards the
 build tool's stderr verbatim and exits 1:
 ```
