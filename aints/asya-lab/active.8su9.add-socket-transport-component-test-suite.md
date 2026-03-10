@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/asya-lab/8su9.add-socket-transport-component-test-suite
   - branch:asya-lab/8su9.add-socket-transport-component-test-suite
+  - pr:300
 dependencies:
   - cavw
 ---
+
 
 Create testing/component/transport/ — a Docker Compose component test for SocketTransport methods in isolation.
 
