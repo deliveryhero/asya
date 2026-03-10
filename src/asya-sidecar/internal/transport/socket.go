@@ -55,7 +55,7 @@ func NewSocketTransport(cfg SocketConfig) (*SocketTransport, error) {
 	if cfg.MeshDir == "" {
 		return nil, fmt.Errorf("socket transport: MeshDir must not be empty")
 	}
-	if err := os.MkdirAll(cfg.MeshDir, 0o755); err != nil { //nolint:gosec // shared Docker volume needs group read/execute
+	if err := os.MkdirAll(cfg.MeshDir, 0o755); err != nil { //nolint:gosec // #nosec G301 -- shared Docker volume needs group read/execute
 		return nil, fmt.Errorf("socket transport: create mesh dir %s: %w", cfg.MeshDir, err)
 	}
 	return &SocketTransport{
@@ -87,7 +87,7 @@ func (t *SocketTransport) startListener(queueName string) error {
 	if err != nil {
 		return fmt.Errorf("socket transport: listen on %s: %w", path, err)
 	}
-	if err := os.Chmod(path, 0o666); err != nil { //nolint:gosec // socket must be world-writable for cross-container delivery on a shared volume
+	if err := os.Chmod(path, 0o666); err != nil { //nolint:gosec // #nosec G302 -- socket must be world-writable for cross-container delivery on a shared volume
 		_ = l.Close()
 		return fmt.Errorf("socket transport: chmod %s: %w", path, err)
 	}
