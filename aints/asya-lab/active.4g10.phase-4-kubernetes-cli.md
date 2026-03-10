@@ -1,9 +1,14 @@
 ---
 title: "Phase 4: Kubernetes CLI (apply, delete, status, logs) + asya build"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/asya-lab/4g10.phase-4-kubernetes-cli
+  - branch:asya-lab/4g10.phase-4-kubernetes-cli
 dependencies:
   - 5ifn
 ---
+
 
 ## Scope
 
