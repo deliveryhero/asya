@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import dataclasses
-
 import pytest
 import yaml
 from asya_lab.compiler.stamper import ManifestStamper
-from asya_lab.config.config import ConfigLoader, FlowContext
 from asya_lab.flow.grouper import Router
 from omegaconf import OmegaConf
 
@@ -23,19 +20,18 @@ def template_dir(tmp_path):
         "apiVersion": "asya.sh/v1alpha1",
         "kind": "AsyncActor",
         "metadata": {
-            "name": "${dynamic:actor_name}",
-            "namespace": "${var.namespace}",
+            "name": "{{ actor_name }}",
+            "namespace": "{{ namespace }}",
             "labels": {
-                "asya.sh/flow": "${dynamic:flow_name}",
-                "asya.sh/flow-role": "${dynamic:flow_role}",
+                "asya.sh/flow": "{{ flow_name }}",
+                "asya.sh/flow-role": "{{ flow_role }}",
             },
         },
         "spec": {
-            "actor": "${dynamic:actor_name}",
-            "image": "${dynamic:image}",
-            "handler": "${dynamic:handler}",
-            "transport": "${var.transport}",
-            "env": "${dynamic:env}",
+            "actor": "{{ actor_name }}",
+            "image": "{{ image }}",
+            "handler": "{{ handler }}",
+            "transport": "{{ transport }}",
             "scaling": {
                 "enabled": True,
                 "minReplicas": 0,
@@ -49,15 +45,12 @@ def template_dir(tmp_path):
         "apiVersion": "v1",
         "kind": "ConfigMap",
         "metadata": {
-            "name": "${dynamic:flow_name}-routers",
-            "namespace": "${var.namespace}",
+            "name": "{{ flow_name }}-routers",
+            "namespace": "{{ namespace }}",
             "labels": {
-                "asya.sh/flow": "${dynamic:flow_name}",
+                "asya.sh/flow": "{{ flow_name }}",
                 "asya.sh/managed-by": "asya-compiler",
             },
-        },
-        "data": {
-            "routers.py": "${dynamic:router_code}",
         },
     }
     (templates_dir / "configmap_routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
@@ -65,7 +58,6 @@ def template_dir(tmp_path):
     kustomization_template = {
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
         "kind": "Kustomization",
-        "resources": "${dynamic:resources}",
     }
     (templates_dir / "kustomization.yaml").write_text(yaml.dump(kustomization_template, sort_keys=False))
 
@@ -76,10 +68,12 @@ def template_dir(tmp_path):
 def config():
     return OmegaConf.create(
         {
-            "var": {
+            "templates": {
                 "namespace": "test-ns",
                 "transport": "sqs",
                 "router_image": "python:3.13-slim",
+            },
+            "compiler": {
                 "image_registry": "ghcr.io/test-org",
             },
         }
@@ -90,10 +84,12 @@ def config():
 def config_with_contexts():
     return OmegaConf.create(
         {
-            "var": {
+            "templates": {
                 "namespace": "test-ns",
                 "transport": "sqs",
                 "router_image": "python:3.13-slim",
+            },
+            "compiler": {
                 "image_registry": "ghcr.io/test-org",
             },
             "contexts": {
@@ -126,17 +122,16 @@ def router_code():
 
 
 def _make_stamper(flow_name, routers, router_code, config, template_path, flow_function=None):
-    flow_ctx = FlowContext.from_flow_name(flow_name)
-    loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
     templates_dir = template_path.parent
+    router_template = templates_dir / "router.yaml"
     return ManifestStamper(
         flow_name=flow_name,
         flow_function=flow_function or flow_name.replace("-", "_"),
         routers=routers,
         router_code=router_code,
         config=config,
-        config_loader=loader,
-        template_path=template_path,
+        actor_template_path=template_path,
+        router_template_path=router_template if router_template.exists() else None,
         configmap_routers_template_path=templates_dir / "configmap_routers.yaml",
         kustomization_template_path=templates_dir / "kustomization.yaml",
     )

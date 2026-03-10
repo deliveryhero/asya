@@ -15,10 +15,8 @@ def _stamp_manifests(
     compiler: FlowCompiler, flow_file: str, output_dir: str, manifests_dir: str | None, verbose: bool
 ) -> None:
     """Stamp kustomize-structured manifests after flow compilation."""
-    import dataclasses
-
     from asya_lab.compiler.stamper import ManifestStamper
-    from asya_lab.config.config import ConfigLoader, FlowContext
+    from asya_lab.config.config import ConfigLoader
     from asya_lab.config.discovery import find_asya_dir
 
     source_path = Path(flow_file).resolve()
@@ -45,24 +43,23 @@ def _stamp_manifests(
 
     flow_name = flow_function.replace("_", "-")
 
-    flow_ctx = FlowContext.from_flow_function(flow_function)
-    config_loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
-    config = config_loader.load(source_path.parent)
+    config = ConfigLoader().load(source_path.parent)
 
     # Determine manifest output directory
     if manifests_dir:
         resolved_dir = Path(manifests_dir)
     else:
-        resolved_dir = config.resolve_path("compiler.manifests")
+        resolved_dir = config.resolve_path("compiler.manifests") / flow_name
 
     # Read the compiled router code
     router_code_path = Path(output_dir) / "routers.py"
     router_code = router_code_path.read_text()
 
-    # Templates follow directory-to-key convention (see rfc.md section 7.1)
+    # Template files (NOT part of config tree — loaded by stamper directly)
     templates_dir = template_path.parent
     configmap_template = templates_dir / "configmap_routers.yaml"
     kustomization_template = templates_dir / "kustomization.yaml"
+    router_template = templates_dir / "router.yaml"
 
     stamper = ManifestStamper(
         flow_name=flow_name,
@@ -70,8 +67,8 @@ def _stamp_manifests(
         routers=compiler.routers,
         router_code=router_code,
         config=config,
-        config_loader=config_loader,
-        template_path=template_path,
+        actor_template_path=template_path,
+        router_template_path=router_template if router_template.exists() else None,
         configmap_routers_template_path=configmap_template if configmap_template.exists() else None,
         kustomization_template_path=kustomization_template if kustomization_template.exists() else None,
     )

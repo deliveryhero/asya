@@ -13,7 +13,7 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.config.config import ConfigLoader, FlowContext
+from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import (
     BASE_DIR,
     COMMON_DIR,
@@ -35,7 +35,7 @@ def _find_manifests_dir(target: str) -> Path:
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.with_values(FlowContext.from_flow_name(target)).resolve_path("compiler.manifests")
+    manifests_dir = config.resolve_path("compiler.manifests") / target
     if not manifests_dir.is_dir():
         click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
         click.echo("[-] Run 'asya compile' first.", err=True)
@@ -355,7 +355,7 @@ def edit(actor_name: str) -> None:
 
     # Find which flow this actor belongs to
     config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.with_values(FlowContext.placeholder()).resolve_path("compiler.manifests").parent
+    manifests_dir = config.resolve_path("compiler.manifests")
     if not manifests_dir.is_dir():
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)

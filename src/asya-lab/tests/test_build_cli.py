@@ -58,7 +58,7 @@ def test_extract_image_none():
 def test_find_flow_images(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
-    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 
@@ -103,7 +103,7 @@ def test_resolve_entries_by_module():
 def test_resolve_entries_by_flow_name(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir(exist_ok=True)
-    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
     base_dir = asya_dir / "manifests" / "order-processing" / "base"
     base_dir.mkdir(parents=True)
 
@@ -146,7 +146,7 @@ def test_build_no_asya_dir():
 def test_build_no_build_entries(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
-    (asya_dir / "config.yaml").write_text("var:\n  namespace: default\n")
+    (asya_dir / "config.yaml").write_text("templates:\n  namespace: default\n")
 
     runner = CliRunner()
     with patch("asya_lab.build_cli.find_asya_dir", return_value=asya_dir):
@@ -160,7 +160,7 @@ def test_build_runs_command(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
     config = {
-        "var": {"image_registry": "ghcr.io/org"},
+        "templates": {"image_registry": "ghcr.io/org"},
         "build": [
             {
                 "module": "e_commerce",
@@ -241,7 +241,7 @@ def test_build_deduplicates_images(tmp_path):
     """Multiple actors sharing an image should only build once."""
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir(exist_ok=True)
-    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests/${dynamic:flow_name}"\n')
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 

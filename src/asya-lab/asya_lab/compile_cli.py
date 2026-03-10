@@ -15,7 +15,7 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.config import ConfigLoader, FlowContext
+from asya_lab.config.config import ConfigLoader
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -31,8 +31,6 @@ def _is_kebab_case(target: str) -> bool:
 
 def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
     """Resolve compiled output dir from config (compiler.routers)."""
-    import dataclasses
-
     from asya_lab.config.discovery import find_asya_dir
 
     asya_dir = find_asya_dir(source_path.parent)
@@ -40,10 +38,8 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    flow_ctx = FlowContext.from_flow_function(flow_function)
-    loader = ConfigLoader(dynamic_values=dataclasses.asdict(flow_ctx))
-    config = loader.load(source_path.parent)
-    return config.resolve_path("compiler.routers")
+    config = ConfigLoader().load(source_path.parent)
+    return config.resolve_path("compiler.routers") / flow_function
 
 
 def _compile_flow_file(
@@ -126,7 +122,7 @@ def _compile_dotted_target(
             click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
             sys.exit(1)
         config = ConfigLoader().load(asya_dir.parent)
-        resolved_dir = config.with_values(FlowContext.placeholder()).resolve_path("compiler.manifests").parent
+        resolved_dir = config.resolve_path("compiler.manifests")
     resolved_dir.mkdir(parents=True, exist_ok=True)
 
     click.echo(f"[+] Compiling single actor '{actor_name}' from {target}")
@@ -155,7 +151,7 @@ def _recompile_kebab_target(
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    manifests_dir = config.with_values(FlowContext.from_flow_name(target)).resolve_path("compiler.manifests")
+    manifests_dir = config.resolve_path("compiler.manifests") / target
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
         sys.exit(1)

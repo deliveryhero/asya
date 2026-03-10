@@ -10,7 +10,7 @@ import click
 import yaml
 
 from asya_lab.compiler.stamper import _Dumper
-from asya_lab.config.config import ConfigLoader, FlowContext
+from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 
 
@@ -34,7 +34,7 @@ def _find_base_dir(flow_name: str) -> Path:
         sys.exit(1)
 
     config = ConfigLoader().load(asya_dir.parent)
-    base_dir = config.with_values(FlowContext.from_flow_name(flow_name)).resolve_path("compiler.manifests") / BASE_DIR
+    base_dir = config.resolve_path("compiler.manifests") / flow_name / BASE_DIR
     if not base_dir.is_dir():
         click.echo(
             f"[-] Manifest directory not found: {base_dir}\n[-] Run 'asya flow compile' first.",
@@ -142,7 +142,7 @@ def _resolve_namespace() -> str:
     loader = ConfigLoader()
     config = loader.load(asya_dir.parent)
     try:
-        return str(config.var.namespace)
+        return str(config.templates.namespace)
     except Exception:
         return "default"
 

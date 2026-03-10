@@ -16,7 +16,7 @@ import click
 import yaml
 from omegaconf import DictConfig, OmegaConf
 
-from asya_lab.config.config import ConfigLoader, FlowContext
+from asya_lab.config.config import ConfigLoader
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 
 
@@ -42,9 +42,7 @@ def _find_flow_images(target: str, asya_dir: Path) -> set[str]:
     """Find unique image references from compiled manifests for a flow."""
     try:
         config = ConfigLoader().load(asya_dir.parent)
-        manifests_dir = (
-            config.with_values(FlowContext.from_flow_name(target)).resolve_path("compiler.manifests") / BASE_DIR
-        )
+        manifests_dir = config.resolve_path("compiler.manifests") / target / BASE_DIR
     except Exception:
         return set()
     if not manifests_dir.is_dir():
