@@ -66,7 +66,6 @@ jobs:
         - asya-cli
         - asya-crew
         - asya-gateway
-        - asya-injector
         - asya-lab
         - asya-runtime
         - asya-sidecar

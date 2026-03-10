@@ -100,12 +100,6 @@ show_diagnostics() {
   echo "[+] Cluster '$CLUSTER_NAME' exists"
   echo
 
-  # Injector status
-  echo "=== Injector Status ==="
-  kubectl get deployment -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector deployment not found"
-  kubectl get pods -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector pods not found"
-  echo
-
   # Crossplane status
   echo "=== Crossplane Status ==="
   kubectl get providers.pkg.crossplane.io 2> /dev/null || echo "[!] No Crossplane providers found"
@@ -172,11 +166,6 @@ show_diagnostics() {
 
 show_logs() {
   echo "=== Asya Component Logs ==="
-  echo
-
-  # Injector logs
-  echo "=== Injector Logs (tail=$TAIL) ==="
-  kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail="$TAIL" 2> /dev/null || echo "[!] No injector logs"
   echo
 
   # Crossplane provider logs
