@@ -14,6 +14,7 @@ from asya_lab.build_cli import (
     _validate_build_command,
     build,
 )
+from asya_lab.cli_types import AsyaRef
 from click.testing import CliRunner
 
 
@@ -95,7 +96,7 @@ def test_resolve_entries_by_module():
         {"module": "e_commerce", "image": "ghcr.io/org/ecom:v1", "command": "docker build ."},
         {"module": "ml_models", "image": "ghcr.io/org/ml:v1", "command": "docker build ."},
     ]
-    result = _resolve_entries_for_target("e_commerce", entries, None)
+    result = _resolve_entries_for_target(AsyaRef(name="e-commerce", function="e_commerce"), entries, None)
     assert len(result) == 1
     assert result[0]["module"] == "e_commerce"
 
@@ -120,7 +121,9 @@ def test_resolve_entries_by_flow_name(tmp_path):
         {"module": "e_commerce", "image": "ghcr.io/org/ecom:v1", "command": "docker build ."},
         {"module": "ml_models", "image": "ghcr.io/org/ml:v1", "command": "docker build ."},
     ]
-    result = _resolve_entries_for_target("order-processing", entries, asya_dir)
+    result = _resolve_entries_for_target(
+        AsyaRef(name="order-processing", function="order_processing"), entries, asya_dir
+    )
     assert len(result) == 1
     assert result[0]["module"] == "e_commerce"
 
@@ -132,7 +135,7 @@ def test_resolve_entries_not_found():
         {"module": "e_commerce", "image": "ghcr.io/org/ecom:v1", "command": "docker build ."},
     ]
     with patch("asya_lab.build_cli.sys.exit", side_effect=SystemExit(1)), contextlib.suppress(SystemExit):
-        _resolve_entries_for_target("nonexistent", entries, None)
+        _resolve_entries_for_target(AsyaRef(name="nonexistent", function="nonexistent"), entries, None)
 
 
 def test_build_no_asya_dir():
@@ -259,7 +262,7 @@ def test_build_deduplicates_images(tmp_path):
     entries = [
         {"module": "shared", "image": "ghcr.io/org/shared:v1", "command": "docker build ."},
     ]
-    result = _resolve_entries_for_target("my-flow", entries, asya_dir)
+    result = _resolve_entries_for_target(AsyaRef(name="my-flow", function="my_flow"), entries, asya_dir)
     assert len(result) == 1
 
 

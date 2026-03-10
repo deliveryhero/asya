@@ -16,6 +16,7 @@ import click
 import yaml
 from omegaconf import OmegaConf
 
+from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 from asya_lab.config.project import AsyaProject
 
@@ -78,28 +79,29 @@ def _extract_image(doc: dict) -> str | None:
 
 
 def _resolve_entries_for_target(
-    target: str,
+    target: AsyaRef,
     build_entries: list[dict],
     asya_dir: Path | None,
 ) -> list[dict]:
     """Resolve which build entries to execute for the given target.
 
     Resolution order:
-    1. If target matches a build entry module name -> use that entry
+    1. If target matches a build entry module name (kebab or snake) -> use that entry
     2. If target matches a flow name in manifests -> find all unique images,
        match each to a build entry
     3. Error if no matches
     """
     resolved = build_entries
 
-    # Try matching by module name
+    # Try matching by module name (both kebab and snake forms)
     for entry in resolved:
-        if entry.get("module") == target:
+        module = entry.get("module", "")
+        if module in (target.name, target.function):
             return [entry]
 
     # Try matching by flow name (from compiled manifests)
     if asya_dir:
-        flow_images = _find_flow_images(target, asya_dir)
+        flow_images = _find_flow_images(target.name, asya_dir)
         if flow_images:
             matched = []
             for entry in resolved:
@@ -112,10 +114,10 @@ def _resolve_entries_for_target(
     # Try matching by image name substring
     for entry in resolved:
         entry_image = entry.get("image", "")
-        if target in entry_image:
+        if target.name in entry_image:
             return [entry]
 
-    click.echo(f"[-] No build entry found for target '{target}'", err=True)
+    click.echo(f"[-] No build entry found for target '{target.name}'", err=True)
     click.echo("[-] Available build entries:", err=True)
     for entry in resolved:
         click.echo(f"[-]   module: {entry.get('module', '?')}", err=True)
@@ -209,11 +211,11 @@ def _parse_arg_values(args: tuple[str, ...]) -> dict[str, str]:
 
 
 @click.command("build")
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--arg", "args", multiple=True, help="Build argument (key=value, repeatable)")
 @click.option("--push", is_flag=True, help="Push image to registry after build")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def build(target: str, args: tuple[str, ...], push: bool, verbose: bool) -> None:
+def build(target: AsyaRef, args: tuple[str, ...], push: bool, verbose: bool) -> None:
     """Build images for a flow or actor.
 
     TARGET is a module name from build config or a compiled flow name.

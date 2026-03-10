@@ -9,21 +9,10 @@ from pathlib import Path
 import click
 import yaml
 
+from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.compiler.templater import _Dumper
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 from asya_lab.config.project import AsyaProject
-
-
-def _resolve_flow_name(target: str) -> str:
-    """Derive flow name from target argument.
-
-    Accepts a kebab-case flow name or a .py file path.
-    """
-    if target.endswith(".py"):
-        name = Path(target).stem
-    else:
-        name = target
-    return name.replace("_", "-")
 
 
 def _load_project() -> AsyaProject:
@@ -195,7 +184,7 @@ CONFIGMAP_FILENAME = "configmap-flows.yaml"
 
 
 @click.command("expose")
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--description", "-d", required=True, help="Flow description")
 @click.option("--timeout", "-t", type=int, default=None, help="End-to-end timeout in seconds")
 @click.option(
@@ -241,7 +230,7 @@ def expose(
     if not enable_mcp and not enable_a2a:
         enable_mcp = True
 
-    flow_name = _resolve_flow_name(target)
+    flow_name = target.name
     project = _load_project()
     base_dir = _find_base_dir(project, flow_name)
     entrypoint = _find_entrypoint(base_dir)
@@ -279,13 +268,13 @@ def expose(
 
 
 @click.command("unexpose")
-@click.argument("target")
-def unexpose(target):
+@click.argument("target", type=ASYA_REF)
+def unexpose(target: AsyaRef):
     """Remove flow exposure from the gateway.
 
-    TARGET is a flow name in kebab-case or a .py file path.
+    TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
     """
-    flow_name = _resolve_flow_name(target)
+    flow_name = target.name
     project = _load_project()
     base_dir = _find_base_dir(project, flow_name)
 

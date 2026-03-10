@@ -14,7 +14,7 @@ def test_compile_help():
     result = runner.invoke(compile_cmd, ["--help"])
     assert result.exit_code == 0
     assert "TARGET" in result.output
-    assert "file.py" in result.output
+    assert "flow.py" in result.output
     assert "--flow" in result.output
     assert "--output-dir" in result.output
     assert "--plot" in result.output

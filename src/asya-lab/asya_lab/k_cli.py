@@ -13,6 +13,7 @@ from pathlib import Path
 import click
 import yaml
 
+from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.discovery import (
     BASE_DIR,
     COMMON_DIR,
@@ -144,13 +145,13 @@ def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
 
 
 @click.command()
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def apply(target: str, ctx: str, verbose: bool) -> None:
+def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     """Apply compiled manifests to a Kubernetes cluster.
 
-    TARGET is a compiled flow name in kebab-case.
+    TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
 
     Uses kustomize build piped to kubectl apply --server-side with
     per-flow field manager for safe, idempotent deploys.
@@ -158,10 +159,10 @@ def apply(target: str, ctx: str, verbose: bool) -> None:
     runner = KubeRunner(ctx)
     runner.check_readonly("apply")
 
-    manifests_dir = runner.find_manifests(target)
+    manifests_dir = runner.find_manifests(target.name)
     overlay = runner.resolve_overlay(manifests_dir)
 
-    field_manager = f"asya-flow-{target}"
+    field_manager = f"asya-flow-{target.name}"
 
     # kustomize build
     kustomize_cmd = ["kubectl", "kustomize", str(overlay)]
@@ -213,9 +214,9 @@ def apply(target: str, ctx: str, verbose: bool) -> None:
 
 
 @click.command()
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-def delete(target: str, ctx: str) -> None:
+def delete(target: AsyaRef, ctx: str) -> None:
     """Delete a deployed flow from the cluster.
 
     TARGET is the flow name. Deletes all resources with label asya.sh/flow=<name>.
@@ -223,7 +224,7 @@ def delete(target: str, ctx: str) -> None:
     runner = KubeRunner(ctx)
     runner.check_readonly("delete")
 
-    result = runner.kubectl("delete", "asyncactor", "-l", f"asya.sh/flow={target}")
+    result = runner.kubectl("delete", "asyncactor", "-l", f"asya.sh/flow={target.name}")
     if result.returncode != 0:
         sys.exit(result.returncode)
 
@@ -234,9 +235,9 @@ def delete(target: str, ctx: str) -> None:
 
 
 @click.command("status")
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-def k_status(target: str, ctx: str) -> None:
+def k_status(target: AsyaRef, ctx: str) -> None:
     """Show live cluster status for a deployed flow.
 
     TARGET is the flow name. Shows replicas, phase, and pod status.
@@ -247,7 +248,7 @@ def k_status(target: str, ctx: str) -> None:
         "get",
         "asyncactor",
         "-l",
-        f"asya.sh/flow={target}",
+        f"asya.sh/flow={target.name}",
         "-o",
         "wide",
         capture_output=True,
@@ -266,12 +267,12 @@ def k_status(target: str, ctx: str) -> None:
 
 
 @click.command()
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--follow", "-f", is_flag=True, help="Follow log output")
 @click.option("--tail", type=int, default=None, help="Number of lines to show from end")
 @click.option("--container", "-c", default="asya-runtime", help="Container name (default: asya-runtime)")
-def logs(target: str, ctx: str, follow: bool, tail: int | None, container: str) -> None:
+def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, container: str) -> None:
     """Stream logs for a deployed flow.
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
@@ -287,7 +288,7 @@ def logs(target: str, ctx: str, follow: bool, tail: int | None, container: str) 
     result = runner.kubectl(
         "logs",
         "-l",
-        f"asya.sh/flow={target}",
+        f"asya.sh/flow={target.name}",
         "-c",
         container,
         "--prefix",
@@ -323,8 +324,8 @@ _PATCH_TEMPLATE = """\
 
 
 @click.command()
-@click.argument("actor_name")
-def edit(actor_name: str) -> None:
+@click.argument("actor_name", type=ASYA_REF)
+def edit(actor_name: AsyaRef) -> None:
     """Open a kustomize patch for an actor in common/.
 
     Creates the patch file if it doesn't exist, then opens it in $EDITOR.
@@ -337,18 +338,19 @@ def edit(actor_name: str) -> None:
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)
 
-    target_flow = _find_flow_for_actor(manifests_dir, actor_name)
+    name = actor_name.name
+    target_flow = _find_flow_for_actor(manifests_dir, name)
 
     if not target_flow:
-        click.echo(f"[-] Actor '{actor_name}' not found in any compiled flow", err=True)
+        click.echo(f"[-] Actor '{name}' not found in any compiled flow", err=True)
         sys.exit(1)
 
     common_dir = manifests_dir / target_flow / COMMON_DIR
     common_dir.mkdir(parents=True, exist_ok=True)
 
-    patch_file = common_dir / f"patch-{actor_name}.yaml"
+    patch_file = common_dir / f"patch-{name}.yaml"
     if not patch_file.exists():
-        patch_file.write_text(_PATCH_TEMPLATE.format(actor_name=actor_name))
+        patch_file.write_text(_PATCH_TEMPLATE.format(actor_name=name))
         click.echo(f"[+] Created patch file: {patch_file}")
 
         # Ensure kustomization.yaml references this patch

@@ -2,31 +2,20 @@
 
 Unified entry point that dispatches to the appropriate compilation strategy
 based on the target argument:
-  - *.py file   -> compile flow from source (FlowCompiler + ManifestTemplater)
-  - dotted name -> compile single actor manifest
-  - kebab-case  -> recompile from existing manifests in .asya/
+  - *.py file (or file.py:function) -> compile flow from source
+  - kebab-case or snake_case name   -> recompile from existing manifests
 """
 
 from __future__ import annotations
 
-import re
 import sys
 from pathlib import Path
 
 import click
 
+from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.project import AsyaProject
 from asya_lab.flow import FlowCompileError, FlowCompiler
-
-
-def _is_dotted_target(target: str) -> bool:
-    """Target contains dots and is not a file path (e.g. module.Class.method)."""
-    return "." in target and not target.endswith(".py")
-
-
-def _is_kebab_case(target: str) -> bool:
-    """Target is a kebab-case name (e.g. order-processing)."""
-    return bool(re.fullmatch(r"[a-z][a-z0-9]*(-[a-z0-9]+)*", target))
 
 
 def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
@@ -105,38 +94,6 @@ def _compile_flow_file(
     _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
 
 
-def _compile_dotted_target(
-    target: str,
-    actor_name_override: str | None,
-    output_dir: str | None,
-    verbose: bool,
-) -> None:
-    """Compile a single actor manifest from a dotted module.Class.method reference."""
-    actor_name = actor_name_override or target.rsplit(".", 1)[-1].replace("_", "-")
-    if output_dir:
-        resolved_dir = Path(output_dir).resolve()
-    else:
-        from asya_lab.config.discovery import find_asya_dir
-
-        asya_dir = find_asya_dir(Path.cwd())
-        if asya_dir is None:
-            click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-            sys.exit(1)
-        project = AsyaProject.from_dir(asya_dir.parent)
-        resolved_dir = project.resolve_path("compiler.manifests")
-    resolved_dir.mkdir(parents=True, exist_ok=True)
-
-    click.echo(f"[+] Compiling single actor '{actor_name}' from {target}")
-    click.echo(f"[+] Output directory: {resolved_dir}")
-
-    if verbose:
-        click.echo(f"[.] Handler reference: {target}")
-        click.echo(f"[.] Actor name: {actor_name}")
-
-    click.echo(f"[!] Single-actor compilation from dotted target is not yet implemented: {target}", err=True)
-    sys.exit(1)
-
-
 def _recompile_kebab_target(
     target: str,
     output_dir: str | None,
@@ -167,9 +124,8 @@ def _recompile_kebab_target(
 
 
 @click.command("compile")
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--flow", "flow_name", default=None, help="Override flow name (kebab-case)")
-@click.option("--actor", "actor_name", default=None, help="Override actor name for single-actor compilation")
 @click.option("--output-dir", "-o", default=None, help="Override manifest output directory")
 @click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
 @click.option(
@@ -182,29 +138,23 @@ def _recompile_kebab_target(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", is_flag=True, help="Overwrite without checking git status")
-def compile_cmd(target, flow_name, actor_name, output_dir, plot, plot_format, verbose, force):
+def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
 
     \b
-      file.py              Compile flow from Python source
-      module.Class.method  Compile single actor manifest
+      flow.py              Compile flow from Python source
+      flow.py:my_flow      Compile specific flow function from file
       my-flow              Recompile from existing .asya/ manifests
     """
     try:
-        if target.endswith(".py") and Path(target).exists():
-            _compile_flow_file(target, flow_name, output_dir, plot, plot_format, verbose, force)
-        elif _is_dotted_target(target):
-            _compile_dotted_target(target, actor_name, output_dir, verbose)
-        elif _is_kebab_case(target):
-            _recompile_kebab_target(target, output_dir, verbose)
+        if target.source is not None:
+            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
         else:
-            click.echo(f"[-] Cannot resolve target: {target}", err=True)
-            click.echo("[-] Expected a .py file, dotted name, or kebab-case flow name", err=True)
-            sys.exit(1)
+            _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:
-        click.echo(f"[-] Compilation failed for {target}\n", err=True)
+        click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
         click.echo(str(e), err=True)
         sys.exit(1)
     except (FileNotFoundError, ValueError) as e:
