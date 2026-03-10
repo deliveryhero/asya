@@ -132,7 +132,7 @@ spec:
 
 **What happens**:
 1. Operator creates queue `asya-text-classifier`
-2. Operator injects sidecar for message routing
+2. Crossplane composition renders pod spec with sidecar for message routing
 3. KEDA monitors queue depth, scales 0→100 pods
 4. Sidecar routes messages: Queue → Unix socket → Your code → Next queue
 
@@ -145,7 +145,7 @@ spec:
 ## Architecture
 
 Asya uses a **sidecar pattern** for message routing:
-- **Operator** watches AsyncActor CRDs, injects sidecars, configures KEDA
+- **Operator** (Crossplane) watches AsyncActor CRDs, renders full pod spec with sidecar, configures KEDA
 - **Sidecar** handles queue consumption, routing, retries (Go)
 - **Runtime** executes your Python handler via Unix socket
 - **Gateway** (optional) provides MCP HTTP API for task submission and SSE streaming
