@@ -688,6 +688,12 @@ resources: "${dynamic:resources}"
 
 ### 7.3.3 Kustomize Layer Output
 
+**Constraint**: Stamped manifests are real K8s resources consumed by kustomize.
+They MUST NOT contain unresolved OmegaConf interpolations (`${var.*}`,
+`${dynamic:*}`, `${arg:*}`). All interpolations are resolved at compile time
+by the stamper. If a value cannot be resolved, the compiler must fail fast
+rather than emit a broken manifest.
+
 The compiler generates `kustomization.yaml` for each layer using the
 kustomization template. Templates are stamped once per flow, then updated on
 subsequent compiles/edits.

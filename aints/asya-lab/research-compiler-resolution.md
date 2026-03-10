@@ -805,6 +805,10 @@ converts to K8s names for all output. `spec.handler` keeps the Python form.
 
 ### 3.9 Compile and Output Configuration
 
+**Constraint**: Stamped manifests are real K8s resources consumed by kustomize.
+They MUST NOT contain unresolved OmegaConf interpolations (`${var.*}`,
+`${dynamic:*}`, `${arg:*}`). All values are resolved at compile time.
+
 Compilation produces BOTH router code and deployment files in a single stage.
 There is no separate template stage.
 
