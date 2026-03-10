@@ -857,14 +857,9 @@ See `research-compiler-knowledge-base.md`.
 
 - **OmegaConf is a real dependency**: Not "inspired by" — the library is used
   directly. OmegaConf handles interpolation (relative refs, lazy resolution),
-  custom resolvers (`arg:`, `dynamic:`, `env:`), and merge with
-  `ListMergeMode.EXTEND` for list concatenation. Asya adds: walk-up file
-  discovery, directory-to-key convention, semantic validation.
-- **Directory-to-key convention**: directories under `.asya/` that match a
-  root config key have their contents recursively merged. Files become
-  sub-keys. Example: `.asya/compiler/rules.yaml` → `compiler.rules`.
-  Important scalars stay in `config.yaml`; complex structures offload to
-  directories when they grow.
+  custom resolvers (`arg:`, `env:`), and merge with `ListMergeMode.EXTEND` for
+  list concatenation. Asya adds: walk-up file discovery, filename-to-key
+  convention (`config.<section>.yaml`), semantic validation.
 - **Build context follows Python packages, not actors**: Multiple actors can
   share one image if their handlers come from the same package.
 - **Build commands are opaque**: Asya is a thin command runner, not a build
@@ -878,9 +873,10 @@ See `research-compiler-knowledge-base.md`.
   Duplicate list entries (same key field, e.g. `module:`) are an error by
   default. A child entry can explicitly replace a parent entry by setting
   `override: true` — without the marker, duplicates are caught at compile time.
-- **Three resolver families**: `${var.*}` for config constants (native
-  OmegaConf), `${arg:*}` / `${dynamic:*}` / `${env:*}` for external values
-  (custom resolvers). Dot = in config, colon = injected.
+- **Two resolver families**: `${templates.*}` / `${compiler.*}` for config
+  constants (native OmegaConf), and `${arg:*}` / `${env:*}` for external values
+  (custom resolvers). Dot = in config, colon = injected. `${dynamic:*}` is
+  removed — config is always fully resolved at load time.
 - **Template vs overlays**: Same as XRD merge — overlays applied first (in
   order, last wins), then template body applies on top. Template values are
   the user's explicit intent and override overlay defaults.
@@ -892,13 +888,12 @@ See `research-compiler-knowledge-base.md`.
   with `--field-manager=asya-flow-<name>`. This allows multiple flows to
   contribute data keys to the shared `gateway-flows` ConfigMap without conflicts.
   Since asya fully manages kubectl, mixed apply mode risks don't apply.
-- **`project_root: "."`**: Auto-resolved to absolute path at config load time
-  (relative to config file's parent directory). OmegaConf has no shell command
-  support — `"."` resolution is done by the config loader before merge.
 
-> **Full design**: `research-compiler-resolution.md` (sections 2-3: `.asya/`
-> directory, config schema, walk-up merge, variable interpolation, output
-> modes, `asya init`).
+> **Full design**: `refactor-config-with-templates.md` (config & template system
+> refactor: `{{ key }}` templates, two resolver families, filename-to-key
+> convention, `TemplateContext` dataclass) and `research-compiler-resolution.md`
+> (sections 2-3: `.asya/` directory, config schema, walk-up merge, variable
+> interpolation, output modes, `asya init`).
 
 ---
 
@@ -933,19 +928,20 @@ AsyncActor XR manifests (`base/*.yaml`). Both are read-only and regenerated
 on recompile.
 
 **`asya compile flows/order.py`:**
-1. Load `.asya/config.yaml` + `.asya/compiler/` → merged OmegaConf config
+1. Load `.asya/config.yaml` + `.asya/config.compiler.rules.yaml` → merged OmegaConf config
 2. Parse flow AST → extract handler names
 3. Apply rules (treat-as classification, config extraction)
 4. Group into routers → Router IR
 5. For each actor: resolve handler → module → build entry → image,
-   set `dynamic:*` values, stamp `compiler.templates.actor` → write to `base/`
-6. Stamp layer kustomization templates → write `kustomization.yaml` per layer
+   build template context (TemplateContext + config `templates.*` + CLI args),
+   stamp `{{ key }}` template (`actor.yaml` or `router.yaml`) → write to `base/`
+6. Stamp `{{ key }}` template for `kustomization.yaml` per layer
 7. Generate `routers.py` → write to `compiler.routers` path
 
 **`asya compile --handler e_commerce.validate.validate_order`:**
-1. Load `.asya/config.yaml` + `.asya/compiler/` → merged OmegaConf config
+1. Load `.asya/config.yaml` + `.asya/config.compiler.rules.yaml` → merged OmegaConf config
 2. Resolve handler → module → build entry → image
-3. Set `dynamic:*` values, stamp `compiler.templates.actor` → write to `base/`
+3. Build template context, stamp `{{ key }}` template (`actor.yaml`) → write to `base/`
 
 Same resolution code. Flow compile adds AST parsing + router generation.
 

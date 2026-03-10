@@ -1,9 +1,4 @@
----
-title: "Restructure XRD: flatten spec, simplify flavor merge to ~30 LOC"
-priority: 2 # medium
-dependencies:
-  - u5pd
----
+# Restructure XRD: flatten spec, simplify flavor merge to ~30 LOC
 
 ## Summary
 

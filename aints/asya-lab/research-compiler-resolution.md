@@ -47,13 +47,14 @@ subdirectory creates a sub-project (useful for monorepos with team boundaries).
 ```
 my-project/
 ├── .asya/                        # Project root
-│   ├── config.yaml               # root: var, build, compiler, secrets, contexts
-│   ├── compiler/                 # → auto-merged under compiler: key
-│   │   ├── rules.yaml            # → compiler.rules (treat-as rules)
-│   │   └── templates/            # → compiler.templates
-│   │       ├── actor.yaml        # → compiler.templates.actor (AsyncActor CRD)
-│   │       ├── configmap_routers.yaml  # → compiler.templates.configmap_routers
-│   │       └── kustomization.yaml     # → compiler.templates.kustomization
+│   ├── config.yaml               # root: templates, build, compiler, secrets, contexts
+│   ├── config.compiler.rules.yaml  # Filename-to-key: compiler.rules (treat-as rules)
+│   ├── compiler/
+│   │   └── templates/            # Template files (NOT in config tree)
+│   │       ├── actor.yaml        # Handler actor template ({{ key }} syntax)
+│   │       ├── router.yaml       # Router actor template ({{ key }} syntax)
+│   │       ├── configmap_routers.yaml  # ConfigMap template
+│   │       └── kustomization.yaml     # Kustomization template
 │   └── manifests/                # Generated K8s manifests
 │       ├── actors/               # Single-actor manifests
 │       │   ├── file-creator.yaml
@@ -78,17 +79,18 @@ my-project/
 
 ### 2.2 Manifest Output Location
 
-Output path is configurable via `compile.manifests` in config.yaml (default:
+Output path is configurable via `compiler.manifests` in config.yaml (default:
 `.asya/manifests`). The compiler creates the directory structure on first
 `asya compile` invocation — `asya init` does NOT create it.
 
 ```yaml
-compile:
-  manifests: ".asya/manifests/${dynamic:flow}"   # relative to config.yaml's directory
+compiler:
+  manifests: ".asya/manifests"   # Base directory, relative to project root
 ```
 
-The compiler creates `actors/` and `flows/<flow-name>/` subdirectories
-under the output path as needed:
+The compiler appends flow-specific subdirectories in code:
+`config.resolve_path("compiler.manifests") / flow_name`. The `actors/` and
+`flows/<flow-name>/` subdirectories are created as needed:
 
 ```
 asya compile src/team-a/flows/order.py
@@ -108,19 +110,15 @@ CLI collects all `.asya/config*.yaml` files from CWD (or flow file location)
 up to the repo root (`.git/`), then merges them root-first. Like `.gitignore`
 -- just place a file and it participates.
 
-**Directory-to-key convention**: directories under `.asya/` that match a root
-config key have their contents recursively merged under that key. Files become
-sub-keys (filename stem = key). Subdirectories create nested keys.
+**Filename-to-key with dotted sections**: Files named `config.<section>.yaml`
+are merged under the `<section>:` key, with dotted sections creating nested
+structure. `config.yaml` itself is the root. Templates and other subdirectories
+(`.asya/compiler/templates/`, `.asya/compose/`) are NOT loaded into the config
+tree.
 
 - `.asya/config.yaml` — root keys (always loaded)
-- `.asya/compiler/rules.yaml` → `compiler.rules` in merged config
-- `.asya/compiler/templates/actor.yaml` → `compiler.templates.actor`
-- `.asya/compiler/templates/configmap_routers.yaml` → `compiler.templates.configmap_routers`
-- `.asya/compiler/templates/kustomization.yaml` → `compiler.templates.kustomization`
-
-Legacy flat-file convention (still supported): files named
-`config.<section>.yaml` have their content placed under `<section>:` key.
-`config.yaml` itself is the root.
+- `.asya/config.compiler.rules.yaml` → `compiler.rules` in merged config
+- `.asya/compiler/templates/*.yaml` — template files, NOT in config tree
 
 **Algorithm**:
 ```python
@@ -151,9 +149,16 @@ def load_asya_dir(asya_dir: Path) -> DictConfig:
         if f.name == "config.yaml":
             result = OmegaConf.merge(result, cfg)
         else:
-            # config.template.yaml → template: key
+            # config.compiler.rules.yaml → compiler.rules
+            # Dotted sections create nested structure
             section = f.name.removeprefix("config.").removesuffix(".yaml")
-            result[section] = cfg
+            keys = section.split(".")
+            target = result
+            for key in keys[:-1]:
+                if key not in target:
+                    target[key] = OmegaConf.create({})
+                target = target[key]
+            target[keys[-1]] = cfg
     return result
 ```
 
@@ -184,7 +189,7 @@ default. No last-writer-wins, no silent override.
 | List | Key field | Fallback key |
 |------|-----------|--------------|
 | `build:` | `module:` | `path:` (for entries without `module:`, e.g. standalone scripts) |
-| `compile.rules:` | `match:` | — |
+| `compiler.rules:` | `match:` | — |
 
 ```
 Error: duplicate build entry matching module 'langchain'
@@ -208,7 +213,7 @@ build:
 This keeps the default behavior safe (accidental duplicates are caught) while
 enabling monorepo teams to intentionally diverge from root configuration.
 The `override: true` marker applies to all list types (`build:`,
-`compile.rules:`) — any entry with a key field supports it.
+`compiler.rules:`) — any entry with a key field supports it.
 
 **Debuggability of overrides** (dicts DO deep-merge, child wins):
 verbose output traces the merge chain for every overridden value:
@@ -223,18 +228,20 @@ verbose output traces the merge chain for every overridden value:
 **Correctness requirements** for merge + interpolation:
 1. **Resolve `./` paths BEFORE merge**: Each config's `./` relative paths
    must be resolved to absolute using that config file's directory as base.
-   After merge, the source file info is lost.
-2. **Interpolation resolves AFTER merge**: `var.*` config references
+   After merge, the source file info is lost. The config loader handles
+   this automatically — `./` paths are relative to the project root
+   (parent of `.asya/`).
+2. **Interpolation resolves AFTER merge**: `templates.*` config references
    resolve lazily after the full effective config is assembled. This is
-   why a child config can reference `${var.project_root}` even though it's
+   why a child config can reference `${templates.namespace}` even though it's
    only defined in the root config. OmegaConf's lazy resolution makes
    this work.
-3. **Colon resolvers (`${arg:*}`, `${dynamic:*}`, `${env:*}`) resolve at
-   command time**: After merge and after `var.*` resolution. Missing
-   `arg` values are a hard error (no defaults). `${dynamic:*}` values are
-   populated by the compiler — they are unavailable outside compile context.
-4. **Root config MUST define `var:` constants**: Constants like
-   `var.project_root`, `var.image_registry` are auto-generated by `asya init` in
+3. **Colon resolvers (`${arg:*}`, `${env:*}`) resolve at command time**:
+   After merge and after `templates.*` resolution. Missing `arg` values
+   are a hard error (no defaults). Config is always fully resolved at
+   load time — no two-phase initialization.
+4. **Root config MUST define `templates:` constants**: Constants like
+   `templates.namespace`, `templates.transport` are auto-generated by `asya init` in
    the root config.yaml. If a referenced key is missing, OmegaConf will
    fail on the interpolation -- this is correct fail-fast behavior.
 5. **The OmegaConf/CLI layer is purely syntactic**: It performs
@@ -247,16 +254,21 @@ verbose output traces the merge chain for every overridden value:
 
 ```yaml
 # /.asya/config.yaml (root, platform engineers)
-var:
-  project_root: "."                       # resolved to repo root at load time
+templates:
+  namespace: default
+  transport: sqs
+  router_image: "python:3.13-slim"
+  max_replicas: 5
+
+compiler:
   image_registry: ghcr.io/org
 
 build:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    path: "${var.project_root}/libs/shared_utils"
-    image: "${var.image_registry}/shared:${arg:tag}"
+    path: "./libs/shared_utils"
+    image: "${compiler.image_registry}/shared:${arg:tag}"
     command: "docker build -t ${.image} ."
 ```
 
@@ -266,22 +278,14 @@ build:
 
 build:
   - module: e_commerce
-    path: "./e_commerce"           # relative to THIS file
-    image: "${var.image_registry}/ecom:${arg:tag}"
+    path: "./e_commerce"           # relative to project root
+    image: "${compiler.image_registry}/ecom:${arg:tag}"
     command: "docker build -t ${.image} ."
 ```
 
-**Path resolution**: Two styles coexist for the `path:` field:
-- **`${var.project_root}/...`** -- repo-root-relative via interpolation.
-  Stays as interpolation reference through merge, resolved lazily at use
-  time. Portable across machines.
-- **`./...`** -- file-relative, resolved to absolute before merge (necessary
-  because source file info is lost after merge).
-
-`var.project_root` is defined as `"."` under `var:` in the root config.yaml.
-Since the root config lives next to `.git/`, `"."` resolves to the repo root.
-Teams inherit it via walk-up merge and can reference it as
-`${var.project_root}/path`.
+**Path resolution**: All `./` paths in config are resolved relative to the
+project root (parent of `.asya/`) by the config loader. This is automatic —
+no explicit `project_root` variable needed.
 
 ```
 # Example: running from src/team-a/flows/
@@ -290,18 +294,22 @@ Teams inherit it via walk-up merge and can reference it as
 #   1. /.asya/config.yaml           (root)
 #   2. src/team-a/.asya/config.yaml (local)
 #
-# Path resolution:
-#   Root:   var.project_root: "."  →  resolved to /repo at load time
-#   Root:   path: "${var.project_root}/libs/shared"  →  stays as interpolation
-#   Team-A: path: "./e_commerce"  →  resolved to /repo/src/team-a/e_commerce
+# Path resolution (all ./ relative to project root):
+#   Root:   path: "./libs/shared"  →  resolved to /repo/libs/shared
+#   Team-A: path: "./e_commerce"   →  resolved to /repo/e_commerce
 #
 # Recursive merge (build list concatenated, root first):
 ```
 
 **Effective config for team-a** (after walk-up merge):
 ```yaml
-var:
-  project_root: "/repo"              # resolved from root's "." (scalar: child wins)
+templates:
+  namespace: default                 # from root
+  transport: sqs                     # from root
+  router_image: "python:3.13-slim"   # from root
+  max_replicas: 5                    # from root
+
+compiler:
   image_registry: ghcr.io/org        # from root
 
 build:
@@ -309,14 +317,14 @@ build:
   - module: langchain
     image: "ghcr.io/third-party/langchain:v2"
   - module: shared_utils
-    path: "${var.project_root}/libs/shared_utils"   # portable interpolation
-    image: "${var.image_registry}/shared:${arg:tag}"
+    path: "/repo/libs/shared_utils"  # resolved from root's "./libs/shared_utils"
+    image: "${compiler.image_registry}/shared:${arg:tag}"
     command: "docker build -t ${.image} ."
 
   # From team-a (appended after root):
   - module: e_commerce
-    path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
-    image: "${var.image_registry}/ecom:${arg:tag}"
+    path: "/repo/e_commerce"         # resolved from team-a's "./e_commerce"
+    image: "${compiler.image_registry}/ecom:${arg:tag}"
     command: "docker build -t ${.image} ."
 ```
 
@@ -345,23 +353,25 @@ versions.
 
 ```
 .asya/
-├── config.yaml               # root: var, build, compiler, secrets, contexts
-└── compiler/                  # → auto-merged under compiler: key
-    ├── rules.yaml             # → compiler.rules (treat-as rules)
-    └── templates/             # → compiler.templates
-        ├── actor.yaml         # → compiler.templates.actor (AsyncActor CRD)
-        ├── configmap_routers.yaml  # → compiler.templates.configmap_routers
-        └── kustomization.yaml     # → compiler.templates.kustomization
+├── config.yaml               # root: templates, build, compiler, secrets, contexts
+├── config.compiler.rules.yaml  # Filename-to-key: compiler.rules (treat-as rules)
+└── compiler/
+    └── templates/             # Template files (NOT in config tree)
+        ├── actor.yaml         # Handler actor template ({{ key }} syntax)
+        ├── router.yaml        # Router actor template ({{ key }} syntax)
+        ├── configmap_routers.yaml
+        └── kustomization.yaml
 ```
 
 With `--template <name>`:
 ```
 .asya/
 ├── config.yaml
+├── config.compiler.rules.yaml
 └── compiler/
-    ├── rules.yaml
     └── templates/
         ├── actor.yaml
+        ├── router.yaml
         ├── configmap_routers.yaml
         └── kustomization.yaml
 flows/                          # generated by template
@@ -395,68 +405,90 @@ in the repo before compilation has ever run.
 # Asya project configuration
 # Docs: https://asya.sh/docs/config
 
-var:
-  project_root: "."
-  image_registry: ghcr.io/OWNER    # TODO: set your registry
+templates:
   namespace: default               # TODO: set your namespace
+  transport: sqs                   # or: nats, memory
   router_image: python:3.13-slim
+  max_replicas: 5
+
+compiler:
+  image_registry: ghcr.io/OWNER    # TODO: set your registry
+  routers: "./compiled"             # Base directory for router code
+  manifests: ".asya/manifests"      # Base directory for generated manifests
 
 build: []
   # - module: my_package
-  #   path: "${var.project_root}/src/my-package"
-  #   image: "${var.image_registry}/my-package:${arg:tag}"
+  #   path: "./src/my-package"
+  #   image: "${compiler.image_registry}/my-package:${arg:tag}"
   #   command: "docker build -t ${.image} ."
-
-compile:
-  mode: manifests
-  routers: "./src/compiled/${dynamic:flow}"
-  manifests: ".asya/manifests/${dynamic:flow}"
 
 # contexts: {}
   # stg:
   #   kubecontext: my-stg-cluster   # TODO: set your kubeconfig context
-  #   namespace: "${var.namespace}"
+  #   namespace: "${templates.namespace}"
   # NOTE: contexts are K8s-only. Docker Compose uses `asya d up` (no context).
 
 # default_context: stg
 ```
 
-**Generated `config.template.yaml`** (full AsyncActor CRD, works out of the
-box — DS does not need to edit for basic flows):
+**Generated template files** (full AsyncActor CRD templates using `{{ key }}`
+syntax, work out of the box — DS does not need to edit for basic flows):
 
+`.asya/compiler/templates/actor.yaml` (handler actors):
 ```yaml
-# .asya/config.template.yaml
-# AsyncActor manifest template — ${dynamic:*} holes filled by compiler
+# AsyncActor manifest template for user handler actors
+# {{ key }} placeholders filled by stamper via regex substitution
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: "${dynamic:actor}"
-  namespace: "${var.namespace}"
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
 spec:
-  actor: "${dynamic:actor}"
-  transport: "${var.transport}"
+  actor: "{{ actor_name }}"
+  image: "{{ image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicas: 0
-    maxReplicas: "${arg:max_replicas,5}"
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: "${dynamic:image}"
-          env: "${dynamic:env}"
+    maxReplicas: "{{ max_replicas }}"
+```
+
+`.asya/compiler/templates/router.yaml` (compiler-generated routers):
+```yaml
+# AsyncActor manifest template for router actors
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
+spec:
+  actor: "{{ actor_name }}"
+  image: "{{ router_image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
+  scaling:
+    enabled: true
+    minReplicas: 0
+    maxReplicas: 2
 ```
 
 **Design decisions**:
 - **Copier scaffolding**: Template bundled with `asya-cli`. Copier enables
   future schema migrations via `copier update`. No interactive prompts by
   default.
-- **Full template out of the box**: `config.template.yaml` ships with the
-  complete AsyncActor CRD so `asya compile` works immediately after
-  init. DS never needs to edit `${dynamic:*}` holes — they are filled by
-  the compiler.
+- **Full templates out of the box**: Templates ship with complete AsyncActor
+  CRDs so `asya compile` works immediately after init. DS never needs to edit
+  `{{ key }}` placeholders — they are filled by the stamper.
+- **Two actor templates**: `actor.yaml` for handler actors (uses `{{ image }}`
+  from build config), `router.yaml` for compiler-generated routers (uses
+  `{{ router_image }}` from templates section).
 - **Contexts commented out**: `contexts:` section is present but commented
   out. Commands that need a context fail-fast with a helpful error pointing
   to the config. DS configures contexts when ready to deploy.
@@ -464,7 +496,7 @@ spec:
   templates available (minimal, full, agentic-minimal, agentic-full).
   Extensible — new templates added without CLI changes.
 - **Manifests created on first compile**: Output directory
-  (`compile.manifests`) is created on first `asya compile` invocation, not
+  (`compiler.manifests`) is created on first `asya compile` invocation, not
   init. Keeps the repo clean until compilation actually runs.
 - **Fully git-tracked**: No `.gitignore` inside `.asya/`. Everything is
   committed — config is source of truth, manifests are required for GitOps.
@@ -511,22 +543,28 @@ and produce errors.
 # .asya/config.yaml
 # Ancestor configs are auto-discovered via walk-up merge
 
-var:
-  project_root: "."                         # resolved to repo root at load time
-  image_registry: ghcr.io/org
+templates:
+  namespace: default
+  transport: sqs
   router_image: python:3.13-slim           # base image for generated router actors
+  max_replicas: 5
+
+compiler:
+  image_registry: ghcr.io/org
+  routers: "./compiled"
+  manifests: ".asya/manifests"
 
 build:
   # Python package → image + build commands
   - module: e_commerce
-    path: "${var.project_root}/src/e-commerce-package"
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
+    path: "./src/e-commerce-package"
+    image: "${compiler.image_registry}/e-commerce:${arg:tag}"
     command: "docker build -t ${.image} ."
 
   # GPU model with apko
   - module: gpu_models
-    path: "${var.project_root}/src/gpu-models"
-    image: "${var.image_registry}/gpu-models:${arg:tag}"
+    path: "./src/gpu-models"
+    image: "${compiler.image_registry}/gpu-models:${arg:tag}"
     command: "apko build apko.yaml ${.image}"
     # shipwright: buildpacks-v3  # future: on-cluster build
 
@@ -537,7 +575,7 @@ build:
 
   # Dirty DS scripts (no module - just filesystem path)
   - path: "./src/notebooks/models"
-    image: "${var.image_registry}/notebook-models:${arg:tag}"
+    image: "${compiler.image_registry}/notebook-models:${arg:tag}"
     command: "docker build -t ${.image} ."
 ```
 
@@ -561,9 +599,9 @@ serves as the merge key for walk-up list union (section 2.3).
 `e_commerce.models.LargeModel` both exist, a handler
 `e_commerce.models.LargeModel.predict` matches the more specific entry.
 
-**`path:`** -- directory where the build command runs (CWD). Relative paths
-are resolved to absolute before merge. Can use `${var.project_root}/...` for
-repo-root-relative paths (stays as interpolation through merge).
+**`path:`** -- directory where the build command runs (CWD). All `./` relative
+paths are resolved relative to the project root (parent of `.asya/`) by the
+config loader. This is automatic — no explicit variable needed.
 
 **`image:`** -- OCI image reference template with interpolation.
 
@@ -582,10 +620,9 @@ with dotted path traversal:
 
 | Syntax | Meaning | Example |
 |--------|---------|---------|
-| `${path.to.key}` | Absolute path from config root | `${var.image_registry}` |
+| `${path.to.key}` | Absolute path from config root | `${templates.namespace}` |
 | `${.sibling}` | Sibling reference within the same list item | `${.image}` (from `command` to entry's `image`) |
 | `${arg:name}` | CLI `--arg` or `ASYA_ARG_NAME` env var | `${arg:tag}` |
-| `${dynamic:key}` | Compiler-inferred value (colon resolver) | `${dynamic:actor}` |
 | `${env:VAR}` | Raw environment variable | `${env:HOME}` |
 | `${env:VAR,default}` | Env var with fallback | `${env:REGISTRY,ghcr.io/org}` |
 
@@ -595,47 +632,44 @@ mechanism — not custom syntax:
 
 - **Dot** (`${path.to.key}`) — walks the config tree. OmegaConf built-in.
 - **Colon** (`${resolver:key}`) — calls a registered resolver function.
-  OmegaConf built-in for `env:`, Asya registers `arg:` and `dynamic:`.
+  OmegaConf built-in for `env:`, Asya registers `arg:`.
 
 ```python
-# Asya registers two custom resolvers at startup:
+# Asya registers one custom resolver at startup:
 OmegaConf.register_new_resolver("arg", lambda key: cli_args[key])
-OmegaConf.register_new_resolver("dynamic", lambda key: dynamic_values[key])
 # OmegaConf already provides: ${env:VAR} (oc.env)
 ```
 
-**Resolution order**: `var.*` config references (`${var.key}`, `${.sibling}`)
-are resolved first. Then `${arg:*}`, `${dynamic:*}`, and `${env:*}` are
-resolved at command time.
+**Resolution order**: `templates.*` config references (`${templates.key}`, `${.sibling}`)
+are resolved first. Then `${arg:*}` and `${env:*}` are resolved at command time.
+Config is always fully resolved at load time — no two-phase initialization.
 
-**Three namespaces**:
-- `var.*` keys -- static values defined in config under `var:`. Inherited by
+**Two namespaces**:
+- `templates.*` keys -- static values defined in config under `templates:`. Inherited by
   child configs via walk-up merge. Typically set once in the root config.yaml.
+  These values are available as `{{ key }}` in template files.
 - `${arg:*}` -- runtime values from CLI flags or env vars. No config-level
   definition — they exist only at runtime.
-- `${dynamic:*}` -- values inferred by the compiler at compile time. Not
-  user-settable — populated by `asya compile`.
-  Available keys: `actor`, `image`, `handler`, `env`.
 
 **Three override mechanisms** (all generic, zero Asya knowledge):
 
 | Mechanism | Example | Scope |
 |-----------|---------|-------|
-| CLI flag | `--arg tag=v1`, `--set var.image_registry=x` | Single command |
-| `ASYA_*` env var | `ASYA_ARG_TAG=v1`, `ASYA_VAR_IMAGE_REGISTRY=x` | Shell session |
-| Config file (`var:`) | `var: { image_registry: ghcr.io/org }` | Project-wide |
+| CLI flag | `--arg tag=v1`, `--set templates.namespace=x` | Single command |
+| `ASYA_*` env var | `ASYA_ARG_TAG=v1`, `ASYA_TEMPLATES_NAMESPACE=x` | Shell session |
+| Config file (`templates:`) | `templates: { namespace: default }` | Project-wide |
 
 **Env var naming convention**: `ASYA_<NAMESPACE>_<KEY>` where
-namespace is `ARG` for runtime args or `VAR` for config constants, key is
+namespace is `ARG` for runtime args or `TEMPLATES` for template constants, key is
 UPPER_SNAKE_CASE of the config key.
 ```bash
 # These are equivalent:
 asya build foo --arg tag=v1
 ASYA_ARG_TAG=v1 asya build foo
 
-# Override a var constant from env (useful in CI):
-export ASYA_VAR_IMAGE_REGISTRY=my-registry.io
-asya build foo --arg tag=v1
+# Override a template constant from env (useful in CI):
+export ASYA_TEMPLATES_NAMESPACE=production
+asya compile foo.flow.py
 ```
 
 **Precedence** (highest wins):
@@ -665,8 +699,7 @@ if any interpolation remains unresolved. This applies to ALL resolver types:
 
 | Resolver | Compile | Build | Deploy |
 |----------|---------|-------|--------|
-| `${var.*}` | Resolved | Resolved | N/A |
-| `${dynamic:*}` | Resolved | N/A | N/A |
+| `${templates.*}` | Resolved | Resolved | N/A |
 | `${arg:*}` | **Pass-through if missing** | Fail if missing | Fail if missing |
 | `${env:*}` | Resolved | Resolved | Resolved |
 
@@ -677,21 +710,17 @@ Error: unresolved interpolation '${arg:tag}'
   hint: pass --arg tag=<value> or set ASYA_ARG_TAG
 ```
 
-An unresolved `${dynamic:*}` in a manifest indicates a compiler bug — deploy
-must still fail-fast rather than silently producing broken YAML.
-
 **Example resolution**:
 ```yaml
-var:
-  project_root: "."
+compiler:
   image_registry: ghcr.io/org
 
 build:
   - module: e_commerce
-    path: "${var.project_root}/src/e-commerce"
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
-  #       ^^^^^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from var)
-  #                                                  ^^^^^^^^^^^ → v1  (from --arg)
+    path: "./src/e-commerce"
+    image: "${compiler.image_registry}/e-commerce:${arg:tag}"
+  #       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from compiler)
+  #                                                      ^^^^^^^^^^^ → v1  (from --arg)
   # Final: ghcr.io/org/e-commerce:v1
   command: "docker build -t ${.image} ."
   #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
@@ -725,24 +754,25 @@ Router actors use generated code (`routers.py`). They don't have their own
 Python package — the compiler generates them. They need a base image to run
 on.
 
-**Design**: `var.router_image` in the root config.yaml specifies the default
+**Design**: `templates.router_image` in the root config.yaml specifies the default
 base image for all generated actors. Router code is injected via ConfigMap
 (same mechanism as `asya_runtime.py`), so no custom build step is needed.
 
 ```yaml
-var:
-  project_root: "."
-  image_registry: ghcr.io/org
+templates:
+  namespace: default
+  transport: sqs
   router_image: python:3.13-slim       # base image for generated router actors
+  max_replicas: 5
 ```
 
-The compiler generates router manifests referencing `${var.router_image}`.
-Since router code is small (a few KB of Python), ConfigMap injection is
-sufficient.
+The compiler generates router manifests using the `router.yaml` template,
+which references `{{ router_image }}`. Since router code is small (a few KB
+of Python), ConfigMap injection is sufficient.
 
 If routers need additional Python dependencies (e.g., for custom condition
 evaluation), users can:
-1. Set `var.router_image` to a custom image with dependencies pre-installed
+1. Set `templates.router_image` to a custom image with dependencies pre-installed
 2. Or add a `build` entry for it and build it explicitly
 
 ### 3.7 Schema Validation (Two Levels)
@@ -760,7 +790,7 @@ Validation happens at two layers, matching the three-layer architecture
 Error: unresolved interpolation '${registy}'
   in: .asya/config.yaml:7
   build[0].image = "${registy}/e-commerce:${arg:tag}"
-  hint: did you mean '${var.image_registry}'?
+  hint: did you mean '${compiler.image_registry}'?
 ```
 
 **Level 2 — Asya (semantic)**:
@@ -770,7 +800,7 @@ Error: unresolved interpolation '${registy}'
 - Image references in manifests resolve to a `build` entry (at compile time)
 - **Duplicate detection in concatenated lists**: after walk-up merge
   concatenates lists (section 2.3), the Asya layer checks for duplicate keys
-  (`module:` or `path:` for `build:`, `match:` for `compile.rules:`).
+  (`module:` or `path:` for `build:`, `match:` for `compiler.rules:`).
   Duplicate = error with source file locations. No last-writer-wins.
 
 ```
@@ -795,8 +825,8 @@ Two naming domains exist:
 
 | Domain | Convention | Examples | Used in |
 |--------|-----------|----------|---------|
-| **Python function** | underscores | `my_flow`, `handler_a` | Source code, `spec.handler`, router functions, `${dynamic:flow_function}` |
-| **K8s / Asya** | hyphens | `my-flow`, `handler-a` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `${dynamic:flow}` |
+| **Python function** | underscores | `my_flow`, `handler_a` | Source code, `spec.handler`, router functions, `{{ flow_function }}` |
+| **K8s / Asya** | hyphens | `my-flow`, `handler-a` | `metadata.name`, `asya.sh/flow` label, filenames, ConfigMap names, `{{ flow_name }}` |
 
 **Conversion**: `_` → `-`. The compiler works with function names. The stamper
 converts to K8s names for all output. `spec.handler` keeps the Python form.
@@ -806,94 +836,101 @@ converts to K8s names for all output. `spec.handler` keeps the Python form.
 ### 3.9 Compile and Output Configuration
 
 **Constraint**: Stamped manifests are real K8s resources consumed by kustomize.
-They MUST NOT contain unresolved OmegaConf interpolations (`${var.*}`,
-`${dynamic:*}`, `${arg:*}`). All values are resolved at compile time.
+They MUST NOT contain unresolved interpolations. All values are resolved at
+compile time.
 
 Compilation produces BOTH router code and deployment files in a single stage.
 There is no separate template stage.
 
 | File path | Config key | What it configures |
 |-----------|-----------|-------------------|
-| `config.yaml` | (root) | `var:`, `build:`, `compiler:` |
-| `compiler/rules.yaml` | `compiler.rules` | Treat-as rules for AST analysis |
-| `compiler/templates/actor.yaml` | `compiler.templates.actor` | AsyncActor manifest with `${dynamic:*}` holes |
-| `compiler/templates/configmap_routers.yaml` | `compiler.templates.configmap_routers` | Router code ConfigMap template |
-| `compiler/templates/kustomization.yaml` | `compiler.templates.kustomization` | Kustomization template for all layers |
+| `config.yaml` | (root) | `templates:`, `build:`, `compiler:` |
+| `config.compiler.rules.yaml` | `compiler.rules` | Treat-as rules for AST analysis |
+| `compiler/templates/actor.yaml` | (NOT in config) | Handler actor template with `{{ key }}` placeholders |
+| `compiler/templates/router.yaml` | (NOT in config) | Router actor template with `{{ key }}` placeholders |
+| `compiler/templates/configmap_routers.yaml` | (NOT in config) | Router code ConfigMap template |
+| `compiler/templates/kustomization.yaml` | (NOT in config) | Kustomization template for all layers |
 
-All files are loaded into one OmegaConf DictConfig via the directory-to-key
-convention (section 2.3). Directory structure maps to config keys.
+Template files are loaded by the stamper directly from disk, NOT part of the
+OmegaConf config tree. Config provides values that fill `{{ key }}` placeholders
+via regex substitution.
 
-#### `compile:` section (in config.yaml)
+#### `compiler:` section (in config.yaml)
 
 ```yaml
-compile:
-  mode: manifests                               # manifests | helm | kustomize
-  routers: "./src/compiled/${dynamic:flow}"      # where routers.py goes
-  manifests: ".asya/manifests/${dynamic:flow}"   # where CRDs go
+compiler:
+  image_registry: ghcr.io/org
+  routers: "./compiled"           # Base directory, code appends flow_function
+  manifests: ".asya/manifests"    # Base directory, code appends flow_name
 ```
 
-#### `compiler/rules.yaml` (→ `compiler.rules`)
+#### `config.compiler.rules.yaml` (→ `compiler.rules`)
 
 ```yaml
-# .asya/compiler/rules.yaml
+# .asya/config.compiler.rules.yaml
 # Loaded as: compiler.rules in the merged config
 []                              # treat-as rules (future, see research-compiler-knowledge-base.md)
 ```
 
-#### `compiler/templates/actor.yaml` (→ `compiler.templates.actor`)
+#### `compiler/templates/actor.yaml` (template file, NOT in config)
 
 Standalone YAML that looks exactly like the final output. On disk it's a
-lintable CRD; after loading it's available as `config.compiler.templates.actor`.
-The `${dynamic:*}` holes are filled per-actor during compilation.
+lintable CRD. The `{{ key }}` placeholders are filled per-actor during
+compilation via regex substitution.
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: "${dynamic:actor}"
-  namespace: "${var.namespace}"
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
 spec:
-  actor: "${dynamic:actor}"
-  transport: "${var.transport}"
+  actor: "{{ actor_name }}"
+  image: "{{ image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicas: 0
-    maxReplicas: "${arg:max_replicas,5}"
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: "${dynamic:image}"
-          env: "${dynamic:env}"
+    maxReplicas: "{{ max_replicas }}"
 ```
 
-`${dynamic:env}` is an OmegaConf subtree resolver returning the full K8s env
-list. The compiler constructs it from: `ASYA_HANDLER` (always), router
-mappings (`ASYA_HANDLER_*`), and env vars detected from handler code. See
-"Environment Variable Detection" and "Secrets Mapping" in
-`research-compiler-knowledge-base.md`.
+The `spec.env` and `data.routers.py` fields are set programmatically by the
+stamper after template resolution. Complex structures (lists, multi-line
+strings) don't belong in template syntax.
 
-#### `${dynamic:*}` resolver keys
+#### `TemplateContext` dataclass — compiler-output variables
 
-| Key | Source | Example |
-|-----|--------|---------|
-| `dynamic:actor` | Actor name, kebab-cased | `"validate-order"` |
-| `dynamic:handler` | Fully qualified Python path | `"e_commerce.validate.validate_order"` |
-| `dynamic:image` | Resolved OCI image ref | `"ghcr.io/org/e-commerce:${arg:tag}"` |
-| `dynamic:flow` | Flow name, kebab-cased | `"order-processing"` |
-| `dynamic:flow_role` | Role within flow | `"entrypoint"`, `"router"`, `"processor"` |
-| `dynamic:env` | K8s env list (subtree resolver) | `[{name: "ASYA_HANDLER", value: "..."}]` |
+Template placeholders (`{{ key }}`) are filled from three sources:
 
-These are values the compiler **always** computes per actor. They are resolved
-during stage 1 (compile) and written into compiled manifests (the editable
-intermediate). Stage 2 (render) reads these manifests to produce target
-artifacts.
+1. **Config `templates.*`** — all keys from `templates:` section (pre-resolved)
+2. **Compiler output** — fixed set defined by `TemplateContext` dataclass
+3. **CLI args** — `--arg key=value`, pre-resolved
 
-Resiliency values (`spec.resiliency.*`) are **not** `${dynamic:*}` resolvers —
-they are placed directly at XR spec paths via compiler rules
-(`assign-to: spec.*`). See `research-compiler-knowledge-base.md`.
+```python
+@dataclass
+class TemplateContext:
+    """Compiler-output variables available in templates.
+
+    These are the values the compiler always computes per actor.
+    Config values from `templates:` and CLI args are merged separately.
+    """
+    actor_name: str       # "validate-order"
+    flow_name: str        # "order-processing"
+    flow_function: str    # "order_processing"
+    flow_role: str        # "entrypoint", "router", "processor"
+    handler: str          # "e_commerce.validate.validate_order"
+    image: str            # "ghcr.io/org/e-commerce:${arg:tag}"
+```
+
+These keys are reserved. If `templates.actor_name` exists in config, it's an
+error at compile time.
+
+Resiliency values (`spec.resiliency.*`) are placed directly at XR spec paths
+via compiler rules (`assign-to: spec.*`). See `research-compiler-knowledge-base.md`.
 
 #### Merge precedence for template values
 
@@ -911,7 +948,7 @@ the final authority.
 #### Output modes (render stage)
 
 Output mode is a render-time concern (`asya show --mode`), not
-compile-time. The `compile.mode` field in config sets the default:
+compile-time. The `compiler.mode` field in config sets the default:
 - **manifests** (default): Raw AsyncActor XR files (resolve `${arg:*}`)
 - **helm**: values.yaml files for Helm chart
 - **kustomize**: Patches against a kustomize base
@@ -944,7 +981,7 @@ patches, docker-compose.yaml)
 
 Render is re-runnable: edit a compiled manifest → re-render → updated
 artifacts. No Python recompilation needed. Mode defaults from
-`compile.mode` in config or context type, overridable with `--mode`.
+`compiler.mode` in config or context type, overridable with `--mode`.
 
 ### 4.1b Compile Time (continued) — Python resolution
 
@@ -1027,7 +1064,7 @@ matches those paths against config.yaml.
 `research-compiler-knowledge-base.md`). Detected env var names are looked up
 in the `secrets:` section of `config.yaml` for K8s sourcing (secretKeyRef).
 Default values from `os.getenv("KEY", "default")` are captured automatically.
-All detected env vars are included in `${dynamic:env}`.
+All detected env vars are set programmatically in `spec.env` by the stamper.
 
 ### 4.2 Build Time — Stage 3
 
@@ -1100,7 +1137,7 @@ IS the persistent artifact — no actor list in config.yaml.
 a unified outer-join table across three sources: (1) local `.py` files with
 `@actor`/`@flow` decorators (matched via compiler rules), (2) compiled
 manifests in `.asya/manifests/`, (3) deployed state in current context
-(K8s/Docker). Decorator scan walks `var.project_root`. See rfc.md section 5.9.
+(K8s/Docker). Decorator scan walks the project root. See rfc.md section 5.9.
 
 **Verbose output**:
 ```
@@ -1180,14 +1217,19 @@ my-project/
 
 ```yaml
 # .asya/config.yaml
-var:
-  project_root: "."
+templates:
+  namespace: default
+  transport: sqs
+  router_image: python:3.13-slim
+  max_replicas: 5
+
+compiler:
   image_registry: ghcr.io/org
 
 build:
   - module: e_commerce
-    path: "${var.project_root}/src/e-commerce-package"
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
+    path: "./src/e-commerce-package"
+    image: "${compiler.image_registry}/e-commerce:${arg:tag}"
     command: "apko build apko.yaml ${.image}"
     # shipwright: buildpacks-v3  # future: on-cluster build
 ```
@@ -1308,22 +1350,21 @@ export ASYA_ARG_ENV=staging
 asya build text-analyzer
 asya k apply text-analyzer  # same variables, no repetition
 
-# Override a var constant from env (useful in CI)
-export ASYA_VAR_IMAGE_REGISTRY=ci-registry.internal
+# Override a compiler constant from env (useful in CI)
+export ASYA_COMPILER_IMAGE_REGISTRY=ci-registry.internal
 asya build order-processing --arg tag=$CI_SHA
 ```
 
 **In config.yaml**:
 ```yaml
-var:
-  project_root: "."
+compiler:
   image_registry: ghcr.io/org
 
 build:
   - module: e_commerce
-    image: "${var.image_registry}/e-commerce:${arg:tag}"
-    #       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ var (resolved first)
-    #                                         ^^^^^^^^^^ arg (resolved at command time)
+    image: "${compiler.image_registry}/e-commerce:${arg:tag}"
+    #       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ compiler (resolved first)
+    #                                                  ^^^^^^^^^^ arg (resolved at command time)
     command: "docker build -t ${.image} ."
     #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
 ```
@@ -1332,18 +1373,16 @@ build:
 and then call `asya build` and `asya k apply` without repeating
 the tag.
 
-**Three namespaces** (see section 3.4):
-- `var.*` keys -- config values (dot syntax, resolved first)
+**Two namespaces** (see section 3.4):
+- `templates.*` keys -- config values (dot syntax, resolved first)
 - `${arg:*}` -- CLI args (colon syntax, resolved at command time)
-- `${dynamic:*}` -- compiler-inferred values (colon syntax, resolved at
-  compile time only)
 
 **Precedence** (highest wins, see also section 3.4):
 1. CLI `--set` / `--arg` flags
 2. `ASYA_*` / `ASYA_ARG_*` env vars
 3. Config file values (child > parent via walk-up merge)
-- `var.*` keys and `${.sibling}` resolve before `${arg:*}` and `${env:*}`
-- `${dynamic:*}` resolves only during compilation — unavailable in build/deploy
+- `templates.*` keys and `${.sibling}` resolve before `${arg:*}` and `${env:*}`
+- Config is always fully resolved at load time — no two-phase initialization
 - Missing `${arg:*}` with no source → hard error (see section 3.4)
 
 ---
@@ -1358,7 +1397,7 @@ the tag.
    commands with variable substitution. Asya has zero knowledge of what the
    command does. See section 3.5.
 
-3. ~~**Router actor images**~~: Resolved. `var.router_image` key in root
+3. ~~**Router actor images**~~: Resolved. `templates.router_image` key in root
    config specifies the base image. Router code injected via ConfigMap
    (same as `asya_runtime.py`). See section 3.6.
 
@@ -1448,22 +1487,20 @@ the tag.
     `${arg:tag}` when no value is provided (resolved if `--arg tag=v1` is
     given). The generated manifest may contain unresolved `${arg:*}`
     placeholders. The command that **uses** the value (deploy, build) must
-    fail-fast if any interpolation is still unresolved — including `${arg:*}`,
-    `${env:*}`, or `${dynamic:*}` (the latter would indicate a compiler bug).
-    For GitOps (ArgoCD/Flux), pass `--arg` at compile time to produce fully
-    resolved manifests.
+    fail-fast if any interpolation is still unresolved — including `${arg:*}`
+    and `${env:*}`. For GitOps (ArgoCD/Flux), pass `--arg` at compile time to
+    produce fully resolved manifests.
 
 14. **Custom Helm chart support**: The helm mode generates values.yaml
     files. If a team uses a custom chart with a different values schema,
-    the `config.template.yaml` must match that chart's structure. Should
-    Asya validate `config.template.yaml` against the chart's
-    `values.schema.json`?
+    the templates must match that chart's structure. Should
+    Asya validate templates against the chart's `values.schema.json`?
 
-15. ~~**`${dynamic:env}` format**~~: **Resolved**. `${dynamic:env}` is an
-    OmegaConf subtree resolver returning a K8s env list. Env var names are
+15. ~~**Environment variable injection**~~: **Resolved**. Env var names are
     detected via AST analysis (`os.environ`, `os.getenv`). Default values
     from `os.getenv("KEY", "default")` are captured. K8s sourcing (secretKeyRef)
-    comes from `secrets:` section in `config.yaml`. Resiliency values go
+    comes from `secrets:` section in `config.yaml`. The stamper sets
+    `spec.env` programmatically after template resolution. Resiliency values go
     directly to XR spec paths via `assign-to:` rules, not through env vars.
     See `research-compiler-knowledge-base.md`.
 
