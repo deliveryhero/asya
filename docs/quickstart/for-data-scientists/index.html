@@ -1145,7 +1145,7 @@ Processing: 100% |████████████████| , succeeded
 <p><strong>Generated Flow</strong>:</p>
 <p>Each square depicts a separate actor (blue - user actor, yellow-ish - new generated routers, which <strong>modify control-flow graph dynamically</strong> based on conditions on payload <code>p</code>).</p>
 <p>Note, there's no free variables, <strong>all state transfer</strong> happens through payload variable <code>p</code>.</p>
-<p><img alt="text_analysis_flow-plot" src="/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png" /></p>
+<p><img alt="text_analysis_flow-plot" src="/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.svg" /></p>
 <p><strong>Flow Structure</strong>:</p>
 <ul>
 <li><strong>Entrypoint</strong>: <code>start_{flowname}</code> - Generated actor that starts the flow</li>
@@ -1178,7 +1178,7 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
 
 <span class="c1"># Options:</span>
 <span class="c1">#   --verbose, -v              Show verbose output</span>
-<span class="c1">#   --plot                     Generate flow.dot and flow.png</span>
+<span class="c1">#   --plot                     Generate flow.dot and flow.svg</span>
 <span class="c1">#   --plot-width WIDTH         Maximum width for node labels (default: 50)</span>
 <span class="c1">#   --overwrite               Overwrite existing output directory</span>
 <span class="c1">#   --disable-infinite-loop-check  Skip infinite loop detection</span>
@@ -1187,13 +1187,13 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
 <div class="highlight"><pre><span></span><code>compiled/
 ├── routers.py       # Generated router actors (Python)
 ├── flow.dot         # Flow diagram (GraphViz format)
-└── flow.png         # Flow visualization (if --plot enabled)
+└── flow.svg         # Flow visualization (if --plot enabled)
 </code></pre></div></p>
 <p><strong>Example Output</strong>:
 <div class="highlight"><pre><span></span><code>$ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 [+] Successfully compiled flow to: compiled/routers.py
 [+] Generated graphviz dot file: compiled/flow.dot
-[+] Generated graphviz png plot: compiled/flow.png
+[+] Generated graphviz svg plot: compiled/flow.svg
 </code></pre></div></p>
 <h3 id="understanding-generated-routers">Understanding Generated Routers<a class="headerlink" href="#understanding-generated-routers" title="Permanent link">&para;</a></h3>
 <p>The compiler generates control-flow routers from your flow definition. Example from <code>if_else_simple.py</code>:</p>
@@ -1210,7 +1210,7 @@ asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> 
     <span class="k">return</span> <span class="n">p</span>
 </code></pre></div></p>
 <p><strong>Generated Flow</strong>:</p>
-<p><img alt="sample-flow-plot" src="/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.png" /></p>
+<p><img alt="sample-flow-plot" src="/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.svg" /></p>
 <p><strong>Generated Routers</strong> (see <code>compiled/routers.py</code>):</p>
 <ol>
 <li><strong><code>start_sample_flow</code></strong> - Flow entrypoint, routes to first handler</li>
@@ -1470,7 +1470,7 @@ resolve<span class="o">(</span><span class="s2">&quot;SpanishSentiment.process&q
 <li><code>router_ml_pipeline_flow_line_13_if</code> - Model selection</li>
 <li><code>end_ml_pipeline_flow</code> - Exit router</li>
 </ul>
-<p><strong>Visualize</strong>: Open <code>compiled/flow.png</code> to see the control flow diagram.</p>
+<p><strong>Visualize</strong>: Open <code>compiled/flow.svg</code> to see the control flow diagram.</p>
 <p><strong>Deploy</strong>: Package routers and handlers, deploy as AsyncActor CRDs (see <code>examples/flows/compiled/README.md</code> for complete deployment examples).</p>
 <p>See <a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> for complete documentation and <code>examples/flows/</code> for more flow examples.</p>
 <h2 id="advanced-dynamic-routing">Advanced: Dynamic Routing<a class="headerlink" href="#advanced-dynamic-routing" title="Permanent link">&para;</a></h2>
