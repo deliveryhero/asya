@@ -5,8 +5,7 @@ AI developer guidance for the Asya🎭 project.
 ## Project Overview
 
 Asya🎭 is an Actor Mesh framework for deploying AI workloads on Kubernetes using:
-- **Crossplane Compositions** for declarative actor deployment
-- **Sidecar injection webhook** (asya-injector) for automatic sidecar injection
+- **Crossplane Compositions** for declarative actor deployment with inline sidecar rendering
 - **Sidecar pattern** (Go) for message routing with pluggable transports
 - **KEDA autoscaling** for event-driven, scale-to-zero workloads
 - **MCP gateway** (optional) for task tracking and API integration
@@ -43,14 +42,12 @@ asya/
 │   ├── asya-sidecar/        # Actor sidecar
 │   ├── asya-runtime/        # Actor runtime base (Python)
 │   ├── asya-crew/           # System actors with reserved roles
-│   ├── asya-injector/       # Mutating webhook for sidecar injection
 │   ├── asya-testing/        # Testing fixtures, utilities and shared test code
 │   └── asya-cli/            # CLI tools for debugging and operating
 ├── deploy/helm-charts/      # Helm charts
 │   ├── asya-actor/          # Generic actor Helm chart
 │   ├── asya-crew/           # Crew actors Helm chart
-│   ├── asya-crossplane/     # Crossplane compositions + XRDs
-│   ├── asya-injector/       # Sidecar injection webhook
+│   ├── asya-crossplane/     # Crossplane compositions + XRDs (includes inline sidecar rendering)
 │   └── asya-gateway/        # Gateway Helm chart
 ├── testing/                 # Test suites (all except unit tests that are in src/)
 │   ├── component/           # Component tests (single component tests without mocks in docker compose)
@@ -83,7 +80,7 @@ Lightweight socket server injected via ConfigMap. Loads user function, executes 
 **Symlinks for embedding**:
 - `deploy/helm-charts/asya-crossplane/files/asya_runtime.py` → Crossplane chart embeds runtime into ConfigMap
 
-**How it's deployed**: The `asya-crossplane` Helm chart reads `asya_runtime.py` via symlink, stores it in a ConfigMap, which the `asya-injector` webhook mounts into actor pods at `/opt/asya/asya_runtime.py`.
+**How it's deployed**: The `asya-crossplane` Helm chart reads `asya_runtime.py` via symlink, stores it in a ConfigMap, which the Crossplane composition mounts into actor pods at `/opt/asya/asya_runtime.py`.
 
 **IMPORTANT**: When modifying `src/asya-runtime/asya_runtime.py`, the symlink automatically reflects changes. No manual sync needed.
 
@@ -133,9 +130,6 @@ yield payload
 
 ### asya-crew (Python)
 System actors with reserved roles: `x-sink` (persist results to S3), `x-sump` (retry with exponential backoff - not yet implemented, DLQ handling). Both report final status to gateway (`x-sink` - because `route.curr` is `""` meaning the route is exhausted, `x-sump` - because the handler had an error), see this logic in `src/asya-sidecar/internal/progress/reporter.go`.
-
-### asya-injector (Go)
-Mutating admission webhook that intercepts Pod creation for AsyncActor workloads. Injects the asya-sidecar container, configures volumes (socket-dir, tmp, asya-runtime ConfigMap), sets environment variables (ASYA_TRANSPORT, ASYA_ACTOR_NAME, ASYA_NAMESPACE), and overrides the runtime container command to run `asya_runtime.py`. Uses cert-manager for TLS certificate management.
 
 ### asya-testing (Python)
 Shared testing utilities and fixtures used across component, integration, and e2e tests. Provides common assertions, mock helpers, and test data builders.
@@ -394,7 +388,7 @@ Tests are organized by scope and dependencies with **strict isolation rules**:
 
 4. **End-to-end tests** (`make test-e2e`): Full stack in Kind cluster
    - **Location**: `testing/e2e/`
-   - Full Kubernetes deployment with Crossplane, injector, gateway, actors
+   - Full Kubernetes deployment with Crossplane, gateway, actors
    - Tests user scenarios and autoscaling
 
 ### E2E Test Fixing Strategy
@@ -406,8 +400,7 @@ Tests are organized by scope and dependencies with **strict isolation rules**:
 2. Rebuild images: `make build-images`
 3. Load images to Kind: `kind load docker-image {image}:{tag} --name asya-e2e-{profile}`
 4. Upgrade only affected deployments/Helm charts:
-   - Crossplane: `helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system`
-   - Injector: `helm upgrade -n asya-system asya-injector deploy/helm-charts/asya-injector/`
+   - Crossplane: `helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n asya-system`
    - Gateway: `helm upgrade -n asya-e2e asya-gateway deploy/helm-charts/asya-gateway/`
    - Crew: `helm upgrade -n asya-e2e asya-crew deploy/helm-charts/asya-crew/`
 5. Restart pods if needed: `kubectl rollout restart -n {namespace} deployment/{name}`
@@ -547,7 +540,7 @@ spec:
 
 ### Transport Credentials
 
-**Credential management**: Credentials are configured via Crossplane `ProviderConfig` for queue management and injector `awsCredsSecret` for sidecar message operations.
+**Credential management**: Credentials are configured at two layers: Crossplane `ProviderConfig` for queue management, and `sidecar.awsCredsSecret` in the asya-crossplane chart for sidecar message operations.
 
 1. **Crossplane Provider Credentials** (in `crossplane-system` namespace)
    - Used by: Crossplane AWS provider for queue management (create/delete/configure)
@@ -556,14 +549,12 @@ spec:
 
 2. **Actor Credentials** (in actor's namespace)
    - Used by: Sidecar containers for message operations (send/receive/delete)
-   - Secret: Configured via injector `awsCredsSecret` setting
+   - Secret: Configured via `sidecar.awsCredsSecret` in the asya-crossplane chart values
    - For production: Use IRSA (IAM Roles for Service Accounts) instead of static credentials
 
 ## Key Deployment Facts
 
-**Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management.
-
-**Injector chart** (`deploy/helm-charts/asya-injector/`): Deploys the mutating webhook for sidecar injection. Requires cert-manager for TLS.
+**Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management. The `render-deployment` composition step renders the complete pod spec (runtime container + asya-sidecar + state proxies + volumes) using values from the chart's `sidecar:` block.
 
 **E2E deployment**: `make test-e2e` deploys full stack to Kind cluster, runs tests, and cleans up automatically
 
