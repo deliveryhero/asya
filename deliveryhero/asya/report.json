@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "38683a390a78be6ea7550fb3f09c8ee9dd3024c1",
+  "commit": "2e8b88c9c38f60f2e8bdbfa9e5c2b6a0e38c70d7",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -23249,7 +23249,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 32606,
+    "code": 33063,
     "test": 21835,
     "code_files": [
       {
@@ -24548,10 +24548,17 @@
         "language": "Python"
       },
       {
-        "code": 40,
+        "code": 44,
         "comment": 3,
         "blank": 16,
         "path": "src/asya-lab/asya_lab/cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 136,
+        "comment": 23,
+        "blank": 40,
+        "path": "src/asya-lab/asya_lab/compile_cli.py",
         "language": "Python"
       },
       {
@@ -24562,9 +24569,9 @@
         "language": "Python"
       },
       {
-        "code": 275,
-        "comment": 58,
-        "blank": 78,
+        "code": 292,
+        "comment": 94,
+        "blank": 93,
         "path": "src/asya-lab/asya_lab/compiler/stamper.py",
         "language": "Python"
       },
@@ -24594,6 +24601,13 @@
         "comment": 4,
         "blank": 14,
         "path": "src/asya-lab/asya_lab/config_cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 210,
+        "comment": 31,
+        "blank": 56,
+        "path": "src/asya-lab/asya_lab/expose_cli.py",
         "language": "Python"
       },
       {
@@ -24653,7 +24667,7 @@
         "language": "Python"
       },
       {
-        "code": 168,
+        "code": 169,
         "comment": 15,
         "blank": 38,
         "path": "src/asya-lab/asya_lab/flow_cli.py",
@@ -24706,6 +24720,20 @@
         "comment": 2,
         "blank": 6,
         "path": "src/asya-lab/asya_lab/mcp_cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 37,
+        "comment": 4,
+        "blank": 13,
+        "path": "src/asya-lab/asya_lab/show_cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 52,
+        "comment": 4,
+        "blank": 22,
+        "path": "src/asya-lab/asya_lab/status_cli.py",
         "language": "Python"
       },
       {
@@ -25846,6 +25874,6 @@
       }
     ]
   },
-  "test_execution_time": 352000000000,
-  "timestamp": "2026-03-10T16:49:01.015148461Z"
+  "test_execution_time": 329000000000,
+  "timestamp": "2026-03-10T19:19:07.139897281Z"
 }
