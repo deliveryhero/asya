@@ -110,6 +110,12 @@ crossplane:
       enabled: false
     gcp:
       enabled: true
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
+    pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
+    gcpProjectId: test-project
   providerConfigs:
     install: false
   functions:

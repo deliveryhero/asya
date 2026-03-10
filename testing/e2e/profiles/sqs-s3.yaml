@@ -108,6 +108,13 @@ gateway:
 crossplane:
   sqs:
     receiveWaitTimeSeconds: 2
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
+    sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+    sqsWaitTimeSeconds: "2"
+    awsCredsSecret: aws-creds
   providerConfigs:
     install: false
   functions:
