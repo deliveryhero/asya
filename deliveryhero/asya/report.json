@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "a7974bc83a6a293e788076cb37d285cfe7fe18f5",
+  "commit": "f1b3441b1a45dff7e1b3a116fc1b593c6bc7a316",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -23249,8 +23249,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 31914,
-    "test": 21905,
+    "code": 32286,
+    "test": 21835,
     "code_files": [
       {
         "code": 940,
@@ -24156,216 +24156,6 @@
         "language": "Python"
       },
       {
-        "code": 1,
-        "comment": 1,
-        "blank": 1,
-        "path": "src/asya-cli/asya_cli/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 38,
-        "comment": 12,
-        "blank": 15,
-        "path": "src/asya-cli/asya_cli/cli.py",
-        "language": "Python"
-      },
-      {
-        "code": 3,
-        "comment": 1,
-        "blank": 3,
-        "path": "src/asya-cli/asya_cli/flow/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 381,
-        "comment": 83,
-        "blank": 98,
-        "path": "src/asya-cli/asya_cli/flow/codegen.py",
-        "language": "Python"
-      },
-      {
-        "code": 117,
-        "comment": 15,
-        "blank": 37,
-        "path": "src/asya-cli/asya_cli/flow/compiler.py",
-        "language": "Python"
-      },
-      {
-        "code": 582,
-        "comment": 101,
-        "blank": 91,
-        "path": "src/asya-cli/asya_cli/flow/dotgen.py",
-        "language": "Python"
-      },
-      {
-        "code": 3,
-        "comment": 1,
-        "blank": 4,
-        "path": "src/asya-cli/asya_cli/flow/errors.py",
-        "language": "Python"
-      },
-      {
-        "code": 504,
-        "comment": 57,
-        "blank": 108,
-        "path": "src/asya-cli/asya_cli/flow/grouper.py",
-        "language": "Python"
-      },
-      {
-        "code": 51,
-        "comment": 1,
-        "blank": 28,
-        "path": "src/asya-cli/asya_cli/flow/ir.py",
-        "language": "Python"
-      },
-      {
-        "code": 400,
-        "comment": 64,
-        "blank": 66,
-        "path": "src/asya-cli/asya_cli/flow/parser.py",
-        "language": "Python"
-      },
-      {
-        "code": 144,
-        "comment": 16,
-        "blank": 32,
-        "path": "src/asya-cli/asya_cli/flow_cli.py",
-        "language": "Python"
-      },
-      {
-        "code": 2,
-        "comment": 1,
-        "blank": 3,
-        "path": "src/asya-cli/asya_cli/mcp/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 240,
-        "comment": 30,
-        "blank": 62,
-        "path": "src/asya-cli/asya_cli/mcp/client.py",
-        "language": "Python"
-      },
-      {
-        "code": 152,
-        "comment": 32,
-        "blank": 38,
-        "path": "src/asya-cli/asya_cli/mcp/commands.py",
-        "language": "Python"
-      },
-      {
-        "code": 222,
-        "comment": 25,
-        "blank": 56,
-        "path": "src/asya-cli/asya_cli/mcp/port_forward.py",
-        "language": "Python"
-      },
-      {
-        "code": 0,
-        "comment": 1,
-        "blank": 0,
-        "path": "src/asya-cli/tests/flow/__init__.py",
-        "language": "Python"
-      },
-      {
-        "code": 739,
-        "comment": 83,
-        "blank": 173,
-        "path": "src/asya-cli/tests/flow/test_codegen.py",
-        "language": "Python"
-      },
-      {
-        "code": 78,
-        "comment": 21,
-        "blank": 33,
-        "path": "src/asya-cli/tests/flow/test_dotgen_invariant.py",
-        "language": "Python"
-      },
-      {
-        "code": 652,
-        "comment": 98,
-        "blank": 150,
-        "path": "src/asya-cli/tests/flow/test_fanout_codegen.py",
-        "language": "Python"
-      },
-      {
-        "code": 235,
-        "comment": 43,
-        "blank": 66,
-        "path": "src/asya-cli/tests/flow/test_fanout_dotgen.py",
-        "language": "Python"
-      },
-      {
-        "code": 1029,
-        "comment": 39,
-        "blank": 157,
-        "path": "src/asya-cli/tests/flow/test_grouper.py",
-        "language": "Python"
-      },
-      {
-        "code": 4,
-        "comment": 6,
-        "blank": 4,
-        "path": "src/asya-cli/tests/flow/test_helpers.py",
-        "language": "Python"
-      },
-      {
-        "code": 709,
-        "comment": 537,
-        "blank": 196,
-        "path": "src/asya-cli/tests/flow/test_parser.py",
-        "language": "Python"
-      },
-      {
-        "code": 294,
-        "comment": 167,
-        "blank": 84,
-        "path": "src/asya-cli/tests/flow/test_parser_fanout.py",
-        "language": "Python"
-      },
-      {
-        "code": 91,
-        "comment": 43,
-        "blank": 53,
-        "path": "src/asya-cli/tests/flow/test_resolve.py",
-        "language": "Python"
-      },
-      {
-        "code": 84,
-        "comment": 99,
-        "blank": 34,
-        "path": "src/asya-cli/tests/flow/test_try_except_codegen.py",
-        "language": "Python"
-      },
-      {
-        "code": 499,
-        "comment": 12,
-        "blank": 67,
-        "path": "src/asya-cli/tests/flow/test_try_except_grouper.py",
-        "language": "Python"
-      },
-      {
-        "code": 488,
-        "comment": 205,
-        "blank": 154,
-        "path": "src/asya-cli/tests/flow/test_try_except_integration.py",
-        "language": "Python"
-      },
-      {
-        "code": 165,
-        "comment": 146,
-        "blank": 47,
-        "path": "src/asya-cli/tests/flow/test_try_except_parser.py",
-        "language": "Python"
-      },
-      {
-        "code": 362,
-        "comment": 242,
-        "blank": 137,
-        "path": "src/asya-cli/tests/flow/test_while_integration.py",
-        "language": "Python"
-      },
-      {
         "code": 0,
         "comment": 0,
         "blank": 0,
@@ -24702,16 +24492,16 @@
         "language": "Go"
       },
       {
-        "code": 42,
-        "comment": 15,
-        "blank": 16,
+        "code": 46,
+        "comment": 17,
+        "blank": 18,
         "path": "src/asya-injector/internal/config/config.go",
         "language": "Go"
       },
       {
-        "code": 46,
-        "comment": 19,
-        "blank": 19,
+        "code": 44,
+        "comment": 17,
+        "blank": 17,
         "path": "src/asya-injector/internal/injection/config.go",
         "language": "Go"
       },
@@ -24730,9 +24520,9 @@
         "language": "Go"
       },
       {
-        "code": 238,
-        "comment": 26,
-        "blank": 40,
+        "code": 231,
+        "comment": 24,
+        "blank": 38,
         "path": "src/asya-injector/internal/webhook/asyncactor.go",
         "language": "Go"
       },
@@ -24752,9 +24542,247 @@
       },
       {
         "code": 1,
-        "comment": 0,
-        "blank": 0,
+        "comment": 1,
+        "blank": 1,
         "path": "src/asya-lab/asya_lab/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 46,
+        "comment": 12,
+        "blank": 17,
+        "path": "src/asya-lab/asya_lab/cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 3,
+        "comment": 0,
+        "blank": 2,
+        "path": "src/asya-lab/asya_lab/config/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 145,
+        "comment": 38,
+        "blank": 47,
+        "path": "src/asya-lab/asya_lab/config/config.py",
+        "language": "Python"
+      },
+      {
+        "code": 44,
+        "comment": 11,
+        "blank": 16,
+        "path": "src/asya-lab/asya_lab/config/discovery.py",
+        "language": "Python"
+      },
+      {
+        "code": 68,
+        "comment": 3,
+        "blank": 15,
+        "path": "src/asya-lab/asya_lab/config_cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 3,
+        "comment": 1,
+        "blank": 3,
+        "path": "src/asya-lab/asya_lab/flow/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 381,
+        "comment": 83,
+        "blank": 98,
+        "path": "src/asya-lab/asya_lab/flow/codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 117,
+        "comment": 15,
+        "blank": 37,
+        "path": "src/asya-lab/asya_lab/flow/compiler.py",
+        "language": "Python"
+      },
+      {
+        "code": 582,
+        "comment": 101,
+        "blank": 91,
+        "path": "src/asya-lab/asya_lab/flow/dotgen.py",
+        "language": "Python"
+      },
+      {
+        "code": 3,
+        "comment": 1,
+        "blank": 4,
+        "path": "src/asya-lab/asya_lab/flow/errors.py",
+        "language": "Python"
+      },
+      {
+        "code": 504,
+        "comment": 57,
+        "blank": 108,
+        "path": "src/asya-lab/asya_lab/flow/grouper.py",
+        "language": "Python"
+      },
+      {
+        "code": 51,
+        "comment": 1,
+        "blank": 28,
+        "path": "src/asya-lab/asya_lab/flow/ir.py",
+        "language": "Python"
+      },
+      {
+        "code": 400,
+        "comment": 64,
+        "blank": 66,
+        "path": "src/asya-lab/asya_lab/flow/parser.py",
+        "language": "Python"
+      },
+      {
+        "code": 144,
+        "comment": 16,
+        "blank": 32,
+        "path": "src/asya-lab/asya_lab/flow_cli.py",
+        "language": "Python"
+      },
+      {
+        "code": 73,
+        "comment": 58,
+        "blank": 30,
+        "path": "src/asya-lab/asya_lab/init.py",
+        "language": "Python"
+      },
+      {
+        "code": 2,
+        "comment": 1,
+        "blank": 3,
+        "path": "src/asya-lab/asya_lab/mcp/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 240,
+        "comment": 30,
+        "blank": 62,
+        "path": "src/asya-lab/asya_lab/mcp/client.py",
+        "language": "Python"
+      },
+      {
+        "code": 152,
+        "comment": 32,
+        "blank": 38,
+        "path": "src/asya-lab/asya_lab/mcp/commands.py",
+        "language": "Python"
+      },
+      {
+        "code": 222,
+        "comment": 25,
+        "blank": 56,
+        "path": "src/asya-lab/asya_lab/mcp/port_forward.py",
+        "language": "Python"
+      },
+      {
+        "code": 0,
+        "comment": 1,
+        "blank": 0,
+        "path": "src/asya-lab/tests/flow/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 739,
+        "comment": 83,
+        "blank": 173,
+        "path": "src/asya-lab/tests/flow/test_codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 78,
+        "comment": 21,
+        "blank": 33,
+        "path": "src/asya-lab/tests/flow/test_dotgen_invariant.py",
+        "language": "Python"
+      },
+      {
+        "code": 652,
+        "comment": 98,
+        "blank": 150,
+        "path": "src/asya-lab/tests/flow/test_fanout_codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 235,
+        "comment": 43,
+        "blank": 66,
+        "path": "src/asya-lab/tests/flow/test_fanout_dotgen.py",
+        "language": "Python"
+      },
+      {
+        "code": 1029,
+        "comment": 39,
+        "blank": 157,
+        "path": "src/asya-lab/tests/flow/test_grouper.py",
+        "language": "Python"
+      },
+      {
+        "code": 4,
+        "comment": 6,
+        "blank": 4,
+        "path": "src/asya-lab/tests/flow/test_helpers.py",
+        "language": "Python"
+      },
+      {
+        "code": 709,
+        "comment": 537,
+        "blank": 196,
+        "path": "src/asya-lab/tests/flow/test_parser.py",
+        "language": "Python"
+      },
+      {
+        "code": 294,
+        "comment": 167,
+        "blank": 84,
+        "path": "src/asya-lab/tests/flow/test_parser_fanout.py",
+        "language": "Python"
+      },
+      {
+        "code": 91,
+        "comment": 43,
+        "blank": 53,
+        "path": "src/asya-lab/tests/flow/test_resolve.py",
+        "language": "Python"
+      },
+      {
+        "code": 84,
+        "comment": 99,
+        "blank": 34,
+        "path": "src/asya-lab/tests/flow/test_try_except_codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 499,
+        "comment": 12,
+        "blank": 67,
+        "path": "src/asya-lab/tests/flow/test_try_except_grouper.py",
+        "language": "Python"
+      },
+      {
+        "code": 488,
+        "comment": 205,
+        "blank": 154,
+        "path": "src/asya-lab/tests/flow/test_try_except_integration.py",
+        "language": "Python"
+      },
+      {
+        "code": 165,
+        "comment": 146,
+        "blank": 47,
+        "path": "src/asya-lab/tests/flow/test_try_except_parser.py",
+        "language": "Python"
+      },
+      {
+        "code": 362,
+        "comment": 242,
+        "blank": 137,
+        "path": "src/asya-lab/tests/flow/test_while_integration.py",
         "language": "Python"
       },
       {
@@ -25325,9 +25353,9 @@
         "language": "Python"
       },
       {
-        "code": 166,
-        "comment": 29,
-        "blank": 44,
+        "code": 177,
+        "comment": 33,
+        "blank": 48,
         "path": "src/function-asya-flavors/fn.go",
         "language": "Go"
       },
@@ -25339,9 +25367,9 @@
         "language": "Go"
       },
       {
-        "code": 60,
-        "comment": 20,
-        "blank": 14,
+        "code": 86,
+        "comment": 13,
+        "blank": 21,
         "path": "src/function-asya-flavors/merge.go",
         "language": "Go"
       },
@@ -25572,21 +25600,21 @@
         "language": "Go"
       },
       {
-        "code": 1146,
+        "code": 1138,
         "comment": 24,
         "blank": 165,
         "path": "src/asya-injector/internal/injection/inject_test.go",
         "language": "Go"
       },
       {
-        "code": 288,
+        "code": 287,
         "comment": 20,
         "blank": 47,
         "path": "src/asya-injector/internal/injection/state_proxy_test.go",
         "language": "Go"
       },
       {
-        "code": 590,
+        "code": 575,
         "comment": 2,
         "blank": 21,
         "path": "src/asya-injector/internal/webhook/asyncactor_test.go",
@@ -25691,16 +25719,16 @@
         "language": "Go"
       },
       {
-        "code": 341,
-        "comment": 16,
-        "blank": 58,
+        "code": 326,
+        "comment": 13,
+        "blank": 52,
         "path": "src/function-asya-flavors/fn_test.go",
         "language": "Go"
       },
       {
-        "code": 501,
-        "comment": 12,
-        "blank": 51,
+        "code": 470,
+        "comment": 15,
+        "blank": 50,
         "path": "src/function-asya-flavors/merge_test.go",
         "language": "Go"
       },
@@ -25790,6 +25818,6 @@
       }
     ]
   },
-  "test_execution_time": 333000000000,
-  "timestamp": "2026-03-09T19:36:35.346703466Z"
+  "test_execution_time": 336000000000,
+  "timestamp": "2026-03-10T15:27:53.356988782Z"
 }
