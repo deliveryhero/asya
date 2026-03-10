@@ -6,18 +6,18 @@ CLI tools for interacting with Asya system.
 
 From local repository:
 ```bash
-uv pip install -e ./src/asya-cli
+uv pip install -e ./src/asya-lab
 #call with: uv run asya...
 ```
 Or as uv tool:
 ```bash
-uv tool install src/asya-cli
+uv tool install src/asya-lab
 #call with: asya...
 ```
 
 Or from remote repository:
 ```bash
-uv tool install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+uv tool install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 #call with: asya...
 ```
 
@@ -86,4 +86,4 @@ Automatically:
 1. Port-forwards `asya-gateway` service to `localhost:8080`
 2. Keeps port-forward alive until interrupted
 
-**See**: `src/asya-cli/README.md` for advanced usage.
+**See**: `src/asya-lab/README.md` for advanced usage.

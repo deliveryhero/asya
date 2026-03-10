@@ -713,7 +713,7 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-crew \
 The Asya CLI provides MCP client tools for calling actors through the gateway:
 
 ```bash
-pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 ```
 
 ### 7. Configure Gateway Tools

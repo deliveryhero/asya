@@ -605,7 +605,7 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-cli/"
+        data-size="default" href="/docs/architecture/asya-lab/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
@@ -835,7 +835,7 @@ to automate what would otherwise be hand-written routing logic.</p>
     ▼
   CodeGen ──→ Router list → routers.py + flow.dot
 </code></pre></div>
-<p>Source: <code>src/asya-cli/asya_cli/flow/</code></p>
+<p>Source: <code>src/asya-lab/asya_lab/flow/</code></p>
 <h2 id="1-parser">1. Parser<a class="headerlink" href="#1-parser" title="Permanent link">&para;</a></h2>
 <p><strong>File</strong>: <code>parser.py</code></p>
 <p>The parser reads a Python source file, finds the flow function, and walks
@@ -1099,27 +1099,27 @@ default 100), <code>--overwrite</code>, <code>--verbose</code>.</p>
 <tbody>
 <tr>
 <td>Parser unit tests</td>
-<td><code>src/asya-cli/tests/flow/test_parser*.py</code></td>
+<td><code>src/asya-lab/tests/flow/test_parser*.py</code></td>
 <td>~95%</td>
 </tr>
 <tr>
 <td>Grouper unit tests</td>
-<td><code>src/asya-cli/tests/flow/test_grouper*.py</code></td>
+<td><code>src/asya-lab/tests/flow/test_grouper*.py</code></td>
 <td>~91%</td>
 </tr>
 <tr>
 <td>CodeGen unit tests</td>
-<td><code>src/asya-cli/tests/flow/test_codegen*.py</code></td>
+<td><code>src/asya-lab/tests/flow/test_codegen*.py</code></td>
 <td>~98%</td>
 </tr>
 <tr>
 <td>Compiler API tests</td>
-<td><code>src/asya-cli/tests/flow/test_compiler*.py</code></td>
+<td><code>src/asya-lab/tests/flow/test_compiler*.py</code></td>
 <td>~93%</td>
 </tr>
 <tr>
 <td>DOT generator tests</td>
-<td><code>src/asya-cli/tests/flow/test_dot*.py</code></td>
+<td><code>src/asya-lab/tests/flow/test_dot*.py</code></td>
 <td>100%</td>
 </tr>
 <tr>
@@ -1290,7 +1290,7 @@ default 100), <code>--overwrite</code>, <code>--verbose</code>.</p>
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-cli/">
+                        <a class="text-2xl font-medium" href="../asya-lab/">
                             
                             CLI Tools
                             

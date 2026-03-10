@@ -50,7 +50,7 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/architecture/asya-cli/">
+<link rel="canonical" href="https://asya.sh/docs/architecture/asya-lab/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
@@ -61,7 +61,7 @@
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/architecture/asya-cli/">
+<meta property="og:url" content="https://asya.sh/docs/architecture/asya-lab/">
 
 
 
@@ -605,7 +605,7 @@
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
-        data-size="default" href="/docs/architecture/asya-cli/"
+        data-size="default" href="/docs/architecture/asya-lab/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
@@ -796,7 +796,7 @@
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/architecture/asya-cli.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/architecture/asya-lab.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -868,15 +868,15 @@
     <p>CLI tools for interacting with Asya system.</p>
 <h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
 <p>From local repository:
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./src/asya-cli
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>./src/asya-lab
 <span class="c1">#call with: uv run asya...</span>
 </code></pre></div>
 Or as uv tool:
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>src/asya-cli
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>src/asya-lab
 <span class="c1">#call with: asya...</span>
 </code></pre></div></p>
 <p>Or from remote repository:
-<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-cli
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>tool<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-lab
 <span class="c1">#call with: asya...</span>
 </code></pre></div></p>
 <h2 id="cli-command-asya-mcp">CLI command <code>asya mcp</code><a class="headerlink" href="#cli-command-asya-mcp" title="Permanent link">&para;</a></h2>
@@ -920,7 +920,7 @@ Processing: 100% |████████████████████�
 <p>Automatically:
 1. Port-forwards <code>asya-gateway</code> service to <code>localhost:8080</code>
 2. Keeps port-forward alive until interrupted</p>
-<p><strong>See</strong>: <code>src/asya-cli/README.md</code> for advanced usage.</p>
+<p><strong>See</strong>: <code>src/asya-lab/README.md</code> for advanced usage.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
