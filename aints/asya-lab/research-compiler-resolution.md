@@ -230,7 +230,7 @@ build:
   - module: shared_utils
     path: "${var.project_root}/libs/shared_utils"
     image: "${var.image_registry}/shared:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 ```
 
 ```yaml
@@ -241,7 +241,7 @@ build:
   - module: e_commerce
     path: "./e_commerce"           # relative to THIS file
     image: "${var.image_registry}/ecom:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 ```
 
 **Path resolution**: Two styles coexist for the `path:` field:
@@ -284,13 +284,13 @@ build:
   - module: shared_utils
     path: "${var.project_root}/libs/shared_utils"   # portable interpolation
     image: "${var.image_registry}/shared:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 
   # From team-a (appended after root):
   - module: e_commerce
     path: "/repo/src/team-a/e_commerce"  # resolved from team-a's "./e_commerce"
     image: "${var.image_registry}/ecom:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 ```
 
 **Why not explicit `extend:`?**
@@ -370,7 +370,7 @@ build: []
   # - module: my_package
   #   path: "${var.project_root}/src/my-package"
   #   image: "${var.image_registry}/my-package:${arg:tag}"
-  #   command: "docker build -t ${..image} ."
+  #   command: "docker build -t ${.image} ."
 
 compile:
   mode: manifests
@@ -467,7 +467,7 @@ directory, not in config.yaml.
 ### 3.2 Top-Level Structure
 
 `build` is a **list** of build entries, each identified by a `module:` field.
-OmegaConf relative interpolation (`${..image}`) works within list items.
+OmegaConf relative interpolation (`${.image}`) references siblings within the same list item.
 Walk-up merge concatenates lists (see section 2.3). Duplicates by `module:`
 (or `path:` for entries without `module:`) are detected at the semantic layer
 and produce errors.
@@ -486,13 +486,13 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce-package"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 
   # GPU model with apko
   - module: gpu_models
     path: "${var.project_root}/src/gpu-models"
     image: "${var.image_registry}/gpu-models:${arg:tag}"
-    command: "apko build apko.yaml ${..image}"
+    command: "apko build apko.yaml ${.image}"
     # shipwright: buildpacks-v3  # future: on-cluster build
 
   # Third-party, never built
@@ -503,7 +503,7 @@ build:
   # Dirty DS scripts (no module - just filesystem path)
   - path: "./src/notebooks/models"
     image: "${var.image_registry}/notebook-models:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 ```
 
 **What's in**: module → path → image → build command. That's it.
@@ -537,7 +537,7 @@ repo-root-relative paths (stays as interpolation through merge).
 command and then pushes the image to the registry. Remote/on-cluster builds
 (e.g. Shipwright) are a separate mechanism via the `shipwright:` config field
 (future). CI ignores `command:` entirely and runs its own pipeline.
-Example: `docker build -t ${..image} .`
+Example: `docker build -t ${.image} .`
 - Entries without `command:` are never built by Asya (third-party images).
 
 ### 3.4 Variable Interpolation (OmegaConf)
@@ -548,8 +548,7 @@ with dotted path traversal:
 | Syntax | Meaning | Example |
 |--------|---------|---------|
 | `${path.to.key}` | Absolute path from config root | `${var.image_registry}` |
-| `${.sibling}` | Sibling at current level | `${.image}` (within same entry) |
-| `${..sibling}` | Go up one level, access sibling | `${..image}` (from `command:` to entry's `image`) |
+| `${.sibling}` | Sibling reference within the same list item | `${.image}` (from `command` to entry's `image`) |
 | `${arg:name}` | CLI `--arg` or `ASYA_ARG_NAME` env var | `${arg:tag}` |
 | `${dynamic:key}` | Compiler-inferred value (colon resolver) | `${dynamic:actor}` |
 | `${env:VAR}` | Raw environment variable | `${env:HOME}` |
@@ -659,9 +658,9 @@ build:
   #       ^^^^^^^^^^^^^^^^^^^^^^^^^^ → ghcr.io/org  (from var)
   #                                                  ^^^^^^^^^^^ → v1  (from --arg)
   # Final: ghcr.io/org/e-commerce:v1
-  command: "docker build -t ${..image} ."
+  command: "docker build -t ${.image} ."
   #                       ^^^^^^^^^^ → ghcr.io/org/e-commerce:v1
-  # ${..image} goes up from command → list item, gets resolved image
+  # ${.image} is a sibling reference within the same list item, gets resolved image
 ```
 
 ### 3.5 Build Commands Are Opaque
@@ -1030,7 +1029,7 @@ substitution.
 built-in caching or "skip if unchanged" logic. If a user needs conditional
 builds, they can use `${arg:*}` to pass flags to the build tool:
 ```yaml
-command: "docker build ${arg:cache_flag} -t ${..image} ."
+command: "docker build ${arg:cache_flag} -t ${.image} ."
 # asya k build foo --arg cache_flag="--no-cache"
 # or: asya k build foo  (cache_flag must be provided or fail)
 ```
@@ -1135,7 +1134,7 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce-package"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command: "apko build apko.yaml ${..image}"
+    command: "apko build apko.yaml ${.image}"
     # shipwright: buildpacks-v3  # future: on-cluster build
 ```
 
@@ -1162,7 +1161,7 @@ build:
   - module: "./models"                # Filesystem path, not importable
     path: "./models"
     image: "ghcr.io/org/bert-models:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 ```
 
 For the dirty layout, compilation from Jupyter uses the kernel's Python (which
@@ -1271,7 +1270,7 @@ build:
     image: "${var.image_registry}/e-commerce:${arg:tag}"
     #       ^^^^^^^^^^^^^^^^^^^^^^^^^^^ var (resolved first)
     #                                         ^^^^^^^^^^ arg (resolved at command time)
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
     #                       ^^^^^^^^^^ relative ref (goes up to sibling `image`)
 ```
 

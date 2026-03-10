@@ -519,7 +519,7 @@ build:
   - module: e_commerce
     path: "${var.project_root}/src/e-commerce"
     image: "${var.image_registry}/e-commerce:${arg:tag}"
-    command: "docker build -t ${..image} ."
+    command: "docker build -t ${.image} ."
 
 compiler:
   routers: "${var.project_root}/compiled/${dynamic:flow_stem}"
@@ -693,7 +693,7 @@ Two families, distinguished by separator:
 | Syntax | Source | Resolves when |
 |--------|--------|---------------|
 | `${var.x}` | Config tree (native OmegaConf) | After merge |
-| `${..image}` | Relative parent key (native OmegaConf) | After merge |
+| `${.image}` | Relative sibling key (native OmegaConf) | After merge |
 | `${arg:tag}` | CLI `--arg tag=v1` (custom resolver) | At command time |
 | `${arg:x,default}` | CLI with fallback (custom resolver) | At command time |
 | `${dynamic:actor}` | Compiler-computed (custom resolver) | Per actor, at compile time |
