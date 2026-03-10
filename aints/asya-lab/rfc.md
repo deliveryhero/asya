@@ -1488,6 +1488,7 @@ Detailed designs that inform this RFC:
 | `xrd-v2/rfc.md` | Flat AsyncActor XRD v1alpha2 spec, two-tier convention, flavor overlap rules |
 | `adr.kustomize-not-extra-dependency.md` | Kustomize bundled with kubectl, no extra binary needed |
 | `a2a-protocol-compliance-gateway/adr.configmap-flow-registry.md` | ConfigMap-based flow registry, gateway polling, RBAC, SSA field managers |
+| `research-ui-components.md` | `@asya/ui` React component library, React Flow graph, provider pattern, anywidget/VSCode/web integration |
 
 ---
 

@@ -1,0 +1,598 @@
+# Research: @asya/ui React Component Library
+
+**Date**: 2026-03-10
+**Status**: Informational
+**Context**: Design of the shared React component library consumed by Jupyter
+(anywidget), VSCode extension (webview panels), and `asya serve` (standalone
+web). Impacts Phase 3 (Jupyter magics) and Phase 4 (`asya serve`).
+
+**Related docs**:
+- `rfc.md` §15.3–15.4 — Jupyter visualization and `@asya/ui` reuse
+- `research-compiler-resolution.md` — compiler output (DOT, manifests)
+- Epic 1juv (Asya UI) — `@asya/ui` scope
+- Epic 1juy (Asya Lens) — Docker image packaging
+
+---
+
+## 1. Package Identity
+
+**Name**: `@asya/ui`
+**Published to**: npm (or GitHub Packages)
+**Versioned**: independently from `asya-lab` Python package
+**Consumers**: three host applications, one shared library
+
+```
+@asya/ui                    ← React component library (this doc)
+├── asya-lab[jupyter]       ← anywidget wrapper (Python + JS bridge)
+├── asya-vscode             ← VSCode extension (webview panels)
+└── asya-lab[ui]            ← standalone web app (asya serve)
+```
+
+Each consumer bundles `@asya/ui` at build time. No runtime CDN loading.
+
+---
+
+## 2. Component Inventory
+
+### 2.1 Phase 3 Components (Jupyter + VSCode)
+
+| Component | Purpose | Data source |
+|---|---|---|
+| `FlowDiagram` | Interactive directed graph (actors, routers, edges) | Compiler graph JSON |
+| `ActorNode` | Custom React Flow node — name, role badge, state border | Part of FlowDiagram |
+| `ActorDetail` | Side panel — config summary, replicas, queue depth | Provider context |
+| `LogViewer` | Streaming log lines with actor-name coloring | Provider context (SSE) |
+| `TaskProgress` | Progress bar — %, current actor, status | Provider context (SSE) |
+| `StatusBadge` | Inline status indicator (running, failed, etc.) | Props only |
+
+### 2.2 Phase 4 Components (asya serve)
+
+| Component | Purpose | Data source |
+|---|---|---|
+| `StatusDashboard` | Grid of actor cards with live updates | Provider context (WS) |
+| `ActorCard` | Summary card — status, replicas, queue depth | Provider context |
+| `ToolBrowser` | MCP tool list, call UI, result display | HTTP |
+| `ConfigEditor` | YAML editor with schema validation (Monaco/CodeMirror) | HTTP |
+
+### 2.3 Shared Primitives
+
+| Component | Purpose |
+|---|---|
+| `AsyaProvider` | React context provider (interface only — each host implements) |
+| `useAsya()` | Hook to access actor data, status, log streams |
+| `StatusColor` | Color mapping for task/actor status values |
+| `theme` | Design tokens (colors, spacing, typography) |
+
+---
+
+## 3. FlowDiagram — React Flow
+
+### 3.1 Library Choice
+
+**React Flow** (reactflow.dev). Reasons:
+- Built-in zoom, pan, minimap, controls
+- Custom node components (ActorNode renders inside React Flow)
+- Custom edge labels (condition labels on conditional branches)
+- Active maintenance, MIT license, large ecosystem
+- Fits React component model natively
+
+### 3.2 Graph Data Format
+
+The compiler emits a graph JSON alongside DOT. The JSON is the source of
+truth for the interactive view; the DOT is for static PNG/SVG output.
+
+```json
+{
+  "flow": "order-processing",
+  "nodes": [
+    {
+      "id": "start-order-processing",
+      "type": "router",
+      "role": "entrypoint",
+      "label": "start",
+      "handler": "compiled_routers.start_order_processing",
+      "mutations": ["p['status'] = 'processing'"]
+    },
+    {
+      "id": "validate-order",
+      "type": "actor",
+      "role": "processor",
+      "label": "validate_order",
+      "handler": "handlers.validate_order",
+      "image": "my-image:latest"
+    },
+    {
+      "id": "cond-order-type",
+      "type": "router",
+      "role": "router",
+      "label": "if p['order_type'] == 'express'",
+      "condition": "p['order_type'] == 'express'",
+      "branches": {
+        "true": "express-handler",
+        "false": "standard-handler"
+      }
+    }
+  ],
+  "edges": [
+    {"source": "start-order-processing", "target": "validate-order"},
+    {"source": "validate-order", "target": "cond-order-type"},
+    {"source": "cond-order-type", "target": "express-handler", "label": "TRUE"},
+    {"source": "cond-order-type", "target": "standard-handler", "label": "FALSE"}
+  ]
+}
+```
+
+### 3.3 Node Layout
+
+React Flow supports manual positioning and auto-layout. For DAGs, use
+**dagre** (or **ELK.js**) for automatic layered layout (Sugiyama algorithm):
+
+```
+npm install dagre  # ~15KB, standard DAG layout
+```
+
+Layout is computed once on render, then React Flow handles zoom/pan/drag.
+
+### 3.4 ActorNode Rendering
+
+```
+┌─────────────────────────────┐
+│  validate_order        [P]  │  ← role badge: [E]ntrypoint, [P]rocessor,
+│  handlers.validate_order    │     [R]outer, [X] exit
+│  replicas: 3/3  queue: 12  │  ← live data (from provider, not graph JSON)
+└─────────────────────────────┘
+```
+
+**Border color** reflects actor state:
+| State | Border color | Meaning |
+|---|---|---|
+| Running | Green (#22c55e) | Healthy, processing messages |
+| Scaled to zero | Gray (#9ca3af) | Idle, no replicas |
+| Error | Red (#ef4444) | Pod crash, OOM, handler error |
+| Processing | Blue (#3b82f6) | Currently handling a tracked task |
+| Pending | Yellow (#eab308) | Pods starting, pulling image |
+
+**Node fill** reflects role (light tints):
+| Role | Fill | Matches DOT |
+|---|---|---|
+| Entrypoint | Light green (#f0fdf4) | Yes |
+| Router (conditional) | Light wheat (#fefce8) | Yes |
+| Router (fan-out) | Light blue (#eff6ff) | Yes |
+| Processor (user actor) | Light blue (#eff6ff) | Yes |
+| Exit | Light green (#f0fdf4) | Yes |
+
+### 3.5 Click Interaction
+
+Clicking a node opens `ActorDetail` in a side panel (or bottom panel in
+Jupyter). The detail panel shows:
+
+- **Config**: image, handler, env vars, flavors, transport
+- **Status**: replicas (current/desired), pod conditions
+- **Queue**: depth, messages in-flight, approximate age of oldest message
+- **Logs**: recent log lines from that actor (streamed from provider)
+
+In read-only contexts (prod, Jupyter default), config is display-only. In
+write contexts (staging via `asya serve` IDE mode, Phase 4+), config is
+editable.
+
+### 3.6 Edge Rendering
+
+| Edge type | Style | Color | Label |
+|---|---|---|---|
+| Sequential | Solid | Black | — |
+| Conditional TRUE | Solid | Green (#16a34a) | "TRUE" |
+| Conditional FALSE | Solid | Red (#dc2626) | "FALSE" |
+| Fan-out | Solid | Purple (#9333ea) | "slice N" |
+| Fan-in | Dashed | Slate (#475569) | — |
+| Error/sump | Dashed | Gray (#9ca3af) | — |
+
+---
+
+## 4. Provider Pattern — Data Bridge
+
+### 4.1 Context Interface
+
+```tsx
+interface AsyaContextValue {
+  // --- Actor data ---
+  actors: ActorInfo[];
+  getActorStatus(name: string): ActorStatus | null;
+
+  // --- Streaming ---
+  subscribeLogs(actorName: string): () => void;  // returns unsubscribe
+  logLines: LogLine[];
+
+  // --- Task tracking ---
+  taskProgress: TaskProgress | null;
+  subscribeTask(taskId: string): () => void;
+
+  // --- Flow metadata ---
+  flowName: string;
+  context: string;  // k8s-stg, k8s-prod, docker
+  readonly: boolean;
+
+  // --- Interactions (host-handled) ---
+  onNodeClick?: (nodeId: string) => void;
+}
+
+interface ActorInfo {
+  name: string;
+  handler: string;
+  image: string;
+  transport: string;
+  labels: Record<string, string>;
+}
+
+interface ActorStatus {
+  replicas: number;
+  desiredReplicas: number;
+  queueDepth: number;
+  state: 'running' | 'scaled-to-zero' | 'error' | 'processing' | 'pending';
+  lastError?: string;
+}
+
+interface LogLine {
+  timestamp: string;
+  actor: string;
+  level: 'debug' | 'info' | 'warn' | 'error';
+  message: string;
+}
+
+interface TaskProgress {
+  id: string;
+  status: string;
+  progressPercent: number;
+  currentActor: string;
+  actorsCompleted: number;
+  totalActors: number;
+  message: string;
+}
+```
+
+### 4.2 Provider Implementations
+
+Each host creates a provider that satisfies `AsyaContextValue`:
+
+#### Web Provider (`asya serve`)
+
+```tsx
+function WebAsyaProvider({ baseUrl, children }) {
+  // Fetches actors via GET /api/actors
+  // Subscribes to SSE via GET /mesh/{id}/stream
+  // Subscribes to WebSocket via /ws/status for live updates
+  // Writes via PUT /api/actors/{name}/config (Phase 4+)
+}
+```
+
+Data source: `asya serve` HTTP/WS API running on localhost.
+
+#### VSCode Provider
+
+```tsx
+function VSCodeAsyaProvider({ children }) {
+  // Listens to window.addEventListener('message', ...)
+  // Extension host sends actor data, status updates, log lines
+  // Extension host fetches from cluster (kubectl) or asya serve
+}
+```
+
+Data source: VSCode extension host sends serialized data via `postMessage`.
+The extension host is the boundary — it talks to kubectl, asya serve, or
+directly to the gateway.
+
+#### Anywidget Provider (Jupyter)
+
+```tsx
+function AnywidgetAsyaProvider({ model, children }) {
+  // Watches model.get('actors'), model.get('status'), etc.
+  // Python side updates model state; React side reacts
+  // model.on('change:actors', callback)
+}
+```
+
+Data source: Python anywidget model. The Jupyter magic fetches data from the
+cluster (kubectl, gateway API) in Python, sets model attributes, and the
+React side auto-updates.
+
+### 4.3 Complexity Assessment
+
+| Piece | Lines (approx.) | Complexity |
+|---|---|---|
+| Context definition + hook | ~50 | Trivial — React boilerplate |
+| Web provider | ~120 | Standard — fetch + EventSource + useEffect |
+| VSCode provider | ~80 | Simple — postMessage listener + state |
+| Anywidget provider | ~80 | Simple — model.on('change:*') + state |
+| Type definitions | ~60 | Trivial — interfaces |
+| **Total** | **~390** | **Low** |
+
+The provider pattern adds ~400 lines total across all hosts. Components stay
+pure and testable — mock the provider for unit tests.
+
+---
+
+## 5. Anywidget Integration (Jupyter)
+
+### 5.1 How Anywidget Works
+
+anywidget bridges Python ↔ JavaScript in Jupyter notebooks:
+
+```python
+# Python side
+import anywidget
+import traitlets
+
+class FlowWidget(anywidget.AnyWidget):
+    _esm = "flow_widget.js"          # JS bundle (React app)
+    _css = "flow_widget.css"         # Styles
+
+    # Synced state (Python ↔ JS, bidirectional)
+    graph = traitlets.Dict({}).tag(sync=True)
+    actors = traitlets.List([]).tag(sync=True)
+    status = traitlets.Dict({}).tag(sync=True)
+    selected_node = traitlets.Unicode("").tag(sync=True)
+```
+
+```js
+// JS side (flow_widget.js)
+export function render({ model, el }) {
+  const root = createRoot(el);
+  root.render(
+    <AnywidgetAsyaProvider model={model}>
+      <FlowDiagram graph={model.get('graph')} />
+    </AnywidgetAsyaProvider>
+  );
+
+  // React to Python-side changes
+  model.on('change:status', () => {
+    // Provider re-renders components automatically
+  });
+}
+```
+
+### 5.2 Jupyter Magic Integration
+
+```python
+# asya_lab/jupyter/magics.py
+
+@line_magic
+def asya(self, line):
+    args = shlex.split(line)
+    if args[0] == 'compile':
+        graph = compile_flow(args[1])
+        widget = FlowWidget(graph=graph)
+        display(widget)
+
+    elif args[0:2] == ['k', 'status']:
+        actors = kubectl_get_actors(args[2])
+        widget = StatusWidget(actors=actors)
+        # Background task updates widget.status periodically
+        display(widget)
+```
+
+### 5.3 Bundle Size Considerations
+
+| Dependency | Size (minified + gzip) |
+|---|---|
+| React + ReactDOM | ~45KB |
+| React Flow | ~30KB |
+| dagre (layout) | ~15KB |
+| @asya/ui components | ~20KB (estimate) |
+| **Total widget bundle** | **~110KB** |
+
+Acceptable for Jupyter — widgets load once per notebook session. The bundle
+is embedded in the Python package (`asya-lab[jupyter]`), no CDN dependency.
+
+---
+
+## 6. VSCode Extension Integration
+
+### 6.1 Webview Panel Architecture
+
+```
+┌─────────────────────────────────────────────┐
+│  VSCode Extension Host (Node.js)            │
+│  ┌─────────────────┐                        │
+│  │ kubectl exec    │ → actor status, logs   │
+│  │ gateway API     │ → task progress, SSE   │
+│  │ file watcher    │ → manifest changes     │
+│  └────────┬────────┘                        │
+│           │ postMessage                     │
+│  ┌────────▼────────────────────────────┐    │
+│  │  Webview Panel (iframe)             │    │
+│  │  ┌──────────────────────────┐       │    │
+│  │  │  VSCodeAsyaProvider      │       │    │
+│  │  │  ┌────────────────────┐  │       │    │
+│  │  │  │  FlowDiagram       │  │       │    │
+│  │  │  │  ActorDetail       │  │       │    │
+│  │  │  │  LogViewer         │  │       │    │
+│  │  │  └────────────────────┘  │       │    │
+│  │  └──────────────────────────┘       │    │
+│  └─────────────────────────────────────┘    │
+└─────────────────────────────────────────────┘
+```
+
+### 6.2 Extension Host Responsibilities
+
+The extension host (Node.js) is the data boundary. It:
+
+1. Reads manifests from `.asya/manifests/` (graph JSON, actor YAML)
+2. Runs `kubectl get asyncactor -o json` for live status
+3. Connects to gateway SSE for task streaming
+4. Sends structured messages to webview via `postMessage`
+5. Receives click events from webview (e.g., "open actor config file")
+
+The webview is a sandboxed iframe — it cannot access the filesystem, kubectl,
+or network directly. All data flows through `postMessage`.
+
+### 6.3 VSCode-Specific Interactions
+
+| User action | Webview event | Extension host response |
+|---|---|---|
+| Click actor node | `{ type: 'selectNode', id: '...' }` | Open `ActorDetail` with full config |
+| Click "Open Config" | `{ type: 'openFile', path: '...' }` | `vscode.workspace.openTextDocument()` |
+| Click "View Logs" | `{ type: 'streamLogs', actor: '...' }` | Start kubectl logs, stream via postMessage |
+| Click "Scale" | `{ type: 'scale', actor: '...', replicas: N }` | `kubectl scale` (Phase 4+, staging only) |
+
+---
+
+## 7. Static Output — Graphviz (Separate Path)
+
+Static PNG/SVG output is NOT rendered by React Flow. It uses the existing
+Graphviz DOT pipeline:
+
+```
+Compiler → DOT file → graphviz CLI → PNG/SVG
+```
+
+**Why two rendering paths**: React Flow gives rich interactivity (click, zoom,
+live data), but requires a JS runtime. Static output must work in CI, docs,
+GitHub README, nbviewer — contexts where JS can't run. Graphviz produces
+deterministic, portable images.
+
+**CLI flags**:
+- `asya flow compile --plot` → DOT + PNG (default format)
+- `asya flow compile --plot --format svg` → DOT + SVG
+- `asya flow compile --plot --format dot` → DOT only (no rendered image)
+
+**Output location**: `.asya/flows/plots/<flow>/` (configurable via
+`config.plots.dir`).
+
+**Visual parity**: The DOT generator and React Flow use the same color
+conventions (green for entrypoints, wheat for conditionals, blue for actors)
+so static and interactive views look consistent, even though layouts differ
+(Sugiyama in both, but different implementations).
+
+---
+
+## 8. Design Tokens and Theming
+
+### 8.1 Status Colors
+
+```ts
+export const STATUS_COLORS = {
+  running:       { border: '#22c55e', bg: '#f0fdf4' },  // green
+  'scaled-to-zero': { border: '#9ca3af', bg: '#f9fafb' },  // gray
+  error:         { border: '#ef4444', bg: '#fef2f2' },  // red
+  processing:    { border: '#3b82f6', bg: '#eff6ff' },  // blue
+  pending:       { border: '#eab308', bg: '#fefce8' },  // yellow
+} as const;
+```
+
+### 8.2 Role Colors (Node Fill)
+
+```ts
+export const ROLE_COLORS = {
+  entrypoint: '#f0fdf4',  // light green
+  exitpoint:  '#f0fdf4',  // light green
+  router:     '#fefce8',  // light wheat (conditional)
+  fanout:     '#eff6ff',  // light blue
+  processor:  '#eff6ff',  // light blue
+} as const;
+```
+
+### 8.3 Log Level Colors
+
+```ts
+export const LOG_COLORS = {
+  debug: '#9ca3af',  // gray
+  info:  '#3b82f6',  // blue
+  warn:  '#eab308',  // yellow
+  error: '#ef4444',  // red
+} as const;
+```
+
+Colors match the DOT generator output for visual consistency.
+
+---
+
+## 9. Testing Strategy
+
+### 9.1 Component Tests
+
+```bash
+npm test                    # Vitest + React Testing Library
+```
+
+Components are tested with a mock provider:
+
+```tsx
+function renderWithMock(ui, overrides = {}) {
+  const mockContext = {
+    actors: [{ name: 'test-actor', handler: 'mod.fn', ... }],
+    getActorStatus: () => ({ replicas: 3, state: 'running', ... }),
+    logLines: [],
+    ...overrides,
+  };
+  return render(
+    <AsyaContext.Provider value={mockContext}>{ui}</AsyaContext.Provider>
+  );
+}
+
+test('ActorNode shows replica count', () => {
+  renderWithMock(<ActorNode id="test-actor" />);
+  expect(screen.getByText('3')).toBeInTheDocument();
+});
+```
+
+### 9.2 Visual Regression
+
+Storybook stories for each component + Chromatic (or Percy) for visual
+regression testing. Each component has stories for all states (running,
+error, scaled-to-zero, etc.).
+
+### 9.3 Integration Tests
+
+Each host provider is tested with its real transport:
+- Web provider: MSW (Mock Service Worker) for HTTP/SSE
+- VSCode provider: mock `postMessage` API
+- Anywidget provider: mock traitlets model
+
+---
+
+## 10. Build and Distribution
+
+### 10.1 Build Pipeline
+
+```
+@asya/ui (npm package)
+├── src/                     # React components + provider interface
+├── dist/                    # ESM + CJS bundles (tsc + rollup/vite)
+├── package.json
+└── tsconfig.json
+
+Consumers bundle @asya/ui into their output:
+├── asya-lab[jupyter]        # Vite → single JS bundle → embedded in Python wheel
+├── asya-vscode              # VSCode webview → bundled with extension
+└── asya-lab[ui]             # Vite → SPA → served by asya serve
+```
+
+### 10.2 Dependency Policy
+
+`@asya/ui` has minimal dependencies:
+- `react`, `react-dom` — peer dependency
+- `@xyflow/react` (React Flow) — direct dependency
+- `dagre` — direct dependency (layout)
+
+No UI framework (no MUI, no Ant Design, no Tailwind). Components use CSS
+modules or vanilla CSS. Keeps the bundle small and avoids framework lock-in.
+
+---
+
+## 11. Open Questions
+
+1. **Graph JSON emission**: Should the compiler emit graph JSON alongside DOT
+   automatically, or only when `--interactive` is passed? Automatic is
+   simpler (always available for Jupyter), but adds ~5KB per compilation.
+
+2. **Live status polling interval**: How often should providers poll for actor
+   status? Too fast = API load; too slow = stale data. Consider: 5s default,
+   configurable per host.
+
+3. **Storybook hosting**: Host Storybook on GitHub Pages for design review, or
+   keep local-only?
+
+4. **Accessibility**: React Flow supports keyboard navigation. Should we add
+   ARIA labels to ActorNode components from day one?
+
+5. **Dark mode**: VSCode has dark mode. Should `@asya/ui` ship with dark theme
+   tokens from the start, or add later?
