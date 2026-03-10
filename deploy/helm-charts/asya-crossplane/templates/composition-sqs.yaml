@@ -420,7 +420,7 @@ spec:
                         {{- end }}
                         containers:
                         - name: asya-runtime
-                          image: {{`{{ $xrSpec.image }}`}}
+                          image: {{`{{ $xrSpec.image | quote }}`}}
                           imagePullPolicy: {{`{{ $xrSpec.imagePullPolicy | default "IfNotPresent" }}`}}
                           command:
                           - python3
@@ -429,13 +429,13 @@ spec:
                           - name: ASYA_SOCKET_DIR
                             value: {{`{{ $socketDir }}`}}
                           - name: ASYA_HANDLER
-                            value: {{`{{ $xrSpec.handler }}`}}
+                            value: {{`{{ $xrSpec.handler | quote }}`}}
                           {{`{{- if $isSystemActor }}`}}
                           - name: ASYA_ENABLE_VALIDATION
                             value: "false"
                           {{`{{- end }}`}}
                           {{`{{- range $xrSpec.env | default list }}`}}
-                          - name: {{`{{ .name }}`}}
+                          - name: {{`{{ .name | quote }}`}}
                             {{`{{- if .value }}`}}
                             value: {{`{{ .value | quote }}`}}
                             {{`{{- else if .valueFrom }}`}}
