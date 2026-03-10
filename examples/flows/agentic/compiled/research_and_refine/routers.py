@@ -19,18 +19,18 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 def start_research_and_refine(payload: dict):
     """Entrypoint for flow 'research_and_refine'"""
     _next = []
-    state = payload
-    state['iteration'] = 0
-    state['search_query'] = state.get('question', '')
-    _next.append(resolve("router_research_and_refine_line_42_loop_back_0"))
+    p = payload
+    p['iteration'] = 0
+    p['search_query'] = p.get('question', '')
+    _next.append(resolve("router_research_and_refine_line_46_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
-def router_research_and_refine_line_59_if(payload: dict):
+def router_research_and_refine_line_55_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['iteration'] >= 5:
+    if p['iteration'] >= 5:
         _next.append(resolve("write_report"))
     else:
         pass
@@ -38,42 +38,42 @@ def router_research_and_refine_line_59_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_52_if(payload: dict):
+def router_research_and_refine_line_51_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if not state.get('gaps') or state.get('quality_score', 0) >= 85:
+    if not p.get('gaps') or p.get('quality_score', 0) >= 85:
         _next.append(resolve("write_report"))
     else:
         _next.append(resolve("refine_query"))
-        _next.append(resolve("router_research_and_refine_line_59_if"))
+        _next.append(resolve("router_research_and_refine_line_55_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_43_seq(payload: dict):
+def router_research_and_refine_line_47_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['iteration'] += 1
+    p['iteration'] += 1
     _next.append(resolve("researcher"))
     _next.append(resolve("critic"))
-    _next.append(resolve("router_research_and_refine_line_52_if"))
+    _next.append(resolve("router_research_and_refine_line_51_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_42_loop_back_0(payload: dict):
+def router_research_and_refine_line_46_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
-    _self = resolve("router_research_and_refine_line_42_loop_back_0")
+    _self = resolve("router_research_and_refine_line_46_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 42")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 46")
 
-    _next.append(resolve("router_research_and_refine_line_43_seq"))
-    _next.append(resolve("router_research_and_refine_line_42_loop_back_0"))
+    _next.append(resolve("router_research_and_refine_line_47_seq"))
+    _next.append(resolve("router_research_and_refine_line_46_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

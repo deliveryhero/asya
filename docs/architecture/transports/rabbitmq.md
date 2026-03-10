@@ -45,7 +45,7 @@ spec:
   transport: rabbitmq
 ```
 
-**Sidecar environment variables** (injected by injector webhook):
+**Sidecar environment variables** (rendered by Crossplane composition):
 
 - `ASYA_TRANSPORT=rabbitmq`
 - `ASYA_RABBITMQ_HOST` → from `config.host`
@@ -97,7 +97,7 @@ data:
   password: <base64-encoded-password>
 ```
 
-**Injector webhook injects** secret reference into sidecar environment via `SecretKeyRef`.
+**Crossplane composition renders** secret reference into sidecar environment via `SecretKeyRef`.
 
 ## KEDA Scaler
 

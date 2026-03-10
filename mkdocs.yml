@@ -40,7 +40,6 @@ nav:
   - Sidecar: architecture/asya-sidecar.md
   - Runtime: architecture/asya-runtime.md
   - Crossplane: architecture/asya-crossplane.md
-  - Injector: architecture/asya-injector.md
   - Gateway: architecture/asya-gateway.md
   - Crew: architecture/asya-crew.md
   - CLI Tools: architecture/asya-lab.md

@@ -23,9 +23,9 @@ def start_routing_classifier(payload: dict):
 
 def router_routing_classifier_line_47_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'account':
+    if p.get('category') == 'account':
         _next.append(resolve("account_agent"))
         _next.append(resolve("format_reply"))
     else:
@@ -37,9 +37,9 @@ def router_routing_classifier_line_47_if(payload: dict):
 
 def router_routing_classifier_line_45_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'technical':
+    if p.get('category') == 'technical':
         _next.append(resolve("technical_agent"))
         _next.append(resolve("format_reply"))
     else:
@@ -50,9 +50,9 @@ def router_routing_classifier_line_45_if(payload: dict):
 
 def router_routing_classifier_line_43_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'billing':
+    if p.get('category') == 'billing':
         _next.append(resolve("billing_agent"))
         _next.append(resolve("format_reply"))
     else:

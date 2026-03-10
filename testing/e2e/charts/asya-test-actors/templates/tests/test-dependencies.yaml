@@ -88,24 +88,6 @@ spec:
         fi
         echo ""
 
-        # RECOMMENDED: Check if injector is running
-        echo "Checking for Asya injector..."
-        if kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector >/dev/null 2>&1; then
-          READY=$(kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector -o jsonpath='{.items[0].status.readyReplicas}' 2>/dev/null || echo "0")
-          DESIRED=$(kubectl get deployment -n asya-system -l app.kubernetes.io/name=asya-injector -o jsonpath='{.items[0].spec.replicas}' 2>/dev/null || echo "1")
-          if [ "$READY" = "$DESIRED" ] && [ "$READY" != "0" ]; then
-            echo "[+] Injector is running and ready ($READY/$DESIRED replicas)"
-          else
-            echo "[!] WARNING: Injector exists but not ready ($READY/$DESIRED replicas)"
-            echo "  The injector must be ready to inject sidecars into actor pods"
-          fi
-        else
-          echo "[!] WARNING: Injector deployment not found in asya-system namespace"
-          echo "  Install it with:"
-          echo "    helm install asya-injector deploy/helm-charts/asya-injector -n asya-system --create-namespace"
-        fi
-        echo ""
-
         {{- if eq .Values.transport "rabbitmq" }}
         # Transport configured: {{ .Values.transport }}
         echo "Transport is configured as: rabbitmq"

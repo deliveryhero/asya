@@ -26,8 +26,8 @@ spec:
   scaling:
     enabled: {{ $scaling.enabled }}
     {{- if $scaling.enabled }}
-    minReplicas: {{ $scaling.minReplicas }}
-    maxReplicas: {{ $scaling.maxReplicas }}
+    minReplicaCount: {{ $scaling.minReplicaCount }}
+    maxReplicaCount: {{ $scaling.maxReplicaCount }}
     pollingInterval: {{ $scaling.pollingInterval }}
     cooldownPeriod: {{ $scaling.cooldownPeriod }}
     queueLength: {{ $scaling.queueLength }}

@@ -78,8 +78,8 @@ spec:
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: 5

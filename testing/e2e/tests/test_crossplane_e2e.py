@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-E2E tests for AsyncActor lifecycle under Crossplane Composition + asya-injector architecture.
+E2E tests for AsyncActor lifecycle under Crossplane Composition architecture.
 
 Tests AsyncActor behavior in a real Kubernetes environment:
 - AsyncActor creation, updates, and deletion
-- Sidecar injection verification (via mutating webhook)
+- Sidecar injection verification (rendered inline by Crossplane compositions)
 - AsyncActor status conditions (Crossplane: Ready, Synced)
 - Workload creation (Deployment)
 - Broken image handling
@@ -15,8 +15,8 @@ Tests AsyncActor behavior in a real Kubernetes environment:
 - Concurrent operations
 - Crossplane provider resilience
 
-These tests verify the Crossplane Composition + asya-injector webhook
-behaves correctly in production scenarios.
+These tests verify the Crossplane Composition pipeline behaves correctly
+in production scenarios.
 """
 
 import json
@@ -71,8 +71,8 @@ def _actor_manifest(
     scaling_block = f"""\
   scaling:
     enabled: {str(scaling_enabled).lower()}
-    minReplicas: {min_replicas}
-    maxReplicas: {max_replicas}
+    minReplicaCount: {min_replicas}
+    maxReplicaCount: {max_replicas}
     queueLength: {queue_length}"""
 
     if not scaling_enabled:
@@ -99,6 +99,9 @@ metadata:
 spec:
   actor: {name}
   transport: {transport}{flavors_block}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {transport}
 {scaling_block}
   workload:
     kind: Deployment{replicas_line}
@@ -191,7 +194,7 @@ def test_asyncactor_basic_lifecycle(e2e_helper):
     Scenario:
     1. Create AsyncActor CRD
     2. Crossplane creates Deployment via Composition
-    3. Injector webhook injects sidecar and runtime containers
+    3. Crossplane composition renders sidecar and runtime containers inline
     4. Queue created via Crossplane AWS provider
     5. ScaledObject created via Crossplane Kubernetes provider
     6. Delete AsyncActor
@@ -209,10 +212,13 @@ metadata:
 spec:
   actor: test-lifecycle
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 10
   workload:
     kind: Deployment
@@ -236,7 +242,7 @@ spec:
             "AsyncActor should reach Ready=True"
         )
 
-        logger.info("Verifying sidecar injection (checking Pod, not Deployment)...")
+        logger.info("Verifying sidecar presence (checking Pod, not Deployment)...")
         pods_result = subprocess.run(
             [
                 "kubectl",
@@ -255,7 +261,7 @@ spec:
         )
         container_names = pods_result.stdout.strip().split()
 
-        assert "asya-sidecar" in container_names, "Sidecar should be injected by webhook"
+        assert "asya-sidecar" in container_names, "Sidecar should be rendered by Crossplane composition"
         assert "asya-runtime" in container_names, "Runtime container should exist"
 
         logger.info("Verifying ScaledObject creation...")
@@ -306,10 +312,13 @@ metadata:
 spec:
   actor: test-update
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 10
   workload:
     kind: Deployment
@@ -333,10 +342,13 @@ metadata:
 spec:
   actor: test-update
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 3
-    maxReplicas: 10
+    minReplicaCount: 3
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment
@@ -375,8 +387,8 @@ spec:
             updated_scaled = kubectl_get("scaledobject", "test-update", namespace=e2e_helper.namespace)
             if updated_scaled["spec"].get("minReplicaCount") == 3:
                 break
-        assert updated_scaled["spec"]["minReplicaCount"] == 3, "ScaledObject should be updated with new minReplicas"
-        assert updated_scaled["spec"]["maxReplicaCount"] == 10, "ScaledObject should be updated with new maxReplicas"
+        assert updated_scaled["spec"]["minReplicaCount"] == 3, "ScaledObject should be updated with new minReplicaCount"
+        assert updated_scaled["spec"]["maxReplicaCount"] == 10, "ScaledObject should be updated with new maxReplicaCount"
 
         triggers = updated_scaled["spec"]["triggers"]
         transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
@@ -424,10 +436,13 @@ metadata:
 spec:
   actor: test-scaling-advanced
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     queueLength: 5
     advanced:
       restoreToOriginalReplicaCount: true
@@ -512,6 +527,9 @@ metadata:
 spec:
   actor: test-advanced-no-target
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     advanced:
       formula: "queue"
@@ -618,10 +636,13 @@ metadata:
 spec:
   actor: test-status
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
   workload:
     kind: Deployment
     template:
@@ -692,6 +713,9 @@ metadata:
 spec:
   actor: test-broken-image
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -745,9 +769,9 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
     """
     E2E: Test sidecar container has correct environment variables.
 
-    With Crossplane architecture, the sidecar is injected by the asya-injector
-    webhook rather than the operator. This test verifies that the webhook
-    correctly configures sidecar env vars.
+    With Crossplane architecture, the sidecar is rendered inline by the
+    composition. This test verifies that the composition correctly configures
+    sidecar env vars.
 
     Scenario:
     1. Create AsyncActor
@@ -768,6 +792,9 @@ metadata:
 spec:
   actor: test-sidecar-env
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   workload:
@@ -793,7 +820,7 @@ spec:
             "AsyncActor should reach Ready=True"
         )
 
-        logger.info("Checking Pod containers (sidecar injected by webhook into Pods, not Deployment)...")
+        logger.info("Checking Pod containers (sidecar rendered by Crossplane composition into Pods)...")
         pods_json = subprocess.run(
             [
                 "kubectl",
@@ -813,7 +840,7 @@ spec:
         containers = json.loads(pods_json.stdout)
         sidecar = next((c for c in containers if c["name"] == "asya-sidecar"), None)
 
-        assert sidecar is not None, "Sidecar container should exist (injected by webhook into Pod)"
+        assert sidecar is not None, "Sidecar container should exist (rendered by Crossplane composition)"
 
         env_vars = {e["name"]: e.get("value", "") for e in sidecar.get("env", [])}
 
@@ -867,10 +894,13 @@ metadata:
 spec:
   actor: test-labels
   transport: {_transport}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {_transport}
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 3
+    minReplicaCount: 1
+    maxReplicaCount: 3
     queueLength: 5
   workload:
     kind: Deployment
@@ -1282,7 +1312,7 @@ def test_asyncactor_scaling_toggle(e2e_helper):
         _kubectl_patch(
             "asyncactor",
             name,
-            '{"spec":{"scaling":{"enabled":true,"minReplicas":1,"maxReplicas":5,"queueLength":10}}}',
+            '{"spec":{"scaling":{"enabled":true,"minReplicaCount":1,"maxReplicaCount":5,"queueLength":10}}}',
             namespace=e2e_helper.namespace,
         )
 
@@ -1387,7 +1417,7 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
 
 
 # ---------------------------------------------------------------------------
-# New tests: Sidecar injection (Script 06 equivalent)
+# New tests: Sidecar rendering (Script 06 equivalent)
 # ---------------------------------------------------------------------------
 
 
@@ -1395,9 +1425,9 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
 @pytest.mark.timeout(300)
 def test_sidecar_injection_volumes_on_pod(e2e_helper):
     """
-    E2E: Verify Pod has correct volumes and volume mounts for sidecar injection.
+    E2E: Verify Pod has correct volumes and volume mounts for sidecar rendering.
 
-    The asya-injector webhook injects volumes (socket-dir, tmp, asya-runtime)
+    The Crossplane composition renders volumes (socket-dir, tmp, asya-runtime)
     and configures volume mounts on both sidecar and runtime containers.
 
     Scenario:
@@ -1434,7 +1464,7 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
         containers = _get_pod_containers(name, e2e_helper.namespace)
 
         sidecar = next((c for c in containers if c["name"] == "asya-sidecar"), None)
-        assert sidecar is not None, "Sidecar container should be injected"
+        assert sidecar is not None, "Sidecar container should be present (rendered by Crossplane composition)"
 
         sidecar_mounts = {m["name"] for m in sidecar.get("volumeMounts", [])}
         logger.info(f"Sidecar volume mounts: {sidecar_mounts}")
@@ -1450,7 +1480,7 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
         assert "tmp" in runtime_mounts, "Runtime should mount tmp"
         assert "asya-runtime" in runtime_mounts, "Runtime should mount asya-runtime"
 
-        logger.info("[+] Sidecar injection volumes verified")
+        logger.info("[+] Sidecar volumes verified")
 
     except Exception:
         log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
@@ -1463,11 +1493,11 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
 @pytest.mark.timeout(300)
 def test_sidecar_injection_multi_container(e2e_helper):
     """
-    E2E: Test sidecar injection with multiple user containers.
+    E2E: Test sidecar rendering with multiple user containers.
 
     Scenario:
     1. Create AsyncActor with asya-runtime + helper containers
-    2. Verify Pod has 3 containers (sidecar injected by webhook)
+    2. Verify Pod has 3 containers (sidecar rendered by Crossplane composition)
     3. Verify all container names are correct
 
     Expected: Sidecar appended alongside user-defined containers
@@ -1498,11 +1528,11 @@ def test_sidecar_injection_multi_container(e2e_helper):
         assert len(containers) == 3, (
             f"Pod should have 3 containers (runtime + helper + sidecar), got {len(containers)}: {container_names}"
         )
-        assert "asya-sidecar" in container_names, "Sidecar should be injected"
+        assert "asya-sidecar" in container_names, "Sidecar should be present (rendered by Crossplane composition)"
         assert "asya-runtime" in container_names, "Runtime container should exist"
         assert "helper" in container_names, "Helper container should exist"
 
-        logger.info("[+] Multi-container sidecar injection verified")
+        logger.info("[+] Multi-container sidecar rendering verified")
 
     except Exception:
         log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
@@ -1720,7 +1750,7 @@ def test_asyncactor_flavors_resolved(e2e_helper):
             "Flavor actor should reach Ready=True"
         )
 
-        # Verify the Deployment has resources injected by the flavor
+        # Verify the Deployment has resources applied by the flavor
         deployment = kubectl_get("deployment", actor_single, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
@@ -1732,7 +1762,7 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         assert resources.get("requests", {}).get("memory") == "64Mi", (
             f"Flavor should set memory request to 64Mi, got: {resources}"
         )
-        logger.info("[+] Single flavor: resources correctly injected from flavor")
+        logger.info("[+] Single flavor: resources correctly applied from flavor")
 
         # --- Scenario 2: multiple flavors + env var override ---
         logger.info("Creating actor with multiple flavors and env var override...")

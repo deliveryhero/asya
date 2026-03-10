@@ -82,7 +82,7 @@ class FlowCompiler:
     def validate(self, source_code: str, filename: str) -> None:
         self._parse(source_code, filename)
 
-    def generate_plot(self, output_dir: str, plot_width: int = 50) -> tuple[str, str | None]:
+    def generate_plot(self, output_dir: str, plot_width: int = 50, plot_format: str = "svg") -> tuple[str, str | None]:
         if not self.flow_name or not self.routers:
             raise RuntimeError("Must compile flow before generating plot")
 
@@ -99,35 +99,35 @@ class FlowCompiler:
         dot_file = output_path / "flow.dot"
         dot_file.write_text(dot_content)
 
-        png_path = None
+        output_path_str = None
         try:
             import subprocess  # nosec B404
 
             subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
 
-            png_file = output_path / "flow.png"
+            output_file = output_path / f"flow.{plot_format}"
 
             result = subprocess.run(  # nosec B603, B607
-                ["dot", "-Tpng", str(dot_file), "-o", str(png_file)],
+                ["dot", f"-T{plot_format}", str(dot_file), "-o", str(output_file)],
                 capture_output=True,
                 text=True,
                 check=True,
             )
 
             if result.returncode == 0:
-                png_path = str(png_file)
+                output_path_str = str(output_file)
             else:
                 raise RuntimeError(f"graphviz dot failed: {result.stderr}")
 
         except FileNotFoundError as e:
             raise ImportError(
-                "graphviz 'dot' command not found. Install graphviz to generate PNG plots. "
+                "graphviz 'dot' command not found. Install graphviz to generate plots. "
                 "On Ubuntu/Debian: apt-get install graphviz"
             ) from e
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"graphviz dot failed: {e.stderr}") from e
 
-        return str(dot_file), png_path
+        return str(dot_file), output_path_str
 
     @property
     def single_actor_name(self) -> str | None:

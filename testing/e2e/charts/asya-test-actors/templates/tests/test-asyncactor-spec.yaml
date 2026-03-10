@@ -32,14 +32,14 @@ spec:
         fi
         echo "[+] Scaling is enabled"
 
-        MIN_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.minReplicas}')
+        MIN_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.minReplicaCount}')
         if [ "$MIN_REPLICAS" != "1" ]; then
           echo "[-] Min replicas mismatch: expected 1, got $MIN_REPLICAS"
           exit 1
         fi
         echo "[+] Min replicas: $MIN_REPLICAS"
 
-        MAX_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.maxReplicas}')
+        MAX_REPLICAS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.scaling.maxReplicaCount}')
         if [ "$MAX_REPLICAS" != "10" ]; then
           echo "[-] Max replicas mismatch: expected 10, got $MAX_REPLICAS"
           exit 1

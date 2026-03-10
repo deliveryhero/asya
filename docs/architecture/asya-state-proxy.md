@@ -34,7 +34,7 @@ Handler code (actor runtime)
 
 ### Pod layout
 
-When `stateProxy` is configured, the injector adds one connector container per
+When `stateProxy` is configured, the Crossplane composition adds one connector container per
 mount to the actor pod. All connector containers share the `state-sockets`
 emptyDir volume with the runtime container.
 
@@ -109,11 +109,9 @@ Defined in `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml`:
 | `stateProxy[].connector.env` | array | Backend-specific environment variables |
 | `stateProxy[].connector.resources` | object | Kubernetes resource requests/limits |
 
-## Injector Webhook
+## Crossplane Composition Step
 
-Source: `src/asya-injector/internal/injection/state_proxy.go`
-
-When the injector processes an AsyncActor with `stateProxy` entries, it:
+When the Crossplane composition processes an AsyncActor with `stateProxy` entries, it:
 
 1. Adds a `state-sockets` emptyDir volume to the pod.
 2. For each mount entry, adds a connector container:
@@ -485,7 +483,7 @@ except FileNotFoundError:
 
 | Variable | Connectors | Description |
 |----------|-----------|-------------|
-| `CONNECTOR_SOCKET` | all | Unix socket path (set by injector) |
+| `CONNECTOR_SOCKET` | all | Unix socket path (set by Crossplane composition) |
 | `STATE_BUCKET` | s3-* | S3 bucket name |
 | `STATE_PREFIX` | s3-*, redis | Key prefix within bucket or namespace |
 | `AWS_REGION` | s3-* | AWS region (default: `us-east-1`) |
@@ -494,9 +492,8 @@ except FileNotFoundError:
 
 ## Related Components
 
-- [Sidecar Injector](asya-injector.md) — reads `stateProxy` from AsyncActor XR and injects containers
+- [Crossplane Compositions](asya-crossplane.md) — reads `stateProxy` from AsyncActor XR and renders connector containers
 - [Runtime](asya-runtime.md) — installs file I/O hooks from `ASYA_STATE_PROXY_MOUNTS`
 - XRD definition: `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml`
-- Injector state proxy logic: `src/asya-injector/internal/injection/state_proxy.go`
 - Connector server: `src/asya-state-proxy/asya_state_proxy/server.py`
 - Connector interface: `src/asya-state-proxy/asya_state_proxy/interface.py`

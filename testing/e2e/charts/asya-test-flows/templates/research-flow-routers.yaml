@@ -18,8 +18,8 @@ spec:
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
-    minReplicas: {{ .Values.scaling.minReplicas }}
-    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
@@ -56,8 +56,8 @@ spec:
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
-    minReplicas: {{ .Values.scaling.minReplicas }}
-    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}

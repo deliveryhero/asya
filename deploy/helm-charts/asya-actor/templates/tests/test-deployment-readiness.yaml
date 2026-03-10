@@ -75,9 +75,6 @@ spec:
           echo "Check Crossplane logs:"
           echo "  kubectl logs -n crossplane-system deployment/crossplane"
           echo ""
-          echo "Check asya-injector logs:"
-          echo "  kubectl logs -n {{ .Values.infrastructure.operatorNamespace | default "asya-system" }} deployment/asya-injector"
-          echo ""
           echo "AsyncActor status:"
           kubectl get asyncactor -n {{ .Values.namespace }} "$ACTOR_NAME" -o yaml
           exit 1

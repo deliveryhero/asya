@@ -22,11 +22,11 @@ def start_multi_agent_debate(payload: dict):
     p = payload
     p['round'] = 0
     p['positions'] = list(await asyncio.gather(debater_a(p['question']), debater_b(p['question']), debater_c(p['question'])))
-    _next.append(resolve("router_multi_agent_debate_line_61_loop_back_0"))
+    _next.append(resolve("router_multi_agent_debate_line_59_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_multi_agent_debate_line_74_seq(payload: dict):
+def router_multi_agent_debate_line_70_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,52 +35,52 @@ def router_multi_agent_debate_line_74_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_70_if(payload: dict):
+def router_multi_agent_debate_line_67_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['round'] >= 3:
         _next.append(resolve("final_judge"))
     else:
-        _next.append(resolve("router_multi_agent_debate_line_74_seq"))
+        _next.append(resolve("router_multi_agent_debate_line_70_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_67_if(payload: dict):
+def router_multi_agent_debate_line_64_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('converged'):
         _next.append(resolve("final_judge"))
     else:
-        _next.append(resolve("router_multi_agent_debate_line_70_if"))
+        _next.append(resolve("router_multi_agent_debate_line_67_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_62_seq(payload: dict):
+def router_multi_agent_debate_line_60_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['round'] += 1
     _next.append(resolve("convergence_checker"))
-    _next.append(resolve("router_multi_agent_debate_line_67_if"))
+    _next.append(resolve("router_multi_agent_debate_line_64_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_multi_agent_debate_line_61_loop_back_0(payload: dict):
+def router_multi_agent_debate_line_59_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_multi_agent_debate_line_61_loop_back_0")
+    _self = resolve("router_multi_agent_debate_line_59_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 61")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 59")
 
-    _next.append(resolve("router_multi_agent_debate_line_62_seq"))
-    _next.append(resolve("router_multi_agent_debate_line_61_loop_back_0"))
+    _next.append(resolve("router_multi_agent_debate_line_60_seq"))
+    _next.append(resolve("router_multi_agent_debate_line_59_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

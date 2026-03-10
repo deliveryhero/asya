@@ -4,29 +4,6 @@ Asya🎭 provides Helm charts for deploying framework components.
 
 ## Available Charts
 
-### asya-injector
-
-Deploys Asya webhook for sidecar injection.
-
-**Location**: `deploy/helm-charts/asya-injector/`
-
-**Installation**:
-```bash
-helm install asya-injector deploy/helm-charts/asya-injector/ -n asya-system --create-namespace -f values.yaml
-```
-
-**Key values**:
-```yaml
-image:
-  repository: ghcr.io/deliveryhero/asya-injector
-  tag: latest
-
-serviceAccount:
-  create: true
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/injector-role
-```
-
 ### asya-gateway
 
 Deploys MCP HTTP gateway.
@@ -87,8 +64,8 @@ x-sink:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
   workload:
     template:
       spec:
@@ -106,8 +83,8 @@ x-sump:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
   workload:
     template:
       spec:
@@ -199,8 +176,8 @@ actors:
   - name: text-processor
     transport: sqs
     scaling:
-      minReplicas: 0
-      maxReplicas: 50
+      minReplicaCount: 0
+      maxReplicaCount: 50
       queueLength: 5
     image: my-processor:v1
     handler: processor.TextProcessor.process
@@ -211,8 +188,8 @@ actors:
   - name: image-processor
     transport: sqs
     scaling:
-      minReplicas: 0
-      maxReplicas: 20
+      minReplicaCount: 0
+      maxReplicaCount: 20
     image: my-image:v1
     handler: image.process
     resources:
@@ -319,9 +296,6 @@ spec:
 ## Upgrading Charts
 
 ```bash
-# Upgrade injector
-helm upgrade asya-injector deploy/helm-charts/asya-injector/ -n asya-system -f values.yaml
-
 # Upgrade crossplane
 helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ -n crossplane-system -f values.yaml
 
@@ -339,7 +313,6 @@ helm upgrade asya-crew deploy/helm-charts/asya-crew/ -f values.yaml
 helm uninstall asya-gateway
 helm uninstall asya-crew
 helm uninstall asya-crossplane -n crossplane-system
-helm uninstall asya-injector -n asya-system
 
 # Remove XRDs (will delete all AsyncActors)
 kubectl delete xrd asyncactors.asya.sh

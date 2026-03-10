@@ -40,23 +40,15 @@ spec:
         fi
         echo "[+] app.kubernetes.io/managed-by label is correct: $MANAGED_BY"
 
-        # Wait for operator to create Deployment (with retry logic)
-        echo "[.] Waiting for operator to create Deployment..."
-        MAX_RETRIES=150
-        RETRY_INTERVAL=2
-        DEPLOYMENT_EXISTS=false
-        for i in $(seq 1 $MAX_RETRIES); do
-          if kubectl get deployment $TEST_ACTOR -n {{ .Release.Namespace }} > /dev/null 2>&1; then
-            DEPLOYMENT_EXISTS=true
-            echo "[+] Deployment created after ${i} attempts"
-            break
-          fi
-          if [ $i -eq $MAX_RETRIES ]; then
-            echo "[-] Deployment not created after ${MAX_RETRIES} attempts (${RETRY_INTERVAL}s interval, $((MAX_RETRIES * RETRY_INTERVAL))s total)"
-            exit 1
-          fi
-          sleep $RETRY_INTERVAL
-        done
+        # Wait for the AsyncActor XR to become Ready — guarantees the Deployment exists
+        echo "[.] Waiting for AsyncActor '$TEST_ACTOR' to become Ready..."
+        if ! kubectl wait asyncactor/$TEST_ACTOR -n {{ .Release.Namespace }} \
+            --for=condition=Ready --timeout=120s; then
+          echo "[-] AsyncActor '$TEST_ACTOR' did not become Ready within 120s"
+          kubectl describe asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} | grep -A 10 "Conditions:" || true
+          exit 1
+        fi
+        echo "[+] AsyncActor '$TEST_ACTOR' is Ready"
 
         # Verify operator propagates labels to child resources (Deployment)
         DEPLOYMENT_APP_NAME=$(kubectl get deployment $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/name}')

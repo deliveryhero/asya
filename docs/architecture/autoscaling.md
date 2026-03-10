@@ -41,7 +41,7 @@ spec:
 **Scale to zero**:
 
 - 0 messages → 0 pods → $0 cost
-- Queue fills → Spin up to maxReplicas in seconds
+- Queue fills → Spin up to maxReplicaCount in seconds
 
 **Independent scaling**:
 
@@ -66,8 +66,8 @@ Scaling configured in AsyncActor spec:
 spec:
   scaling:
     enabled: true            # Enable KEDA autoscaling
-    minReplicas: 0           # Minimum pods (0 for scale-to-zero)
-    maxReplicas: 100         # Maximum pods
+    minReplicaCount: 0           # Minimum pods (0 for scale-to-zero)
+    maxReplicaCount: 100         # Maximum pods
     queueLength: 5           # Target messages per replica
     cooldownPeriod: 60       # Seconds before scaling down (default: 60s)
     pollingInterval: 10      # How often KEDA checks queue depth (default: 10s)
@@ -76,8 +76,8 @@ spec:
 **Parameters**:
 
 - `enabled`: Enable/disable KEDA autoscaling (default: false)
-- `minReplicas`: Minimum pods (default: 0 for scale-to-zero)
-- `maxReplicas`: Maximum pods (default: 50)
+- `minReplicaCount`: Minimum pods (default: 0 for scale-to-zero)
+- `maxReplicaCount`: Maximum pods (default: 50)
 - `queueLength`: Target messages per replica (default: 5)
 - `cooldownPeriod`: Delay before scaling down in seconds (default: 60)
 - `pollingInterval`: Queue check frequency in seconds (default: 10)
@@ -89,8 +89,8 @@ For fine-grained KEDA behavior, use the `scaling.advanced` sub-object:
 ```yaml
 spec:
   scaling:
-    minReplicas: 0
-    maxReplicas: 20
+    minReplicaCount: 0
+    maxReplicaCount: 20
     advanced:
       restoreToOriginalReplicaCount: true
       formula: "queue"
@@ -129,7 +129,7 @@ advanced:
 ### Idle Workload
 
 - Queue: 0 messages
-- Replicas: 0 (minReplicas=0)
+- Replicas: 0 (minReplicaCount=0)
 - Cost: $0
 
 ### Low Load
@@ -141,7 +141,7 @@ advanced:
 ### High Load
 
 - Queue: 250 messages, queueLength=5
-- Replicas: 50 (capped at maxReplicas)
+- Replicas: 50 (capped at maxReplicaCount)
 - Processing: ~5 messages per replica
 
 ### Burst

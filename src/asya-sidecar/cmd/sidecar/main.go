@@ -212,6 +212,18 @@ func main() {
 		slog.Info("Pub/Sub transport initialized",
 			"projectID", cfg.PubSubProjectID,
 			"endpoint", cfg.PubSubEndpoint)
+	case "socket":
+		// Socket transport uses Unix domain sockets on a shared Docker volume.
+		// FOR LOCAL DOCKER COMPOSE TESTING ONLY — no persistence, no broker, no K8s support.
+		// See docs/architecture/transports/socket.md for constraints and setup guide.
+		tp, err = transport.NewSocketTransport(transport.SocketConfig{
+			MeshDir: cfg.MeshDir,
+		})
+		if err != nil {
+			slog.Error("Failed to create socket transport", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Socket transport initialized", "meshDir", cfg.MeshDir)
 	default:
 		slog.Error("Unsupported transport type", "transport", cfg.TransportType)
 		os.Exit(1)

@@ -142,8 +142,8 @@ x-sink:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment
@@ -169,8 +169,8 @@ x-sump:
   transport: rabbitmq
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     queueLength: 5
   workload:
     kind: Deployment

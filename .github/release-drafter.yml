@@ -13,7 +13,6 @@ categories:
   labels:
   - 'asya-crew'
   - 'asya-gateway'
-  - 'asya-injector'
   - 'function-asya-flavors'
   - 'asya-runtime'
   - 'asya-sidecar'
@@ -44,7 +43,6 @@ include-labels:
 # other changes:
 - 'asya-crew'
 - 'asya-gateway'
-- 'asya-injector'
 - 'function-asya-flavors'
 - 'asya-runtime'
 - 'asya-sidecar'
@@ -153,9 +151,6 @@ autolabeler:
 - label: 'asya-gateway'
   files:
   - 'src/asya-gateway/**/*'
-- label: 'asya-injector'
-  files:
-  - 'src/asya-injector/**/*'
 - label: 'function-asya-flavors'
   files:
   - 'src/function-asya-flavors/**/*'
@@ -199,7 +194,6 @@ template: |
 
   - `ghcr.io/$OWNER/asya-crew:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-gateway:$RESOLVED_VERSION`
-  - `ghcr.io/$OWNER/asya-injector:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-sidecar:$RESOLVED_VERSION`
   - `ghcr.io/$OWNER/asya-testing:$RESOLVED_VERSION`
 

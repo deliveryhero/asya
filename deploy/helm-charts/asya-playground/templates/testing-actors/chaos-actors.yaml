@@ -47,8 +47,8 @@ spec:
             name: chaos-actors-handlers
   scaling:
     enabled: {{ .Values.testingActors.scaling.enabled }}
-    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
-    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.testingActors.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.testingActors.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
     queueLength: {{ .Values.testingActors.scaling.queueLength }}
 ---
@@ -97,8 +97,8 @@ spec:
             name: chaos-actors-handlers
   scaling:
     enabled: {{ .Values.testingActors.scaling.enabled }}
-    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
-    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.testingActors.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.testingActors.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
     queueLength: {{ .Values.testingActors.scaling.queueLength }}
 ---
@@ -147,8 +147,8 @@ spec:
             name: chaos-actors-handlers
   scaling:
     enabled: {{ .Values.testingActors.scaling.enabled }}
-    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
-    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.testingActors.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.testingActors.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
     queueLength: {{ .Values.testingActors.scaling.queueLength }}
 ---
@@ -197,8 +197,8 @@ spec:
             name: chaos-actors-handlers
   scaling:
     enabled: {{ .Values.testingActors.scaling.enabled }}
-    minReplicas: {{ .Values.testingActors.scaling.minReplicas }}
-    maxReplicas: {{ .Values.testingActors.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.testingActors.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.testingActors.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.testingActors.scaling.pollingInterval }}
     queueLength: {{ .Values.testingActors.scaling.queueLength }}
 {{- end }}

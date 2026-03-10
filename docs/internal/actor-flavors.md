@@ -14,7 +14,7 @@ spec:                       metadata:
     - gpu-t4       -------->    asya.sh/flavor: gpu-t4
     - persistence  -------->    asya.sh/flavor: persistence
   workload: ...             data:
-                              scaling: { minReplicas: 1 }
+                              scaling: { minReplicaCount: 1 }
                               workload: { template: ... }
 ```
 
@@ -26,14 +26,14 @@ spec:                       metadata:
    flavors override earlier ones).
 5. The actor's inline spec is applied last (actor always wins).
 6. The resolved spec is written back onto the XR's desired state.
-7. Downstream composition steps and the injector read from `$xr.spec.*`.
+7. Downstream composition steps read from `$xr.spec.*`.
 
 ## Merge semantics
 
 | Field type | Behavior | Example |
 |-----------|----------|---------|
-| Scalars | Last writer wins | `scaling.minReplicas: 2` overrides `1` |
-| Dicts/objects | Deep merge | `scaling.maxReplicas` added alongside `minReplicas` |
+| Scalars | Last writer wins | `scaling.minReplicaCount: 2` overrides `1` |
+| Dicts/objects | Deep merge | `scaling.maxReplicaCount` added alongside `minReplicaCount` |
 | Arrays of name-keyed objects | Merge by `name` | Env vars accumulate; same name = last wins |
 | Other arrays | Replace | Tolerations, volumes replace entirely |
 
@@ -68,14 +68,14 @@ data:
                 name: openai-creds
                 key: api-key
   scaling:
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
 ```
 
 ## Actor-wins override
 
 The actor's inline spec always takes precedence. If a flavor sets
-`scaling.minReplicas: 1` and the actor sets `scaling.minReplicas: 3`,
+`scaling.minReplicaCount: 1` and the actor sets `scaling.minReplicaCount: 3`,
 the actor's value wins.
 
 Infrastructure fields (`actor`, `transport`, `flavors`, `region`,

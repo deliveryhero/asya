@@ -220,14 +220,7 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -f crossplane-values.yaml
 ```
 
-### 4. Install Asya Injector
-
-```bash
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
-```
-
-### 5. Install Gateway (Optional)
+### 4. Install Gateway (Optional)
 
 ```yaml
 # gateway-values.yaml
@@ -315,8 +308,8 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
   workload:
     kind: Deployment
     template:
@@ -339,9 +332,6 @@ kubectl apply -f my-actor.yaml
 # Check Crossplane
 kubectl get pods -n crossplane-system
 
-# Check injector
-kubectl get pods -n asya-system
-
 # Check KEDA
 kubectl get pods -n keda
 
@@ -358,7 +348,7 @@ kubectl get sqsqueue
 
 - Use Spot Instances for GPU nodes
 - Enable cluster autoscaler scale-to-zero
-- Use KEDA scale-to-zero (`minReplicas: 0`)
+- Use KEDA scale-to-zero (`minReplicaCount: 0`)
 - Set appropriate `queueLength` for scaling efficiency
 - Monitor SQS costs (first 1M requests free)
 

@@ -17,7 +17,6 @@ keywords:
 - asya
 - actor
 - crossplane
-- injector
 - gateway
 - demo
 - quickstart
@@ -34,9 +33,6 @@ dependencies:
 - name: asya-crossplane
   version: ">=0.0.0"
   repository: "file://../asya-crossplane"
-- name: asya-injector
-  version: ">=0.0.0"
-  repository: "file://../asya-injector"
 - name: asya-crew
   version: ">=0.0.0"
   repository: "file://../asya-crew"

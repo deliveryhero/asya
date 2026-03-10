@@ -2,7 +2,6 @@ Asya Quickstart installed successfully
 
 Components installed:
   - Asya Crossplane (XRDs, Compositions, Providers)
-  - Asya Injector (sidecar injection webhook)
 {{- if .Values.enableAsyaCrew }}
   - Asya Crew actors (x-sink, x-sump)
 {{- end }}

@@ -27,6 +27,13 @@ functions:
   flavorsRepository: "ghcr.io/deliveryhero/function-asya-flavors"
   flavorsVersion: "0.5.3"
   flavorsPackagePullPolicy: IfNotPresent
+  flavorsResources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
 # AWS ProviderConfig settings
 awsProviderConfig:
@@ -80,6 +87,39 @@ irsa:
 runtime:
   # Create asya-runtime ConfigMap in actor namespace
   enabled: true
+
+# Sidecar injection configuration for actor pods
+sidecar:
+  # Sidecar container image
+  image: "ghcr.io/deliveryhero/asya-sidecar:latest"
+  # Pull policy for the sidecar image
+  imagePullPolicy: "IfNotPresent"
+  # Unix socket directory shared between runtime and sidecar
+  socketDir: "/var/run/asya"
+  # Mount path for asya_runtime.py inside the runtime container
+  runtimeMountPath: "/opt/asya/asya_runtime.py"
+  # Name of the ConfigMap containing asya_runtime.py
+  runtimeConfigMap: "asya-runtime"
+  # Gateway URL for progress reporting (leave empty to disable)
+  gatewayURL: ""
+  # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
+  awsCredsSecret: ""
+  # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
+  sqsEndpoint: ""
+  # SQS long-polling wait time override (seconds)
+  sqsWaitTimeSeconds: ""
+  # RabbitMQ AMQP connection URL
+  rabbitmqURL: ""
+  # RabbitMQ credentials secret name (username and password for AMQP connection)
+  rabbitmqCredsSecret: ""
+  # Custom Pub/Sub endpoint (for emulator)
+  pubsubEndpoint: ""
+  # GCP credentials secret name (service account JSON key for Pub/Sub access)
+  gcpCredsSecret: ""
+  # AWS region for SQS queue access (cluster-wide)
+  awsRegion: "us-east-1"
+  # GCP project ID for Pub/Sub access (cluster-wide)
+  gcpProjectId: ""
 
 # KEDA authentication configuration (SQS)
 keda:

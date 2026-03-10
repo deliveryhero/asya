@@ -32,3 +32,10 @@ keda:
     name: aws-creds
     accessKeyIdKey: AWS_ACCESS_KEY_ID
     secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+
+# Sidecar injection configuration for LocalStack
+sidecar:
+  # Custom SQS endpoint pointing to LocalStack
+  sqsEndpoint: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
+  # AWS credentials secret for sidecar (non-IRSA LocalStack environment)
+  awsCredsSecret: "aws-creds"

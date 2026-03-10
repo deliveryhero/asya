@@ -7,7 +7,8 @@ AI developer guidance for the Asya project.
 Asya is an Actor Mesh framework for running AI workloads on Kubernetes using
 choreography (decentralized) instead of centralized orchestration. Actors
 communicate by passing envelopes through message queues; routing is embedded in
-each envelope, not managed by a central coordinator.
+each envelope, not managed by a central coordinator. Implemented with **Crossplane Compositions**
+for declarative actor deployment with inline sidecar rendering.
 
 Core components (all in `src/`):
 - **asya-sidecar** (Go): envelope router injected into actor pods; Queue → Sidecar → Runtime → Sidecar → Next Queue
@@ -26,12 +27,40 @@ Core components (all in `src/`):
   proxy over Unix socket; proxy translates to actual storage backend (S3, GCS, Redis, NATS KV) with
   configurable LWW or CAS guarantees; actors remain stateless Deployments — no StatefulSets
 
+**Project structure**:
+
+```
+asya/
+├── src/
+│   ├── asya-gateway/
+│   ├── asya-sidecar/
+│   ├── asya-runtime/
+│   ├── asya-crew/
+│   ├── asya-testing/
+│   └── asya-cli/
+├── deploy/helm-charts/
+│   ├── asya-actor/         # single actor
+│   ├── asya-crew/          # pre-built generic actors (like x-sink, x-sump)
+│   ├── asya-crossplane/    # contains AsyncActor XRD
+│   └── asya-gateway/       # sync stateful HTTP gateway exposing actors and flows as MCP tools or A2A agents
+├── testing/
+│   ├── component/          # docker-compose
+│   ├── integration/        # docker-compose
+│   ├── e2e/                # local kind cluster
+│   └── shared/             # shared docker-compose configurations
+└── examples/
+│   ├── asyas/              # sample XR definitions
+    └── flows/              # sample Python flows
+```
+
 See [docs/architecture/](docs/architecture/) for component deep-dives.
 
 **Examples** (`examples/`):
 - `asyas/` — real-world AsyncActor CRD manifests; use as reference when writing or reviewing actor specs
 - `flows/` — real-world flow DSL files ready for `asya flow compile`; more user-facing flows coming
 - `flows/agentic/` — agentic flows (multi-turn, pause/resume, tool use); growing as Asya's agentic surface expands
+
+**Crossplane chart** (`deploy/helm-charts/asya-crossplane/`): Deploys XRDs, Compositions, and provider configurations for AsyncActor resource management. The `render-deployment` composition step renders the complete pod spec (runtime container + asya-sidecar + state proxies + volumes) using values from the chart's `sidecar:` block.
 
 ## Quick Reference
 
@@ -53,7 +82,6 @@ make clean              # Remove build artifacts
 Prefer `make <target>`. Add new Makefile targets instead of repeating raw commands.
 
 ## Testing Strategy
-
 **Hierarchy**:
 1. **Unit** (`make test-unit`): fast, no external deps — `src/{component}/tests/`
 2. **Component** (`make test-component`): single component in Docker Compose — `testing/component/{component}/`
@@ -95,6 +123,10 @@ Run with fail-fast: `make trigger-tests PYTEST_OPTS="-vv -x" PROFILE="sqs-s3" 2>
    `-p no:xdist` when debugging
 5. **CI-only failures are usually namespace/credential issues** — local dev often papers over these because
    secrets are created ad-hoc; CI is strict about what exists where
+6. **AsyncActor manifest field additions cascade across test files** — when a new required field is added to
+   AsyncActor specs (e.g. `compositionSelector`), grep ALL test files for `kind: AsyncActor` or `transport:`
+   to find every inline manifest; missing even one causes failures in seemingly unrelated suites
+   (e.g. fixing `test_crossplane_e2e.py` but missing `test_secret_injection_e2e.py`)
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed test structure, Makefile patterns, and Docker Compose
 profile assembly.

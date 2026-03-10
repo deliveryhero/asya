@@ -28,7 +28,6 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	@echo "[+] Syncing Go dependencies..."
 	cd src/asya-gateway && go mod download && go mod tidy
 	cd src/asya-sidecar && go mod download && go mod tidy
-	cd src/asya-injector && go mod download && go mod tidy
 	cd src/function-asya-flavors && go mod download && go mod tidy
 	cd src/asya-crew/cmd/dlq-worker && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
@@ -56,7 +55,6 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
-	$(MAKE) -C src/asya-injector test-unit
 	$(MAKE) -C src/asya-lab test-unit
 	$(MAKE) -C src/asya-state-proxy test-unit
 	$(MAKE) -C src/asya-ui test-unit
@@ -104,7 +102,6 @@ clean-e2e: ## Delete Kind cluster and cleanup
 cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-sidecar cov-unit
 	$(MAKE) -C src/asya-gateway cov-unit
-	$(MAKE) -C src/asya-injector cov-unit
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker cov-unit
@@ -122,7 +119,6 @@ cov: ## Run all tests with coverage and display summary
 build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
-	$(MAKE) -C src/asya-injector build
 	$(MAKE) -C src/function-asya-flavors build
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"

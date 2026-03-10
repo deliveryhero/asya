@@ -331,7 +331,7 @@ _PATCH_TEMPLATE = """\
 #   name: {actor_name}
 # spec:
 #   scaling:
-#     maxReplicas: 20
+#     maxReplicaCount: 20
 #   env:
 #     - name: MY_VAR
 #       value: "my-value"

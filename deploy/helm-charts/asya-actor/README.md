@@ -21,11 +21,9 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
   helm install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace
   ```
-- Asya compositions and injector installed:
+- Asya compositions installed:
   ```bash
   kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-  helm install asya-injector deploy/helm-charts/asya-injector \
-    -n asya-system --create-namespace
   ```
 - KEDA installed (if scaling is enabled):
   ```bash
@@ -58,8 +56,8 @@ transport: rabbitmq
 
 scaling:
   enabled: true
-  minReplicas: 2
-  maxReplicas: 20
+  minReplicaCount: 2
+  maxReplicaCount: 20
   queueLength: 10
 
 workload:
@@ -101,8 +99,8 @@ helm install text-processor deploy/helm-charts/asya-actor \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `scaling.enabled` | Enable KEDA autoscaling | `true` |
-| `scaling.minReplicas` | Minimum replicas | `1` |
-| `scaling.maxReplicas` | Maximum replicas | `10` |
+| `scaling.minReplicaCount` | Minimum replicas | `1` |
+| `scaling.maxReplicaCount` | Maximum replicas | `10` |
 | `scaling.pollingInterval` | KEDA polling interval (seconds) | `10` |
 | `scaling.cooldownPeriod` | KEDA cooldown period (seconds) | `60` |
 | `scaling.queueLength` | Target queue length per replica | `5` |
@@ -183,7 +181,6 @@ healthChecks:
 Check dependencies:
 ```bash
 kubectl get xrd asyncactors.asya.sh
-kubectl get deployment asya-injector -n asya-system
 kubectl get deployment crossplane -n crossplane-system
 kubectl get crd scaledobjects.keda.sh
 ```

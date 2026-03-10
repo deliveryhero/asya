@@ -31,7 +31,7 @@ make up PROFILE=sqs-s3
 - RabbitMQ or LocalStack SQS
 - MinIO or LocalStack S3
 - PostgreSQL (for gateway)
-- Asya injector webhook, gateway, crew actors, and test actors
+- Asya gateway, crew actors, and test actors
 
 **See**: `testing/e2e/README.md` for details.
 
@@ -103,10 +103,6 @@ helm install crossplane crossplane-stable/crossplane \
 # Install Asya Crossplane chart
 helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -n crossplane-system
-
-# Install Asya Injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
 ```
 
 ### 7. Install Gateway
@@ -193,8 +189,8 @@ metadata:
 spec:
   transport: rabbitmq
   scaling:
-    minReplicas: 0
-    maxReplicas: 5
+    minReplicaCount: 0
+    maxReplicaCount: 5
   workload:
     kind: Deployment
     template:

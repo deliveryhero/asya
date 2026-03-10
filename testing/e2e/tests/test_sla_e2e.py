@@ -13,7 +13,7 @@ Tests three scenarios involving per-task deadline enforcement:
    Verifies task fails, deadline was stamped, pod restarts (crash-on-timeout).
 
 3. test_gateway_backstop_race
-   Actor is at minReplicas=0; gateway timeout=5s fires before KEDA can scale.
+   Actor is at minReplicaCount=0; gateway timeout=5s fires before KEDA can scale.
    Verifies first-write-wins: task stays failed even after stale actor processes.
 """
 
@@ -191,7 +191,7 @@ def test_gateway_backstop_race(e2e_helper, sla_actors, namespace):
     E2E: Gateway backstop fires before cold-start actor processes stale message.
 
     Scenario:
-    1. test-timeout-cold actor has minReplicas=0 (KEDA scale-to-zero)
+    1. test-timeout-cold actor has minReplicaCount=0 (KEDA scale-to-zero)
     2. Call test_timeout_cold (gateway timeout=15s) with sleep_seconds=60
     3. Gateway publishes message with status.deadline_at=now+15s, starts 15s timer
     4. Message sits in queue; KEDA detects it and starts scaling (takes 30-60s)

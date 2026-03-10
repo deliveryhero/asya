@@ -19,65 +19,52 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 def start_human_in_the_loop(payload: dict):
     """Entrypoint for flow 'human_in_the_loop'"""
     _next = []
-    state = payload
-    state['attempt'] = 0
+    p = payload
+    p['attempt'] = 0
     _next.append(resolve("router_human_in_the_loop_line_56_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
-def router_human_in_the_loop_line_81_seq(payload: dict):
+def router_human_in_the_loop_line_71_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['result'] = 'Max revision attempts reached'
+    if p.get('approval') == 'rejected':
+        _next.append(resolve("revision_agent"))
+        _next.append(resolve("router_human_in_the_loop_line_75_if"))
+    else:
+        _next.append(resolve("router_human_in_the_loop_line_75_if"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+def router_human_in_the_loop_line_76_seq(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['result'] = 'Max revision attempts reached'
     _next.append(resolve("notifier"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_80_if(payload: dict):
+def router_human_in_the_loop_line_75_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['attempt'] >= 3:
-        _next.append(resolve("router_human_in_the_loop_line_81_seq"))
+    if p['attempt'] >= 3:
+        _next.append(resolve("router_human_in_the_loop_line_76_seq"))
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_76_if(payload: dict):
-    """Router for control flow and payload mutations"""
-    state = payload
-    _next = []
-    if state.get('approval') == 'rejected':
-        _next.append(resolve("revision_agent"))
-        _next.append(resolve("router_human_in_the_loop_line_80_if"))
-    else:
-        _next.append(resolve("router_human_in_the_loop_line_80_if"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-def router_human_in_the_loop_line_71_if(payload: dict):
-    """Router for control flow and payload mutations"""
-    state = payload
-    _next = []
-    if state.get('approval') == 'modified':
-        _next.append(resolve("executor"))
-        _next.append(resolve("notifier"))
-    else:
-        _next.append(resolve("router_human_in_the_loop_line_76_if"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
 def router_human_in_the_loop_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('approval') == 'approved':
+    if p.get('approval') in ('approved', 'modified'):
         _next.append(resolve("executor"))
         _next.append(resolve("notifier"))
     else:
@@ -88,9 +75,9 @@ def router_human_in_the_loop_line_66_if(payload: dict):
 
 def router_human_in_the_loop_line_57_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['attempt'] += 1
+    p['attempt'] += 1
     _next.append(resolve("proposal_generator"))
     _next.append(resolve("approval_gate"))
     _next.append(resolve("router_human_in_the_loop_line_66_if"))
@@ -100,7 +87,7 @@ def router_human_in_the_loop_line_57_seq(payload: dict):
 
 def router_human_in_the_loop_line_56_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
     _self = resolve("router_human_in_the_loop_line_56_loop_back_0")
     _prev = yield "GET", ".route.prev"

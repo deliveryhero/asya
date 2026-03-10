@@ -66,8 +66,8 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: {{ .Values.helloActor.scaling.minReplicas }}
-    maxReplicas: {{ .Values.helloActor.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.helloActor.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.helloActor.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.helloActor.scaling.pollingInterval }}
     queueLength: {{ .Values.helloActor.scaling.queueLength }}
 {{- end }}

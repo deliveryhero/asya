@@ -108,6 +108,28 @@ spec:
   package: xpkg.upbound.io/crossplane-contrib/function-auto-ready:{{ .Values.functions.autoReadyVersion }}
 ---
 {{- if .Values.functions.flavorsEnabled }}
+apiVersion: pkg.crossplane.io/v1beta1
+kind: DeploymentRuntimeConfig
+metadata:
+  name: function-asya-flavors-runtime
+  labels:
+    {{- include "asya-crossplane.labels" . | nindent 4 }}
+spec:
+  deploymentTemplate:
+    spec:
+      selector: {}
+      template:
+        spec:
+          containers:
+            - name: package-runtime
+              resources:
+                requests:
+                  cpu: {{ .Values.functions.flavorsResources.requests.cpu | default "50m" | quote }}
+                  memory: {{ .Values.functions.flavorsResources.requests.memory | default "64Mi" | quote }}
+                limits:
+                  cpu: {{ .Values.functions.flavorsResources.limits.cpu | default "500m" | quote }}
+                  memory: {{ .Values.functions.flavorsResources.limits.memory | default "512Mi" | quote }}
+---
 apiVersion: pkg.crossplane.io/v1
 kind: Function
 metadata:
@@ -117,4 +139,6 @@ metadata:
 spec:
   package: {{ .Values.functions.flavorsRepository }}:{{ .Values.functions.flavorsVersion }}
   packagePullPolicy: {{ .Values.functions.flavorsPackagePullPolicy }}
+  runtimeConfigRef:
+    name: function-asya-flavors-runtime
 {{- end }}

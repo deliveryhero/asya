@@ -38,8 +38,8 @@ def template_dir(tmp_path):
             "transport": "{{ transport }}",
             "scaling": {
                 "enabled": True,
-                "minReplicas": 0,
-                "maxReplicas": 5,
+                "minReplicaCount": 0,
+                "maxReplicaCount": 5,
             },
         },
     }

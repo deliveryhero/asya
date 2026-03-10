@@ -37,8 +37,8 @@ spec:
   transport: "{{ transport }}"
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: "{{ max_replicas }}"
+    minReplicaCount: 0
+    maxReplicaCount: "{{ max_replicas }}"
 """
 
 _ROUTER_TEMPLATE = """\
@@ -57,8 +57,8 @@ spec:
   transport: "{{ transport }}"
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 2
+    minReplicaCount: 0
+    maxReplicaCount: 2
 """
 
 _CONFIGMAP_TEMPLATE = """\

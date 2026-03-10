@@ -25,7 +25,11 @@ helm.sh/chart: {{ include "asya-test-actors.chart" . }}
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (no-op, gcpProject removed from XRD).
+Extra spec fields injected into every AsyncActor CR.
+Ensures Crossplane selects the correct composition for the configured transport.
 */}}
 {{- define "asya-test-actors.pubsub-spec" -}}
+compositionSelector:
+  matchLabels:
+    asya.sh/transport: {{ .Values.transport }}
 {{- end }}

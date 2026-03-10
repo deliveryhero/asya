@@ -17,37 +17,37 @@
 
 ## Deployment
 
-User defines container with Python code. Injector webhook injects `asya_runtime.py`:
+User defines container with Python code. The Crossplane composition renders `asya_runtime.py` into the pod:
 
 ```yaml
 containers:
 
 - name: asya-runtime
   image: my-handler:v1
-  command: ["python3", "/opt/asya/asya_runtime.py"]  # Injected
+  command: ["python3", "/opt/asya/asya_runtime.py"]  # Rendered by Crossplane
   env:
   - name: ASYA_HANDLER
     value: "my_module.MyClass.process"
   - name: ASYA_SOCKET_DIR
-    value: /var/run/asya  # Injected
+    value: /var/run/asya  # Rendered by Crossplane
   volumeMounts:
-  - name: asya-runtime  # Injected ConfigMap
+  - name: asya-runtime  # ConfigMap mounted by Crossplane
     mountPath: /opt/asya/asya_runtime.py
     subPath: asya_runtime.py
     readOnly: true
-  - name: socket-dir  # Injected
+  - name: socket-dir  # Rendered by Crossplane
     mountPath: /var/run/asya
 ```
 
 ## Python Executable Resolution
 
-The injector launches the runtime with `python3 /opt/asya/asya_runtime.py`. The bare `python3` is resolved via the container's `PATH` at runtime — the same mechanism that conda, virtualenv, and pyenv all use.
+The Crossplane composition sets the runtime command to `python3 /opt/asya/asya_runtime.py`. The bare `python3` is resolved via the container's `PATH` at runtime — the same mechanism that conda, virtualenv, and pyenv all use.
 
 **Most users do not need to configure anything.** As long as `python3` is on your container's `PATH`, it just works.
 
 ### How Python is found
 
-1. The injector sets the runtime command to `["python3", "/opt/asya/asya_runtime.py"]`
+1. The Crossplane composition sets the runtime command to `["python3", "/opt/asya/asya_runtime.py"]`
 2. Kubernetes resolves `python3` via the container's `PATH` when starting the process
 3. If `ASYA_PYTHONEXECUTABLE` is set on the runtime container, its value replaces `python3` in the command
 
@@ -227,9 +227,8 @@ Sidecar receives error response and routes message to `x-sump`.
 **Source**: `src/asya-runtime/asya_runtime.py` (single file, no dependencies)
 
 **Deployment**:
-1. Injector webhook reads `asya_runtime.py` at runtime (via `ASYA_RUNTIME_SCRIPT_PATH` or default)
-2. Stores content in ConfigMap
-3. Mounts ConfigMap into actor pods at `/opt/asya/asya_runtime.py`
+1. Crossplane chart embeds `asya_runtime.py` in a ConfigMap
+2. Crossplane composition mounts the ConfigMap into actor pods at `/opt/asya/asya_runtime.py`
 
 ## Readiness Probe
 
@@ -255,7 +254,7 @@ Runtime creates `/var/run/asya/runtime-ready` file after handler initialization.
 | `ASYA_CHUNK_SIZE` | `65536` | Socket read chunk size in bytes |
 | `ASYA_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR) |
 
-**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by the injector webhook.
+**Note**: `ASYA_SOCKET_DIR` and `ASYA_SOCKET_NAME` are for internal testing only. DO NOT set in production - socket path is managed by the Crossplane composition.
 
 ## Examples
 

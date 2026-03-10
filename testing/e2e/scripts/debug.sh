@@ -15,13 +15,12 @@
 #
 # Environment Variables:
 #   NAMESPACE         - K8s namespace for Asya components (default: e2e)
-#   SYSTEM_NAMESPACE  - K8s namespace for injector (default: asya-system)
+#   SYSTEM_NAMESPACE  - K8s namespace for system components (default: asya-system)
 #   CLUSTER_NAME      - Kind cluster name (default: asya-e2e-{profile})
 #   TAIL              - Number of log lines for main components (default: 50)
 #   ACTOR_TAIL        - Number of log lines for actors (default: 20)
 #
 # Components monitored:
-#   - Asya Injector (deployment and pods)
 #   - Crossplane Providers (pods in crossplane-system)
 #   - Asya Gateway (deployment and pods)
 #   - RabbitMQ (statefulset and pods)
@@ -100,12 +99,6 @@ show_diagnostics() {
   echo "[+] Cluster '$CLUSTER_NAME' exists"
   echo
 
-  # Injector status
-  echo "=== Injector Status ==="
-  kubectl get deployment -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector deployment not found"
-  kubectl get pods -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector -o wide 2> /dev/null || echo "[!] Injector pods not found"
-  echo
-
   # Crossplane status
   echo "=== Crossplane Status ==="
   kubectl get providers.pkg.crossplane.io 2> /dev/null || echo "[!] No Crossplane providers found"
@@ -172,11 +165,6 @@ show_diagnostics() {
 
 show_logs() {
   echo "=== Asya Component Logs ==="
-  echo
-
-  # Injector logs
-  echo "=== Injector Logs (tail=$TAIL) ==="
-  kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail="$TAIL" 2> /dev/null || echo "[!] No injector logs"
   echo
 
   # Crossplane provider logs
