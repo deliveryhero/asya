@@ -581,11 +581,26 @@ time {
     kubectl get objects.kubernetes.crossplane.io -A 2> /dev/null || echo "  (no Object resources found or CRD not installed)"
     echo "[.] Checking Deployments in $NAMESPACE:"
     kubectl get deployments -n "$NAMESPACE" 2> /dev/null || echo "  (no Deployments found)"
-    echo "[.] Conditions on test-echo AsyncActor XR (first actor):"
+    echo "[.] XR (composite resource) status for all AsyncActors:"
+    kubectl get xasyncactors -A 2> /dev/null || echo "  (no XAsyncActor resources found)"
+    echo "[.] Conditions on test-echo XR (composite resource, not claim):"
+    kubectl describe xasyncactors -A 2> /dev/null | grep -A 5 "test-echo" | head -20 || true
+    echo "[.] SQS Queue managed resources:"
+    kubectl get queues.sqs.aws.upbound.io -A 2> /dev/null || echo "  (no SQS Queue resources found or CRD not installed)"
+    echo "[.] GCP PubSub managed resources:"
+    kubectl get topics.pubsub.gcp.upbound.io -A 2> /dev/null || true
+    kubectl get subscriptions.pubsub.gcp.upbound.io -A 2> /dev/null || true
+    echo "[.] function-asya-flavors pod status and logs:"
+    kubectl get pods -n crossplane-system -l pkg.crossplane.io/function=function-asya-flavors 2> /dev/null || true
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/function=function-asya-flavors --tail=100 2> /dev/null || echo "  (could not retrieve function-asya-flavors logs)"
+    echo "[.] Crossplane manager logs (errors for stuck actors):"
+    kubectl logs -n crossplane-system -l app=crossplane --tail=200 2> /dev/null | grep -i "error\|fail\|panic\|timeout\|test-echo" | head -30 || true
+    echo "[.] EnvironmentConfigs:"
+    kubectl get environmentconfigs -A 2> /dev/null || echo "  (no EnvironmentConfigs found)"
+    echo "[.] Conditions on test-echo AsyncActor claim:"
     kubectl describe asyncactor test-echo -n "$NAMESPACE" 2> /dev/null | grep -A 30 "Conditions:" | head -35 || true
-    echo "[.] provider-kubernetes pod logs (last 80 lines):"
-    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision -c provider-kubernetes --tail=80 2> /dev/null ||
-      kubectl logs -n crossplane-system -l app=provider-kubernetes --tail=80 2> /dev/null ||
+    echo "[.] provider-kubernetes pod logs (last 50 lines):"
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 2> /dev/null ||
       echo "  (could not retrieve provider-kubernetes logs)"
     echo "[.] Crossplane manager events in $NAMESPACE:"
     kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' 2> /dev/null | tail -20 || true

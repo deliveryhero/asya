@@ -27,6 +27,13 @@ functions:
   flavorsRepository: "ghcr.io/deliveryhero/function-asya-flavors"
   flavorsVersion: "0.5.3"
   flavorsPackagePullPolicy: IfNotPresent
+  flavorsResources:
+    requests:
+      cpu: "50m"
+      memory: "64Mi"
+    limits:
+      cpu: "500m"
+      memory: "512Mi"
 
 # AWS ProviderConfig settings
 awsProviderConfig:
