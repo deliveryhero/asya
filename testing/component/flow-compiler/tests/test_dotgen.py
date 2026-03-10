@@ -2,11 +2,11 @@
 
 import textwrap
 
-from asya_cli.flow import FlowCompiler
-from asya_cli.flow.dotgen import DotGenerator
-from asya_cli.flow.grouper import OperationGrouper, Router
-from asya_cli.flow.ir import ActorCall, Condition, Mutation, Return
-from asya_cli.flow.parser import FlowParser
+from asya_lab.flow import FlowCompiler
+from asya_lab.flow.dotgen import DotGenerator
+from asya_lab.flow.grouper import OperationGrouper, Router
+from asya_lab.flow.ir import ActorCall, Condition, Mutation, Return
+from asya_lab.flow.parser import FlowParser
 
 
 class TestDotGeneration:

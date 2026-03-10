@@ -26,7 +26,7 @@ Flow source (.py)
   CodeGen ──→ Router list → routers.py + flow.dot
 ```
 
-Source: `src/asya-cli/asya_cli/flow/`
+Source: `src/asya-lab/asya_lab/flow/`
 
 ## 1. Parser
 
@@ -221,11 +221,11 @@ default 100), `--overwrite`, `--verbose`.
 
 | Suite | Location | Coverage |
 |---|---|---|
-| Parser unit tests | `src/asya-cli/tests/flow/test_parser*.py` | ~95% |
-| Grouper unit tests | `src/asya-cli/tests/flow/test_grouper*.py` | ~91% |
-| CodeGen unit tests | `src/asya-cli/tests/flow/test_codegen*.py` | ~98% |
-| Compiler API tests | `src/asya-cli/tests/flow/test_compiler*.py` | ~93% |
-| DOT generator tests | `src/asya-cli/tests/flow/test_dot*.py` | 100% |
+| Parser unit tests | `src/asya-lab/tests/flow/test_parser*.py` | ~95% |
+| Grouper unit tests | `src/asya-lab/tests/flow/test_grouper*.py` | ~91% |
+| CodeGen unit tests | `src/asya-lab/tests/flow/test_codegen*.py` | ~98% |
+| Compiler API tests | `src/asya-lab/tests/flow/test_compiler*.py` | ~93% |
+| DOT generator tests | `src/asya-lab/tests/flow/test_dot*.py` | 100% |
 | Component tests | `testing/component/flow-compiler/` | E2E compilation + execution |
 
 ## Related documents

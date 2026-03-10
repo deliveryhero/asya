@@ -1,0 +1,26 @@
+[project]
+name = "asya-lab"
+version = "0.1.0"
+description = "Developer tools for debugging and operating Asya framework"
+requires-python = ">=3.9"
+dependencies = ["requests", "tqdm", "pyyaml", "omegaconf>=2.4.0.dev4"]
+
+[project.optional-dependencies]
+diagram = ["graphviz>=0.20.0"]
+
+[project.scripts]
+asya = "asya_lab.cli:main"
+
+[tool.uv]
+prerelease = "allow"
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = { find = {} }
+
+[dependency-groups]
+dev = ["types-pyyaml>=6.0.12.20250915"]
+test = ["pytest>=8.0.0", "pytest-cov>=4.1.0", "coverage>=7.0.0"]

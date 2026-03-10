@@ -203,8 +203,8 @@ kubectl apply -f text-processor.yaml
 If platform team deployed the gateway, use `asya mcp` CLI tool:
 
 ```bash
-# Install asya-cli
-pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+# Install asya-lab
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 
 # Set gateway URL (ask platform team)
 export ASYA_CLI_MCP_URL=http://gateway-url/
@@ -394,12 +394,12 @@ Note, there's no free variables, **all state transfer** happens through payload 
 
 ### Compiling Flows
 
-Install `asya-cli` to compile flows:
+Install `asya-lab` to compile flows:
 
 ```bash
-# Install asya-cli
+# Install asya-lab
 # (or: `uv pip install ...`)
-pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 ```
 
 Compile your flow:
@@ -564,7 +564,7 @@ docker build -t my-flow-routers:v1 .
 
 **Step 2: Deploy Router Actors**
 
-⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-cli` tool.
+⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-lab` tool.
 
 Deploy each generated router as an AsyncActor. **IMPORTANT**: Set handler mappings in environment variables:
 

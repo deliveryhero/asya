@@ -52,7 +52,7 @@ graph LR
 
 - **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, render the sidecar inline, and configure KEDA autoscaling
 - **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
-- **[CLI](asya-cli.md)**: Command-line tool for interacting with the gateway (MCP client)
+- **[CLI](asya-lab.md)**: Command-line tool for interacting with the gateway (MCP client)
 
 ### Actor Components
 

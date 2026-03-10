@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from asya_cli.flow import FlowCompiler
-from asya_cli.flow.ir import (
+from asya_lab.flow import FlowCompiler
+from asya_lab.flow.ir import (
     ActorCall,
     Break,
     Condition,
@@ -16,7 +16,7 @@ from asya_cli.flow.ir import (
     TryExcept,
     WhileLoop,
 )
-from asya_cli.flow.parser import FlowParser
+from asya_lab.flow.parser import FlowParser
 
 from .conftest import _drive_abi, _make_msg_ctx
 

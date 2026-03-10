@@ -1,0 +1,562 @@
+"""Generate Python code for routers."""
+
+from __future__ import annotations
+
+import os
+from pathlib import Path
+from textwrap import dedent
+
+from asya_lab.flow.grouper import Router
+
+
+class CodeGenerator:
+    def __init__(self, flow_name: str, routers: list[Router], source_file: str, output_file: str | None = None):
+        self.flow_name = flow_name
+        self.routers = routers
+
+        # Compute relative path from output to source if both are provided
+        if output_file:
+            try:
+                output_path = Path(output_file).resolve()
+                source_path = Path(source_file).resolve()
+                # Get relative path from output directory to source file
+                relative_path = os.path.relpath(source_path, output_path.parent)
+                self.source_file = relative_path
+            except (ValueError, OSError):
+                # Fallback to basename if relative path computation fails
+                self.source_file = os.path.basename(source_file)
+        else:
+            self.source_file = os.path.basename(source_file)
+
+        self.all_handlers: set[str] = set()
+
+    def _is_single_actor_flow(self) -> bool:
+        """True when the flow has exactly one actor call and no router logic needed.
+
+        A single-actor flow consists only of [start, end] routers where the start
+        router has no mutations, no conditions, and routes to exactly one actor.
+        In this case the actor itself is the entrypoint — no start router is needed.
+        """
+        if len(self.routers) != 2:
+            return False
+        start, end = self.routers
+        if not start.name.startswith("start_") or not end.name.startswith("end_"):
+            return False
+        if start.mutations or start.condition or start.is_fan_out or start.is_loop_back or start.is_try_enter:
+            return False
+        non_end_actors = [a for a in start.true_branch_actors if not a.startswith("end_")]
+        return len(non_end_actors) == 1
+
+    def generate(self) -> str:
+        if self._is_single_actor_flow():
+            return self._generate_single_actor_flow()
+
+        self._collect_handlers()
+
+        parts = []
+        parts.append(self._generate_header())
+        if self._has_loop_guards():
+            parts.append(self._generate_max_iter_constant())
+        if self._has_fan_out():
+            parts.append("import copy\n")
+        parts.append(self._generate_routers())
+        parts.append(self._generate_resolve_function())
+
+        return "\n".join(parts)
+
+    def _generate_single_actor_flow(self) -> str:
+        """Generate minimal output for a single-actor flow.
+
+        No router functions are emitted. Instead, a FLOW_METADATA constant is
+        written so that tooling (e.g. `asya flow expose`) can read which actor
+        should carry the flow entrypoint labels without deploying a router actor.
+        """
+        start = self.routers[0]
+        actor_name = next(a for a in start.true_branch_actors if not a.startswith("end_"))
+
+        parts = []
+        parts.append(self._generate_header())
+        parts.append(
+            dedent(f"""\
+
+            # ======================================================================
+            # Single-Actor Flow: no router needed
+            # The actor below IS the entrypoint; label it in your AsyncActor spec:
+            #   asya.sh/flow: {self.flow_name}
+            #   asya.sh/flow-role: entrypoint
+            # ======================================================================
+
+            FLOW_METADATA = {{
+                "flow_name": "{self.flow_name}",
+                "type": "single-actor",
+                "actor": {actor_name!r},
+                "labels": {{
+                    "asya.sh/flow": "{self.flow_name}",
+                    "asya.sh/flow-role": "entrypoint",
+                }},
+            }}
+            """)
+        )
+        return "\n".join(parts)
+
+    def _has_loop_guards(self) -> bool:
+        return any(r.guard_max_iter is not None for r in self.routers)
+
+    def _has_fan_out(self) -> bool:
+        return any(r.is_fan_out for r in self.routers)
+
+    def _generate_max_iter_constant(self) -> str:
+        default = next(r.guard_max_iter for r in self.routers if r.guard_max_iter is not None)
+        return dedent(f'''\
+            import os as _os
+            _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "{default}"))
+            ''')
+
+    def _collect_handlers(self) -> None:
+        for router in self.routers:
+            self.all_handlers.add(router.name)
+            for actor_name in router.true_branch_actors:
+                self.all_handlers.add(actor_name)
+            for actor_name in router.false_branch_actors:
+                self.all_handlers.add(actor_name)
+            for actor_name in router.finally_actors:
+                self.all_handlers.add(actor_name)
+            for actor_name in router.continuation_actors:
+                self.all_handlers.add(actor_name)
+            if router.exception_handlers:
+                for handler in router.exception_handlers:
+                    for actor_name in handler.actors:
+                        self.all_handlers.add(actor_name)
+            # Fan-out: collect sub-agent actor names
+            if router.is_fan_out and router.fan_out_op:
+                for actor_name, _payload_expr in router.fan_out_op.actor_calls:
+                    self.all_handlers.add(actor_name)
+
+    def _generate_header(self) -> str:
+        return dedent(f'''\
+            # fmt: off
+            # ruff: noqa
+            """
+            Auto-generated by asya flow compiler
+            Source: {self.source_file}
+
+            DO NOT EDIT THIS FILE MANUALLY
+            Regenerate by running: asya flow compile {self.source_file}
+            """
+            ''')
+
+    def _generate_routers(self) -> str:
+        lines = []
+        lines.append("\n# " + "=" * 70)
+        lines.append("# Generated Routers (for kubernetes deployment)")
+        lines.append("# " + "=" * 70)
+        lines.append("")
+
+        for router in self.routers:
+            if router.name.startswith("start_"):
+                lines.append(self._generate_start_router(router))
+            elif router.name.startswith("end_"):
+                lines.append(self._generate_end_router(router))
+            elif router.is_fan_out:
+                lines.append(self._generate_fanout_router(router))
+            elif router.is_loop_back:
+                lines.append(self._generate_loop_back_router(router))
+            elif router.is_try_enter:
+                lines.append(self._generate_try_enter_router(router))
+            elif router.is_try_exit:
+                lines.append(self._generate_try_exit_router(router))
+            elif router.is_except_dispatch:
+                lines.append(self._generate_except_dispatch_router(router))
+            elif router.is_reraise:
+                lines.append(self._generate_reraise_router(router))
+            else:
+                lines.append(self._generate_router(router))
+
+        return "\n".join(lines)
+
+    def _generate_start_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
+        lines.append("    _next = []")
+
+        if router.mutations:
+            lines.append("    p = payload")
+            for mutation in router.mutations:
+                lines.append(f"    {mutation.code}")
+
+        if router.true_branch_actors:
+            filtered_actors = [name for name in router.true_branch_actors if not name.startswith("end_")]
+            for name in filtered_actors:
+                lines.append(f'    _next.append(resolve("{name}"))')
+
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append(f"    yield {'p' if router.mutations else 'payload'}")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_end_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
+        lines.append('    yield "SET", ".route.next", []')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _is_exit_branch(actors: list[str]) -> bool:
+        """Check if a branch consists only of end_ actors (break/return exit)."""
+        return bool(actors) and all(a.startswith("end_") for a in actors)
+
+    @staticmethod
+    def _generate_branch_body(actors: list[str], is_exit: bool, indent: str, lines: list[str]) -> None:
+        """Generate the body of a conditional branch.
+
+        Exit branches (break/return) overwrite route.next to clear any
+        loop-back routers already in the queue.  Normal branches filter
+        out end_ actors and append the rest to _next for prepending.
+        """
+        if is_exit:
+            lines.append(f'{indent}yield "SET", ".route.next", []')
+            lines.append(f"{indent}yield p")
+            lines.append(f"{indent}return")
+        elif actors:
+            filtered = [a for a in actors if not a.startswith("end_")]
+            for actor in filtered:
+                lines.append(f'{indent}_next.append(resolve("{actor}"))')
+            if not filtered:
+                lines.append(f"{indent}pass")
+        else:
+            lines.append(f"{indent}pass")
+
+    def _generate_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append('    """Router for control flow and payload mutations"""')
+        lines.append("    p = payload")
+        lines.append("    _next = []")
+
+        for mutation in router.mutations:
+            lines.append(f"    {mutation.code}")
+
+        if router.condition:
+            true_is_exit = self._is_exit_branch(router.true_branch_actors)
+            false_is_exit = self._is_exit_branch(router.false_branch_actors)
+
+            lines.append(f"    if {router.condition.test}:")
+            self._generate_branch_body(router.true_branch_actors, true_is_exit, "        ", lines)
+
+            lines.append("    else:")
+            self._generate_branch_body(router.false_branch_actors, false_is_exit, "        ", lines)
+        else:
+            filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
+            for actor in filtered_actors:
+                lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_fanout_router(self, router: Router) -> str:
+        """Generate a generator function that fans out to N sub-agents + 1 parent message.
+
+        Uses ABI yields for reading message metadata (id, route) and writing
+        route/next + headers before each yield. The runtime dispatches ABI
+        operations between yields to build each output frame.
+        The sidecar handles id/parent_id assignment for multi-frame responses.
+        """
+        if router.fan_out_op is None:
+            raise ValueError(f"Router {router.name!r} is marked is_fan_out but has no fan_out_op")
+        fan_out = router.fan_out_op
+
+        # Aggregator is always the first non-end actor (generated by grouper)
+        agg_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        aggregator = agg_actors[0] if agg_actors else None
+        after_agg = agg_actors[1:] if agg_actors else []
+
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
+        lines.append("    p = payload")
+        lines.append("")
+        lines.append('    origin_id = yield "GET", ".id"')
+        lines.append('    _next_tail = yield "GET", ".route.next"')
+        lines.append("")
+
+        if aggregator:
+            lines.append(f'    _agg = resolve("{aggregator}")')
+        else:
+            lines.append("    _agg = None")
+        lines.append("")
+
+        lines.append("    _slices = []")
+
+        if fan_out.pattern == "comprehension" or (fan_out.pattern == "gather" and fan_out.iter_var is not None):
+            iter_var = fan_out.iter_var
+            iterable = fan_out.iterable
+            actor_name, payload_expr = fan_out.actor_calls[0]
+            lines.append(f"    for {iter_var} in {iterable}:")
+            lines.append(f'        _slices.append((resolve("{actor_name}"), {payload_expr}))')
+        else:
+            for actor_name, payload_expr in fan_out.actor_calls:
+                lines.append(f'    _slices.append((resolve("{actor_name}"), {payload_expr}))')
+
+        lines.append("")
+        lines.append("    _n = len(_slices) + 1")
+        lines.append("    _fan_in = {")
+        lines.append('        "actor": _agg,')
+        lines.append('        "origin_id": origin_id,')
+        lines.append('        "slice_count": _n,')
+        lines.append(f'        "aggregation_key": "{fan_out.target_key}",')
+        lines.append("    }")
+        lines.append("")
+
+        # Index 0: parent payload
+        if aggregator:
+            after_list_items = ", ".join(["_agg", *[f'resolve("{a}")' for a in after_agg]])
+            lines.append("    # Index 0: parent payload forwarded to aggregator")
+            lines.append(f'    yield "SET", ".route.next", [{after_list_items}] + _next_tail')
+        else:
+            lines.append("    # Index 0: parent payload forwarded to end of flow")
+            lines.append('    yield "SET", ".route.next", _next_tail')
+
+        lines.append('    yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}')
+        lines.append("    yield copy.deepcopy(p)")
+        lines.append("")
+
+        # Indices 1..N: sub-agent slices
+        lines.append("    for _i, (_actor, _payload) in enumerate(_slices):")
+        if aggregator:
+            lines.append('        yield "SET", ".route.next", [_actor, _agg]')
+        else:
+            lines.append('        yield "SET", ".route.next", [_actor]')
+        lines.append('        yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}')
+        lines.append("        yield _payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_loop_back_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        if router.guard_max_iter is not None:
+            lines.append('    """Loop-back router: re-inserts loop actors into route (guarded)"""')
+        else:
+            lines.append('    """Loop-back router: re-inserts loop actors into route"""')
+        lines.append("    p = payload")
+        lines.append("    _next = []")
+
+        for mutation in router.mutations:
+            lines.append(f"    {mutation.code}")
+
+        if router.guard_max_iter is not None:
+            lines.append(f'    _self = resolve("{router.name}")')
+            lines.append('    _prev = yield "GET", ".route.prev"')
+            lines.append("    if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:")
+            lines.append(
+                f'        raise RuntimeError(f"Max loop iterations ({{_ASYA_MAX_LOOP_ITERATIONS}}) exceeded for while-loop at line {router.lineno}")'
+            )
+            lines.append("")
+
+        filtered_actors = [actor for actor in router.true_branch_actors if not actor.startswith("end_")]
+        for actor in filtered_actors:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_enter_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append('    """Try-enter router: sets _on_error header and inserts try body"""')
+        lines.append("    _next = []")
+        lines.append(f'    yield "SET", ".headers._on_error", resolve("{router.except_dispatch_name}")')
+
+        filtered_actors = [a for a in router.true_branch_actors if not a.startswith("end_")]
+        for actor in filtered_actors:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_try_exit_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append('    """Try-exit router: clears _on_error header (success path)"""')
+        lines.append("    _next = []")
+        lines.append('    headers = yield "GET", ".headers"')
+        lines.append('    if "_on_error" in headers:')
+        lines.append('        yield "DEL", ".headers._on_error"')
+
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_except_dispatch_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append('    """Except-dispatch router: matches error type and routes to handler"""')
+        lines.append("    p = payload")
+        lines.append("    _next = []")
+        lines.append('    _error_type = yield "GET", ".status.error.type"')
+        lines.append('    _error_mro = yield "GET", ".status.error.mro"')
+        lines.append("    _all_types = [_error_type] + _error_mro")
+        lines.append("")
+
+        if router.exception_handlers:
+            first = True
+            for handler in router.exception_handlers:
+                if handler.error_types is None:
+                    if first:
+                        lines.append("    if True:")
+                    else:
+                        lines.append("    else:")
+                else:
+                    type_checks = " or ".join(f'"{t}" in _all_types' for t in handler.error_types)
+                    keyword = "if" if first else "elif"
+                    lines.append(f"    {keyword} {type_checks}:")
+                first = False
+
+                lines.append('        yield "DEL", ".status.error"')
+                for mutation in handler.mutations:
+                    lines.append(f"        {mutation.code}")
+                filtered = [a for a in handler.actors if not a.startswith("end_")]
+                for actor in filtered:
+                    lines.append(f'        _next.append(resolve("{actor}"))')
+                if not filtered and not handler.mutations:
+                    lines.append("        pass")
+
+            if router.reraise_name:
+                lines.append("    else:")
+                lines.append(f'        _next.append(resolve("{router.reraise_name}"))')
+
+        filtered_finally = [a for a in router.finally_actors if not a.startswith("end_")]
+        for actor in filtered_finally:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        filtered_cont = [a for a in router.continuation_actors if not a.startswith("end_")]
+        for actor in filtered_cont:
+            lines.append(f'    _next.append(resolve("{actor}"))')
+
+        lines.append("")
+        lines.append('    yield "SET", ".route.next[:0]", _next')
+        lines.append("    yield payload")
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_reraise_router(self, router: Router) -> str:
+        lines = []
+        lines.append(f"def {router.name}(payload: dict):")
+        lines.append('    """Reraise router: raises RuntimeError for unhandled exceptions"""')
+        lines.append('    _error_type = yield "GET", ".status.error.type"')
+        lines.append('    _error_msg = yield "GET", ".status.error.message"')
+        lines.append('    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")')
+        lines.append("")
+
+        return "\n".join(lines)
+
+    def _generate_resolve_function(self) -> str:
+        return dedent('''
+            # ======================================================================
+            # Handler Resolution
+            # ======================================================================
+
+            import os
+            import logging
+
+            _HANDLER_TO_ACTOR: dict[str, str] = {}
+            _SUFFIX_TO_HANDLERS: dict[str, list[str]] = {}
+
+            for _env_var, _handler_name in os.environ.items():
+                if _env_var.startswith('ASYA_HANDLER_'):
+                    _actor_name = _env_var[len('ASYA_HANDLER_'):].lower().replace('_', '-')
+                    _HANDLER_TO_ACTOR[_handler_name] = _actor_name
+
+                    # Index all suffixes (e.g., "a.b.c" -> ["c", "b.c", "a.b.c"])
+                    _parts = _handler_name.split('.')
+                    for _i in range(len(_parts)):
+                        _suffix = '.'.join(_parts[_i:])
+                        if _suffix not in _SUFFIX_TO_HANDLERS:
+                            _SUFFIX_TO_HANDLERS[_suffix] = []
+                        _SUFFIX_TO_HANDLERS[_suffix].append(_handler_name)
+
+            logging.info(f"Loaded {len(_HANDLER_TO_ACTOR)} handler-to-actor mappings")
+
+
+            def resolve(handler_full_name: str) -> str:
+                """
+                Resolve handler name to actor name using suffix-based matching.
+
+                Looks up handler in environment variables:
+                - ASYA_HANDLER_<ACTOR_NAME>="full.module.path.ClassName.method"
+
+                Supports flexible suffix matching - any suffix of the full path can be used if unambiguous:
+                - "method" (shortest)
+                - "ClassName.method" (class + method)
+                - "module.ClassName.method" (partial path)
+                - "full.module.path.ClassName.method" (full path)
+
+                Args:
+                    handler_full_name: Any suffix of the full handler path
+
+                Returns:
+                    Actor name for routing (kebab-case, lowercase)
+
+                Raises:
+                    ValueError: If handler suffix not found or is ambiguous
+
+                Examples:
+                    # Environment: ASYA_HANDLER_MY_ACTOR="class_instantiation.DataPreprocessor.clean"
+
+                    # All of these work (if unambiguous):
+                    resolve("clean")  # shortest suffix
+                    resolve("DataPreprocessor.clean")  # class + method
+                    resolve("class_instantiation.DataPreprocessor.clean")  # full path
+
+                    # Ambiguous suffix
+                    # Env: ASYA_HANDLER_A="module1.clean", ASYA_HANDLER_B="module2.clean"
+                    resolve("clean")  # raises ValueError: ambiguous, use longer suffix
+                """
+                if handler_full_name in _SUFFIX_TO_HANDLERS:
+                    candidates = _SUFFIX_TO_HANDLERS[handler_full_name]
+                    if len(candidates) == 1:
+                        return _HANDLER_TO_ACTOR[candidates[0]]
+                    else:
+                        raise ValueError(
+                            f"Handler suffix '{handler_full_name}' is ambiguous. "
+                            f"Found multiple matches: {candidates}. "
+                            f"Use a longer suffix to disambiguate."
+                        )
+
+                raise ValueError(
+                    f"Handler '{handler_full_name}' not found in environment variables. "
+                    f'No handler ends with suffix "{handler_full_name}". '
+                    f"Available handlers: {list(_HANDLER_TO_ACTOR.keys())}"
+                )
+            ''')

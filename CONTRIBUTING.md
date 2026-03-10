@@ -66,7 +66,7 @@ make -C src/asya-sidecar test-unit    # Go sidecar unit tests only
 make -C src/asya-gateway test-unit    # Go gateway unit tests only
 make -C src/asya-runtime test-unit    # Python runtime unit tests only
 make -C src/asya-crew test-unit       # Python crew unit tests only
-make -C src/asya-cli test-unit        # Python CLI unit tests only
+make -C src/asya-lab test-unit        # Python CLI unit tests only
 
 # Run all component tests (single component + lightweight mocks in Docker Compose)
 make test-component
@@ -108,7 +108,7 @@ make -C src/asya-sidecar cov-unit   # Sidecar (Go)
 make -C src/asya-gateway cov-unit   # Gateway (Go)
 make -C src/asya-runtime cov-unit   # Runtime (Python)
 make -C src/asya-crew cov-unit      # System actors (Python)
-make -C src/asya-cli cov-unit       # CLI (Python)
+make -C src/asya-lab cov-unit       # CLI (Python)
 ```
 
 The `make cov` command:

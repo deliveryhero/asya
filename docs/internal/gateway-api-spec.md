@@ -25,8 +25,8 @@ see `docs/architecture/asya-gateway.md` and the protocol docs under
 | `GET` | `/oauth/authorize` | api | Public | MCP clients |
 | `POST` | `/oauth/token` | api | Public | MCP clients |
 | `POST` | `/mesh` | mesh | Network isolation | Sidecar (fanout) |
-| `GET` | `/mesh/{id}` | mesh | Network isolation | Sidecar, asya-cli |
-| `GET` | `/mesh/{id}/stream` | mesh | Network isolation | Sidecar, asya-cli |
+| `GET` | `/mesh/{id}` | mesh | Network isolation | Sidecar, asya-lab |
+| `GET` | `/mesh/{id}/stream` | mesh | Network isolation | Sidecar, asya-lab |
 | `GET` | `/mesh/{id}/active` | mesh | Network isolation | Sidecar |
 | `POST` | `/mesh/{id}/progress` | mesh | Network isolation | Sidecar |
 | `POST` | `/mesh/{id}/final` | mesh | Network isolation | x-sink, x-sump |

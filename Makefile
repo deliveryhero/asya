@@ -55,7 +55,6 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
-	$(MAKE) -C src/asya-cli test-unit
 	$(MAKE) -C src/asya-lab test-unit
 	$(MAKE) -C src/asya-state-proxy test-unit
 	$(MAKE) -C src/asya-ui test-unit
@@ -106,7 +105,6 @@ cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker cov-unit
-	$(MAKE) -C src/asya-cli cov-unit
 	$(MAKE) -C src/asya-lab cov-unit
 	$(MAKE) -C src/asya-ui cov-unit
 	$(MAKE) -C src/function-asya-flavors cov-unit
