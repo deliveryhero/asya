@@ -73,6 +73,11 @@ class ManifestStamper:
       .asya/compiler/templates/kustomization.yaml      → compiler.templates.kustomization
 
     All templates support ${dynamic:*}, ${var:*}, and ${arg:*} interpolations.
+
+    Dynamic keys use a consistent naming scheme:
+      flow_name / actor_name:         K8s name with hyphens (my-flow, handler-a)
+      flow_function:                  Python function name with underscores (my_flow)
+    Short aliases (flow, actor) are also provided for backward compatibility.
     """
 
     def __init__(
@@ -127,7 +132,7 @@ class ManifestStamper:
 
         actors = self._collect_actors()
         for actor in actors:
-            filename = f"{actor.name}.yaml"
+            filename = f"asyncactor-{actor.name}.yaml"
             self._stamp_actor(base_dir / filename, actor)
             resources.append(filename)
             generated.append(f"base/{filename}")
@@ -152,7 +157,9 @@ class ManifestStamper:
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve all interpolations."""
         self.config_loader.dynamic_values = {
+            "actor_name": actor.name,
             "actor": actor.name,
+            "flow_name": self.flow_name,
             "flow": self.flow_name,
             "flow_function": self.flow_function,
             "flow_role": actor.flow_role,
@@ -199,6 +206,7 @@ class ManifestStamper:
     def _resolve_configmap_template(self) -> dict:
         """Load configmap template and resolve interpolations."""
         self.config_loader.dynamic_values = {
+            "flow_name": self.flow_name,
             "flow": self.flow_name,
             "flow_function": self.flow_function,
             "router_code": "",
@@ -229,6 +237,7 @@ class ManifestStamper:
     def _resolve_kustomization_template(self, resources: list[str]) -> dict:
         """Load kustomization template and resolve interpolations."""
         self.config_loader.dynamic_values = {
+            "flow_name": self.flow_name,
             "flow": self.flow_name,
             "flow_function": self.flow_function,
             "resources": "[]",

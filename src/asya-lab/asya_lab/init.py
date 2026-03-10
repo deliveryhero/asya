@@ -16,20 +16,20 @@ var:
 
 compiler:
   routers: "${{var.project_root}}/compiled/${{dynamic:flow_function}}"
-  manifests: ".asya/manifests/${{dynamic:flow_function}}"
+  manifests: ".asya/manifests/${{dynamic:flow_name}}"
 """
 
 _ACTOR_TEMPLATE = """\
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: "${dynamic:actor}"
+  name: "${dynamic:actor_name}"
   namespace: "${var.namespace}"
   labels:
-    asya.sh/flow: "${dynamic:flow}"
+    asya.sh/flow: "${dynamic:flow_name}"
     asya.sh/flow-role: "${dynamic:flow_role}"
 spec:
-  actor: "${dynamic:actor}"
+  actor: "${dynamic:actor_name}"
   image: "${dynamic:image}"
   handler: "${dynamic:handler}"
   transport: "${var.transport}"
@@ -44,10 +44,10 @@ _CONFIGMAP_TEMPLATE = """\
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "${dynamic:flow}-routers"
+  name: "${dynamic:flow_name}-routers"
   namespace: "${var.namespace}"
   labels:
-    asya.sh/flow: "${dynamic:flow}"
+    asya.sh/flow: "${dynamic:flow_name}"
     asya.sh/managed-by: asya-compiler
 data:
   routers.py: "${dynamic:router_code}"

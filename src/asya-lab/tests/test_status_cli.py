@@ -23,9 +23,9 @@ def test_status_with_compiled_flow(tmp_path):
     kustomization = {
         "resources": [
             "configmap-routers.yaml",
-            "actor-router-1.yaml",
-            "actor-router-2.yaml",
-            "actor-router-3.yaml",
+            "asyncactor-router-1.yaml",
+            "asyncactor-router-2.yaml",
+            "asyncactor-router-3.yaml",
             "configmap-flows.yaml",
         ]
     }

@@ -21,15 +21,15 @@ def template_dir(tmp_path):
         "apiVersion": "asya.sh/v1alpha1",
         "kind": "AsyncActor",
         "metadata": {
-            "name": "${dynamic:actor}",
+            "name": "${dynamic:actor_name}",
             "namespace": "${var.namespace}",
             "labels": {
-                "asya.sh/flow": "${dynamic:flow}",
+                "asya.sh/flow": "${dynamic:flow_name}",
                 "asya.sh/flow-role": "${dynamic:flow_role}",
             },
         },
         "spec": {
-            "actor": "${dynamic:actor}",
+            "actor": "${dynamic:actor_name}",
             "image": "${dynamic:image}",
             "handler": "${dynamic:handler}",
             "transport": "${var.transport}",
@@ -47,10 +47,10 @@ def template_dir(tmp_path):
         "apiVersion": "v1",
         "kind": "ConfigMap",
         "metadata": {
-            "name": "${dynamic:flow}-routers",
+            "name": "${dynamic:flow_name}-routers",
             "namespace": "${var.namespace}",
             "labels": {
-                "asya.sh/flow": "${dynamic:flow}",
+                "asya.sh/flow": "${dynamic:flow_name}",
                 "asya.sh/managed-by": "asya-compiler",
             },
         },
@@ -162,16 +162,16 @@ class TestBaseLayer:
 
         base = tmp_path / "manifests" / "base"
         # 2 router actors + 2 handler actors + configmap + kustomization
-        assert (base / "start-my-flow.yaml").exists()
-        assert (base / "end-my-flow.yaml").exists()
-        assert (base / "handler-a.yaml").exists()
-        assert (base / "handler-b.yaml").exists()
+        assert (base / "asyncactor-start-my-flow.yaml").exists()
+        assert (base / "asyncactor-end-my-flow.yaml").exists()
+        assert (base / "asyncactor-handler-a.yaml").exists()
+        assert (base / "asyncactor-handler-b.yaml").exists()
 
     def test_actor_manifest_has_correct_metadata(self, tmp_path, sequential_routers, router_code, config, template_dir):
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "handler-a.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
         assert actor["apiVersion"] == "asya.sh/v1alpha1"
         assert actor["kind"] == "AsyncActor"
         assert actor["metadata"]["name"] == "handler-a"
@@ -183,7 +183,7 @@ class TestBaseLayer:
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "handler-a.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
         image = actor["spec"]["image"]
         # Manifests are real K8s resources — no OmegaConf interpolations allowed
         assert "${" not in image
@@ -193,7 +193,7 @@ class TestBaseLayer:
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start-my-flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
         assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "entrypoint"
@@ -202,7 +202,7 @@ class TestBaseLayer:
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "start-my-flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
         env = actor["spec"]["env"]
         env_names = {e["name"] for e in env}
         assert "ASYA_HANDLER_HANDLER_A" in env_names
@@ -225,8 +225,8 @@ class TestBaseLayer:
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
         resources = kust["resources"]
         assert "configmap-routers.yaml" in resources
-        assert "start-my-flow.yaml" in resources
-        assert "handler-a.yaml" in resources
+        assert "asyncactor-start-my-flow.yaml" in resources
+        assert "asyncactor-handler-a.yaml" in resources
 
     def test_recompile_regenerates_base(self, tmp_path, sequential_routers, router_code, config, template_dir):
         out = tmp_path / "manifests"
@@ -238,7 +238,7 @@ class TestBaseLayer:
 
         stamper.stamp(out)
         assert not (out / "base" / "stale.yaml").exists()
-        assert (out / "base" / "start-my-flow.yaml").exists()
+        assert (out / "base" / "asyncactor-start-my-flow.yaml").exists()
 
 
 class TestCommonLayer:

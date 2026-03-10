@@ -38,7 +38,10 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         return (source_path.parent / ".asya" / "compiled").resolve()
 
     try:
-        loader = ConfigLoader(dynamic_values={"flow_function": flow_function})
+        flow_name = flow_function.replace("_", "-")
+        loader = ConfigLoader(
+            dynamic_values={"flow_function": flow_function, "flow_name": flow_name, "flow": flow_name}
+        )
         config = loader.load(source_path.parent)
         routers_path = str(config.compiler.routers)
         return (asya_dir.parent / routers_path).resolve()
