@@ -20,6 +20,19 @@ from asya_lab.config.config import ConfigLoader, _set_active_loader
 from asya_lab.flow.grouper import Router
 
 
+def _literal_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+class _Dumper(yaml.Dumper):
+    pass
+
+
+_Dumper.add_representer(str, _literal_representer)
+
+
 log = logging.getLogger(__name__)
 
 _ROUTER_PREFIXES = ("start_", "end_", "router_", "except_", "loop_", "fanout_")
@@ -134,7 +147,7 @@ class ManifestStamper:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
         manifest["spec"]["env"] = actor.env
-        path.write_text(yaml.dump(manifest, default_flow_style=False, sort_keys=False))
+        path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve all interpolations."""
@@ -181,7 +194,7 @@ class ManifestStamper:
             }
         cm.setdefault("data", {})
         cm["data"]["routers.py"] = self.router_code
-        path.write_text(yaml.dump(cm, default_flow_style=False, sort_keys=False))
+        path.write_text(yaml.dump(cm, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_configmap_template(self) -> dict:
         """Load configmap template and resolve interpolations."""
@@ -211,7 +224,7 @@ class ManifestStamper:
                 "kind": "Kustomization",
             }
         kust["resources"] = sorted(resources)
-        path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+        path.write_text(yaml.dump(kust, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_kustomization_template(self, resources: list[str]) -> dict:
         """Load kustomization template and resolve interpolations."""
@@ -360,23 +373,28 @@ class ManifestStamper:
         return default
 
     def _resolve_handler_image(self, handler_name: str) -> str:
-        """Resolve handler name to an image via build config.
+        """Resolve handler name to a concrete image reference.
 
-        Falls back to a placeholder if no build entry matches.
+        Stamped manifests are real K8s resources (applied via kustomize),
+        so they MUST NOT contain OmegaConf interpolations like ${var.*}.
+        All values must be fully resolved at compile time.
         """
-        if "build" not in self.config:
-            return f"${{var.image_registry}}/{handler_name}:latest"
+        if "build" in self.config:
+            try:
+                build_entries = self.config["build"]
+                for entry in build_entries:
+                    module = str(entry.get("module", ""))
+                    if module and handler_name.startswith(module.replace(".", "_")):
+                        return str(entry["image"])
+            except Exception:  # nosec B110
+                pass
 
-        try:
-            build_entries = self.config["build"]
-            for entry in build_entries:
-                module = str(entry.get("module", ""))
-                if module and handler_name.startswith(module.replace(".", "_")):
-                    return str(entry["image"])
-        except Exception:  # nosec B110
-            pass
-
-        return f"${{var.image_registry}}/{handler_name}:latest"
+        # Resolve image_registry from var config; use handler K8s name in image path
+        registry = self._resolve_var("image_registry", "")
+        k8s_name = self._to_k8s_name(handler_name)
+        if registry:
+            return f"{registry}/{k8s_name}:latest"
+        return f"{k8s_name}:latest"
 
     def _get_contexts(self) -> list[str]:
         """Get context names from config."""

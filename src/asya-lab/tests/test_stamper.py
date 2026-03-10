@@ -179,6 +179,16 @@ class TestBaseLayer:
         assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
         assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "handler"
 
+    def test_handler_image_is_fully_resolved(self, tmp_path, sequential_routers, router_code, config, template_dir):
+        stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
+        stamper.stamp(tmp_path / "manifests")
+
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "handler-a.yaml").read_text())
+        image = actor["spec"]["image"]
+        # Manifests are real K8s resources — no OmegaConf interpolations allowed
+        assert "${" not in image
+        assert image == "ghcr.io/test-org/handler-a:latest"
+
     def test_router_actor_uses_router_image(self, tmp_path, sequential_routers, router_code, config, template_dir):
         stamper = _make_stamper("my-flow", sequential_routers, router_code, config, template_dir)
         stamper.stamp(tmp_path / "manifests")
