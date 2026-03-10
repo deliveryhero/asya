@@ -54,6 +54,7 @@ def _compile_flow_file(
     flow_name_override: str | None,
     output_dir: str | None,
     plot: bool,
+    plot_format: str,
     verbose: bool,
     force: bool,
 ) -> None:
@@ -98,10 +99,10 @@ def _compile_flow_file(
 
     if plot:
         try:
-            dot_file, svg_path = compiler.generate_plot(str(compiled_dir))
+            dot_file, plot_path = compiler.generate_plot(str(compiled_dir), plot_format=plot_format)
             click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-            if svg_path:
-                click.echo(f"[+] Generated graphviz svg plot: {svg_path}")
+            if plot_path:
+                click.echo(f"[+] Generated graphviz {plot_format} plot: {plot_path}")
         except (ImportError, RuntimeError) as e:
             click.echo(f"[!] Warning: {e}", err=True)
         except Exception as e:
@@ -166,10 +167,18 @@ def _recompile_kebab_target(
 @click.option("--flow", "flow_name", default=None, help="Override flow name (kebab-case)")
 @click.option("--actor", "actor_name", default=None, help="Override actor name for single-actor compilation")
 @click.option("--output-dir", "-o", default=None, help="Override manifest output directory")
-@click.option("--plot", is_flag=True, help="Generate flow diagram")
+@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
+@click.option(
+    "--plot-format",
+    "plot_format",
+    default="svg",
+    type=click.Choice(["svg", "png"]),
+    show_default=True,
+    help="Output format for flow diagram",
+)
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", is_flag=True, help="Overwrite without checking git status")
-def compile_cmd(target, flow_name, actor_name, output_dir, plot, verbose, force):
+def compile_cmd(target, flow_name, actor_name, output_dir, plot, plot_format, verbose, force):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
@@ -181,7 +190,7 @@ def compile_cmd(target, flow_name, actor_name, output_dir, plot, verbose, force)
     """
     try:
         if target.endswith(".py") and Path(target).exists():
-            _compile_flow_file(target, flow_name, output_dir, plot, verbose, force)
+            _compile_flow_file(target, flow_name, output_dir, plot, plot_format, verbose, force)
         elif _is_dotted_target(target):
             _compile_dotted_target(target, actor_name, output_dir, verbose)
         elif _is_kebab_case(target):

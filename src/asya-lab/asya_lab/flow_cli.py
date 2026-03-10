@@ -112,11 +112,28 @@ def flow():
     help=f"Max iterations for while-True loops (default: {DEFAULT_MAX_LOOP_ITERATIONS})",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG)")
+@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
+@click.option(
+    "--plot-format",
+    "plot_format",
+    default="svg",
+    type=click.Choice(["svg", "png"]),
+    show_default=True,
+    help="Output format for flow diagram",
+)
 @click.option("--plot-width", type=int, default=50, help="Max width for plot node labels (default: 50)")
 @click.option("--overwrite", is_flag=True, help="Overwrite existing files in output directory")
 def compile_cmd(
-    flow_file, output_dir, manifests_dir, no_manifests, max_iterations, verbose, plot, plot_width, overwrite
+    flow_file,
+    output_dir,
+    manifests_dir,
+    no_manifests,
+    max_iterations,
+    verbose,
+    plot,
+    plot_format,
+    plot_width,
+    overwrite,
 ):
     """Compile flow to routers and kustomize manifests."""
     try:
@@ -137,10 +154,10 @@ def compile_cmd(
 
         if plot:
             try:
-                dot_file, svg_path = compiler.generate_plot(output_dir, plot_width=plot_width)
+                dot_file, plot_path = compiler.generate_plot(output_dir, plot_width=plot_width, plot_format=plot_format)
                 click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-                if svg_path:
-                    click.echo(f"[+] Generated graphviz svg plot: {svg_path}")
+                if plot_path:
+                    click.echo(f"[+] Generated graphviz {plot_format} plot: {plot_path}")
             except ImportError as e:
                 click.echo(f"[!] Warning: {e}", err=True)
             except RuntimeError as e:
