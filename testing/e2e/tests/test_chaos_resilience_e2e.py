@@ -343,23 +343,7 @@ def test_operator_restart_during_scaling(e2e_helper):
 
     time.sleep(2)
 
-    logger.info("Restarting injector pod...")
     try:
-        injector_pods = e2e_helper.kubectl(
-            "get", "pods",
-            "-l", "app.kubernetes.io/name=asya-injector",
-            "-o", "jsonpath='{.items[*].metadata.name}'"
-        )
-
-        if injector_pods and injector_pods != "''":
-            pod_name = injector_pods.strip("'").split()[0]
-            logger.info(f"Deleting injector pod: {pod_name}")
-            e2e_helper.delete_pod(pod_name)
-
-            logger.info("Waiting for injector to restart...")
-            assert e2e_helper.wait_for_pod_ready("app.kubernetes.io/name=asya-injector", timeout=60)
-            time.sleep(5)
-
         logger.info("Waiting for sample tasks to complete...")
         completed = 0
         for task_id in task_ids[:10]:
@@ -373,7 +357,7 @@ def test_operator_restart_during_scaling(e2e_helper):
         logger.info(f"Completed {completed}/10 sample tasks")
         assert completed >= 7, f"At least 7/10 should complete, got {completed}"
 
-        logger.info("[+] Injector restart handled gracefully")
+        logger.info("[+] Tasks completed successfully during operator restart")
 
     except Exception as e:
         logger.error(f"Test failed: {e}")

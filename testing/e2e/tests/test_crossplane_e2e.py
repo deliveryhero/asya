@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-E2E tests for AsyncActor lifecycle under Crossplane Composition + asya-injector architecture.
+E2E tests for AsyncActor lifecycle under Crossplane Composition architecture.
 
 Tests AsyncActor behavior in a real Kubernetes environment:
 - AsyncActor creation, updates, and deletion
-- Sidecar injection verification (via mutating webhook)
+- Sidecar injection verification (rendered inline by Crossplane compositions)
 - AsyncActor status conditions (Crossplane: Ready, Synced)
 - Workload creation (Deployment)
 - Broken image handling
@@ -15,8 +15,8 @@ Tests AsyncActor behavior in a real Kubernetes environment:
 - Concurrent operations
 - Crossplane provider resilience
 
-These tests verify the Crossplane Composition + asya-injector webhook
-behaves correctly in production scenarios.
+These tests verify the Crossplane Composition pipeline behaves correctly
+in production scenarios.
 """
 
 import json
@@ -745,9 +745,9 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
     """
     E2E: Test sidecar container has correct environment variables.
 
-    With Crossplane architecture, the sidecar is injected by the asya-injector
-    webhook rather than the operator. This test verifies that the webhook
-    correctly configures sidecar env vars.
+    With Crossplane architecture, the sidecar is rendered inline by the
+    composition. This test verifies that the composition correctly configures
+    sidecar env vars.
 
     Scenario:
     1. Create AsyncActor
@@ -1397,7 +1397,7 @@ def test_sidecar_injection_volumes_on_pod(e2e_helper):
     """
     E2E: Verify Pod has correct volumes and volume mounts for sidecar injection.
 
-    The asya-injector webhook injects volumes (socket-dir, tmp, asya-runtime)
+    The Crossplane composition renders volumes (socket-dir, tmp, asya-runtime)
     and configures volume mounts on both sidecar and runtime containers.
 
     Scenario:
