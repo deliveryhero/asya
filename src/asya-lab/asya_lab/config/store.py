@@ -80,6 +80,10 @@ class ConfigStore:
 
     def _load(self, start_dir: Path) -> None:
         """Walk up, collect .asya/ dirs, load and merge all config files."""
+        # TODO: last-one-wins singleton — fragile if multiple ConfigStores
+        # are created in the same process (e.g. tests). OmegaConf resolvers
+        # are process-global so there's no clean way to scope them to an
+        # instance. Callers should avoid creating redundant instances.
         ConfigStore._instance = self
 
         self._asya_dirs = collect_asya_dirs(start_dir)

@@ -133,6 +133,11 @@ def _infer_build_tool(command: str) -> str:
     first_word = command.lstrip().split()[0] if command.strip() else ""
     if first_word in _PUSHABLE_TOOLS:
         return first_word
+    if first_word:
+        click.echo(
+            f"[!] Build tool '{first_word}' has no native push; falling back to 'docker push'",
+            err=True,
+        )
     return "docker"
 
 

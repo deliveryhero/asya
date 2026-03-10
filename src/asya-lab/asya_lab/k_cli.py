@@ -116,7 +116,7 @@ class KubeRunner:
 
     def kustomize_apply(self, overlay: Path, field_manager: str) -> None:
         """Run kustomize build piped to kubectl apply --server-side."""
-        kustomize_result = self.kubectl("kustomize", str(overlay), capture_output=True, text=True)
+        kustomize_result = self.run_cmd(["kubectl", "kustomize", str(overlay)], capture_output=True, text=True)
         if kustomize_result.returncode != 0:
             click.echo(kustomize_result.stderr, err=True)
             sys.exit(kustomize_result.returncode)
@@ -437,12 +437,11 @@ def context_use(name: str) -> None:
         sys.exit(1)
 
     # Targeted replacement to preserve YAML comments and formatting
-    pattern = re.compile(r"^default_context:.*$", re.MULTILINE)
-    new_line = f"default_context: {name}"
+    pattern = re.compile(r"^(?!#)(\s*)default_context:.*$", re.MULTILINE)
     if pattern.search(text):
-        text = pattern.sub(new_line, text)
+        text = pattern.sub(rf"\1default_context: {name}", text)
     else:
-        text = text.rstrip() + f"\n{new_line}\n"
+        text = text.rstrip() + f"\ndefault_context: {name}\n"
     config_path.write_text(text)
     click.echo(f"[+] Default context set to '{name}'")
 
