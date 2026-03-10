@@ -1,6 +1,6 @@
 # RFC: Flatten AsyncActor XRD, remove leaked provider fields
 
-Status: draft
+Status: accepted
 
 ## Problem
 
