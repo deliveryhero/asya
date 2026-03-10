@@ -8,6 +8,7 @@ Two-layer architecture:
 
 from __future__ import annotations
 
+import logging
 import os
 import re
 from pathlib import Path
@@ -16,6 +17,8 @@ from omegaconf import DictConfig, ListMergeMode, OmegaConf
 
 from asya_lab.config.discovery import collect_asya_dirs
 
+
+log = logging.getLogger(__name__)
 
 _RELATIVE_PATH_PATTERN = re.compile(r"^\./")
 
@@ -156,6 +159,7 @@ def load_asya_dir(asya_dir: Path) -> DictConfig:
     for f in config_files:
         cfg = OmegaConf.load(f)
         if not isinstance(cfg, DictConfig):
+            log.warning("Skipping %s: root is %s, expected mapping", f, type(cfg).__name__)
             continue
         _resolve_relative_paths(cfg, base_dir=asya_dir.parent)
         if f.name == "config.yaml":
