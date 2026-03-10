@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Transports - Asya🎭</title>
+    <title>Socket - Asya🎭</title>
     
 
 
-<title>Transports</title>
+<title>Socket</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/architecture/transports/">
+<link rel="canonical" href="https://asya.sh/docs/architecture/transports/socket/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Transports">
+<meta property="og:title" content="Socket">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/architecture/transports/">
+<meta property="og:url" content="https://asya.sh/docs/architecture/transports/socket/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Transports">
+<meta name="twitter:title" content="Socket">
 
 
 
@@ -81,17 +81,17 @@
 
 
 
-    <link rel="icon" href="../../img/favicon.svg">
+    <link rel="icon" href="../../../img/favicon.svg">
 
-    <link href="../../css/base.css" rel="stylesheet">
-    <link href="../../css/geist.css" rel="stylesheet">
-
-    
-    <link href="../../stylesheets/extra.css" rel="stylesheet">
+    <link href="../../../css/base.css" rel="stylesheet">
+    <link href="../../../css/geist.css" rel="stylesheet">
 
     
+    <link href="../../../stylesheets/extra.css" rel="stylesheet">
 
-    <script src="../../js/callbacks.js"></script>
+    
+
+    <script src="../../../js/callbacks.js"></script>
 
     
 
@@ -672,7 +672,7 @@
 </li>
                 
                 <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/architecture/transports/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -774,12 +774,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Transports
+          Socket
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/architecture/transports/README.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/architecture/transports/socket.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -787,57 +787,7 @@
 </svg>
 <span class="max-md:hidden">Copy Page</span>
 </button> 
-          
-          <a
-            data-slot="button"
-            id="previous-button"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/architecture/protocols/sidecar-runtime/"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tabler-icon tabler-icon-arrow-left"
-            >
-              <path d="M5 12l14 0"></path>
-              <path d="M5 12l6 6"></path>
-              <path d="M5 12l6 -6"></path>
-            </svg>
-            <span class="sr-only">Previous</span>
-          </a>
            
-          
-          <a
-            data-slot="button"
-            id="next-button"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/architecture/transports/rabbitmq/"
-          >
-            <span class="sr-only">Next</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tabler-icon tabler-icon-arrow-right"
-            >
-              <path d="M5 12l14 0"></path>
-              <path d="M13 18l6 -6"></path>
-              <path d="M13 6l6 6"></path>
-            </svg>
-          </a>
           
         </div>
       </div>
@@ -848,86 +798,157 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Asya supports pluggable message queue transports for actor communication.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>Transport layer is abstracted - sidecar implements transport interface, allowing different queue backends.</p>
-<h2 id="supported-transports">Supported Transports<a class="headerlink" href="#supported-transports" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong><a href="sqs/">SQS</a></strong>: AWS-managed queue service</li>
-<li><strong><a href="rabbitmq/">RabbitMQ</a></strong>: Self-hosted open-source message broker</li>
-<li><strong><a href="socket/">Socket</a></strong>: Unix domain sockets on a shared Docker volume — local testing only ⚠️</li>
-</ul>
-<h2 id="planned-transports">Planned Transports<a class="headerlink" href="#planned-transports" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Kafka</strong>: High-throughput distributed streaming</li>
-<li><strong>NATS</strong>: Cloud-native messaging system</li>
-<li><strong>Google Pub/Sub</strong>: GCP-managed messaging service</li>
-</ul>
-<p>See <a href="https://keda.sh/docs/2.18/scalers/">KEDA scalers</a> for potential integration targets.</p>
-<h2 id="transport-configuration">Transport Configuration<a class="headerlink" href="#transport-configuration" title="Permanent link">&para;</a></h2>
-<p>Transport type is specified in the AsyncActor XRD claim via the <code>transport</code> field. The Crossplane composition creates the appropriate queue resources.</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-actor</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># Validated by XRD enum</span>
+    <p>⚠️ <strong>Local testing only.</strong> The socket transport exists exclusively for Docker Compose developer
+workflows. It has no persistence, no broker, no competing consumers, and no Kubernetes support.
+Do not use it in staging or production.</p>
+<h2 id="purpose">Purpose<a class="headerlink" href="#purpose" title="Permanent link">&para;</a></h2>
+<p>Running a full actor mesh locally normally requires a message broker (RabbitMQ, SQS, Pub/Sub).
+The socket transport removes that dependency: sidecars exchange messages over Unix domain sockets
+on a shared Docker volume, so a developer can spin up a complete multi-actor pipeline with a
+single <code>docker compose up</code>.</p>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>Each actor's sidecar listens on <code>&lt;ASYA_SOCKET_MESH_DIR&gt;/&lt;actorName&gt;.sock</code>. All sidecar containers
+mount the same named volume at that path, so any sidecar can address any other by actor name.</p>
+<div class="highlight"><pre><span></span><code>actor-a sidecar                    actor-b sidecar
+   │                                    │
+   │  Send(&quot;actor-b&quot;, body)             │
+   └──► connect to actor-b.sock ───────►│ Receive()
+                                        │  └─ read body
+                                        │  └─ write ack byte
+   ◄──────────────────────── ack ───────┘
+   Send() returns nil (delivery confirmed)
 </code></pre></div>
-<h2 id="transport-interface">Transport Interface<a class="headerlink" href="#transport-interface" title="Permanent link">&para;</a></h2>
-<p>Sidecar implements (<code>src/asya-sidecar/internal/transport/transport.go</code>):</p>
+<h3 id="wire-protocol">Wire Protocol<a class="headerlink" href="#wire-protocol" title="Permanent link">&para;</a></h3>
+<p>Every message is length-prefixed:</p>
+<div class="highlight"><pre><span></span><code>[4-byte big-endian uint32 length][body bytes]
+</code></pre></div>
+<p>After the receiver reads the body it writes one ack byte (<code>0x01</code>) back to the sender.
+<code>Send()</code> blocks until this ack arrives, so a nil return means the message is in the
+receiver's memory — not just on the wire.</p>
+<h3 id="queue-names">Queue Names<a class="headerlink" href="#queue-names" title="Permanent link">&para;</a></h3>
+<p>For the socket transport <code>resolveQueueName</code> returns the bare actor name (no
+<code>asya-{namespace}-</code> prefix). Actor <code>my-processor</code> listens on <code>my-processor.sock</code>,
+<code>x-sink</code> on <code>x-sink.sock</code>, and so on.</p>
+<h3 id="startup-ordering">Startup Ordering<a class="headerlink" href="#startup-ordering" title="Permanent link">&para;</a></h3>
+<p>Sidecar containers may start before the actor they need to send to is ready.
+<code>Send()</code> retries the dial up to 60 times with 500 ms between attempts (30 s total)
+before giving up, so <code>docker compose up</code> ordering is flexible.</p>
+<h3 id="requeue">Requeue<a class="headerlink" href="#requeue" title="Permanent link">&para;</a></h3>
+<p><code>Requeue()</code> writes the message body to an internal buffered channel instead of
+self-dialing. The next <code>Receive()</code> call drains this channel before blocking on
+<code>Accept</code>, avoiding a deadlock where sender and receiver would both wait on each other.</p>
+<h2 id="constraints">Constraints<a class="headerlink" href="#constraints" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Persistence</td>
+<td>None — messages are in-memory only</td>
+</tr>
+<tr>
+<td>Delivery</td>
+<td>Exactly-once per connection; lost on crash</td>
+</tr>
+<tr>
+<td>Concurrency</td>
+<td>Sequential FIFO per queue; one in-flight message at a time</td>
+</tr>
+<tr>
+<td>Replicas</td>
+<td>One replica per actor (no competing consumers)</td>
+</tr>
+<tr>
+<td><code>SendWithDelay</code></td>
+<td>Not supported; returns <code>ErrDelayNotSupported</code></td>
+</tr>
+<tr>
+<td>Kubernetes</td>
+<td>Not supported; use RabbitMQ, SQS, or Pub/Sub</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Environment variable</th>
+<th>Description</th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ASYA_TRANSPORT</code></td>
+<td>Must be set to <code>socket</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>ASYA_SOCKET_MESH_DIR</code></td>
+<td>Directory for socket files (shared Docker volume mount)</td>
+<td><code>/var/run/asya/mesh</code></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="docker-compose-setup">Docker Compose Setup<a class="headerlink" href="#docker-compose-setup" title="Permanent link">&para;</a></h2>
+<p>All containers that share the mesh volume <strong>must run as the same UID</strong>. The socket
+file is created by the receiving sidecar and owned by that UID; peer containers can
+only connect to it if they share the same owner. Docker handles this automatically
+when all services use the same image and no <code>user:</code> override is set.</p>
+<p>The mesh directory must exist before the transport starts. Docker creates it
+automatically when a named volume is mounted.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">services</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">actor-a-sidecar</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-sidecar</span><span class="w">      </span><span class="c1"># all services use the same image → same UID</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">ASYA_TRANSPORT</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket</span>
+<span class="w">      </span><span class="nt">ASYA_SOCKET_MESH_DIR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/mesh</span>
+<span class="w">      </span><span class="nt">ASYA_ACTOR_NAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actor-a</span>
+<span class="w">      </span><span class="nt">ASYA_NAMESPACE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mesh:/mesh</span><span class="w">            </span><span class="c1"># Docker creates /mesh; transport does not mkdir it</span>
+
+<span class="w">  </span><span class="nt">actor-b-sidecar</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-sidecar</span>
+<span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">ASYA_TRANSPORT</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">socket</span>
+<span class="w">      </span><span class="nt">ASYA_SOCKET_MESH_DIR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/mesh</span>
+<span class="w">      </span><span class="nt">ASYA_ACTOR_NAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actor-b</span>
+<span class="w">      </span><span class="nt">ASYA_NAMESPACE</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">local</span>
+<span class="w">    </span><span class="nt">volumes</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mesh:/mesh</span>
+
+<span class="nt">volumes</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">mesh</span><span class="p">:</span>
+</code></pre></div>
+<p>No queue-setup service is needed: socket files are created dynamically on the first
+<code>Receive()</code> call. No broker credentials, no IAM roles, no VPC endpoints.</p>
+<h2 id="component-tests">Component Tests<a class="headerlink" href="#component-tests" title="Permanent link">&para;</a></h2>
+<p><code>testing/component/transport/</code> contains a Docker Compose test suite that exercises
+<code>SocketTransport</code> methods directly (no sidecar routing, no runtime):</p>
+<div class="highlight"><pre><span></span><code>make<span class="w"> </span>-C<span class="w"> </span>testing/component/transport<span class="w"> </span><span class="nb">test</span>
+</code></pre></div>
+<p>The tester binary (<code>src/asya-sidecar/cmd/socket-tester/</code>) covers: basic round-trip,
+1 MB large payload, FIFO ordering, requeue, context cancellation, <code>SendWithDelay</code> error,
+<code>Ack</code> no-op, and cross-container delivery.</p>
+<h2 id="security-notes">Security Notes<a class="headerlink" href="#security-notes" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>Receive(ctx, queueName)</code>: Receive single message from queue (blocking with long polling)</li>
-<li><code>Send(ctx, queueName, body)</code>: Send message body to queue</li>
-<li><code>Ack(ctx, message)</code>: Acknowledge successful processing</li>
-<li><code>Nack(ctx, message)</code>: Negative acknowledge (requeue or move to DLQ)</li>
+<li><strong>UID requirement</strong>: the transport does not chmod socket files. All containers
+  sharing the mesh volume must run as the same UID (the default when a single image
+  is used throughout a Compose file). Do not mix images that run as different users.</li>
+<li><strong>Queue name sanitisation</strong>: <code>filepath.Base</code> is applied to every queue name before
+  constructing the socket path, preventing path traversal (<code>../evil</code> → <code>evil.sock</code>).</li>
+<li><strong>Frame size cap</strong>: incoming message length is capped at 100 MB; frames that
+  advertise a larger length are rejected before any allocation is made.</li>
 </ul>
-<h2 id="queue-management">Queue Management<a class="headerlink" href="#queue-management" title="Permanent link">&para;</a></h2>
-<p>Queues automatically created by operator when AsyncActor reconciled.</p>
-<p><strong>Queue naming</strong>: <code>asya-{namespace}-{actor_name}</code></p>
-<p><strong>Lifecycle</strong>:</p>
-<ul>
-<li>Created when AsyncActor created</li>
-<li>Deleted when AsyncActor deleted</li>
-<li>Preserved when AsyncActor updated</li>
-</ul>
-<h2 id="adding-new-transport">Adding New Transport<a class="headerlink" href="#adding-new-transport" title="Permanent link">&para;</a></h2>
-<ol>
-<li>Implement transport interface in <code>src/asya-sidecar/internal/transport/</code></li>
-<li>Add transport configuration to operator</li>
-<li>Add KEDA scaler configuration</li>
-<li>Update documentation</li>
-</ol>
-<p>See <a href="https://github.com/deliveryhero/asya/tree/main/src/asya-sidecar/internal/transport"><code>src/asya-sidecar/internal/transport/</code></a> for implementation examples.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
-    <a data-slot="button"
-        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
-        href="/docs/architecture/protocols/sidecar-runtime/">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            class="tabler-icon tabler-icon-arrow-left ">
-            <path d="M5 12l14 0"></path>
-            <path d="M5 12l6 6"></path>
-            <path d="M5 12l6 -6"></path>
-        </svg>
-        <span class="max-[500px]:hidden">Sidecar-Runtime Protocol</span>
-    </a>
-    
-    
-    <a data-slot="button"
-        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/docs/architecture/transports/rabbitmq/">
-        <span class="max-[500px]:hidden">RabbitMQ</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            class="tabler-icon tabler-icon-arrow-right ">
-            <path d="M5 12l14 0"></path>
-            <path d="M13 18l6 -6"></path>
-            <path d="M13 6l6 6"></path>
-        </svg>
-    </a>
     
 </div>
                                 <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
@@ -946,7 +967,7 @@
                 <div class="text-muted-foreground text-sm font-medium">Menu</div>
                 <div class="flex flex-col gap-3">
                     
-                    <a class="text-2xl font-medium" href="../..">
+                    <a class="text-2xl font-medium" href="../../..">
                         
                         Home
                         
@@ -964,31 +985,31 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../../motivation/">
+                        <a class="text-2xl font-medium" href="../../../motivation/">
                             
                             Motivation
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../concepts/">
+                        <a class="text-2xl font-medium" href="../../../concepts/">
                             
                             Concepts
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../quickstart/">
+                        <a class="text-2xl font-medium" href="../../../quickstart/">
                             
                             Getting Started
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../quickstart/for-data-scientists/">
+                        <a class="text-2xl font-medium" href="../../../quickstart/for-data-scientists/">
                             
                             For Data Scientists 🧑‍🔬
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../quickstart/for-platform-engineers/">
+                        <a class="text-2xl font-medium" href="../../../quickstart/for-platform-engineers/">
                             
                             For Platform Engineers ⚙️
                             
@@ -1003,19 +1024,19 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../../install/aws-eks/">
+                        <a class="text-2xl font-medium" href="../../../install/aws-eks/">
                             
                             AWS EKS
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../install/local-kind/">
+                        <a class="text-2xl font-medium" href="../../../install/local-kind/">
                             
                             Local Kind
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../install/helm-charts/">
+                        <a class="text-2xl font-medium" href="../../../install/helm-charts/">
                             
                             Helm Charts
                             
@@ -1030,79 +1051,79 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../">
+                        <a class="text-2xl font-medium" href="../../">
                             
                             Overview
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-actor/">
+                        <a class="text-2xl font-medium" href="../../asya-actor/">
                             
                             Actors
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-sidecar/">
+                        <a class="text-2xl font-medium" href="../../asya-sidecar/">
                             
                             Sidecar
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-runtime/">
+                        <a class="text-2xl font-medium" href="../../asya-runtime/">
                             
                             Runtime
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-crossplane/">
+                        <a class="text-2xl font-medium" href="../../asya-crossplane/">
                             
                             Crossplane
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-gateway/">
+                        <a class="text-2xl font-medium" href="../../asya-gateway/">
                             
                             Gateway
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-crew/">
+                        <a class="text-2xl font-medium" href="../../asya-crew/">
                             
                             Crew
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../asya-lab/">
+                        <a class="text-2xl font-medium" href="../../asya-lab/">
                             
                             CLI Tools
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../autoscaling/">
+                        <a class="text-2xl font-medium" href="../../autoscaling/">
                             
                             Autoscaling
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../observability/">
+                        <a class="text-2xl font-medium" href="../../observability/">
                             
                             Observability
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../protocols/actor-actor/">
+                        <a class="text-2xl font-medium" href="../../protocols/actor-actor/">
                             
                             Actor-Actor Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../protocols/sidecar-runtime/">
+                        <a class="text-2xl font-medium" href="../../protocols/sidecar-runtime/">
                             
                             Sidecar-Runtime Protocol
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="./">
+                        <a class="text-2xl font-medium" href="../">
                             
                             Transports
                             
@@ -1117,19 +1138,19 @@
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../../operate/monitoring/">
+                        <a class="text-2xl font-medium" href="../../../operate/monitoring/">
                             
                             Monitoring
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../operate/troubleshooting/">
+                        <a class="text-2xl font-medium" href="../../../operate/troubleshooting/">
                             
                             Troubleshooting
                             
                         </a>
                         
-                        <a class="text-2xl font-medium" href="../../operate/upgrades/">
+                        <a class="text-2xl font-medium" href="../../../operate/upgrades/">
                             
                             Upgrades
                             
@@ -1157,58 +1178,84 @@
         
         
         
-        <a href="#overview"
+        <a href="#purpose"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Overview
+            Purpose
         </a>
         
 
         
-        <a href="#supported-transports"
+        <a href="#how-it-works"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Supported Transports
+            How It Works
+        </a>
+        
+        
+        <a href="#wire-protocol"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Wire Protocol
+        </a>
+        
+        <a href="#queue-names"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Queue Names
+        </a>
+        
+        <a href="#startup-ordering"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Startup Ordering
+        </a>
+        
+        <a href="#requeue"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Requeue
+        </a>
+        
+        
+
+        
+        <a href="#constraints"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Constraints
         </a>
         
 
         
-        <a href="#planned-transports"
+        <a href="#configuration"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Planned Transports
+            Configuration
         </a>
         
 
         
-        <a href="#transport-configuration"
+        <a href="#docker-compose-setup"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Transport Configuration
+            Docker Compose Setup
         </a>
         
 
         
-        <a href="#transport-interface"
+        <a href="#component-tests"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Transport Interface
+            Component Tests
         </a>
         
 
         
-        <a href="#queue-management"
+        <a href="#security-notes"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Queue Management
-        </a>
-        
-
-        
-        <a href="#adding-new-transport"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Adding New Transport
+            Security Notes
         </a>
         
 
@@ -1241,16 +1288,16 @@
     </div>
      
 
-<script src="../../js/search-bridge.js"></script>
+<script src="../../../js/search-bridge.js"></script>
 
      
 
-<script src="../../search/main.js"></script>
+<script src="../../../search/main.js"></script>
 
 
     
 
-    <script src="../../js/copy-button.js"></script>
+    <script src="../../../js/copy-button.js"></script>
     <script>updatePygmentsStylesheet();</script>
     
     <script>fetchStargazers("https://github.com/deliveryhero/asya");</script>
