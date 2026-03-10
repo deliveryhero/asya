@@ -285,8 +285,7 @@ asya serve (Python, FastAPI)
 ├── POST /api/flows/<flow>/compile           ← trigger recompilation
 ├── GET  /api/gateway                        ← gateway URL from context config
 ├── POST /api/gateway/call                   ← proxy MCP tools/call to gateway
-├── GET  /api/gateway/stream/<id>            ← proxy MCP streamable HTTP
-└── /ws/status                               ← WebSocket for live updates
+└── GET  /api/gateway/stream/<id>            ← proxy MCP streamable HTTP
 ```
 
 Gateway interaction goes through `asya serve` as a proxy to the external
