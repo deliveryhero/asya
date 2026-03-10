@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing
   - branch:asya-lab/cavw.implement-socket-transport-sidecar-docker-compose-local-testing
+  - pr:299
 ---
+
 
 
 
