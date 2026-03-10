@@ -13,6 +13,7 @@ dependencies:
 
 
 
+
 ## Summary
 
 Remove `region`, `gcpProject`, `providerConfigRef`, and `irsa` from the AsyncActor XRD spec. These are provider-specific concerns that leaked into the user-facing API.
