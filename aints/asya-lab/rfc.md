@@ -288,8 +288,11 @@ Read operations always allowed: `status`, `logs`, `call`, `stream`.
 | Tier | What runs | Transport | Command |
 |------|-----------|-----------|---------|
 | **pytest** | Pure Python function | None (direct call) | `pytest` with `asya_lab.testing` fixtures |
-| **Single actor** | Runtime as HTTP server | None (HTTP) | `asya d up --handler <fqn>` |
+| **Single actor** | Runtime as HTTP server | None (HTTP) | `asya d up <actor.py>` (handler marked with `@actor`) |
 | **Full flow** | Sidecar + runtime per actor | Socket | `asya d up <flow.py>` |
+
+Flow functions are valid Python — testable directly with `pytest` before
+compilation splits them into actors. No Asya command needed for unit tests.
 
 ---
 

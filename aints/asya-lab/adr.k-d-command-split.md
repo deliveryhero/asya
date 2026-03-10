@@ -140,7 +140,7 @@ error messages.
 | Tier | What runs | Transport | Command |
 |------|-----------|-----------|---------|
 | pytest | Pure Python function | None (direct call) | `pytest` |
-| Single actor | Runtime as HTTP server | None (HTTP) | `asya d up --handler <fqn>` |
+| Single actor | Runtime as HTTP server | None (HTTP) | `asya d up <actor.py>` (`@actor` handler) |
 | Full flow | Sidecar + runtime per actor | Socket | `asya d up <flow.py>` |
 
 ### 7. Compiler rules out of scope

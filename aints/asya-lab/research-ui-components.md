@@ -136,12 +136,17 @@ Layout is computed once on render, then React Flow handles zoom/pan/drag.
 ### 3.4 ActorNode Rendering
 
 ```
-┌─────────────────────────────┐
-│  validate_order        [P]  │  ← role badge: [E]ntrypoint, [P]rocessor,
-│  handlers.validate_order    │     [R]outer, [X] exit
-│  replicas: 3/3  queue: 12  │  ← live data (from provider, not graph JSON)
-└─────────────────────────────┘
+┌──────────────────────────────────┐
+│  validate-order-foo-bar     [P]  │  ← K8s actor name + role badge
+│  handlers.validate_order         │  ← Python handler path
+│  replicas: 3/3  queue: 12       │  ← live data (from provider)
+└──────────────────────────────────┘
 ```
+
+- **Line 1**: Actor name (K8s resource name, e.g., `validate-order-foo-bar`)
+  + role badge: [E]ntrypoint, [P]rocessor, [R]outer, [X] exit
+- **Line 2**: Handler path (Python module.function)
+- **Line 3**: Live status from provider (replicas current/desired, queue depth)
 
 **Border color** reflects actor state:
 | State | Border color | Meaning |
@@ -249,64 +254,112 @@ interface TaskProgress {
 }
 ```
 
-### 4.2 Provider Implementations
+### 4.2 Data Source: `asya serve` and Direct Python
 
-Each host creates a provider that satisfies `AsyaContextValue`:
+React components need two kinds of data:
 
-#### Web Provider (`asya serve`)
+1. **Static**: config, manifests, graph JSON — from local `.asya/` files
+2. **Live**: actor status, queue depth, logs — from cluster (kubectl, gateway)
+
+**Source of truth for actor configuration is the XRD manifests** on disk
+(`.asya/manifests/<flow>/base/<actor>.yaml`). The manifest path is configured
+in `.asya/config.yaml` under `compiler.manifests`. Live cluster state overlays
+on top of static manifest data.
+
+Two data paths serve these to React:
+
+#### Path A: `asya serve` (VSCode + standalone web)
+
+`asya serve` is a local FastAPI server that reads `.asya/` and exposes it
+via HTTP. It's the single backend for VSCode webview and standalone web.
+
+```
+asya serve (Python, FastAPI)
+├── GET  /api/config                         ← merged .asya/config.yaml
+├── GET  /api/flows                          ← list compiled flows
+├── GET  /api/flows/<flow>/graph             ← graph JSON for React Flow
+├── GET  /api/flows/<flow>/manifests         ← XRD manifests (base/common/overlay)
+├── PUT  /api/flows/<flow>/manifests/<actor> ← write manifest (non-readonly ctx)
+├── GET  /api/actors/<name>/status           ← kubectl get asyncactor (live)
+├── GET  /api/actors/<name>/logs             ← kubectl logs (SSE stream)
+├── POST /api/flows/<flow>/compile           ← trigger recompilation
+├── /mesh/*                                  ← gateway proxy (task tracking)
+└── /ws/status                               ← WebSocket for live updates
+```
+
+`readonly: true` contexts (prod) reject all PUT/POST requests. The API
+enforces the read/write boundary — React components don't need to know
+which context is readonly.
+
+**VSCode**: extension starts `asya serve` as a subprocess. Webview panel
+connects to `localhost:<port>`. Extension host manages lifecycle (start on
+activate, stop on deactivate).
+
+**Standalone web**: `asya serve` serves both the API and the bundled
+`@asya/ui` SPA as static files.
+
+#### Path B: Direct Python (Jupyter)
+
+In Jupyter, the magic runs in the same Python process as the notebook.
+No HTTP server needed — `asya_lab` functions are called directly:
+
+```python
+from asya_lab.project import load_config
+from asya_lab.compile import compile_flow
+
+config = load_config()          # reads .asya/config.yaml
+graph = compile_flow("order")   # returns graph JSON
+manifests = read_manifests("order")  # reads XRD YAML files
+```
+
+The Python side pushes data to the anywidget model. For live data (status,
+logs), the Python side talks to kubectl/gateway directly and pushes updates
+to the model.
+
+### 4.3 Provider Implementations
+
+Two providers, same `AsyaContextValue` interface:
+
+#### HTTP Provider (VSCode + standalone web)
 
 ```tsx
-function WebAsyaProvider({ baseUrl, children }) {
-  // Fetches actors via GET /api/actors
-  // Subscribes to SSE via GET /mesh/{id}/stream
-  // Subscribes to WebSocket via /ws/status for live updates
-  // Writes via PUT /api/actors/{name}/config (Phase 4+)
+function HttpAsyaProvider({ baseUrl, children }) {
+  // GET /api/flows/<flow>/manifests → actors[]
+  // GET /api/actors/<name>/status   → ActorStatus
+  // GET /api/actors/<name>/logs     → SSE → logLines[]
+  // GET /mesh/<id>/stream           → SSE → taskProgress
+  // PUT /api/flows/<flow>/manifests/<actor> → write (if !readonly)
 }
 ```
 
-Data source: `asya serve` HTTP/WS API running on localhost.
-
-#### VSCode Provider
-
-```tsx
-function VSCodeAsyaProvider({ children }) {
-  // Listens to window.addEventListener('message', ...)
-  // Extension host sends actor data, status updates, log lines
-  // Extension host fetches from cluster (kubectl) or asya serve
-}
-```
-
-Data source: VSCode extension host sends serialized data via `postMessage`.
-The extension host is the boundary — it talks to kubectl, asya serve, or
-directly to the gateway.
+Single `baseUrl` prop — points to `asya serve` at `localhost:<port>`.
 
 #### Anywidget Provider (Jupyter)
 
 ```tsx
 function AnywidgetAsyaProvider({ model, children }) {
-  // Watches model.get('actors'), model.get('status'), etc.
-  // Python side updates model state; React side reacts
-  // model.on('change:actors', callback)
+  // model.get('actors')       → actors[]
+  // model.get('status')       → Map<name, ActorStatus>
+  // model.on('change:logs')   → logLines[]
+  // model.on('change:task')   → taskProgress
 }
 ```
 
-Data source: Python anywidget model. The Jupyter magic fetches data from the
-cluster (kubectl, gateway API) in Python, sets model attributes, and the
-React side auto-updates.
+Python side sets model attributes; React side reacts to changes.
+No HTTP — data flows through anywidget's traitlets sync mechanism.
 
-### 4.3 Complexity Assessment
+### 4.4 Complexity Assessment
 
 | Piece | Lines (approx.) | Complexity |
 |---|---|---|
 | Context definition + hook | ~50 | Trivial — React boilerplate |
-| Web provider | ~120 | Standard — fetch + EventSource + useEffect |
-| VSCode provider | ~80 | Simple — postMessage listener + state |
-| Anywidget provider | ~80 | Simple — model.on('change:*') + state |
+| HTTP provider (web + VSCode) | ~120 | Standard — fetch + EventSource |
+| Anywidget provider (Jupyter) | ~80 | Simple — model.on('change:*') |
 | Type definitions | ~60 | Trivial — interfaces |
-| **Total** | **~390** | **Low** |
+| `asya serve` API routes | ~300 | Standard FastAPI (reads files, proxies kubectl) |
+| **Total (React side)** | **~310** | **Low** |
 
-The provider pattern adds ~400 lines total across all hosts. Components stay
-pure and testable — mock the provider for unit tests.
+Components stay pure and testable — mock the provider for unit tests.
 
 ---
 
