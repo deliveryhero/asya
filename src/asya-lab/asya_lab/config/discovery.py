@@ -5,6 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 
+# Canonical subdirectory names under .asya/
+MANIFESTS_DIR = "manifests"
+BASE_DIR = "base"
+COMMON_DIR = "common"
+OVERLAYS_DIR = "overlays"
+
+
 def find_git_root(start_dir: Path) -> Path | None:
     """Walk up from start_dir to find the nearest .git/ directory.
 

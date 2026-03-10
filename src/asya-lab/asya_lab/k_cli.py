@@ -14,7 +14,13 @@ import click
 import yaml
 
 from asya_lab.config.config import ConfigLoader
-from asya_lab.config.discovery import find_asya_dir
+from asya_lab.config.discovery import (
+    BASE_DIR,
+    COMMON_DIR,
+    MANIFESTS_DIR,
+    OVERLAYS_DIR,
+    find_asya_dir,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -29,7 +35,7 @@ def _find_manifests_dir(target: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    manifests_dir = asya_dir / "manifests" / target
+    manifests_dir = asya_dir / MANIFESTS_DIR / target
     if not manifests_dir.is_dir():
         click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
         click.echo("[-] Run 'asya compile' first.", err=True)
@@ -41,11 +47,11 @@ def _find_manifests_dir(target: str) -> Path:
 def _resolve_overlay(manifests_dir: Path, ctx: str | None) -> Path:
     """Resolve the kustomize overlay path for the given context."""
     if ctx:
-        overlay = manifests_dir / "overlays" / ctx
-    elif (manifests_dir / "common").is_dir():
-        overlay = manifests_dir / "common"
+        overlay = manifests_dir / OVERLAYS_DIR / ctx
+    elif (manifests_dir / COMMON_DIR).is_dir():
+        overlay = manifests_dir / COMMON_DIR
     else:
-        overlay = manifests_dir / "base"
+        overlay = manifests_dir / BASE_DIR
 
     if not overlay.is_dir():
         if ctx:
@@ -108,7 +114,7 @@ def _find_flow_for_actor(manifests_dir: Path, actor_name: str) -> str | None:
     for flow_dir in manifests_dir.iterdir():
         if not flow_dir.is_dir():
             continue
-        base_dir = flow_dir / "base"
+        base_dir = flow_dir / BASE_DIR
         if not base_dir.is_dir():
             continue
         for yaml_file in base_dir.glob("*.yaml"):
@@ -348,7 +354,7 @@ def edit(actor_name: str) -> None:
         sys.exit(1)
 
     # Find which flow this actor belongs to
-    manifests_dir = asya_dir / "manifests"
+    manifests_dir = asya_dir / MANIFESTS_DIR
     if not manifests_dir.is_dir():
         click.echo("[-] No manifests directory found. Run 'asya compile' first.", err=True)
         sys.exit(1)
@@ -359,7 +365,7 @@ def edit(actor_name: str) -> None:
         click.echo(f"[-] Actor '{actor_name}' not found in any compiled flow", err=True)
         sys.exit(1)
 
-    common_dir = manifests_dir / target_flow / "common"
+    common_dir = manifests_dir / target_flow / COMMON_DIR
     common_dir.mkdir(parents=True, exist_ok=True)
 
     patch_file = common_dir / f"patch-{actor_name}.yaml"
