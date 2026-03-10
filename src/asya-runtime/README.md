@@ -26,13 +26,8 @@ When deploying actors on Kubernetes, the operator automatically injects the runt
 If your image uses a different Python location, configure it in the Helm chart:
 
 ```yaml
-workload:
-  pythonExecutable: "/opt/conda/bin/python"  # Default: "python3"
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: continuumio/miniconda3
+pythonExecutable: "/opt/conda/bin/python"  # Default: "python3"
+image: continuumio/miniconda3
 ```
 
 ### Making Your Handler Importable

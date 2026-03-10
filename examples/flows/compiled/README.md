@@ -330,25 +330,18 @@ metadata:
   name: start-if-else-simple-flow
 spec:
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: if-else-routers:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "routers.start_if_else_simple_flow"
-          # Handler mappings
-          - name: ASYA_HANDLER_SETUP
-            value: "handlers.setup.process"
-          - name: ASYA_HANDLER_TYPE_A
-            value: "handlers.type_a.process"
-          - name: ASYA_HANDLER_TYPE_B
-            value: "handlers.type_b.process"
-          - name: ASYA_HANDLER_FINALIZE
-            value: "handlers.finalize.process"
+  image: if-else-routers:v1
+  handler: routers.start_if_else_simple_flow
+  env:
+  # Handler mappings for dynamic dispatch
+  - name: ASYA_HANDLER_SETUP
+    value: "handlers.setup.process"
+  - name: ASYA_HANDLER_TYPE_A
+    value: "handlers.type_a.process"
+  - name: ASYA_HANDLER_TYPE_B
+    value: "handlers.type_b.process"
+  - name: ASYA_HANDLER_FINALIZE
+    value: "handlers.finalize.process"
 ```
 
 **Conditional Router**:
@@ -359,25 +352,18 @@ metadata:
   name: router-if-else-simple-flow-line-10-if
 spec:
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: if-else-routers:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "routers.router_if_else_simple_flow_line_10_if"
-          # Same handler mappings as start router
-          - name: ASYA_HANDLER_SETUP
-            value: "handlers.setup.process"
-          - name: ASYA_HANDLER_TYPE_A
-            value: "handlers.type_a.process"
-          - name: ASYA_HANDLER_TYPE_B
-            value: "handlers.type_b.process"
-          - name: ASYA_HANDLER_FINALIZE
-            value: "handlers.finalize.process"
+  image: if-else-routers:v1
+  handler: routers.router_if_else_simple_flow_line_10_if
+  env:
+  # Same handler mappings as start router
+  - name: ASYA_HANDLER_SETUP
+    value: "handlers.setup.process"
+  - name: ASYA_HANDLER_TYPE_A
+    value: "handlers.type_a.process"
+  - name: ASYA_HANDLER_TYPE_B
+    value: "handlers.type_b.process"
+  - name: ASYA_HANDLER_FINALIZE
+    value: "handlers.finalize.process"
 ```
 
 **End Router**:
@@ -388,16 +374,8 @@ metadata:
   name: end-if-else-simple-flow
 spec:
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: if-else-routers:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "routers.end_if_else_simple_flow"
+  image: if-else-routers:v1
+  handler: routers.end_if_else_simple_flow
 ```
 
 ### 3. Deploy Handler Actors
@@ -414,16 +392,8 @@ spec:
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 10
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-handlers:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "handlers.setup.process"
+  image: my-handlers:latest
+  handler: handlers.setup.process
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -434,19 +404,11 @@ spec:
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 50
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-type-a-model:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "handlers.type_a.process"
-          resources:
-            limits:
-              nvidia.com/gpu: 1  # GPU for ML model
+  image: my-type-a-model:latest
+  handler: handlers.type_a.process
+  resources:
+    limits:
+      nvidia.com/gpu: 1  # GPU for ML model
 ```
 
 **Note**: Complete deployment examples with Helm charts are in `testing/e2e/charts/asya-test-flows/`.

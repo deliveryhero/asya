@@ -138,30 +138,14 @@ cat > crew-values.yaml <<'EOF'
 x-sink:
   enabled: true
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 EOF
 
 helm install asya-crew deploy/helm-charts/asya-crew/ \
@@ -191,26 +175,19 @@ spec:
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          env:
-          - name: ASYA_HANDLER
-            value: "handler.process"
-          - name: PYTHONPATH
-            value: "/app"
-          volumeMounts:
-          - name: handler
-            mountPath: /app/handler.py
-            subPath: handler.py
-        volumes:
-        - name: handler
-          configMap:
-            name: hello-handler
+  image: python:3.13-slim
+  handler: handler.process
+  env:
+  - name: PYTHONPATH
+    value: "/app"
+  volumeMounts:
+  - name: handler
+    mountPath: /app/handler.py
+    subPath: handler.py
+  volumes:
+  - name: handler
+    configMap:
+      name: hello-handler
 ```
 
 ```bash

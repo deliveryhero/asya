@@ -66,17 +66,8 @@ x-sink:
     enabled: true
     minReplicaCount: 1
     maxReplicaCount: 10
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
@@ -85,17 +76,8 @@ x-sump:
     enabled: true
     minReplicaCount: 1
     maxReplicaCount: 10
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 ### asya-crossplane
@@ -129,9 +111,7 @@ awsRegion: us-east-1
 actorNamespace: asya
 ```
 
-**Workload Requirements**:
-
-AsyncActor claims using Crossplane must follow these rules:
+**Minimal example**:
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -141,23 +121,9 @@ metadata:
 spec:
   actor: my-actor
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-          - name: asya-runtime  # Required: must be named 'asya-runtime'
-            image: my-handler:latest
-            # command: NOT ALLOWED (injected by composition)
-            env:
-              - name: ASYA_HANDLER
-                value: my_module.process
+  image: my-handler:latest
+  handler: my_module.process
 ```
-
-**Validation Errors**:
-- `workload must have exactly one container named 'asya-runtime'` - rename container
-- `asya-runtime container must not define 'command'` - remove command field
-- `workload is required` - specify workload with container spec
 
 ### asya-actor
 
@@ -222,25 +188,13 @@ awsProviderConfig:
 ```yaml
 x-sink:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 **Actors**:
@@ -264,25 +218,13 @@ actorNamespace: asya
 ```yaml
 x-sink:
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 **Actors**:
