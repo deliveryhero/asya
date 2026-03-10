@@ -43,7 +43,7 @@ def _stamp_manifests(
 
     flow_name = flow_function.replace("_", "-")
 
-    config_loader = ConfigLoader()
+    config_loader = ConfigLoader(dynamic_values={"flow_function": flow_function})
     config = config_loader.load(source_path.parent)
 
     # Determine manifest output directory

@@ -28,18 +28,22 @@ def _is_kebab_case(target: str) -> bool:
     return bool(re.fullmatch(r"[a-z][a-z0-9]*(-[a-z0-9]+)*", target))
 
 
-def _resolve_output_dir(output_dir: str | None, flow_name: str, source_path: Path) -> Path:
-    """Determine manifest output directory."""
-    if output_dir:
-        return Path(output_dir).resolve()
-
+def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
+    """Resolve compiled output dir from config (compiler.routers), fall back to .asya/compiled."""
+    from asya_lab.config.config import ConfigLoader
     from asya_lab.config.discovery import find_asya_dir
 
     asya_dir = find_asya_dir(source_path.parent)
-    if asya_dir:
-        return (asya_dir / "manifests" / flow_name).resolve()
+    if not asya_dir:
+        return (source_path.parent / ".asya" / "compiled").resolve()
 
-    return (source_path.parent / ".asya" / "manifests" / flow_name).resolve()
+    try:
+        loader = ConfigLoader(dynamic_values={"flow_function": flow_function})
+        config = loader.load(source_path.parent)
+        routers_path = str(config.compiler.routers)
+        return (asya_dir.parent / routers_path).resolve()
+    except Exception:
+        return (source_path.parent / ".asya" / "compiled").resolve()
 
 
 def _compile_flow_file(
@@ -54,13 +58,13 @@ def _compile_flow_file(
     from asya_lab.flow_cli import _stamp_manifests
 
     source_path = Path(target).resolve()
+    source_code = source_path.read_text()
+
+    # Compile in-memory to learn flow_function before resolving output paths
     compiler = FlowCompiler(verbose=verbose)
-    compiled_output_dir = str(source_path.parent / ".asya" / "compiled")
-
-    compiled_file = compiler.compile_file(str(source_path), compiled_output_dir, overwrite=force)
-    click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
-
+    compiled_code = compiler.compile(source_code, str(source_path))
     flow_function = compiler.flow_name
+
     if flow_name_override:
         flow_name = flow_name_override
     elif flow_function:
@@ -68,6 +72,18 @@ def _compile_flow_file(
     else:
         flow_name = source_path.stem.replace("_", "-")
 
+    # Resolve compiled output dir from config or CLI override
+    if output_dir:
+        compiled_dir = Path(output_dir).resolve()
+    else:
+        compiled_dir = _resolve_compiled_dir(source_path, flow_function or source_path.stem)
+
+    # Write compiled code to resolved dir
+    compiled_dir.mkdir(parents=True, exist_ok=True)
+    compiled_file = compiled_dir / "routers.py"
+    compiled_file.write_text(compiled_code)
+
+    click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
     click.echo(f"[+] Using flow name '{flow_name}'")
 
     actor = compiler.single_actor_name
@@ -79,7 +95,7 @@ def _compile_flow_file(
 
     if plot:
         try:
-            dot_file, png_path = compiler.generate_plot(compiled_output_dir)
+            dot_file, png_path = compiler.generate_plot(str(compiled_dir))
             click.echo(f"[+] Generated graphviz dot file: {dot_file}")
             if png_path:
                 click.echo(f"[+] Generated graphviz png plot: {png_path}")
@@ -89,7 +105,7 @@ def _compile_flow_file(
             click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
 
     manifests_dir = output_dir if output_dir else None
-    _stamp_manifests(compiler, target, compiled_output_dir, manifests_dir, verbose)
+    _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
 
 
 def _compile_dotted_target(

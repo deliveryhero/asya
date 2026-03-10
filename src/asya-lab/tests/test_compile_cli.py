@@ -47,11 +47,8 @@ def test_compile_py_file(tmp_path: Path):
     )
     assert "[+] Successfully compiled flow" in result.output
 
-    # Manifests are stamped only when .asya/compiler/templates/actor.yaml exists.
-    # Without templates, stamping is skipped — verify that the compiled output exists.
-    compiled_dir = tmp_path / ".asya" / "compiled"
-    assert compiled_dir.exists()
-    routers_file = compiled_dir / "routers.py"
+    # When -o is given, compiled code goes to the output dir
+    routers_file = output_dir / "routers.py"
     assert routers_file.exists()
     router_code = routers_file.read_text()
     assert "my_flow" in router_code or "start_" in router_code
