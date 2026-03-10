@@ -110,24 +110,16 @@ metadata:
   name: text-classifier
 spec:
   transport: sqs  # or rabbitmq
+  image: my-classifier:latest
+  handler: classifier.TextClassifier.process
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 100
     queueLength: 5  # Target: 5 messages per pod
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-classifier:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "classifier.TextClassifier.process"
-          resources:
-            limits:
-              nvidia.com/gpu: 1
+  resources:
+    limits:
+      nvidia.com/gpu: 1
 ```
 
 **What happens**:

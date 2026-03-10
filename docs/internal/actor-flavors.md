@@ -13,9 +13,9 @@ spec:                       metadata:
   flavors:                    labels:
     - gpu-t4       -------->    asya.sh/flavor: gpu-t4
     - persistence  -------->    asya.sh/flavor: persistence
-  workload: ...             data:
-                              scaling: { minReplicaCount: 1 }
-                              workload: { template: ... }
+  image: ...                data:
+  handler: ...                scaling: { minReplicaCount: 1 }
+  resources: ...              resources: { limits: { nvidia.com/gpu: "1" } }
 ```
 
 1. `function-asya-flavors` reads `spec.flavors` from the XR.
@@ -56,17 +56,12 @@ metadata:
   labels:
     asya.sh/flavor: openai-secrets
 data:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: OPENAI_API_KEY
-            valueFrom:
-              secretKeyRef:
-                name: openai-creds
-                key: api-key
+  env:
+  - name: OPENAI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: openai-creds
+        key: api-key
   scaling:
     minReplicaCount: 1
     maxReplicaCount: 5
@@ -78,14 +73,18 @@ The actor's inline spec always takes precedence. If a flavor sets
 `scaling.minReplicaCount: 1` and the actor sets `scaling.minReplicaCount: 3`,
 the actor's value wins.
 
-Infrastructure fields (`actor`, `transport`, `flavors`, `region`,
-`gcpProject`, `providerConfigRef`, `irsa`) are excluded from the merge.
+Infrastructure fields (`actor`, `transport`, `flavors`) are excluded from the merge.
 
 ## Supported fields
 
 Flavors can set any non-infrastructure spec field:
 - `scaling` - KEDA autoscaling configuration
-- `workload` - Pod template, containers, env vars, resources
+- `resources` - Runtime container resource requests/limits
+- `env` - Runtime container environment variables (merged by `name` key)
+- `tolerations` - Pod tolerations
+- `nodeSelector` - Pod node selector
+- `volumes` - Pod volumes
+- `volumeMounts` - Runtime container volume mounts
 - `stateProxy` - State proxy sidecar mounts
 - `resiliency` - Retry policies
 - `sidecar` - Sidecar overrides
