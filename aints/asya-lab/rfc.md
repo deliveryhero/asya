@@ -555,8 +555,8 @@ build:
     command: "docker build -t ${.image} ."
 
 compiler:
-  routers: "${var.project_root}/compiled/${dynamic:flow_stem}"
-  manifests: ".asya/manifests/${dynamic:flow_stem}"
+  routers: "${var.project_root}/compiled/${dynamic:flow_function}"
+  manifests: ".asya/manifests/${dynamic:flow_function}"
   # rules and templates auto-merged from .asya/compiler/
 
 secrets:
