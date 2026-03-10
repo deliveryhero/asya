@@ -5,4 +5,5 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/misc/bvs4.fix-flow-compiler-generate-svg-instead-png-eliminate
   - branch:misc/bvs4.fix-flow-compiler-generate-svg-instead-png-eliminate
+  - pr:302
 ---

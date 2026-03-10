@@ -2,7 +2,7 @@
 title: "Fix KEDA reconciliation storm: managementPolicies on ScaledObject Objects"
 priority: 2 # medium
 tags:
-    - pr:293
+  - pr:293
 ---
 
 ## Problem
