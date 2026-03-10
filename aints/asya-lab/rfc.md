@@ -848,6 +848,11 @@ asya k edit validate-order
 # opens $EDITOR on .asya/manifests/order-processing/common/validate-order.yaml
 ```
 
+When creating a new patch, `asya k edit` pre-populates the file with a
+commented template showing common overrides (replicas, resources, env,
+resiliency). The user uncomments what they need. Future: the UI and CLI
+will provide structured editing commands for these patches.
+
 **Effective manifests** = `kustomize build` on the context overlay:
 ```bash
 asya k show order-processing --context stg
