@@ -27,7 +27,7 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    project = AsyaProject.from_dir(source_path.parent)
+    project = AsyaProject.from_dir(asya_dir.parent)
     return project.resolve_path("compiler.routers") / flow_function
 
 

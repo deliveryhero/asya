@@ -42,7 +42,7 @@ def _stamp_manifests(
 
     flow_name = flow_function.replace("_", "-")
 
-    project = AsyaProject.from_dir(source_path.parent)
+    project = AsyaProject.from_dir(asya_dir.parent)
 
     # Determine manifest output directory
     if manifests_dir:
