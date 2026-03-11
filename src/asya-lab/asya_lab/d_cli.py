@@ -7,6 +7,7 @@ up, down, send, logs.
 from __future__ import annotations
 
 import json
+import shlex
 import shutil
 import subprocess  # nosec B404
 import sys
@@ -86,6 +87,15 @@ def _reset_compose_cmd() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _get_asya_dir_or_exit() -> Path:
+    """Find the .asya directory or exit if not found."""
+    asya_dir = find_asya_dir(Path.cwd())
+    if asya_dir is None:
+        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
+        sys.exit(1)
+    return asya_dir
+
+
 def _resolve_target(target: str) -> tuple[str, Path | None]:
     """Resolve a CLI target to (flow_name, source_file_or_None).
 
@@ -106,11 +116,7 @@ def _resolve_target(target: str) -> tuple[str, Path | None]:
 
 def _find_manifests_dir(flow_name: str) -> Path:
     """Locate the compiled manifests directory for a flow."""
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
-
+    asya_dir = _get_asya_dir_or_exit()
     manifests_dir = asya_dir / "manifests" / flow_name
     if not manifests_dir.is_dir():
         click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
@@ -271,25 +277,19 @@ def _warn_docker_mount(*paths: str | None) -> None:
 
 def _compose_file_path(flow_name: str) -> Path:
     """Return the path where the compose file should be written."""
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
+    asya_dir = _get_asya_dir_or_exit()
     return asya_dir / "compose" / f"{flow_name}.yaml"
 
 
 def _run_cmd(cmd: list[str]) -> subprocess.CompletedProcess:
     """Run a shell command, printing it first with + prefix."""
-    click.echo(f"+ {' '.join(cmd)}", err=True)
+    click.echo(f"+ {shlex.join(cmd)}", err=True)
     return subprocess.run(cmd, check=False)  # nosec B603
 
 
 def _auto_compile(source_path: Path, flow_name: str) -> Path:
     """Auto-compile a .py flow file if needed. Returns manifests dir."""
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
+    asya_dir = _get_asya_dir_or_exit()
 
     output_dir = asya_dir / "manifests" / flow_name
     if output_dir.is_dir():
@@ -420,11 +420,7 @@ def _find_compose_file(flow: str | None) -> tuple[str, Path]:
     If flow is None, auto-detects when exactly one compose file exists.
     Returns (flow_name, compose_path).
     """
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
-
+    asya_dir = _get_asya_dir_or_exit()
     compose_dir = asya_dir / "compose"
     if not compose_dir.is_dir():
         click.echo("[-] No compose files found. Run 'asya d up' first.", err=True)
