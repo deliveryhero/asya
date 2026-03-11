@@ -398,8 +398,8 @@ Each overlay builds on top of `common/`.
 
     @staticmethod
     def _to_k8s_name(name: str) -> str:
-        """Convert Python name (underscores) to K8s name (hyphens)."""
-        return name.replace("_", "-")
+        """Convert Python name to K8s-safe name (dots and underscores become hyphens)."""
+        return name.replace("_", "-").replace(".", "-")
 
     def _get_referenced_actors(self, router: Router) -> list[str]:
         """Get all actor names referenced by a router."""

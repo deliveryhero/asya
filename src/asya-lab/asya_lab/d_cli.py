@@ -210,6 +210,36 @@ def _find_handler_dir(source_path: Path | None) -> str | None:
     return None
 
 
+def _find_routers_dir(flow_name: str) -> str | None:
+    """Locate compiled routers directory for bind-mounting into runtime containers.
+
+    Checks compiler.routers config path, falls back to .asya/compiled/.
+    """
+    asya_dir = find_asya_dir(Path.cwd())
+    if asya_dir is None:
+        return None
+
+    flow_function = flow_name.replace("-", "_")
+
+    # Try config-driven path (compiler.routers)
+    try:
+        from asya_lab.config.project import AsyaProject
+
+        project = AsyaProject.from_dir(asya_dir.parent)
+        routers_dir = project.resolve_path("compiler.routers") / flow_function
+        if routers_dir.is_dir() and (routers_dir / "routers.py").exists():
+            return str(routers_dir.resolve())
+    except (FileNotFoundError, KeyError):
+        pass
+
+    # Fallback: .asya/compiled/<flow>/
+    compiled = asya_dir / "compiled" / flow_function
+    if compiled.is_dir() and (compiled / "routers.py").exists():
+        return str(compiled.resolve())
+
+    return None
+
+
 def _compose_file_path(flow_name: str) -> Path:
     """Return the path where the compose file should be written."""
     asya_dir = find_asya_dir(Path.cwd())
@@ -304,7 +334,13 @@ def up(target: str, build: bool, detach: bool) -> None:
     if handler_dir:
         click.echo(f"[.] Mounting handlers: {handler_dir}", err=True)
 
-    compose = generate_compose(actors, flow_name, runtime_py=runtime_py, handler_dir=handler_dir)
+    routers_dir = _find_routers_dir(flow_name)
+    if routers_dir:
+        click.echo(f"[.] Mounting routers: {routers_dir}", err=True)
+
+    compose = generate_compose(
+        actors, flow_name, runtime_py=runtime_py, handler_dir=handler_dir, routers_dir=routers_dir
+    )
     compose_path = _compose_file_path(flow_name)
     write_compose(compose, compose_path)
     click.echo(f"[+] Generated {compose_path}", err=True)

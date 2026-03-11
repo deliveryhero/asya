@@ -23,6 +23,7 @@ MESH_DIR = "/var/run/asya/mesh"
 RUNTIME_SOCKET_DIR = "/var/run/asya"
 RUNTIME_MOUNT_PATH = "/opt/asya/asya_runtime.py"
 HANDLERS_MOUNT_PATH = "/opt/asya/handlers"
+ROUTERS_MOUNT_PATH = "/opt/asya/routers"
 
 
 # ---------------------------------------------------------------------------
@@ -141,6 +142,7 @@ def _runtime_service(
     runtime_socket_volume: str,
     runtime_py: str,
     handler_dir: str | None = None,
+    routers_dir: str | None = None,
 ) -> dict:
     """Generate a runtime service definition for an actor."""
     env: dict[str, str] = {
@@ -149,8 +151,15 @@ def _runtime_service(
         "ASYA_LOG_LEVEL": "INFO",
         "PYTHONUNBUFFERED": "1",
     }
+
+    # Build PYTHONPATH from mounted directories
+    python_paths: list[str] = []
     if handler_dir:
-        env["PYTHONPATH"] = HANDLERS_MOUNT_PATH
+        python_paths.append(HANDLERS_MOUNT_PATH)
+    if routers_dir:
+        python_paths.append(ROUTERS_MOUNT_PATH)
+    if python_paths:
+        env["PYTHONPATH"] = ":".join(python_paths)
 
     # Add user-defined env vars
     for e in actor.get("env", []):
@@ -162,6 +171,8 @@ def _runtime_service(
     ]
     if handler_dir:
         volumes.append(f"{handler_dir}:{HANDLERS_MOUNT_PATH}:ro")
+    if routers_dir:
+        volumes.append(f"{routers_dir}:{ROUTERS_MOUNT_PATH}:ro")
 
     service: dict = {
         "image": actor["image"],
@@ -239,6 +250,7 @@ def generate_compose(
     flow_name: str,
     runtime_py: str,
     handler_dir: str | None = None,
+    routers_dir: str | None = None,
 ) -> dict:
     """Generate a docker-compose.yaml structure from parsed actor info.
 
@@ -251,6 +263,8 @@ def generate_compose(
             into runtime containers.
         handler_dir: Optional path to a directory containing handler modules.
             Mounted at /opt/asya/handlers/ with PYTHONPATH set.
+        routers_dir: Optional path to compiled routers directory.
+            Mounted at /opt/asya/routers/ with PYTHONPATH set.
     """
     services: dict = {}
     volumes: dict = {MESH_VOLUME: None}
@@ -267,7 +281,7 @@ def generate_compose(
         runtime_name = f"{name}-runtime"
 
         services[sidecar_name] = _sidecar_service(info, runtime_vol)
-        services[runtime_name] = _runtime_service(info, sidecar_name, runtime_vol, runtime_py, handler_dir)
+        services[runtime_name] = _runtime_service(info, sidecar_name, runtime_vol, runtime_py, handler_dir, routers_dir)
 
     # System actors
     services["x-sink"] = _sink_service()

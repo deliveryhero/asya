@@ -15,12 +15,12 @@ class TestInitProject:
         assert asya_dir.is_dir()
 
     def test_creates_config_yaml(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/test")
+        init_project(tmp_path)
         config = tmp_path / ".asya" / "config.yaml"
         assert config.exists()
         content = config.read_text()
-        assert "ghcr.io/test" in content
         assert "templates:" in content
+        assert "compiler:" in content
 
     def test_creates_actor_template(self, tmp_path: Path) -> None:
         init_project(tmp_path, **_DEFAULTS)
@@ -42,12 +42,6 @@ class TestInitProject:
         init_project(tmp_path, **_DEFAULTS)
         gitignore = tmp_path / ".gitignore"
         assert not gitignore.exists()
-
-    def test_registry_in_build_entry(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/acme")
-        config = tmp_path / ".asya" / "config.yaml"
-        content = config.read_text()
-        assert "ghcr.io/acme/*:latest" in content
 
     def test_no_compiler_image_registry(self, tmp_path: Path) -> None:
         init_project(tmp_path, registry="ghcr.io/test")
@@ -86,10 +80,9 @@ class TestInitIdempotent:
 class TestInitConfig:
     def test_config_loadable_by_omegaconf(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
-        init_project(tmp_path, registry="ghcr.io/test")
+        init_project(tmp_path)
 
         from asya_lab.config.project import AsyaProject
 
         cfg = AsyaProject.from_dir(tmp_path).cfg
-        assert cfg.build[0].module == "*"
-        assert "ghcr.io/test" in cfg.build[0].image
+        assert cfg.compiler.routers.endswith("/compiled")
