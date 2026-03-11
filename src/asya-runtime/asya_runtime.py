@@ -174,18 +174,19 @@ def _load_function():
         sys.exit(1)
 
     # Validate ASYA_HANDLER format to prevent path traversal and injection attacks
-    handler_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*$")
+    handler_pattern = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)+$")
     if not handler_pattern.match(ASYA_HANDLER):
         logger.critical(
             f"FATAL: Invalid ASYA_HANDLER format: '{ASYA_HANDLER}' (not matching pattern {handler_pattern})"
         )
-        logger.critical("Expected format: 'module.function' or 'module.path.Class.method'")
+        logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
     # Split into parts and find module boundary by attempting imports
     parts = ASYA_HANDLER.split(".")
     if len(parts) < 2:
-        logger.critical(f"FATAL: ASYA_HANDLER '{ASYA_HANDLER}' must include module: use 'module.function' format")
+        logger.critical(f"FATAL: Invalid ASYA_HANDLER format: '{ASYA_HANDLER}' (parts: {parts})")
+        logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
     # Try to find the module by attempting imports with progressively longer paths
@@ -228,7 +229,7 @@ def _load_function():
 
     if module is None:
         logger.critical(f"FATAL: Could not import module from '{ASYA_HANDLER}' (no module found: {tried_modules})")
-        logger.critical("Expected format: 'function', 'module.function', or 'module.path.Class.method'")
+        logger.critical("Expected format: 'module.path.function' or 'module.path.Class.method'")
         sys.exit(1)
 
     try:
