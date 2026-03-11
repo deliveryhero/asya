@@ -30,7 +30,8 @@ Crossplane Composition Pipeline
      - writes resolved spec to desired XR
 
   2. render-deployment         (function-go-templating)
-     - reads $xr.spec.workload, $xr.spec.sidecar, etc.
+     - reads $xr.spec.image, $xr.spec.resources, $xr.spec.scaling, $xr.spec.sidecar, etc.
+       from the desired composite resource (output of step 1)
 
   3. render-scaledobject       (function-go-templating)
      - reads $xr.spec.scaling
