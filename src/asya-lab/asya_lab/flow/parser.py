@@ -72,6 +72,7 @@ class FlowParser:
         self._except_depth: int = 0  # Track nesting depth for raise validation
         self._rule_engine = rule_engine
         self._source_lines: list[str] = []  # Populated in parse() for inline comment extraction
+        self._imports: dict[str, str] = {}  # bare name → qualified name
 
     def parse(self) -> tuple[str, list[IROperation]]:
         self._source_lines = self.source_code.splitlines()
@@ -79,6 +80,8 @@ class FlowParser:
             tree = ast.parse(self.source_code, filename=self.filename)
         except SyntaxError as e:
             raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
+
+        self._imports = self._collect_imports(tree)
 
         flow_func = self._find_flow_function(tree)
         if not flow_func:
@@ -107,6 +110,26 @@ class FlowParser:
             if isinstance(node, _FUNC_DEF_TYPES) and self._is_flow_function(node):
                 return node
         return None
+
+    @staticmethod
+    def _collect_imports(tree: ast.Module) -> dict[str, str]:
+        """Build a mapping from bare names to fully-qualified names.
+
+        Scans top-level ``import`` and ``from ... import`` statements.
+        For example, ``from tenacity import stop_after_attempt`` produces
+        ``{"stop_after_attempt": "tenacity.stop_after_attempt"}``.
+        """
+        imports: dict[str, str] = {}
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                for alias in node.names:
+                    local_name = alias.asname or alias.name
+                    imports[local_name] = f"{node.module}.{alias.name}"
+            elif isinstance(node, ast.Import):
+                for alias in node.names:
+                    local_name = alias.asname or alias.name
+                    imports[local_name] = alias.name
+        return imports
 
     def _is_flow_function(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         if len(func.args.args) != 1:
@@ -286,7 +309,7 @@ class FlowParser:
             if isinstance(self._rule_engine, RuleEngine):
                 rule = self._rule_engine.get_rule(actor_name, module_path=self.module_path)
                 if rule and rule.where:
-                    extracted = ValueExtractor().extract(call, rule)
+                    extracted = ValueExtractor(imports=self._imports).extract(call, rule)
             return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
 
         return ActorCall(

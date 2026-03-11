@@ -21,7 +21,17 @@ log = logging.getLogger(__name__)
 
 
 class ValueExtractor:
-    """Extract spec values from AST Call nodes guided by compiler rules."""
+    """Extract spec values from AST Call nodes guided by compiler rules.
+
+    Args:
+        imports: Optional mapping of bare names to fully-qualified names
+            (e.g. ``{"stop_after_attempt": "tenacity.stop_after_attempt"}``).
+            Used to resolve positional-argument names for bare function calls
+            that can't otherwise be introspected.
+    """
+
+    def __init__(self, imports: dict[str, str] | None = None) -> None:
+        self._imports = imports or {}
 
     def extract(self, node: ast.expr, rule: CompilerRule) -> dict[str, object]:
         """Main entry point.
@@ -62,6 +72,9 @@ class ValueExtractor:
         # Positional arguments — try to resolve parameter names.
         if call.args:
             func_name = self._resolve_func_name(call.func)
+            # Resolve bare names via import map (e.g. stop_after_attempt → tenacity.stop_after_attempt)
+            if func_name and "." not in func_name and func_name in self._imports:
+                func_name = self._imports[func_name]
             param_names = self._get_param_names(func_name) if func_name else None
 
             for idx, arg in enumerate(call.args):
@@ -79,8 +92,15 @@ class ValueExtractor:
         node: WhereNode,
         bound: dict[str, ast.expr],
         result: dict[str, object],
+        *,
+        call_name: str | None = None,
     ) -> None:
-        """Recursively walk a ``WhereNode`` tree, populating *result*."""
+        """Recursively walk a ``WhereNode`` tree, populating *result*.
+
+        Args:
+            call_name: Resolved function name of the current AST Call context,
+                used to discriminate match-only nodes.
+        """
         if node.param:
             ast_node = bound.get(node.param)
             if ast_node is None:
@@ -97,20 +117,24 @@ class ValueExtractor:
             if node.where:
                 if isinstance(ast_node, ast.Call):
                     child_bound = self._bind_args(ast_node)
+                    child_name = self._resolve_func_name(ast_node.func)
                     for child in node.where:
-                        self._walk(child, child_bound, result)
+                        self._walk(child, child_bound, result, call_name=child_name)
                 elif isinstance(ast_node, ast.BinOp):
                     calls = self._flatten_binop(ast_node)
                     for call in calls:
                         child_bound = self._bind_args(call)
+                        child_name = self._resolve_func_name(call.func)
                         for child in node.where:
-                            self._walk(child, child_bound, result)
+                            self._walk(child, child_bound, result, call_name=child_name)
             return
 
-        # match-only node (no param): just recurse children with same bindings.
+        # match-only node (no param): recurse only if function name matches.
         if node.match and node.where:
+            if call_name is not None and call_name != node.match:
+                return
             for child in node.where:
-                self._walk(child, bound, result)
+                self._walk(child, bound, result, call_name=call_name)
 
     # -- BinOp flattening ---------------------------------------------------
 

@@ -138,6 +138,16 @@ _TENACITY_RULES_YAML = dedent("""\
                   assign-to: spec.resiliency.nonRetryableErrors
 """)
 
+# Import map: what _collect_imports produces for ``from tenacity import ...``
+_TENACITY_IMPORTS = {
+    "retry": "tenacity.retry",
+    "stop_after_attempt": "tenacity.stop_after_attempt",
+    "stop_after_delay": "tenacity.stop_after_delay",
+    "wait_exponential": "tenacity.wait_exponential",
+    "retry_if_exception_type": "tenacity.retry_if_exception_type",
+    "retry_if_not_exception_type": "tenacity.retry_if_not_exception_type",
+}
+
 
 # ---------------------------------------------------------------------------
 # Tests
@@ -425,30 +435,30 @@ class TestTenacityRules:
         assert engine.classify("handler") == TreatAs.UNFOLD
 
     def test_extract_stop_after_attempt(self, tmp_path: Path) -> None:
-        """Extract maxAttempts from ``stop=stop_after_attempt(max_attempt_number=5)``.
+        """Extract maxAttempts from ``stop=stop_after_attempt(5)`` using positional arg.
 
-        Keyword args are required because bare function names (no module prefix)
-        cannot be imported for positional-arg resolution via inspect.signature.
+        The import map resolves ``stop_after_attempt`` to its qualified name
+        so ``inspect.signature`` can resolve positional parameters.
         """
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
-        call = _parse_call("tenacity.retry(stop=stop_after_attempt(max_attempt_number=5))")
-        result = ValueExtractor().extract(call, rule)
+        call = _parse_call("tenacity.retry(stop=stop_after_attempt(5))")
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
         assert result.get("spec.resiliency.retry.maxAttempts") == 5, result
 
     def test_extract_stop_after_delay(self, tmp_path: Path) -> None:
-        """Extract maxWindow from ``stop=stop_after_delay(max_delay=30)``."""
+        """Extract maxWindow from ``stop=stop_after_delay(30)`` using positional arg."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
-        call = _parse_call("tenacity.retry(stop=stop_after_delay(max_delay=30))")
-        result = ValueExtractor().extract(call, rule)
+        call = _parse_call("tenacity.retry(stop=stop_after_delay(30))")
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
         assert result.get("spec.resiliency.retry.maxWindow") == 30, result
 
@@ -480,68 +490,65 @@ class TestTenacityRules:
         assert result.get("spec.resiliency.retry.maxInterval") == 120, result
 
     def test_extract_retry_if_exception_type(self, tmp_path: Path) -> None:
-        """Extract retryableErrors from ``retry=retry_if_exception_type(ValueError)``."""
+        """Extract retryableErrors from ``retry=retry_if_exception_type(ValueError)``.
+
+        Match-only nodes discriminate by function name: only the
+        ``retry_if_exception_type`` branch fires, not ``retry_if_not_exception_type``.
+        """
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
         call = _parse_call("tenacity.retry(retry=retry_if_exception_type(exception_types=ValueError))")
-        result = ValueExtractor().extract(call, rule)
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
-        assert result.get("spec.resiliency.retryableErrors") == "ValueError", result
+        assert result == {"spec.resiliency.retryableErrors": "ValueError"}, result
 
     def test_extract_retry_if_not_exception_type(self, tmp_path: Path) -> None:
-        """Extract nonRetryableErrors from ``retry=retry_if_not_exception_type(...)``."""
+        """Extract nonRetryableErrors from ``retry=retry_if_not_exception_type(...)``.
+
+        Only the ``retry_if_not_exception_type`` branch fires.
+        """
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
         call = _parse_call("tenacity.retry(retry=retry_if_not_exception_type(exception_types=KeyboardInterrupt))")
-        result = ValueExtractor().extract(call, rule)
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
-        assert result.get("spec.resiliency.nonRetryableErrors") == "KeyboardInterrupt", result
+        assert result == {"spec.resiliency.nonRetryableErrors": "KeyboardInterrupt"}, result
 
     def test_extract_combined_stop_and_wait(self, tmp_path: Path) -> None:
-        """Multiple top-level params extracted from a single call."""
+        """Multiple top-level params extracted from a single call (positional args)."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
-        call = _parse_call(
-            "tenacity.retry(stop=stop_after_attempt(max_attempt_number=3), wait=wait_exponential(min=1, max=60))"
-        )
-        result = ValueExtractor().extract(call, rule)
+        call = _parse_call("tenacity.retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))")
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
         assert result.get("spec.resiliency.retry.maxAttempts") == 3, result
         assert result.get("spec.resiliency.retry.initialInterval") == 1, result
         assert result.get("spec.resiliency.retry.maxInterval") == 60, result
 
     def test_extract_stop_binop_pipe(self, tmp_path: Path) -> None:
-        """BinOp ``stop_after_attempt(...) | stop_after_delay(...)`` extracts both values."""
+        """BinOp ``stop_after_attempt(5) | stop_after_delay(30)`` extracts both values."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
         assert rule is not None
 
-        call = _parse_call(
-            "tenacity.retry(stop=stop_after_attempt(max_attempt_number=5) | stop_after_delay(max_delay=30))"
-        )
-        result = ValueExtractor().extract(call, rule)
+        call = _parse_call("tenacity.retry(stop=stop_after_attempt(5) | stop_after_delay(30))")
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
         assert result.get("spec.resiliency.retry.maxAttempts") == 5, result
         assert result.get("spec.resiliency.retry.maxWindow") == 30, result
 
     def test_extract_full_realistic_retry_call(self, tmp_path: Path) -> None:
-        """Full realistic tenacity.retry with stop + wait + retry params.
-
-        Note: match-only nodes don't yet discriminate by function name, so both
-        retry_if_exception_type and retry_if_not_exception_type siblings fire
-        when either is present.  This causes ``nonRetryableErrors`` to also be
-        set (same ``exception_types`` param name).  Tracked in aint [ia37].
-        """
+        """Full realistic tenacity.retry with stop + wait + retry params."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
         rule = engine.get_rule("tenacity.retry")
@@ -549,12 +556,12 @@ class TestTenacityRules:
 
         call = _parse_call(
             "tenacity.retry("
-            "  stop=stop_after_attempt(max_attempt_number=5) | stop_after_delay(max_delay=120),"
+            "  stop=stop_after_attempt(5) | stop_after_delay(120),"
             "  wait=wait_exponential(multiplier=2, min=1, max=60),"
             "  retry=retry_if_exception_type(exception_types=ValueError)"
             ")"
         )
-        result = ValueExtractor().extract(call, rule)
+        result = ValueExtractor(imports=_TENACITY_IMPORTS).extract(call, rule)
 
         assert result == {
             "spec.resiliency.retry.maxAttempts": 5,
@@ -563,8 +570,6 @@ class TestTenacityRules:
             "spec.resiliency.retry.initialInterval": 1,
             "spec.resiliency.retry.maxInterval": 60,
             "spec.resiliency.retryableErrors": "ValueError",
-            # match-only nodes don't discriminate — both siblings fire (see docstring)
-            "spec.resiliency.nonRetryableErrors": "ValueError",
         }, result
 
     def test_no_extraction_when_no_args(self, tmp_path: Path) -> None:
