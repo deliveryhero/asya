@@ -66,9 +66,62 @@ Constraints (acceptable for local testing):
 - [5ifn] Phase 3: Local CLI (compile command)
 - [cavw] Socket transport implementation in sidecar (Go)
 
+## State proxy in Docker Compose
+
+State proxy mounts are emulated via regular Docker volumes. The runtime env var
+`ASYA_STATE_PROXY_MOUNTS` is intentionally NOT set — when unset, `asya_runtime.py`
+does not intercept file I/O, so mount paths resolve to real directories on disk.
+No state proxy sidecar containers are needed. If an actor's manifest references
+state mounts, the compose generator creates Docker volumes for those paths.
+
+## Execution Plan
+
+### Step 1: `compose.py` — Docker Compose YAML generator
+
+Parse multi-doc AsyncActor YAML manifests and generate `docker-compose.yaml`:
+- For each actor: sidecar service + runtime service
+- Sidecar env: `ASYA_TRANSPORT=socket`, `ASYA_ACTOR_NAME=<name>`,
+  `ASYA_SOCKET_DIR=/var/run/asya/mesh`, `ASYA_ACTOR_SINK=x-sink`,
+  `ASYA_ACTOR_SUMP=x-sump`, `ASYA_NAMESPACE=local`
+- Runtime env: `ASYA_HANDLER=<handler>`, `ASYA_SOCKET_DIR=/var/run/asya`
+- Shared named volume `asya-mesh` at `/var/run/asya/mesh/` for all sidecars
+- Shared named volume `asya-runtime-sockets` at `/var/run/asya/` for sidecar↔runtime
+- Runtime depends_on sidecar (each pair)
+- Drop `ASYA_STATE_PROXY_MOUNTS` — state mounts become Docker volumes
+- Add `x-sink` and `x-sump` system actor services (sidecar-only, no runtime needed
+  since they just ack/log)
+- Compose project name: `asya-<flow-name>`
+- Output path: `.asya/compose/<flow-name>.yaml`
+
+### Step 2: `d_cli.py` — CLI commands
+
+Argparse-based CLI (consistent with current codebase on main):
+- `asya d up <target>` — resolve target, auto-compile if .py, generate compose,
+  run `docker compose up -d`
+- `asya d down <target>` — resolve target to compose file,
+  run `docker compose down`
+- `asya d send <actor> <payload>` — write JSON envelope to Unix socket
+  at `/var/run/asya/mesh/<actor>.sock`
+- `asya d logs <target>` — resolve to compose file,
+  run `docker compose logs -f`
+
+### Step 3: Register in cli.py
+
+Add `d` (and `docker` alias) subcommand to the main CLI dispatcher.
+
+### Step 4: Tests
+
+- `test_compose.py` — unit tests for compose YAML generation (mock manifests)
+- `test_d_cli.py` — CLI help, argument parsing, subprocess mocking
+
+### Step 5: Quality gates
+
+Run `make test-unit`, `make lint`, commit, push.
+
 ## References
 
 - `.aint/aints/asya-lab/rfc.md` §5.3 — Docker commands
 - `.aint/aints/asya-lab/rfc.md` §5.11 — testing tiers
 - `.aint/aints/asya-lab/adr.k-d-command-split.md` §3 — socket transport design
 - `.aint/aints/asya-lab/adr.k-d-command-split.md` §5 — Docker secrets via .env.secret
+- `.aint/aints/.closed/stateful-actors/rfc.md` — state proxy design (ASYA_STATE_PROXY_MOUNTS)
