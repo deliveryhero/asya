@@ -2023,6 +2023,14 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
     actor_name = f"test-flavor-conflict-{e2e_helper.namespace[-4:]}"
 
     try:
+        # Pre-flight: verify EnvironmentConfigs exist before creating the actor,
+        # so a missing resource is diagnosed immediately rather than after a 120s timeout.
+        for ec_name in ["asya-test-actor", "asya-test-scaling-conflict"]:
+            try:
+                kubectl_get("environmentconfig", ec_name, namespace=e2e_helper.namespace)
+            except Exception as exc:
+                pytest.fail(f"Pre-flight: EnvironmentConfig {ec_name!r} not found: {exc}")
+
         logger.info("Creating actor with conflicting scaling flavors...")
         kubectl_apply_raw(
             _actor_manifest(

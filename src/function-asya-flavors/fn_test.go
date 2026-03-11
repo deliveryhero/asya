@@ -76,14 +76,9 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 		if sel.ApiVersion != EnvConfigAPIVersion {
 			t.Errorf("flavor %q: apiVersion = %q, want %q", flavor, sel.ApiVersion, EnvConfigAPIVersion)
 		}
-		matchLabels := sel.GetMatchLabels()
-		if matchLabels == nil {
-			t.Errorf("flavor %q: missing matchLabels", flavor)
-			continue
-		}
-		label := matchLabels.Labels[FlavorLabel]
-		if label != flavor {
-			t.Errorf("flavor %q: label = %q, want %q", flavor, label, flavor)
+		matchName := sel.GetMatchName()
+		if matchName != flavor {
+			t.Errorf("flavor %q: matchName = %q, want %q", flavor, matchName, flavor)
 		}
 	}
 }
