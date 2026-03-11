@@ -2028,20 +2028,27 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
             _actor_manifest(
                 actor_name,
                 e2e_helper.namespace,
+                scaling_enabled=False,
                 flavors=["asya-test-actor", "asya-test-scaling-conflict"],
             ),
             namespace=e2e_helper.namespace,
         )
 
-        # Wait enough time for Crossplane to attempt reconciliation
-        logger.info("Waiting for Crossplane to detect flavor conflict...")
-        time.sleep(30)  # allow reconciliation cycles to process
+        # Poll for Synced=False: Crossplane needs multiple reconciliation
+        # cycles to fetch EnvironmentConfigs via Requirements API, then
+        # detect the flavor merge conflict.
+        logger.info("Polling for Crossplane to detect flavor conflict...")
+        synced = None
+        for attempt in range(24):
+            time.sleep(5)  # poll every 5s for up to 120s
+            xr = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
+            status = xr.get("status", {})
+            conditions = status.get("conditions", [])
+            synced = next((c for c in conditions if c.get("type") == "Synced"), None)
+            if synced and synced.get("status") == "False":
+                logger.info(f"Conflict detected after {(attempt + 1) * 5}s")
+                break
 
-        xr = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
-        status = xr.get("status", {})
-        conditions = status.get("conditions", [])
-
-        synced = next((c for c in conditions if c.get("type") == "Synced"), None)
         assert synced is not None, f"Synced condition should exist, got conditions: {conditions}"
         assert synced.get("status") == "False", (
             f"Synced should be False due to flavor conflict, got: {synced}"

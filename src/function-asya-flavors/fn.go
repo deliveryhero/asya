@@ -86,9 +86,9 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 		return nil
 	}
 
-	flavorData := extractFlavorData(required, flavors, f.log)
+	flavorData, flavorDataNames := extractFlavorData(required, flavors, f.log)
 
-	merged, err := MergeFlavors(flavorData, flavors)
+	merged, err := MergeFlavors(flavorData, flavorDataNames)
 	if err != nil {
 		return errors.Wrapf(err, "flavor merge conflict")
 	}
@@ -204,9 +204,11 @@ func allFlavorsAvailable(required map[string][]resource.Required, flavors []stri
 }
 
 // extractFlavorData reads the data field from each flavor's EnvironmentConfig
-// in spec.flavors order, returning a slice of partial AsyncActor specs.
-func extractFlavorData(required map[string][]resource.Required, flavors []string, log logging.Logger) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(flavors))
+// in spec.flavors order, returning a slice of partial AsyncActor specs and
+// the corresponding flavor names (aligned by index).
+func extractFlavorData(required map[string][]resource.Required, flavors []string, log logging.Logger) ([]map[string]interface{}, []string) {
+	data := make([]map[string]interface{}, 0, len(flavors))
+	names := make([]string, 0, len(flavors))
 
 	for _, flavor := range flavors {
 		resources := required[flavorResourceKey(flavor)]
@@ -225,16 +227,27 @@ func extractFlavorData(required map[string][]resource.Required, flavors []string
 			continue
 		}
 
-		data, ok := dataRaw.(map[string]interface{})
+		d, ok := dataRaw.(map[string]interface{})
 		if !ok {
 			log.Info("Flavor EnvironmentConfig data is not a map, skipping", "flavor", flavor)
 			continue
 		}
 
-		result = append(result, data)
+		log.Debug("Extracted flavor data", "flavor", flavor, "keys", mapKeys(d))
+		data = append(data, d)
+		names = append(names, flavor)
 	}
 
-	return result
+	return data, names
+}
+
+// mapKeys returns the top-level keys of a map for debug logging.
+func mapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // extractActorInlineSpec returns all flavor-mergeable fields from the XR spec.
