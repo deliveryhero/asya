@@ -89,9 +89,11 @@ def get_tool(tool_call: dict) -> dict:
             "tool_name": "greet_user",
             "tool_call_result": greet_user(tool_call["args"]),  # asya: actor
         }
+    ...
 ```
 
-Same inference: the compiler sees the call site and generates the adapter.
+Same inference: the compiler sees the call site and generates the adapter. Note that the compiler
+should first resolve AST into a flattened IR and only then reason about the adapter generation.
 
 ## Implementation sketch
 
