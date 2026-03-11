@@ -1,7 +1,7 @@
 ---
 title: Compiler adapter generation from decorated handler call sites
 priority: 2 # medium
-dependencies: [support-more-compiler-constructs/srn2, asya-lab/1fmi]
+dependencies: [srn2, 1fmi]
 ---
 
 ## Problem
