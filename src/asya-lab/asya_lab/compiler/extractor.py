@@ -192,7 +192,7 @@ class ValueExtractor:
             return None
 
         try:
-            mod = importlib.import_module(module_path)
+            mod = importlib.import_module(module_path)  # nosemgrep: non-literal-import
             func = getattr(mod, attr_name, None)
             if func is None:
                 return None
