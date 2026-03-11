@@ -11,11 +11,20 @@ the generated router code reflects those classifications.
 
 from __future__ import annotations
 
+import ast
+import re
 from pathlib import Path
 from textwrap import dedent
 
+from asya_lab.compiler.extractor import ValueExtractor
+from asya_lab.compiler.rules import RuleEngine, TreatAs
 from asya_lab.config.project import AsyaProject
 from asya_lab.flow.compiler import FlowCompiler
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
 
 def _scaffold_project(
@@ -34,6 +43,13 @@ def _scaffold_project(
     return AsyaProject.from_dir(tmp_path)
 
 
+def _load_engine(project: AsyaProject) -> RuleEngine:
+    """Load rules from *project* and return a typed RuleEngine."""
+    engine = project.load_rules()
+    assert isinstance(engine, RuleEngine)
+    return engine
+
+
 def _compile_flow(project: AsyaProject, source: str) -> str:
     """Compile a flow source using the full pipeline and return generated code."""
     engine = project.load_rules()
@@ -41,18 +57,101 @@ def _compile_flow(project: AsyaProject, source: str) -> str:
     return compiler.compile(source, "test_flow.py")
 
 
+# -- Assertion helpers -------------------------------------------------------
+# Each helper prints the full generated code on failure so the developer
+# can immediately see what went wrong.
+
+_MUTATION_RE_CACHE: dict[str, re.Pattern[str]] = {}
+
+
+def _mutation_re(call_expr: str) -> re.Pattern[str]:
+    """Compile and cache a regex that matches `p = <call_expr>` as a mutation line."""
+    if call_expr not in _MUTATION_RE_CACHE:
+        escaped = re.escape(call_expr)
+        _MUTATION_RE_CACHE[call_expr] = re.compile(rf"^\s+p = {escaped}", re.MULTILINE)
+    return _MUTATION_RE_CACHE[call_expr]
+
+
+def _assert_inlined(code: str, call_expr: str) -> None:
+    """Assert *call_expr* appears as an inlined mutation, NOT as a resolved actor.
+
+    Checks two things:
+      1. ``p = <call_expr>`` appears indented inside a router function body.
+      2. ``resolve("<func_name>")`` does NOT appear anywhere.
+    """
+    assert _mutation_re(call_expr).search(code), (
+        f"Expected inlined mutation 'p = {call_expr}' not found in generated code:\n{code}"
+    )
+    func_name = call_expr.split("(")[0]
+    assert f'resolve("{func_name}")' not in code, (
+        f"Expected '{func_name}' to be inlined but found resolve() call in generated code:\n{code}"
+    )
+
+
+def _assert_actor(code: str, name: str) -> None:
+    """Assert *name* appears as a resolved actor (via ``resolve("name")``)."""
+    assert f'resolve("{name}")' in code, f'Expected resolve("{name}") not found in generated code:\n{code}'
+
+
+def _assert_not_actor(code: str, name: str) -> None:
+    """Assert *name* does NOT appear as a resolved actor."""
+    assert f'resolve("{name}")' not in code, f'Unexpected resolve("{name}") found in generated code:\n{code}'
+
+
+def _parse_call(source: str) -> ast.Call:
+    """Parse a Python expression string and return its Call node."""
+    tree = ast.parse(source, mode="eval")
+    assert isinstance(tree.body, ast.Call)
+    return tree.body
+
+
+# ---------------------------------------------------------------------------
+# Full tenacity.retry rule YAML (from research-compiler-knowledge-base.md)
+# ---------------------------------------------------------------------------
+
+_TENACITY_RULES_YAML = dedent("""\
+    - match: "tenacity.retry"
+      where:
+        - param: stop
+          where:
+            - param: max_attempt_number
+              assign-to: spec.resiliency.retry.maxAttempts
+            - param: max_delay
+              assign-to: spec.resiliency.retry.maxWindow
+        - param: wait
+          where:
+            - param: min
+              assign-to: spec.resiliency.retry.initialInterval
+            - param: max
+              assign-to: spec.resiliency.retry.maxInterval
+            - param: multiplier
+              assign-to: spec.resiliency.retry.backoffCoefficient
+        - param: retry
+          where:
+            - match: retry_if_exception_type
+              where:
+                - param: exception_types
+                  assign-to: spec.resiliency.retryableErrors
+            - match: retry_if_not_exception_type
+              where:
+                - param: exception_types
+                  assign-to: spec.resiliency.nonRetryableErrors
+""")
+
+
+# ---------------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------------
+
+
 class TestInlineClassification:
     """External (dotted) calls are inlined by the default '*' rule."""
 
     def test_dotted_call_inlined_by_default(self, tmp_path: Path) -> None:
-        """A dotted call like `utils.clean(p)` matches '*' -> inline.
-
-        Inline code runs inside the router, so the generated code must
-        contain the call as a mutation — not as a separate actor via resolve().
-        """
+        """A dotted call like ``utils.clean(p)`` matches '*' -> inline."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = utils.clean(p)
                 p = handler_b(p)
@@ -60,19 +159,15 @@ class TestInlineClassification:
         """)
         code = _compile_flow(project, source)
 
-        # Inline code appears as a mutation inside a router function
-        assert "utils.clean(p)" in code
-        # Inline code does NOT appear as a resolved actor
-        assert 'resolve("utils.clean")' not in code
-        # Real actors are resolved normally
-        assert 'resolve("handler_a")' in code
-        assert 'resolve("handler_b")' in code
+        _assert_inlined(code, "utils.clean(p)")
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "handler_b")
 
     def test_multiple_consecutive_inlines_merged(self, tmp_path: Path) -> None:
         """Multiple consecutive inline calls merge into one router's mutations."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = logging.info(p)
                 p = metrics.emit(p)
@@ -81,22 +176,20 @@ class TestInlineClassification:
         """)
         code = _compile_flow(project, source)
 
-        # Both inline calls present as mutations
-        assert "logging.info(p)" in code
-        assert "metrics.emit(p)" in code
-        # Neither appears as an actor
-        assert 'resolve("logging.info")' not in code
-        assert 'resolve("metrics.emit")' not in code
+        _assert_inlined(code, "logging.info(p)")
+        _assert_inlined(code, "metrics.emit(p)")
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "handler_b")
 
 
 class TestInlineCommentOverride:
-    """The `# asya: <action>` inline comment has highest priority."""
+    """The ``# asya: <action>`` inline comment has highest priority."""
 
     def test_comment_forces_inline(self, tmp_path: Path) -> None:
         """A bare symbol (same-package -> unfold) overridden to inline via comment."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = local_helper(p)  # asya: inline
                 p = handler_b(p)
@@ -104,15 +197,14 @@ class TestInlineCommentOverride:
         """)
         code = _compile_flow(project, source)
 
-        assert "local_helper(p)" in code
-        assert 'resolve("local_helper")' not in code
-        assert 'resolve("handler_a")' in code
+        _assert_inlined(code, "local_helper(p)")
+        _assert_actor(code, "handler_a")
 
     def test_comment_forces_actor(self, tmp_path: Path) -> None:
         """A dotted call (default '*' -> inline) overridden to actor via comment."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)  # asya: actor
                 p = handler_b(p)
@@ -120,9 +212,9 @@ class TestInlineCommentOverride:
         """)
         code = _compile_flow(project, source)
 
-        assert 'resolve("external.lib")' in code
-        # Should NOT appear as inline mutation (it's an actor now)
-        assert "p = external.lib(p)" not in code
+        _assert_actor(code, "external.lib")
+        # Must NOT appear as an inline mutation
+        assert not _mutation_re("external.lib(p)").search(code), f"external.lib should be actor, not mutation:\n{code}"
 
 
 class TestUserRuleOverridesDefault:
@@ -136,18 +228,15 @@ class TestUserRuleOverridesDefault:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = tenacity.retry(p)
                 p = other.lib(p)
                 return p
         """)
         code = _compile_flow(project, source)
 
-        # Config symbol → inlined as mutation
-        assert "tenacity.retry(p)" in code
-        assert 'resolve("tenacity.retry")' not in code
-        # Other dotted call → also inlined (default '*')
-        assert "other.lib(p)" in code
+        _assert_inlined(code, "tenacity.retry(p)")
+        _assert_inlined(code, "other.lib(p)")
 
     def test_prefix_wildcard_rule(self, tmp_path: Path) -> None:
         """User rule: 'mylib.*' -> actor forces all mylib.X to actor."""
@@ -157,7 +246,7 @@ class TestUserRuleOverridesDefault:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = mylib.process(p)
                 p = mylib.validate(p)
                 p = external.util(p)
@@ -165,12 +254,9 @@ class TestUserRuleOverridesDefault:
         """)
         code = _compile_flow(project, source)
 
-        # mylib.* symbols → actors
-        assert 'resolve("mylib.process")' in code
-        assert 'resolve("mylib.validate")' in code
-        # external.util → inline (default '*')
-        assert "external.util(p)" in code
-        assert 'resolve("external.util")' not in code
+        _assert_actor(code, "mylib.process")
+        _assert_actor(code, "mylib.validate")
+        _assert_inlined(code, "external.util(p)")
 
 
 class TestSamePackageClassification:
@@ -180,16 +266,15 @@ class TestSamePackageClassification:
         """Unfold symbols are currently emitted as actors (expansion not yet implemented)."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = local_handler(p)
                 p = another_handler(p)
                 return p
         """)
         code = _compile_flow(project, source)
 
-        # Unfold → ActorCall(treat_as="unfold") → still routed as actor
-        assert 'resolve("local_handler")' in code
-        assert 'resolve("another_handler")' in code
+        _assert_actor(code, "local_handler")
+        _assert_actor(code, "another_handler")
 
 
 class TestConditionalWithMixedClassifications:
@@ -199,7 +284,7 @@ class TestConditionalWithMixedClassifications:
         """Inline calls inside branches become mutations in the branch router."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 if p["type"] == "fast":
                     p = handler_fast(p)
                 else:
@@ -208,16 +293,33 @@ class TestConditionalWithMixedClassifications:
         """)
         code = _compile_flow(project, source)
 
-        # Both handlers are real actors (bare names → unfold → actor)
-        assert 'resolve("handler_fast")' in code
-        assert 'resolve("handler_slow")' in code
+        _assert_actor(code, "handler_fast")
+        _assert_actor(code, "handler_slow")
+
+    def test_inline_inside_branch(self, tmp_path: Path) -> None:
+        """A dotted call inside a branch is inlined within the branch router."""
+        project = _scaffold_project(tmp_path)
+        source = dedent("""\
+            async def my_flow(p: dict) -> dict:
+                if p["ready"]:
+                    p = metrics.track(p)
+                    p = handler_a(p)
+                else:
+                    p = handler_b(p)
+                return p
+        """)
+        code = _compile_flow(project, source)
+
+        _assert_inlined(code, "metrics.track(p)")
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "handler_b")
 
 
 class TestConfigWithExtractionRules:
     """Config rules with where: trees extract values from call sites."""
 
     def test_config_rule_with_keyword_extraction(self, tmp_path: Path) -> None:
-        """asyncio.timeout(delay=30) classified as config, extracted to spec path."""
+        """asyncio.timeout classified as config, keyword arg extracted to spec path."""
         rules = dedent("""\
             - match: "asyncio.timeout"
               where:
@@ -226,18 +328,15 @@ class TestConfigWithExtractionRules:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = asyncio.timeout(p)
                 p = handler(p)
                 return p
         """)
         code = _compile_flow(project, source)
 
-        # Config call → inlined as mutation (treat-as defaults to config when where: is present)
-        assert "asyncio.timeout(p)" in code
-        assert 'resolve("asyncio.timeout")' not in code
-        # Real actor still resolved
-        assert 'resolve("handler")' in code
+        _assert_inlined(code, "asyncio.timeout(p)")
+        _assert_actor(code, "handler")
 
     def test_extraction_rule_loads_from_config(self, tmp_path: Path) -> None:
         """Verify the RuleEngine loads extraction rules and get_rule() returns them."""
@@ -248,18 +347,237 @@ class TestConfigWithExtractionRules:
                   assign-to: spec.resiliency.timeout
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
-        engine = project.load_rules()
-
-        from asya_lab.compiler.rules import RuleEngine, TreatAs
-
-        assert isinstance(engine, RuleEngine)
+        engine = _load_engine(project)
         rule = engine.get_rule("asyncio.timeout")
+        assert rule is not None, "Rule for asyncio.timeout not found"
+        assert rule.treat_as == TreatAs.CONFIG, rule.treat_as
+        assert rule.where is not None, "Expected where: tree"
+        assert len(rule.where) == 1, f"Expected 1 where node, got {len(rule.where)}"
+        assert rule.where[0].param == "delay", rule.where[0].param
+        assert rule.where[0].assign_to == "spec.resiliency.timeout", rule.where[0].assign_to
+
+
+class TestTenacityRules:
+    """Complex tenacity.retry rules: nested where: trees with extraction."""
+
+    def test_tenacity_rule_loads_from_config(self, tmp_path: Path) -> None:
+        """Full tenacity.retry rule is loaded with correct tree structure."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None, "Rule for tenacity.retry not found"
+        assert rule.treat_as == TreatAs.CONFIG, rule.treat_as
+        assert rule.where is not None, "Expected where: tree"
+        assert len(rule.where) == 3, f"Expected 3 top-level params (stop/wait/retry), got {len(rule.where)}"
+
+        # Stop tree
+        stop_node = rule.where[0]
+        assert stop_node.param == "stop", stop_node.param
+        assert stop_node.where is not None
+        assert len(stop_node.where) == 2, f"stop should have 2 children, got {len(stop_node.where)}"
+        assert stop_node.where[0].param == "max_attempt_number"
+        assert stop_node.where[0].assign_to == "spec.resiliency.retry.maxAttempts"
+        assert stop_node.where[1].param == "max_delay"
+        assert stop_node.where[1].assign_to == "spec.resiliency.retry.maxWindow"
+
+        # Wait tree
+        wait_node = rule.where[1]
+        assert wait_node.param == "wait", wait_node.param
+        assert wait_node.where is not None
+        assert len(wait_node.where) == 3, f"wait should have 3 children, got {len(wait_node.where)}"
+        assert wait_node.where[0].assign_to == "spec.resiliency.retry.initialInterval"
+        assert wait_node.where[1].assign_to == "spec.resiliency.retry.maxInterval"
+        assert wait_node.where[2].assign_to == "spec.resiliency.retry.backoffCoefficient"
+
+        # Retry tree
+        retry_node = rule.where[2]
+        assert retry_node.param == "retry", retry_node.param
+        assert retry_node.where is not None
+        assert len(retry_node.where) == 2, f"retry should have 2 match nodes, got {len(retry_node.where)}"
+        assert retry_node.where[0].match == "retry_if_exception_type"
+        assert retry_node.where[1].match == "retry_if_not_exception_type"
+
+    def test_tenacity_classified_as_config_in_flow(self, tmp_path: Path) -> None:
+        """tenacity.retry is inlined (config) in the generated router code."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        source = dedent("""\
+            async def my_flow(p: dict) -> dict:
+                p = tenacity.retry(p)
+                p = handler(p)
+                return p
+        """)
+        code = _compile_flow(project, source)
+
+        _assert_inlined(code, "tenacity.retry(p)")
+        _assert_actor(code, "handler")
+
+    def test_tenacity_exact_match_beats_default_inline(self, tmp_path: Path) -> None:
+        """tenacity.retry (exact, tier 0) wins over '*' (tier 3)."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+
+        # tenacity.retry -> config (exact match, tier 0)
+        assert engine.classify("tenacity.retry") == TreatAs.CONFIG
+        # tenacity.wait -> inline (falls through to default '*', tier 3)
+        assert engine.classify("tenacity.wait") == TreatAs.INLINE
+        # Bare symbol -> unfold (default '.', tier 2)
+        assert engine.classify("handler") == TreatAs.UNFOLD
+
+    def test_extract_stop_after_attempt(self, tmp_path: Path) -> None:
+        """Extract maxAttempts from ``stop=stop_after_attempt(max_attempt_number=5)``.
+
+        Keyword args are required because bare function names (no module prefix)
+        cannot be imported for positional-arg resolution via inspect.signature.
+        """
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
         assert rule is not None
-        assert rule.treat_as == TreatAs.CONFIG
-        assert rule.where is not None
-        assert len(rule.where) == 1
-        assert rule.where[0].param == "delay"
-        assert rule.where[0].assign_to == "spec.resiliency.timeout"
+
+        call = _parse_call("tenacity.retry(stop=stop_after_attempt(max_attempt_number=5))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.maxAttempts") == 5, result
+
+    def test_extract_stop_after_delay(self, tmp_path: Path) -> None:
+        """Extract maxWindow from ``stop=stop_after_delay(max_delay=30)``."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry(stop=stop_after_delay(max_delay=30))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.maxWindow") == 30, result
+
+    def test_extract_wait_exponential_kwargs(self, tmp_path: Path) -> None:
+        """Extract initialInterval + maxInterval from ``wait=wait_exponential(min=1, max=60)``."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry(wait=wait_exponential(min=1, max=60))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.initialInterval") == 1, result
+        assert result.get("spec.resiliency.retry.maxInterval") == 60, result
+
+    def test_extract_wait_exponential_with_multiplier(self, tmp_path: Path) -> None:
+        """Extract backoffCoefficient from ``wait=wait_exponential(multiplier=2)``."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry(wait=wait_exponential(multiplier=2, min=1, max=120))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.backoffCoefficient") == 2, result
+        assert result.get("spec.resiliency.retry.initialInterval") == 1, result
+        assert result.get("spec.resiliency.retry.maxInterval") == 120, result
+
+    def test_extract_retry_if_exception_type(self, tmp_path: Path) -> None:
+        """Extract retryableErrors from ``retry=retry_if_exception_type(ValueError)``."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry(retry=retry_if_exception_type(exception_types=ValueError))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retryableErrors") == "ValueError", result
+
+    def test_extract_retry_if_not_exception_type(self, tmp_path: Path) -> None:
+        """Extract nonRetryableErrors from ``retry=retry_if_not_exception_type(...)``."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry(retry=retry_if_not_exception_type(exception_types=KeyboardInterrupt))")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.nonRetryableErrors") == "KeyboardInterrupt", result
+
+    def test_extract_combined_stop_and_wait(self, tmp_path: Path) -> None:
+        """Multiple top-level params extracted from a single call."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call(
+            "tenacity.retry(stop=stop_after_attempt(max_attempt_number=3), wait=wait_exponential(min=1, max=60))"
+        )
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.maxAttempts") == 3, result
+        assert result.get("spec.resiliency.retry.initialInterval") == 1, result
+        assert result.get("spec.resiliency.retry.maxInterval") == 60, result
+
+    def test_extract_stop_binop_pipe(self, tmp_path: Path) -> None:
+        """BinOp ``stop_after_attempt(...) | stop_after_delay(...)`` extracts both values."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call(
+            "tenacity.retry(stop=stop_after_attempt(max_attempt_number=5) | stop_after_delay(max_delay=30))"
+        )
+        result = ValueExtractor().extract(call, rule)
+
+        assert result.get("spec.resiliency.retry.maxAttempts") == 5, result
+        assert result.get("spec.resiliency.retry.maxWindow") == 30, result
+
+    def test_extract_full_realistic_retry_call(self, tmp_path: Path) -> None:
+        """Full realistic tenacity.retry with stop + wait + retry params.
+
+        Note: match-only nodes don't yet discriminate by function name, so both
+        retry_if_exception_type and retry_if_not_exception_type siblings fire
+        when either is present.  This causes ``nonRetryableErrors`` to also be
+        set (same ``exception_types`` param name).  Tracked in aint [ia37].
+        """
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call(
+            "tenacity.retry("
+            "  stop=stop_after_attempt(max_attempt_number=5) | stop_after_delay(max_delay=120),"
+            "  wait=wait_exponential(multiplier=2, min=1, max=60),"
+            "  retry=retry_if_exception_type(exception_types=ValueError)"
+            ")"
+        )
+        result = ValueExtractor().extract(call, rule)
+
+        assert result == {
+            "spec.resiliency.retry.maxAttempts": 5,
+            "spec.resiliency.retry.maxWindow": 120,
+            "spec.resiliency.retry.backoffCoefficient": 2,
+            "spec.resiliency.retry.initialInterval": 1,
+            "spec.resiliency.retry.maxInterval": 60,
+            "spec.resiliency.retryableErrors": "ValueError",
+            # match-only nodes don't discriminate — both siblings fire (see docstring)
+            "spec.resiliency.nonRetryableErrors": "ValueError",
+        }, result
+
+    def test_no_extraction_when_no_args(self, tmp_path: Path) -> None:
+        """Bare ``tenacity.retry()`` with no args extracts nothing."""
+        project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
+        engine = _load_engine(project)
+        rule = engine.get_rule("tenacity.retry")
+        assert rule is not None
+
+        call = _parse_call("tenacity.retry()")
+        result = ValueExtractor().extract(call, rule)
+
+        assert result == {}, result
 
 
 class TestFullPipelineWithRichRules:
@@ -277,7 +595,7 @@ class TestFullPipelineWithRichRules:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = tenacity.retry(p)
                 p = logging.setup(p)
                 p = myapp.process(p)
@@ -287,45 +605,32 @@ class TestFullPipelineWithRichRules:
         """)
         code = _compile_flow(project, source)
 
-        # tenacity.retry → config → mutation (not actor)
-        assert "tenacity.retry(p)" in code
-        assert 'resolve("tenacity.retry")' not in code
-
-        # logging.setup → inline (prefix 'logging.*') → mutation
-        assert "logging.setup(p)" in code
-        assert 'resolve("logging.setup")' not in code
-
-        # myapp.process → actor (prefix 'myapp.*') → resolved
-        assert 'resolve("myapp.process")' in code
-
-        # external.util → inline (default '*') → mutation
-        assert "external.util(p)" in code
-        assert 'resolve("external.util")' not in code
-
-        # local_handler → unfold (default '.') → still actor call
-        assert 'resolve("local_handler")' in code
+        _assert_inlined(code, "tenacity.retry(p)")
+        _assert_inlined(code, "logging.setup(p)")
+        _assert_actor(code, "myapp.process")
+        _assert_inlined(code, "external.util(p)")
+        _assert_actor(code, "local_handler")
 
     def test_inline_mutations_in_start_router(self, tmp_path: Path) -> None:
         """Inline calls at the start of a flow are merged into the start router."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = logging.init(p)
                 p = handler_a(p)
                 return p
         """)
         code = _compile_flow(project, source)
 
-        # The start router should contain the inline mutation
-        assert "logging.init(p)" in code
-        assert "start_my_flow" in code
-        assert 'resolve("handler_a")' in code
+        _assert_inlined(code, "logging.init(p)")
+        assert "start_my_flow" in code, code
+        _assert_actor(code, "handler_a")
 
     def test_no_rules_file_uses_defaults(self, tmp_path: Path) -> None:
         """Without config.compiler.rules.yaml, default rules still apply."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)
                 p = handler_b(p)
@@ -333,35 +638,31 @@ class TestFullPipelineWithRichRules:
         """)
         code = _compile_flow(project, source)
 
-        # Bare names → unfold → actor
-        assert 'resolve("handler_a")' in code
-        assert 'resolve("handler_b")' in code
-        # Dotted name → inline (default '*')
-        assert "external.lib(p)" in code
-        assert 'resolve("external.lib")' not in code
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "handler_b")
+        _assert_inlined(code, "external.lib(p)")
 
-    def test_all_inline_single_actor_flow(self, tmp_path: Path) -> None:
-        """A flow with one actor + inline calls still generates a valid single-actor flow."""
+    def test_single_actor_flow(self, tmp_path: Path) -> None:
+        """A flow with one actor generates a valid single-actor FLOW_METADATA."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
         """)
         code = _compile_flow(project, source)
 
-        # Single-actor flow detection should still work
-        assert "FLOW_METADATA" in code
-        assert "'handler'" in code
+        assert "FLOW_METADATA" in code, code
+        assert "'handler'" in code, code
 
 
 class TestBackwardsCompatibility:
     """Compiler without rule_engine preserves pre-rules behavior."""
 
-    def test_no_engine_all_calls_are_actors(self, tmp_path: Path) -> None:
-        """Without rules, every call — bare or dotted — is an actor."""
+    def test_no_engine_all_calls_are_actors(self) -> None:
+        """Without rules, every call -- bare or dotted -- is an actor."""
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)
                 p = handler_b(p)
@@ -370,14 +671,14 @@ class TestBackwardsCompatibility:
         compiler = FlowCompiler()
         code = compiler.compile(source, "test.py")
 
-        assert 'resolve("handler_a")' in code
-        assert 'resolve("external.lib")' in code
-        assert 'resolve("handler_b")' in code
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "external.lib")
+        _assert_actor(code, "handler_b")
 
-    def test_no_engine_with_mutations(self, tmp_path: Path) -> None:
+    def test_no_engine_with_mutations(self) -> None:
         """Payload mutations still work without rules."""
         source = dedent("""\
-            def my_flow(p: dict) -> dict:
+            async def my_flow(p: dict) -> dict:
                 p["status"] = "started"
                 p = handler(p)
                 return p
@@ -385,5 +686,5 @@ class TestBackwardsCompatibility:
         compiler = FlowCompiler()
         code = compiler.compile(source, "test.py")
 
-        assert "started" in code
-        assert 'resolve("handler")' in code
+        assert "started" in code, code
+        _assert_actor(code, "handler")
