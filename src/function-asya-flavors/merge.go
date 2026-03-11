@@ -7,6 +7,9 @@ import "fmt"
 //   - []interface{} (lists): concatenated across all flavors
 //   - map[string]interface{} (maps/structs): keys merged; same key in two flavors is a conflict error
 //   - all other types (scalars): only one flavor may define the field; conflict returns error
+//
+// Type mismatches (e.g., one flavor defines a field as a list, another as a scalar)
+// are treated as errors.
 func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (map[string]interface{}, error) {
 	merged := make(map[string]interface{})
 	seen := make(map[string]string) // field -> flavor name that first defined it
@@ -24,18 +27,22 @@ func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (ma
 
 			switch ev := existing.(type) {
 			case []interface{}:
-				if sv, ok := v.([]interface{}); ok {
-					merged[k] = append(ev, sv...)
+				sv, ok := v.([]interface{})
+				if !ok {
+					return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a list, new is %T", seen[k], name, k, v)
 				}
+				merged[k] = append(ev, sv...)
 
 			case map[string]interface{}:
-				if sv, ok := v.(map[string]interface{}); ok {
-					for mk, mv := range sv {
-						if _, dup := ev[mk]; dup {
-							return nil, fmt.Errorf("flavors %q and %q conflict on %s.%s", seen[k], name, k, mk)
-						}
-						ev[mk] = mv
+				sv, ok := v.(map[string]interface{})
+				if !ok {
+					return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a map, new is %T", seen[k], name, k, v)
+				}
+				for mk, mv := range sv {
+					if _, dup := ev[mk]; dup {
+						return nil, fmt.Errorf("flavors %q and %q conflict on %s.%s", seen[k], name, k, mk)
 					}
+					ev[mk] = mv
 				}
 
 			default:

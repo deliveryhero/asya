@@ -259,6 +259,36 @@ func TestMergeFlavors_SidecarMapMergeDistinctKeys(t *testing.T) {
 	}
 }
 
+func TestMergeFlavors_TypeMismatchListVsScalarErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"tolerations": []interface{}{map[string]interface{}{"key": "gpu"}}},
+		{"tolerations": "not-a-list"},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for type mismatch (list vs scalar), got nil")
+	}
+	if !strings.Contains(err.Error(), "conflicting types") {
+		t.Errorf("error should mention conflicting types, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_TypeMismatchMapVsScalarErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"scaling": map[string]interface{}{"minReplicas": float64(1)}},
+		{"scaling": "not-a-map"},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for type mismatch (map vs scalar), got nil")
+	}
+	if !strings.Contains(err.Error(), "conflicting types") {
+		t.Errorf("error should mention conflicting types, got: %s", err)
+	}
+}
+
 func TestApplyActorInline_WinsOverFlavor(t *testing.T) {
 	base := map[string]interface{}{
 		"scaling": map[string]interface{}{"minReplicas": float64(1)},
