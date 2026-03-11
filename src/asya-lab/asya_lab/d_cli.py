@@ -203,9 +203,15 @@ def _find_handler_dir(source_path: Path | None) -> str | None:
 
     asya_dir = find_asya_dir(Path.cwd())
     if asya_dir is not None:
+        # .asya/handlers/
         handlers = asya_dir / "handlers"
         if handlers.is_dir():
             return str(handlers.resolve())
+
+        # handlers/ in project root
+        project_handlers = asya_dir.parent / "handlers"
+        if project_handlers.is_dir():
+            return str(project_handlers.resolve())
 
     return None
 
