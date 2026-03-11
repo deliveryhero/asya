@@ -15,7 +15,7 @@ Docker Compose commands for local testing, plus compose file generation.
 1. Auto-compile if given `.py` file
 2. Generate `docker-compose.yaml` from compiled manifests
 3. Each actor gets: sidecar container + runtime container (same architecture as K8s)
-4. Socket transport (`ASYA_TRANSPORT=socket`) for inter-actor communication
+4. Socket transport (`ASYA_TRANSPORT=socket`) for inter-actor communication - implemented in PR 299
 5. Shared Docker volume at `/var/run/asya/mesh/` for Unix sockets
 6. `docker compose up -d`
 
