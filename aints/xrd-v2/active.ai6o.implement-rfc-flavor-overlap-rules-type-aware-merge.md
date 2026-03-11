@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
   - branch:xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
+  - pr:306
 dependencies:
   - lfcf
 ---
+
 
 
 ## Summary
