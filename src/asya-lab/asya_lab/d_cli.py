@@ -246,6 +246,29 @@ def _find_routers_dir(flow_name: str) -> str | None:
     return None
 
 
+def _warn_docker_mount(*paths: str | None) -> None:
+    """Warn if bind-mount paths are outside the user's home directory.
+
+    Colima and some Docker Desktop configs only share $HOME with the VM.
+    Paths under /var/folders, /tmp, etc. won't be visible inside containers.
+    """
+    home = Path.home()
+    for p in paths:
+        if p is None:
+            continue
+        resolved = Path(p).resolve()
+        try:
+            resolved.relative_to(home)
+        except ValueError:
+            click.echo(
+                f"[!] Warning: {resolved} is outside $HOME ({home}).\n"
+                f"[!] Docker (Colima/Docker Desktop) may not be able to mount it.\n"
+                f"[!] If containers fail to import modules, move your project under $HOME.",
+                err=True,
+            )
+            return
+
+
 def _compose_file_path(flow_name: str) -> Path:
     """Return the path where the compose file should be written."""
     asya_dir = find_asya_dir(Path.cwd())
@@ -343,6 +366,8 @@ def up(target: str, build: bool, detach: bool) -> None:
     routers_dir = _find_routers_dir(flow_name)
     if routers_dir:
         click.echo(f"[.] Mounting routers: {routers_dir}", err=True)
+
+    _warn_docker_mount(handler_dir, routers_dir, runtime_py)
 
     compose = generate_compose(
         actors, flow_name, runtime_py=runtime_py, handler_dir=handler_dir, routers_dir=routers_dir
@@ -456,6 +481,41 @@ s.close()
 """
 
 
+def _resolve_entry_actor(compose_path: Path, flow_name: str) -> str | None:
+    """Find the entry point actor name from a compose file.
+
+    For multi-actor flows, the entry point is start-<flow>.
+    For single-actor flows, it's the only non-system sidecar.
+    """
+    import yaml as _yaml
+
+    try:
+        compose = _yaml.safe_load(compose_path.read_text())
+    except Exception:
+        return None
+
+    services = compose.get("services", {})
+    actor_names: list[str] = []
+    for svc_name, svc in services.items():
+        if not svc_name.endswith("-sidecar"):
+            continue
+        env = svc.get("environment", {})
+        name = env.get("ASYA_ACTOR_NAME", "")
+        if name and not name.startswith("x-"):
+            actor_names.append(name)
+
+    # Multi-actor: entry is start-<flow>
+    start_name = f"start-{flow_name}"
+    if start_name in actor_names:
+        return start_name
+
+    # Single-actor: only one non-system actor
+    if len(actor_names) == 1:
+        return actor_names[0]
+
+    return None
+
+
 @d.command()
 @click.argument("actor")
 @click.argument("payload")
@@ -466,10 +526,12 @@ def send(actor: str, payload: str, flow: str | None) -> None:
     Executes inside the asya-cli container which has access to the
     mesh socket volume. Auto-detects flow if only one is running.
 
+    ACTOR can be an actor name or the flow name (resolves to entry point).
+
     \b
     Examples:
-        asya d send echo '{"msg": "hello"}'
-        asya d send --flow my-flow echo '{"msg": "hello"}'
+        asya d send echo-handler-process '{"msg": "hello"}'
+        asya d send my-flow '{"msg": "hello"}'
     """
     actor_name = actor.replace("_", "-")
 
@@ -492,6 +554,15 @@ def send(actor: str, payload: str, flow: str | None) -> None:
     }
 
     flow_name, compose_path = _find_compose_file(flow)
+
+    # If actor name matches flow name, resolve to entry point actor
+    if actor_name == flow_name:
+        entry = _resolve_entry_actor(compose_path, flow_name)
+        if entry:
+            actor_name = entry
+            envelope["route"]["curr"] = actor_name
+            click.echo(f"[.] Resolved flow '{flow_name}' to entry actor '{actor_name}'", err=True)
+
     envelope_json = json.dumps(envelope)
 
     cmd = [

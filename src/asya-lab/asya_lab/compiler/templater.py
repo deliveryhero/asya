@@ -117,6 +117,7 @@ class ManifestTemplater:
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
         import_map: dict[str, str] | None = None,
+        single_actor_name: str | None = None,
     ) -> None:
         self.flow_name = flow_name
         self.flow_function = flow_function
@@ -128,6 +129,7 @@ class ManifestTemplater:
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
         self.import_map: dict[str, str] = import_map or {}
+        self.single_actor_name = single_actor_name
 
     def stamp(self, output_dir: Path) -> list[str]:
         """Generate kustomize-structured manifests.
@@ -360,7 +362,23 @@ Each overlay builds on top of `common/`.
     # -- actor collection ---------------------------------------------------
 
     def _collect_actors(self) -> list[ActorInfo]:
-        """Collect all actors from the compiled flow."""
+        """Collect all actors from the compiled flow.
+
+        For single-actor flows (no router functions generated), only the
+        handler actor is emitted — router actors are skipped.
+        """
+        if self.single_actor_name is not None:
+            image = self.project.resolve_image(self.single_actor_name)
+            k8s_name = self._to_k8s_name(self.single_actor_name)
+            return [
+                ActorInfo(
+                    name=k8s_name,
+                    handler=self.single_actor_name,
+                    image=image,
+                    flow_role="entrypoint",
+                )
+            ]
+
         context = self.project.build_template_context()
         router_image = context.get("router_image", "python:3.13-slim")
         handler_actors: dict[str, ActorInfo] = {}
