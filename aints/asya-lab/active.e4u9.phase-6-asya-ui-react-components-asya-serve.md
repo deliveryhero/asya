@@ -1,10 +1,15 @@
 ---
 title: "Phase 6: @asya/ui React components + asya serve + Jupyter widget"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/asya-lab/e4u9.phase-6-asya-ui-react-components-asya-serve
+  - branch:asya-lab/e4u9.phase-6-asya-ui-react-components-asya-serve
 dependencies:
   - 5ifn
   - 4g10
 ---
+
 
 Design doc: `rfc-ui-components.md` (same epic).
 

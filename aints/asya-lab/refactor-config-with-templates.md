@@ -33,7 +33,7 @@ The current `.asya/` config system has three intertwined design issues:
 |---|---|---|---|
 | **Config** | `config.yaml`, `config.<section>.yaml` | OmegaConf: `${templates.*}`, `${env:*}`, `${arg:*}` | Yes, always fully resolved |
 | **Templates** | `.asya/compiler/templates/*.yaml` | `{{ key }}` (regex substitution) | No |
-| **Rules** | `config.compiler.rules.yaml` | Static YAML (no interpolation) | Yes, under `compiler.rules` |
+| **Rules** | `config.compiler.yaml` | Static YAML (no interpolation) | Yes, under `compiler.rules` |
 
 ### Config is always fully resolved
 
@@ -151,7 +151,7 @@ resolution:
 
 1. `config.yaml` — root config (unchanged)
 2. `config.<section>.yaml` — filename-to-key with dotted section support
-   (e.g., `config.compiler.rules.yaml` loads under `compiler.rules`)
+   (e.g., `config.compiler.yaml` loads existing key `rules` under config's `compiler`)
 3. Subdirectories (`compiler/templates/`, `manifests/`, `compose/`) are NOT
    loaded into config
 
@@ -159,7 +159,7 @@ The `_load_directory_recursive()` function is removed.
 
 ### Rules location
 
-Rules move from `.asya/compiler/rules.yaml` to `.asya/config.compiler.rules.yaml`
+Rules move from `.asya/compiler/rules.yaml` to `.asya/config.compiler.yaml`
 (filename-to-key convention). Content unchanged — static YAML list.
 
 ### `${dynamic:*}` resolver removed
@@ -259,7 +259,7 @@ No `resources` — stamper adds it programmatically.
 | `config/config.py` | Remove `_load_directory_recursive`, directory-to-key. Add dotted section support in filename-to-key. Remove `${dynamic:*}` resolver. Remove `with_values()`, `_activate()`, `_raise_if_unresolved()`, `unresolved()`, `ConfigNotFinalizedError`. Simplify `resolve_path()`. Remove `dynamic_values` from `ConfigLoader`. |
 | `config/__init__.py` | Remove `ConfigNotFinalizedError` export. |
 | `compiler/stamper.py` | Template resolution via `{{ key }}` regex. Build flat context from config `templates.*` + compiler output + args. Remove `_set_dynamic_values()`, `_base_dynamic_values`, wrapper hack, dummy values. Split router/actor templates. Add `TemplateContext` dataclass. |
-| `init.py` | Update default config (`var:` to `templates:`, drop `project_root`, move `image_registry`/`router_image`). Update template strings to `{{ key }}` syntax. Move rules to `config.compiler.rules.yaml`. Add `router.yaml` template. |
+| `init.py` | Update default config (`var:` to `templates:`, drop `project_root`, move `image_registry`/`router_image`). Update template strings to `{{ key }}` syntax. Move rules to `config.compiler.yaml`. Add `router.yaml` template. |
 | `compile_cli.py` | `config.resolve_path(...) / flow_name` instead of `config.with_values(ctx).resolve_path(...)`. |
 | `flow_cli.py` | Same path simplification. `ConfigLoader` no longer takes `dynamic_values`. |
 | `build_cli.py` | Same path simplification. |
