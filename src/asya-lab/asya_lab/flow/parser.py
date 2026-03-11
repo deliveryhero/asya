@@ -4,8 +4,13 @@ from __future__ import annotations
 
 import ast
 import re
+from typing import TYPE_CHECKING
 
 from asya_lab.flow.errors import FlowCompileError
+
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
 from asya_lab.flow.ir import (
     ActorCall,
     Break,
@@ -58,7 +63,7 @@ class FlowParser:
         filename: str,
         module_path: str = "",
         *,
-        rule_engine: object | None = None,
+        rule_engine: RuleEngine | None = None,
     ):
         self.source_code = source_code
         self.filename = filename
@@ -304,13 +309,11 @@ class FlowParser:
         extracted: dict[str, object] = {}
         if treat_as == "config" and self._rule_engine is not None:
             from asya_lab.compiler.extractor import ValueExtractor
-            from asya_lab.compiler.rules import RuleEngine
 
-            if isinstance(self._rule_engine, RuleEngine):
-                rule = self._rule_engine.get_rule(actor_name, module_path=self.module_path)
-                if rule and rule.where:
-                    extracted = ValueExtractor(imports=self._imports).extract(call, rule)
-            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+            rule = self._rule_engine.get_rule(actor_name, module_path=self.module_path)
+            if rule and rule.where:
+                extracted = ValueExtractor(imports=self._imports).extract(call, rule)
+            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt), extracted_values=extracted)
 
         return ActorCall(
             lineno=stmt.lineno,
@@ -333,12 +336,9 @@ class FlowParser:
 
         # Consult rule engine
         if self._rule_engine is not None:
-            from asya_lab.compiler.rules import RuleEngine
-
-            if isinstance(self._rule_engine, RuleEngine):
-                result = self._rule_engine.classify(symbol, module_path=self.module_path)
-                if result is not None:
-                    return result.value
+            result = self._rule_engine.classify(symbol, module_path=self.module_path)
+            if result is not None:
+                return result.value
 
         return None
 

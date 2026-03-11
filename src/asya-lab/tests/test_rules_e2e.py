@@ -45,9 +45,7 @@ def _scaffold_project(
 
 def _load_engine(project: AsyaProject) -> RuleEngine:
     """Load rules from *project* and return a typed RuleEngine."""
-    engine = project.load_rules()
-    assert isinstance(engine, RuleEngine)
-    return engine
+    return project.load_rules()
 
 
 def _compile_flow(project: AsyaProject, source: str) -> str:

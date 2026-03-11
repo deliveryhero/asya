@@ -22,6 +22,7 @@ class InlineCode(IROperation):
     """Code to run inline in the router (not a separate actor)."""
 
     code: str
+    extracted_values: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass

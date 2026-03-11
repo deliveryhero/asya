@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -117,7 +121,7 @@ class AsyaProject:
 
     # -- rules --------------------------------------------------------------
 
-    def load_rules(self) -> object:
+    def load_rules(self) -> RuleEngine:
         """Load compiler rules from config.compiler.rules.
 
         Returns a RuleEngine instance with defaults + user rules.
