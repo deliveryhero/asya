@@ -12,9 +12,10 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
 
 from asya_lab.cli_types import ASYA_REF, AsyaRef
-from asya_lab.config.project import AsyaProject
+from asya_lab.config.project import AsyaProject, ImageNotConfiguredError
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -131,6 +132,45 @@ def _recompile_kebab_target(
             click.echo(f"[.]   {f.relative_to(manifests_dir)}")
 
 
+def _handle_missing_image(err: ImageNotConfiguredError) -> None:
+    """Handle ImageNotConfiguredError: prompt for image or show instructions."""
+    from asya_lab.config.discovery import find_asya_dir
+
+    click.echo(f"[-] No Docker image configured for handler '{err.handler_name}'", err=True)
+
+    try:
+        image = click.prompt(f"Base image for '{err.k8s_name}'", type=str).strip()
+    except (click.Abort, EOFError):
+        click.echo("", err=True)
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    if not image:
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    # Write build entry to nearest .asya/config.yaml
+    asya_dir = find_asya_dir(Path.cwd())
+    if asya_dir is None:
+        click.echo("[-] No .asya/ directory found; add manually:", err=True)
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    config_path = asya_dir / "config.yaml"
+    cfg: dict = {}
+    if config_path.exists():
+        cfg = yaml.safe_load(config_path.read_text()) or {}
+
+    build_list: list[dict] = cfg.get("build", [])
+    build_list.append({"module": err.handler_name, "image": image})
+    cfg["build"] = build_list
+    config_path.write_text(yaml.dump(cfg, default_flow_style=False, sort_keys=False))
+
+    click.echo(f"[+] Added build entry: {err.handler_name} -> {image}")
+    click.echo("[+] Re-run the compile command to continue.")
+    sys.exit(1)
+
+
 @click.command("compile")
 @click.argument("target", type=ASYA_REF)
 @click.option("--flow", "flow_name", default=None, help="Override flow name (kebab-case)")
@@ -161,6 +201,8 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
             _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
+    except ImageNotConfiguredError as e:
+        _handle_missing_image(e)
     except FlowCompileError as e:
         click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
         click.echo(str(e), err=True)

@@ -22,6 +22,22 @@ from asya_lab.config.store import ConfigStore
 log = logging.getLogger(__name__)
 
 
+class ImageNotConfiguredError(Exception):
+    """Raised when no Docker image is configured for a handler actor."""
+
+    def __init__(self, handler_name: str, k8s_name: str) -> None:
+        self.handler_name = handler_name
+        self.k8s_name = k8s_name
+        super().__init__(
+            f"No Docker image configured for handler '{handler_name}'.\n"
+            f"Add a build entry to .asya/config.yaml:\n"
+            f"\n"
+            f"  build:\n"
+            f"    - module: {handler_name}\n"
+            f"      image: <your-image>:<tag>\n"
+        )
+
+
 class AsyaProject:
     """Asya project context: config + path resolution + template access.
 
@@ -94,11 +110,8 @@ class AsyaProject:
     def resolve_image(self, handler_name: str) -> str:
         """Resolve a handler name to a container image reference.
 
-        Resolution order:
-        1. Specific build entry whose module prefix matches handler_name.
-        2. Wildcard build entry (module: "*") — '*' in the image field
-           is replaced with the handler's K8s name (hyphens).
-        3. KeyError if nothing matches.
+        Checks build entries for a module prefix match.
+        Raises ImageNotConfiguredError if no matching entry is found.
         """
         cfg = self._store.cfg
         wildcard_entry = None
@@ -112,14 +125,10 @@ class AsyaProject:
                 if module and handler_name.startswith(module.replace(".", "_")):
                     return str(entry["image"])
 
-        if wildcard_entry is not None:
-            k8s_name = handler_name.replace("_", "-")
-            return str(wildcard_entry["image"]).replace("*", k8s_name)
-
-        raise KeyError(
-            f"Cannot resolve image for handler '{handler_name}': "
-            f"no matching build entry found. "
-            f"Add a build entry or a wildcard (module: '*') to .asya/config.yaml"
+        k8s_name = handler_name.replace("_", "-")
+        raise ImageNotConfiguredError(
+            handler_name=handler_name,
+            k8s_name=k8s_name,
         )
 
     # -- rules --------------------------------------------------------------
