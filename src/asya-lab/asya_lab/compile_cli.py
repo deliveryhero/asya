@@ -167,8 +167,6 @@ def _handle_missing_image(err: ImageNotConfiguredError) -> None:
     config_path.write_text(yaml.dump(cfg, default_flow_style=False, sort_keys=False))
 
     click.echo(f"[+] Added build entry: {err.handler_name} -> {image}")
-    click.echo("[+] Re-run the compile command to continue.")
-    sys.exit(1)
 
 
 @click.command("compile")
@@ -196,17 +194,19 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
       flow.py:my_flow      Compile specific flow function from file
       my-flow              Recompile from existing .asya/ manifests
     """
-    try:
-        if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
-        else:
-            _recompile_kebab_target(target.name, output_dir, verbose)
-    except ImageNotConfiguredError as e:
-        _handle_missing_image(e)
-    except FlowCompileError as e:
-        click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
-        click.echo(str(e), err=True)
-        sys.exit(1)
-    except (FileNotFoundError, ValueError) as e:
-        click.echo(f"[-] {e}", err=True)
-        sys.exit(1)
+    while True:
+        try:
+            if target.source is not None:
+                _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
+            else:
+                _recompile_kebab_target(target.name, output_dir, verbose)
+            break
+        except ImageNotConfiguredError as e:
+            _handle_missing_image(e)
+        except FlowCompileError as e:
+            click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
+            click.echo(str(e), err=True)
+            sys.exit(1)
+        except (FileNotFoundError, ValueError) as e:
+            click.echo(f"[-] {e}", err=True)
+            sys.exit(1)
