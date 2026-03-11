@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 from asya_lab.config.store import ConfigStore
 
@@ -114,6 +114,23 @@ class AsyaProject:
             f"no matching build entry and no compiler.image_registry configured. "
             f"Add a build entry or set compiler.image_registry in .asya/config.yaml"
         )
+
+    # -- rules --------------------------------------------------------------
+
+    def load_rules(self) -> object:
+        """Load compiler rules from config.compiler.rules.
+
+        Returns a RuleEngine instance with defaults + user rules.
+        """
+        from asya_lab.compiler.rules import RuleEngine
+
+        cfg = self._store.cfg
+        rules_cfg = None
+        if "compiler" in cfg and "rules" in cfg["compiler"]:
+            raw = OmegaConf.to_container(cfg["compiler"]["rules"], resolve=True)
+            if isinstance(raw, list):
+                rules_cfg = raw
+        return RuleEngine.from_config(rules_cfg)
 
     # -- contexts -----------------------------------------------------------
 

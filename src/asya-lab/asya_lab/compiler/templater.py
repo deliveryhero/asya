@@ -56,6 +56,7 @@ class ActorInfo:
     flow_role: str
     env: list[dict[str, str]] = field(default_factory=list)
     is_router: bool = False
+    spec_overrides: dict[str, object] = field(default_factory=dict)
 
 
 @dataclasses.dataclass(frozen=True)
@@ -183,7 +184,17 @@ class ManifestTemplater:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
         manifest["spec"]["env"] = actor.env
+        for spec_path, value in actor.spec_overrides.items():
+            self._set_nested(manifest, spec_path, value)
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
+
+    @staticmethod
+    def _set_nested(d: dict, dotted_path: str, value: object) -> None:
+        """Set a value at a dotted path in a nested dict, creating intermediates."""
+        parts = dotted_path.split(".")
+        for part in parts[:-1]:
+            d = d.setdefault(part, {})
+        d[parts[-1]] = value
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve {{ key }} placeholders."""
