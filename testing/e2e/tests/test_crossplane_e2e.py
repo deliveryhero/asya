@@ -1891,11 +1891,17 @@ def test_asyncactor_flavors_resolved(e2e_helper):
     1. Actor without spec.flavors is created
     2. Actor still reconciles correctly without flavor EnvironmentConfig
 
-    Expected: All three scenarios work correctly
+    Scenario 4 - List append (tolerations from two flavors):
+    1. Create actor with spec.flavors: [asya-test-actor, asya-test-toleration-gpu, asya-test-toleration-spot]
+    2. Both toleration flavors contribute to the same list field
+    3. Deployment tolerations contain entries from both flavors (appended, not replaced)
+
+    Expected: All four scenarios work correctly
     """
     actor_single = f"test-flavor-single-{e2e_helper.namespace[-4:]}"
     actor_multi = f"test-flavor-multi-{e2e_helper.namespace[-4:]}"
     actor_no_flavor = f"test-flavor-none-{e2e_helper.namespace[-4:]}"
+    actor_list_append = f"test-flavor-append-{e2e_helper.namespace[-4:]}"
 
     try:
         # --- Scenario 1: single flavor ---
@@ -1966,10 +1972,37 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] No-flavor actor: backward compat confirmed")
 
+        # --- Scenario 4: list append (tolerations from two flavors) ---
+        logger.info("Creating actor with two toleration flavors (list append)...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_list_append,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=180), (
+            "List-append actor should reach Ready=True"
+        )
+
+        deployment = kubectl_get("deployment", actor_list_append, namespace=e2e_helper.namespace)
+        pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
+        tolerations = pod_spec.get("tolerations", [])
+        toleration_keys = [t.get("key") for t in tolerations]
+        assert "nvidia.com/gpu" in toleration_keys, (
+            f"Tolerations should include GPU toleration from first flavor, got: {toleration_keys}"
+        )
+        assert "cloud.google.com/gke-spot" in toleration_keys, (
+            f"Tolerations should include spot toleration from second flavor, got: {toleration_keys}"
+        )
+        logger.info("[+] List append: tolerations from two flavors correctly appended")
+
     except Exception:
-        for actor in [actor_single, actor_multi, actor_no_flavor]:
+        for actor in [actor_single, actor_multi, actor_no_flavor, actor_list_append]:
             log_asyncactor_workload_diagnostics(actor, namespace=e2e_helper.namespace)
         raise
     finally:
-        for actor in [actor_single, actor_multi, actor_no_flavor]:
+        for actor in [actor_single, actor_multi, actor_no_flavor, actor_list_append]:
             _cleanup_actor(actor, e2e_helper.namespace)
