@@ -18,6 +18,7 @@ templates:
 compiler:
   routers: "./compiled"
   manifests: ".asya/manifests"
+  flows: ".asya/flows"
   image_registry: "{image_registry}"
 """
 

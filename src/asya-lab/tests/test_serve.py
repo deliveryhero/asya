@@ -4,15 +4,21 @@ import json
 import subprocess  # nosec B404
 
 import pytest
-from asya_lab.config.project import AsyaProject
-from asya_lab.serve.app import create_app
+
+
+fastapi = pytest.importorskip("fastapi", reason="fastapi not installed (install with asya-lab[ui])")
+
+from asya_lab.config.project import AsyaProject  # noqa: E402
+from asya_lab.serve.app import create_app  # noqa: E402
 
 
 @pytest.fixture
 def project_with_flow(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
-    (asya_dir / "config.yaml").write_text("readonly: false\n")
+    (asya_dir / "config.yaml").write_text(
+        "readonly: false\ncompiler:\n  flows: .asya/flows\n  manifests: .asya/manifests\n"
+    )
     flows_dir = asya_dir / "flows" / "test_flow"
     flows_dir.mkdir(parents=True)
     graph = {
@@ -75,11 +81,15 @@ def test_compile_readonly_returns_403(tmp_path):
     assert resp.status_code == 403
 
 
-def test_deferred_endpoints_return_501(client):
-    """Deferred endpoints return 501 Not Implemented."""
-    resp = client.post("/api/gateway/call")
-    assert resp.status_code == 501
-    resp = client.get("/api/gateway/stream/task-123")
-    assert resp.status_code == 501
+def test_gateway_no_config_returns_404(client):
+    """Gateway endpoints return 404 when no gateway is configured."""
+    resp = client.get("/api/gateway")
+    assert resp.status_code == 404
+    resp = client.post("/api/gateway/call", json={"tool": "test"})
+    assert resp.status_code == 404
+
+
+def test_actor_logs_returns_501(client):
+    """Actor logs endpoint returns 501 (needs kubernetes client)."""
     resp = client.get("/api/actors/test-actor/logs")
     assert resp.status_code == 501

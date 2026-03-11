@@ -158,11 +158,31 @@ def compile_cmd(
         # Emit graph.json for interactive visualization
         import json as _json
 
+        from asya_lab.config.discovery import find_asya_dir
+        from asya_lab.config.project import AsyaProject
+
         graph_data = compiler.generate_graph()
+        # Write to output_dir alongside routers.py
         graph_path = Path(output_dir) / "graph.json"
         graph_path.write_text(_json.dumps(graph_data, indent=2))
         if verbose:
             click.echo(f"[+] Graph JSON: {graph_path}")
+
+        # Also write to configured flows dir (for asya serve) when .asya/ exists
+        source_path = Path(flow_file).resolve()
+        asya_dir = find_asya_dir(source_path.parent)
+        if asya_dir is not None and compiler.flow_name:
+            try:
+                project = AsyaProject.from_dir(source_path.parent)
+                flows_dir = project.resolve_path("compiler.flows")
+            except KeyError:
+                flows_dir = asya_dir / "flows"
+            flow_graph_dir = flows_dir / compiler.flow_name.replace("_", "-")
+            flow_graph_dir.mkdir(parents=True, exist_ok=True)
+            flow_graph_path = flow_graph_dir / "graph.json"
+            flow_graph_path.write_text(_json.dumps(graph_data, indent=2))
+            if verbose:
+                click.echo(f"[+] Graph JSON (serve): {flow_graph_path}")
 
         if not no_manifests:
             try:
