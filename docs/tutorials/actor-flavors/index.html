@@ -50,7 +50,7 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/internal/actor-flavors/">
+<link rel="canonical" href="https://asya.sh/docs/tutorials/actor-flavors/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
@@ -61,7 +61,7 @@
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/internal/actor-flavors/">
+<meta property="og:url" content="https://asya.sh/docs/tutorials/actor-flavors/">
 
 
 
@@ -779,7 +779,7 @@
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/internal/actor-flavors.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/tutorials/actor-flavors.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -798,35 +798,53 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Flavors are reusable configuration bundles backed by Crossplane
-<code>EnvironmentConfig</code> resources. They let platform teams define common actor
-presets (GPU resources, secrets, persistence, scaling profiles) that data
-science teams reference by name.</p>
-<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>AsyncActor (XR)             EnvironmentConfig
-spec:                       metadata:
-  flavors:                    labels:
-    - gpu-t4       --------&gt;    asya.sh/flavor: gpu-t4
-    - persistence  --------&gt;    asya.sh/flavor: persistence
-  image: ...                data:
-  handler: ...                scaling: { minReplicaCount: 1 }
-  resources: ...              resources: { limits: { nvidia.com/gpu: &quot;1&quot; } }
-</code></pre></div>
+    <p>Flavors are named, reusable building blocks that platform engineers pre-create
+and data scientists (or any actor author) reference by name. A flavor bundles
+infrastructure configuration — compute resources, scaling policy,
+tolerations — into a single label-addressed unit that gets merged into
+an actor's spec at deploy time.</p>
+<p>The intent is a clean division of responsibility:</p>
+<ul>
+<li><strong>Platform engineers</strong> define what "GPU workload", "high-throughput scaler", or
+  "S3-persisted actor" means once, in a controlled place.</li>
+<li><strong>Actor authors</strong> say <code>flavors: [gpu-standard]</code> and get the right infrastructure
+  without touching Helm charts or cloud-provider details.</li>
+</ul>
+<hr />
+<h2 id="the-problem-flavors-solve">The problem flavors solve<a class="headerlink" href="#the-problem-flavors-solve" title="Permanent link">&para;</a></h2>
+<p>Without flavors, every actor needs to repeat the same boilerplate: resource
+requests and limits, scaling thresholds, GPU tolerations and node selectors.
+When platform requirements change — say, the GPU node pool gets a new taint —
+every actor manifest needs updating.</p>
+<p>Flavors centralise that boilerplate. The platform team updates one
+<code>EnvironmentConfig</code>; all actors referencing it pick up the change on the next
+reconciliation cycle.</p>
+<hr />
+<h2 id="how-flavors-work">How flavors work<a class="headerlink" href="#how-flavors-work" title="Permanent link">&para;</a></h2>
+<p>A flavor is a Kubernetes <code>EnvironmentConfig</code> (a Crossplane cluster-scoped
+resource) with the label <code>asya.sh/flavor: &lt;name&gt;</code>. Its <code>data</code> field contains a
+partial <code>AsyncActor</code> spec — only the fields the flavor wants to provide.</p>
+<p>When Crossplane reconciles an <code>AsyncActor</code> that lists flavors, the
+<code>function-asya-flavors</code> composition function runs a two-phase resolution:</p>
+<p><strong>Phase 1 — request:</strong> The function reads <code>spec.flavors</code> from the actor and tells
+Crossplane to fetch the <code>EnvironmentConfig</code> resource that matches each flavor
+name. Crossplane fetches them and calls the function again with the results.</p>
+<p><strong>Phase 2 — merge:</strong> The function merges all flavor data using type-aware rules,
+then applies the actor's inline spec as the final override:</p>
 <ol>
-<li><code>function-asya-flavors</code> reads <code>spec.flavors</code> from the XR.</li>
-<li>For each flavor name, it requests the matching <code>EnvironmentConfig</code> via
-   label <code>asya.sh/flavor=&lt;name&gt;</code> using Crossplane's Requirements API.</li>
-<li>Crossplane fetches them and provides them on the next reconciliation.</li>
-<li>The function merges all flavor data in order using type-aware rules
-   (see <a href="#merge-semantics">Merge semantics</a> below).</li>
-<li>The actor's inline spec is applied last (actor always wins).</li>
-<li>The resolved spec is written back onto the XR's desired state.</li>
-<li>Downstream composition steps read from <code>$xr.spec.*</code>.</li>
+<li>Start with an empty spec.</li>
+<li>For each flavor (in <code>spec.flavors</code> order), merge its data using the rules
+   described in <a href="#merge-semantics">Merge semantics</a>.</li>
+<li>Apply the actor's own inline spec fields <strong>last</strong> — the actor always wins
+   silently (no error for actor-vs-flavor overlap).</li>
 </ol>
-<h2 id="merge-semantics">Merge semantics<a class="headerlink" href="#merge-semantics" title="Permanent link">&para;</a></h2>
-<p>Flavors are composable — an actor can use multiple flavors simultaneously
-(e.g., <code>gpu-a100</code> + <code>checkpoint-state</code> + <code>inference-cache</code>). Overlap behavior
-is determined by Go runtime type dispatch, not per-field configuration:</p>
+<p>The merged result is written directly to the desired XR's <code>spec</code>. Downstream
+composition steps (<code>render-deployment</code>, <code>render-scaledobject</code>) read from that
+desired spec — which, after this function runs, reflects the fully resolved
+configuration.</p>
+<h3 id="merge-semantics">Merge semantics<a class="headerlink" href="#merge-semantics" title="Permanent link">&para;</a></h3>
+<p>Merge behavior is determined by Go runtime type dispatch — no per-field
+configuration. The rules apply recursively for nested maps:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -837,105 +855,301 @@ is determined by Go runtime type dispatch, not per-field configuration:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>[]interface{}</code> (lists)</td>
+<td>Lists</td>
 <td>Append across flavors</td>
-<td><code>stateProxy</code>, <code>tolerations</code>, <code>secretRefs</code>, <code>volumes</code>, <code>volumeMounts</code>, <code>env</code></td>
+<td><code>env</code>, <code>tolerations</code>, <code>volumes</code>, <code>volumeMounts</code>, <code>stateProxy</code>, <code>secretRefs</code></td>
 </tr>
 <tr>
-<td><code>map[string]interface{}</code> (maps/structs)</td>
+<td>Maps/structs</td>
 <td>Merge keys recursively; same leaf key in two flavors = error</td>
 <td><code>nodeSelector</code>, <code>scaling</code>, <code>resources</code>, <code>sidecar</code>, <code>resiliency</code></td>
 </tr>
 <tr>
 <td>Scalars</td>
 <td>Error if two flavors both set the field</td>
-<td><code>replicas</code>, <code>image</code>, <code>handler</code>, <code>imagePullPolicy</code>, <code>pythonExecutable</code></td>
+<td><code>image</code>, <code>handler</code>, <code>replicas</code>, <code>imagePullPolicy</code>, <code>pythonExecutable</code></td>
 </tr>
 </tbody>
 </table></div>
-<p><strong>Conflict errors include flavor names and the full key path</strong> for debuggability:
+<p><strong>Lists are always appended.</strong> Two flavors that both provide <code>tolerations</code>
+entries get all entries combined. There is no replace or name-merge — the full
+lists are concatenated.</p>
+<p><strong>Maps merge recursively.</strong> One flavor can set <code>resources.limits.cpu</code> and another
+can set <code>resources.limits.memory</code> — distinct leaf keys at any nesting depth are
+merged. Only the same leaf key in two flavors triggers an error.</p>
+<p><strong>Scalars conflict.</strong> If two flavors both set <code>image</code>, the merge fails with an
+error naming both flavors. Use a single flavor for scalar fields, or let the
+actor's inline spec override.</p>
+<p><strong>Type mismatches are errors.</strong> If one flavor defines a field as a list and
+another defines it as a scalar, the merge fails.</p>
+<p><strong>Conflict errors include flavor names and full key path:</strong>
 <div class="highlight"><pre><span></span><code>flavor merge conflict: flavors &quot;gpu-a100&quot; and &quot;high-throughput&quot; conflict on scaling.minReplicaCount
 </code></pre></div></p>
-<p><strong>Map/struct fields are merged recursively</strong>: one flavor can set
-<code>resources.limits.cpu</code> and another can set <code>resources.limits.memory</code> —
-distinct leaf keys at any nesting depth are merged. Only same leaf key
-overlap triggers an error. This enables natural composition patterns like
-splitting CPU and GPU resource flavors.</p>
-<p><strong>Actor inline spec always wins</strong> over flavor values, silently. This is
-intentional — the actor is the most specific override (like CSS inline styles
-over class rules).</p>
-<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
-<p>Two state flavors, no conflict (lists append):
-<div class="highlight"><pre><span></span><code><span class="c1"># gpu-a100 flavor                # inference-cache flavor</span>
-<span class="nt">data:                             data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">stateProxy:                       stateProxy</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name: checkpoints               - name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cache</span>
-<span class="w">    </span><span class="nt">mount</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="nv">/checkpoints</span><span class="p p-Indicator">}</span><span class="w">       </span><span class="nt">mount</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="nv">/cache</span><span class="p p-Indicator">}</span>
-<span class="c1"># Result: stateProxy has both entries</span>
-</code></pre></div></p>
-<p>Two flavors with distinct scaling keys, no conflict (map merge):
-<div class="highlight"><pre><span></span><code><span class="c1"># base-scaling flavor            # high-throughput flavor</span>
-<span class="nt">data:                             data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">scaling:                          scaling</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">minReplicaCount: 1                maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
-<span class="c1"># Result: scaling has both keys</span>
-</code></pre></div></p>
-<p>Two flavors with same scaling key (error):
-<div class="highlight"><pre><span></span><code><span class="c1"># flavor-a                       # flavor-b</span>
-<span class="nt">data:                             data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">scaling:                          scaling</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">minReplicaCount: 1                minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<span class="c1"># Error: flavors &quot;flavor-a&quot; and &quot;flavor-b&quot; conflict on scaling.minReplicaCount</span>
-</code></pre></div></p>
-<h2 id="environmentconfig-syntax">EnvironmentConfig syntax<a class="headerlink" href="#environmentconfig-syntax" title="Permanent link">&para;</a></h2>
-<p>Flavor data uses the same schema as the XRD spec. No custom DSL:</p>
+<h3 id="what-fields-flavors-can-provide">What fields flavors can provide<a class="headerlink" href="#what-fields-flavors-can-provide" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Merge behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>image</code></td>
+<td>scalar</td>
+<td>error if two flavors set it</td>
+</tr>
+<tr>
+<td><code>handler</code></td>
+<td>scalar</td>
+<td>error if two flavors set it</td>
+</tr>
+<tr>
+<td><code>imagePullPolicy</code></td>
+<td>scalar</td>
+<td>error if two flavors set it</td>
+</tr>
+<tr>
+<td><code>pythonExecutable</code></td>
+<td>scalar</td>
+<td>error if two flavors set it</td>
+</tr>
+<tr>
+<td><code>replicas</code></td>
+<td>scalar</td>
+<td>error if two flavors set it</td>
+</tr>
+<tr>
+<td><code>resources</code></td>
+<td>map</td>
+<td>merge keys recursively</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+<tr>
+<td><code>tolerations</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+<tr>
+<td><code>nodeSelector</code></td>
+<td>map</td>
+<td>merge keys; same key = error</td>
+</tr>
+<tr>
+<td><code>volumes</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+<tr>
+<td><code>volumeMounts</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+<tr>
+<td><code>scaling</code></td>
+<td>map</td>
+<td>merge keys recursively</td>
+</tr>
+<tr>
+<td><code>resiliency</code></td>
+<td>map</td>
+<td>merge keys recursively</td>
+</tr>
+<tr>
+<td><code>sidecar</code></td>
+<td>map</td>
+<td>merge keys recursively</td>
+</tr>
+<tr>
+<td><code>stateProxy</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+<tr>
+<td><code>secretRefs</code></td>
+<td>list</td>
+<td>append across flavors</td>
+</tr>
+</tbody>
+</table></div>
+<p>Infrastructure fields (<code>actor</code>, <code>transport</code>, <code>flavors</code>) are excluded from the
+merge — they cannot be set by flavors.</p>
+<hr />
+<h2 id="creating-a-flavor-platform-engineer">Creating a flavor (platform engineer)<a class="headerlink" href="#creating-a-flavor-platform-engineer" title="Permanent link">&para;</a></h2>
+<p>A flavor is a plain <code>EnvironmentConfig</code> manifest. The only required convention is
+the <code>asya.sh/flavor: &lt;name&gt;</code> label and a <code>data</code> field shaped like a partial
+<code>AsyncActor</code> spec.</p>
+<h3 id="example-compute-profile-for-gpu-inference">Example: compute profile for GPU inference<a class="headerlink" href="#example-compute-profile-for-gpu-inference" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apiextensions.crossplane.io/v1beta1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EnvironmentConfig</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-secrets</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gpu-standard</span>
 <span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">asya.sh/flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-secrets</span>
+<span class="w">    </span><span class="nt">asya.sh/flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gpu-standard</span>
 <span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">secretRefs</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-creds</span>
-<span class="w">    </span><span class="nt">keys</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
-<span class="w">      </span><span class="nt">envVar</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPENAI_API_KEY</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">4</span>
+<span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+<span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8Gi</span>
+<span class="w">      </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">    </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1&quot;</span>
+<span class="w">  </span><span class="nt">tolerations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia.com/gpu</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoSchedule</span>
+<span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">accelerator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia-t4</span>
 </code></pre></div>
-<h2 id="actor-wins-override">Actor-wins override<a class="headerlink" href="#actor-wins-override" title="Permanent link">&para;</a></h2>
-<p>The actor's inline spec always takes precedence. If a flavor sets
-<code>scaling.minReplicaCount: 1</code> and the actor sets <code>scaling.minReplicaCount: 3</code>,
-the actor's value wins. No error is raised for actor-vs-flavor overlap.</p>
-<p>Infrastructure fields (<code>actor</code>, <code>transport</code>, <code>flavors</code>) are excluded from the merge.</p>
-<h2 id="supported-fields">Supported fields<a class="headerlink" href="#supported-fields" title="Permanent link">&para;</a></h2>
-<p>Flavors can set any non-infrastructure spec field:
-- <code>scaling</code> - KEDA autoscaling configuration
-- <code>resources</code> - Runtime container resource requests/limits
-- <code>env</code> - Runtime container environment variables
-- <code>tolerations</code> - Pod tolerations
-- <code>nodeSelector</code> - Pod node selector
-- <code>volumes</code> - Pod volumes
-- <code>volumeMounts</code> - Runtime container volume mounts
-- <code>stateProxy</code> - State proxy sidecar mounts
-- <code>resiliency</code> - Retry policies
-- <code>sidecar</code> - Sidecar overrides
-- <code>secretRefs</code> - Secret references</p>
-<h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>
+<h3 id="example-spot-instance-tolerations">Example: spot instance tolerations<a class="headerlink" href="#example-spot-instance-tolerations" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apiextensions.crossplane.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EnvironmentConfig</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spot-tolerant</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spot-tolerant</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">tolerations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cloud.google.com/gke-spot</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Equal</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">    </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoSchedule</span>
+</code></pre></div>
+<p>Combining <code>gpu-standard</code> and <code>spot-tolerant</code> on the same actor appends both
+tolerations — the pod tolerates both GPU taints and spot instance taints.</p>
+<h3 id="example-s3-persistence-flavor">Example: S3 persistence flavor<a class="headerlink" href="#example-s3-persistence-flavor" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">apiextensions.crossplane.io/v1beta1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">EnvironmentConfig</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s3-checkpoints</span>
+<span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">asya.sh/flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s3-checkpoints</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">stateProxy</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">checkpoints</span>
+<span class="w">    </span><span class="nt">mount</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
+<span class="w">    </span><span class="nt">connector</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:v1.0.0</span>
+<span class="w">      </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">STATE_BUCKET</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-checkpoints-bucket</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AWS_REGION</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-west-1</span>
+</code></pre></div>
+<p>Multiple state flavors compose: <code>s3-checkpoints</code> + <code>redis-cache</code> would append
+both <code>stateProxy</code> entries.</p>
+<hr />
+<h2 id="using-flavors-actor-author">Using flavors (actor author)<a class="headerlink" href="#using-flavors-actor-author" title="Permanent link">&para;</a></h2>
+<p>Add <code>spec.flavors</code> to an <code>AsyncActor</code>. The list is ordered: flavors are applied
+left-to-right. Any inline spec fields you write in the actor manifest override
+flavor values silently.</p>
+<h3 id="example-gpu-inference-actor">Example: GPU inference actor<a class="headerlink" href="#example-gpu-inference-actor" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">embedding-service</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ml-platform</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">embedding-service</span>
+<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
+<span class="w">  </span><span class="nt">flavors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">gpu-standard</span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-org/embedding-service:latest</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">embeddings.handler</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MODEL_NAME</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-embedding-ada-002</span>
+</code></pre></div>
+<p>The actor defines its image and handler. The <code>gpu-standard</code> flavor provides
+resources, tolerations, node selectors, and scaling — none of which the actor
+author needs to know about.</p>
+<h3 id="example-combining-composable-flavors">Example: combining composable flavors<a class="headerlink" href="#example-combining-composable-flavors" title="Permanent link">&para;</a></h3>
+<p>Flavors compose when they contribute to different fields or different keys
+within the same field:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">flavors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">gpu-standard</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">spot-tolerant</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">s3-checkpoints</span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-org/batch-inference:latest</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">inference.handle</span>
+</code></pre></div>
 <ul>
-<li><strong>Cluster-scoped only</strong>: EnvironmentConfigs are cluster-scoped Crossplane
-  resources. Namespace-scoped flavors via ConfigMaps are planned (see aint
-  <code>jgwn</code>).</li>
-<li><strong>Max 8 flavors per actor</strong>: Enforced by XRD <code>maxItems: 8</code>.</li>
+<li><code>gpu-standard</code> provides resources, scaling, GPU tolerations, and node selector</li>
+<li><code>spot-tolerant</code> appends a spot toleration (lists append)</li>
+<li><code>s3-checkpoints</code> appends a stateProxy entry (lists append)</li>
 </ul>
-<h2 id="architecture-decision">Architecture decision<a class="headerlink" href="#architecture-decision" title="Permanent link">&para;</a></h2>
-<p>See <code>ADR: Custom composition function for actor flavors</code> in the aint archive
-for why a custom Crossplane function is needed instead of stock functions.
-The two missing capabilities in Crossplane:
-1. Dynamic resource fetching by variable-length list (Requirements API)
-2. Type-aware merge with conflict detection across EnvironmentConfigs</p>
+<p>No conflicts — each flavor contributes to different fields or appends to lists.</p>
+<h3 id="example-overriding-a-flavor-value">Example: overriding a flavor value<a class="headerlink" href="#example-overriding-a-flavor-value" title="Permanent link">&para;</a></h3>
+<p>A flavor provides defaults; the actor can always override them inline:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">flavors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">gpu-standard</span><span class="p p-Indicator">]</span>
+
+<span class="w">  </span><span class="c1"># Override just the scaling — everything else comes from the flavor</span>
+<span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2</span>
+</code></pre></div>
+<p>The <code>gpu-standard</code> flavor might set <code>maxReplicaCount: 4</code>. Writing
+<code>scaling: {maxReplicaCount: 2}</code> in the actor's inline spec replaces the entire
+<code>scaling</code> field from the flavor. The actor always wins.</p>
+<hr />
+<h2 id="what-causes-a-conflict">What causes a conflict<a class="headerlink" href="#what-causes-a-conflict" title="Permanent link">&para;</a></h2>
+<p>Two flavors conflict when they both set the same leaf key. Examples:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># flavor-a                         # flavor-b</span>
+<span class="nt">data:                               data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">scaling:                            scaling</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">minReplicaCount: 1                  minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+</code></pre></div>
+<p>This errors: <code>flavors "flavor-a" and "flavor-b" conflict on scaling.minReplicaCount</code>.</p>
+<p>To fix: consolidate the conflicting field into a single flavor, or have the
+actor set it inline (actor always wins over all flavors).</p>
+<p><strong>Not a conflict</strong> — distinct leaf keys merge:
+<div class="highlight"><pre><span></span><code><span class="c1"># flavor-a                         # flavor-b</span>
+<span class="nt">data:                               data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">resources:                          resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">limits:                             limits</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span><span class="w">                         </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;4Gi&quot;</span>
+</code></pre></div></p>
+<p>This merges: <code>resources.limits</code> gets both <code>cpu</code> and <code>memory</code>.</p>
+<hr />
+<h2 id="constraints">Constraints<a class="headerlink" href="#constraints" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Maximum 8 flavors per actor.</li>
+<li>Flavor names must be at least 3 characters.</li>
+<li>Flavors are cluster-scoped resources. The same <code>EnvironmentConfig</code> is shared
+  across all namespaces — a single platform-level flavor serves all tenants.</li>
+<li>If a referenced flavor does not exist (no matching <code>EnvironmentConfig</code> with
+  the correct label), Crossplane will keep the actor in a <code>Waiting</code> state and
+  log <code>Waiting for flavor EnvironmentConfigs</code>. The actor will not be deployed
+  until all listed flavors are available.</li>
+</ul>
+<hr />
+<h2 id="debugging">Debugging<a class="headerlink" href="#debugging" title="Permanent link">&para;</a></h2>
+<p>Check the <code>AsyncActor</code> status conditions to see whether flavor resolution
+succeeded:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>asyncactor<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;
+</code></pre></div>
+<p>Look for a condition message from the <code>resolve-flavors</code> step. If flavors are
+missing, it shows <code>Waiting for N flavor EnvironmentConfigs</code>. If flavors
+conflict, the <code>Synced</code> condition will be <code>False</code> with an error message naming
+the conflicting flavors and key path.</p>
+<p>Verify the <code>EnvironmentConfig</code> exists and carries the correct label:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>environmentconfigs<span class="w"> </span>-l<span class="w"> </span>asya.sh/flavor<span class="o">=</span>&lt;name&gt;
+</code></pre></div>
+<p>To inspect what the resolved spec looks like after merging, check the
+Crossplane function logs:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>crossplane-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-l<span class="w"> </span>pkg.crossplane.io/revision<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--all-containers<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span><span class="s2">&quot;Flavors applied&quot;</span>
+</code></pre></div>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1169,66 +1383,112 @@ The two missing capabilities in Crossplane:
         
         
         
-        <a href="#how-it-works"
+        <a href="#the-problem-flavors-solve"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            How it works
+            The problem flavors solve
         </a>
         
 
+        
+        <a href="#how-flavors-work"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            How flavors work
+        </a>
+        
         
         <a href="#merge-semantics"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
+            data-active="false" data-depth="3">
             Merge semantics
         </a>
         
-        
-        <a href="#examples"
+        <a href="#what-fields-flavors-can-provide"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Examples
+            What fields flavors can provide
         </a>
         
         
 
         
-        <a href="#environmentconfig-syntax"
+        <a href="#creating-a-flavor-platform-engineer"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            EnvironmentConfig syntax
+            Creating a flavor (platform engineer)
+        </a>
+        
+        
+        <a href="#example-compute-profile-for-gpu-inference"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: compute profile for GPU inference
+        </a>
+        
+        <a href="#example-spot-instance-tolerations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: spot instance tolerations
+        </a>
+        
+        <a href="#example-s3-persistence-flavor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: S3 persistence flavor
+        </a>
+        
+        
+
+        
+        <a href="#using-flavors-actor-author"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Using flavors (actor author)
+        </a>
+        
+        
+        <a href="#example-gpu-inference-actor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: GPU inference actor
+        </a>
+        
+        <a href="#example-combining-composable-flavors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: combining composable flavors
+        </a>
+        
+        <a href="#example-overriding-a-flavor-value"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example: overriding a flavor value
+        </a>
+        
+        
+
+        
+        <a href="#what-causes-a-conflict"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            What causes a conflict
         </a>
         
 
         
-        <a href="#actor-wins-override"
+        <a href="#constraints"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Actor-wins override
+            Constraints
         </a>
         
 
         
-        <a href="#supported-fields"
+        <a href="#debugging"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Supported fields
-        </a>
-        
-
-        
-        <a href="#limitations"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Limitations
-        </a>
-        
-
-        
-        <a href="#architecture-decision"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Architecture decision
+            Debugging
         </a>
         
 
