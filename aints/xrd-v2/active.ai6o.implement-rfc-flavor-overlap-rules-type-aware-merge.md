@@ -1,9 +1,14 @@
 ---
 title: "Implement RFC flavor overlap rules: type-aware merge with conflict detection"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
+  - branch:xrd-v2/ai6o.implement-rfc-flavor-overlap-rules-type-aware-merge
 dependencies:
   - lfcf
 ---
+
 
 ## Summary
 
@@ -109,10 +114,12 @@ Add test cases:
 
 ### Documentation
 
-Update/create `docs/tutorials/actor-flavors.md`, `src/function-asya-flavors/README.md`.
+Update/create `docs/internal/xrd-flavors.md` (tech spec), `docs/tutorials/actor-flavors.md` (user guide), `src/function-asya-flavors/README.md`.
+Explain this new merge behavior in details.
 
 ## Test strategy
 
 - `make lint`, `make -C src/function-asya-flavors test-unit` must pass
 - then create PR - we'll test the rest there
-- E2E tests unchanged (existing flavors are non-overlapping, so the new validation won't trigger)
+- add some tests on `fn.go` (unit, component, E2E) specifically fixating this merge behavior.
+- existing E2E tests unchanged (existing flavors are non-overlapping, so the new validation won't trigger)
