@@ -136,10 +136,13 @@ def _handle_missing_image(err: ImageNotConfiguredError) -> None:
     """Handle ImageNotConfiguredError: prompt for image or show instructions."""
     from asya_lab.config.discovery import find_asya_dir
 
+    # Extract module part from handler (echo_handler.process → echo_handler)
+    module_name = err.handler_name.rsplit(".", 1)[0] if "." in err.handler_name else err.handler_name
+
     click.echo(f"[-] No Docker image configured for handler '{err.handler_name}'", err=True)
 
     try:
-        image = input(f"Base image for '{err.k8s_name}': ").strip()
+        image = input(f"Base image for '{module_name}': ").strip()
     except (EOFError, KeyboardInterrupt):
         click.echo("", err=True)
         click.echo(str(err), err=True)
@@ -162,11 +165,11 @@ def _handle_missing_image(err: ImageNotConfiguredError) -> None:
         cfg = yaml.safe_load(config_path.read_text()) or {}
 
     build_list: list[dict] = cfg.get("build", [])
-    build_list.append({"module": err.handler_name, "image": image})
+    build_list.append({"module": module_name, "image": image})
     cfg["build"] = build_list
     config_path.write_text(yaml.dump(cfg, default_flow_style=False, sort_keys=False))
 
-    click.echo(f"[+] Added build entry: {err.handler_name} -> {image}")
+    click.echo(f"[+] Added build entry: {module_name} -> {image}")
 
 
 @click.command("compile")

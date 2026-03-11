@@ -28,12 +28,14 @@ class ImageNotConfiguredError(Exception):
     def __init__(self, handler_name: str, k8s_name: str) -> None:
         self.handler_name = handler_name
         self.k8s_name = k8s_name
+        # Show module part only (echo_handler.process → echo_handler)
+        module_name = handler_name.rsplit(".", 1)[0] if "." in handler_name else handler_name
         super().__init__(
             f"No Docker image configured for handler '{handler_name}'.\n"
             f"Add a build entry to .asya/config.yaml:\n"
             f"\n"
             f"  build:\n"
-            f"    - module: {handler_name}\n"
+            f"    - module: {module_name}\n"
             f"      image: <your-image>:<tag>\n"
         )
 
@@ -125,7 +127,7 @@ class AsyaProject:
                 if module and handler_name.startswith(module.replace(".", "_")):
                     return str(entry["image"])
 
-        k8s_name = handler_name.replace("_", "-")
+        k8s_name = handler_name.replace("_", "-").replace(".", "-")
         raise ImageNotConfiguredError(
             handler_name=handler_name,
             k8s_name=k8s_name,
