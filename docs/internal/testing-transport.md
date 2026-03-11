@@ -236,7 +236,7 @@ input (XAsyncActor)
   → fetch-environment-configs    # reads EnvironmentConfigs by label selector
   → function-asya-flavors       # merges flavors → writes resolved spec to desired XR
   → render-scaledobject          # reads $xr.spec.scaling for KEDA
-  → render-deployment            # reads $xr.spec.workload for containers
+  → render-deployment            # reads flat spec fields: $xr.spec.image, $xr.spec.handler, $xr.spec.env, $xr.spec.resources, etc.
   → function-auto-ready          # sets READY condition
 ```
 

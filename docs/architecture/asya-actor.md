@@ -59,20 +59,12 @@ metadata:
   name: text-processor
 spec:
   transport: sqs
+  image: my-processor:v1
+  handler: processor.TextProcessor.process
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 50
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-processor:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "processor.TextProcessor.process"
 ```
 
 **Operator injects**:

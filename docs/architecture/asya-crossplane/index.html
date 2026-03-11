@@ -924,11 +924,11 @@
 <li>
 <p><strong>render-deployment</strong>: Creates Deployment</p>
 </li>
-<li>Workload template from <code>spec.workload.template</code></li>
+<li>Pod spec rendered from flat fields: <code>spec.image</code>, <code>spec.handler</code>, <code>spec.env</code>, <code>spec.resources</code>, etc.</li>
 <li>Injects labels: <code>asya.sh/inject=true</code>, <code>asya.sh/actor={name}</code></li>
 <li>ServiceAccount: Uses IRSA ServiceAccount if enabled</li>
 <li>
-<p>Replicas: From <code>spec.workload.replicas</code> if scaling disabled, otherwise managed by KEDA</p>
+<p>Replicas: From <code>spec.replicas</code> if scaling disabled, otherwise managed by KEDA</p>
 </li>
 <li>
 <p><strong>patch-status-and-derive-phase</strong>: Aggregates status from managed resources</p>
@@ -1035,7 +1035,8 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
-<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-processor:v1</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
 
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
@@ -1045,33 +1046,23 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 <span class="w">    </span><span class="nt">pollingInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30</span>
 <span class="w">    </span><span class="nt">cooldownPeriod</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">300</span>
 
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">            </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-processor:v1</span>
-<span class="w">            </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">                </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
-<span class="w">            </span><span class="nt">resources</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">requests</span><span class="p">:</span>
-<span class="w">                </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100m</span>
-<span class="w">                </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256Mi</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100m</span>
+<span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">256Mi</span>
 </code></pre></div>
-<p><strong>Important</strong>: The <code>asya-runtime</code> container must NOT define <code>command</code> field - the Crossplane composition manages the entrypoint.</p>
-<h2 id="cel-validation">CEL Validation<a class="headerlink" href="#cel-validation" title="Permanent link">&para;</a></h2>
-<p>The XRD includes CEL (Common Expression Language) validations enforced at admission time:</p>
-<ol>
-<li>✅ <strong>Container structure</strong>: <code>workload.template.spec.containers</code> must exist</li>
-<li>✅ <strong>Container name</strong>: Exactly one container must be named <code>asya-runtime</code></li>
-<li>❌ <strong>No custom command</strong>: The <code>asya-runtime</code> container cannot define <code>command</code> field</li>
-</ol>
-<p><strong>Validation errors</strong>:
-- <code>workload must have template.spec.containers</code> - Missing container spec
-- <code>workload must have exactly one container named 'asya-runtime'</code> - Wrong container name
-- <code>asya-runtime container must not define 'command'</code> - Custom command not allowed</p>
+<p><strong>Important</strong>: The <code>command</code> field for the runtime container is managed by the Crossplane composition — do not set it via the AsyncActor spec. Use <code>pythonExecutable</code> to override the Python binary path if needed.</p>
+<h2 id="xrd-schema-validation">XRD Schema Validation<a class="headerlink" href="#xrd-schema-validation" title="Permanent link">&para;</a></h2>
+<p>The XRD enforces constraints at admission time via OpenAPI v3 schema:</p>
+<ul>
+<li>✅ <strong>Required fields</strong>: <code>image</code>, <code>handler</code> (and <code>transport</code> by default enum)</li>
+<li>✅ <strong><code>actor</code></strong>: must match <code>^[a-z0-9]([a-z0-9-]*[a-z0-9])?$</code> (DNS label format), max 63 chars</li>
+<li>✅ <strong><code>transport</code></strong>: enum — <code>sqs</code>, <code>rabbitmq</code>, <code>pubsub</code></li>
+<li>✅ <strong><code>imagePullPolicy</code></strong>: enum — <code>Always</code>, <code>IfNotPresent</code>, <code>Never</code></li>
+<li>✅ <strong><code>handler</code></strong>, <strong><code>image</code></strong>, <strong><code>pythonExecutable</code></strong>: <code>minLength: 1</code></li>
+<li>✅ <strong><code>replicas</code></strong>: <code>minimum: 1</code></li>
+<li>⚠️ <strong><code>volumes</code></strong>, <strong><code>tolerations</code></strong>, <strong><code>volumeMounts</code></strong>, <strong><code>nodeSelector</code></strong>, <strong><code>resources</code></strong>: use <code>x-kubernetes-preserve-unknown-fields: true</code> — any object shape is accepted at XRD schema level; validation of these fields happens when Kubernetes validates the rendered Deployment</li>
+</ul>
 <h2 id="comparison-with-asya-operator">Comparison with asya-operator<a class="headerlink" href="#comparison-with-asya-operator" title="Permanent link">&para;</a></h2>
 <div class="table-wrapper"><table>
 <thead>
@@ -1506,10 +1497,10 @@ kubectl<span class="w"> </span>get<span class="w"> </span>managed<span class="w"
         
 
         
-        <a href="#cel-validation"
+        <a href="#xrd-schema-validation"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            CEL Validation
+            XRD Schema Validation
         </a>
         
 

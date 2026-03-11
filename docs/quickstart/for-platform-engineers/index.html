@@ -915,30 +915,16 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <span class="nt">x-sink</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># or rabbitmq</span>
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
 
 <span class="nt">x-sump</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># or rabbitmq</span>
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya_crew.checkpointer.handler</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_PERSISTENCE_MOUNT</span>
+<span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state/checkpoints</span>
 </code></pre></div>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span>-f<span class="w"> </span>crew-values.yaml
 </code></pre></div>
@@ -964,37 +950,28 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asyncactor
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-actor</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># or rabbitmq</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YOUR_IMAGE:TAG</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">module.function</span><span class="w">  </span><span class="c1"># or module.Class.method for class handlers</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
 <span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
 <span class="w">    </span><span class="nt">queueLength</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deployment</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">          </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YOUR_IMAGE:TAG</span>
-<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER</span>
-<span class="w">            </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;module.function&quot;</span>
-<span class="w">            </span><span class="c1"># For class handlers: &quot;module.Class.method&quot;</span>
-<span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">requests</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1Gi&quot;</span>
-<span class="w">              </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span>
-<span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2Gi&quot;</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1Gi&quot;</span>
+<span class="w">      </span><span class="nt">cpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;500m&quot;</span>
+<span class="w">    </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">memory</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2Gi&quot;</span>
 </code></pre></div>
 <p><strong>Key fields to explain</strong>:
 - <code>spec.transport</code>: Which transport to use (ask platform team)
+- <code>spec.image</code>: Container image for the actor's runtime
+- <code>spec.handler</code>: Handler path (<code>module.function</code> or <code>module.Class.method</code>)
 - <code>spec.scaling.enabled</code>: Enable KEDA autoscaling (default: false)
 - <code>spec.scaling.minReplicaCount</code>: Minimum pods (0 for scale-to-zero)
 - <code>spec.scaling.maxReplicaCount</code>: Maximum pods
-- <code>spec.scaling.queueLength</code>: Messages per replica target
-- <code>spec.workload.kind</code>: Deployment
-- <code>env.ASYA_HANDLER</code>: Handler path (<code>module.function</code> or <code>module.Class.method</code>)</p>
+- <code>spec.scaling.queueLength</code>: Messages per replica target</p>
 <h3 id="configure-gateway-tools">Configure Gateway Tools<a class="headerlink" href="#configure-gateway-tools" title="Permanent link">&para;</a></h3>
 <p>Add tools for DS teams to call:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># gateway-values.yaml</span>
@@ -1157,7 +1134,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> <
 kubectl<span class="w"> </span>logs<span class="w"> </span>deploy/my-actor<span class="w"> </span>-c<span class="w"> </span>asya-runtime
 
 <span class="c1"># Check handler config</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>my-actor<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.spec.workload.template.spec.containers[?(@.name==&quot;asya-runtime&quot;)].env}&#39;</span>
+kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> </span>my-actor<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.spec.handler}&#39;</span>
 </code></pre></div>
 <p><strong>Common issues</strong>:
 - Wrong <code>ASYA_HANDLER</code> value (handler not found)
@@ -1192,20 +1169,15 @@ kubectl<span class="w"> </span>get<span class="w"> </span>asya<span class="w"> <
 <p><strong>Example</strong>: 100 messages, queueLength=5 → 20 replicas</p>
 <h3 id="gpu-workloads">GPU Workloads<a class="headerlink" href="#gpu-workloads" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">          </span><span class="nt">resources</span><span class="p">:</span>
-<span class="w">            </span><span class="nt">limits</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
-<span class="w">        </span><span class="nt">nodeSelector</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
-<span class="w">        </span><span class="nt">tolerations</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia.com/gpu</span>
-<span class="w">          </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
-<span class="w">          </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoSchedule</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">limits</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">  </span><span class="nt">nodeSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">  </span><span class="nt">tolerations</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nvidia.com/gpu</span>
+<span class="w">    </span><span class="nt">operator</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Exists</span>
+<span class="w">    </span><span class="nt">effect</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NoSchedule</span>
 </code></pre></div>
 <p><strong>Note</strong>: Ensure GPU node group exists and NVIDIA device plugin is installed.</p>
 <h2 id="cost-optimization">Cost Optimization<a class="headerlink" href="#cost-optimization" title="Permanent link">&para;</a></h2>

@@ -145,24 +145,13 @@ x-sink:
     minReplicaCount: 1
     maxReplicaCount: 10
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.sink.sink_handler  # or sump_handler for x-sump
-          # Optional S3 configuration (uncomment to enable)
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
 
 x-sump:
   enabled: true
@@ -172,23 +161,13 @@ x-sump:
     minReplicaCount: 1
     maxReplicaCount: 10
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-crew:latest
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.sink.sink_handler  # or sump_handler for x-sump
-          resources:
-            requests:
-              cpu: 50m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 128Mi
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
 ```
 
 **Namespace**: Deployed to release namespace (e.g., `asya-e2e`, `default`)
@@ -197,28 +176,12 @@ x-sump:
 ```yaml
 # custom-values.yaml
 x-sink:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.sink.sink_handler  # or sump_handler for x-sump
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.sink.sink_handler  # or sump_handler for x-sump
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 Deploy with custom values:

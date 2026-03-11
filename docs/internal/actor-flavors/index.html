@@ -808,9 +808,9 @@ spec:                       metadata:
   flavors:                    labels:
     - gpu-t4       --------&gt;    asya.sh/flavor: gpu-t4
     - persistence  --------&gt;    asya.sh/flavor: persistence
-  workload: ...             data:
-                              scaling: { minReplicaCount: 1 }
-                              workload: { template: ... }
+  image: ...                data:
+  handler: ...                scaling: { minReplicaCount: 1 }
+  resources: ...              resources: { limits: { nvidia.com/gpu: &quot;1&quot; } }
 </code></pre></div>
 <ol>
 <li><code>function-asya-flavors</code> reads <code>spec.flavors</code> from the XR.</li>
@@ -869,17 +869,12 @@ If you need tolerations from multiple sources, combine them in a single flavor.<
 <span class="w">  </span><span class="nt">labels</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">asya.sh/flavor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-secrets</span>
 <span class="nt">data</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">workload</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">spec</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">containers</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-runtime</span>
-<span class="w">          </span><span class="nt">env</span><span class="p">:</span>
-<span class="w">          </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPENAI_API_KEY</span>
-<span class="w">            </span><span class="nt">valueFrom</span><span class="p">:</span>
-<span class="w">              </span><span class="nt">secretKeyRef</span><span class="p">:</span>
-<span class="w">                </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-creds</span>
-<span class="w">                </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPENAI_API_KEY</span>
+<span class="w">    </span><span class="nt">valueFrom</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">secretKeyRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">openai-creds</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 <span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
@@ -888,12 +883,16 @@ If you need tolerations from multiple sources, combine them in a single flavor.<
 <p>The actor's inline spec always takes precedence. If a flavor sets
 <code>scaling.minReplicaCount: 1</code> and the actor sets <code>scaling.minReplicaCount: 3</code>,
 the actor's value wins.</p>
-<p>Infrastructure fields (<code>actor</code>, <code>transport</code>, <code>flavors</code>, <code>region</code>,
-<code>gcpProject</code>, <code>providerConfigRef</code>, <code>irsa</code>) are excluded from the merge.</p>
+<p>Infrastructure fields (<code>actor</code>, <code>transport</code>, <code>flavors</code>) are excluded from the merge.</p>
 <h2 id="supported-fields">Supported fields<a class="headerlink" href="#supported-fields" title="Permanent link">&para;</a></h2>
 <p>Flavors can set any non-infrastructure spec field:
 - <code>scaling</code> - KEDA autoscaling configuration
-- <code>workload</code> - Pod template, containers, env vars, resources
+- <code>resources</code> - Runtime container resource requests/limits
+- <code>env</code> - Runtime container environment variables (merged by <code>name</code> key)
+- <code>tolerations</code> - Pod tolerations
+- <code>nodeSelector</code> - Pod node selector
+- <code>volumes</code> - Pod volumes
+- <code>volumeMounts</code> - Runtime container volume mounts
 - <code>stateProxy</code> - State proxy sidecar mounts
 - <code>resiliency</code> - Retry policies
 - <code>sidecar</code> - Sidecar overrides

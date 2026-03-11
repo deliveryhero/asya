@@ -1092,8 +1092,12 @@ sleep<span class="w"> </span><span class="m">3</span>
 <span class="s">    asya.sh/actor: hello</span>
 <span class="s">spec:</span>
 <span class="s">  transport: sqs</span>
-<span class="s">  region: us-east-1</span>
-<span class="s">  providerConfigRef: localstack</span>
+<span class="s">  image: test-actor:latest</span>
+<span class="s">  imagePullPolicy: Never</span>
+<span class="s">  handler: handler.greet</span>
+<span class="s">  env:</span>
+<span class="s">  - name: PYTHONPATH</span>
+<span class="s">    value: /app</span>
 <span class="s">  scaling:</span>
 <span class="s">    enabled: true</span>
 <span class="s">    minReplicaCount: 0</span>
@@ -1101,18 +1105,6 @@ sleep<span class="w"> </span><span class="m">3</span>
 <span class="s">    pollingInterval: 10</span>
 <span class="s">    cooldownPeriod: 30</span>
 <span class="s">    queueLength: 5</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          image: test-actor:latest</span>
-<span class="s">          imagePullPolicy: Never</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_HANDLER</span>
-<span class="s">            value: handler.greet</span>
-<span class="s">          - name: PYTHONPATH</span>
-<span class="s">            value: /app</span>
 <span class="s">EOF</span>
 </code></pre></div>
 <p>Wait for resources:</p>
@@ -1248,29 +1240,19 @@ helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span cla
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">x-sink:</span>
 <span class="s">  transport: sqs</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">            value: /tmp/checkpoints/results</span>
+<span class="s">  env:</span>
+<span class="s">  - name: ASYA_GATEWAY_URL</span>
+<span class="s">    value: &quot;&quot;  # Set this when gateway is installed</span>
+<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">    value: /tmp/checkpoints/results</span>
 
 <span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">            value: /tmp/checkpoints/errors</span>
+<span class="s">  env:</span>
+<span class="s">  - name: ASYA_GATEWAY_URL</span>
+<span class="s">    value: &quot;&quot;  # Set this when gateway is installed</span>
+<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">    value: /tmp/checkpoints/errors</span>
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
@@ -1371,29 +1353,19 @@ kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </sp
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
 <span class="s">x-sink:</span>
 <span class="s">  transport: sqs</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">            value: /tmp/checkpoints/results</span>
+<span class="s">  env:</span>
+<span class="s">  - name: ASYA_GATEWAY_URL</span>
+<span class="s">    value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
+<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">    value: /tmp/checkpoints/results</span>
 
 <span class="s">x-sump:</span>
 <span class="s">  transport: sqs</span>
-<span class="s">  workload:</span>
-<span class="s">    template:</span>
-<span class="s">      spec:</span>
-<span class="s">        containers:</span>
-<span class="s">        - name: asya-runtime</span>
-<span class="s">          env:</span>
-<span class="s">          - name: ASYA_GATEWAY_URL</span>
-<span class="s">            value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">          - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">            value: /tmp/checkpoints/errors</span>
+<span class="s">  env:</span>
+<span class="s">  - name: ASYA_GATEWAY_URL</span>
+<span class="s">    value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
+<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
+<span class="s">    value: /tmp/checkpoints/errors</span>
 <span class="s">EOF</span>
 
 helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
