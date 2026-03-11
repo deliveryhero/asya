@@ -1,10 +1,15 @@
 ---
 title: "Phase 5: Docker Compose CLI + socket transport"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport
+  - branch:asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport
 dependencies:
   - 5ifn
   - cavw
 ---
+
 
 ## Scope
 
