@@ -139,8 +139,8 @@ def _handle_missing_image(err: ImageNotConfiguredError) -> None:
     click.echo(f"[-] No Docker image configured for handler '{err.handler_name}'", err=True)
 
     try:
-        image = click.prompt(f"Base image for '{err.k8s_name}'", type=str).strip()
-    except (click.Abort, EOFError):
+        image = input(f"Base image for '{err.k8s_name}': ").strip()
+    except (EOFError, KeyboardInterrupt):
         click.echo("", err=True)
         click.echo(str(err), err=True)
         sys.exit(1)
