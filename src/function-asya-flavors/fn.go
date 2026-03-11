@@ -88,9 +88,9 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 
 	flavorData := extractFlavorData(required, flavors, f.log)
 
-	merged, err := MergeFlavors(flavorData)
+	merged, err := MergeFlavors(flavorData, flavors)
 	if err != nil {
-		return errors.Wrapf(err, "cannot merge flavors")
+		return errors.Wrapf(err, "flavor merge conflict")
 	}
 
 	// Filter infrastructure fields from flavor data

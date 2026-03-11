@@ -270,7 +270,7 @@ func TestRunFunction_FlavorConflictReturnsError(t *testing.T) {
 			"labels": map[string]interface{}{"asya.sh/flavor": "flavor-b"},
 		},
 		"data": map[string]interface{}{
-			"scaling": map[string]interface{}{"maxReplicas": float64(10)},
+			"scaling": map[string]interface{}{"minReplicas": float64(2)},
 		},
 	})
 

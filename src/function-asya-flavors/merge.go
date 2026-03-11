@@ -2,60 +2,49 @@ package main
 
 import "fmt"
 
-// appendListFields are spec fields whose values (lists) are concatenated across flavors.
-var appendListFields = map[string]bool{
-	"tolerations": true,
-	"stateProxy":  true,
-	"secretRefs":  true,
-	"volumes":     true,
-}
+// MergeFlavors merges flavor data sequentially with type-aware semantics
+// derived from Go runtime types (no field-specific categories):
+//   - []interface{} (lists): concatenated across all flavors
+//   - map[string]interface{} (maps/structs): keys merged; same key in two flavors is a conflict error
+//   - all other types (scalars): only one flavor may define the field; conflict returns error
+func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (map[string]interface{}, error) {
+	merged := make(map[string]interface{})
+	seen := make(map[string]string) // field -> flavor name that first defined it
 
-// mapMergeFields are spec fields whose values (maps) have keys merged; same key in
-// two flavors is a conflict error.
-var mapMergeFields = map[string]bool{
-	"nodeSelector": true,
-}
+	for i, data := range flavorData {
+		name := flavorNames[i]
+		for k, v := range data {
+			existing, exists := merged[k]
 
-// conflictOnlyFields are fields where only one flavor may provide a value; if two
-// flavors both define the field, MergeFlavors returns an error.
-var conflictOnlyFields = map[string]bool{
-	"scaling":   true,
-	"resources": true,
-}
+			if !exists {
+				merged[k] = v
+				seen[k] = name
+				continue
+			}
 
-// MergeFlavors merges flavor data sequentially with type-aware semantics:
-//   - appendListFields: concatenated across all flavors
-//   - mapMergeFields: keys merged; conflict returns error
-//   - conflictOnlyFields: only one flavor may define the field; conflict returns error
-//   - all other fields: last flavor wins
-func MergeFlavors(flavorData []map[string]interface{}) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-
-	for _, flavor := range flavorData {
-		for k, v := range flavor {
-			existing, exists := result[k]
-
-			switch {
-			case appendListFields[k]:
-				result[k] = appendList(existing, v)
-
-			case mapMergeFields[k]:
-				merged, err := mergeMaps(k, existing, v)
-				if err != nil {
-					return nil, err
+			switch ev := existing.(type) {
+			case []interface{}:
+				if sv, ok := v.([]interface{}); ok {
+					merged[k] = append(ev, sv...)
 				}
-				result[k] = merged
 
-			case conflictOnlyFields[k] && exists:
-				return nil, fmt.Errorf("field %q defined in multiple flavors; only one flavor may set it", k)
+			case map[string]interface{}:
+				if sv, ok := v.(map[string]interface{}); ok {
+					for mk, mv := range sv {
+						if _, dup := ev[mk]; dup {
+							return nil, fmt.Errorf("flavors %q and %q conflict on %s.%s", seen[k], name, k, mk)
+						}
+						ev[mk] = mv
+					}
+				}
 
 			default:
-				result[k] = v
+				return nil, fmt.Errorf("flavors %q and %q both set %q", seen[k], name, k)
 			}
 		}
 	}
 
-	return result, nil
+	return merged, nil
 }
 
 // ApplyActorInline applies the actor's own spec on top of the merged flavor result.
@@ -69,41 +58,4 @@ func ApplyActorInline(base, actor map[string]interface{}) map[string]interface{}
 		result[k] = v
 	}
 	return result
-}
-
-// appendList appends src list items to existing list. Both must be []interface{};
-// if existing is nil it is treated as empty.
-func appendList(existing, src interface{}) []interface{} {
-	var result []interface{}
-	if existing != nil {
-		if ex, ok := existing.([]interface{}); ok {
-			result = append(result, ex...)
-		}
-	}
-	if s, ok := src.([]interface{}); ok {
-		result = append(result, s...)
-	}
-	return result
-}
-
-// mergeMaps merges src map into existing map. Returns error if the same key appears
-// in both, as this is a conflict for nodeSelector-type fields.
-func mergeMaps(field string, existing, src interface{}) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-	if existing != nil {
-		if ex, ok := existing.(map[string]interface{}); ok {
-			for k, v := range ex {
-				result[k] = v
-			}
-		}
-	}
-	if s, ok := src.(map[string]interface{}); ok {
-		for k, v := range s {
-			if _, conflict := result[k]; conflict {
-				return nil, fmt.Errorf("field %q: key %q defined in multiple flavors", field, k)
-			}
-			result[k] = v
-		}
-	}
-	return result, nil
 }
