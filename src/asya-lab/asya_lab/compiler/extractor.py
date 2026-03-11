@@ -14,7 +14,7 @@ import inspect
 import logging
 from typing import Any
 
-from asya_lab.compiler.rules import CompilerRule, WhereNode
+from asya_lab.compiler.rules import CompilerRule, ParamSpec, WhereNode
 
 
 log = logging.getLogger(__name__)
@@ -85,6 +85,32 @@ class ValueExtractor:
 
         return bound
 
+    # -- param resolution ---------------------------------------------------
+
+    @staticmethod
+    def _resolve_param(
+        param: str | int | ParamSpec,
+        bound: dict[str, ast.expr],
+    ) -> ast.expr | None:
+        """Look up a parameter in the bound-args dict.
+
+        Handles three param shapes:
+          - ``str``: keyword name lookup (e.g. ``"delay"``)
+          - ``int``: positional index lookup (e.g. ``0`` → ``"0"``)
+          - ``ParamSpec``: try kwarg first, then positional index fallback
+        """
+        if isinstance(param, ParamSpec):
+            if param.kwarg is not None:
+                node = bound.get(param.kwarg)
+                if node is not None:
+                    return node
+            if param.arg is not None:
+                return bound.get(str(param.arg))
+            return None
+        if isinstance(param, int):
+            return bound.get(str(param))
+        return bound.get(param)
+
     # -- where-tree walker --------------------------------------------------
 
     def _walk(
@@ -101,8 +127,8 @@ class ValueExtractor:
             call_name: Resolved function name of the current AST Call context,
                 used to discriminate match-only nodes.
         """
-        if node.param:
-            ast_node = bound.get(node.param)
+        if node.param is not None:
+            ast_node = self._resolve_param(node.param, bound)
             if ast_node is None:
                 return
 

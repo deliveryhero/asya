@@ -26,10 +26,36 @@ class TreatAs(Enum):
 
 
 @dataclass
+class ParamSpec:
+    """Rich parameter binding: positional index, keyword name, and optional type.
+
+    Allows rules to declare both positional and keyword bindings so the
+    extractor can find the argument regardless of how it was passed::
+
+        param: {arg: 0, kwarg: "name", type: "str"}
+
+    The extractor tries ``kwarg`` first (always known), then falls back to
+    ``arg`` (positional index).
+    """
+
+    arg: int | None = None
+    kwarg: str | None = None
+    type: str | None = None
+
+    @classmethod
+    def from_dict(cls, d: dict) -> ParamSpec:
+        return cls(
+            arg=d.get("arg"),
+            kwarg=d.get("kwarg"),
+            type=d.get("type"),
+        )
+
+
+@dataclass
 class WhereNode:
     """Extraction rule tree node for pulling parameters from call sites."""
 
-    param: str | None = None
+    param: str | int | ParamSpec | None = None
     access: list[str] | None = None
     match: str | None = None
     assign_to: str | None = None
@@ -41,8 +67,13 @@ class WhereNode:
         children = None
         if "where" in d:
             children = [WhereNode.from_dict(c) for c in d["where"]]
+        raw_param = d.get("param")
+        if isinstance(raw_param, dict):
+            param: str | int | ParamSpec | None = ParamSpec.from_dict(raw_param)
+        else:
+            param = raw_param
         return cls(
-            param=d.get("param"),
+            param=param,
             access=d.get("access"),
             match=d.get("match"),
             assign_to=d.get("assign-to"),

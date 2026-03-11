@@ -659,6 +659,98 @@ class TestFullPipelineWithRichRules:
         assert "'handler'" in code, code
 
 
+class TestParamSpecRulesFromConfig:
+    """ParamSpec: rules with dict-form param loaded from YAML config."""
+
+    def test_paramspec_kwarg_extraction(self, tmp_path: Path) -> None:
+        """ParamSpec with {arg, kwarg} extracts via keyword argument."""
+        rules = dedent("""\
+            - match: "my_lib.tool"
+              where:
+                - param: {arg: 0, kwarg: "name"}
+                  assign-to: spec.metadata.tool-name
+                - param: {arg: 1, kwarg: "description"}
+                  assign-to: spec.metadata.description
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        engine = _load_engine(project)
+        rule = engine.get_rule("my_lib.tool")
+        assert rule is not None
+
+        call = _parse_call('my_lib.tool(name="greet", description="Greet a user")')
+        result = ValueExtractor().extract(call, rule)
+        assert result == {
+            "spec.metadata.tool-name": "greet",
+            "spec.metadata.description": "Greet a user",
+        }
+
+    def test_paramspec_positional_extraction(self, tmp_path: Path) -> None:
+        """ParamSpec falls back to positional when kwargs are not used."""
+        rules = dedent("""\
+            - match: "my_lib.tool"
+              where:
+                - param: {arg: 0, kwarg: "name"}
+                  assign-to: spec.metadata.tool-name
+                - param: {arg: 1, kwarg: "description"}
+                  assign-to: spec.metadata.description
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        engine = _load_engine(project)
+        rule = engine.get_rule("my_lib.tool")
+        assert rule is not None
+
+        call = _parse_call('my_lib.tool("greet", "Greet a user")')
+        result = ValueExtractor().extract(call, rule)
+        assert result == {
+            "spec.metadata.tool-name": "greet",
+            "spec.metadata.description": "Greet a user",
+        }
+
+    def test_paramspec_mixed_positional_and_kwarg(self, tmp_path: Path) -> None:
+        """First arg positional, second arg by keyword."""
+        rules = dedent("""\
+            - match: "my_lib.tool"
+              where:
+                - param: {arg: 0, kwarg: "name"}
+                  assign-to: spec.metadata.tool-name
+                - param: {arg: 1, kwarg: "description"}
+                  assign-to: spec.metadata.description
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        engine = _load_engine(project)
+        rule = engine.get_rule("my_lib.tool")
+        assert rule is not None
+
+        call = _parse_call('my_lib.tool("greet", description="Greet a user")')
+        result = ValueExtractor().extract(call, rule)
+        assert result == {
+            "spec.metadata.tool-name": "greet",
+            "spec.metadata.description": "Greet a user",
+        }
+
+    def test_paramspec_with_type_annotation(self, tmp_path: Path) -> None:
+        """ParamSpec with type field is parsed from YAML and stored."""
+        rules = dedent("""\
+            - match: "my_lib.tool"
+              where:
+                - param: {arg: 0, kwarg: "name", type: "str"}
+                  assign-to: spec.metadata.tool-name
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        engine = _load_engine(project)
+        rule = engine.get_rule("my_lib.tool")
+        assert rule is not None
+        assert rule.where is not None
+
+        from asya_lab.compiler.rules import ParamSpec
+
+        param = rule.where[0].param
+        assert isinstance(param, ParamSpec)
+        assert param.arg == 0
+        assert param.kwarg == "name"
+        assert param.type == "str"
+
+
 class TestBackwardsCompatibility:
     """Compiler without rule_engine preserves pre-rules behavior."""
 

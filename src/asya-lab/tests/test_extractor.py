@@ -6,7 +6,7 @@ import ast
 
 import pytest
 from asya_lab.compiler.extractor import ValueExtractor
-from asya_lab.compiler.rules import CompilerRule, TreatAs, WhereNode
+from asya_lab.compiler.rules import CompilerRule, ParamSpec, TreatAs, WhereNode
 
 
 def _parse_call(source: str) -> ast.Call:
@@ -294,3 +294,188 @@ class TestNonCallInput:
         extractor = ValueExtractor()
         result = extractor.extract(tree.body, rule)
         assert result == {}
+
+
+# -- ParamSpec: dual arg/kwarg binding ------------------------------------
+
+
+class TestParamSpec:
+    def test_kwarg_match(self):
+        """ParamSpec with kwarg finds the keyword argument."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0, kwarg="name"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool(name="greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_positional_fallback(self):
+        """ParamSpec falls back to positional index when kwarg is absent."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0, kwarg="name"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_kwarg_preferred_over_positional(self):
+        """When both kwarg and positional could match, kwarg wins."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0, kwarg="name"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        # name= is explicit kwarg, "other" is positional at index 0
+        node = _parse_call('tool("other", name="greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_multiple_paramspecs(self):
+        """Multiple ParamSpec nodes extract from different positions/kwargs."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0, kwarg="name"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+                WhereNode(
+                    param=ParamSpec(arg=1, kwarg="description"),
+                    assign_to="spec.metadata.description",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet", "Greet a user")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {
+            "spec.metadata.tool-name": "greet",
+            "spec.metadata.description": "Greet a user",
+        }
+
+    def test_paramspec_with_type(self):
+        """ParamSpec.type is stored but does not affect extraction."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0, kwarg="name", type="str"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_paramspec_arg_only(self):
+        """ParamSpec with only arg (no kwarg) uses positional index."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=0),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_paramspec_kwarg_only(self):
+        """ParamSpec with only kwarg (no arg) uses keyword lookup."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(kwarg="name"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool(name="greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+    def test_paramspec_no_match_returns_empty(self):
+        """ParamSpec that matches neither kwarg nor positional returns nothing."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=ParamSpec(arg=5, kwarg="missing"),
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {}
+
+    def test_int_param_shorthand(self):
+        """Plain int param is shorthand for positional-only binding."""
+        rule = CompilerRule(
+            match="tool",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param=0,
+                    assign_to="spec.metadata.tool-name",
+                ),
+            ],
+        )
+        node = _parse_call('tool("greet")')
+        result = ValueExtractor().extract(node, rule)
+        assert result == {"spec.metadata.tool-name": "greet"}
+
+
+class TestParamSpecFromDict:
+    def test_paramspec_from_yaml_dict(self):
+        """WhereNode.from_dict handles dict param values as ParamSpec."""
+        d = {
+            "param": {"arg": 0, "kwarg": "name", "type": "str"},
+            "assign-to": "spec.metadata.tool-name",
+        }
+        node = WhereNode.from_dict(d)
+        assert isinstance(node.param, ParamSpec)
+        assert node.param.arg == 0
+        assert node.param.kwarg == "name"
+        assert node.param.type == "str"
+
+    def test_string_param_unchanged(self):
+        """String param values are not converted to ParamSpec."""
+        d = {"param": "delay", "assign-to": "spec.resiliency.timeout"}
+        node = WhereNode.from_dict(d)
+        assert node.param == "delay"
+        assert not isinstance(node.param, ParamSpec)
+
+    def test_int_param_from_yaml(self):
+        """Integer param values are passed through (YAML parses them as int)."""
+        d = {"param": 0, "assign-to": "spec.foo"}
+        node = WhereNode.from_dict(d)
+        assert node.param == 0
+        assert isinstance(node.param, int)
