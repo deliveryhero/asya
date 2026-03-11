@@ -188,8 +188,9 @@ class TestDCliHelp:
         runner = CliRunner()
         result = runner.invoke(d, ["send", "--help"])
         assert result.exit_code == 0
-        assert "ACTOR" in result.output
+        assert "TARGET" in result.output
         assert "PAYLOAD" in result.output
+        assert "--actor" in result.output
 
     def test_logs_help(self):
         runner = CliRunner()

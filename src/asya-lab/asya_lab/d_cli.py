@@ -517,29 +517,43 @@ def _resolve_entry_actor(compose_path: Path, flow_name: str) -> str | None:
 
 
 @d.command()
-@click.argument("actor")
+@click.argument("target")
 @click.argument("payload")
 @click.option("--flow", default=None, help="Flow name (auto-detected if only one).")
-def send(actor: str, payload: str, flow: str | None) -> None:
-    """Send an envelope to an actor via Docker Compose.
+@click.option("--actor", "actor_override", default=None, help="Target a specific actor within the flow.")
+def send(target: str, payload: str, flow: str | None, actor_override: str | None) -> None:
+    """Send an envelope to a flow or actor via Docker Compose.
 
     Executes inside the asya-cli container which has access to the
     mesh socket volume. Auto-detects flow if only one is running.
 
-    ACTOR can be an actor name or the flow name (resolves to entry point).
+    TARGET is a flow name (resolves to entry point) or an actor name.
+    Use --actor to target a specific actor within the flow.
 
     \b
     Examples:
-        asya d send echo-handler-process '{"msg": "hello"}'
         asya d send my-flow '{"msg": "hello"}'
+        asya d send my-flow '{"msg": "hello"}' --actor echo-handler
+        asya d send echo-handler-process '{"msg": "hello"}'
     """
-    actor_name = actor.replace("_", "-")
-
     try:
         payload_data = json.loads(payload)
     except json.JSONDecodeError as e:
         click.echo(f"[-] Invalid JSON payload: {e}", err=True)
         sys.exit(1)
+
+    flow_name, compose_path = _find_compose_file(flow)
+
+    if actor_override:
+        actor_name = actor_override.replace("_", "-")
+    else:
+        actor_name = target.replace("_", "-")
+        # If target matches flow name, resolve to entry point actor
+        if actor_name == flow_name:
+            entry = _resolve_entry_actor(compose_path, flow_name)
+            if entry:
+                actor_name = entry
+                click.echo(f"[.] Resolved flow '{flow_name}' to entry actor '{actor_name}'", err=True)
 
     envelope = {
         "id": str(uuid.uuid4()),
@@ -552,17 +566,6 @@ def send(actor: str, payload: str, flow: str | None) -> None:
         "headers": {},
         "payload": payload_data,
     }
-
-    flow_name, compose_path = _find_compose_file(flow)
-
-    # If actor name matches flow name, resolve to entry point actor
-    if actor_name == flow_name:
-        entry = _resolve_entry_actor(compose_path, flow_name)
-        if entry:
-            actor_name = entry
-            envelope["route"]["curr"] = actor_name
-            click.echo(f"[.] Resolved flow '{flow_name}' to entry actor '{actor_name}'", err=True)
-
     envelope_json = json.dumps(envelope)
 
     cmd = [
