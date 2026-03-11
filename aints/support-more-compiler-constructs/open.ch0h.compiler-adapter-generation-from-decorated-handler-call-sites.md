@@ -95,15 +95,48 @@ def get_tool(tool_call: dict) -> dict:
 Same inference: the compiler sees the call site and generates the adapter. Note that the compiler
 should first resolve AST into a flattened IR and only then reason about the adapter generation.
 
+## Pipeline layering
+
+Rules and adapter generation operate at different layers. See `docs/reference/flow-dsl.md` "Compiler
+Architecture" section for the full spec. Summary:
+
+| Concern | Layer | Why |
+|---------|-------|-----|
+| "Is `tool` a known decorator?" | Rules (AST) | needs pattern matching on symbol names |
+| "What are its parameters?" | Extractor (AST) | needs `ast.Call` arg binding |
+| "What's the input/output path?" | Parser (AST -> IR) | needs `ast.Subscript` chain analysis |
+| "Does this actor need an adapter?" | IR | `input_path is not None` on `ActorCall` |
+| "Generate the adapter code" | Codegen (IR -> Code) | reads IR fields, emits Python |
+
+Rules stay at AST level. The parser flattens AST into IR and enriches it with adapter metadata.
+Codegen reads IR only -- it never touches AST nodes.
+
+### IR extension for adapter metadata
+
+```python
+@dataclass
+class ActorCall(IROperation):
+    name: str
+    treat_as: str = "actor"
+    extracted_values: dict[str, object] = field(default_factory=dict)
+    # Adapter metadata (populated when decorated function needs wrapping)
+    input_path: list[str] | None = None      # e.g. ["custom_tool_call", "args"]
+    output_path: list[str] | None = None     # e.g. ["custom_tool_call_result"]
+    is_async: bool = False
+    source_module: str | None = None         # for the import in generated adapter
+```
+
 ## Implementation sketch
 
 1. **Decorator detection** (depends on [srn2]) -- parser traverses `FunctionDef.decorator_list`
 2. **Module function map** -- parser builds `{func_name: FunctionDef}` for top-level functions
-3. **Call-site analysis** -- when an actor call targets a decorated function needing an adapter:
-   - Extract input path from call arguments (Subscript chains)
-   - Extract output path from assignment target
-   - Detect async/sync from the FunctionDef
-4. **Adapter codegen** -- new component generates `dict->dict` wrapper from inferred paths
+3. **Call-site analysis** (parser, AST -> IR) -- when an actor call targets a decorated function
+   needing an adapter:
+   - Extract input path from call arguments (Subscript chains) -> `ActorCall.input_path`
+   - Extract output path from assignment target -> `ActorCall.output_path`
+   - Detect async/sync from the FunctionDef -> `ActorCall.is_async`
+4. **Adapter codegen** (codegen, IR -> Code) -- reads `ActorCall` adapter fields, generates
+   `dict->dict` wrapper from inferred paths
 5. **Output** -- adapters saved alongside `routers.py` in `compiled/adapters/`
 
 ## Edge cases
