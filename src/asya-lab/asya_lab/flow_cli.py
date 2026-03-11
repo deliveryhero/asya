@@ -155,6 +155,15 @@ def compile_cmd(
             except Exception as e:
                 click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
 
+        # Emit graph.json for interactive visualization
+        import json as _json
+
+        graph_data = compiler.generate_graph()
+        graph_path = Path(output_dir) / "graph.json"
+        graph_path.write_text(_json.dumps(graph_data, indent=2))
+        if verbose:
+            click.echo(f"[+] Graph JSON: {graph_path}")
+
         if not no_manifests:
             try:
                 _stamp_manifests(compiler, flow_file, output_dir, manifests_dir, verbose)

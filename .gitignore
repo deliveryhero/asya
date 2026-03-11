@@ -224,3 +224,10 @@ bin/
 
 # A2A JWKS keys (generated at `make up` time, contain private key material)
 testing/e2e/.jwks/
+
+# @asya/ui build output
+src/asya-lab/ui/dist/
+src/asya-lab/ui/node_modules/
+src/asya-lab/ui/storybook-static/
+src/asya-lab/asya_lab/static/*.js
+src/asya-lab/asya_lab/static/*.css

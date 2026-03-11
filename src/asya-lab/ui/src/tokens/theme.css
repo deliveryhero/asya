@@ -1,0 +1,40 @@
+:root {
+  --asya-status-running-border: #22c55e;
+  --asya-status-running-bg: #f0fdf4;
+  --asya-status-idle-border: #9ca3af;
+  --asya-status-idle-bg: #f9fafb;
+  --asya-status-error-border: #ef4444;
+  --asya-status-error-bg: #fef2f2;
+  --asya-status-processing-border: #3b82f6;
+  --asya-status-processing-bg: #eff6ff;
+  --asya-status-pending-border: #eab308;
+  --asya-status-pending-bg: #fefce8;
+  --asya-type-router: #fefce8;
+  --asya-type-actor: #eff6ff;
+  --asya-log-debug: #9ca3af;
+  --asya-log-info: #3b82f6;
+  --asya-log-warn: #eab308;
+  --asya-log-error: #ef4444;
+  --asya-bg-primary: #ffffff;
+  --asya-bg-secondary: #f9fafb;
+  --asya-text-primary: #111827;
+  --asya-text-secondary: #6b7280;
+  --asya-border: #e5e7eb;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --asya-status-running-bg: #052e16;
+    --asya-status-idle-bg: #1f2937;
+    --asya-status-error-bg: #450a0a;
+    --asya-status-processing-bg: #172554;
+    --asya-status-pending-bg: #422006;
+    --asya-type-router: #1c1917;
+    --asya-type-actor: #0c1829;
+    --asya-bg-primary: #111827;
+    --asya-bg-secondary: #1f2937;
+    --asya-text-primary: #f9fafb;
+    --asya-text-secondary: #9ca3af;
+    --asya-border: #374151;
+  }
+}

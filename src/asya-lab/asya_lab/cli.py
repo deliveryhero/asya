@@ -53,6 +53,7 @@ class LazyGroup(click.Group):
         "k": "asya_lab.k_cli:k",
         "kube": "asya_lab.k_cli:k",
         "kubernetes": "asya_lab.k_cli:k",
+        "serve": "asya_lab.serve_cli:serve_cmd",
         "show": "asya_lab.show_cli:show",
         "status": "asya_lab.status_cli:status",
         "unexpose": "asya_lab.expose_cli:unexpose",
