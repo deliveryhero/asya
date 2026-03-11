@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import re
 
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.ir import (
@@ -12,6 +13,7 @@ from asya_lab.flow.ir import (
     Continue,
     ExceptHandler,
     FanOutCall,
+    InlineCode,
     IROperation,
     Mutation,
     Raise,
@@ -19,6 +21,9 @@ from asya_lab.flow.ir import (
     TryExcept,
     WhileLoop,
 )
+
+
+_ASYA_COMMENT_RE = re.compile(r"#\s*asya:\s*(\w+)")
 
 
 # Parameter names accepted in flow function signatures.
@@ -47,7 +52,14 @@ class _ParamNormalizer(ast.NodeTransformer):
 
 
 class FlowParser:
-    def __init__(self, source_code: str, filename: str, module_path: str = ""):
+    def __init__(
+        self,
+        source_code: str,
+        filename: str,
+        module_path: str = "",
+        *,
+        rule_engine: object | None = None,
+    ):
         self.source_code = source_code
         self.filename = filename
         self.module_path = module_path
@@ -58,8 +70,11 @@ class FlowParser:
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
+        self._rule_engine = rule_engine
+        self._source_lines: list[str] = []  # Populated in parse() for inline comment extraction
 
     def parse(self) -> tuple[str, list[IROperation]]:
+        self._source_lines = self.source_code.splitlines()
         try:
             tree = ast.parse(self.source_code, filename=self.filename)
         except SyntaxError as e:
@@ -224,7 +239,7 @@ class FlowParser:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall:
+    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | InlineCode:
         call = stmt.value
         # Unwrap await: `p = await handler(p)` → extract the Call
         if isinstance(call, ast.Await):
@@ -257,7 +272,52 @@ class FlowParser:
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
 
-        return ActorCall(lineno=stmt.lineno, name=actor_name)
+        # Classify using inline comment override or rule engine
+        treat_as = self._classify_symbol(actor_name, stmt.lineno)
+
+        if treat_as == "inline":
+            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        extracted: dict[str, object] = {}
+        if treat_as == "config" and self._rule_engine is not None:
+            from asya_lab.compiler.extractor import ValueExtractor
+            from asya_lab.compiler.rules import RuleEngine
+
+            if isinstance(self._rule_engine, RuleEngine):
+                rule = self._rule_engine.get_rule(actor_name, module_path=self.module_path)
+                if rule and rule.where:
+                    extracted = ValueExtractor().extract(call, rule)
+            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        return ActorCall(
+            lineno=stmt.lineno,
+            name=actor_name,
+            treat_as=treat_as or "actor",
+            extracted_values=extracted,
+        )
+
+    def _classify_symbol(self, symbol: str, lineno: int) -> str | None:
+        """Classify a symbol using inline comment override or rule engine.
+
+        Priority: inline comment > rule engine > None (default to actor).
+        """
+        # Check for # asya: <action> inline comment
+        if lineno > 0 and lineno <= len(self._source_lines):
+            line = self._source_lines[lineno - 1]
+            m = _ASYA_COMMENT_RE.search(line)
+            if m:
+                return m.group(1)
+
+        # Consult rule engine
+        if self._rule_engine is not None:
+            from asya_lab.compiler.rules import RuleEngine
+
+            if isinstance(self._rule_engine, RuleEngine):
+                result = self._rule_engine.classify(symbol, module_path=self.module_path)
+                if result is not None:
+                    return result.value
+
+        return None
 
     def _parse_if(self, stmt: ast.If) -> list[IROperation]:
         test = ast.unparse(stmt.test)
