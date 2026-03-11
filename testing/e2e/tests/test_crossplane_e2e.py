@@ -2023,6 +2023,8 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
     actor_name = f"test-flavor-conflict-{e2e_helper.namespace[-4:]}"
 
     try:
+        xr_name = None  # initialized early so the except block can reference it
+
         # Pre-flight: verify EnvironmentConfigs exist before creating the actor,
         # so a missing resource is diagnosed immediately rather than after a 120s timeout.
         for ec_name in ["asya-test-actor", "asya-test-scaling-conflict"]:
@@ -2042,34 +2044,53 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
             namespace=e2e_helper.namespace,
         )
 
-        # Poll for Synced=False: Crossplane needs multiple reconciliation
-        # cycles to fetch EnvironmentConfigs via Requirements API, then
-        # detect the flavor merge conflict.
-        logger.info("Polling for Crossplane to detect flavor conflict...")
+        # Wait for the claim to bind to a composite resource (XR name set in spec.resourceRef).
+        # This binding happens in the first Crossplane reconciliation — usually within seconds.
+        logger.info("Waiting for claim to bind to composite resource...")
+        for _ in range(6):  # up to 30s
+            time.sleep(5)
+            claim = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
+            xr_name = claim.get("spec", {}).get("resourceRef", {}).get("name")
+            if xr_name:
+                break
+        assert xr_name, "Claim must bind to a composite resource within 30s"
+        logger.info(f"Claim bound to XR: {xr_name}")
+
+        # Poll the XR (composite resource) for Synced=False.
+        # response.Fatal in the composition function sets Synced=False on the XR.
+        # Crossplane does NOT propagate XR.Synced=False to the claim's Synced condition,
+        # so checking the claim's Synced would always show True even on composition failure.
+        logger.info("Polling XR for Crossplane to detect flavor conflict...")
         synced = None
+        conditions = []
         for attempt in range(24):
             time.sleep(5)  # poll every 5s for up to 120s
-            xr = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
-            status = xr.get("status", {})
-            conditions = status.get("conditions", [])
+            xr_obj = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
+            conditions = xr_obj.get("status", {}).get("conditions", [])
             synced = next((c for c in conditions if c.get("type") == "Synced"), None)
             if synced and synced.get("status") == "False":
-                logger.info(f"Conflict detected after {(attempt + 1) * 5}s")
+                logger.info(f"Conflict detected on XR after {(attempt + 1) * 5}s")
                 break
 
-        assert synced is not None, f"Synced condition should exist, got conditions: {conditions}"
+        assert synced is not None, f"XR Synced condition should exist, got conditions: {conditions}"
         assert synced.get("status") == "False", (
-            f"Synced should be False due to flavor conflict, got: {synced}"
+            f"XR Synced should be False due to flavor conflict, got: {synced}"
         )
 
         message = synced.get("message", "")
         assert "conflict" in message.lower() or "merge" in message.lower(), (
-            f"Synced message should mention flavor conflict, got: {message}"
+            f"XR Synced message should mention flavor conflict, got: {message}"
         )
         logger.info(f"[+] Flavor conflict correctly rejected: {message}")
 
     except Exception:
         log_asyncactor_workload_diagnostics(actor_name, namespace=e2e_helper.namespace)
+        if xr_name is not None:
+            try:
+                xr_obj = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
+                logger.error(f"XR conditions: {xr_obj.get('status', {}).get('conditions', [])}")
+            except Exception as diag_exc:
+                logger.error(f"Could not get XR status: {diag_exc}")
         raise
     finally:
         _cleanup_actor(actor_name, e2e_helper.namespace)
