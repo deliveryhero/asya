@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "1022c8145447ae17afe3bc03a76f581680f25971",
+  "commit": "a7cec2a5bfce880706935271ec252ab41d91e61d",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24851,8 +24851,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33053,
-    "test": 19063,
+    "code": 33041,
+    "test": 19196,
     "code_files": [
       {
         "code": 940,
@@ -26997,8 +26997,8 @@
         "language": "Python"
       },
       {
-        "code": 180,
-        "comment": 33,
+        "code": 185,
+        "comment": 36,
         "blank": 48,
         "path": "src/function-asya-flavors/fn.go",
         "language": "Go"
@@ -27011,9 +27011,9 @@
         "language": "Go"
       },
       {
-        "code": 79,
-        "comment": 16,
-        "blank": 14,
+        "code": 62,
+        "comment": 14,
+        "blank": 10,
         "path": "src/function-asya-flavors/merge.go",
         "language": "Go"
       },
@@ -27342,16 +27342,16 @@
         "language": "Go"
       },
       {
-        "code": 314,
+        "code": 309,
         "comment": 3,
         "blank": 42,
         "path": "src/function-asya-flavors/fn_test.go",
         "language": "Go"
       },
       {
-        "code": 176,
+        "code": 314,
         "comment": 0,
-        "blank": 29,
+        "blank": 49,
         "path": "src/function-asya-flavors/merge_test.go",
         "language": "Go"
       },
@@ -27441,6 +27441,6 @@
       }
     ]
   },
-  "test_execution_time": 318000000000,
-  "timestamp": "2026-03-11T10:24:08.142749175Z"
+  "test_execution_time": 316000000000,
+  "timestamp": "2026-03-11T23:05:37.607086651Z"
 }
