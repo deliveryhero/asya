@@ -86,14 +86,16 @@ spec:
 
 ## Implementation phases
 
-| Phase | Aint | Title |
-|-------|------|-------|
-| 1 | `[8gc6]` | Remove leaked provider fields from XRD |
-| 1.5 | `[af25]` | Remove injector, render full Deployment in compositions |
-| 2 | `[lfcf]` | Flatten workload structure, promote handler, rewrite flavor merge |
-| 3 | `[azb9]` | Update documentation for flat XRD |
+| Phase | Aint | Status | Title |
+|-------|------|--------|-------|
+| 1 | `[8gc6]` | merged | Remove leaked provider fields from XRD |
+| 1.5 | `[af25]` | merged | Remove injector, render full Deployment in compositions |
+| - | `[36ck]` | merged | Fix KEDA reconciliation storm (watch:false) |
+| 2 | `[lfcf]` | merged | Flatten workload structure, promote handler, rewrite flavor merge |
+| 2.1 | `[ai6o]` | open | Implement RFC flavor overlap rules: type-aware merge with conflict detection |
+| 3 | `[azb9]` | open | Update documentation for flat XRD |
 
-Dependency chain: `u5pd` → `8gc6` → `af25` → `lfcf` → `azb9`
+Dependency chain: `u5pd` → `8gc6` → `af25` → `lfcf` → `ai6o` → `azb9`
 
 ## Depends on
 
