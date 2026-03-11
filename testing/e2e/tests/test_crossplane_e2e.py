@@ -2006,3 +2006,55 @@ def test_asyncactor_flavors_resolved(e2e_helper):
     finally:
         for actor in [actor_single, actor_multi, actor_no_flavor, actor_list_append]:
             _cleanup_actor(actor, e2e_helper.namespace)
+
+
+def test_asyncactor_flavor_conflict_rejected(e2e_helper):
+    """
+    E2E: Test that conflicting flavors produce a Fatal composition error.
+
+    Two flavors both define scaling.minReplicaCount (same leaf key, different
+    values). The composition function should return a Fatal error, causing
+    Crossplane to set the Synced condition to False with a message mentioning
+    the conflict.
+
+    Expected: Actor never reaches Ready=True; Synced condition is False with
+    a conflict error message.
+    """
+    actor_name = f"test-flavor-conflict-{e2e_helper.namespace[-4:]}"
+
+    try:
+        logger.info("Creating actor with conflicting scaling flavors...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_name,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-scaling-conflict"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        # Wait enough time for Crossplane to attempt reconciliation
+        logger.info("Waiting for Crossplane to detect flavor conflict...")
+        time.sleep(30)  # allow reconciliation cycles to process
+
+        xr = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
+        status = xr.get("status", {})
+        conditions = status.get("conditions", [])
+
+        synced = next((c for c in conditions if c.get("type") == "Synced"), None)
+        assert synced is not None, f"Synced condition should exist, got conditions: {conditions}"
+        assert synced.get("status") == "False", (
+            f"Synced should be False due to flavor conflict, got: {synced}"
+        )
+
+        message = synced.get("message", "")
+        assert "conflict" in message.lower() or "merge" in message.lower(), (
+            f"Synced message should mention flavor conflict, got: {message}"
+        )
+        logger.info(f"[+] Flavor conflict correctly rejected: {message}")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(actor_name, e2e_helper.namespace)

@@ -5,11 +5,13 @@ import "fmt"
 // MergeFlavors merges flavor data sequentially with type-aware semantics
 // derived from Go runtime types (no field-specific categories):
 //   - []interface{} (lists): concatenated across all flavors
-//   - map[string]interface{} (maps/structs): keys merged; same key in two flavors is a conflict error
-//   - all other types (scalars): only one flavor may define the field; conflict returns error
+//   - map[string]interface{} (maps/structs): keys merged recursively;
+//     same leaf key in two flavors is a conflict error
+//   - all other types (scalars): only one flavor may define the field;
+//     conflict returns error
 //
-// Type mismatches (e.g., one flavor defines a field as a list, another as a scalar)
-// are treated as errors.
+// Type mismatches (e.g., one flavor defines a field as a list, another as a
+// scalar) are treated as errors.
 func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (map[string]interface{}, error) {
 	merged := make(map[string]interface{})
 	seen := make(map[string]string) // field -> flavor name that first defined it
@@ -25,33 +27,49 @@ func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (ma
 				continue
 			}
 
-			switch ev := existing.(type) {
-			case []interface{}:
-				sv, ok := v.([]interface{})
-				if !ok {
-					return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a list, new is %T", seen[k], name, k, v)
-				}
-				merged[k] = append(ev, sv...)
-
-			case map[string]interface{}:
-				sv, ok := v.(map[string]interface{})
-				if !ok {
-					return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a map, new is %T", seen[k], name, k, v)
-				}
-				for mk, mv := range sv {
-					if _, dup := ev[mk]; dup {
-						return nil, fmt.Errorf("flavors %q and %q conflict on %s.%s", seen[k], name, k, mk)
-					}
-					ev[mk] = mv
-				}
-
-			default:
-				return nil, fmt.Errorf("flavors %q and %q both set %q", seen[k], name, k)
+			result, err := mergeOverlap(seen[k], name, k, existing, v)
+			if err != nil {
+				return nil, err
 			}
+			merged[k] = result
 		}
 	}
 
 	return merged, nil
+}
+
+// mergeOverlap recursively merges two overlapping values at the given path.
+// Lists are appended, maps are recursively key-merged, and scalars conflict.
+func mergeOverlap(firstFlavor, secondFlavor, path string, a, b interface{}) (interface{}, error) {
+	switch av := a.(type) {
+	case []interface{}:
+		bv, ok := b.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a list, new is %T", firstFlavor, secondFlavor, path, b)
+		}
+		return append(av, bv...), nil
+
+	case map[string]interface{}:
+		bv, ok := b.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a map, new is %T", firstFlavor, secondFlavor, path, b)
+		}
+		for mk, mv := range bv {
+			if existing, dup := av[mk]; dup {
+				merged, err := mergeOverlap(firstFlavor, secondFlavor, path+"."+mk, existing, mv)
+				if err != nil {
+					return nil, err
+				}
+				av[mk] = merged
+			} else {
+				av[mk] = mv
+			}
+		}
+		return av, nil
+
+	default:
+		return nil, fmt.Errorf("flavors %q and %q conflict on %s", firstFlavor, secondFlavor, path)
+	}
 }
 
 // ApplyActorInline applies the actor's own spec on top of the merged flavor result.

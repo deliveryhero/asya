@@ -90,7 +90,7 @@ func TestMergeFlavors_MapMergeDistinctKeys(t *testing.T) {
 	}
 }
 
-func TestMergeFlavors_ResourcesMapConflictErrors(t *testing.T) {
+func TestMergeFlavors_ResourcesDeepConflictErrors(t *testing.T) {
 	data := []map[string]interface{}{
 		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "1"}}},
 		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "2"}}},
@@ -98,10 +98,53 @@ func TestMergeFlavors_ResourcesMapConflictErrors(t *testing.T) {
 
 	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
 	if err == nil {
-		t.Fatal("expected error for resources key conflict, got nil")
+		t.Fatal("expected error for resources leaf key conflict, got nil")
 	}
-	if !strings.Contains(err.Error(), "resources.limits") {
-		t.Errorf("error should mention conflicting key path, got: %s", err)
+	if !strings.Contains(err.Error(), "resources.limits.cpu") {
+		t.Errorf("error should mention full conflicting key path, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_ResourcesDeepMergeDistinctLeafKeys(t *testing.T) {
+	data := []map[string]interface{}{
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "500m"}}},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"memory": "4Gi"}}},
+	}
+
+	result, err := MergeFlavors(data, []string{"cpu-flavor", "memory-flavor"})
+	if err != nil {
+		t.Fatalf("distinct leaf keys should merge without error, got: %s", err)
+	}
+
+	resources := result["resources"].(map[string]interface{})
+	limits := resources["limits"].(map[string]interface{})
+	if limits["cpu"] != "500m" {
+		t.Errorf("expected cpu=500m from cpu-flavor, got %v", limits["cpu"])
+	}
+	if limits["memory"] != "4Gi" {
+		t.Errorf("expected memory=4Gi from memory-flavor, got %v", limits["memory"])
+	}
+}
+
+func TestMergeFlavors_ResourcesRequestsAndLimitsMerge(t *testing.T) {
+	data := []map[string]interface{}{
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"nvidia.com/gpu": "1"}}},
+		{"resources": map[string]interface{}{"requests": map[string]interface{}{"memory": "4Gi"}}},
+	}
+
+	result, err := MergeFlavors(data, []string{"gpu-flavor", "memory-flavor"})
+	if err != nil {
+		t.Fatalf("requests and limits from different flavors should merge, got: %s", err)
+	}
+
+	resources := result["resources"].(map[string]interface{})
+	limits := resources["limits"].(map[string]interface{})
+	requests := resources["requests"].(map[string]interface{})
+	if limits["nvidia.com/gpu"] != "1" {
+		t.Errorf("expected gpu limit from gpu-flavor, got %v", limits["nvidia.com/gpu"])
+	}
+	if requests["memory"] != "4Gi" {
+		t.Errorf("expected memory request from memory-flavor, got %v", requests["memory"])
 	}
 }
 

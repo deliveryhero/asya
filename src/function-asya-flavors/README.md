@@ -13,7 +13,7 @@ EnvironmentConfig syntax, see [docs/internal/actor-flavors.md](../../docs/intern
    via the Crossplane Requirements API.
 3. Merges all flavor data using type-aware rules:
    - Lists (e.g. `tolerations`, `stateProxy`): appended across flavors
-   - Maps/structs (e.g. `nodeSelector`, `scaling`): keys merged, same key = error
+   - Maps/structs (e.g. `nodeSelector`, `scaling`): keys merged recursively, same leaf key = error
    - Scalars (e.g. `replicas`): only one flavor may set the field
 4. Applies the actor's inline spec as the final override (actor always wins).
 5. Writes the resolved spec back onto the XR's desired state.

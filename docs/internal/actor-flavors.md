@@ -37,17 +37,19 @@ is determined by Go runtime type dispatch, not per-field configuration:
 | Go type | Behavior | Fields |
 |---------|----------|--------|
 | `[]interface{}` (lists) | Append across flavors | `stateProxy`, `tolerations`, `secretRefs`, `volumes`, `volumeMounts`, `env` |
-| `map[string]interface{}` (maps/structs) | Merge keys; same key in two flavors = error | `nodeSelector`, `scaling`, `resources`, `sidecar`, `resiliency` |
+| `map[string]interface{}` (maps/structs) | Merge keys recursively; same leaf key in two flavors = error | `nodeSelector`, `scaling`, `resources`, `sidecar`, `resiliency` |
 | Scalars | Error if two flavors both set the field | `replicas`, `image`, `handler`, `imagePullPolicy`, `pythonExecutable` |
 
-**Conflict errors include flavor names** for debuggability:
+**Conflict errors include flavor names and the full key path** for debuggability:
 ```
 flavor merge conflict: flavors "gpu-a100" and "high-throughput" conflict on scaling.minReplicaCount
 ```
 
-**Map/struct fields support partial overlap**: one flavor can set
-`scaling.minReplicaCount` and another can set `scaling.maxReplicaCount` —
-distinct keys are merged. Only same-key overlap triggers an error.
+**Map/struct fields are merged recursively**: one flavor can set
+`resources.limits.cpu` and another can set `resources.limits.memory` —
+distinct leaf keys at any nesting depth are merged. Only same leaf key
+overlap triggers an error. This enables natural composition patterns like
+splitting CPU and GPU resource flavors.
 
 **Actor inline spec always wins** over flavor values, silently. This is
 intentional — the actor is the most specific override (like CSS inline styles
