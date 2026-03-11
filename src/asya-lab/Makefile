@@ -1,4 +1,4 @@
-.PHONY: test-unit cov-unit clean
+.PHONY: test-unit cov-unit clean build-ui build-widget lint-ui test-ui
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -15,6 +15,22 @@ test-unit:
 cov-unit:
 	@echo "asya-lab (Python) coverage:"
 	@uv run --group test coverage report --data-file=$(COVERAGE_DIR)/cov.db --include="asya_lab/**/*.py"
+
+build-ui:
+	cd ui && npm ci && npm run build
+	@echo "[+] Success: @asya/ui build"
+
+build-widget:
+	cd ui && npm run build:widget
+	@echo "[+] Success: widget bundle built"
+
+lint-ui:
+	cd ui && npm run lint && npm run typecheck
+	@echo "[+] Success: @asya/ui lint + typecheck"
+
+test-ui:
+	cd ui && npm test
+	@echo "[+] Success: @asya/ui tests"
 
 clean:
 	rm -rf __pycache__/

@@ -129,6 +129,15 @@ class FlowCompiler:
 
         return str(dot_file), output_path_str
 
+    def generate_graph(self) -> dict:
+        """Generate graph JSON for interactive visualization."""
+        from asya_lab.flow.graphgen import GraphGenerator
+
+        if not self.flow_name or not self.routers:
+            raise RuntimeError("Must compile flow before generating graph")
+        gen = GraphGenerator(self.flow_name, self.routers, self.class_methods)
+        return gen.generate()
+
     @property
     def single_actor_name(self) -> str | None:
         """Returns the actor name if this is a single-actor flow, else None.

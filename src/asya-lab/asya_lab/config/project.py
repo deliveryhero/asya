@@ -38,6 +38,13 @@ class AsyaProject:
         """Convenience factory: create ConfigStore and wrap it."""
         return cls(ConfigStore(start_dir, arg_values=arg_values))
 
+    # -- project root --------------------------------------------------------
+
+    @property
+    def root(self) -> Path:
+        """Project root directory (parent of nearest .asya/)."""
+        return self._store.asya_dirs[-1].parent
+
     # -- config access ------------------------------------------------------
 
     @property
