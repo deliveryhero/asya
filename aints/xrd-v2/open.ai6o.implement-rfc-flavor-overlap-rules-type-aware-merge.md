@@ -109,9 +109,10 @@ Add test cases:
 
 ### Documentation
 
-Update `docs/internal/` if any flavor merge docs exist.
+Update/create `docs/tutorials/actor-flavors.md`, `src/function-asya-flavors/README.md`.
 
 ## Test strategy
 
-- `make -C src/function-asya-flavors test-unit` must pass
+- `make lint`, `make -C src/function-asya-flavors test-unit` must pass
+- then create PR - we'll test the rest there
 - E2E tests unchanged (existing flavors are non-overlapping, so the new validation won't trigger)

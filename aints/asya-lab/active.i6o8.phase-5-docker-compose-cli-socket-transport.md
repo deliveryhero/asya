@@ -5,10 +5,12 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport
   - branch:asya-lab/i6o8.phase-5-docker-compose-cli-socket-transport
+  - pr:305
 dependencies:
   - 5ifn
   - cavw
 ---
+
 
 
 ## Scope
