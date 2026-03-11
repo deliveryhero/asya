@@ -13,6 +13,7 @@ dependencies:
 
 
 
+
 ## Summary
 
 Flatten `workload.template.spec.containers[]` into root-level spec fields. Promote `handler` to first-class field. Rewrite `function-asya-flavors` with type-aware overlap merge (~50 LOC).
