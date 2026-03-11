@@ -107,7 +107,7 @@ def _recompile_kebab_target(
     output_dir: str | None,
     verbose: bool,
 ) -> None:
-    """Recompile from existing manifests found in .asya/."""
+    """Verify existing manifests found in .asya/."""
     from asya_lab.config.discovery import find_asya_dir
 
     asya_dir = find_asya_dir(Path.cwd())
@@ -120,15 +120,19 @@ def _recompile_kebab_target(
     manifests_dir = project.resolve_path("compiler.manifests") / target
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
+        click.echo("[-] Compile from source first: asya compile <flow>.py", err=True)
         sys.exit(1)
 
-    click.echo(f"[+] Recompiling '{target}' from {manifests_dir}")
+    yaml_files = list(manifests_dir.rglob("*.yaml"))
+    if not yaml_files:
+        click.echo(f"[-] No YAML manifests found in: {manifests_dir}", err=True)
+        click.echo("[-] Compile from source first: asya compile <flow>.py", err=True)
+        sys.exit(1)
 
+    click.echo(f"[+] Manifests already compiled at: {manifests_dir}")
     if verbose:
-        click.echo(f"[.] Manifests directory: {manifests_dir}")
-
-    click.echo(f"[!] Recompilation from existing manifests is not yet implemented: {target}", err=True)
-    sys.exit(1)
+        for f in sorted(yaml_files):
+            click.echo(f"[.]   {f.relative_to(manifests_dir)}")
 
 
 @click.command("compile")

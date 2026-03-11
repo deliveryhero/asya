@@ -17,10 +17,12 @@ import yaml
 # Constants
 # ---------------------------------------------------------------------------
 
-SIDECAR_IMAGE = "ghcr.io/deliveryhero/asya-sidecar:latest"
+SIDECAR_IMAGE = "asya-sidecar:latest"
 MESH_VOLUME = "asya-mesh"
 MESH_DIR = "/var/run/asya/mesh"
 RUNTIME_SOCKET_DIR = "/var/run/asya"
+RUNTIME_MOUNT_PATH = "/opt/asya/asya_runtime.py"
+HANDLERS_MOUNT_PATH = "/opt/asya/handlers"
 
 
 # ---------------------------------------------------------------------------
@@ -49,17 +51,31 @@ def load_actors(manifests_dir: Path) -> list[dict]:
     return actors
 
 
-def _extract_actor_info(doc: dict) -> dict:
-    """Extract actor name, image, handler, and env vars from an AsyncActor doc.
+def load_actors_from_yaml(yaml_text: str) -> list[dict]:
+    """Load AsyncActor documents from a rendered YAML string.
 
-    Reads from the flat XRD structure: spec.image, spec.handler, spec.env.
+    Parses multi-document YAML and returns only AsyncActor documents.
+    """
+    actors: list[dict] = []
+    for doc in yaml.safe_load_all(yaml_text):
+        if not isinstance(doc, dict):
+            continue
+        if doc.get("kind") != "AsyncActor":
+            continue
+        actors.append(doc)
+    return actors
+
+
+def _extract_actor_info(doc: dict) -> dict:
+    """Extract actor info from an AsyncActor doc.
+
+    Reads from the flat XRD structure: spec.image, spec.handler,
+    spec.pythonExecutable, spec.env, spec.sidecar.
     """
     metadata = doc.get("metadata", {})
     spec = doc.get("spec", {})
+    sidecar_spec = spec.get("sidecar", {})
     name = metadata.get("name", "unknown")
-
-    image = spec.get("image", "")
-    handler = spec.get("handler", "")
 
     env_vars: list[dict] = []
     for env in spec.get("env", []):
@@ -69,12 +85,20 @@ def _extract_actor_info(doc: dict) -> dict:
         if "valueFrom" not in env:
             env_vars.append(env)
 
+    sidecar_env: list[dict] = []
+    for env in sidecar_spec.get("env", []):
+        if "valueFrom" not in env:
+            sidecar_env.append(env)
+
     return {
         "name": name,
         "actor": spec.get("actor", name),
-        "image": image,
-        "handler": handler,
+        "image": spec.get("image", ""),
+        "handler": spec.get("handler", ""),
+        "python_executable": spec.get("pythonExecutable", "python3"),
         "env": env_vars,
+        "sidecar_image": sidecar_spec.get("image", SIDECAR_IMAGE),
+        "sidecar_env": sidecar_env,
     }
 
 
@@ -86,18 +110,24 @@ def _extract_actor_info(doc: dict) -> dict:
 def _sidecar_service(actor: dict, runtime_socket_volume: str) -> dict:
     """Generate a sidecar service definition for an actor."""
     name = actor["name"]
+    env: dict[str, str] = {
+        "ASYA_TRANSPORT": "socket",
+        "ASYA_ACTOR_NAME": name,
+        "ASYA_NAMESPACE": "local",
+        "ASYA_SOCKET_MESH_DIR": MESH_DIR,
+        "ASYA_SOCKET_DIR": RUNTIME_SOCKET_DIR,
+        "ASYA_ACTOR_SINK": "x-sink",
+        "ASYA_ACTOR_SUMP": "x-sump",
+        "ASYA_LOG_LEVEL": "INFO",
+        "ASYA_METRICS_ENABLED": "false",
+    }
+    for e in actor.get("sidecar_env", []):
+        env[e["name"]] = str(e.get("value", ""))
+
     return {
-        "image": SIDECAR_IMAGE,
-        "environment": {
-            "ASYA_TRANSPORT": "socket",
-            "ASYA_ACTOR_NAME": name,
-            "ASYA_NAMESPACE": "local",
-            "ASYA_SOCKET_DIR": MESH_DIR,
-            "ASYA_ACTOR_SINK": "x-sink",
-            "ASYA_ACTOR_SUMP": "x-sump",
-            "ASYA_LOG_LEVEL": "INFO",
-            "ASYA_METRICS_ENABLED": "false",
-        },
+        "image": actor.get("sidecar_image", SIDECAR_IMAGE),
+        "user": "root",
+        "environment": env,
         "volumes": [
             f"{MESH_VOLUME}:{MESH_DIR}",
             f"{runtime_socket_volume}:{RUNTIME_SOCKET_DIR}",
@@ -105,25 +135,44 @@ def _sidecar_service(actor: dict, runtime_socket_volume: str) -> dict:
     }
 
 
-def _runtime_service(actor: dict, sidecar_name: str, runtime_socket_volume: str) -> dict:
+def _runtime_service(
+    actor: dict,
+    sidecar_name: str,
+    runtime_socket_volume: str,
+    runtime_py: str,
+    handler_dir: str | None = None,
+) -> dict:
     """Generate a runtime service definition for an actor."""
     env: dict[str, str] = {
         "ASYA_HANDLER": actor["handler"],
         "ASYA_SOCKET_DIR": RUNTIME_SOCKET_DIR,
         "ASYA_LOG_LEVEL": "INFO",
+        "PYTHONUNBUFFERED": "1",
     }
+    if handler_dir:
+        env["PYTHONPATH"] = HANDLERS_MOUNT_PATH
+
     # Add user-defined env vars
     for e in actor.get("env", []):
         env[e["name"]] = str(e.get("value", ""))
 
+    volumes = [
+        f"{runtime_socket_volume}:{RUNTIME_SOCKET_DIR}",
+        f"{runtime_py}:{RUNTIME_MOUNT_PATH}:ro",
+    ]
+    if handler_dir:
+        volumes.append(f"{handler_dir}:{HANDLERS_MOUNT_PATH}:ro")
+
     service: dict = {
         "image": actor["image"],
+        "command": [actor.get("python_executable", "python3"), RUNTIME_MOUNT_PATH],
         "environment": env,
         "depends_on": {sidecar_name: {"condition": "service_started"}},
-        "volumes": [
-            f"{runtime_socket_volume}:{RUNTIME_SOCKET_DIR}",
-        ],
+        "volumes": volumes,
     }
+    if handler_dir:
+        service["working_dir"] = HANDLERS_MOUNT_PATH
+
     return service
 
 
@@ -131,11 +180,12 @@ def _sink_service() -> dict:
     """x-sink system actor — acks and logs final results."""
     return {
         "image": SIDECAR_IMAGE,
+        "user": "root",
         "environment": {
             "ASYA_TRANSPORT": "socket",
             "ASYA_ACTOR_NAME": "x-sink",
             "ASYA_NAMESPACE": "local",
-            "ASYA_SOCKET_DIR": MESH_DIR,
+            "ASYA_SOCKET_MESH_DIR": MESH_DIR,
             "ASYA_IS_END_ACTOR": "true",
             "ASYA_LOG_LEVEL": "INFO",
             "ASYA_METRICS_ENABLED": "false",
@@ -150,11 +200,12 @@ def _sump_service() -> dict:
     """x-sump system actor — DLQ handler for local testing."""
     return {
         "image": SIDECAR_IMAGE,
+        "user": "root",
         "environment": {
             "ASYA_TRANSPORT": "socket",
             "ASYA_ACTOR_NAME": "x-sump",
             "ASYA_NAMESPACE": "local",
-            "ASYA_SOCKET_DIR": MESH_DIR,
+            "ASYA_SOCKET_MESH_DIR": MESH_DIR,
             "ASYA_IS_END_ACTOR": "true",
             "ASYA_LOG_LEVEL": "INFO",
             "ASYA_METRICS_ENABLED": "false",
@@ -165,11 +216,41 @@ def _sump_service() -> dict:
     }
 
 
-def generate_compose(actors: list[dict], flow_name: str) -> dict:
+def _cli_service() -> dict:
+    """asya-cli helper — lightweight container for `asya d send`.
+
+    Uses the 'cli' profile so it doesn't start with `docker compose up`.
+    Started on-demand via `docker compose run --rm asya-cli`.
+    """
+    return {
+        "image": "python:3-alpine",
+        "environment": {
+            "ASYA_SOCKET_MESH_DIR": MESH_DIR,
+        },
+        "volumes": [
+            f"{MESH_VOLUME}:{MESH_DIR}",
+        ],
+        "profiles": ["cli"],
+    }
+
+
+def generate_compose(
+    actors: list[dict],
+    flow_name: str,
+    runtime_py: str,
+    handler_dir: str | None = None,
+) -> dict:
     """Generate a docker-compose.yaml structure from parsed actor info.
 
     Each actor gets a sidecar + runtime service pair. System actors
-    x-sink and x-sump are added automatically.
+    x-sink and x-sump are added automatically. An asya-cli helper
+    service is included for `asya d send` (profiled, not started by default).
+
+    Args:
+        runtime_py: Absolute path to asya_runtime.py for bind-mounting
+            into runtime containers.
+        handler_dir: Optional path to a directory containing handler modules.
+            Mounted at /opt/asya/handlers/ with PYTHONPATH set.
     """
     services: dict = {}
     volumes: dict = {MESH_VOLUME: None}
@@ -186,11 +267,14 @@ def generate_compose(actors: list[dict], flow_name: str) -> dict:
         runtime_name = f"{name}-runtime"
 
         services[sidecar_name] = _sidecar_service(info, runtime_vol)
-        services[runtime_name] = _runtime_service(info, sidecar_name, runtime_vol)
+        services[runtime_name] = _runtime_service(info, sidecar_name, runtime_vol, runtime_py, handler_dir)
 
     # System actors
     services["x-sink"] = _sink_service()
     services["x-sump"] = _sump_service()
+
+    # CLI helper for `asya d send`
+    services["asya-cli"] = _cli_service()
 
     return {
         "name": f"asya-{flow_name}",
