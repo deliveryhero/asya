@@ -1,9 +1,10 @@
 ---
 title: "Compiler knowledge base: treat-as rules engine with default rule set"
-priority: 3 # low
+priority: 2 # medium
 tags:
   - type:feature
 ---
+
 
 ## Problem
 
@@ -18,7 +19,7 @@ asyncio.timeout). The `treat-as` vocabulary (`actor`, `flow`, `unfold`,
 Implement the compiler rules system described in
 `.aint/aints/asya-lab/research-compiler-knowledge-base.md`:
 
-1. **Rules engine** — load `compile.rules` from `.asya/config.yaml`, match
+1. **Rules engine** — load `rules` from `.asya/config.compiler.yaml`, match
    symbols against patterns, classify each as one of five `treat-as` actions
 2. **Default rule set** — ship sensible defaults that work without config:
    - `module: "."` → `treat-as: unfold` (same-package functions)
@@ -44,9 +45,10 @@ Implement the compiler rules system described in
 
 ## Blocked by
 
-- `.asya/config.yaml` schema design (WIP — see
-  `.aint/aints/asya-lab/research-compiler-resolution.md`). The `compile.rules`
-  section needs to be part of the config schema before rules can be loaded.
+- ~~`.asya/config.yaml` schema design~~ **Resolved** — config refactor merged
+  (`423bf76a`). Rules now live in `.asya/config.compiler.yaml` under the
+  `rules:` key (filename-to-key convention). See
+  `.aint/aints/asya-lab/refactor-config-with-templates.md` for the design.
 
 ## Dependencies
 
@@ -59,6 +61,7 @@ Implement the compiler rules system described in
 ## Design references
 
 - **Rules design**: `.aint/aints/asya-lab/research-compiler-knowledge-base.md`
+- **Config refactor**: `.aint/aints/asya-lab/refactor-config-with-templates.md`
 - **Config schema**: `.aint/aints/asya-lab/research-compiler-resolution.md`
 - **Resiliency env vars**: `.aint/aints/.closed/error-handling/rfc.md`
 - **Decorator strategy resolution**: [n67c]
