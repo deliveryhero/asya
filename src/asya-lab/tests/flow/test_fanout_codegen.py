@@ -156,6 +156,7 @@ def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
     """
     import asyncio
     import inspect
+
     if inspect.isasyncgen(gen):
         return asyncio.run(_drive_abi_generator_async(gen, msg_ctx))
     frames: list[AbiFrame] = []
@@ -397,7 +398,9 @@ class TestFanOutCodeValidity:
         tree = _parse_code(code)
 
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1, "Expected exactly one fanout_ function"
 
@@ -502,7 +505,9 @@ class TestFanOutCodeStructure:
         # Find the fanout function
         tree = _parse_code(code)
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1
 

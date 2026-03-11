@@ -65,7 +65,9 @@ class TestCodeStructure:
         tree = ast.parse(code)
 
         resolve_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == "resolve"
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == "resolve"
         ]
 
         assert len(resolve_funcs) == 1

@@ -632,6 +632,7 @@ def agent(p: dict) -> dict:
         """Drive an ABI generator (sync or async) that yields exactly one payload frame."""
         import asyncio
         import inspect
+
         if inspect.isasyncgen(gen):
             return asyncio.run(TestMaxIterationsGuardIntegration._drive_abi_single_async(gen, msg_ctx))
         value = gen.send(None)

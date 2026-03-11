@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../while_simple.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_while_simple_flow(payload: dict):
+async def start_while_simple_flow(payload: dict):
     """Entrypoint for flow 'while_simple_flow'"""
     _next = []
     _next.append(resolve("handler_init"))
@@ -21,7 +21,7 @@ def start_while_simple_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_while_simple_flow_line_12_seq(payload: dict):
+async def router_while_simple_flow_line_12_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,7 +31,7 @@ def router_while_simple_flow_line_12_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_while_simple_flow_line_11_while_0(payload: dict):
+async def router_while_simple_flow_line_11_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -44,7 +44,7 @@ def router_while_simple_flow_line_11_while_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_while_simple_flow_line_10_seq(payload: dict):
+async def router_while_simple_flow_line_10_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -54,7 +54,7 @@ def router_while_simple_flow_line_10_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_while_simple_flow(payload: dict):
+async def end_while_simple_flow(payload: dict):
     """Exitpoint for flow 'while_simple_flow'"""
     yield "SET", ".route.next", []
     yield payload

@@ -18,7 +18,7 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_llm_auditor(payload: dict):
+async def start_llm_auditor(payload: dict):
     """Entrypoint for flow 'llm_auditor'"""
     _next = []
     p = payload
@@ -30,7 +30,7 @@ def start_llm_auditor(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_llm_auditor_line_38_seq(payload: dict):
+async def router_llm_auditor_line_38_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -39,7 +39,7 @@ def router_llm_auditor_line_38_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_86_seq(payload: dict):
+async def router_llm_auditor_line_86_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -49,7 +49,7 @@ def router_llm_auditor_line_86_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_62_seq(payload: dict):
+async def router_llm_auditor_line_62_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -59,7 +59,7 @@ def router_llm_auditor_line_62_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_67_seq(payload: dict):
+async def router_llm_auditor_line_67_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -68,7 +68,7 @@ def router_llm_auditor_line_67_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_69_if(payload: dict):
+async def router_llm_auditor_line_69_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -84,7 +84,7 @@ def router_llm_auditor_line_69_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_80_seq(payload: dict):
+async def router_llm_auditor_line_80_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -94,7 +94,7 @@ def router_llm_auditor_line_80_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_83_seq(payload: dict):
+async def router_llm_auditor_line_83_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -103,7 +103,7 @@ def router_llm_auditor_line_83_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_79_if(payload: dict):
+async def router_llm_auditor_line_79_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -115,7 +115,7 @@ def router_llm_auditor_line_79_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_66_if(payload: dict):
+async def router_llm_auditor_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -127,7 +127,7 @@ def router_llm_auditor_line_66_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_61_if(payload: dict):
+async def router_llm_auditor_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -139,7 +139,7 @@ def router_llm_auditor_line_61_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_llm_auditor_line_52(payload: dict):
+async def fanout_llm_auditor_line_52(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 52)"""
     p = payload
 
@@ -170,7 +170,7 @@ def fanout_llm_auditor_line_52(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def router_llm_auditor_line_46_try_enter_0(payload: dict):
+async def router_llm_auditor_line_46_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
     yield "SET", ".headers._on_error", resolve("router_llm_auditor_line_46_except_dispatch_0")
@@ -180,7 +180,7 @@ def router_llm_auditor_line_46_try_enter_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_46_try_exit_0(payload: dict):
+async def router_llm_auditor_line_46_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
@@ -191,7 +191,7 @@ def router_llm_auditor_line_46_try_exit_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
+async def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -207,7 +207,7 @@ def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_43_seq(payload: dict):
+async def router_llm_auditor_line_43_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -217,7 +217,7 @@ def router_llm_auditor_line_43_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_42_loop_back_0(payload: dict):
+async def router_llm_auditor_line_42_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
@@ -232,7 +232,7 @@ def router_llm_auditor_line_42_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_llm_auditor_line_37_if(payload: dict):
+async def router_llm_auditor_line_37_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -244,7 +244,7 @@ def router_llm_auditor_line_37_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_llm_auditor(payload: dict):
+async def end_llm_auditor(payload: dict):
     """Exitpoint for flow 'llm_auditor'"""
     yield "SET", ".route.next", []
     yield payload

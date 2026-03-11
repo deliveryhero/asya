@@ -13,14 +13,14 @@ Regenerate by running: asya flow compile ../../try_except_simple.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_order_processing(payload: dict):
+async def start_order_processing(payload: dict):
     """Entrypoint for flow 'order_processing'"""
     _next = []
     _next.append(resolve("router_order_processing_line_2_try_enter_0"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_5_seq(payload: dict):
+async def router_order_processing_line_5_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -30,7 +30,7 @@ def router_order_processing_line_5_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_2_try_enter_0(payload: dict):
+async def router_order_processing_line_2_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
     yield "SET", ".headers._on_error", resolve("router_order_processing_line_2_except_dispatch_0")
@@ -40,7 +40,7 @@ def router_order_processing_line_2_try_enter_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_2_try_exit_0(payload: dict):
+async def router_order_processing_line_2_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
@@ -50,7 +50,7 @@ def router_order_processing_line_2_try_exit_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_2_except_dispatch_0(payload: dict):
+async def router_order_processing_line_2_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -67,13 +67,13 @@ def router_order_processing_line_2_except_dispatch_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_2_reraise_0(payload: dict):
+async def router_order_processing_line_2_reraise_0(payload: dict):
     """Reraise router: raises RuntimeError for unhandled exceptions"""
     _error_type = yield "GET", ".status.error.type"
     _error_msg = yield "GET", ".status.error.message"
     raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
 
-def end_order_processing(payload: dict):
+async def end_order_processing(payload: dict):
     """Exitpoint for flow 'order_processing'"""
     yield "SET", ".route.next", []
     yield payload
