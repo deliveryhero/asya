@@ -80,12 +80,8 @@ def _compile_flow_file(
     click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
     click.echo(f"[+] Using flow name '{flow_name}'")
 
-    actor = compiler.single_actor_name
-    if actor is not None:
-        click.echo("[+] Single-actor flow detected: no router actor needed")
-        click.echo(f"[+] Apply these labels to actor '{actor}':")
-        click.echo(f"[+]   asya.sh/flow: {flow_name}")
-        click.echo("[+]   asya.sh/flow-role: entrypoint")
+    if compiler.single_actor_name is not None:
+        click.echo("[+] Single-actor flow: no router actors needed")
 
     if plot:
         try:
