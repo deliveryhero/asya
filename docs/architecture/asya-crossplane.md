@@ -73,10 +73,10 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
    - Queue length target: `spec.scaling.queueLength` (default: 5 messages/replica)
 
 5. **render-deployment**: Creates Deployment
-   - Workload template from `spec.workload.template`
+   - Pod spec rendered from flat fields: `spec.image`, `spec.handler`, `spec.env`, `spec.resources`, etc.
    - Injects labels: `asya.sh/inject=true`, `asya.sh/actor={name}`
    - ServiceAccount: Uses IRSA ServiceAccount if enabled
-   - Replicas: From `spec.workload.replicas` if scaling disabled, otherwise managed by KEDA
+   - Replicas: From `spec.replicas` if scaling disabled, otherwise managed by KEDA
 
 6. **patch-status-and-derive-phase**: Aggregates status from managed resources
    - Reads queue URL, queue ARN from SQS Queue status
@@ -209,7 +209,8 @@ metadata:
   namespace: asya
 spec:
   transport: sqs
-  region: us-east-1
+  image: my-processor:v1
+  handler: processor.TextProcessor.process
 
   scaling:
     enabled: true
@@ -219,36 +220,25 @@ spec:
     pollingInterval: 30
     cooldownPeriod: 300
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-processor:v1
-            env:
-              - name: ASYA_HANDLER
-                value: processor.TextProcessor.process
-            resources:
-              requests:
-                cpu: 100m
-                memory: 256Mi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
 ```
 
-**Important**: The `asya-runtime` container must NOT define `command` field - the Crossplane composition manages the entrypoint.
+**Important**: The `command` field for the runtime container is managed by the Crossplane composition — do not set it via the AsyncActor spec. Use `pythonExecutable` to override the Python binary path if needed.
 
-## CEL Validation
+## XRD Schema Validation
 
-The XRD includes CEL (Common Expression Language) validations enforced at admission time:
+The XRD enforces constraints at admission time via OpenAPI v3 schema:
 
-1. ✅ **Container structure**: `workload.template.spec.containers` must exist
-2. ✅ **Container name**: Exactly one container must be named `asya-runtime`
-3. ❌ **No custom command**: The `asya-runtime` container cannot define `command` field
-
-**Validation errors**:
-- `workload must have template.spec.containers` - Missing container spec
-- `workload must have exactly one container named 'asya-runtime'` - Wrong container name
-- `asya-runtime container must not define 'command'` - Custom command not allowed
+- ✅ **Required fields**: `image`, `handler` (and `transport` by default enum)
+- ✅ **`actor`**: must match `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` (DNS label format), max 63 chars
+- ✅ **`transport`**: enum — `sqs`, `rabbitmq`, `pubsub`
+- ✅ **`imagePullPolicy`**: enum — `Always`, `IfNotPresent`, `Never`
+- ✅ **`handler`**, **`image`**, **`pythonExecutable`**: `minLength: 1`
+- ✅ **`replicas`**: `minimum: 1`
+- ⚠️ **`volumes`**, **`tolerations`**, **`volumeMounts`**, **`nodeSelector`**, **`resources`**: use `x-kubernetes-preserve-unknown-fields: true` — any object shape is accepted at XRD schema level; validation of these fields happens when Kubernetes validates the rendered Deployment
 
 ## Comparison with asya-operator
 

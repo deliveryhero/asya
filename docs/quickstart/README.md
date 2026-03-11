@@ -289,8 +289,12 @@ metadata:
     asya.sh/actor: hello
 spec:
   transport: sqs
-  region: us-east-1
-  providerConfigRef: localstack
+  image: test-actor:latest
+  imagePullPolicy: Never
+  handler: handler.greet
+  env:
+  - name: PYTHONPATH
+    value: /app
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -298,18 +302,6 @@ spec:
     pollingInterval: 10
     cooldownPeriod: 30
     queueLength: 5
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: test-actor:latest
-          imagePullPolicy: Never
-          env:
-          - name: ASYA_HANDLER
-            value: handler.greet
-          - name: PYTHONPATH
-            value: /app
 EOF
 ```
 
@@ -496,29 +488,19 @@ Crew actors handle pipeline completion:
 cat > crew-values.yaml <<EOF
 x-sink:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: ""  # Set this when gateway is installed
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /tmp/checkpoints/results
+  env:
+  - name: ASYA_GATEWAY_URL
+    value: ""  # Set this when gateway is installed
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /tmp/checkpoints/results
 
 x-sump:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: ""  # Set this when gateway is installed
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /tmp/checkpoints/errors
+  env:
+  - name: ASYA_GATEWAY_URL
+    value: ""  # Set this when gateway is installed
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /tmp/checkpoints/errors
 EOF
 
 helm install asya-crew asya/asya-crew \
@@ -640,29 +622,19 @@ kubectl wait --for=condition=ready pod -l app.kubernetes.io/name=asya-gateway \
 cat > crew-values.yaml <<EOF
 x-sink:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /tmp/checkpoints/results
+  env:
+  - name: ASYA_GATEWAY_URL
+    value: "http://asya-gateway.default.svc.cluster.local:8080"
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /tmp/checkpoints/results
 
 x-sump:
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_GATEWAY_URL
-            value: "http://asya-gateway.default.svc.cluster.local:8080"
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /tmp/checkpoints/errors
+  env:
+  - name: ASYA_GATEWAY_URL
+    value: "http://asya-gateway.default.svc.cluster.local:8080"
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /tmp/checkpoints/errors
 EOF
 
 helm upgrade asya-crew asya/asya-crew \

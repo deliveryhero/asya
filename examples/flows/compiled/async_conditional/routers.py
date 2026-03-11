@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../async_conditional.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_content_pipeline_flow(payload: dict):
+async def start_content_pipeline_flow(payload: dict):
     """Entrypoint for flow 'content_pipeline_flow'"""
     _next = []
     _next.append(resolve("classifier"))
@@ -21,7 +21,7 @@ def start_content_pipeline_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_content_pipeline_flow_line_14_if(payload: dict):
+async def router_content_pipeline_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,7 +35,7 @@ def router_content_pipeline_flow_line_14_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_content_pipeline_flow_line_12_if(payload: dict):
+async def router_content_pipeline_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,7 +48,7 @@ def router_content_pipeline_flow_line_12_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_content_pipeline_flow(payload: dict):
+async def end_content_pipeline_flow(payload: dict):
     """Exitpoint for flow 'content_pipeline_flow'"""
     yield "SET", ".route.next", []
     yield payload

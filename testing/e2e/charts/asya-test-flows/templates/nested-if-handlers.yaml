@@ -22,17 +22,9 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.validate_input
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.validate_input
 
 ---
 apiVersion: asya.sh/v1alpha1
@@ -58,17 +50,9 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.route_a_x
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.route_a_x
 
 ---
 apiVersion: asya.sh/v1alpha1
@@ -94,17 +78,9 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.route_a_y
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.route_a_y
 
 ---
 apiVersion: asya.sh/v1alpha1
@@ -130,17 +106,9 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.route_b_x
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.route_b_x
 
 ---
 apiVersion: asya.sh/v1alpha1
@@ -166,17 +134,9 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.route_b_y
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.route_b_y
 
 ---
 apiVersion: asya.sh/v1alpha1
@@ -202,14 +162,6 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.flow.finalize_result
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.flow.finalize_result

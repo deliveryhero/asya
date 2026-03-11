@@ -24,7 +24,7 @@ spec:
         set -e
 
         ACTOR_NAME="{{ .Values.name }}"
-        WORKLOAD_KIND="{{ .Values.default.workload.kind }}"
+        WORKLOAD_KIND="Deployment"
         TIMEOUT={{ .Values.default.healthChecks.deployment.timeoutSeconds }}
 
         echo "Testing deployment readiness for AsyncActor '$ACTOR_NAME'..."

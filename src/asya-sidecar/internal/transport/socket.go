@@ -40,7 +40,7 @@ type SocketTransport struct {
 	meshDir   string
 	mu        sync.Mutex
 	listener  net.Listener
-	listenOn  string     // queue name we're listening on (set on first Receive)
+	listenOn  string      // queue name we're listening on (set on first Receive)
 	requeueCh chan []byte // avoids self-dial deadlock in Requeue
 }
 

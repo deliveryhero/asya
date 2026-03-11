@@ -164,6 +164,16 @@ class FlowParser:
                 base = base.value
             if isinstance(base, ast.Name) and base.id == "p":
                 value = stmt.value
+                # Unwrap list() wrapper — list(await asyncio.gather(...)) is equivalent
+                # to await asyncio.gather(...) for fan-out detection purposes
+                if (
+                    isinstance(value, ast.Call)
+                    and isinstance(value.func, ast.Name)
+                    and value.func.id == "list"
+                    and len(value.args) == 1
+                    and not value.keywords
+                ):
+                    value = value.args[0]
                 # Unwrap await for asyncio.gather detection
                 if isinstance(value, ast.Await):
                     value = value.value

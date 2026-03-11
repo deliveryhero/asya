@@ -14,22 +14,15 @@ spec:
   scaling:
     enabled: false
 
-  workload:
-    kind: Deployment
-    # This replica count will be used since scaling is disabled
-    replicas: 3
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          env:
-          - name: ASYA_HANDLER
-            value: "echo_handler.process"
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 1Gi
-            requests:
-              cpu: 250m
-              memory: 256Mi
+  # This replica count will be used since scaling is disabled
+  replicas: 3
+
+  image: python:3.13-slim
+  handler: echo_handler.process
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi

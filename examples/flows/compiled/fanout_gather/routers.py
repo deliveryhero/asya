@@ -15,7 +15,7 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_async_research_flow(payload: dict):
+async def start_async_research_flow(payload: dict):
     """Entrypoint for flow 'async_research_flow'"""
     _next = []
     _next.append(resolve("preprocessor"))
@@ -23,7 +23,7 @@ def start_async_research_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_async_research_flow_line_12(payload: dict):
+async def fanout_async_research_flow_line_12(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 12)"""
     p = payload
 
@@ -54,7 +54,7 @@ def fanout_async_research_flow_line_12(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def end_async_research_flow(payload: dict):
+async def end_async_research_flow(payload: dict):
     """Exitpoint for flow 'async_research_flow'"""
     yield "SET", ".route.next", []
     yield payload

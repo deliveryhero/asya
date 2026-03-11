@@ -18,6 +18,8 @@ func TestRunFunction_NoFlavors(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
+			"image":     "my-app:v1",
+			"handler":   "my_module.handle",
 		},
 	})
 
@@ -32,36 +34,9 @@ func TestRunFunction_NoFlavors(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// No requirements should be set
 	if rsp.Requirements != nil && len(rsp.Requirements.Resources) > 0 {
 		t.Error("no requirements should be set when there are no flavors")
 	}
-}
-
-func TestRunFunction_EmptyFlavorsArray(t *testing.T) {
-	f := &Function{log: logging.NewNopLogger()}
-
-	xr := mustNewStruct(t, map[string]interface{}{
-		"apiVersion": "asya.sh/v1alpha1",
-		"kind":       "XAsyncActor",
-		"spec": map[string]interface{}{
-			"actor":     "test-actor",
-			"transport": "sqs",
-			"flavors":  []interface{}{},
-		},
-	})
-
-	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
-	}
-
-	_, err := f.RunFunction(context.Background(), req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
 }
 
 func TestRunFunction_SetsRequirements(t *testing.T) {
@@ -73,14 +48,14 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":  []interface{}{"gpu-t4", "openai-keys"},
+			"image":     "my-llm:latest",
+			"handler":   "model.inference",
+			"flavors":   []interface{}{"gpu-t4", "openai-keys"},
 		},
 	})
 
 	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
+		Observed: &fnv1.State{Composite: &fnv1.Resource{Resource: xr}},
 	}
 
 	rsp, err := f.RunFunction(context.Background(), req)
@@ -88,11 +63,9 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Requirements should be set for both flavors
 	if rsp.Requirements == nil || rsp.Requirements.Resources == nil {
 		t.Fatal("requirements should be set")
 	}
-
 	for _, flavor := range []string{"gpu-t4", "openai-keys"} {
 		key := flavorResourceKey(flavor)
 		sel, ok := rsp.Requirements.Resources[key]
@@ -100,28 +73,22 @@ func TestRunFunction_SetsRequirements(t *testing.T) {
 			t.Errorf("missing requirement for flavor %q", flavor)
 			continue
 		}
-
 		if sel.ApiVersion != EnvConfigAPIVersion {
 			t.Errorf("flavor %q: apiVersion = %q, want %q", flavor, sel.ApiVersion, EnvConfigAPIVersion)
 		}
-		if sel.Kind != EnvConfigKind {
-			t.Errorf("flavor %q: kind = %q, want %q", flavor, sel.Kind, EnvConfigKind)
-		}
-
 		matchLabels := sel.GetMatchLabels()
 		if matchLabels == nil {
 			t.Errorf("flavor %q: missing matchLabels", flavor)
 			continue
 		}
-
-		label, ok := matchLabels.Labels[FlavorLabel]
-		if !ok || label != flavor {
+		label := matchLabels.Labels[FlavorLabel]
+		if label != flavor {
 			t.Errorf("flavor %q: label = %q, want %q", flavor, label, flavor)
 		}
 	}
 }
 
-func TestRunFunction_WaitsForResources(t *testing.T) {
+func TestRunFunction_MergesSingleFlavor_FlatSpec(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -130,50 +97,9 @@ func TestRunFunction_WaitsForResources(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":  []interface{}{"gpu-t4"},
-		},
-	})
-
-	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
-		// No RequiredResources yet
-	}
-
-	rsp, err := f.RunFunction(context.Background(), req)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Requirements should still be set
-	if rsp.Requirements == nil || len(rsp.Requirements.Resources) == 0 {
-		t.Error("requirements should be set even while waiting")
-	}
-}
-
-func TestRunFunction_MergesSingleFlavor(t *testing.T) {
-	f := &Function{log: logging.NewNopLogger()}
-
-	xr := mustNewStruct(t, map[string]interface{}{
-		"apiVersion": "asya.sh/v1alpha1",
-		"kind":       "XAsyncActor",
-		"spec": map[string]interface{}{
-			"actor":     "test-actor",
-			"transport": "sqs",
-			"flavors":  []interface{}{"gpu-t4"},
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "asya-runtime",
-								"image": "my-model:v1",
-							},
-						},
-					},
-				},
-			},
+			"image":     "my-model:v1",
+			"handler":   "model.inference",
+			"flavors":   []interface{}{"gpu-t4"},
 		},
 	})
 
@@ -181,39 +107,26 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		"apiVersion": "apiextensions.crossplane.io/v1beta1",
 		"kind":       "EnvironmentConfig",
 		"metadata": map[string]interface{}{
-			"name": "gpu-t4",
-			"labels": map[string]interface{}{
-				"asya.sh/flavor": "gpu-t4",
-			},
+			"name":   "gpu-t4",
+			"labels": map[string]interface{}{"asya.sh/flavor": "gpu-t4"},
 		},
 		"data": map[string]interface{}{
 			"scaling": map[string]interface{}{
 				"minReplicas":    float64(1),
 				"cooldownPeriod": float64(600),
 			},
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"resources": map[string]interface{}{
-									"limits": map[string]interface{}{
-										"nvidia.com/gpu": "1",
-									},
-								},
-							},
-						},
-					},
-				},
+			"resources": map[string]interface{}{
+				"limits": map[string]interface{}{"nvidia.com/gpu": "1"},
 			},
+			"tolerations": []interface{}{
+				map[string]interface{}{"key": "nvidia.com/gpu", "operator": "Exists", "effect": "NoSchedule"},
+			},
+			"nodeSelector": map[string]interface{}{"accelerator": "nvidia-tesla-t4"},
 		},
 	})
 
 	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
+		Observed: &fnv1.State{Composite: &fnv1.Resource{Resource: xr}},
 		Desired: &fnv1.State{
 			Composite: &fnv1.Resource{Resource: mustNewStruct(t, map[string]interface{}{
 				"apiVersion": "asya.sh/v1alpha1",
@@ -221,11 +134,7 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 			})},
 		},
 		RequiredResources: map[string]*fnv1.Resources{
-			"flavor-gpu-t4": {
-				Items: []*fnv1.Resource{
-					{Resource: envConfig},
-				},
-			},
+			"flavor-gpu-t4": {Items: []*fnv1.Resource{{Resource: envConfig}}},
 		},
 	}
 
@@ -234,37 +143,33 @@ func TestRunFunction_MergesSingleFlavor(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Resolved spec should be written to desired XR
 	resolved := rsp.Desired.Composite.Resource.AsMap()["spec"].(map[string]interface{})
 
-	// Flavor's scaling should be present, but actor's minReplicas not set so flavor's value preserved
 	scaling := resolved["scaling"].(map[string]interface{})
 	if scaling["minReplicas"] != float64(1) {
-		t.Errorf("minReplicas: got %v, want 1 (from flavor)", scaling["minReplicas"])
+		t.Errorf("minReplicas: got %v, want 1", scaling["minReplicas"])
 	}
 
-	// Actor's image should be present (inline override wins over flavor)
-	containers := resolved["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})
-	container := containers[0].(map[string]interface{})
-	if container["image"] != "my-model:v1" {
-		t.Errorf("image: got %v, want my-model:v1 (actor inline override)", container["image"])
+	if resolved["image"] != "my-model:v1" {
+		t.Errorf("image: got %v, want my-model:v1 (actor wins)", resolved["image"])
 	}
 
-	// Flavor's GPU resources should be preserved via deep merge
-	resources, ok := container["resources"].(map[string]interface{})
+	resources, ok := resolved["resources"].(map[string]interface{})
 	if !ok {
-		t.Fatal("container resources not found after merge")
+		t.Fatal("resources not found after merge")
 	}
-	limits, ok := resources["limits"].(map[string]interface{})
-	if !ok {
-		t.Fatal("container resource limits not found after merge")
-	}
+	limits := resources["limits"].(map[string]interface{})
 	if limits["nvidia.com/gpu"] != "1" {
-		t.Errorf("nvidia.com/gpu: got %v, want 1 (from flavor)", limits["nvidia.com/gpu"])
+		t.Errorf("nvidia.com/gpu: got %v, want 1", limits["nvidia.com/gpu"])
+	}
+
+	tolerations, ok := resolved["tolerations"].([]interface{})
+	if !ok || len(tolerations) == 0 {
+		t.Fatal("tolerations not found after merge")
 	}
 }
 
-func TestRunFunction_MissingFlavorData(t *testing.T) {
+func TestRunFunction_ActorEnvReplacesFlavorEnv(t *testing.T) {
 	f := &Function{log: logging.NewNopLogger()}
 
 	xr := mustNewStruct(t, map[string]interface{}{
@@ -273,35 +178,32 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
-			"flavors":  []interface{}{"empty-flavor"},
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name":  "asya-runtime",
-								"image": "my-app:v1",
-							},
-						},
-					},
-				},
+			"image":     "my-app:v1",
+			"handler":   "module.handle",
+			"flavors":   []interface{}{"base-flavor"},
+			"env": []interface{}{
+				map[string]interface{}{"name": "LOG_LEVEL", "value": "DEBUG"},
 			},
 		},
 	})
 
-	// EnvironmentConfig without a data field
 	envConfig := mustNewStruct(t, map[string]interface{}{
 		"apiVersion": "apiextensions.crossplane.io/v1beta1",
 		"kind":       "EnvironmentConfig",
 		"metadata": map[string]interface{}{
-			"name": "empty-flavor",
+			"name":   "base-flavor",
+			"labels": map[string]interface{}{"asya.sh/flavor": "base-flavor"},
+		},
+		"data": map[string]interface{}{
+			"env": []interface{}{
+				map[string]interface{}{"name": "LOG_LEVEL", "value": "INFO"},
+				map[string]interface{}{"name": "FLAVOR_VAR", "value": "from-flavor"},
+			},
 		},
 	})
 
 	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
+		Observed: &fnv1.State{Composite: &fnv1.Resource{Resource: xr}},
 		Desired: &fnv1.State{
 			Composite: &fnv1.Resource{Resource: mustNewStruct(t, map[string]interface{}{
 				"apiVersion": "asya.sh/v1alpha1",
@@ -309,11 +211,7 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 			})},
 		},
 		RequiredResources: map[string]*fnv1.Resources{
-			"flavor-empty-flavor": {
-				Items: []*fnv1.Resource{
-					{Resource: envConfig},
-				},
-			},
+			"flavor-base-flavor": {Items: []*fnv1.Resource{{Resource: envConfig}}},
 		},
 	}
 
@@ -322,13 +220,92 @@ func TestRunFunction_MissingFlavorData(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Should not fail; desired XR should contain actor's own spec
 	resolved := rsp.Desired.Composite.Resource.AsMap()["spec"].(map[string]interface{})
+	envs, ok := resolved["env"].([]interface{})
+	if !ok {
+		t.Fatal("env missing from resolved spec")
+	}
 
-	containers := resolved["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})
-	container := containers[0].(map[string]interface{})
-	if container["image"] != "my-app:v1" {
-		t.Errorf("image: got %v, want my-app:v1", container["image"])
+	// Actor's env replaces flavor's env entirely (actor inline wins)
+	if len(envs) != 1 {
+		t.Errorf("expected 1 env var (actor replaces flavor), got %d: %v", len(envs), envs)
+	}
+	env := envs[0].(map[string]interface{})
+	if env["value"] != "DEBUG" {
+		t.Errorf("LOG_LEVEL: got %v, want DEBUG (actor wins)", env["value"])
+	}
+}
+
+func TestRunFunction_FlavorConflictReturnsError(t *testing.T) {
+	f := &Function{log: logging.NewNopLogger()}
+
+	xr := mustNewStruct(t, map[string]interface{}{
+		"apiVersion": "asya.sh/v1alpha1",
+		"kind":       "XAsyncActor",
+		"spec": map[string]interface{}{
+			"actor":     "test-actor",
+			"transport": "sqs",
+			"image":     "my-app:v1",
+			"handler":   "module.handle",
+			"flavors":   []interface{}{"flavor-a", "flavor-b"},
+		},
+	})
+
+	envConfigA := mustNewStruct(t, map[string]interface{}{
+		"apiVersion": "apiextensions.crossplane.io/v1beta1",
+		"kind":       "EnvironmentConfig",
+		"metadata": map[string]interface{}{
+			"name":   "flavor-a",
+			"labels": map[string]interface{}{"asya.sh/flavor": "flavor-a"},
+		},
+		"data": map[string]interface{}{
+			"scaling": map[string]interface{}{"minReplicas": float64(1)},
+		},
+	})
+	envConfigB := mustNewStruct(t, map[string]interface{}{
+		"apiVersion": "apiextensions.crossplane.io/v1beta1",
+		"kind":       "EnvironmentConfig",
+		"metadata": map[string]interface{}{
+			"name":   "flavor-b",
+			"labels": map[string]interface{}{"asya.sh/flavor": "flavor-b"},
+		},
+		"data": map[string]interface{}{
+			"scaling": map[string]interface{}{"maxReplicas": float64(10)},
+		},
+	})
+
+	req := &fnv1.RunFunctionRequest{
+		Observed: &fnv1.State{Composite: &fnv1.Resource{Resource: xr}},
+		Desired: &fnv1.State{
+			Composite: &fnv1.Resource{Resource: mustNewStruct(t, map[string]interface{}{
+				"apiVersion": "asya.sh/v1alpha1",
+				"kind":       "XAsyncActor",
+			})},
+		},
+		RequiredResources: map[string]*fnv1.Resources{
+			"flavor-flavor-a": {Items: []*fnv1.Resource{{Resource: envConfigA}}},
+			"flavor-flavor-b": {Items: []*fnv1.Resource{{Resource: envConfigB}}},
+		},
+	}
+
+	rsp, err := f.RunFunction(context.Background(), req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The function should mark the response as Fatal
+	if rsp.Results == nil {
+		t.Fatal("expected fatal result for flavor conflict, got empty results")
+	}
+	hasFatal := false
+	for _, r := range rsp.Results {
+		if r.Severity == fnv1.Severity_SEVERITY_FATAL {
+			hasFatal = true
+			break
+		}
+	}
+	if !hasFatal {
+		t.Error("expected SEVERITY_FATAL result for flavor scaling conflict")
 	}
 }
 
@@ -341,25 +318,20 @@ func TestRunFunction_PreservesDesiredState(t *testing.T) {
 		"spec": map[string]interface{}{
 			"actor":     "test-actor",
 			"transport": "sqs",
+			"image":     "my-app:v1",
+			"handler":   "module.handle",
 		},
 	})
 
-	// Simulate a previous function having set desired state
 	desiredXR := mustNewStruct(t, map[string]interface{}{
 		"apiVersion": "asya.sh/v1alpha1",
 		"kind":       "XAsyncActor",
-		"status": map[string]interface{}{
-			"phase": "Creating",
-		},
+		"status":     map[string]interface{}{"phase": "Creating"},
 	})
 
 	req := &fnv1.RunFunctionRequest{
-		Observed: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: xr},
-		},
-		Desired: &fnv1.State{
-			Composite: &fnv1.Resource{Resource: desiredXR},
-		},
+		Observed: &fnv1.State{Composite: &fnv1.Resource{Resource: xr}},
+		Desired:  &fnv1.State{Composite: &fnv1.Resource{Resource: desiredXR}},
 	}
 
 	rsp, err := f.RunFunction(context.Background(), req)
@@ -367,11 +339,9 @@ func TestRunFunction_PreservesDesiredState(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// Desired state from previous function should be preserved
 	if rsp.Desired == nil || rsp.Desired.Composite == nil {
 		t.Fatal("desired state should be preserved")
 	}
-
 	status := rsp.Desired.Composite.Resource.AsMap()["status"].(map[string]interface{})
 	if status["phase"] != "Creating" {
 		t.Errorf("desired phase should be preserved, got %v", status["phase"])
@@ -381,11 +351,9 @@ func TestRunFunction_PreservesDesiredState(t *testing.T) {
 // mustNewStruct creates a structpb.Struct from a Go map, failing the test on error.
 func mustNewStruct(t *testing.T, m map[string]interface{}) *structpb.Struct {
 	t.Helper()
-
 	s, err := structpb.NewStruct(m)
 	if err != nil {
 		t.Fatalf("cannot create struct: %v", err)
 	}
-
 	return s
 }

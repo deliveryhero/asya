@@ -2,7 +2,7 @@
 # This is a generic chart for deploying AsyncActors
 #
 # MODE 1: Single Actor Deployment
-#   Set name, namespace, transport, and workload
+#   Set name, namespace, transport, image, handler, and optional fields
 #
 # MODE 2: Multi-Actor Deployment
 #   Set actors list instead of individual fields
@@ -28,32 +28,21 @@ transport: ""
 actors: []
 # Example:
 # - name: actor-one
-#   workload:
-#     template:
-#       spec:
-#         containers:
-#         - name: asya-runtime
-#           image: my-image:latest
-#           env:
-#           - name: ASYA_HANDLER
-#             value: module.handler_one
+#   image: my-image:latest
+#   handler: module.handler_one
+#   env:
+#   - name: EXTRA_VAR
+#     value: my-value
 #
 # - name: actor-two
-#   transport: sqs  # Override transport for this actor
+#   transport: sqs
 #   scaling:
-#     maxReplicaCount: 20  # Override default scaling
-#   workload:
-#     template:
-#       spec:
-#         containers:
-#         - name: asya-runtime
-#           image: my-image:latest
-#           env:
-#           - name: ASYA_HANDLER
-#             value: module.handler_two
+#     maxReplicaCount: 20
+#   image: my-image:latest
+#   handler: module.handler_two
 
 # Default configuration applied to all actors
-# Each actor can override by specifying scaling/workload/healthChecks
+# Each actor can override by specifying scaling, image, handler, env, resources, or healthChecks
 default:
   # Scaling configuration (optional)
   scaling:
@@ -72,38 +61,17 @@ default:
     #       mode: QueueLength
     #       value: "5"
 
-  # Workload configuration
-  workload:
-    # Workload type (Deployment is the only supported value)
-    kind: Deployment
-
-    # Template specification for the actor pods
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          # Container image with actor handler code
-          image: my-actor:latest
-          imagePullPolicy: IfNotPresent
-
-          # Environment variables for runtime configuration
-          env:
-          # Handler module path (required)
-          - name: ASYA_HANDLER
-            value: my_module.my_handler
-
-          # Optional configuration
-          # - name: ASYA_INCLUDE_ROUTE_INFO
-          #   value: 'true'
-
-          # Resource requests and limits
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 512Mi
+  image: my-actor:latest
+  imagePullPolicy: IfNotPresent
+  handler: my_module.my_handler
+  env: []
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 
   # Health check configuration
   healthChecks:

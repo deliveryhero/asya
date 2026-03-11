@@ -42,27 +42,20 @@ spec:
       value: "us-east-1"
   {{- end }}
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.helloActor.image.repository }}:{{ .Values.helloActor.image.tag }}
-          env:
-          - name: ASYA_HANDLER
-            value: {{ .Values.helloActor.handler | quote }}
-          - name: PYTHONPATH
-            value: /app
-          volumeMounts:
-          - name: handler
-            mountPath: /app
-          resources:
-            {{- toYaml .Values.helloActor.resources | nindent 12 }}
-        volumes:
-        - name: handler
-          configMap:
-            name: hello-handler
+  image: {{ .Values.helloActor.image.repository }}:{{ .Values.helloActor.image.tag }}
+  handler: {{ .Values.helloActor.handler }}
+  env:
+  - name: PYTHONPATH
+    value: /app
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+  volumes:
+  - name: handler
+    configMap:
+      name: hello-handler
+  resources:
+    {{- toYaml .Values.helloActor.resources | nindent 4 }}
 
   scaling:
     enabled: true

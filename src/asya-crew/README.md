@@ -81,18 +81,8 @@ metadata:
   name: x-sink
 spec:
   transport: rabbitmq
-  workload:
-    type: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-actor:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "asya_crew.checkpointer.handler"
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: "/state/checkpoints"
+  image: ghcr.io/deliveryhero/asya-crew:latest
+  handler: asya_crew.sink.sink_handler
 ```
 
 See [Crossplane README](../../deploy/helm-charts/asya-crossplane/README.md) for deployment.

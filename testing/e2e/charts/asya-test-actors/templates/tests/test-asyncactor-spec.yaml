@@ -46,21 +46,29 @@ spec:
         fi
         echo "[+] Max replicas: $MAX_REPLICAS"
 
-        # Check workload kind
-        WORKLOAD_KIND=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.workload.kind}')
-        if [ "$WORKLOAD_KIND" != "Deployment" ]; then
-          echo "[-] Workload kind mismatch: expected 'Deployment', got '$WORKLOAD_KIND'"
+        # Check image is set
+        IMAGE=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.image}')
+        if [ -z "$IMAGE" ]; then
+          echo "[-] spec.image should be set"
           exit 1
         fi
-        echo "[+] Workload kind: $WORKLOAD_KIND"
+        echo "[+] Image: $IMAGE"
 
-        # Check asya-runtime container exists
-        CONTAINERS=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.workload.template.spec.containers[*].name}')
-        if ! echo "$CONTAINERS" | grep -q "asya-runtime"; then
-          echo "[-] asya-runtime container not found in spec"
+        # Check handler is set
+        HANDLER=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.handler}')
+        if [ -z "$HANDLER" ]; then
+          echo "[-] spec.handler should be set"
           exit 1
         fi
-        echo "[+] asya-runtime container found in spec"
+        echo "[+] Handler: $HANDLER"
+
+        # Check pythonExecutable defaults to python3
+        PYTHON_EXEC=$(kubectl get asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} -o jsonpath='{.spec.pythonExecutable}')
+        if [ "$PYTHON_EXEC" != "python3" ]; then
+          echo "[-] spec.pythonExecutable should default to 'python3', got '$PYTHON_EXEC'"
+          exit 1
+        fi
+        echo "[+] Python executable: $PYTHON_EXEC"
 
         echo ""
         echo "All spec validation tests passed!"

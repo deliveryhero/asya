@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../if_mutations_in_branches.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_if_mutations_in_branches_flow(payload: dict):
+async def start_if_mutations_in_branches_flow(payload: dict):
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
@@ -21,7 +21,7 @@ def start_if_mutations_in_branches_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -44,7 +44,7 @@ def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_if_mutations_in_branches_flow_line_10_if(payload: dict):
+async def router_if_mutations_in_branches_flow_line_10_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -57,7 +57,7 @@ def router_if_mutations_in_branches_flow_line_10_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_if_mutations_in_branches_flow(payload: dict):
+async def end_if_mutations_in_branches_flow(payload: dict):
     """Exitpoint for flow 'if_mutations_in_branches_flow'"""
     yield "SET", ".route.next", []
     yield payload

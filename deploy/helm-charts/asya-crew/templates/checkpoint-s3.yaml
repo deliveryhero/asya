@@ -33,25 +33,21 @@ spec:
     {{- toYaml $checkpointS3.scaling | nindent 4 }}
   {{- end }}
 
-  workload:
-    kind: {{ $checkpointS3.workload.kind }}
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ include "asya-crew.checkpoint-s3.image" . }}
-          imagePullPolicy: {{ include "asya-crew.checkpoint-s3.imagePullPolicy" . }}
-          env:
-          {{- range $key, $value := $checkpointS3.env }}
-          {{- if ne $value "" }}
-          - name: {{ $key }}
-            value: {{ $value | quote }}
-          {{- end }}
-          {{- end }}
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          {{- with $checkpointS3.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+  image: {{ include "asya-crew.checkpoint-s3.image" . }}
+  imagePullPolicy: {{ include "asya-crew.checkpoint-s3.imagePullPolicy" . }}
+  handler: asya_crew.checkpointer.handler
+  {{- $envList := list }}
+  {{- range $key, $value := $checkpointS3.env }}
+  {{- if ne $value "" }}
+  {{- $envList = append $envList (dict "name" $key "value" $value) }}
+  {{- end }}
+  {{- end }}
+  {{- if $envList }}
+  env:
+    {{- toYaml $envList | nindent 4 }}
+  {{- end }}
+  {{- with $checkpointS3.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

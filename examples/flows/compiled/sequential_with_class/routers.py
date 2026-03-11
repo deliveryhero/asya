@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../sequential_with_class.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_class_instantiation_flow(payload: dict):
+async def start_class_instantiation_flow(payload: dict):
     """Entrypoint for flow 'class_instantiation_flow'"""
     _next = []
     _next.append(resolve("sequential_with_class.DataPreprocessor.clean"))
@@ -22,7 +22,7 @@ def start_class_instantiation_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_class_instantiation_flow(payload: dict):
+async def end_class_instantiation_flow(payload: dict):
     """Exitpoint for flow 'class_instantiation_flow'"""
     yield "SET", ".route.next", []
     yield payload

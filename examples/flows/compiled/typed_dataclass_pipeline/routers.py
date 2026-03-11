@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../typed_dataclass_pipeline.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_typed_dataclass_pipeline(payload: dict):
+async def start_typed_dataclass_pipeline(payload: dict):
     """Entrypoint for flow 'typed_dataclass_pipeline'"""
     _next = []
     _next.append(resolve("extractor"))
@@ -23,7 +23,7 @@ def start_typed_dataclass_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_typed_dataclass_pipeline(payload: dict):
+async def end_typed_dataclass_pipeline(payload: dict):
     """Exitpoint for flow 'typed_dataclass_pipeline'"""
     yield "SET", ".route.next", []
     yield payload

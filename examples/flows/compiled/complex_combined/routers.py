@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../complex_combined.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_complex_combined_flow(payload: dict):
+async def start_complex_combined_flow(payload: dict):
     """Entrypoint for flow 'complex_combined_flow'"""
     _next = []
     _next.append(resolve("handler_init"))
@@ -21,7 +21,7 @@ def start_complex_combined_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_25_if(payload: dict):
+async def router_complex_combined_flow_line_25_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ def router_complex_combined_flow_line_25_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_20_if(payload: dict):
+async def router_complex_combined_flow_line_20_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,7 +47,7 @@ def router_complex_combined_flow_line_20_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_17_while_0(payload: dict):
+async def router_complex_combined_flow_line_17_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -60,7 +60,7 @@ def router_complex_combined_flow_line_17_while_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_16_seq(payload: dict):
+async def router_complex_combined_flow_line_16_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -70,7 +70,7 @@ def router_complex_combined_flow_line_16_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_30_if(payload: dict):
+async def router_complex_combined_flow_line_30_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -84,7 +84,7 @@ def router_complex_combined_flow_line_30_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_28_if(payload: dict):
+async def router_complex_combined_flow_line_28_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -97,7 +97,7 @@ def router_complex_combined_flow_line_28_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_15_if(payload: dict):
+async def router_complex_combined_flow_line_15_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -109,7 +109,7 @@ def router_complex_combined_flow_line_15_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_complex_combined_flow_line_11_if(payload: dict):
+async def router_complex_combined_flow_line_11_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -121,7 +121,7 @@ def router_complex_combined_flow_line_11_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_complex_combined_flow(payload: dict):
+async def end_complex_combined_flow(payload: dict):
     """Exitpoint for flow 'complex_combined_flow'"""
     yield "SET", ".route.next", []
     yield payload

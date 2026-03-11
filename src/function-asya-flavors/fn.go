@@ -88,7 +88,10 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 
 	flavorData := extractFlavorData(required, flavors, f.log)
 
-	merged := MergeFlavors(flavorData)
+	merged, err := MergeFlavors(flavorData)
+	if err != nil {
+		return errors.Wrapf(err, "cannot merge flavors")
+	}
 
 	// Filter infrastructure fields from flavor data
 	for k := range infrastructureFields {
@@ -97,7 +100,7 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 
 	actorSpec := extractActorInlineSpec(oxr)
 	if actorSpec != nil {
-		merged = DeepMerge(merged, actorSpec)
+		merged = ApplyActorInline(merged, actorSpec)
 	}
 
 	dxr, err := request.GetDesiredCompositeResource(req)
@@ -116,7 +119,7 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 			infraOnly[k] = v
 		}
 	}
-	completeSpec := DeepMerge(infraOnly, merged)
+	completeSpec := ApplyActorInline(infraOnly, merged)
 
 	dxr.Resource.Object["spec"] = completeSpec
 

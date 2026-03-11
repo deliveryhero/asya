@@ -24,18 +24,11 @@ spec:
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.start_test_nested_flow
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.start_test_nested_flow
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -60,18 +53,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_4_if
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_4_if
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -96,18 +82,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_6_if
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_6_if
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -132,18 +111,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_14_if
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_14_if
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -168,18 +140,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_7_seq
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_7_seq
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -204,18 +169,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_10_seq
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_10_seq
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -240,18 +198,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -276,18 +227,11 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_18_seq
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_18_seq
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -312,15 +256,8 @@ spec:
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
-          {{- include "asya-test-flows.nested-if-handler-env" . | nindent 10 }}
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
+  env:
+  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}

@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../typed_dict_pipeline.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_typeddict_pipeline(payload: dict):
+async def start_typeddict_pipeline(payload: dict):
     """Entrypoint for flow 'typeddict_pipeline'"""
     _next = []
     _next.append(resolve("parser"))
@@ -22,7 +22,7 @@ def start_typeddict_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_typeddict_pipeline_line_73_if(payload: dict):
+async def router_typeddict_pipeline_line_73_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,7 +35,7 @@ def router_typeddict_pipeline_line_73_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_typeddict_pipeline(payload: dict):
+async def end_typeddict_pipeline(payload: dict):
     """Exitpoint for flow 'typeddict_pipeline'"""
     yield "SET", ".route.next", []
     yield payload

@@ -16,18 +16,13 @@ data:
     minReplicaCount: 1
     maxReplicaCount: 3
     queueLength: 10
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          resources:
-            requests:
-              cpu: 10m
-              memory: 64Mi
-            limits:
-              cpu: 200m
-              memory: 256Mi
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
 ---
 apiVersion: apiextensions.crossplane.io/v1beta1
 kind: EnvironmentConfig
@@ -36,11 +31,6 @@ metadata:
   labels:
     asya.sh/flavor: asya-test-env-vars
 data:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: FLAVOR_EXTRA_VAR
-            value: from-flavor
+  env:
+  - name: FLAVOR_EXTRA_VAR
+    value: from-flavor

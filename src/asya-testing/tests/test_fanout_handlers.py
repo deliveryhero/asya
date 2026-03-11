@@ -119,7 +119,7 @@ async def test_fanout_router_emits_multiple_frames(run_handler, monkeypatch, loa
 
     payload = {"text": "hello world", "other_field": "preserved"}
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_42(payload),
+        routers.fanout_parallel_sectioning_line_44(payload),
         get_responses={
             ".id": "msg-001",
             ".route.next": ["actor-aggregator"],
@@ -146,7 +146,7 @@ async def test_fanout_router_sets_fan_in_headers(run_handler, monkeypatch, load_
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_42({"text": "test"}),
+        routers.fanout_parallel_sectioning_line_44({"text": "test"}),
         get_responses={".id": "origin-42", ".route.next": []},
     )
 
@@ -171,14 +171,14 @@ async def test_fanout_router_routes_specialists_to_fan_in(run_handler, monkeypat
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_42({"text": "data"}),
+        routers.fanout_parallel_sectioning_line_44({"text": "data"}),
         get_responses={".id": "x", ".route.next": []},
     )
 
     route_sets = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next"]
     # Frame 0 (parent): routes to [fan-in, aggregator] + tail
     parent_route = route_sets[0][2]
-    assert "actor-fanin_parallel_sectioning_line_42" in parent_route
+    assert "actor-fanin_parallel_sectioning_line_44" in parent_route
     assert "actor-aggregator" in parent_route
 
     # Frames 1-3 (slices): each routes to [specialist, fan-in]
@@ -189,7 +189,7 @@ async def test_fanout_router_routes_specialists_to_fan_in(run_handler, monkeypat
     ):
         actors = route_set[2]
         assert f"actor-{specialist_name}" in actors
-        assert "actor-fanin_parallel_sectioning_line_42" in actors
+        assert "actor-fanin_parallel_sectioning_line_44" in actors
 
 
 # ── map_reduce: handler stubs ─────────────────────────────────────────────────

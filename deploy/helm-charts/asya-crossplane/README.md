@@ -64,48 +64,68 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane \
 | `kubernetesProviderConfig.name` | ProviderConfig name | `in-cluster` |
 | `kubernetesProviderConfig.credentialsSource` | Credentials source | `InjectedIdentity` |
 
-## AsyncActor Workload Requirements
+## AsyncActor Spec
 
-When creating AsyncActor claims, the workload specification must follow these rules:
+The AsyncActor XRD uses a flat spec — all fields live directly under `spec` with no nesting.
+The Crossplane composition renders the full pod spec (runtime container + sidecar) from these fields.
 
-### Required Container Name
-
-The workload must contain exactly one container named `asya-runtime`:
+### Minimal actor (3 required fields)
 
 ```yaml
 spec:
-  workload:
-    template:
-      spec:
-        containers:
-          - name: asya-runtime  # Required name
-            image: my-handler:latest
-            env:
-              - name: ASYA_HANDLER
-                value: my_module.process
+  image: my-handler:latest
+  handler: my_module.process
+  transport: sqs
 ```
 
-### Forbidden: Custom Command
-
-The `asya-runtime` container must NOT define a `command` field. The command is injected by the operator/Crossplane composition:
+### Full spec
 
 ```yaml
-# INVALID - will be rejected by CEL validation
-containers:
-  - name: asya-runtime
-    image: my-handler:latest
-    command: ["/bin/sh", "-c", "custom script"]  # NOT ALLOWED
+spec:
+  image: my-handler:latest
+  imagePullPolicy: IfNotPresent
+  handler: my_module.process
+  transport: sqs
+  actor: text-processor          # queue naming; defaults to metadata.name
+
+  env:
+  - name: MODEL_PATH
+    value: /models/default
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 10
+    queueLength: 5
+
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+
+  nodeSelector:
+    gpu-type: a100
+
+  flavors: [gpu-a100]
 ```
 
-### Validation Errors
+### XRD Schema Validation
 
-If you violate these rules, you'll see clear error messages at admission time:
+The XRD validates fields at Kubernetes admission time using OpenAPI constraints:
 
 | Error | Cause | Fix |
 |-------|-------|-----|
-| `workload must have template.spec.containers` | Missing container spec | Add `template.spec.containers` |
-| `workload must have exactly one container named 'asya-runtime'` | Wrong container name | Rename container to `asya-runtime` |
-| `asya-runtime container must not define 'command'` | Custom command defined | Remove `command` field |
+| `transport in body should be one of [sqs rabbitmq pubsub]` | Invalid transport | Use one of the listed values |
+| `handler in body should be at least 1 chars long` | Empty handler | Set a non-empty handler dotted path |
+| `imagePullPolicy in body should be one of [Always IfNotPresent Never]` | Invalid pull policy | Use one of the listed values |
 
 ## Example AsyncActor Claim
 
@@ -118,7 +138,6 @@ metadata:
 spec:
   actor: text-processor
   transport: sqs
-  region: us-east-1
 
   scaling:
     enabled: true
@@ -126,34 +145,16 @@ spec:
     maxReplicaCount: 10
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-processor:v1
-            env:
-              - name: ASYA_HANDLER
-                value: processor.TextProcessor.process
-            resources:
-              requests:
-                cpu: 100m
-                memory: 256Mi
-              limits:
-                cpu: 500m
-                memory: 512Mi
+  image: my-processor:v1
+  handler: processor.TextProcessor.process
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
 ```
-
-## CEL Validation
-
-The XRD includes CEL (Common Expression Language) validations that run at Kubernetes admission time:
-
-1. **Container Structure**: `workload.template.spec.containers` must exist
-2. **Container Name**: Exactly one container must be named `asya-runtime`
-3. **No Custom Command**: The `asya-runtime` container cannot define `command`
-
-These validations provide immediate feedback when creating invalid AsyncActor claims.
 
 ## Architecture
 

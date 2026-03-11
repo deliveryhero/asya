@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../async_nested.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_review_pipeline_flow(payload: dict):
+async def start_review_pipeline_flow(payload: dict):
     """Entrypoint for flow 'review_pipeline_flow'"""
     _next = []
     _next.append(resolve("initial_review"))
@@ -21,7 +21,7 @@ def start_review_pipeline_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_review_pipeline_flow_line_13_if(payload: dict):
+async def router_review_pipeline_flow_line_13_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -34,7 +34,7 @@ def router_review_pipeline_flow_line_13_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_review_pipeline_flow(payload: dict):
+async def end_review_pipeline_flow(payload: dict):
     """Exitpoint for flow 'review_pipeline_flow'"""
     yield "SET", ".route.next", []
     yield payload

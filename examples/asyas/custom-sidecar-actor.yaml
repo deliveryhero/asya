@@ -42,17 +42,9 @@ spec:
     maxReplicaCount: 10
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: custom-runtime:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "handlers.process"
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 2Gi
+  image: custom-runtime:latest
+  handler: handlers.process
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi

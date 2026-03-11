@@ -162,7 +162,7 @@ def test_error_goes_to_dlq_when_sump_unavailable(e2e_helper, kubectl, chaos_queu
 
     # Disable KEDA scaling and scale x-sump to 0
     logger.info("Disabling KEDA scaling for x-sump")
-    kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/workload/replicas\",\"value\":0}]'")
+    kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
     kubectl.run("wait --for=delete scaledobject/x-sump -n asya-e2e --timeout=60s", check=False)

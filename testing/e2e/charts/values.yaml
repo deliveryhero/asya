@@ -306,8 +306,6 @@ crew:
       pollingInterval: 5
       cooldownPeriod: 30
       queueLength: 5
-    workload:
-      kind: Deployment
 
   x-sump:
     enabled: true
@@ -331,8 +329,6 @@ crew:
       pollingInterval: 5
       cooldownPeriod: 30
       queueLength: 5
-    workload:
-      kind: Deployment
 
 transport:
   rabbitmq:

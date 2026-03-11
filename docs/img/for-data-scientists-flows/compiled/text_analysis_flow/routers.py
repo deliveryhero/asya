@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../text_analysis_flow.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_text_analysis_flow(payload: dict):
+async def start_text_analysis_flow(payload: dict):
     """Entrypoint for flow 'text_analysis_flow'"""
     _next = []
     _next.append(resolve("clean_text"))
@@ -22,7 +22,7 @@ def start_text_analysis_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_text_analysis_flow_line_14_seq(payload: dict):
+async def router_text_analysis_flow_line_14_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ def router_text_analysis_flow_line_14_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_text_analysis_flow_line_11_if(payload: dict):
+async def router_text_analysis_flow_line_11_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,7 +47,7 @@ def router_text_analysis_flow_line_11_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_text_analysis_flow_line_18_seq(payload: dict):
+async def router_text_analysis_flow_line_18_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -56,7 +56,7 @@ def router_text_analysis_flow_line_18_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_text_analysis_flow_line_9_if(payload: dict):
+async def router_text_analysis_flow_line_9_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -70,7 +70,7 @@ def router_text_analysis_flow_line_9_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_text_analysis_flow(payload: dict):
+async def end_text_analysis_flow(payload: dict):
     """Exitpoint for flow 'text_analysis_flow'"""
     yield "SET", ".route.next", []
     yield payload

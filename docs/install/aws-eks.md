@@ -262,30 +262,14 @@ Suppose, we want to save all messages to the bucket `s3://asya-results-bucket`. 
 x-sink:
   enabled: true
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 ```bash
@@ -310,16 +294,8 @@ spec:
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 50
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-actor:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "handler.process"
+  image: my-actor:v1
+  handler: handler.process
 ```
 
 ```bash

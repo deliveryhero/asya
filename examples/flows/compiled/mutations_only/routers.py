@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../mutations_only.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_mutations_only_flow(payload: dict):
+async def start_mutations_only_flow(payload: dict):
     """Entrypoint for flow 'mutations_only_flow'"""
     _next = []
     p = payload
@@ -25,7 +25,7 @@ def start_mutations_only_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def end_mutations_only_flow(payload: dict):
+async def end_mutations_only_flow(payload: dict):
     """Exitpoint for flow 'mutations_only_flow'"""
     yield "SET", ".route.next", []
     yield payload

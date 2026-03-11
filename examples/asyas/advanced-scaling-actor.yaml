@@ -24,24 +24,13 @@ spec:
       metricType: "AverageValue"
       restoreToOriginalReplicaCount: false
 
-  workload:
-    kind: Deployment
-    template:
-      metadata:
-        labels:
-          app: advanced-scaling-actor
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: "handlers.process"
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 2Gi
-            requests:
-              cpu: 500m
-              memory: 512Mi
+  image: python:3.13-slim
+  imagePullPolicy: IfNotPresent
+  handler: handlers.process
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi
+    requests:
+      cpu: 500m
+      memory: 512Mi
