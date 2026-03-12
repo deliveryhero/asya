@@ -1,28 +1,31 @@
 graph LR
     %% Left Zone: Runner
     subgraph Runner ["Runner Script"]
-    RS["<b>Batch Runner</b><br/>(cron / manual)<br/>Runs N in parallel"]
+        RS["<b>Batch Runner</b><br/>(cron / manual)<br/>Runs N in parallel"]
     end
 
     %% Middle Zone: Fan out to Parallel Pipelines
     subgraph KFP ["Vertex AI / KFP Pipelines (Parallel)"]
-    direction TB
-    P1["<b>Pipeline Instance 1</b><br/>fetch → enhance → GPU"]
-    P2["<b>Pipeline Instance 2</b><br/>fetch → enhance → GPU"]
-    P_dots["..."]
-    PN["<b>Pipeline Instance N</b><br/>fetch → enhance → GPU"]
+        direction TB
+        P1["<b>Pipeline Instance 1</b><br/>fetch → enhance → GPU"]
+        P2["<b>Pipeline Instance 2</b><br/>fetch → enhance → GPU"]
+        P_dots["..."]
+        PN["<b>Pipeline Instance N</b><br/>fetch → enhance → GPU"]
 
-    Logic["<b>Resilience Logic</b><br/><i>@retry, ThreadPool, sleep(backoff)</i>"]
+        Logic["<b>Resilience Logic</b><br/><i>@retry, ThreadPool, sleep(backoff)</i>"]
     end
 
     %% Right Zone: Backend
     subgraph Backend ["Backend"]
-    BE["<b>sync FastAPI Server</b><br/>+ PostgreSQL"]
+        direction TB
+        BE["<b>FastAPI<br/>Server</b>"]
+        %% DB[("<b>PostgreSQL</b>")]
+        %% BE <--> DB
     end
 
     %% External AI block
     subgraph External ["External Services"]
-    AI["<b>AI APIs</b><br/>(LLM, Image Service, etc)<br/>⚡ 429 Rate Limits"]
+        AI["<b>AI APIs</b><br/>(LLM, ...)<br/>⚡ 429 Rate Limits"]
     end
 
     %% Connections
@@ -45,3 +48,4 @@ graph LR
     style Logic fill:#ffcdd2,stroke:#b71c1c,stroke-width:1px,stroke-dasharray: 5 5
     style Backend fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
     style BE fill:#c8e6c9,stroke:#2e7d32
+    %% style DB fill:#bbdefb,stroke:#1565c0,stroke-width:2px

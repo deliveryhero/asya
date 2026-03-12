@@ -17,7 +17,10 @@ graph LR
     end
 
     subgraph Backend ["Deployment C: Backend"]
-        BE["<b>FastAPI Server</b><br/>(Sync) + PostgreSQL"]
+        direction TB
+        BE["<b>FastAPI<br/>Server</b>"]
+        %% DB[("<b>PostgreSQL</b>")]
+        %% BE <--> DB
     end
 
     subgraph GPU_Cluster ["Deployment B: Async GPU Cluster"]
@@ -53,6 +56,7 @@ graph LR
     style Logic fill:#ffcdd2,stroke:#b71c1c,stroke-width:1px,stroke-dasharray: 5 5
     style Backend fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
     style BE fill:#c8e6c9,stroke:#2e7d32
+    %% style DB fill:#bbdefb,stroke:#1565c0,stroke-width:2px
     %% New in this slide:
     style GPU_Cluster fill:#e8eaf6,stroke:#283593,stroke-width:2px
     style GPU fill:#c5cae9,stroke:#1a237e
