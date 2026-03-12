@@ -17,7 +17,7 @@ graph LR
 
     %% Right Zone: Backend
     subgraph Backend ["Backend"]
-    BE["<b>FastAPI Server</b><br/>+ PubSub<br/>+ PostgreSQL"]
+    BE["<b>sync FastAPI Server</b><br/>+ PostgreSQL"]
     end
 
     %% External AI block
@@ -41,6 +41,7 @@ graph LR
     %% Styling
     style AI fill:#fff3e0,stroke:#ff9800,stroke-width:2px
     style RS fill:#e1f5fe,stroke:#01579b
-    style KFP fill:#f3e5f5,stroke:#4a148c
-    style BE fill:#e8f5e9,stroke:#1b5e20
-    style P_dots fill:none,stroke:none
+    style KFP fill:#ffebee,stroke:#c62828,stroke-width:2px
+    style Logic fill:#ffcdd2,stroke:#b71c1c,stroke-width:1px,stroke-dasharray: 5 5
+    style Backend fill:#e8f5e9,stroke:#1b5e20,stroke-width:2px
+    style BE fill:#c8e6c9,stroke:#2e7d32
