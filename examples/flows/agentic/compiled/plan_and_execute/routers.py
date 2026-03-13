@@ -41,9 +41,8 @@ async def router_plan_and_execute_line_55_if(payload: dict):
     p['current_step'] += 1
     if p['current_step'] < len(p.get('plan', [])):
         _next.append(resolve("re_planner"))
-        _next.append(resolve("router_plan_and_execute_line_50_while_0"))
     else:
-        _next.append(resolve("router_plan_and_execute_line_50_while_0"))
+        pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload

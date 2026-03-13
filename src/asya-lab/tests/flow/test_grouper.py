@@ -1107,12 +1107,13 @@ class TestWhileLoopGrouping:
         stop_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
         assert "finalize" in stop_cond.true_branch_actors
 
-    def test_if_at_end_of_while_body_routes_back_to_condition(self):
-        """When an if block is the last statement in a while body, both branches
-        must route back to the while condition after the if completes.
+    def test_if_at_end_of_while_body_convergence_is_empty(self):
+        """When an if block is the last statement in a while body, its
+        convergence resolves to empty — the loop back-edge is handled by
+        the parent chain in the while condition router, not by the if router.
 
-        Regression test for: plan_and_execute flow where `await re_planner(p)`
-        inside the true branch had no outgoing edge (missing loop back-edge).
+        The DOT visualization must still show back-edges from inner actors
+        (tested in test_dotgen.py).
         """
         ops = [
             WhileLoop(
@@ -1136,48 +1137,17 @@ class TestWhileLoopGrouping:
         routers = grouper.group()
 
         while_cond = next(r for r in routers if r.condition is not None and "while" in r.name)
-
-        # The if router's true branch must include re_planner followed by
-        # the while condition (loop back-edge)
         if_router = next(r for r in routers if r.condition is not None and "_if" in r.name)
+
+        # The if router's true branch has re_planner only — the loop back
+        # is provided by the while condition's chain, not the if router
         assert "re_planner" in if_router.true_branch_actors
-        assert while_cond.name in if_router.true_branch_actors
+        assert while_cond.name not in if_router.true_branch_actors
 
-        # The if router's false branch (pass) must also route back to the
-        # while condition
-        assert while_cond.name in if_router.false_branch_actors
-
-    def test_standalone_if_at_end_of_while_body_routes_back(self):
-        """Same as above but without a leading mutation before the if."""
-        ops = [
-            WhileLoop(
-                lineno=3,
-                test='p["i"] < 10',
-                body=[
-                    ActorCall(lineno=4, name="handler"),
-                    Condition(
-                        lineno=5,
-                        test='p["flag"]',
-                        true_branch=[ActorCall(lineno=6, name="adjuster")],
-                        false_branch=[],
-                    ),
-                ],
-            ),
-            ActorCall(lineno=8, name="finalize"),
-            Return(lineno=9),
-        ]
-        grouper = OperationGrouper("flow", ops)
-        routers = grouper.group()
-
-        while_cond = next(r for r in routers if r.condition is not None and "while" in r.name)
-        if_router = next(r for r in routers if r.condition is not None and "_if" in r.name)
-
-        # True branch: adjuster then loop back to while condition
-        assert "adjuster" in if_router.true_branch_actors
-        assert while_cond.name in if_router.true_branch_actors
-
-        # False branch (pass): loop back to while condition
-        assert while_cond.name in if_router.false_branch_actors
+        # The while condition router's true branch includes the if router
+        # AND the self-reference (loop back)
+        assert if_router.name in while_cond.true_branch_actors
+        assert while_cond.true_branch_actors[-1] == while_cond.name
 
 
 class TestMaxIterationsGuard:
