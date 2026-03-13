@@ -441,6 +441,30 @@ class TestAsyncioGatherFanOut:
         assert fanout.actor_calls[0][0] == "agent"
         assert fanout.iter_var == "t"
 
+    def test_parse_gather_with_starred_list_comprehension(self):
+        """asyncio.gather(*[comprehension]) is equivalent to asyncio.gather(*(genexp))."""
+        source = textwrap.dedent("""
+            async def flow(state: dict) -> dict:
+                state["results"] = list(
+                    await asyncio.gather(*[processor(chunk) for chunk in state["chunks"]])
+                )
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/results"
+        assert fanout.pattern == "gather"
+        assert len(fanout.actor_calls) == 1
+        assert fanout.actor_calls[0][0] == "processor"
+        assert fanout.actor_calls[0][1] == "chunk"
+        assert fanout.iter_var == "chunk"
+        assert fanout.iterable is not None
+        assert contains_with_either_quotes(fanout.iterable, 'p["chunks"]')
+
 
 class TestFanOutTargetKey:
     """Test aggregation_key extraction from assignment target."""
