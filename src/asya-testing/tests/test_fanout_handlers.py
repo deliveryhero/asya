@@ -263,7 +263,7 @@ async def test_map_reduce_fanout_emits_n_plus_one_frames(run_handler, monkeypatc
     payload = {"document": "...", "chunks": chunks}
 
     result = await run_handler(
-        routers.fanout_map_reduce_line_49(payload),
+        routers.fanout_map_reduce_line_51(payload),
         get_responses={".id": "msg-map-1", ".route.next": []},
     )
 
@@ -278,7 +278,7 @@ async def test_map_reduce_fanout_fan_in_metadata(run_handler, monkeypatch, load_
 
     chunks = [{"content": f"c{i}", "index": i} for i in range(3)]
     result = await run_handler(
-        routers.fanout_map_reduce_line_49({"chunks": chunks}),
+        routers.fanout_map_reduce_line_51({"chunks": chunks}),
         get_responses={".id": "map-orig", ".route.next": []},
     )
 
