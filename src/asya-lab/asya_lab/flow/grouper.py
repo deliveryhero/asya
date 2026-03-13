@@ -187,6 +187,8 @@ class OperationGrouper:
                             loop_exit_label=loop_exit_label,
                         )
 
+                        if not continuation_actors and loop_back_label:
+                            continuation_actors = [loop_back_label]
                         self.convergence_map[convergence_label] = continuation_actors
 
                         router = Router(
@@ -315,6 +317,8 @@ class OperationGrouper:
                     loop_exit_label=loop_exit_label,
                 )
 
+                if not continuation_actors and loop_back_label:
+                    continuation_actors = [loop_back_label]
                 self.convergence_map[convergence_label] = continuation_actors
 
                 router = Router(
