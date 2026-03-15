@@ -1,8 +1,9 @@
 """Tests for asya init scaffolding."""
 
 from pathlib import Path
+from unittest.mock import patch
 
-from asya_lab.init import init_project
+from asya_lab.init import detect_transport, init_project
 
 
 class TestInitProject:
@@ -31,29 +32,25 @@ class TestInitProject:
         rules = tmp_path / ".asya" / "config.compiler.rules.yaml"
         assert rules.exists()
 
-    def test_creates_manifests_dir(self, tmp_path: Path) -> None:
+    def test_no_manifests_dir(self, tmp_path: Path) -> None:
         init_project(tmp_path)
         manifests = tmp_path / ".asya" / "manifests"
-        assert manifests.is_dir()
+        assert not manifests.exists()
 
-    def test_updates_gitignore(self, tmp_path: Path) -> None:
+    def test_no_gitignore(self, tmp_path: Path) -> None:
         init_project(tmp_path)
         gitignore = tmp_path / ".gitignore"
-        assert gitignore.exists()
-        assert ".env.secret" in gitignore.read_text()
+        assert not gitignore.exists()
 
-    def test_gitignore_no_duplicate(self, tmp_path: Path) -> None:
-        (tmp_path / ".gitignore").write_text(".env.secret\n")
-        init_project(tmp_path)
-        content = (tmp_path / ".gitignore").read_text()
-        assert content.count(".env.secret") == 1
+    def test_transport_in_config(self, tmp_path: Path) -> None:
+        init_project(tmp_path, transport="rabbitmq")
+        config = tmp_path / ".asya" / "config.yaml"
+        assert "transport: rabbitmq" in config.read_text()
 
-    def test_gitignore_appends_to_existing(self, tmp_path: Path) -> None:
-        (tmp_path / ".gitignore").write_text("*.pyc\n")
+    def test_default_transport_is_sqs(self, tmp_path: Path) -> None:
         init_project(tmp_path)
-        content = (tmp_path / ".gitignore").read_text()
-        assert "*.pyc" in content
-        assert ".env.secret" in content
+        config = tmp_path / ".asya" / "config.yaml"
+        assert "transport: sqs" in config.read_text()
 
 
 class TestInitIdempotent:
@@ -82,7 +79,6 @@ class TestInitIdempotent:
         assert (asya_dir / "compiler" / "templates" / "actor.yaml").exists()
         assert (asya_dir / "compiler" / "templates" / "router.yaml").exists()
         assert (asya_dir / "config.compiler.rules.yaml").exists()
-        assert (asya_dir / "manifests").is_dir()
 
 
 class TestInitConfig:
@@ -95,3 +91,33 @@ class TestInitConfig:
         cfg = AsyaProject.from_dir(tmp_path).cfg
         assert cfg.compiler.image_registry == "ghcr.io/test"
         assert cfg.templates.transport == "sqs"
+
+
+class TestDetectTransport:
+    def test_returns_transport_on_single_match(self) -> None:
+        with patch("asya_lab.init.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "sqs"
+            assert detect_transport() == "sqs"
+
+    def test_returns_none_on_multiple_transports(self) -> None:
+        with patch("asya_lab.init.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "sqs rabbitmq"
+            assert detect_transport() is None
+
+    def test_returns_none_on_kubectl_failure(self) -> None:
+        with patch("asya_lab.init.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 1
+            mock_run.return_value.stdout = ""
+            assert detect_transport() is None
+
+    def test_returns_none_when_kubectl_missing(self) -> None:
+        with patch("asya_lab.init.subprocess.run", side_effect=FileNotFoundError):
+            assert detect_transport() is None
+
+    def test_returns_none_on_empty_output(self) -> None:
+        with patch("asya_lab.init.subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = ""
+            assert detect_transport() is None

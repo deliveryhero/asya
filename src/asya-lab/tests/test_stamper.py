@@ -89,6 +89,9 @@ def project():
             "compiler": {
                 "image_registry": "ghcr.io/test-org",
             },
+            "build": [
+                {"module": "*", "image": "ghcr.io/test-org/*:latest"},
+            ],
         }
     )
 
@@ -105,6 +108,9 @@ def project_with_contexts():
             "compiler": {
                 "image_registry": "ghcr.io/test-org",
             },
+            "build": [
+                {"module": "*", "image": "ghcr.io/test-org/*:latest"},
+            ],
             "contexts": {
                 "stg": {"kubecontext": "stg-cluster"},
                 "prod": {"kubecontext": "prod-cluster"},
