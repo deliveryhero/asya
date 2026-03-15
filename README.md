@@ -1,11 +1,3 @@
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
-    <img src="./docs/img/logo_black_w_borders.png" alt="Asya" width="320">
-  </picture>
-</p>
-
-
 🎭 is a **queue-based actor framework** for orchestrating AI/ML workloads on Kubernetes with:
 - **Independent scaling**: Each actor scales 0→N based on its own queue depth
 - **Zero infrastructure code**: Pure Python functions, no dependencies for queues/routing/retries
@@ -17,7 +9,12 @@
 <p align="left">
 📘 <a href="docs/">Documentation</a> • 🚀 <a href="#quick-start">Quick Start</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 💡 <a href="docs/concepts.md">Concepts</a>
 <br/><br/>
-<img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
+<picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
+    <img src="./docs/img/logo_black_w_borders.png" alt="Asya" width="120"/>
+  </picture>
+  &nbsp;&nbsp;
+  <img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
 </p>
 
 Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
