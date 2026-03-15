@@ -15,7 +15,7 @@ import contextlib
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_order_processing(payload: dict):
+async def start_order_processing(payload: dict):
     """Entrypoint for flow 'order_processing'"""
     _next = []
     p = payload
@@ -24,7 +24,7 @@ def start_order_processing(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_order_processing_line_29_seq(payload: dict):
+async def router_order_processing_line_29_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ def router_order_processing_line_29_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_32_seq(payload: dict):
+async def router_order_processing_line_32_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -43,7 +43,7 @@ def router_order_processing_line_32_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_26_if(payload: dict):
+async def router_order_processing_line_26_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -67,7 +67,7 @@ def router_order_processing_line_23_with(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_order_processing(payload: dict):
+async def end_order_processing(payload: dict):
     """Exitpoint for flow 'order_processing'"""
     yield "SET", ".route.next", []
     yield payload

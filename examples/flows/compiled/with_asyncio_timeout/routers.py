@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../with_asyncio_timeout.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_document_pipeline(payload: dict):
+async def start_document_pipeline(payload: dict):
     """Entrypoint for flow 'document_pipeline'"""
     _next = []
     p = payload
@@ -24,7 +24,7 @@ def start_document_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_document_pipeline_line_24_seq(payload: dict):
+async def router_document_pipeline_line_24_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ def router_document_pipeline_line_24_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_document_pipeline_line_20_if(payload: dict):
+async def router_document_pipeline_line_20_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,7 +48,7 @@ def router_document_pipeline_line_20_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_document_pipeline(payload: dict):
+async def end_document_pipeline(payload: dict):
     """Exitpoint for flow 'document_pipeline'"""
     yield "SET", ".route.next", []
     yield payload
