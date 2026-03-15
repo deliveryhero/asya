@@ -18,7 +18,9 @@ from asya_lab.flow.ir import (
     Return,
     TryExcept,
     WhileLoop,
+    WithBlock,
 )
+from asya_lab.flow.rules import CompilerRule, CompilerRules
 
 
 # Parameter names accepted in flow function signatures.
@@ -47,10 +49,17 @@ class _ParamNormalizer(ast.NodeTransformer):
 
 
 class FlowParser:
-    def __init__(self, source_code: str, filename: str, module_path: str = ""):
+    def __init__(
+        self,
+        source_code: str,
+        filename: str,
+        module_path: str = "",
+        rules: CompilerRules | None = None,
+    ):
         self.source_code = source_code
         self.filename = filename
         self.module_path = module_path
+        self.rules: CompilerRules = rules if rules is not None else CompilerRules()
         self.flow_name: str | None = None
         self.is_async: bool = False  # Whether flow function is async def
         self.instances: dict[str, str] = {}  # Map instance variable to class name
@@ -58,6 +67,7 @@ class FlowParser:
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
+        self.extracted_configs: list[dict] = []  # Config extractions from treat-as:config rules
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -119,6 +129,8 @@ class FlowParser:
             return self._parse_while(stmt)
         elif isinstance(stmt, ast.Try):
             return self._parse_try(stmt)
+        elif isinstance(stmt, ast.With | ast.AsyncWith):
+            return self._parse_with(stmt)
         elif isinstance(stmt, ast.For):
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: 'for' loops are not supported. Use 'while' loops instead"
@@ -340,6 +352,102 @@ class FlowParser:
             self._try_depth -= 1
 
         return [TryExcept(lineno=stmt.lineno, body=body, handlers=handlers, finally_body=finally_body)]
+
+    def _parse_with(self, stmt: ast.With | ast.AsyncWith) -> list[IROperation]:
+        is_async = isinstance(stmt, ast.AsyncWith)
+
+        # Resolve each withitem to a symbol and look up its rule
+        symbols: list[str] = []
+        for item in stmt.items:
+            symbols.append(self._resolve_ctx_symbol(item.context_expr))
+
+        rules = [self.rules.lookup(sym) for sym in symbols]
+
+        # Reject unknown context managers (no matching rule)
+        for sym, rule in zip(symbols, rules, strict=True):
+            if rule is None:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Unsupported context manager: {sym!r}. "
+                    f"No compiler rule found. Add a rule for this symbol or annotate with "
+                    f"# asya: treat-as-inline to keep it as-is."
+                )
+
+        # All treat-as values must agree
+        treat_as_values = {r.treat_as for r in rules}  # type: ignore[union-attr]
+        if len(treat_as_values) > 1:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: mixed treat-as values in a single 'with' statement "
+                f"are not supported: {sorted(treat_as_values)}. "
+                f"Use separate 'with' statements for context managers with different treat-as."
+            )
+
+        treat_as = next(iter(treat_as_values))
+
+        if treat_as == "config":
+            # Extract args from each context manager and record them
+            for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
+                if rule is None:
+                    raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
+                extracted_args = self._extract_ctx_args(item.context_expr, rule)
+                self.extracted_configs.append({"symbol": sym, "args": extracted_args})
+            # Strip the with wrapper; return body ops directly
+            return self._parse_body(stmt.body)
+
+        elif treat_as == "inline":
+            # Build the expression string from all withitems
+            expr_parts = []
+            imports: list[str] = []
+            for item, rule in zip(stmt.items, rules, strict=True):
+                if rule is None:  # pragma: no cover — guaranteed by earlier None-check loop
+                    raise FlowCompileError(f"No compiler rule for context manager (line {stmt.lineno})")
+                part = ast.unparse(item.context_expr)
+                if item.optional_vars is not None:
+                    part += f" as {ast.unparse(item.optional_vars)}"
+                expr_parts.append(part)
+                imports.extend(rule.imports)
+            expr = ", ".join(expr_parts)
+
+            body = self._parse_body(stmt.body)
+            return [WithBlock(lineno=stmt.lineno, expr=expr, is_async=is_async, body=body, imports=imports)]
+
+        else:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Unknown treat-as value {treat_as!r} for context manager"
+            )
+
+    def _resolve_ctx_symbol(self, ctx_expr: ast.expr) -> str:
+        """Extract the qualified symbol name from a context manager expression."""
+        if isinstance(ctx_expr, ast.Call):
+            return ast.unparse(ctx_expr.func)
+        return ast.unparse(ctx_expr)
+
+    def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
+        """Extract positional and keyword args from a context manager call.
+
+        Maps argument values to their parameter names using the rule's extract config.
+        Returns a dict of {param_name: value_str}.
+        """
+        if not isinstance(ctx_expr, ast.Call) or not rule.extract:
+            return {}
+
+        call = ctx_expr
+        extracted: dict[str, str] = {}
+
+        # Get ordered param names from the rule's extract config
+        param_names = list(rule.extract.keys())
+
+        # Map positional args by position
+        for i, arg in enumerate(call.args):
+            if i < len(param_names):
+                param = param_names[i]
+                extracted[param] = ast.unparse(arg)
+
+        # Map keyword args by name
+        for kw in call.keywords:
+            if kw.arg and kw.arg in rule.extract:
+                extracted[kw.arg] = ast.unparse(kw.value)
+
+        return extracted
 
     def _parse_raise(self, stmt: ast.Raise) -> list[IROperation]:
         if self._except_depth == 0:

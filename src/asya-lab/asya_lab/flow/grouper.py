@@ -16,6 +16,7 @@ from asya_lab.flow.ir import (
     Return,
     TryExcept,
     WhileLoop,
+    WithBlock,
 )
 
 
@@ -51,6 +52,9 @@ class Router:
     reraise_name: str | None = None  # except_dispatch: name of reraise router
     fan_out_op: FanOutCall | None = None  # set when is_fan_out == True
     is_fan_out: bool = False
+    with_expr: str | None = None  # expression for inline context manager
+    is_async_with: bool = False  # whether it's `async with`
+    with_imports: list[str] = field(default_factory=list)  # import statements for inline ctx manager
 
 
 class OperationGrouper:
@@ -369,6 +373,20 @@ class OperationGrouper:
                 fanout_actors = self._process_fan_out(op, continuation)
                 return [*result, *fanout_actors]
 
+            elif isinstance(op, WithBlock):
+                i += 1
+
+                continuation = self._process_operations(
+                    operations[i:],
+                    convergence_stack,
+                    is_top_level=is_top_level,
+                    loop_back_label=loop_back_label,
+                    loop_exit_label=loop_exit_label,
+                )
+
+                with_actors = self._process_with_block(op, continuation)
+                return [*result, *with_actors]
+
             elif isinstance(op, Raise):
                 # Re-raise: route to end (reraise router handles the actual raise)
                 return [*result, f"end_{self.flow_name}"]
@@ -638,6 +656,34 @@ class OperationGrouper:
             self.routers.append(reraise_router)
 
         return [try_enter_name]
+
+    def _process_with_block(
+        self,
+        block: WithBlock,
+        continuation: list[str],
+    ) -> list[str]:
+        """Process an inline WithBlock IR node into a with-entry router.
+
+        The with-entry router wraps its routing decisions in a ``with expr:``
+        block. Body operations are processed normally to produce the body actors.
+        After the body actors finish, control flows to continuation.
+        """
+        router_name = f"router_{self.flow_name}_line_{block.lineno}_with"
+
+        # Process body ops to determine which actors to route to
+        body_actors = self._process_operations(block.body, convergence_stack=[])
+
+        router = Router(
+            name=router_name,
+            lineno=block.lineno,
+            with_expr=block.expr,
+            is_async_with=block.is_async,
+            with_imports=list(block.imports),
+            true_branch_actors=[*body_actors, *continuation],
+        )
+        self.routers.append(router)
+
+        return [router_name]
 
     def _process_branch(self, branch: list[IROperation], convergence_stack: list[str]) -> list[str]:
         return self._process_operations(branch, convergence_stack)

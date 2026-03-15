@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -73,6 +73,14 @@ class FanOutCall(IROperation):
     actor_calls: list[tuple[str, str]]  # (actor_name, payload_expr) pairs
     iter_var: str | None = None  # Loop variable for comprehension/gather-generator
     iterable: str | None = None  # Iterable expression for comprehension/gather-generator
+
+
+@dataclass
+class WithBlock(IROperation):
+    expr: str  # e.g., "custom_ctx()" or "asyncio.timeout(30)"
+    is_async: bool
+    body: list[IROperation]
+    imports: list[str] = field(default_factory=list)  # import statements needed at module level
 
 
 @dataclass
