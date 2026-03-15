@@ -1,27 +1,22 @@
 # Usage: Writing and Deploying Actors
 
-This guide covers writing handlers, deploying actors, and building multi-step flows with the Flow DSL.
+Two files, two owners: a Python handler written by your team, and an `AsyncActor` CRD managed by your platform team. Asya injects the sidecar, creates the queue, and wires KEDA autoscaling — your code stays pure Python.
 
 **Setup first**: If you haven't installed Asya yet, start with the [Setup guide](README.md).
 
 **Core pattern**: Enrich the payload — don't replace it. Each actor adds its results to the shared dict that flows through the pipeline. See the [payload enrichment pattern](../architecture/protocols/actor-actor.md#payload-enrichment-pattern) for details.
 
-Write a handler function or class:
-
 ```python
 # handler.py
 def process(payload: dict) -> dict:
-    # Your logic here <...>
     result = your_ml_model.predict(payload["input"])
-
-    # Recommendation: enrich payload, don't replace it
     return {
-        **payload,            # Keep existing data
-        "prediction": result  # Add your results
+        **payload,            # keep existing data
+        "prediction": result  # add your results
     }
 ```
 
-**That's it.** No infrastructure code, no decorators, no pip dependencies for queues/routing.
+No infrastructure code, no decorators, no pip dependencies for queues or routing.
 
 
 ### Function Handler
@@ -145,7 +140,7 @@ docker build -t my-processor:v1 .
 
 Platform team provides cluster access. Your code will be deployed as `AsyncActor` CRD.
 
-⚠️ We're planning to support via a CLI tool to easy deploy, debug and maybe even build actors to Kubernetes.
+Use `asya build` to build actor images and `asya k` to deploy them to a Kubernetes cluster:
 
 <details>
 <summary>Click to see AsyncActor YAML (usually managed by platform team)</summary>
@@ -541,7 +536,7 @@ docker build -t my-flow-routers:v1 .
 
 **Step 2: Deploy Router Actors**
 
-⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-lab` tool.
+Use `asya k apply` to deploy generated router actors to your cluster.
 
 Deploy each generated router as an AsyncActor. **IMPORTANT**: Set handler mappings in environment variables:
 
@@ -799,7 +794,9 @@ kubectl logs -f deploy/text-processor -c asya-sidecar
 
 ## Next Steps
 
-- Read [Core Concepts](../concepts.md)
-- See [Architecture Overview](../architecture/README.md)
-- Explore [Example Actors](https://github.com/deliveryhero/asya/tree/main/examples)
-- Learn about [Message Protocol](../architecture/protocols/actor-actor.md)
+- [Core Concepts](../concepts.md) — envelope, actor, sidecar, crew, flow DSL
+- [Motivation](../motivation.md) — why choreography over orchestration
+- [Architecture Overview](../architecture/README.md) — component deep-dives
+- [Actor-Actor Protocol](../architecture/protocols/actor-actor.md) — envelope spec and payload enrichment
+- [Operate: Scaling](../operate/scaling.md) — KEDA config, GPU workloads, cost optimization
+- [Examples](https://github.com/deliveryhero/asya/tree/main/examples) — ready-to-run actors and flows
