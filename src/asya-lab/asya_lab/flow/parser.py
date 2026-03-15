@@ -398,7 +398,8 @@ class FlowParser:
             expr_parts = []
             imports: list[str] = []
             for item, rule in zip(stmt.items, rules, strict=True):
-                assert rule is not None  # guaranteed by earlier None-check loop
+                if rule is None:  # pragma: no cover — guaranteed by earlier None-check loop
+                    raise FlowCompileError(f"No compiler rule for context manager (line {stmt.lineno})")
                 part = ast.unparse(item.context_expr)
                 if item.optional_vars is not None:
                     part += f" as {ast.unparse(item.optional_vars)}"
