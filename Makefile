@@ -156,9 +156,9 @@ docs-build: ## Build docs to site/ directory
 	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
 	uv run mkdocs build
 
-docs-preview: docs-build ## Preview full site locally (landing page + docs) at http://127.0.0.1:8080
+docs-preview: docs-build ## Preview full site locally (landing page + docs) at http://127.0.0.1:9090
 	@rm -rf /tmp/asya-preview && mkdir -p /tmp/asya-preview
 	@cp website/index.html /tmp/asya-preview/
 	@ln -sf $(CURDIR)/site /tmp/asya-preview/docs
-	@echo "[.] Preview at http://127.0.0.1:8080 (Ctrl+C to stop)"
-	@python3 -m http.server 8080 --bind 0.0.0.0 --directory /tmp/asya-preview
+	@echo "[.] Preview at http://127.0.0.1:9090 (Ctrl+C to stop)"
+	@python3 -m http.server 9090 --bind 0.0.0.0 --directory /tmp/asya-preview
