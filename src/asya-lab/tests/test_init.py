@@ -1,9 +1,8 @@
 """Tests for asya init scaffolding."""
 
 from pathlib import Path
-from unittest.mock import patch
 
-from asya_lab.init import detect_transport, init_project
+from asya_lab.init import init_project
 
 
 class TestInitProject:
@@ -91,33 +90,3 @@ class TestInitConfig:
         cfg = AsyaProject.from_dir(tmp_path).cfg
         assert cfg.compiler.image_registry == "ghcr.io/test"
         assert cfg.templates.transport == "sqs"
-
-
-class TestDetectTransport:
-    def test_returns_transport_on_single_match(self) -> None:
-        with patch("asya_lab.init.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = "sqs"
-            assert detect_transport() == "sqs"
-
-    def test_returns_none_on_multiple_transports(self) -> None:
-        with patch("asya_lab.init.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = "sqs rabbitmq"
-            assert detect_transport() is None
-
-    def test_returns_none_on_kubectl_failure(self) -> None:
-        with patch("asya_lab.init.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 1
-            mock_run.return_value.stdout = ""
-            assert detect_transport() is None
-
-    def test_returns_none_when_kubectl_missing(self) -> None:
-        with patch("asya_lab.init.subprocess.run", side_effect=FileNotFoundError):
-            assert detect_transport() is None
-
-    def test_returns_none_on_empty_output(self) -> None:
-        with patch("asya_lab.init.subprocess.run") as mock_run:
-            mock_run.return_value.returncode = 0
-            mock_run.return_value.stdout = ""
-            assert detect_transport() is None

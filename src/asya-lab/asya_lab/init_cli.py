@@ -7,7 +7,7 @@ from pathlib import Path
 
 import click
 
-from asya_lab.init import _KNOWN_TRANSPORTS, detect_transport, init_project
+from asya_lab.init import _KNOWN_TRANSPORTS, init_project
 
 
 def _prompt_image_registry() -> str:
@@ -21,27 +21,13 @@ def _prompt_image_registry() -> str:
 def _prompt_transport() -> str:
     choices = list(_KNOWN_TRANSPORTS)
     try:
-        value = click.prompt(
+        return click.prompt(
             "Transport",
             type=click.Choice(choices, case_sensitive=False),
             default="sqs",
         )
-        return value
     except (EOFError, KeyboardInterrupt):
         return "sqs"
-
-
-def _resolve_transport(explicit: str | None) -> str:
-    """Resolve transport: explicit flag > cluster detection > interactive prompt."""
-    if explicit:
-        return explicit
-
-    detected = detect_transport()
-    if detected:
-        click.echo(f"[.] Detected transport from cluster: {detected}")
-        return detected
-
-    return _prompt_transport()
 
 
 @click.command()
@@ -50,7 +36,7 @@ def _resolve_transport(explicit: str | None) -> str:
     "--transport",
     default=None,
     type=click.Choice(list(_KNOWN_TRANSPORTS), case_sensitive=False),
-    help="Message transport (auto-detected from cluster if omitted)",
+    help="Message transport (prompted if omitted)",
 )
 @click.option("--dir", "target_dir", default=".", help="Target directory (default: current directory)")
 def init(image_registry, transport, target_dir):
@@ -63,7 +49,8 @@ def init(image_registry, transport, target_dir):
     if image_registry is None:
         image_registry = _prompt_image_registry()
 
-    transport = _resolve_transport(transport)
+    if transport is None:
+        transport = _prompt_transport()
 
     asya_dir = init_project(target, image_registry=image_registry, transport=transport)
     click.echo(f"[+] Initialized project at {asya_dir}")

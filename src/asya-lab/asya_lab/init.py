@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import subprocess  # nosec B404
 from pathlib import Path
 
 
@@ -149,39 +148,3 @@ def init_project(
         rules_file.write_text(_RULES_YAML)
 
     return asya_dir
-
-
-def detect_transport() -> str | None:
-    """Detect transport from Crossplane Compositions in the current cluster.
-
-    Queries for Compositions labeled with asya.sh/transport.
-    Returns the transport name if exactly one is found, or None
-    if kubectl is unavailable, no compositions exist, or multiple
-    transports are deployed.
-    """
-    try:
-        result = subprocess.run(  # nosec B603, B607
-            [
-                "kubectl",
-                "get",
-                "compositions",
-                "-l",
-                "crossplane.io/xrd=xasyncactors.asya.sh",
-                "-o",
-                "jsonpath={.items[*].metadata.labels.asya\\.sh/transport}",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        return None
-
-    if result.returncode != 0:
-        return None
-
-    transports = set(result.stdout.strip().split())
-    transports.discard("")
-    if len(transports) == 1:
-        return transports.pop()
-    return None
