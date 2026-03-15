@@ -12,6 +12,7 @@ dependencies:
 
 
 
+
 ## Summary
 
 Phase 2 [lfcf] shipped with the old DeepMerge last-wins flavor merge instead of the type-aware overlap rules specified in the RFC (`.aint/aints/xrd-v2/rfc.md`, section 'Flavor overlap rules').
