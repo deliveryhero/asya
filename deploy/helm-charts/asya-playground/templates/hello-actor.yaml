@@ -30,6 +30,9 @@ metadata:
 spec:
   actor: {{ .Values.helloActor.name }}
   transport: {{ .Values.global.transport }}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {{ .Values.global.transport }}
 
   {{- if eq .Values.global.transport "sqs" }}
   sidecar:

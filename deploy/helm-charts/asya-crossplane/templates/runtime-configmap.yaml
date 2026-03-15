@@ -3,7 +3,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: asya-runtime
-  namespace: {{ .Values.actorNamespace }}
+  namespace: {{ .Values.actorNamespace | default .Release.Namespace }}
   labels:
     {{- include "asya-crossplane.labels" . | nindent 4 }}
     app.kubernetes.io/name: asya-runtime

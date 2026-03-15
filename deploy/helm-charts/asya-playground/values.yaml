@@ -41,8 +41,8 @@ namespaces:
   infra: ""
 
 # Component toggles
-enableAsyaCrew: true
-enableAsyaGateway: true
+enableAsyaCrew: false
+enableAsyaGateway: false
 
 # Test hello-world actor
 helloActor:
@@ -168,7 +168,7 @@ sampleMonitoring:
   # Prometheus + Grafana stack (demo/development only)
   # For production: Set enabled: false and use your existing monitoring infrastructure
   # When enabled, deploys kube-prometheus-stack with pre-configured Asya dashboards
-  enabled: true
+  enabled: false
 
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
@@ -196,7 +196,7 @@ sampleGatewayDb:
         cpu: 250m
         memory: 256Mi
 
-# Crossplane configuration (passed to asya-crossplane chart)
+# Asya-Crossplane configuration (passed to asya-crossplane chart)
 # Manages AsyncActor CRDs, Compositions, and Crossplane providers
 asya-crossplane:
   providerConfigs:
@@ -205,12 +205,12 @@ asya-crossplane:
     name: localstack
     credentialsSource: Secret
     secretRef:
-      namespace: crossplane-system
+      namespace: "" # empty = use release namespace (where playground and crossplane are deployed)
       name: aws-creds
       key: credentials
     endpoint:
-      enabled: true
-      url: "" # Set dynamically via helpers
+      # localstackEnabled auto-computes http://localstack-sqs.{release_namespace}:4566
+      localstackEnabled: true
       hostnameImmutable: true
     skipCredentialsValidation: true
     skipMetadataApiCheck: true
@@ -220,6 +220,8 @@ asya-crossplane:
   awsRegion: us-east-1
   awsAccountId: "000000000000"
   actorNamespace: "" # defaults to release namespace
+  functions:
+    flavorsEnabled: false # function-asya-flavors not yet published; disable for quickstart
   irsa:
     enabled: false
   keda:
@@ -228,6 +230,9 @@ asya-crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
+  sidecar:
+    # sqsLocalstackEnabled auto-computes http://localstack-sqs.{release_namespace}:4566
+    sqsLocalstackEnabled: true
 
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults
