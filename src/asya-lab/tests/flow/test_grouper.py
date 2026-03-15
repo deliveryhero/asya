@@ -1107,6 +1107,48 @@ class TestWhileLoopGrouping:
         stop_cond = next(r for r in routers if r.condition is not None and r.condition.test == 'p["stop"]')
         assert "finalize" in stop_cond.true_branch_actors
 
+    def test_if_at_end_of_while_body_convergence_is_empty(self):
+        """When an if block is the last statement in a while body, its
+        convergence resolves to empty — the loop back-edge is handled by
+        the parent chain in the while condition router, not by the if router.
+
+        The DOT visualization must still show back-edges from inner actors
+        (tested in test_dotgen.py).
+        """
+        ops = [
+            WhileLoop(
+                lineno=50,
+                test='p["current_step"] < len(p.get("plan", []))',
+                body=[
+                    ActorCall(lineno=51, name="executor"),
+                    Mutation(lineno=53, code='p["current_step"] += 1'),
+                    Condition(
+                        lineno=55,
+                        test='p["current_step"] < len(p.get("plan", []))',
+                        true_branch=[ActorCall(lineno=56, name="re_planner")],
+                        false_branch=[],
+                    ),
+                ],
+            ),
+            ActorCall(lineno=59, name="synthesizer"),
+            Return(lineno=60),
+        ]
+        grouper = OperationGrouper("flow", ops)
+        routers = grouper.group()
+
+        while_cond = next(r for r in routers if r.condition is not None and "while" in r.name)
+        if_router = next(r for r in routers if r.condition is not None and "_if" in r.name)
+
+        # The if router's true branch has re_planner only — the loop back
+        # is provided by the while condition's chain, not the if router
+        assert "re_planner" in if_router.true_branch_actors
+        assert while_cond.name not in if_router.true_branch_actors
+
+        # The while condition router's true branch includes the if router
+        # AND the self-reference (loop back)
+        assert if_router.name in while_cond.true_branch_actors
+        assert while_cond.true_branch_actors[-1] == while_cond.name
+
 
 class TestMaxIterationsGuard:
     """Test max_iterations guard injection for while True loops."""

@@ -254,6 +254,47 @@ class TestHelperMethods:
         assert len(result) <= 20
 
 
+class TestIfAtEndOfWhileBody:
+    """Regression: if-at-end-of-while-body must show back-edges from inner actors."""
+
+    def test_if_at_end_of_while_body_back_edges(self):
+        """When an if block with an empty branch is the last statement in a
+        while loop body, the DOT must show back-edges from actors inside the
+        non-empty branch (e.g. re_planner) to the while condition router.
+
+        Regression test for: plan_and_execute flow where re_planner had no
+        outgoing edge in the DOT graph.
+        """
+        source = textwrap.dedent("""
+            async def plan_and_execute(state: dict) -> dict:
+                state["current_step"] = 0
+                state = await planner(state)
+                while state["current_step"] < len(state.get("plan", [])):
+                    state = await executor(state)
+                    state["current_step"] += 1
+                    if state["current_step"] < len(state.get("plan", [])):
+                        state = await re_planner(state)
+                state = await synthesizer(state)
+                return state
+
+            async def planner(state: dict) -> dict: ...
+            async def executor(state: dict) -> dict: ...
+            async def re_planner(state: dict) -> dict: ...
+            async def synthesizer(state: dict) -> dict: ...
+        """)
+        compiler = FlowCompiler()
+        compiler.compile(source, "test.py")
+
+        generator = DotGenerator(
+            compiler.flow_name, compiler.routers, is_async=compiler.is_async
+        )
+        dot = generator.generate()
+
+        # re_planner must have a back-edge to the while condition
+        assert "re_planner -> router_plan_and_execute_line" in dot
+        assert "constraint=false" in dot.split("re_planner ->")[1].split(";")[0]
+
+
 class TestEndToEnd:
     """Test DOT generation with full compiler pipeline."""
 
