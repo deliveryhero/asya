@@ -1,20 +1,10 @@
-# Quickstart for Data Scientists
+# Usage: Writing and Deploying Actors
 
-Build and deploy your first Asya actor.
+This guide covers writing handlers, deploying actors, and building multi-step flows with the Flow DSL.
 
-## What You'll Learn
+**Setup first**: If you haven't installed Asya yet, start with the [Setup guide](README.md).
 
-- Write pure Python handlers (functions or classes) for ML pipelines
-- Test handlers locally and package them in Docker images
-- Deploy actors using AsyncActor CRDs with autoscaling
-- Use Flow DSL to build multi-step pipelines with conditional routing
-- Handle dynamic routing with VFS-based route modification for AI agents
-
-## Overview
-
-As a data scientist, you focus on writing pure Python functions. Asya handles infrastructure, routing, scaling, and monitoring.
-
-**Core pattern**: Mutate and enrich the payload  -  not request/response. Each actor adds its results to the payload, which flows through the pipeline. See [payload enrichment pattern](../architecture/protocols/actor-actor.md#payload-enrichment-pattern) for more details.
+**Core pattern**: Enrich the payload — don't replace it. Each actor adds its results to the shared dict that flows through the pipeline. See the [payload enrichment pattern](../architecture/protocols/actor-actor.md#payload-enrichment-pattern) for details.
 
 Write a handler function or class:
 

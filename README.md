@@ -1,15 +1,5 @@
-🎭 is a **queue-based actor framework** for orchestrating AI/ML workloads on Kubernetes with:
-- **Independent scaling**: Each actor scales 0→N based on its own queue depth
-- **Zero infrastructure code**: Pure Python functions, no dependencies for queues/routing/retries
-- **Dynamic pipelines**: Routes are data, not code - modify at runtime
-- **Cost efficiency**: KEDA autoscaling from zero to max, pay only for active processing
-
-**Core idea**: Write pure Python functions. Asya handles queues, routing, scaling, and monitoring.
-
 <p align="left">
-📘 <a href="docs/">Documentation</a> • 🚀 <a href="#quick-start">Quick Start</a> • 🏗️ <a href="docs/architecture/">Architecture</a> • 💡 <a href="docs/concepts.md">Concepts</a>
-<br/><br/>
-<picture>
+  <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
     <img src="./docs/img/logo_black_w_borders.png" alt="Asya" width="120"/>
   </picture>
@@ -17,195 +7,70 @@
   <img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
 </p>
 
-Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI-powered image enhancement. Now powering LLM and agentic workflows.
+**The Message Knows the Way.**
 
----
+AI workloads don't belong behind synchronous REST APIs. They're batch jobs — bursty, GPU-heavy,
+multi-step — and forcing them into request/response patterns adds latency, waste, and cascading failures.
 
-## When to Use Asya🎭
-
-### ✅ Ideal For
-
-**Multi-step AI/ML pipelines**:
-- Document processing (OCR → classification → extraction → storage)
-- Image pipelines (resize → detect → classify → tag)
-- LLM workflows (retrieval → prompt → generate → judge → refine)
-- Video analysis (split → transcribe → summarize → translate)
-
-**Event-driven workloads**:
-- Webhook processing (GitHub, Stripe, Twilio events)
-- Batch predictions (scheduled model inference)
-- Async API backends (user uploads → background processing)
-
-**Cost-sensitive deployments**:
-- GPU inference (scale to zero between batches, avoid idle costs)
-- Bursty traffic (10x scale-up for peak hours, zero off-peak)
-- Dev/staging environments (minimize resource waste)
-
-### ❌ Not Ideal For
-
-- **Real-time inference < 100ms latency**: Queue overhead adds latency (use KServe/Seldon instead)
-- **Training jobs**: Use Kubeflow, Ray Train, or native Kubernetes Jobs instead
-
-**See**: [Motivation](docs/motivation.md) | [Core Concepts](docs/concepts.md) | [Use Cases](docs/motivation.md#use-cases)
-
----
-
-## For Data Scientists 🧑‍🔬
-
-Write pure Python functions - no decorators, no DAGs, no infrastructure code:
+Asya is a Kubernetes-native actor mesh for async AI/ML pipelines. Each actor is a pure Python function.
+Each message carries its own route. No central orchestrator. No waiting.
 
 ```python
-# handler.py
 def process(payload: dict) -> dict:
-    return {
-        **payload,  # Keep existing data
-        "result": my_model.predict(payload["input"])
-    }
+    return {**payload, "result": model.predict(payload["input"])}
 ```
 
-**Class handlers** for stateful initialization (model loading):
+Deploy it as a Kubernetes CRD. Asya injects the sidecar, creates the queue, configures autoscaling.
+Your code stays clean.
 
-```python
-class MyActor:
-    def __init__(self, model_path: str = "/models/default"):
-        self.model = load_model(model_path)  # Loaded once at pod startup
-
-    def process(self, payload: dict) -> dict:
-        return {
-            **payload,
-            "prediction": self.model.predict(payload["text"])
-        }
-```
-
-**Dynamic routing** with ABI yield protocol (agents, LLM judges):
-
-```python
-class LLMJudge:
-    def __init__(self, threshold: float = 0.8):
-        self.model = load_llm("/models/judge")
-        self.threshold = float(threshold)
-
-    def process(self, payload: dict) -> dict:
-        score = self.model.judge(payload["llm_response"])
-        payload["judge_score"] = score
-
-        # Dynamically modify route based on LLM judge score
-        if score < self.threshold:
-            yield "SET", ".route.next[:0]", ["llm-refiner"]
-
-        yield payload
-```
-
-**Pattern**: Enrich payload with your results, pass it to next actor. Full pipeline history preserved.
-
-**See**: [Quickstart for Data Scientists](docs/quickstart/for-data-scientists.md) | [Handler Examples](docs/quickstart/for-data-scientists.md#class-handler-examples)
+**Two files, two owners**: your handler (Python) + your actor spec (YAML). That's the entire interface.
 
 ---
 
-## For Platform Engineers ⚙️
+## Why Asya
 
-Deploy actors via Kubernetes CRDs:
-
-```yaml
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: text-classifier
-spec:
-  transport: sqs  # or rabbitmq
-  image: my-classifier:latest
-  handler: classifier.TextClassifier.process
-  scaling:
-    enabled: true
-    minReplicaCount: 0
-    maxReplicaCount: 100
-    queueLength: 5  # Target: 5 messages per pod
-  resources:
-    limits:
-      nvidia.com/gpu: 1
-```
-
-**What happens**:
-1. Operator creates queue `asya-text-classifier`
-2. Crossplane composition renders pod spec with sidecar for message routing
-3. KEDA monitors queue depth, scales 0→100 pods
-4. Sidecar routes messages: Queue → Unix socket → Your code → Next queue
-
-**Transports**: SQS (AWS), RabbitMQ (self-hosted), Kafka/NATS (planned)
-
-**See**: [Quickstart for Platform Engineers](docs/quickstart/for-platform-engineers.md) | [Installation Guides](docs/install/) | [AsyncActor Examples](examples/asyas/)
+- **Decentralized routing** — envelopes carry `prev/curr/next` queues; no coordinator can fail
+- **Scale to zero** — KEDA autoscales each actor independently from 0→N based on its own queue depth;
+  GPU pods cost nothing when idle
+- **Pure Python handlers** — no SDK imports, no decorators, no framework coupling; test locally with
+  `assert process(payload) == expected`
+- **Dynamic pipelines** — routes are data embedded in each message, not code; actors can rewrite
+  routing at runtime for agentic patterns, LLM judges, branching flows
 
 ---
 
-## Architecture
+## Documentation
 
-Asya uses a **sidecar pattern** for message routing:
-- **Operator** (Crossplane) watches AsyncActor CRDs, renders full pod spec with sidecar, configures KEDA
-- **Sidecar** handles queue consumption, routing, retries (Go)
-- **Runtime** executes your Python handler via Unix socket
-- **Gateway** (optional) provides MCP HTTP API for task submission and SSE streaming
-- **KEDA** monitors queue depth, scales actors 0→N
-
-**Message flow**: `Queue → Sidecar → Your Code → Sidecar → Next Queue`
-
-**See**: [Architecture Documentation](docs/architecture/) for system diagram, component details, protocols, and deployment patterns
-
----
-
-## Quick Start
-
-**New to Asya?** Start here: [Getting Started Guide](/docs/quickstart/README.md) (5 min read)
-
-Then choose your path:
-- [For Data Scientists 🧑‍🔬](/docs/quickstart/for-data-scientists.md)
-- [For Platform Engineers ⚙️](/docs/quickstart/for-platform-engineers.md)
-
-**See also**: [AWS EKS Installation](docs/install/aws-eks.md) | [Local Kind Installation](docs/install/local-kind.md) | [Helm Charts](docs/install/helm-charts.md)
+| | |
+|---|---|
+| **[Setup](docs/quickstart/README.md)** | Install on Kind (local) or your cluster — start here |
+| **[Usage](docs/quickstart/usage.md)** | Write handlers, deploy actors, build flows with the Flow DSL |
+| **[Concepts](docs/concepts.md)** | Envelope, actor, sidecar, routing — the core model |
+| **[Motivation](docs/motivation.md)** | Why async actors beat synchronous REST for AI at scale |
+| **[Architecture](docs/architecture/README.md)** | Components, protocols, data flow |
+| **[Operate](docs/operate/)** | Monitoring, scaling, troubleshooting, upgrades |
+| **[Examples](examples/)** | Actor specs and flow DSL examples |
 
 ---
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
-- Development setup (Go, Python, Docker, Make)
-- Testing workflow (unit, component, integration, E2E)
-- Code standards and linting
-- Pull request process
-
 **Prerequisites**: Go 1.24+, Python 3.13+, Docker, Make, [uv](https://github.com/astral-sh/uv)
 
-**Quick commands**:
 ```bash
-make build              # Build all components
-make test-unit          # Unit tests (Go + Python)
-make test-integration   # Integration tests (Docker Compose)
-make test-e2e           # E2E tests (Kind cluster)
-make lint               # Linters with auto-fix
+make setup          # Install hooks, sync deps
+make build          # Build all components
+make test-unit      # Unit tests
+make lint           # Linters with auto-fix
 ```
 
----
-
-## License
-
-Copyright © 2025 Delivery Hero SE
-
-Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for details.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development and testing guide.
 
 ---
 
-## Project Status
+## Status
 
-**Alpha software** under active development. APIs may change. Production use requires thorough testing.
+Alpha. APIs may change. Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for
+global-scale AI image enhancement. Now powering LLM and agentic workflows.
 
-**Maintainers**:
-- Artem Yushkovskiy 🐕 (`@atemate`, `@atemate-dh`)
-
-**Roadmap** (see [GitHub Discussions](https://github.com/deliveryhero/asya/discussions)):
-- Stabilization and API refinement
-- Additional transports (Kafka, NATS, Google Pub/Sub)
-- Fast pod startup (PVC for model storage)
-- Integrations: KAITO, Knative
-- Enhanced observability (OpenTelemetry tracing)
-- Multi-cluster routing
-
-**Feedback**: Open an issue or discussion on [GitHub](https://github.com/deliveryhero/asya) ❤️
+Apache 2.0 licensed. **Maintainer**: Artem Yushkovskiy (`@atemate`)
