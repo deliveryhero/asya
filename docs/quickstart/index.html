@@ -848,196 +848,95 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>This quickstart deploys Asya using <strong>Crossplane Compositions</strong> for infrastructure management
-and inline sidecar rendering, replacing the monolithic asya-operator.</p>
-<h2 id="what-youll-learn">What You'll Learn<a class="headerlink" href="#what-youll-learn" title="Permanent link">&para;</a></h2>
-<ul>
-<li>Deploy Crossplane providers and compositions for SQS + KEDA + Kubernetes resources</li>
-<li>Create your first AsyncActor using a Crossplane claim</li>
-<li>Test autoscaling: scale-from-zero, process messages, scale-to-zero</li>
-<li>Delete an actor and verify all resources are cleaned up</li>
-</ul>
+    <p>Asya is an Actor Mesh framework for running AI/ML workloads on Kubernetes. Actors communicate
+through message queues and scale independently from zero based on queue depth.</p>
 <h2 id="prerequisites">Prerequisites<a class="headerlink" href="#prerequisites" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="https://www.docker.com/get-started/">Docker</a> 24+</li>
+<li><a href="https://docs.docker.com/get-started/">Docker</a> 24+</li>
 <li><a href="https://kubernetes.io/docs/tasks/tools/">kubectl</a> 1.28+</li>
 <li><a href="https://helm.sh/docs/intro/install/">Helm</a> 3.12+</li>
-<li><a href="https://kind.sigs.k8s.io/docs/user/quick-start/#installation">Kind</a> 0.20+</li>
-<li><a href="https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html">AWS CLI</a> (for sending test messages)</li>
+<li><a href="https://kind.sigs.k8s.io/">Kind</a> 0.20+</li>
 </ul>
-<h2 id="1-create-kind-cluster">1. Create Kind Cluster<a class="headerlink" href="#1-create-kind-cluster" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-crossplane<span class="w"> </span>--wait<span class="w"> </span>60s
+<h2 id="1-create-a-kind-cluster-local-k8s">1. Create a Kind cluster (local K8s)<a class="headerlink" href="#1-create-a-kind-cluster-local-k8s" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>create<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-quickstart
 </code></pre></div>
-<h2 id="2-build-and-load-images">2. Build and Load Images<a class="headerlink" href="#2-build-and-load-images" title="Permanent link">&para;</a></h2>
-<p>From the repository root:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Build sidecar</span>
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>-f<span class="w"> </span>src/asya-sidecar/Dockerfile<span class="w"> </span>src/asya-sidecar/
-</code></pre></div>
-<p>Create a test actor handler:</p>
-<div class="highlight"><pre><span></span><code>mkdir<span class="w"> </span>-p<span class="w"> </span>/tmp/test-actor
-
-cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/test-actor/handler.py<span class="w"> </span><span class="s">&lt;&lt;&#39;PYEOF&#39;</span>
-<span class="s">def greet(payload):</span>
-<span class="s">    name = payload.get(&quot;name&quot;, &quot;World&quot;)</span>
-<span class="s">    return {&quot;greeting&quot;: f&quot;Hello, {name}!&quot;}</span>
-<span class="s">PYEOF</span>
-
-cat<span class="w"> </span>&gt;<span class="w"> </span>/tmp/test-actor/Dockerfile<span class="w"> </span><span class="s">&lt;&lt;&#39;DEOF&#39;</span>
-<span class="s">FROM python:3.12-slim</span>
-<span class="s">WORKDIR /app</span>
-<span class="s">COPY handler.py /app/handler.py</span>
-<span class="s">ENV ASYA_HANDLER=handler.greet</span>
-<span class="s">DEOF</span>
-
-docker<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>test-actor:latest<span class="w"> </span>/tmp/test-actor/
-</code></pre></div>
-<p>Load all images into Kind:</p>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class="w"> </span>asya-sidecar:latest<span class="w"> </span>test-actor:latest<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--name<span class="w"> </span>asya-crossplane
-</code></pre></div>
-<h2 id="3-install-infrastructure">3. Install Infrastructure<a class="headerlink" href="#3-install-infrastructure" title="Permanent link">&para;</a></h2>
-<h3 id="crossplane">Crossplane<a class="headerlink" href="#crossplane" title="Permanent link">&para;</a></h3>
+<h2 id="2-install-crossplane">2. Install Crossplane<a class="headerlink" href="#2-install-crossplane" title="Permanent link">&para;</a></h2>
+<p>Crossplane manages actor infrastructure (SQS queues, Deployments, KEDA ScaledObjects).
+It must be installed before the playground chart because the playground's providers need
+Crossplane's CRDs to be registered first.</p>
 <div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>crossplane-stable<span class="w"> </span>https://charts.crossplane.io/stable
+helm<span class="w"> </span>repo<span class="w"> </span>update<span class="w"> </span>crossplane-stable
 helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace<span class="w"> </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>120s
+<span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>180s
 </code></pre></div>
-<h3 id="keda">KEDA<a class="headerlink" href="#keda" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>kedacore<span class="w"> </span>https://kedacore.github.io/charts
-helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda<span class="w"> </span>--create-namespace<span class="w"> </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>120s
+<h2 id="3-install-the-playground-chart">3. Install the playground chart<a class="headerlink" href="#3-install-the-playground-chart" title="Permanent link">&para;</a></h2>
+<p><code>asya-playground</code> is a batteries-included quickstart: Crossplane, KEDA, LocalStack (SQS + S3),
+crew actors, and a hello-world actor — all in one release. No separate installs needed.</p>
+<p>Installation has three phases because Crossplane providers must register their CRDs before
+actor resources can be created.</p>
+<h3 id="add-the-helm-repository">Add the Helm repository<a class="headerlink" href="#add-the-helm-repository" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>asya<span class="w"> </span>https://asya.sh/charts
+helm<span class="w"> </span>repo<span class="w"> </span>update<span class="w"> </span>asya
 </code></pre></div>
-<h3 id="localstack-sqs-emulator">LocalStack (SQS emulator)<a class="headerlink" href="#localstack-sqs-emulator" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>namespace<span class="w"> </span>localstack
+<h3 id="phase-1-infrastructure-only-no-actors-yet">Phase 1 — infrastructure only (no actors yet)<a class="headerlink" href="#phase-1-infrastructure-only-no-actors-yet" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya<span class="w"> </span>asya/asya-playground<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-demo<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>global.transport<span class="o">=</span>sqs<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>global.storage<span class="o">=</span>s3<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--timeout<span class="w"> </span>600s<span class="w"> </span>--wait
+</code></pre></div>
+<h3 id="phase-2-wait-for-providers-then-enable-everything">Phase 2 — wait for providers, then enable everything<a class="headerlink" href="#phase-2-wait-for-providers-then-enable-everything" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Wait for Crossplane providers, functions, and AsyncActor XRD to become ready</span>
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Healthy<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>providers/provider-aws-sqs<span class="w"> </span>providers/provider-kubernetes<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>functions/function-go-templating<span class="w"> </span>functions/function-patch-and-transform<span class="w"> </span>functions/function-auto-ready<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--timeout<span class="o">=</span>300s
+kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Established<span class="w"> </span>xrd/xasyncactors.asya.sh<span class="w"> </span>--timeout<span class="o">=</span>120s
 
-kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: apps/v1</span>
-<span class="s">kind: Deployment</span>
-<span class="s">metadata:</span>
-<span class="s">  name: localstack</span>
-<span class="s">  namespace: localstack</span>
-<span class="s">spec:</span>
-<span class="s">  replicas: 1</span>
-<span class="s">  selector:</span>
-<span class="s">    matchLabels:</span>
-<span class="s">      app: localstack</span>
-<span class="s">  template:</span>
-<span class="s">    metadata:</span>
-<span class="s">      labels:</span>
-<span class="s">        app: localstack</span>
-<span class="s">    spec:</span>
-<span class="s">      containers:</span>
-<span class="s">      - name: localstack</span>
-<span class="s">        image: localstack/localstack:latest</span>
-<span class="s">        ports:</span>
-<span class="s">        - containerPort: 4566</span>
-<span class="s">        env:</span>
-<span class="s">        - name: SERVICES</span>
-<span class="s">          value: &quot;sqs&quot;</span>
-<span class="s">        - name: DEFAULT_REGION</span>
-<span class="s">          value: &quot;us-east-1&quot;</span>
-<span class="s">---</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Service</span>
-<span class="s">metadata:</span>
-<span class="s">  name: localstack</span>
-<span class="s">  namespace: localstack</span>
-<span class="s">spec:</span>
-<span class="s">  selector:</span>
-<span class="s">    app: localstack</span>
-<span class="s">  ports:</span>
-<span class="s">  - port: 4566</span>
-<span class="s">    targetPort: 4566</span>
-<span class="s">EOF</span>
+<span class="c1"># Enable ProviderConfigs and actors in one upgrade</span>
+helm<span class="w"> </span>upgrade<span class="w"> </span>asya<span class="w"> </span>asya/asya-playground<span class="w"> </span>--namespace<span class="w"> </span>asya-demo<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--reuse-values<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>asya-crossplane.providerConfigs.install<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span><span class="nv">enableAsyaCrew</span><span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>helloActor.enabled<span class="o">=</span><span class="nb">true</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--timeout<span class="w"> </span>300s<span class="w"> </span>--wait
+</code></pre></div>
+<details>
+<summary>What gets installed</summary>
 
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>Available<span class="w"> </span>deployment/localstack<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>--timeout<span class="o">=</span>120s
-</code></pre></div>
-<h2 id="4-install-crossplane-providers">4. Install Crossplane Providers<a class="headerlink" href="#4-install-crossplane-providers" title="Permanent link">&para;</a></h2>
-<p>Providers must be installed first so their CRDs are available for the chart:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1beta1</span>
-<span class="s">kind: DeploymentRuntimeConfig</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-kubernetes-watches</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  deploymentTemplate:</span>
-<span class="s">    spec:</span>
-<span class="s">      template:</span>
-<span class="s">        spec:</span>
-<span class="s">          containers:</span>
-<span class="s">            - name: package-runtime</span>
-<span class="s">              args:</span>
-<span class="s">                - --enable-watches</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Provider</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-aws-sqs</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/upbound/provider-aws-sqs:v1.19.0</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Provider</span>
-<span class="s">metadata:</span>
-<span class="s">  name: provider-kubernetes</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/crossplane-contrib/provider-kubernetes:v0.17.0</span>
-<span class="s">  runtimeConfigRef:</span>
-<span class="s">    name: provider-kubernetes-watches</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Function</span>
-<span class="s">metadata:</span>
-<span class="s">  name: function-go-templating</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.upbound.io/crossplane-contrib/function-go-templating:v0.11.3</span>
-<span class="s">---</span>
-<span class="s">apiVersion: pkg.crossplane.io/v1</span>
-<span class="s">kind: Function</span>
-<span class="s">metadata:</span>
-<span class="s">  name: function-patch-and-transform</span>
-<span class="s">  labels:</span>
-<span class="s">    app.kubernetes.io/managed-by: Helm</span>
-<span class="s">  annotations:</span>
-<span class="s">    meta.helm.sh/release-name: asya-crossplane</span>
-<span class="s">    meta.helm.sh/release-namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  package: xpkg.crossplane.io/crossplane-contrib/function-patch-and-transform:v0.8.2</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>Wait for all providers and functions to become healthy:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Waiting for providers...&quot;</span>
-<span class="k">until</span><span class="w"> </span>kubectl<span class="w"> </span>get<span class="w"> </span>providers,functions<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{range .items[*]}{.status.conditions[?(@.type==&quot;Healthy&quot;)].status}{&quot; &quot;}{end}&#39;</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-q<span class="w"> </span><span class="s2">&quot;True True True True&quot;</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>sleep<span class="w"> </span><span class="m">5</span>
-<span class="k">done</span>
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;All providers healthy&quot;</span>
-</code></pre></div>
-<p>Grant the Kubernetes provider cluster-admin permissions:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">K8S_SA</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>providers<span class="w"> </span>provider-kubernetes<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.currentRevision}&#39;</span><span class="k">)</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>clusterrolebinding<span class="w"> </span>provider-kubernetes-admin<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--clusterrole<span class="o">=</span>cluster-admin<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--serviceaccount<span class="o">=</span><span class="s2">&quot;crossplane-system:</span><span class="si">${</span><span class="nv">K8S_SA</span><span class="si">}</span><span class="s2">&quot;</span>
-</code></pre></div>
-<h2 id="5-create-secrets-and-configmaps">5. Create Secrets and ConfigMaps<a class="headerlink" href="#5-create-secrets-and-configmaps" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># Crossplane AWS credentials (INI format for Upbound providers)</span>
+| Component | Role |
+|-----------|------|
+| **Crossplane** | Operator that manages AsyncActor infrastructure declaratively via Compositions |
+| **provider-aws-sqs** | Crossplane provider — creates SQS queues in LocalStack |
+| **provider-kubernetes** | Crossplane provider — creates Deployments and KEDA ScaledObjects |
+| **KEDA** | Autoscaler — reads SQS queue depth to scale actor Deployments from 0 to N |
+| **LocalStack SQS** | In-cluster SQS emulator — no AWS account needed |
+| **LocalStack S3** | In-cluster S3 emulator for result storage |
+| **x-sink** | Crew actor — receives completed pipeline results |
+| **x-sump** | Crew actor — receives failed/errored messages |
+| **hello actor** | Sample actor — scales from 0, greets by name, demonstrates the full message flow |
+
+Each `AsyncActor` resource maps to: one SQS queue + one Deployment + one KEDA ScaledObject,
+all managed by Crossplane Compositions. Deleting an `AsyncActor` cascades to all three.
+
+The sidecar (injected by Crossplane into each actor pod) handles SQS polling, runtime
+communication, and routing to the next actor in the pipeline.
+
+</details>
+
+<details>
+<summary>Production install (without asya-playground)</summary>
+
+For production, install each component independently with your own infrastructure:
+
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Install Crossplane</span>
+helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>crossplane-stable<span class="w"> </span>https://charts.crossplane.io/stable
+helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class="w"> </span>crossplane-stable/crossplane<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>crossplane-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--wait<span class="w"> </span>--timeout<span class="w"> </span>120s
+
+<span class="c1"># 2. Create AWS credentials secret (use real credentials for production)</span>
 kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">apiVersion: v1</span>
 <span class="s">kind: Secret</span>
@@ -1048,509 +947,120 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> <
 <span class="s">stringData:</span>
 <span class="s">  credentials: |</span>
 <span class="s">    [default]</span>
-<span class="s">    aws_access_key_id = test</span>
-<span class="s">    aws_secret_access_key = test</span>
+<span class="s">    aws_access_key_id = YOUR_ACCESS_KEY</span>
+<span class="s">    aws_secret_access_key = YOUR_SECRET_KEY</span>
+<span class="s">  AWS_ACCESS_KEY_ID: YOUR_ACCESS_KEY</span>
+<span class="s">  AWS_SECRET_ACCESS_KEY: YOUR_SECRET_KEY</span>
 <span class="s">EOF</span>
 
-<span class="c1"># KEDA SQS trigger credentials</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>aws-creds<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span>
+<span class="c1"># 3. Install KEDA</span>
+helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>kedacore<span class="w"> </span>https://kedacore.github.io/charts
+helm<span class="w"> </span>install<span class="w"> </span>keda<span class="w"> </span>kedacore/keda<span class="w"> </span>--namespace<span class="w"> </span>keda<span class="w"> </span>--create-namespace<span class="w"> </span>--wait
 
-<span class="c1"># asya-runtime script (mounted into actor pods)</span>
-kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>asya-runtime<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-file<span class="o">=</span>asya_runtime.py<span class="o">=</span>src/asya-runtime/asya_runtime.py
+<span class="c1"># 4. Install asya-crossplane (XRDs, Compositions, ProviderConfigs)</span>
+helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>asya<span class="w"> </span>https://asya.sh/charts
+helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span class="w"> </span>asya/asya-crossplane<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span>--create-namespace<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span>awsProviderConfig.secretRef.namespace<span class="o">=</span>crossplane-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span><span class="nv">actorNamespace</span><span class="o">=</span>YOUR_NAMESPACE<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--wait
 
-<span class="c1"># Create x-sink and x-sump queues (normally managed by crew actors)</span>
-kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-x-sink
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>create-queue<span class="w"> </span>--queue-name<span class="w"> </span>asya-default-x-sump
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<span class="c1"># 5. Install asya-crew (system actors)</span>
+helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>YOUR_NAMESPACE<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--wait
 </code></pre></div>
-<h2 id="6-install-asya-crossplane-chart">6. Install Asya Crossplane Chart<a class="headerlink" href="#6-install-asya-crossplane-chart" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span class="w"> </span>deploy/helm-charts/asya-crossplane/<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>deploy/helm-charts/asya-crossplane/values-localstack.yaml<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="nv">actorNamespace</span><span class="o">=</span>default
-</code></pre></div>
-<p>Verify the XRD is established:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>xrd<span class="w"> </span>xasyncactors.asya.sh
-<span class="c1"># Should show ESTABLISHED=True, OFFERED=True</span>
-</code></pre></div>
-<h2 id="7-deploy-your-first-actor">7. Deploy Your First Actor<a class="headerlink" href="#7-deploy-your-first-actor" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
-<span class="s">apiVersion: asya.sh/v1alpha1</span>
-<span class="s">kind: AsyncActor</span>
-<span class="s">metadata:</span>
-<span class="s">  name: hello</span>
-<span class="s">  namespace: default</span>
-<span class="s">  labels:</span>
-<span class="s">    asya.sh/actor: hello</span>
-<span class="s">spec:</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  image: test-actor:latest</span>
-<span class="s">  imagePullPolicy: Never</span>
-<span class="s">  handler: handler.greet</span>
-<span class="s">  env:</span>
-<span class="s">  - name: PYTHONPATH</span>
-<span class="s">    value: /app</span>
-<span class="s">  scaling:</span>
-<span class="s">    enabled: true</span>
-<span class="s">    minReplicaCount: 0</span>
-<span class="s">    maxReplicaCount: 10</span>
-<span class="s">    pollingInterval: 10</span>
-<span class="s">    cooldownPeriod: 30</span>
-<span class="s">    queueLength: 5</span>
-<span class="s">EOF</span>
-</code></pre></div>
-<p>Wait for resources:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>asyncactors<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># STATUS should become &quot;Ready&quot; or &quot;Napping&quot;</span>
 
-kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io
-<span class="c1"># SQS queue should show READY=True</span>
+Configure external services (real AWS SQS/S3, RabbitMQ, etc.) by overriding the relevant
+values in each chart. See [For Platform Engineers](for-platform-engineers.md) for the full
+production setup guide.
 
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># ScaledObject should show READY=True</span>
+</details>
+
+<h2 id="4-verify-the-installation">4. Verify the installation<a class="headerlink" href="#4-verify-the-installation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>asya-demo
+kubectl<span class="w"> </span>get<span class="w"> </span>asyncactors<span class="w"> </span>-n<span class="w"> </span>asya-demo
+kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>asya-demo
 </code></pre></div>
-<h2 id="9-test-scaling">9. Test Scaling<a class="headerlink" href="#9-test-scaling" title="Permanent link">&para;</a></h2>
-<p>Send a message to trigger scale-from-zero:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
-
-<span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>sqs<span class="w"> </span>send-message<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--queue-url<span class="w"> </span>http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--message-body<span class="w"> </span><span class="s1">&#39;{&quot;id&quot;:&quot;test-1&quot;,&quot;route&quot;:{&quot;prev&quot;:[],&quot;curr&quot;:&quot;hello&quot;,&quot;next&quot;:[]},&quot;headers&quot;:{},&quot;payload&quot;:{&quot;name&quot;:&quot;Crossplane&quot;}}&#39;</span>
-
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
-</code></pre></div>
-<p>Watch the pod scale up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-w
-<span class="c1"># Pod should appear with 2/2 containers (runtime + injected sidecar)</span>
-</code></pre></div>
-<p>Check the sidecar logs:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
-kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar<span class="w"> </span>--tail<span class="o">=</span><span class="m">10</span>
-<span class="c1"># Should show: &quot;Runtime call completed&quot; and &quot;SQS message sent successfully&quot;</span>
-</code></pre></div>
-<p>After the cooldown period (30s + HPA stabilization), the pod scales back to zero:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># READY should show 0/0</span>
-</code></pre></div>
-<h2 id="10-test-scale-to-n">10. Test Scale-to-N<a class="headerlink" href="#10-test-scale-to-n" title="Permanent link">&para;</a></h2>
-<p>Send a batch of messages with proper message format to trigger multiple replicas:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>localstack<span class="w"> </span>svc/localstack<span class="w"> </span><span class="m">4566</span>:4566<span class="w"> </span><span class="p">&amp;</span>
-sleep<span class="w"> </span><span class="m">3</span>
-
-<span class="nv">QUEUE_URL</span><span class="o">=</span>http://sqs.us-east-1.localhost.localstack.cloud:4566/000000000000/asya-default-hello
-
-<span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">100</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span><span class="nv">AWS_ACCESS_KEY_ID</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="nv">AWS_SECRET_ACCESS_KEY</span><span class="o">=</span><span class="nb">test</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>aws<span class="w"> </span>--endpoint-url<span class="o">=</span>http://localhost:4566<span class="w"> </span>--region<span class="w"> </span>us-east-1<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>sqs<span class="w"> </span>send-message<span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--queue-url<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$QUEUE_URL</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--message-body<span class="w"> </span><span class="s2">&quot;{\&quot;id\&quot;:\&quot;batch-</span><span class="nv">$i</span><span class="s2">\&quot;,\&quot;route\&quot;:{\&quot;actors\&quot;:[\&quot;hello\&quot;],\&quot;current\&quot;:0},\&quot;headers\&quot;:{},\&quot;payload\&quot;:{\&quot;name\&quot;:\&quot;User-</span><span class="nv">$i</span><span class="s2">\&quot;}}&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">    </span>--no-cli-pager<span class="w"> </span>&gt;<span class="w"> </span>/dev/null
-<span class="k">done</span>
-
-<span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Sent 100 messages&quot;</span>
-<span class="nb">kill</span><span class="w"> </span>%1<span class="w"> </span><span class="m">2</span>&gt;/dev/null
-</code></pre></div>
-<p>Watch replicas scale up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>-w
-<span class="c1"># READY should increase beyond 1 (up to maxReplicaCount=10)</span>
-</code></pre></div>
-<p>After all messages are processed and the cooldown period passes, replicas scale back to zero.</p>
-<h2 id="11-test-resilience">11. Test Resilience<a class="headerlink" href="#11-test-resilience" title="Permanent link">&para;</a></h2>
-<p>Verify that Crossplane re-creates deleted resources:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Delete the deployment</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-
-<span class="c1"># Wait for Crossplane to re-create it (should take a few seconds with watch enabled)</span>
-sleep<span class="w"> </span><span class="m">10</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># Deployment should exist again</span>
-
-<span class="c1"># Delete the ScaledObject</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>scaledobject<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-sleep<span class="w"> </span><span class="m">10</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-<span class="c1"># ScaledObject should exist again</span>
-</code></pre></div>
-<h2 id="12-test-deletion">12. Test Deletion<a class="headerlink" href="#12-test-deletion" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>asyncactor<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>default
-</code></pre></div>
-<p>Verify all resources are cleaned up:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>queue.sqs.aws.upbound.io<span class="w">           </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>object.kubernetes.crossplane.io<span class="w">     </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>-n<span class="w"> </span>default<span class="w">               </span><span class="c1"># No resources</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>scaledobject<span class="w"> </span>-n<span class="w"> </span>default<span class="w">             </span><span class="c1"># No resources</span>
-</code></pre></div>
-<h2 id="13-clean-up">13. Clean Up<a class="headerlink" href="#13-clean-up" title="Permanent link">&para;</a></h2>
-<p>To remove components individually:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Remove actors</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>asyncactor<span class="w"> </span>--all<span class="w"> </span>-n<span class="w"> </span>default
-
-<span class="c1"># Remove crew (if installed)</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crew<span class="w"> </span>-n<span class="w"> </span>default
-
-<span class="c1"># Remove gateway (if installed)</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-gateway<span class="w"> </span>-n<span class="w"> </span>default
-kubectl<span class="w"> </span>delete<span class="w"> </span>secret<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
-kubectl<span class="w"> </span>delete<span class="w"> </span>deployment<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
-kubectl<span class="w"> </span>delete<span class="w"> </span>service<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span>-n<span class="w"> </span>default
-
-<span class="c1"># Remove Crossplane</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>asya-crossplane
-
-<span class="c1"># Remove KEDA</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>keda<span class="w"> </span>-n<span class="w"> </span>keda
-
-<span class="c1"># Remove LocalStack</span>
-kubectl<span class="w"> </span>delete<span class="w"> </span>namespace<span class="w"> </span>localstack
-
-<span class="c1"># Remove Prometheus (if installed)</span>
-helm<span class="w"> </span>uninstall<span class="w"> </span>prometheus<span class="w"> </span>-n<span class="w"> </span>monitoring
-</code></pre></div>
-<p>To remove everything including the cluster:</p>
-<div class="highlight"><pre><span></span><code>kind<span class="w"> </span>delete<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-crossplane
-</code></pre></div>
-<h2 id="add-s3-storage-optional">Add S3 Storage (Optional)<a class="headerlink" href="#add-s3-storage-optional" title="Permanent link">&para;</a></h2>
-<p><strong>What you get</strong>: Pipeline completion with result persistence to S3</p>
-<h3 id="1-create-s3-buckets">1. Create S3 Buckets<a class="headerlink" href="#1-create-s3-buckets" title="Permanent link">&para;</a></h3>
-<p>Suppose, we want to save all messages to the buckets <code>s3://asya-results-bucket</code> and <code>s3://asya-errors-bucket</code>. Note that the bucket name should be globally unique.</p>
+<p>Expected:
+- <code>x-sink</code>, <code>x-sump</code> — <code>Ready</code> (always running, <code>minReplicaCount=1</code>)
+- <code>hello</code> — <code>Napping</code> (scaled to 0 until a message arrives)</p>
+<h2 id="5-send-a-test-message">5. Send a test message<a class="headerlink" href="#5-send-a-test-message" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>run<span class="w"> </span>aws-cli<span class="w"> </span>--rm<span class="w"> </span>-i<span class="w"> </span>--restart<span class="o">=</span>Never<span class="w"> </span>--image<span class="o">=</span>amazon/aws-cli<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>asya-system<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--namespace<span class="w"> </span>asya-demo<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_ACCESS_KEY_ID=test&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_SECRET_ACCESS_KEY=test&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--env<span class="o">=</span><span class="s2">&quot;AWS_DEFAULT_REGION=us-east-1&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--command<span class="w"> </span>--<span class="w"> </span>sh<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;</span>
-<span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-results-bucket</span>
-<span class="s2">    aws --endpoint-url=http://localstack.asya-system.svc.cluster.local:4566 s3 mb s3://asya-errors-bucket</span>
+<span class="s2">    aws sqs send-message \</span>
+<span class="s2">      --endpoint-url=http://localstack-sqs.asya-demo:4566 \</span>
+<span class="s2">      --queue-url http://localstack-sqs.asya-demo:4566/000000000000/asya-asya-demo-hello \</span>
+<span class="s2">      --message-body &#39;{\&quot;id\&quot;:\&quot;test-1\&quot;,\&quot;route\&quot;:{\&quot;prev\&quot;:[],\&quot;curr\&quot;:\&quot;hello\&quot;,\&quot;next\&quot;:[]},\&quot;headers\&quot;:{},\&quot;payload\&quot;:{\&quot;name\&quot;:\&quot;Asya\&quot;}}&#39;</span>
 <span class="s2">  &quot;</span>
 </code></pre></div>
-<h3 id="2-install-crew-actors">2. Install Crew Actors<a class="headerlink" href="#2-install-crew-actors" title="Permanent link">&para;</a></h3>
-<p>Crew actors handle pipeline completion:</p>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">x-sink:</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  env:</span>
-<span class="s">  - name: ASYA_GATEWAY_URL</span>
-<span class="s">    value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">    value: /tmp/checkpoints/results</span>
+<h2 id="6-watch-scale-from-zero">6. Watch scale-from-zero<a class="headerlink" href="#6-watch-scale-from-zero" title="Permanent link">&para;</a></h2>
+<p>KEDA detects the message and scales the hello deployment from 0 to 1 (takes ~30s):</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>deployment<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span>-w
+</code></pre></div>
+<p>Once the pod is running, it shows <code>2/2</code> containers (handler + sidecar injected by Crossplane):</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello
+</code></pre></div>
+<h2 id="7-check-logs">7. Check logs<a class="headerlink" href="#7-check-logs" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.items[0].metadata.name}&#39;</span><span class="k">)</span>
 
-<span class="s">x-sump:</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  env:</span>
-<span class="s">  - name: ASYA_GATEWAY_URL</span>
-<span class="s">    value: &quot;&quot;  # Set this when gateway is installed</span>
-<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">    value: /tmp/checkpoints/errors</span>
-<span class="s">EOF</span>
+<span class="c1"># Runtime: handler output</span>
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POD</span><span class="s2">&quot;</span><span class="w"> </span>-c<span class="w"> </span>asya-runtime<span class="w"> </span>--tail<span class="o">=</span><span class="m">20</span>
 
-helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
+<span class="c1"># Sidecar: message routing (received from SQS, called runtime, forwarded to x-sink)</span>
+kubectl<span class="w"> </span>logs<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span><span class="s2">&quot;</span><span class="nv">$POD</span><span class="s2">&quot;</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar<span class="w"> </span>--tail<span class="o">=</span><span class="m">20</span>
 </code></pre></div>
-<p>Your pipeline results are now automatically persisted to S3: whenever an actor finishes processing the last message in the route, Asya automatically sends it to <code>x-sink</code> actor to persist it on S3. Similarly, error messages will be sent to <code>x-sump</code>.</p>
-<h2 id="namespace-architecture">Namespace Architecture<a class="headerlink" href="#namespace-architecture" title="Permanent link">&para;</a></h2>
-<p>Asya uses namespace separation to distinguish infrastructure from business logic:</p>
-<p><strong>asya-system namespace</strong> (infrastructure layer):
-- Crossplane (watches AsyncActors across all namespaces)
-- LocalStack / infrastructure services
-- KEDA (monitors queues across all namespaces)
-- Prometheus / Grafana (when installed)</p>
-<p><strong>Business namespaces</strong> (e.g., default, production):
-- Gateway (routes messages to actors in same namespace)
-- Gateway PostgreSQL (gateway's task tracking database)
-- Async actors and flows (your ML/AI workloads)
-- Crew actors (x-sink, x-sump - part of the pipelines)</p>
-<p><strong>Why this separation?</strong></p>
-<p>Gateway is part of the business logic layer - it exposes your actors as MCP tools and routes messages to actor queues. In multi-tenant deployments, each namespace can have its own gateway instance.</p>
-<h2 id="add-gateway-optional">Add Gateway (Optional)<a class="headerlink" href="#add-gateway-optional" title="Permanent link">&para;</a></h2>
-<p><strong>What you get</strong>: HTTP API, MCP tools, SSE streaming, task tracking</p>
-<h3 id="1-install-postgresql">1. Install PostgreSQL<a class="headerlink" href="#1-install-postgresql" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>-<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">apiVersion: v1</span>
-<span class="s">kind: Service</span>
-<span class="s">metadata:</span>
-<span class="s">  name: asya-gateway-postgresql</span>
-<span class="s">  namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  selector:</span>
-<span class="s">    app: postgresql</span>
-<span class="s">  ports:</span>
-<span class="s">    - port: 5432</span>
-<span class="s">---</span>
-<span class="s">apiVersion: apps/v1</span>
-<span class="s">kind: Deployment</span>
-<span class="s">metadata:</span>
-<span class="s">  name: asya-gateway-postgresql</span>
-<span class="s">  namespace: default</span>
-<span class="s">spec:</span>
-<span class="s">  selector:</span>
-<span class="s">    matchLabels:</span>
-<span class="s">      app: postgresql</span>
-<span class="s">  template:</span>
-<span class="s">    metadata:</span>
-<span class="s">      labels:</span>
-<span class="s">        app: postgresql</span>
-<span class="s">    spec:</span>
-<span class="s">      containers:</span>
-<span class="s">        - name: postgres</span>
-<span class="s">          image: &#39;postgres:15-alpine&#39;</span>
-<span class="s">          env:</span>
-<span class="s">            - name: POSTGRES_USER</span>
-<span class="s">              value: asya</span>
-<span class="s">            - name: POSTGRES_PASSWORD</span>
-<span class="s">              value: asya</span>
-<span class="s">            - name: POSTGRES_DB</span>
-<span class="s">              value: asya</span>
-<span class="s">EOF</span>
+<p>After the KEDA cooldown period (default 5 min), the hello actor scales back to zero.</p>
+<h2 id="clean-up">Clean up<a class="headerlink" href="#clean-up" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>uninstall<span class="w"> </span>asya<span class="w"> </span>-n<span class="w"> </span>asya-demo
+kind<span class="w"> </span>delete<span class="w"> </span>cluster<span class="w"> </span>--name<span class="w"> </span>asya-quickstart
 </code></pre></div>
-<h3 id="2-create-postgresql-secret">2. Create PostgreSQL Secret<a class="headerlink" href="#2-create-postgresql-secret" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>asya-gateway-postgresql<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-literal<span class="o">=</span><span class="nv">password</span><span class="o">=</span>asya
-</code></pre></div>
-<h3 id="3-install-gateway">3. Install Gateway<a class="headerlink" href="#3-install-gateway" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">image:</span>
-<span class="s">  repository: ghcr.io/deliveryhero/asya-gateway</span>
-<span class="s">  tag: latest</span>
-
-<span class="s">config:</span>
-<span class="s">  sqsEndpoint: http://localstack.asya-system.svc.cluster.local:4566</span>
-<span class="s">  sqsRegion: us-east-1</span>
-<span class="s">  database:</span>
-<span class="s">    host: asya-gateway-postgresql.default.svc.cluster.local</span>
-<span class="s">    name: asya</span>
-<span class="s">    user: asya</span>
-<span class="s">    password: asya</span>
-
-<span class="s">env:</span>
-<span class="s">- name: AWS_ACCESS_KEY_ID</span>
-<span class="s">  value: &quot;test&quot;</span>
-<span class="s">- name: AWS_SECRET_ACCESS_KEY</span>
-<span class="s">  value: &quot;test&quot;</span>
-<span class="s">EOF</span>
-
-helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
-
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
-</code></pre></div>
-<h3 id="5-update-crew-for-gateway-reporting">5. Update Crew for Gateway Reporting<a class="headerlink" href="#5-update-crew-for-gateway-reporting" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">x-sink:</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  env:</span>
-<span class="s">  - name: ASYA_GATEWAY_URL</span>
-<span class="s">    value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">    value: /tmp/checkpoints/results</span>
-
-<span class="s">x-sump:</span>
-<span class="s">  transport: sqs</span>
-<span class="s">  env:</span>
-<span class="s">  - name: ASYA_GATEWAY_URL</span>
-<span class="s">    value: &quot;http://asya-gateway.default.svc.cluster.local:8080&quot;</span>
-<span class="s">  - name: ASYA_PERSISTENCE_MOUNT</span>
-<span class="s">    value: /tmp/checkpoints/errors</span>
-<span class="s">EOF</span>
-
-helm<span class="w"> </span>upgrade<span class="w"> </span>asya-crew<span class="w"> </span>asya/asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>crew-values.yaml
-
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-crew<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
-</code></pre></div>
-<h3 id="6-install-asya-cli">6. Install asya CLI<a class="headerlink" href="#6-install-asya-cli" title="Permanent link">&para;</a></h3>
-<p>The Asya CLI provides MCP client tools for calling actors through the gateway:</p>
-<div class="highlight"><pre><span></span><code>pip<span class="w"> </span>install<span class="w"> </span>git+https://github.com/deliveryhero/asya.git#subdirectory<span class="o">=</span>src/asya-lab
-</code></pre></div>
-<h3 id="7-configure-gateway-tools">7. Configure Gateway Tools<a class="headerlink" href="#7-configure-gateway-tools" title="Permanent link">&para;</a></h3>
-<p>Define which actors are exposed as MCP tools. Update gateway values to add a tool for the hello actor:</p>
-<div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>gateway-tool-values.yaml<span class="w"> </span><span class="s">&lt;&lt;EOF</span>
-<span class="s">routes:</span>
-<span class="s">  tools:</span>
-<span class="s">  - name: hello</span>
-<span class="s">    description: Greets users by name</span>
-<span class="s">    parameters:</span>
-<span class="s">      name:</span>
-<span class="s">        type: string</span>
-<span class="s">        required: true</span>
-<span class="s">        description: Name to greet</span>
-<span class="s">    route: [hello]</span>
-<span class="s">EOF</span>
-
-helm<span class="w"> </span>upgrade<span class="w"> </span>asya-gateway<span class="w"> </span>asya/asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-f<span class="w"> </span>gateway-tool-values.yaml
-
-kubectl<span class="w"> </span><span class="nb">wait</span><span class="w"> </span>--for<span class="o">=</span><span class="nv">condition</span><span class="o">=</span>ready<span class="w"> </span>pod<span class="w"> </span>-l<span class="w"> </span>app.kubernetes.io/name<span class="o">=</span>asya-gateway<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>default<span class="w"> </span>--timeout<span class="o">=</span>300s
-</code></pre></div>
-<h3 id="8-test-gateway-integration">8. Test Gateway Integration<a class="headerlink" href="#8-test-gateway-integration" title="Permanent link">&para;</a></h3>
-<p>In a separate terminal, port-forward the gateway service to your local machine:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>default<span class="w"> </span>svc/asya-gateway<span class="w"> </span><span class="m">8080</span>:80
-</code></pre></div>
-<p>Set the MCP URL environment variable:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">ASYA_CLI_MCP_URL</span><span class="o">=</span>http://localhost:8080/
-</code></pre></div>
-<p>List available tools:</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>list
-</code></pre></div>
-<p>Expected output:
-<div class="highlight"><pre><span></span><code>Available tools:
-- hello: Greets users by name
-</code></pre></div></p>
-<p>Call the hello actor through the gateway:</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya
-</code></pre></div>
-<p>Expected output will show the task ID and completion status.</p>
-<p>Stream real-time progress using Server-Sent Events (SSE):</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span>Asya<span class="w"> </span>--stream
-</code></pre></div>
-<p>This will show progress updates as the message flows through the pipeline until completion.</p>
-<p>Check task status by ID:</p>
-<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>mcp<span class="w"> </span>status<span class="w"> </span>&lt;task-id&gt;
-</code></pre></div>
-<p>The gateway now provides:
-- <strong>MCP HTTP API</strong> for submitting tasks to actor pipelines
-- <strong>SSE streaming</strong> for real-time progress updates
-- <strong>Task tracking</strong> in PostgreSQL for status queries
-- <strong>Tool configuration</strong> for data science teams to call actors</p>
-<h2 id="add-prometheus-optional">Add Prometheus (Optional)<a class="headerlink" href="#add-prometheus-optional" title="Permanent link">&para;</a></h2>
-<p><strong>What you get</strong>: Metrics collection and observability</p>
-<h3 id="1-install-prometheus">1. Install Prometheus<a class="headerlink" href="#1-install-prometheus" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>repo<span class="w"> </span>add<span class="w"> </span>prometheus-community<span class="w"> </span>https://prometheus-community.github.io/helm-charts
-helm<span class="w"> </span>install<span class="w"> </span>prometheus<span class="w"> </span>prometheus-community/kube-prometheus-stack<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--namespace<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--create-namespace
-</code></pre></div>
-<h3 id="3-configure-asya-dashboard">3. Configure Asya Dashboard<a class="headerlink" href="#3-configure-asya-dashboard" title="Permanent link">&para;</a></h3>
-<p>Create a ConfigMap with the Asya dashboard:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>configmap<span class="w"> </span>asya-dashboard<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--from-file<span class="o">=</span>asya-actors.json<span class="o">=</span>https://raw.githubusercontent.com/deliveryhero/asya/refs/heads/main/deploy/grafana-dashboards/asya-actors.json
-
-kubectl<span class="w"> </span>label<span class="w"> </span>configmap<span class="w"> </span>asya-dashboard<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-n<span class="w"> </span>monitoring<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span><span class="nv">grafana_dashboard</span><span class="o">=</span><span class="m">1</span>
-</code></pre></div>
-<p>The Grafana sidecar will automatically discover and load the dashboard.</p>
-<h3 id="4-access-grafana">4. Access Grafana<a class="headerlink" href="#4-access-grafana" title="Permanent link">&para;</a></h3>
-<p>Port-forward Grafana:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>port-forward<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>svc/prometheus-grafana<span class="w"> </span><span class="m">3000</span>:80
-</code></pre></div>
-<p>Get admin password:</p>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>-n<span class="w"> </span>monitoring<span class="w"> </span>prometheus-grafana<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.admin-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
-</code></pre></div>
-<p>Login with username <code>admin</code> and the password from above.</p>
-<p>Open <code>http://localhost:3003/d/asya-actors-dashboard/asya-actors-dashboard</code></p>
-<p>The dashboard shows:
-- Message throughput and active messages
-- Processing and runtime execution duration
-- Error rates by reason and type
-- Message size distribution</p>
-<h3 id="5-verify-metrics-collection">5. Verify Metrics Collection<a class="headerlink" href="#5-verify-metrics-collection" title="Permanent link">&para;</a></h3>
-<p>Send messages to generate metrics:</p>
-<div class="highlight"><pre><span></span><code><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="o">{</span><span class="m">1</span>..10<span class="o">}</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
-<span class="w">  </span>asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;User</span><span class="nv">$i</span><span class="s2">&quot;</span>
-<span class="k">done</span>
-</code></pre></div>
-<p>In the Grafana dashboard:
-- Select <strong>default</strong> namespace and <strong>asya-default-hello</strong> queue
-- Watch message rate increase
-- See processing duration metrics
-- Monitor error rates (should be zero)</p>
-<p>You can also query metrics directly in Grafana Explore:
-- <code>asya_actor_processing_duration_seconds{queue="asya-default-hello"}</code>
-- <code>asya_actor_messages_processed_total{queue="asya-default-hello"}</code>
-- <code>asya_actor_active_messages</code></p>
-<h2 id="testing-your-setup">Testing Your Setup<a class="headerlink" href="#testing-your-setup" title="Permanent link">&para;</a></h2>
-<p>Send a message and watch scaling:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Send message</span>
-asya<span class="w"> </span>mcp<span class="w"> </span>call<span class="w"> </span>hello<span class="w"> </span>--name<span class="o">=</span><span class="s2">&quot;Test&quot;</span>
-
-<span class="c1"># Watch pods scale</span>
-kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello<span class="w"> </span>-w
-
-<span class="c1"># Check logs</span>
-<span class="nv">POD</span><span class="o">=</span><span class="k">$(</span>kubectl<span class="w"> </span>get<span class="w"> </span>pods<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello<span class="w"> </span>-o<span class="w"> </span>name<span class="w"> </span><span class="p">|</span><span class="w"> </span>head<span class="w"> </span>-1<span class="k">)</span>
-kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-runtime
-kubectl<span class="w"> </span>logs<span class="w"> </span><span class="nv">$POD</span><span class="w"> </span>-c<span class="w"> </span>asya-sidecar
-</code></pre></div>
-<h2 id="alternative-quick-e2e-setup">Alternative: Quick E2E Setup<a class="headerlink" href="#alternative-quick-e2e-setup" title="Permanent link">&para;</a></h2>
-<p>For rapid testing with all components:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">cd</span><span class="w"> </span>testing/e2e
-make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</span><span class="o">=</span>sqs-s3
-</code></pre></div>
-<p>This deploys everything in one command but uses test configurations.</p>
-<h2 id="production-deployment">Production Deployment<a class="headerlink" href="#production-deployment" title="Permanent link">&para;</a></h2>
-<p>For production on AWS, use Crossplane ProviderConfig with IRSA for AWS credentials instead of static credentials. This allows fine-grained IAM permissions for queue management and message operations.</p>
-<p>See <a href="../install/aws-eks/">AWS EKS Installation</a> for full production guide.</p>
-<h2 id="whats-next">What's Next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
-<h3 id="for-data-scientists">For Data Scientists<a class="headerlink" href="#for-data-scientists" title="Permanent link">&para;</a></h3>
+<hr />
+<h2 id="whats-next">What's next?<a class="headerlink" href="#whats-next" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong><a href="for-data-scientists/">Quickstart for Data Scientists</a></strong> - Class handlers, model loading, dynamic routing</li>
-<li><strong><a href="../architecture/asya-flow/">Flow DSL</a></strong> - Write pipelines in Python-like syntax</li>
+<li><strong><a href="for-data-scientists/">For Data Scientists</a></strong> — actor handlers, class-based actors, the Flow DSL</li>
+<li><strong><a href="for-platform-engineers/">For Platform Engineers</a></strong> — production deployment, scaling policies</li>
+<li><strong><a href="../architecture/">Architecture</a></strong> — deep dive into actors, envelopes, routing</li>
+<li><strong><a href="../../examples/">Examples</a></strong> — sample actors and flows</li>
 </ul>
-<p><strong>Use cases</strong>:
-- Multi-step LLM workflows (RAG → generate → judge → refine)
-- Document processing (OCR → classify → extract → store)
-- Image pipelines (resize → detect → classify → tag)</p>
-<h3 id="for-platform-engineers">For Platform Engineers<a class="headerlink" href="#for-platform-engineers" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong><a href="for-platform-engineers/">Quickstart for Platform Engineers</a></strong> - Deployment strategies, scaling policies</li>
-<li><strong><a href="../install/aws-eks/">AWS EKS Installation</a></strong> - Production deployment</li>
-<li><strong><a href="../operate/monitoring/">Monitoring</a></strong> - Metrics, alerts, dashboards</li>
-<li><strong><a href="../operate/troubleshooting/">Troubleshooting</a></strong> - Common issues</li>
-</ul>
-<h2 id="learn-more">Learn More<a class="headerlink" href="#learn-more" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../concepts/">Core Concepts</a> - Actors, messages, sidecars, routing</li>
-<li><a href="../motivation/">Motivation</a> - Why Asya🎭 exists, when to use it</li>
-<li><a href="../architecture/">Architecture</a> - Deep dive into system design</li>
-<li><a href="https://github.com/deliveryhero/asya/tree/main/examples">Examples</a> - Sample actors and flows</li>
-</ul>
-<h2 id="architecture-summary">Architecture Summary<a class="headerlink" href="#architecture-summary" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>                    AsyncActor Claim
-                         |
-                    XAsyncActor (Composite)
-                         |
-              +----------+----------+----------+
-              |          |          |          |
-           SQS Queue  Deployment  ScaledObj  TriggerAuth
-           (Crossplane  (Crossplane  (Crossplane  (Crossplane
-            AWS)         K8s)         K8s)         K8s)
-                         |
-                    Pod Creation
-                         |
-                    Webhook Injection
-                         |
-              +----------+----------+
-              |                     |
-         asya-runtime          asya-sidecar
-         (user handler)        (message router)
+<hr />
+<details>
+<summary>Troubleshooting</summary>
+
+### Providers not becoming Healthy
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>providers<span class="w"> </span>provider-aws-sqs
+kubectl<span class="w"> </span>describe<span class="w"> </span>functions<span class="w"> </span><span class="k">function</span>-go-templating
 </code></pre></div>
-<ul>
-<li><strong>Crossplane Compositions</strong> manage infrastructure: SQS queues, Deployments, KEDA ScaledObjects, and render the sidecar inline into actor pods</li>
-<li><strong>KEDA</strong> handles autoscaling based on SQS queue depth</li>
-<li>Deletion of the AsyncActor claim cascades to all managed resources</li>
-</ul>
+
+Providers pull packages from `xpkg.upbound.io`. On slow connections, increase the `--timeout`
+in the `kubectl wait` commands above.
+
+### AsyncActor CRD not found
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>xrd<span class="w"> </span>xasyncactors.asya.sh
+<span class="c1"># Should show ESTABLISHED=True, OFFERED=True</span>
+</code></pre></div>
+
+If not established, re-run Phase 2.
+
+### Actors stuck in Creating
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>describe<span class="w"> </span>asyncactor<span class="w"> </span>hello<span class="w"> </span>-n<span class="w"> </span>asya-demo
+</code></pre></div>
+
+### Pod shows 1/2 containers
+
+Delete the pod to trigger re-creation from the updated Crossplane composition:
+
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>delete<span class="w"> </span>pod<span class="w"> </span>-n<span class="w"> </span>asya-demo<span class="w"> </span>-l<span class="w"> </span>asya.sh/actor<span class="o">=</span>hello
+</code></pre></div>
+
+</details>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1810,14 +1320,6 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
         
         
         
-        <a href="#what-youll-learn"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            What You'll Learn
-        </a>
-        
-
-        
         <a href="#prerequisites"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
@@ -1826,258 +1328,86 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
         
 
         
-        <a href="#1-create-kind-cluster"
+        <a href="#1-create-a-kind-cluster-local-k8s"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            1. Create Kind Cluster
+            1. Create a Kind cluster (local K8s)
         </a>
         
 
         
-        <a href="#2-build-and-load-images"
+        <a href="#2-install-crossplane"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            2. Build and Load Images
+            2. Install Crossplane
         </a>
         
 
         
-        <a href="#3-install-infrastructure"
+        <a href="#3-install-the-playground-chart"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            3. Install Infrastructure
+            3. Install the playground chart
         </a>
         
         
-        <a href="#crossplane"
+        <a href="#add-the-helm-repository"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Crossplane
+            Add the Helm repository
         </a>
         
-        <a href="#keda"
+        <a href="#phase-1-infrastructure-only-no-actors-yet"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            KEDA
+            Phase 1 — infrastructure only (no actors yet)
         </a>
         
-        <a href="#localstack-sqs-emulator"
+        <a href="#phase-2-wait-for-providers-then-enable-everything"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            LocalStack (SQS emulator)
+            Phase 2 — wait for providers, then enable everything
         </a>
         
         
 
         
-        <a href="#4-install-crossplane-providers"
+        <a href="#4-verify-the-installation"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            4. Install Crossplane Providers
+            4. Verify the installation
         </a>
         
 
         
-        <a href="#5-create-secrets-and-configmaps"
+        <a href="#5-send-a-test-message"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            5. Create Secrets and ConfigMaps
+            5. Send a test message
         </a>
         
 
         
-        <a href="#6-install-asya-crossplane-chart"
+        <a href="#6-watch-scale-from-zero"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            6. Install Asya Crossplane Chart
+            6. Watch scale-from-zero
         </a>
         
 
         
-        <a href="#7-deploy-your-first-actor"
+        <a href="#7-check-logs"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            7. Deploy Your First Actor
+            7. Check logs
         </a>
         
 
         
-        <a href="#9-test-scaling"
+        <a href="#clean-up"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            9. Test Scaling
-        </a>
-        
-
-        
-        <a href="#10-test-scale-to-n"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            10. Test Scale-to-N
-        </a>
-        
-
-        
-        <a href="#11-test-resilience"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            11. Test Resilience
-        </a>
-        
-
-        
-        <a href="#12-test-deletion"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            12. Test Deletion
-        </a>
-        
-
-        
-        <a href="#13-clean-up"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            13. Clean Up
-        </a>
-        
-
-        
-        <a href="#add-s3-storage-optional"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Add S3 Storage (Optional)
-        </a>
-        
-        
-        <a href="#1-create-s3-buckets"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            1. Create S3 Buckets
-        </a>
-        
-        <a href="#2-install-crew-actors"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            2. Install Crew Actors
-        </a>
-        
-        
-
-        
-        <a href="#namespace-architecture"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Namespace Architecture
-        </a>
-        
-
-        
-        <a href="#add-gateway-optional"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Add Gateway (Optional)
-        </a>
-        
-        
-        <a href="#1-install-postgresql"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            1. Install PostgreSQL
-        </a>
-        
-        <a href="#2-create-postgresql-secret"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            2. Create PostgreSQL Secret
-        </a>
-        
-        <a href="#3-install-gateway"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            3. Install Gateway
-        </a>
-        
-        <a href="#5-update-crew-for-gateway-reporting"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            5. Update Crew for Gateway Reporting
-        </a>
-        
-        <a href="#6-install-asya-cli"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            6. Install asya CLI
-        </a>
-        
-        <a href="#7-configure-gateway-tools"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            7. Configure Gateway Tools
-        </a>
-        
-        <a href="#8-test-gateway-integration"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            8. Test Gateway Integration
-        </a>
-        
-        
-
-        
-        <a href="#add-prometheus-optional"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Add Prometheus (Optional)
-        </a>
-        
-        
-        <a href="#1-install-prometheus"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            1. Install Prometheus
-        </a>
-        
-        <a href="#3-configure-asya-dashboard"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            3. Configure Asya Dashboard
-        </a>
-        
-        <a href="#4-access-grafana"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            4. Access Grafana
-        </a>
-        
-        <a href="#5-verify-metrics-collection"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            5. Verify Metrics Collection
-        </a>
-        
-        
-
-        
-        <a href="#testing-your-setup"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Testing Your Setup
-        </a>
-        
-
-        
-        <a href="#alternative-quick-e2e-setup"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Alternative: Quick E2E Setup
-        </a>
-        
-
-        
-        <a href="#production-deployment"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Production Deployment
+            Clean up
         </a>
         
 
@@ -2085,37 +1415,7 @@ make<span class="w"> </span>up<span class="w"> </span><span class="nv">PROFILE</
         <a href="#whats-next"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            What's Next?
-        </a>
-        
-        
-        <a href="#for-data-scientists"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            For Data Scientists
-        </a>
-        
-        <a href="#for-platform-engineers"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            For Platform Engineers
-        </a>
-        
-        
-
-        
-        <a href="#learn-more"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Learn More
-        </a>
-        
-
-        
-        <a href="#architecture-summary"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Architecture Summary
+            What's next?
         </a>
         
 
