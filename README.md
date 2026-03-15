@@ -1,7 +1,7 @@
 <p align="left">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
-    <img src="./docs/img/logo_black_w_borders.png" alt="Asya" width="120"/>
+    <img src="./docs/img/logo_black_w_borders.png" alt="Asya🎭" width="120"/>
   </picture>
   &nbsp;&nbsp;
   <img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
