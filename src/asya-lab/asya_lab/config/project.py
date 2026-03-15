@@ -90,29 +90,32 @@ class AsyaProject:
     def resolve_image(self, handler_name: str) -> str:
         """Resolve a handler name to a container image reference.
 
-        Checks build entries first (module prefix match).
-        Falls back to compiler.image_registry + handler name.
-        Raises KeyError if neither is configured.
+        Resolution order:
+        1. Specific build entry whose module prefix matches handler_name.
+        2. Wildcard build entry (module: "*") — '*' in the image field
+           is replaced with the handler's K8s name (hyphens).
+        3. KeyError if nothing matches.
         """
         cfg = self._store.cfg
+        wildcard_entry = None
 
-        # Check build entries (module prefix match)
         if "build" in cfg:
             for entry in cfg["build"]:
                 module = str(entry.get("module", ""))
+                if module == "*":
+                    wildcard_entry = entry
+                    continue
                 if module and handler_name.startswith(module.replace(".", "_")):
                     return str(entry["image"])
 
-        # Fall back to image_registry
-        if "compiler" in cfg and "image_registry" in cfg["compiler"]:
-            registry = str(cfg["compiler"]["image_registry"])
+        if wildcard_entry is not None:
             k8s_name = handler_name.replace("_", "-")
-            return f"{registry}/{k8s_name}:latest"
+            return str(wildcard_entry["image"]).replace("*", k8s_name)
 
         raise KeyError(
             f"Cannot resolve image for handler '{handler_name}': "
-            f"no matching build entry and no compiler.image_registry configured. "
-            f"Add a build entry or set compiler.image_registry in .asya/config.yaml"
+            f"no matching build entry found. "
+            f"Add a build entry or a wildcard (module: '*') to .asya/config.yaml"
         )
 
     # -- contexts -----------------------------------------------------------

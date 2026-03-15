@@ -2,23 +2,25 @@
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
 
-from asya_lab.config.discovery import MANIFESTS_DIR
 
+_KNOWN_TRANSPORTS = ("sqs", "rabbitmq", "pubsub")
 
 _ROOT_CONFIG = """\
 templates:
   namespace: default
-  transport: sqs
+  transport: {transport}
   router_image: "python:3.13-slim"
   max_replicas: 5
 
 compiler:
   routers: "./compiled"
   manifests: ".asya/manifests"
-  image_registry: "{image_registry}"
+
+build:
+  - module: "*"
+    image: "{registry}/*:latest"
 """
 
 _ACTOR_TEMPLATE = """\
@@ -95,7 +97,8 @@ _RULES_YAML = """\
 def init_project(
     target_dir: Path,
     *,
-    image_registry: str = "ghcr.io/my-org",
+    registry: str,
+    transport: str,
 ) -> Path:
     """Scaffold .asya/ project directory.
 
@@ -103,7 +106,8 @@ def init_project(
 
     Args:
         target_dir: Directory to create .asya/ in.
-        image_registry: Default image registry for var.image_registry.
+        registry: Container image registry (e.g. ghcr.io/my-org).
+        transport: Message transport (sqs, rabbitmq, pubsub).
 
     Returns:
         Path to the created .asya/ directory.
@@ -114,7 +118,7 @@ def init_project(
     # config.yaml
     config_file = asya_dir / "config.yaml"
     if not config_file.exists():
-        config_file.write_text(_ROOT_CONFIG.format(image_registry=image_registry))
+        config_file.write_text(_ROOT_CONFIG.format(registry=registry, transport=transport))
 
     # compiler/templates/ — templates are NOT part of the config tree,
     # they are stored as files and referenced by the stamper
@@ -142,70 +146,4 @@ def init_project(
     if not rules_file.exists():
         rules_file.write_text(_RULES_YAML)
 
-    # manifests/
-    manifests_dir = asya_dir / MANIFESTS_DIR
-    manifests_dir.mkdir(exist_ok=True)
-
-    # .gitignore: add .env.secret
-    _update_gitignore(target_dir)
-
     return asya_dir
-
-
-def _update_gitignore(target_dir: Path) -> None:
-    """Add .env.secret to .gitignore if not already present."""
-    gitignore = target_dir / ".gitignore"
-    entry = ".env.secret"
-
-    if gitignore.exists():
-        content = gitignore.read_text()
-        if entry in content.splitlines():
-            return
-        if not content.endswith("\n"):
-            content += "\n"
-        content += f"{entry}\n"
-        gitignore.write_text(content)
-    else:
-        gitignore.write_text(f"{entry}\n")
-
-
-def main_init(args: list[str]) -> None:
-    """CLI entry point for 'asya init'."""
-    import argparse
-
-    parser = argparse.ArgumentParser(
-        prog="asya init",
-        description="Scaffold .asya/ project directory",
-    )
-    parser.add_argument(
-        "--image-registry",
-        default=None,
-        help="Default image registry (e.g. ghcr.io/my-org)",
-    )
-    parser.add_argument(
-        "--dir",
-        default=".",
-        help="Target directory (default: current directory)",
-    )
-    parsed = parser.parse_args(args)
-
-    target_dir = Path(parsed.dir).resolve()
-    if not target_dir.is_dir():
-        print(f"Error: {target_dir} is not a directory", file=sys.stderr)
-        sys.exit(1)
-
-    image_registry = parsed.image_registry
-    if image_registry is None:
-        image_registry = _prompt_image_registry()
-
-    asya_dir = init_project(target_dir, image_registry=image_registry)
-    print(f"[+] Initialized project at {asya_dir}")
-
-
-def _prompt_image_registry() -> str:
-    """Prompt user for image registry interactively."""
-    try:
-        value = input("Image registry (e.g. ghcr.io/my-org): ").strip()
-        return value if value else "ghcr.io/my-org"
-    except (EOFError, KeyboardInterrupt):
-        return "ghcr.io/my-org"
