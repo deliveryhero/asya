@@ -59,11 +59,10 @@ helm install asya asya/asya-playground \
 
 ```bash
 # Wait for Crossplane providers, functions, and AsyncActor XRD to become ready
-kubectl wait --for=condition=Healthy providers/provider-aws-sqs --timeout=300s
-kubectl wait --for=condition=Healthy providers/provider-kubernetes --timeout=300s
-kubectl wait --for=condition=Healthy functions/function-go-templating --timeout=300s
-kubectl wait --for=condition=Healthy functions/function-patch-and-transform --timeout=300s
-kubectl wait --for=condition=Healthy functions/function-auto-ready --timeout=300s
+kubectl wait --for=condition=Healthy \
+  providers/provider-aws-sqs providers/provider-kubernetes \
+  functions/function-go-templating functions/function-patch-and-transform functions/function-auto-ready \
+  --timeout=300s
 kubectl wait --for=condition=Established xrd/xasyncactors.asya.sh --timeout=120s
 
 # Enable ProviderConfigs and actors in one upgrade
