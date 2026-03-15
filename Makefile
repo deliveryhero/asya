@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images clean cov docs-serve docs-build
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images clean cov docs-serve docs-build docs-preview
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -155,3 +155,10 @@ docs-serve: docs-build ## Serve docs locally at http://127.0.0.1:8000
 docs-build: ## Build docs to site/ directory
 	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
 	uv run mkdocs build
+
+docs-preview: docs-build ## Preview full site locally (landing page + docs) at http://localhost:8080
+	@rm -rf /tmp/asya-preview && mkdir -p /tmp/asya-preview
+	@cp website/index.html /tmp/asya-preview/
+	@ln -sf $(CURDIR)/site /tmp/asya-preview/docs
+	@echo "[.] Preview at http://localhost:8080"
+	@python3 -m http.server 8080 --directory /tmp/asya-preview
