@@ -1,19 +1,19 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "d58579c90b57fa8b4c9e7944ca40ebd72362790b",
+  "commit": "f4c82f96167ef36fa5a360fcb6ed189a8aabc606",
   "coverage": {
     "type": "merged",
     "format": "Merged",
     "total": 7640,
-    "covered": 3946,
+    "covered": 3948,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "normalized_path": "src/asya-sidecar/cmd/sidecar/main.go",
         "total": 246,
-        "covered": 47,
+        "covered": 49,
         "blocks": [
           {
             "type": "statement",
@@ -175,7 +175,7 @@
             "end_line": 98,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -238,7 +238,7 @@
             "end_line": 119,
             "end_col": 26,
             "num_stmt": 2,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -247,7 +247,7 @@
             "end_line": 121,
             "end_col": 5,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33073,
+    "code": 33150,
     "test": 19196,
     "code_files": [
       {
@@ -24932,9 +24932,9 @@
         "language": "Python"
       },
       {
-        "code": 87,
-        "comment": 47,
-        "blank": 35,
+        "code": 127,
+        "comment": 50,
+        "blank": 48,
         "path": "examples/flows/agentic/compiled/multi_agent_debate/routers.py",
         "language": "Python"
       },
@@ -24995,9 +24995,9 @@
         "language": "Python"
       },
       {
-        "code": 41,
-        "comment": 42,
-        "blank": 23,
+        "code": 63,
+        "comment": 44,
+        "blank": 31,
         "path": "examples/flows/agentic/compiled/voting_ensemble/routers.py",
         "language": "Python"
       },
@@ -26228,7 +26228,7 @@
       },
       {
         "code": 408,
-        "comment": 66,
+        "comment": 67,
         "blank": 66,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
         "language": "Python"
@@ -26367,9 +26367,9 @@
         "language": "Python"
       },
       {
-        "code": 350,
-        "comment": 213,
-        "blank": 88,
+        "code": 365,
+        "comment": 220,
+        "blank": 90,
         "path": "src/asya-lab/tests/flow/test_parser_fanout.py",
         "language": "Python"
       },
@@ -27441,6 +27441,6 @@
       }
     ]
   },
-  "test_execution_time": 336000000000,
-  "timestamp": "2026-03-15T21:26:39.793562209Z"
+  "test_execution_time": 325000000000,
+  "timestamp": "2026-03-15T22:23:29.850248218Z"
 }
