@@ -1,0 +1,18 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: generator
+  namespace: default
+  labels:
+    asya.sh/flow: text-improver
+    asya.sh/flow-role: handler
+spec:
+  actor: generator
+  image: asya-demo:latest
+  handler: generator
+  transport: sqs
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

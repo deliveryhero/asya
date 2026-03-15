@@ -4,7 +4,10 @@ templates:
   router_image: "python:3.13-slim"
   max_replicas: 5
 
+build:
+  - module: "*"
+    image: "asya-demo:latest"
+
 compiler:
-  routers: "./compiled"
+  routers: "./src/demo_actors/compiled"
   manifests: ".asya/manifests"
-  image_registry: "ghcr.io/my-org"

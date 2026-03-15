@@ -68,7 +68,7 @@ Same code, same results.
 ## Step 2: Compile to actor graph
 
 ```bash
-asya flow compile src/demo_flows/text_improver.py --output-dir compiled/ --plot
+asya compile src/demo_flows/text_improver.py --output-dir compiled/ --plot
 ls compiled/
 # routers.py  flow.dot  flow.svg
 ```
@@ -79,17 +79,19 @@ Open `compiled/flow.svg` to see the generated actor graph with loop-back edges.
 
 ```bash
 # Load GCP credentials as K8s secret
+kubectl create namespace asya-demo || true
 kubectl create secret generic vertex-ai-creds \
-  --namespace=asya-actors \
+  --namespace=asya-demo \
   --from-file=sa-key.json=/tmp/asya-demo-sa.json \
   --from-literal=project-id=$GCP_PROJECT
+
 
 # Apply flavors (platform engineer's config)
 kubectl apply -f .asya/manifests/flavors/
 
 # Build and load handler image
 docker build -t asya-demo:latest .
-kind load docker-image asya-demo:latest --name asya-e2e
+kind load docker-image asya-demo:latest --name asya-quickstart
 
 # Deploy actors
 kubectl apply -f manifests/
