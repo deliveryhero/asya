@@ -48,7 +48,6 @@ class LazyGroup(click.Group):
         "compile": "asya_lab.compile_cli:compile_cmd",
         "config": "asya_lab.config_cli:config",
         "expose": "asya_lab.expose_cli:expose",
-        "flow": "asya_lab.flow_cli:flow",
         "init": "asya_lab.init_cli:init",
         "k": "asya_lab.k_cli:k",
         "kube": "asya_lab.k_cli:k",
@@ -56,6 +55,7 @@ class LazyGroup(click.Group):
         "show": "asya_lab.show_cli:show",
         "status": "asya_lab.status_cli:status",
         "unexpose": "asya_lab.expose_cli:unexpose",
+        "validate": "asya_lab.flow_cli:validate",
     },
 )
 @click.version_option(version=get_version(), prog_name="asya")
