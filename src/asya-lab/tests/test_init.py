@@ -17,7 +17,7 @@ class TestInitProject:
         assert config.exists()
         content = config.read_text()
         assert "ghcr.io/test" in content
-        assert "project_root" in content
+        assert "templates:" in content
 
     def test_creates_actor_template(self, tmp_path: Path) -> None:
         init_project(tmp_path)
@@ -28,7 +28,7 @@ class TestInitProject:
 
     def test_creates_rules_yaml(self, tmp_path: Path) -> None:
         init_project(tmp_path)
-        rules = tmp_path / ".asya" / "compiler" / "rules.yaml"
+        rules = tmp_path / ".asya" / "config.compiler.rules.yaml"
         assert rules.exists()
 
     def test_creates_manifests_dir(self, tmp_path: Path) -> None:
@@ -76,11 +76,12 @@ class TestInitIdempotent:
     def test_adds_missing_files(self, tmp_path: Path) -> None:
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
-        (asya_dir / "config.yaml").write_text("var:\n  name: existing\n")
+        (asya_dir / "config.yaml").write_text("templates:\n  name: existing\n")
 
         init_project(tmp_path)
         assert (asya_dir / "compiler" / "templates" / "actor.yaml").exists()
-        assert (asya_dir / "compiler" / "rules.yaml").exists()
+        assert (asya_dir / "compiler" / "templates" / "router.yaml").exists()
+        assert (asya_dir / "config.compiler.rules.yaml").exists()
         assert (asya_dir / "manifests").is_dir()
 
 
@@ -89,8 +90,8 @@ class TestInitConfig:
         (tmp_path / ".git").mkdir()
         init_project(tmp_path, image_registry="ghcr.io/test")
 
-        from asya_lab.config.config import load_effective_config
+        from asya_lab.config.project import AsyaProject
 
-        cfg = load_effective_config(tmp_path)
-        assert cfg.var.image_registry == "ghcr.io/test"
-        assert cfg.var.transport == "sqs"
+        cfg = AsyaProject.from_dir(tmp_path).cfg
+        assert cfg.compiler.image_registry == "ghcr.io/test"
+        assert cfg.templates.transport == "sqs"

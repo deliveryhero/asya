@@ -20,20 +20,13 @@ spec:
     cooldownPeriod: 30
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.echo_handler
-          - name: ASYA_INCLUDE_ROUTE_INFO
-            value: 'true'
-          - name: ASYA_QUEUE_RETRY_MAX_ATTEMPTS
-            value: '2'
-          - name: ASYA_QUEUE_RETRY_BACKOFF
-            value: '1s'
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.echo_handler
+  env:
+  - name: ASYA_INCLUDE_ROUTE_INFO
+    value: 'true'
+  - name: ASYA_QUEUE_RETRY_MAX_ATTEMPTS
+    value: '2'
+  - name: ASYA_QUEUE_RETRY_BACKOFF
+    value: '1s'

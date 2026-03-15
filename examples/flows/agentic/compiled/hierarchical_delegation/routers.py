@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../hierarchical_delegation.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_hierarchical_delegation(payload: dict):
+async def start_hierarchical_delegation(payload: dict):
     """Entrypoint for flow 'hierarchical_delegation'"""
     _next = []
     _next.append(resolve("root_agent"))
@@ -21,7 +21,7 @@ def start_hierarchical_delegation(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_63_if(payload: dict):
+async def router_hierarchical_delegation_line_63_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,7 +35,7 @@ def router_hierarchical_delegation_line_63_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_61_if(payload: dict):
+async def router_hierarchical_delegation_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,7 +48,7 @@ def router_hierarchical_delegation_line_61_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_74_if(payload: dict):
+async def router_hierarchical_delegation_line_74_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -62,7 +62,7 @@ def router_hierarchical_delegation_line_74_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_72_if(payload: dict):
+async def router_hierarchical_delegation_line_72_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -75,7 +75,7 @@ def router_hierarchical_delegation_line_72_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_68_if(payload: dict):
+async def router_hierarchical_delegation_line_68_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -89,7 +89,7 @@ def router_hierarchical_delegation_line_68_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_hierarchical_delegation_line_57_if(payload: dict):
+async def router_hierarchical_delegation_line_57_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -102,7 +102,7 @@ def router_hierarchical_delegation_line_57_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_hierarchical_delegation(payload: dict):
+async def end_hierarchical_delegation(payload: dict):
     """Exitpoint for flow 'hierarchical_delegation'"""
     yield "SET", ".route.next", []
     yield payload

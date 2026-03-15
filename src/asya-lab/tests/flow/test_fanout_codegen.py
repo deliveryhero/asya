@@ -105,8 +105,45 @@ class AbiFrame:
         self.headers = copy.deepcopy(headers)
 
 
+async def _drive_abi_generator_async(gen, msg_ctx: dict) -> list[AbiFrame]:
+    """Drive an async ABI generator, dispatching GET/SET/DEL operations on msg_ctx."""
+    frames: list[AbiFrame] = []
+    value = None
+    try:
+        value = await gen.asend(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = await gen.asend(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = await gen.asend(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = await gen.asend(None)
+            else:
+                frames.append(
+                    AbiFrame(
+                        payload=value,
+                        route_next=msg_ctx.get("route", {}).get("next", []),
+                        headers=msg_ctx.get("headers", {}),
+                    )
+                )
+                value = await gen.asend(None)
+    except StopAsyncIteration:
+        pass
+    return frames
+
+
 def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
-    """Drive an ABI generator, dispatching GET/SET/DEL operations on msg_ctx.
+    """Drive an ABI generator (sync or async), dispatching GET/SET/DEL operations on msg_ctx.
 
     msg_ctx is a dict like:
         {"id": "...", "route": {"prev": [...], "next": [...]}, "headers": {...}, "status": {...}}
@@ -117,6 +154,11 @@ def _drive_abi_generator(gen, msg_ctx: dict) -> list[AbiFrame]:
     - ("DEL", path) -> delete value, respond with None
     - anything else -> a payload frame, snapshot state as AbiFrame
     """
+    import asyncio
+    import inspect
+
+    if inspect.isasyncgen(gen):
+        return asyncio.run(_drive_abi_generator_async(gen, msg_ctx))
     frames: list[AbiFrame] = []
     value = None
     try:
@@ -356,7 +398,9 @@ class TestFanOutCodeValidity:
         tree = _parse_code(code)
 
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name.startswith("fanout_")
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1, "Expected exactly one fanout_ function"
 
@@ -461,7 +505,9 @@ class TestFanOutCodeStructure:
         # Find the fanout function
         tree = _parse_code(code)
         fanout_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name.startswith("fanout_")
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name.startswith("fanout_")
         ]
         assert len(fanout_funcs) == 1
 
@@ -834,34 +880,55 @@ class TestFanOutIntegration:
         return code
 
     def test_comprehension_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_literal_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     sentiment_analyzer(p["text"]),
                     topic_extractor(p["text"]),
                 ]
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_gather_flow_compiles_to_valid_python(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(*(research_agent(t) for t in p["topics"]))
+                return p
+        """
+        )
+        try:
+            _parse_code(code)
+        except SyntaxError as e:
+            pytest.fail(f"Compilation failed: {e}")
+
+    def test_list_wrapped_gather_compiles_to_valid_python(self):
+        code = self._compile_flow("""
+            async def flow(p: dict) -> dict:
+                p["analysis"] = list(await asyncio.gather(
+                    agent_a(p["text"]),
+                    agent_b(p["text"]),
+                    agent_c(p["text"]),
+                ))
                 return p
         """)
         try:
@@ -870,31 +937,37 @@ class TestFanOutIntegration:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_fanout_between_actors_compiles(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p = preprocessor(p)
                 p["results"] = [agent(t) for t in p["items"]]
                 p = postprocessor(p)
                 return p
-        """)
+        """
+        )
         try:
             _parse_code(code)
         except SyntaxError as e:
             pytest.fail(f"Compilation failed: {e}")
 
     def test_fanout_no_resolve_fanin(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         assert "_resolve_fanin" not in code
 
     def test_two_fanouts_share_one_copy_import(self):
-        code = self._compile_flow("""
+        code = self._compile_flow(
+            """
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]
                 return p
-        """)
+        """
+        )
         assert code.count("import copy") == 1, "copy import should be emitted exactly once"

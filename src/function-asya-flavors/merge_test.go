@@ -1,14 +1,17 @@
 package main
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestMergeFlavors_EmptyList(t *testing.T) {
-	result := MergeFlavors(nil)
-
+	result, err := MergeFlavors(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(result) != 0 {
 		t.Errorf("expected empty map, got %v", result)
 	}
@@ -24,7 +27,10 @@ func TestMergeFlavors_SingleFlavor(t *testing.T) {
 		},
 	}
 
-	result := MergeFlavors(data)
+	result, err := MergeFlavors(data, []string{"gpu-t4"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	want := map[string]interface{}{
 		"scaling": map[string]interface{}{
@@ -32,504 +38,326 @@ func TestMergeFlavors_SingleFlavor(t *testing.T) {
 			"maxReplicas": float64(4),
 		},
 	}
-
 	if diff := cmp.Diff(want, result); diff != "" {
 		t.Errorf("mismatch (-want +got):\n%s", diff)
 	}
 }
 
-func TestMergeFlavors_ScalingFieldsMerge(t *testing.T) {
+func TestMergeFlavors_ScalarConflictErrors(t *testing.T) {
 	data := []map[string]interface{}{
-		{
-			"scaling": map[string]interface{}{
-				"minReplicas":    float64(1),
-				"cooldownPeriod": float64(600),
-			},
-		},
-		{
-			"scaling": map[string]interface{}{
-				"maxReplicas": float64(4),
-			},
-		},
+		{"replicas": float64(2)},
+		{"replicas": float64(4)},
 	}
 
-	result := MergeFlavors(data)
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for scalar conflict, got nil")
+	}
+	if !strings.Contains(err.Error(), `"flavor-a"`) || !strings.Contains(err.Error(), `"flavor-b"`) {
+		t.Errorf("error should mention flavor names, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_MapConflictOnSameKeyErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"scaling": map[string]interface{}{"minReplicas": float64(1)}},
+		{"scaling": map[string]interface{}{"minReplicas": float64(2)}},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for map key conflict, got nil")
+	}
+	if !strings.Contains(err.Error(), "scaling.minReplicas") {
+		t.Errorf("error should mention conflicting key path, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_MapMergeDistinctKeys(t *testing.T) {
+	data := []map[string]interface{}{
+		{"scaling": map[string]interface{}{"minReplicas": float64(1)}},
+		{"scaling": map[string]interface{}{"maxReplicas": float64(10)}},
+	}
+
+	result, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	scaling := result["scaling"].(map[string]interface{})
-
-	if scaling["minReplicas"] != float64(1) {
-		t.Errorf("minReplicas: got %v, want 1", scaling["minReplicas"])
-	}
-	if scaling["maxReplicas"] != float64(4) {
-		t.Errorf("maxReplicas: got %v, want 4", scaling["maxReplicas"])
-	}
-	if scaling["cooldownPeriod"] != float64(600) {
-		t.Errorf("cooldownPeriod: got %v, want 600", scaling["cooldownPeriod"])
+	if scaling["minReplicas"] != float64(1) || scaling["maxReplicas"] != float64(10) {
+		t.Errorf("expected merged map keys, got %v", scaling)
 	}
 }
 
-func TestMergeFlavors_EnvVarsMergeByName(t *testing.T) {
+func TestMergeFlavors_ResourcesDeepConflictErrors(t *testing.T) {
 	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "FOO",
-										"value": "bar",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "BAZ",
-										"value": "qux",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "1"}}},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "2"}}},
 	}
 
-	result := MergeFlavors(data)
-
-	envVars := getEnvVars(t, result)
-	// mergeByName deep-merges containers with same name, so env vars accumulate
-	if len(envVars) != 2 {
-		t.Fatalf("expected 2 env vars (deep merge preserves both), got %d: %v", len(envVars), envVars)
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for resources leaf key conflict, got nil")
 	}
-
-	envMap := make(map[string]string)
-	for _, e := range envVars {
-		env := e.(map[string]interface{})
-		envMap[env["name"].(string)] = env["value"].(string)
-	}
-	if envMap["FOO"] != "bar" {
-		t.Errorf("FOO: got %q, want %q", envMap["FOO"], "bar")
-	}
-	if envMap["BAZ"] != "qux" {
-		t.Errorf("BAZ: got %q, want %q", envMap["BAZ"], "qux")
+	if !strings.Contains(err.Error(), "resources.limits.cpu") {
+		t.Errorf("error should mention full conflicting key path, got: %s", err)
 	}
 }
 
-func TestMergeFlavors_EnvVarOverrideByName(t *testing.T) {
+func TestMergeFlavors_ResourcesDeepMergeDistinctLeafKeys(t *testing.T) {
 	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "LOG_LEVEL",
-										"value": "INFO",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "LOG_LEVEL",
-										"value": "DEBUG",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "500m"}}},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"memory": "4Gi"}}},
 	}
 
-	result := MergeFlavors(data)
-
-	envVars := getEnvVars(t, result)
-	if len(envVars) != 1 {
-		t.Fatalf("expected 1 env var (merged by name), got %d", len(envVars))
+	result, err := MergeFlavors(data, []string{"cpu-flavor", "memory-flavor"})
+	if err != nil {
+		t.Fatalf("distinct leaf keys should merge without error, got: %s", err)
 	}
 
-	env := envVars[0].(map[string]interface{})
-	if env["value"] != "DEBUG" {
-		t.Errorf("LOG_LEVEL: got %q, want %q (later flavor should win)", env["value"], "DEBUG")
+	resources := result["resources"].(map[string]interface{})
+	limits := resources["limits"].(map[string]interface{})
+	if limits["cpu"] != "500m" {
+		t.Errorf("expected cpu=500m from cpu-flavor, got %v", limits["cpu"])
+	}
+	if limits["memory"] != "4Gi" {
+		t.Errorf("expected memory=4Gi from memory-flavor, got %v", limits["memory"])
 	}
 }
 
-func TestMergeFlavors_ValueFromSecretKeyRef(t *testing.T) {
+func TestMergeFlavors_ResourcesRequestsAndLimitsMerge(t *testing.T) {
 	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "PLAIN_VAR",
-										"value": "hello",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name": "SECRET_VAR",
-										"valueFrom": map[string]interface{}{
-											"secretKeyRef": map[string]interface{}{
-												"name": "my-secret",
-												"key":  "api-key",
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+		{"resources": map[string]interface{}{"limits": map[string]interface{}{"nvidia.com/gpu": "1"}}},
+		{"resources": map[string]interface{}{"requests": map[string]interface{}{"memory": "4Gi"}}},
 	}
 
-	result := MergeFlavors(data)
-
-	envVars := getEnvVars(t, result)
-	// mergeByName deep-merges containers with same name, so env vars accumulate
-	if len(envVars) != 2 {
-		t.Fatalf("expected 2 env vars (deep merge preserves both), got %d", len(envVars))
+	result, err := MergeFlavors(data, []string{"gpu-flavor", "memory-flavor"})
+	if err != nil {
+		t.Fatalf("requests and limits from different flavors should merge, got: %s", err)
 	}
 
-	envMap := make(map[string]interface{})
-	for _, e := range envVars {
-		env := e.(map[string]interface{})
-		envMap[env["name"].(string)] = env
-	}
-
-	plainVar := envMap["PLAIN_VAR"].(map[string]interface{})
-	if plainVar["value"] != "hello" {
-		t.Errorf("PLAIN_VAR: got %q, want %q", plainVar["value"], "hello")
-	}
-
-	secretVar := envMap["SECRET_VAR"].(map[string]interface{})
-	secretRef := secretVar["valueFrom"].(map[string]interface{})["secretKeyRef"].(map[string]interface{})
-	if secretRef["name"] != "my-secret" || secretRef["key"] != "api-key" {
-		t.Errorf("SECRET_VAR secretKeyRef mismatch: %v", secretRef)
-	}
-}
-
-func TestMergeFlavors_TolerationsReplacedAtomically(t *testing.T) {
-	// PodSpec.Tolerations uses +listType=atomic in Kubernetes, meaning
-	// the last flavor's tolerations replace earlier ones entirely.
-	// Flavors that need both GPU and dedicated tolerations should include
-	// all of them in a single flavor definition.
-	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"tolerations": []interface{}{
-							map[string]interface{}{
-								"key":      "nvidia.com/gpu",
-								"operator": "Exists",
-								"effect":   "NoSchedule",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"tolerations": []interface{}{
-							map[string]interface{}{
-								"key":      "dedicated",
-								"operator": "Equal",
-								"value":    "ml-workloads",
-								"effect":   "NoSchedule",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	result := MergeFlavors(data)
-
-	tolerations := result["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["tolerations"].([]interface{})
-
-	// Only the last flavor's tolerations survive (atomic replace)
-	if len(tolerations) != 1 {
-		t.Fatalf("expected 1 toleration (atomic list replace), got %d", len(tolerations))
-	}
-
-	tol := tolerations[0].(map[string]interface{})
-	if tol["key"] != "dedicated" {
-		t.Errorf("expected toleration key %q, got %q", "dedicated", tol["key"])
-	}
-}
-
-func TestMergeFlavors_TolerationsCombinedInSingleFlavor(t *testing.T) {
-	// Correct usage: a single flavor bundles all needed tolerations
-	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"tolerations": []interface{}{
-							map[string]interface{}{
-								"key":      "nvidia.com/gpu",
-								"operator": "Exists",
-								"effect":   "NoSchedule",
-							},
-							map[string]interface{}{
-								"key":      "dedicated",
-								"operator": "Equal",
-								"value":    "ml-workloads",
-								"effect":   "NoSchedule",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	result := MergeFlavors(data)
-
-	tolerations := result["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["tolerations"].([]interface{})
-
-	if len(tolerations) != 2 {
-		t.Fatalf("expected 2 tolerations from single flavor, got %d", len(tolerations))
-	}
-}
-
-func TestMergeFlavors_ResourceOverride(t *testing.T) {
-	data := []map[string]interface{}{
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"resources": map[string]interface{}{
-									"limits": map[string]interface{}{
-										"memory": "8Gi",
-										"cpu":    "2",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"resources": map[string]interface{}{
-									"limits": map[string]interface{}{
-										"memory":          "16Gi",
-										"nvidia.com/gpu":  "1",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	result := MergeFlavors(data)
-
-	containers := result["workload"].(map[string]interface{})["template"].(map[string]interface{})["spec"].(map[string]interface{})["containers"].([]interface{})
-	container := containers[0].(map[string]interface{})
-	limits := container["resources"].(map[string]interface{})["limits"].(map[string]interface{})
-
-	if limits["memory"] != "16Gi" {
-		t.Errorf("memory: got %v, want 16Gi (later flavor should override)", limits["memory"])
-	}
+	resources := result["resources"].(map[string]interface{})
+	limits := resources["limits"].(map[string]interface{})
+	requests := resources["requests"].(map[string]interface{})
 	if limits["nvidia.com/gpu"] != "1" {
-		t.Errorf("nvidia.com/gpu: got %v, want 1", limits["nvidia.com/gpu"])
+		t.Errorf("expected gpu limit from gpu-flavor, got %v", limits["nvidia.com/gpu"])
+	}
+	if requests["memory"] != "4Gi" {
+		t.Errorf("expected memory request from memory-flavor, got %v", requests["memory"])
 	}
 }
 
-func TestDeepMerge_ActorInlineWins(t *testing.T) {
-	flavorData := []map[string]interface{}{
+func TestMergeFlavors_TolerationsAppended(t *testing.T) {
+	data := []map[string]interface{}{
 		{
-			"scaling": map[string]interface{}{
-				"minReplicas":    float64(1),
-				"cooldownPeriod": float64(600),
+			"tolerations": []interface{}{
+				map[string]interface{}{"key": "nvidia.com/gpu", "operator": "Exists"},
 			},
-			"workload": map[string]interface{}{
-				"template": map[string]interface{}{
-					"spec": map[string]interface{}{
-						"containers": []interface{}{
-							map[string]interface{}{
-								"name": "asya-runtime",
-								"env": []interface{}{
-									map[string]interface{}{
-										"name":  "LOG_LEVEL",
-										"value": "INFO",
-									},
-									map[string]interface{}{
-										"name":  "FLAVOR_VAR",
-										"value": "from-flavor",
-									},
-								},
-							},
-						},
-					},
-				},
+		},
+		{
+			"tolerations": []interface{}{
+				map[string]interface{}{"key": "dedicated", "operator": "Equal", "value": "ml"},
 			},
 		},
 	}
 
-	merged := MergeFlavors(flavorData)
-
-	actorSpec := map[string]interface{}{
-		"scaling": map[string]interface{}{
-			"minReplicas": float64(2),
-		},
-		"workload": map[string]interface{}{
-			"template": map[string]interface{}{
-				"spec": map[string]interface{}{
-					"containers": []interface{}{
-						map[string]interface{}{
-							"name":  "asya-runtime",
-							"image": "my-llm:v1",
-							"env": []interface{}{
-								map[string]interface{}{
-									"name":  "LOG_LEVEL",
-									"value": "DEBUG",
-								},
-								map[string]interface{}{
-									"name":  "ASYA_HANDLER",
-									"value": "model.inference",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+	result, err := MergeFlavors(data, []string{"gpu", "dedicated"})
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	result := DeepMerge(merged, actorSpec)
-
-	// Actor's minReplicas=2 should override flavor's minReplicas=1
-	scaling := result["scaling"].(map[string]interface{})
-	if scaling["minReplicas"] != float64(2) {
-		t.Errorf("minReplicas: got %v, want 2 (actor should override)", scaling["minReplicas"])
+	tolerations, ok := result["tolerations"].([]interface{})
+	if !ok {
+		t.Fatal("tolerations missing from result")
 	}
-	// Flavor's cooldownPeriod should be preserved
-	if scaling["cooldownPeriod"] != float64(600) {
-		t.Errorf("cooldownPeriod: got %v, want 600 (should be preserved from flavor)", scaling["cooldownPeriod"])
-	}
-
-	// mergeByName deep-merges containers with same name, so env vars accumulate
-	envVars := getEnvVars(t, result)
-
-	envMap := make(map[string]string)
-	for _, e := range envVars {
-		env := e.(map[string]interface{})
-		if v, ok := env["value"].(string); ok {
-			envMap[env["name"].(string)] = v
-		}
-	}
-
-	// Actor's LOG_LEVEL=DEBUG should override flavor's LOG_LEVEL=INFO
-	if envMap["LOG_LEVEL"] != "DEBUG" {
-		t.Errorf("LOG_LEVEL: got %q, want %q (actor should override)", envMap["LOG_LEVEL"], "DEBUG")
-	}
-	// Actor's ASYA_HANDLER should be present
-	if envMap["ASYA_HANDLER"] != "model.inference" {
-		t.Errorf("ASYA_HANDLER: got %q, want %q", envMap["ASYA_HANDLER"], "model.inference")
-	}
-	// FLAVOR_VAR is preserved (deep merge keeps flavor env vars alongside actor env vars)
-	if envMap["FLAVOR_VAR"] != "from-flavor" {
-		t.Errorf("FLAVOR_VAR: got %q, want %q (should be preserved from flavor)", envMap["FLAVOR_VAR"], "from-flavor")
+	if len(tolerations) != 2 {
+		t.Errorf("expected 2 tolerations (appended), got %d", len(tolerations))
 	}
 }
 
-// getEnvVars extracts env vars from the first container in the merged result.
-func getEnvVars(t *testing.T, result map[string]interface{}) []interface{} {
-	t.Helper()
-
-	workload, ok := result["workload"].(map[string]interface{})
-	if !ok {
-		t.Fatal("missing workload")
-	}
-	template, ok := workload["template"].(map[string]interface{})
-	if !ok {
-		t.Fatal("missing template")
-	}
-	spec, ok := template["spec"].(map[string]interface{})
-	if !ok {
-		t.Fatal("missing spec")
-	}
-	containers, ok := spec["containers"].([]interface{})
-	if !ok || len(containers) == 0 {
-		t.Fatal("missing containers")
-	}
-	container, ok := containers[0].(map[string]interface{})
-	if !ok {
-		t.Fatal("container is not a map")
-	}
-	envVars, ok := container["env"].([]interface{})
-	if !ok {
-		t.Fatal("missing env")
+func TestMergeFlavors_StateProxyAppended(t *testing.T) {
+	data := []map[string]interface{}{
+		{
+			"stateProxy": []interface{}{
+				map[string]interface{}{"name": "s3-state", "mount": map[string]interface{}{"path": "/state"}},
+			},
+		},
+		{
+			"stateProxy": []interface{}{
+				map[string]interface{}{"name": "redis-cache", "mount": map[string]interface{}{"path": "/cache"}},
+			},
+		},
 	}
 
-	return envVars
+	result, err := MergeFlavors(data, []string{"state-flavor", "cache-flavor"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sp, ok := result["stateProxy"].([]interface{})
+	if !ok {
+		t.Fatal("stateProxy missing from result")
+	}
+	if len(sp) != 2 {
+		t.Errorf("expected 2 stateProxy entries (appended), got %d", len(sp))
+	}
+}
+
+func TestMergeFlavors_VolumeMountsAppended(t *testing.T) {
+	data := []map[string]interface{}{
+		{
+			"volumeMounts": []interface{}{
+				map[string]interface{}{"name": "data", "mountPath": "/data"},
+			},
+		},
+		{
+			"volumeMounts": []interface{}{
+				map[string]interface{}{"name": "config", "mountPath": "/config"},
+			},
+		},
+	}
+
+	result, err := MergeFlavors(data, []string{"data-flavor", "config-flavor"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mounts, ok := result["volumeMounts"].([]interface{})
+	if !ok {
+		t.Fatal("volumeMounts missing from result")
+	}
+	if len(mounts) != 2 {
+		t.Errorf("expected 2 volumeMounts (appended), got %d", len(mounts))
+	}
+}
+
+func TestMergeFlavors_NodeSelectorMergedNoConflict(t *testing.T) {
+	data := []map[string]interface{}{
+		{"nodeSelector": map[string]interface{}{"accelerator": "nvidia"}},
+		{"nodeSelector": map[string]interface{}{"zone": "us-east-1a"}},
+	}
+
+	result, err := MergeFlavors(data, []string{"gpu", "zone"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ns, ok := result["nodeSelector"].(map[string]interface{})
+	if !ok {
+		t.Fatal("nodeSelector missing")
+	}
+	if ns["accelerator"] != "nvidia" || ns["zone"] != "us-east-1a" {
+		t.Errorf("unexpected nodeSelector: %v", ns)
+	}
+}
+
+func TestMergeFlavors_NodeSelectorConflictErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"nodeSelector": map[string]interface{}{"zone": "us-east-1a"}},
+		{"nodeSelector": map[string]interface{}{"zone": "us-west-2a"}},
+	}
+
+	_, err := MergeFlavors(data, []string{"east", "west"})
+	if err == nil {
+		t.Error("expected error for conflicting nodeSelector key, got nil")
+	}
+	if !strings.Contains(err.Error(), "nodeSelector.zone") {
+		t.Errorf("error should mention conflicting key path, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_SidecarMapConflictErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"sidecar": map[string]interface{}{"image": "sidecar:v1"}},
+		{"sidecar": map[string]interface{}{"image": "sidecar:v2"}},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for sidecar.image conflict, got nil")
+	}
+	if !strings.Contains(err.Error(), "sidecar.image") {
+		t.Errorf("error should mention conflicting key path, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_SidecarMapMergeDistinctKeys(t *testing.T) {
+	data := []map[string]interface{}{
+		{"sidecar": map[string]interface{}{"image": "sidecar:v1"}},
+		{"sidecar": map[string]interface{}{"resources": map[string]interface{}{"limits": map[string]interface{}{"cpu": "100m"}}}},
+	}
+
+	result, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sidecar := result["sidecar"].(map[string]interface{})
+	if sidecar["image"] != "sidecar:v1" {
+		t.Errorf("expected sidecar.image from flavor-a, got %v", sidecar["image"])
+	}
+	if sidecar["resources"] == nil {
+		t.Error("expected sidecar.resources from flavor-b")
+	}
+}
+
+func TestMergeFlavors_TypeMismatchListVsScalarErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"tolerations": []interface{}{map[string]interface{}{"key": "gpu"}}},
+		{"tolerations": "not-a-list"},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for type mismatch (list vs scalar), got nil")
+	}
+	if !strings.Contains(err.Error(), "conflicting types") {
+		t.Errorf("error should mention conflicting types, got: %s", err)
+	}
+}
+
+func TestMergeFlavors_TypeMismatchMapVsScalarErrors(t *testing.T) {
+	data := []map[string]interface{}{
+		{"scaling": map[string]interface{}{"minReplicas": float64(1)}},
+		{"scaling": "not-a-map"},
+	}
+
+	_, err := MergeFlavors(data, []string{"flavor-a", "flavor-b"})
+	if err == nil {
+		t.Fatal("expected error for type mismatch (map vs scalar), got nil")
+	}
+	if !strings.Contains(err.Error(), "conflicting types") {
+		t.Errorf("error should mention conflicting types, got: %s", err)
+	}
+}
+
+func TestApplyActorInline_WinsOverFlavor(t *testing.T) {
+	base := map[string]interface{}{
+		"scaling": map[string]interface{}{"minReplicas": float64(1)},
+		"env":     []interface{}{map[string]interface{}{"name": "LOG_LEVEL", "value": "INFO"}},
+	}
+	actor := map[string]interface{}{
+		"env":     []interface{}{map[string]interface{}{"name": "LOG_LEVEL", "value": "DEBUG"}},
+		"handler": "my_module.handle",
+	}
+
+	result := ApplyActorInline(base, actor)
+
+	envs, ok := result["env"].([]interface{})
+	if !ok || len(envs) != 1 {
+		t.Fatalf("expected 1 env var from actor, got %v", result["env"])
+	}
+	env := envs[0].(map[string]interface{})
+	if env["value"] != "DEBUG" {
+		t.Errorf("actor env should override flavor env, got %v", env["value"])
+	}
+
+	if result["scaling"] == nil {
+		t.Error("scaling from flavor should be preserved")
+	}
+
+	if result["handler"] != "my_module.handle" {
+		t.Error("actor handler should be present")
+	}
 }

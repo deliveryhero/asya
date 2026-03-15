@@ -15,6 +15,8 @@ def test_status_help():
 
 def test_status_with_compiled_flow(tmp_path):
     asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
     manifests_dir = asya_dir / "manifests"
     flow_dir = manifests_dir / "order-processing"
     base_dir = flow_dir / "base"
@@ -50,6 +52,7 @@ def test_status_with_compiled_flow(tmp_path):
 def test_status_empty(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
 
     runner = CliRunner()
     with patch("asya_lab.status_cli.find_asya_dir", return_value=asya_dir):

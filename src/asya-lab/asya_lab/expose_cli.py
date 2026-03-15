@@ -9,30 +9,24 @@ from pathlib import Path
 import click
 import yaml
 
-from asya_lab.compiler.stamper import _Dumper
-from asya_lab.config.discovery import find_asya_dir
+from asya_lab.cli_types import ASYA_REF, AsyaRef
+from asya_lab.compiler.templater import _Dumper
+from asya_lab.config.discovery import BASE_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
-def _resolve_flow_name(target: str) -> str:
-    """Derive flow name from target argument.
-
-    Accepts a kebab-case flow name or a .py file path.
-    """
-    if target.endswith(".py"):
-        name = Path(target).stem
-    else:
-        name = target
-    return name.replace("_", "-")
-
-
-def _find_base_dir(flow_name: str) -> Path:
-    """Locate the base/ manifest directory for a compiled flow."""
+def _load_project() -> AsyaProject:
+    """Load the AsyaProject, failing fast if .asya/ is missing."""
     asya_dir = find_asya_dir(Path.cwd())
     if asya_dir is None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
+    return AsyaProject.from_dir(asya_dir.parent)
 
-    base_dir = asya_dir / "manifests" / flow_name / "base"
+
+def _find_base_dir(project: AsyaProject, flow_name: str) -> Path:
+    """Locate the base/ manifest directory for a compiled flow."""
+    base_dir = project.resolve_path("compiler.manifests") / flow_name / BASE_DIR
     if not base_dir.is_dir():
         click.echo(
             f"[-] Manifest directory not found: {base_dir}\n[-] Run 'asya flow compile' first.",
@@ -129,20 +123,17 @@ def _build_configmap(flow_name: str, namespace: str, flow_data: dict) -> dict:
     }
 
 
-def _resolve_namespace() -> str:
-    """Resolve namespace from .asya/ config, falling back to default."""
-    from asya_lab.config.config import ConfigLoader
-
-    asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        return "default"
-
-    loader = ConfigLoader()
-    config = loader.load(asya_dir.parent)
-    try:
-        return str(config.var.namespace)
-    except Exception:
-        return "default"
+def _resolve_namespace(project: AsyaProject) -> str:
+    """Resolve namespace from project config."""
+    templates = project.cfg.get("templates")
+    if templates is None:
+        click.echo("[-] Missing 'templates' section in config", err=True)
+        sys.exit(1)
+    namespace = templates.get("namespace")
+    if namespace is None:
+        click.echo("[-] Missing 'templates.namespace' in config", err=True)
+        sys.exit(1)
+    return str(namespace)
 
 
 def _update_kustomization_add(base_dir: Path, resource: str) -> None:
@@ -193,7 +184,7 @@ CONFIGMAP_FILENAME = "configmap-flows.yaml"
 
 
 @click.command("expose")
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--description", "-d", required=True, help="Flow description")
 @click.option("--timeout", "-t", type=int, default=None, help="End-to-end timeout in seconds")
 @click.option(
@@ -239,11 +230,12 @@ def expose(
     if not enable_mcp and not enable_a2a:
         enable_mcp = True
 
-    flow_name = _resolve_flow_name(target)
-    base_dir = _find_base_dir(flow_name)
+    flow_name = target.name
+    project = _load_project()
+    base_dir = _find_base_dir(project, flow_name)
     entrypoint = _find_entrypoint(base_dir)
     input_schema = _resolve_input_schema(input_schema_inline, input_schema_file)
-    namespace = _resolve_namespace()
+    namespace = _resolve_namespace(project)
 
     flow_data = _build_flow_config(
         flow_name,
@@ -276,14 +268,15 @@ def expose(
 
 
 @click.command("unexpose")
-@click.argument("target")
-def unexpose(target):
+@click.argument("target", type=ASYA_REF)
+def unexpose(target: AsyaRef):
     """Remove flow exposure from the gateway.
 
-    TARGET is a flow name in kebab-case or a .py file path.
+    TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
     """
-    flow_name = _resolve_flow_name(target)
-    base_dir = _find_base_dir(flow_name)
+    flow_name = target.name
+    project = _load_project()
+    base_dir = _find_base_dir(project, flow_name)
 
     cm_path = base_dir / CONFIGMAP_FILENAME
     if cm_path.exists():

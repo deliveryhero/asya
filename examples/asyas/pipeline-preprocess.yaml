@@ -16,20 +16,12 @@ spec:
     maxReplicaCount: 20 # High parallelism for fast CPU work
     queueLength: 10
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: text-preprocessor:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "preprocessor.clean_text"
-          resources:
-            requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
+  image: text-preprocessor:latest
+  handler: preprocessor.clean_text
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi

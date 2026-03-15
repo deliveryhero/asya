@@ -1,120 +1,86 @@
 package main
 
-// DeepMerge merges patch into base. Dicts merge recursively, arrays replace,
-// except arrays of objects with a "name" key which merge by name.
-func DeepMerge(base, patch map[string]interface{}) map[string]interface{} {
-	result := make(map[string]interface{})
+import "fmt"
+
+// MergeFlavors merges flavor data sequentially with type-aware semantics
+// derived from Go runtime types (no field-specific categories):
+//   - []interface{} (lists): concatenated across all flavors
+//   - map[string]interface{} (maps/structs): keys merged recursively;
+//     same leaf key in two flavors is a conflict error
+//   - all other types (scalars): only one flavor may define the field;
+//     conflict returns error
+//
+// Type mismatches (e.g., one flavor defines a field as a list, another as a
+// scalar) are treated as errors.
+func MergeFlavors(flavorData []map[string]interface{}, flavorNames []string) (map[string]interface{}, error) {
+	merged := make(map[string]interface{})
+	seen := make(map[string]string) // field -> flavor name that first defined it
+
+	for i, data := range flavorData {
+		name := flavorNames[i]
+		for k, v := range data {
+			existing, exists := merged[k]
+
+			if !exists {
+				merged[k] = v
+				seen[k] = name
+				continue
+			}
+
+			result, err := mergeOverlap(seen[k], name, k, existing, v)
+			if err != nil {
+				return nil, err
+			}
+			merged[k] = result
+		}
+	}
+
+	return merged, nil
+}
+
+// mergeOverlap recursively merges two overlapping values at the given path.
+// Lists are appended, maps are recursively key-merged, and scalars conflict.
+func mergeOverlap(firstFlavor, secondFlavor, path string, a, b interface{}) (interface{}, error) {
+	switch av := a.(type) {
+	case []interface{}:
+		bv, ok := b.([]interface{})
+		if !ok {
+			return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a list, new is %T", firstFlavor, secondFlavor, path, b)
+		}
+		return append(av, bv...), nil
+
+	case map[string]interface{}:
+		bv, ok := b.(map[string]interface{})
+		if !ok {
+			return nil, fmt.Errorf("flavors %q and %q have conflicting types for key %q: existing is a map, new is %T", firstFlavor, secondFlavor, path, b)
+		}
+		for mk, mv := range bv {
+			if existing, dup := av[mk]; dup {
+				merged, err := mergeOverlap(firstFlavor, secondFlavor, path+"."+mk, existing, mv)
+				if err != nil {
+					return nil, err
+				}
+				av[mk] = merged
+			} else {
+				av[mk] = mv
+			}
+		}
+		return av, nil
+
+	default:
+		return nil, fmt.Errorf("flavors %q and %q conflict on %s", firstFlavor, secondFlavor, path)
+	}
+}
+
+// ApplyActorInline applies the actor's own spec on top of the merged flavor result.
+// The actor always wins: its fields replace flavor values without merging.
+func ApplyActorInline(base, actor map[string]interface{}) map[string]interface{} {
+	result := make(map[string]interface{}, len(base)+len(actor))
 	for k, v := range base {
 		result[k] = v
 	}
-
-	for k, pv := range patch {
-		bv, exists := result[k]
-		if !exists {
-			result[k] = pv
-			continue
-		}
-
-		// Both are maps: recurse
-		bm, bOk := bv.(map[string]interface{})
-		pm, pOk := pv.(map[string]interface{})
-		if bOk && pOk {
-			result[k] = DeepMerge(bm, pm)
-			continue
-		}
-
-		// Both are arrays: check if name-keyed (merge by name) or replace
-		ba, bOk := bv.([]interface{})
-		pa, pOk := pv.([]interface{})
-		if bOk && pOk && isNameKeyedArray(ba) && isNameKeyedArray(pa) {
-			result[k] = mergeByName(ba, pa)
-			continue
-		}
-
-		// Default: replace
-		result[k] = pv
+	for k, v := range actor {
+		result[k] = v
 	}
-
 	return result
-}
-
-// isNameKeyedArray returns true if all items are maps with a "name" string key.
-// Empty arrays return false (treated as replace).
-func isNameKeyedArray(arr []interface{}) bool {
-	if len(arr) == 0 {
-		return false
-	}
-
-	for _, item := range arr {
-		m, ok := item.(map[string]interface{})
-		if !ok {
-			return false
-		}
-
-		name, ok := m["name"]
-		if !ok {
-			return false
-		}
-
-		if _, ok := name.(string); !ok {
-			return false
-		}
-	}
-
-	return true
-}
-
-// mergeByName merges two arrays of name-keyed objects. Same name = deep merge
-// (preserves fields from base not present in patch). Different names accumulate.
-// Order: base items first, then new patch items.
-func mergeByName(base, patch []interface{}) []interface{} {
-	patchMap := make(map[string]interface{})
-	var patchOrder []string
-
-	for _, item := range patch {
-		m := item.(map[string]interface{})
-		name := m["name"].(string)
-		patchMap[name] = item
-		patchOrder = append(patchOrder, name)
-	}
-
-	seen := make(map[string]bool)
-	var result []interface{}
-
-	// Base items first, with deep-merged overrides from patch
-	for _, item := range base {
-		m := item.(map[string]interface{})
-		name := m["name"].(string)
-		seen[name] = true
-
-		if override, ok := patchMap[name]; ok {
-			result = append(result, DeepMerge(m, override.(map[string]interface{})))
-		} else {
-			result = append(result, item)
-		}
-	}
-
-	// New items from patch (not in base), deduplicated
-	for _, name := range patchOrder {
-		if !seen[name] {
-			seen[name] = true
-			result = append(result, patchMap[name])
-		}
-	}
-
-	return result
-}
-
-// MergeFlavors merges flavor data sequentially. Later flavors override earlier ones.
-func MergeFlavors(flavorData []map[string]interface{}) map[string]interface{} {
-	if len(flavorData) == 0 {
-		return map[string]interface{}{}
-	}
-
-	base := map[string]interface{}{}
-	for _, data := range flavorData {
-		base = DeepMerge(base, data)
-	}
-
-	return base
 }

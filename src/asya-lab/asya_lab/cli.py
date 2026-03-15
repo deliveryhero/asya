@@ -44,11 +44,15 @@ class LazyGroup(click.Group):
 @click.group(
     cls=LazyGroup,
     lazy_subcommands={
+        "build": "asya_lab.build_cli:build",
         "compile": "asya_lab.compile_cli:compile_cmd",
         "config": "asya_lab.config_cli:config",
         "expose": "asya_lab.expose_cli:expose",
         "flow": "asya_lab.flow_cli:flow",
         "init": "asya_lab.init_cli:init",
+        "k": "asya_lab.k_cli:k",
+        "kube": "asya_lab.k_cli:k",
+        "kubernetes": "asya_lab.k_cli:k",
         "show": "asya_lab.show_cli:show",
         "status": "asya_lab.status_cli:status",
         "unexpose": "asya_lab.expose_cli:unexpose",

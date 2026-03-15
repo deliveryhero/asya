@@ -17,6 +17,7 @@ def test_show_help():
 def test_show_missing_flow(tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text('compiler:\n  manifests: ".asya/manifests"\n')
     (asya_dir / "manifests").mkdir()
 
     runner = CliRunner()

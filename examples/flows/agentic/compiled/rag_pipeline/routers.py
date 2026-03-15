@@ -16,7 +16,7 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_rag_pipeline(payload: dict):
+async def start_rag_pipeline(payload: dict):
     """Entrypoint for flow 'rag_pipeline'"""
     _next = []
     p = payload
@@ -26,7 +26,7 @@ def start_rag_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_rag_pipeline_line_66_if(payload: dict):
+async def router_rag_pipeline_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -39,7 +39,7 @@ def router_rag_pipeline_line_66_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_62_if(payload: dict):
+async def router_rag_pipeline_line_62_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -52,7 +52,7 @@ def router_rag_pipeline_line_62_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_53_seq(payload: dict):
+async def router_rag_pipeline_line_53_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -64,7 +64,7 @@ def router_rag_pipeline_line_53_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_52_loop_back_0(payload: dict):
+async def router_rag_pipeline_line_52_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
@@ -79,7 +79,7 @@ def router_rag_pipeline_line_52_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_rag_pipeline(payload: dict):
+async def end_rag_pipeline(payload: dict):
     """Exitpoint for flow 'rag_pipeline'"""
     yield "SET", ".route.next", []
     yield payload

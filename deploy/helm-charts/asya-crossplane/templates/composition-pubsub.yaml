@@ -207,7 +207,6 @@ spec:
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $scaling := $xrSpec.scaling -}}`}}
-            {{`{{- $workload := $xrSpec.workload -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
               {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
@@ -230,10 +229,6 @@ spec:
             {{`{{- $advanced = $scaling.advanced -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $workloadName := $actorName -}}`}}
-            {{`{{- $workloadKind := "Deployment" -}}`}}
-            {{`{{- if hasKey $workload "kind" -}}`}}
-              {{`{{- $workloadKind = $workload.kind -}}`}}
-            {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
@@ -259,7 +254,7 @@ spec:
                   spec:
                     scaleTargetRef:
                       name: {{`{{ $workloadName }}`}}
-                      kind: {{`{{ $workloadKind }}`}}
+                      kind: Deployment
                     minReplicaCount: {{`{{ $minReplicas }}`}}
                     maxReplicaCount: {{`{{ $maxReplicas }}`}}
                     pollingInterval: {{`{{ $pollingInterval }}`}}
@@ -333,7 +328,6 @@ spec:
             {{`{{- if and .context (index .context "asya/user-labels") -}}`}}
               {{`{{- $userLabels = index .context "asya/user-labels" -}}`}}
             {{`{{- end -}}`}}
-            {{`{{- $workload := $xrSpec.workload -}}`}}
             {{`{{- $scaling := $xrSpec.scaling -}}`}}
             {{`{{- $socketDir := "`}}{{ .Values.sidecar.socketDir | default "/var/run/asya" }}{{`" -}}`}}
             {{`{{- $runtimeMountPath := "`}}{{ .Values.sidecar.runtimeMountPath | default "/opt/asya/asya_runtime.py" }}{{`" -}}`}}
@@ -343,21 +337,13 @@ spec:
             {{`{{- $gatewayURL := "`}}{{ .Values.sidecar.gatewayURL }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}
-            {{`{{- /* Create Deployment from workload spec */ -}}`}}
-            {{`{{- if hasKey $xrSpec "workload" -}}`}}
-            {{`{{- $workloadKind := "Deployment" -}}`}}
-            {{`{{- if hasKey $workload "kind" -}}`}}
-              {{`{{- $workloadKind = $workload.kind -}}`}}
-            {{`{{- end -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
             {{`{{- if and $scaling (hasKey $scaling "enabled") -}}`}}
               {{`{{- $scalingEnabled = $scaling.enabled -}}`}}
             {{`{{- end -}}`}}
             {{`{{- $replicas := 1 -}}`}}
             {{`{{- if not $scalingEnabled -}}`}}
-              {{`{{- if hasKey $workload "replicas" -}}`}}
-                {{`{{- $replicas = $workload.replicas -}}`}}
-              {{`{{- end -}}`}}
+              {{`{{- $replicas = ($xrSpec.replicas | default 1) -}}`}}
             {{`{{- end -}}`}}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
@@ -369,7 +355,7 @@ spec:
               forProvider:
                 manifest:
                   apiVersion: apps/v1
-                  kind: {{`{{ $workloadKind }}`}}
+                  kind: Deployment
                   metadata:
                     name: {{`{{ $actorName }}`}}
                     namespace: {{`{{ $namespace }}`}}
@@ -398,31 +384,30 @@ spec:
                           asya.sh/actor: {{`{{ $actorName }}`}}
                       spec:
                         terminationGracePeriodSeconds: 30
-                        {{`{{- $runtimeContainer := dict -}}`}}
-                        {{`{{- if and (hasKey $workload "template") (hasKey $workload.template "spec") (hasKey $workload.template.spec "containers") -}}`}}
-                          {{`{{- range $workload.template.spec.containers -}}`}}
-                            {{`{{- if eq .name "asya-runtime" -}}`}}
-                              {{`{{- $runtimeContainer = . -}}`}}
-                            {{`{{- end -}}`}}
-                          {{`{{- end -}}`}}
-                        {{`{{- end }}`}}
                         containers:
                         - name: asya-runtime
-                          image: {{`{{ $runtimeContainer.image | default "missing-image" }}`}}
-                          imagePullPolicy: {{`{{ $runtimeContainer.imagePullPolicy | default "IfNotPresent" }}`}}
+                          image: {{`{{ $xrSpec.image | quote }}`}}
+                          imagePullPolicy: {{`{{ $xrSpec.imagePullPolicy | default "IfNotPresent" }}`}}
                           command:
-                          - {{`{{ $runtimeContainer.pythonExec | default "python3" }}`}}
+                          - {{`{{ $xrSpec.pythonExecutable | default "python3" }}`}}
                           - {{`{{ $runtimeMountPath }}`}}
                           env:
                           - name: ASYA_SOCKET_DIR
                             value: {{`{{ $socketDir }}`}}
+                          - name: ASYA_HANDLER
+                            value: {{`{{ $xrSpec.handler | quote }}`}}
                           {{`{{- if $isSystemActor }}`}}
                           - name: ASYA_ENABLE_VALIDATION
                             value: "false"
                           {{`{{- end }}`}}
-                          {{`{{- range $runtimeContainer.env | default list }}`}}
-                          - name: {{`{{ .name }}`}}
+                          {{`{{- range $xrSpec.env | default list }}`}}
+                          - name: {{`{{ .name | quote }}`}}
+                            {{`{{- if .value }}`}}
                             value: {{`{{ .value | quote }}`}}
+                            {{`{{- else if .valueFrom }}`}}
+                            valueFrom:
+                              {{`{{- .valueFrom | toYaml | nindent 18 }}`}}
+                            {{`{{- end }}`}}
                           {{`{{- end }}`}}
                           {{`{{- range $xrSpec.secretRefs | default list }}`}}
                           {{`{{- $secretName := .secretName -}}`}}
@@ -451,7 +436,7 @@ spec:
                           - name: state-sockets
                             mountPath: /var/run/asya/state
                           {{`{{- end }}`}}
-                          {{`{{- range $runtimeContainer.volumeMounts | default list }}`}}
+                          {{`{{- range $xrSpec.volumeMounts | default list }}`}}
                           - name: {{`{{ .name }}`}}
                             mountPath: {{`{{ .mountPath }}`}}
                             {{`{{- if .subPath }}`}}
@@ -461,7 +446,7 @@ spec:
                             readOnly: {{`{{ .readOnly }}`}}
                             {{`{{- end }}`}}
                           {{`{{- end }}`}}
-                          {{`{{- with $runtimeContainer.resources }}`}}
+                          {{`{{- with $xrSpec.resources }}`}}
                           resources:
                             {{`{{- . | toYaml | nindent 16 }}`}}
                           {{`{{- end }}`}}
@@ -484,11 +469,6 @@ spec:
                             periodSeconds: 10
                             timeoutSeconds: 3
                             failureThreshold: 3
-                        {{`{{- range $workload.template.spec.containers }}`}}
-                        {{`{{- if ne .name "asya-runtime" }}`}}
-                        - {{`{{ . | toYaml | nindent 26 }}`}}
-                        {{`{{- end }}`}}
-                        {{`{{- end }}`}}
                         - name: asya-sidecar
                           image: {{`{{ $sidecarImage }}`}}
                           imagePullPolicy: {{`{{ $sidecarImagePullPolicy }}`}}
@@ -608,26 +588,19 @@ spec:
                         - name: state-sockets
                           emptyDir: {}
                         {{`{{- end }}`}}
-                        {{`{{- if and (hasKey $workload "template") (hasKey $workload.template "spec") }}`}}
-                        {{`{{- range $workload.template.spec.volumes | default list }}`}}
+                        {{`{{- range $xrSpec.volumes | default list }}`}}
                         - {{`{{ . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
-                        {{`{{- with $workload.template.spec.nodeSelector }}`}}
+                        {{`{{- with $xrSpec.nodeSelector }}`}}
                         nodeSelector:
                           {{`{{- . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
-                        {{`{{- with $workload.template.spec.affinity }}`}}
-                        affinity:
-                          {{`{{- . | toYaml | nindent 14 }}`}}
-                        {{`{{- end }}`}}
-                        {{`{{- with $workload.template.spec.tolerations }}`}}
+                        {{`{{- with $xrSpec.tolerations }}`}}
                         tolerations:
                           {{`{{- . | toYaml | nindent 14 }}`}}
                         {{`{{- end }}`}}
-                        {{`{{- end }}`}}
               providerConfigRef:
                 name: {{ .Values.kubernetesProviderConfig.name }}
-            {{`{{- end }}`}}
 
     # Patch status and derive phase
     - step: patch-status-and-derive-phase

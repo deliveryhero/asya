@@ -14,11 +14,13 @@ class TestListComprehensionFanOut:
     """Test parsing of list comprehension fan-out syntax."""
 
     def test_parse_homogeneous_fanout_for_in(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -35,11 +37,13 @@ class TestListComprehensionFanOut:
         assert contains_with_either_quotes(fanout.iterable, 'p["topics"]')
 
     def test_parse_range_based_comprehension(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(p["topics"][i]) for i in range(len(p["topics"]))]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -57,11 +61,13 @@ class TestListComprehensionFanOut:
         assert "len" in fanout.iterable
 
     def test_parse_fixed_count_comprehension_underscore(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(p["query"]) for _ in range(10)]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -77,11 +83,13 @@ class TestListComprehensionFanOut:
         assert fanout.iterable == "range(10)"
 
     def test_parse_await_in_comprehension_element(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = [await research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -91,11 +99,13 @@ class TestListComprehensionFanOut:
         assert fanout.actor_calls[0][0] == "research_agent"
 
     def test_comprehension_preserves_lineno(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -104,31 +114,37 @@ class TestListComprehensionFanOut:
         assert fanout.lineno == 3
 
     def test_reject_nested_comprehensions(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [agent(x) for t in p["topics"] for x in t["items"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="[Nn]ested"):
             parser.parse()
 
     def test_reject_comprehension_with_non_actor_element(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [t * 2 for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="[Aa]ctor call"):
             parser.parse()
 
     def test_reject_comprehension_with_filter(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [agent(t) for t in p["topics"] if t["valid"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="[Ff]ilter"):
             parser.parse()
@@ -138,7 +154,8 @@ class TestListLiteralFanOut:
     """Test parsing of list literal fan-out syntax."""
 
     def test_parse_heterogeneous_fanout(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     sentiment_analyzer(p["text"]),
@@ -146,7 +163,8 @@ class TestListLiteralFanOut:
                     entity_recognizer(p["text"]),
                 ]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -163,14 +181,16 @@ class TestListLiteralFanOut:
         assert fanout.iterable is None
 
     def test_list_literal_payload_expressions(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     agent_a(p["x"]),
                     agent_b(p["y"]),
                 ]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -180,14 +200,16 @@ class TestListLiteralFanOut:
         assert contains_with_either_quotes(fanout.actor_calls[1][1], 'p["y"]')
 
     def test_list_literal_with_await(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["result"] = [
                     await sentiment_analyzer(p["text"]),
                     await topic_extractor(p["text"]),
                 ]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -199,24 +221,28 @@ class TestListLiteralFanOut:
         assert fanout.actor_calls[1][0] == "topic_extractor"
 
     def test_reject_mixed_list_actor_and_nonactor(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     sentiment_analyzer(p["text"]),
                     p["text"].upper(),
                 ]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="[Aa]ctor call"):
             parser.parse()
 
     def test_empty_list_literal_is_mutation(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = []
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -227,11 +253,13 @@ class TestListLiteralFanOut:
         assert "[]" in ops[0].code
 
     def test_list_of_constants_is_mutation(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["items"] = [1, 2, 3]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -241,11 +269,13 @@ class TestListLiteralFanOut:
         assert isinstance(ops[0], Mutation)
 
     def test_list_of_payload_methods_is_mutation(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["search_queries"] = [p.get("question", "")]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -255,11 +285,13 @@ class TestListLiteralFanOut:
         assert isinstance(ops[0], Mutation)
 
     def test_list_of_nested_payload_methods_is_mutation(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["dup"] = [p["question"], p["answer"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -269,14 +301,16 @@ class TestListLiteralFanOut:
         assert isinstance(ops[0], Mutation)
 
     def test_list_literal_preserves_lineno(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["result"] = [
                     agent_a(p["x"]),
                     agent_b(p["y"]),
                 ]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -289,11 +323,13 @@ class TestAsyncioGatherFanOut:
     """Test parsing of asyncio.gather fan-out syntax."""
 
     def test_parse_gather_with_generator(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(*(research_agent(t) for t in p["topics"]))
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -310,7 +346,8 @@ class TestAsyncioGatherFanOut:
         assert contains_with_either_quotes(fanout.iterable, 'p["topics"]')
 
     def test_parse_gather_with_explicit_args(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(
                     agent_a(p["x"]),
@@ -318,7 +355,8 @@ class TestAsyncioGatherFanOut:
                     agent_c(p["z"]),
                 )
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -335,21 +373,25 @@ class TestAsyncioGatherFanOut:
         assert fanout.iterable is None
 
     def test_reject_empty_gather(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather()
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="at least one argument"):
             parser.parse()
 
     def test_gather_preserves_lineno(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(*(agent(t) for t in p["items"]))
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -357,16 +399,84 @@ class TestAsyncioGatherFanOut:
         assert isinstance(fanout, FanOutCall)
         assert fanout.lineno == 3
 
+    def test_parse_list_wrapped_gather_with_explicit_args(self):
+        """list(await asyncio.gather(...)) is equivalent to await asyncio.gather(...)."""
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p["analysis"] = list(await asyncio.gather(
+                    agent_a(p["text"]),
+                    agent_b(p["text"]),
+                    agent_c(p["text"]),
+                ))
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/analysis"
+        assert fanout.pattern == "gather"
+        assert len(fanout.actor_calls) == 3
+        assert fanout.actor_calls[0][0] == "agent_a"
+        assert fanout.actor_calls[1][0] == "agent_b"
+        assert fanout.actor_calls[2][0] == "agent_c"
+
+    def test_parse_list_wrapped_gather_with_generator(self):
+        """list(await asyncio.gather(*(...))) is equivalent to the unwrapped form."""
+        source = textwrap.dedent("""
+            async def flow(p: dict) -> dict:
+                p["results"] = list(await asyncio.gather(*(agent(t) for t in p["topics"])))
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/results"
+        assert fanout.pattern == "gather"
+        assert fanout.actor_calls[0][0] == "agent"
+        assert fanout.iter_var == "t"
+
+    def test_parse_gather_with_starred_list_comprehension(self):
+        """asyncio.gather(*[comprehension]) is equivalent to asyncio.gather(*(genexp))."""
+        source = textwrap.dedent("""
+            async def flow(state: dict) -> dict:
+                state["results"] = list(
+                    await asyncio.gather(*[processor(chunk) for chunk in state["chunks"]])
+                )
+                return state
+        """)
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert len(ops) == 2
+        fanout = ops[0]
+        assert isinstance(fanout, FanOutCall)
+        assert fanout.target_key == "/results"
+        assert fanout.pattern == "gather"
+        assert len(fanout.actor_calls) == 1
+        assert fanout.actor_calls[0][0] == "processor"
+        assert fanout.actor_calls[0][1] == "chunk"
+        assert fanout.iter_var == "chunk"
+        assert fanout.iterable is not None
+        assert contains_with_either_quotes(fanout.iterable, 'p["chunks"]')
+
 
 class TestFanOutTargetKey:
     """Test aggregation_key extraction from assignment target."""
 
     def test_simple_key(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["results"] = [agent(t) for t in p["items"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -374,11 +484,13 @@ class TestFanOutTargetKey:
         assert ops[0].target_key == "/results"
 
     def test_nested_key(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["output"]["results"] = [agent(t) for t in p["items"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -386,11 +498,13 @@ class TestFanOutTargetKey:
         assert ops[0].target_key == "/output/results"
 
     def test_target_key_from_list_literal(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["analysis"] = [agent_a(p["x"]), agent_b(p["y"])]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -402,12 +516,14 @@ class TestNonPayloadSubscriptNotFanOut:
     """Test that list comp/literal on non-payload subscripts stays a Mutation."""
 
     def test_non_payload_subscript_is_mutation(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 cache = Cache()
                 cache["items"] = [agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -417,11 +533,13 @@ class TestNonPayloadSubscriptNotFanOut:
         assert isinstance(ops[0], Mutation)
 
     def test_nested_payload_subscript_is_fanout(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["config"]["items"] = [agent(t) for t in p["topics"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -434,13 +552,15 @@ class TestFanOutWithOtherOperations:
     """Test fan-out combined with other flow operations."""
 
     def test_fanout_between_actor_calls(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p = preprocessor(p)
                 p["results"] = [agent(t) for t in p["items"]]
                 p = postprocessor(p)
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -455,13 +575,15 @@ class TestFanOutWithOtherOperations:
         assert isinstance(ops[3], Return)
 
     def test_fanout_with_mutations(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["status"] = "processing"
                 p["results"] = [agent(t) for t in p["items"]]
                 p["status"] = "done"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -474,14 +596,16 @@ class TestFanOutWithOtherOperations:
         assert isinstance(ops[3], Return)
 
     def test_fanout_inside_conditional(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 if p["parallel"]:
                     p["results"] = [agent(t) for t in p["items"]]
                 else:
                     p = sequential_agent(p)
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -495,12 +619,14 @@ class TestFanOutWithOtherOperations:
         assert isinstance(ops[1], Return)
 
     def test_multiple_sequential_fanouts(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -515,11 +641,13 @@ class TestFanOutParameterNormalization:
     """Test that state/payload parameters are normalized to 'p' in fan-out."""
 
     def test_state_parameter_normalized_in_comprehension(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(state: dict) -> dict:
                 state["results"] = [agent(t) for t in state["items"]]
                 return state
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -530,11 +658,13 @@ class TestFanOutParameterNormalization:
         assert contains_with_either_quotes(fanout.iterable, 'p["items"]')
 
     def test_payload_parameter_normalized_in_literal(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(payload: dict) -> dict:
                 payload["result"] = [agent_a(payload["x"]), agent_b(payload["y"])]
                 return payload
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 

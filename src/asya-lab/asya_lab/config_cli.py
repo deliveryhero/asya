@@ -8,6 +8,7 @@ from pathlib import Path
 
 import click
 from omegaconf import OmegaConf
+from omegaconf.errors import OmegaConfBaseException
 
 
 @click.group()
@@ -24,7 +25,7 @@ def config():
 )
 def get(key, start_dir, args, output_format):
     """Get a config value by dot-separated key."""
-    from asya_lab.config.config import load_effective_config
+    from asya_lab.config.project import AsyaProject
 
     arg_values = {}
     for item in args:
@@ -36,14 +37,14 @@ def get(key, start_dir, args, output_format):
 
     resolved_dir = Path(start_dir).resolve()
     try:
-        cfg = load_effective_config(resolved_dir, arg_values=arg_values)
+        project = AsyaProject.from_dir(resolved_dir, arg_values=arg_values)
     except FileNotFoundError as e:
         click.echo(f"Error: {e}", err=True)
         sys.exit(1)
 
     try:
-        value = OmegaConf.select(cfg, key)
-    except Exception as e:
+        value = OmegaConf.select(project.cfg, key)
+    except OmegaConfBaseException as e:
         click.echo(f"Error resolving '{key}': {e}", err=True)
         sys.exit(1)
 

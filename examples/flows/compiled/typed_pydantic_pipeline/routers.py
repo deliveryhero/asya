@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../typed_pydantic_pipeline.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_ingester(payload: dict):
+async def start_ingester(payload: dict):
     """Entrypoint for flow 'ingester'"""
     _next = []
     p = payload
@@ -21,7 +21,7 @@ def start_ingester(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def end_ingester(payload: dict):
+async def end_ingester(payload: dict):
     """Exitpoint for flow 'ingester'"""
     yield "SET", ".route.next", []
     yield payload

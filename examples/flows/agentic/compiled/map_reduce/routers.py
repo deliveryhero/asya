@@ -15,25 +15,25 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_map_reduce(payload: dict):
+async def start_map_reduce(payload: dict):
     """Entrypoint for flow 'map_reduce'"""
     _next = []
     _next.append(resolve("splitter"))
-    _next.append(resolve("fanout_map_reduce_line_49"))
+    _next.append(resolve("fanout_map_reduce_line_51"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_map_reduce_line_49(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 49)"""
-    state = payload
+async def fanout_map_reduce_line_51(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 51)"""
+    p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_map_reduce_line_49")
+    _agg = resolve("fanin_map_reduce_line_51")
 
     _slices = []
-    for chunk in state['chunks']:
+    for chunk in p['chunks']:
         _slices.append((resolve("chunk_processor"), chunk))
 
     _n = len(_slices) + 1
@@ -47,14 +47,14 @@ def fanout_map_reduce_line_49(payload: dict):
     # Index 0: parent payload forwarded to aggregator
     yield "SET", ".route.next", [_agg, resolve("reducer")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
+    yield copy.deepcopy(p)
 
     for _i, (_actor, _payload) in enumerate(_slices):
         yield "SET", ".route.next", [_actor, _agg]
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def end_map_reduce(payload: dict):
+async def end_map_reduce(payload: dict):
     """Exitpoint for flow 'map_reduce'"""
     yield "SET", ".route.next", []
     yield payload

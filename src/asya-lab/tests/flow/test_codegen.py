@@ -38,7 +38,7 @@ class TestCodeStructure:
         code = CodeGenerator("flow", routers, "test.py").generate()
         tree = ast.parse(code)
 
-        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_flow" in func_names
         assert "end_flow" in func_names
@@ -52,7 +52,7 @@ class TestCodeStructure:
         code = CodeGenerator("flow", routers, "test.py").generate()
         tree = ast.parse(code)
 
-        funcs = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        funcs = [node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
         router_funcs = [f for f in funcs if f.name in ["start_flow", "end_flow"]]
 
         for func in router_funcs:
@@ -65,7 +65,9 @@ class TestCodeStructure:
         tree = ast.parse(code)
 
         resolve_funcs = [
-            node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef) and node.name == "resolve"
+            node
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name == "resolve"
         ]
 
         assert len(resolve_funcs) == 1
@@ -398,7 +400,7 @@ class TestComplexRouters:
         code = CodeGenerator("flow", routers, "test.py").generate()
         tree = ast.parse(code)
 
-        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_flow" in func_names
         assert "router_1" in func_names
@@ -612,7 +614,7 @@ class TestLoopBackRouter:
 
         assert "Loop-back router" in code
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert "router_flow_line_3_loop_back_0" in func_names
 
 
@@ -763,7 +765,7 @@ def flow(p: dict) -> dict:
         compiler = FlowCompiler()
         code = compiler.compile(source, "test.py")
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_flow" in func_names
         assert "end_flow" in func_names
@@ -786,7 +788,7 @@ def flow(p: dict) -> dict:
         compiler = FlowCompiler()
         code = compiler.compile(source, "test.py")
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert any("loop_back" in name for name in func_names)
         # while True should NOT have a while condition router
@@ -840,7 +842,7 @@ def flow(p: dict) -> dict:
         except SyntaxError as e:
             pytest.fail(f"Generated code for nested while is not valid Python: {e}")
 
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         # Conditional whiles self-reference: no loop_backs, two while condition routers
         loop_backs = [n for n in func_names if "loop_back" in n]
         assert len(loop_backs) == 0
@@ -939,7 +941,7 @@ class TestSingleActorFlow:
         code = CodeGenerator("my_flow", routers, "test.py").generate()
         tree = ast.parse(code)
 
-        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)]
+        func_names = [node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert "start_my_flow" not in func_names
         assert "end_my_flow" not in func_names
         assert "resolve" not in func_names

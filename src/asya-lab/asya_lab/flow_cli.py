@@ -15,9 +15,9 @@ def _stamp_manifests(
     compiler: FlowCompiler, flow_file: str, output_dir: str, manifests_dir: str | None, verbose: bool
 ) -> None:
     """Stamp kustomize-structured manifests after flow compilation."""
-    from asya_lab.compiler.stamper import ManifestStamper
-    from asya_lab.config.config import ConfigLoader
+    from asya_lab.compiler.templater import ManifestTemplater
     from asya_lab.config.discovery import find_asya_dir
+    from asya_lab.config.project import AsyaProject
 
     source_path = Path(flow_file).resolve()
     asya_dir = find_asya_dir(source_path.parent)
@@ -35,7 +35,7 @@ def _stamp_manifests(
     # Naming convention (see rfc.md section 7.4):
     #   flow_function: Python function name with underscores (e.g. "my_flow")
     #   flow_name:     K8s/Asya name with hyphens (e.g. "my-flow")
-    # The compiler works with flow_function; the stamper works with flow_name.
+    # The compiler works with flow_function; the templater works with flow_name.
     flow_function = compiler.flow_name
     if not flow_function:
         click.echo("[!] No flow name available; skipping manifest stamping", err=True)
@@ -43,47 +43,37 @@ def _stamp_manifests(
 
     flow_name = flow_function.replace("_", "-")
 
-    config_loader = ConfigLoader(
-        dynamic_values={"flow_function": flow_function, "flow_name": flow_name, "flow": flow_name}
-    )
-    config = config_loader.load(source_path.parent)
+    project = AsyaProject.from_dir(source_path.parent)
 
     # Determine manifest output directory
     if manifests_dir:
         resolved_dir = Path(manifests_dir)
     else:
-        try:
-            manifests_path = str(config.compiler.manifests)
-            resolved_dir = (asya_dir.parent / manifests_path).resolve()
-        except Exception:
-            click.echo(
-                f"[!] Could not resolve manifests path from config, using default: .asya/manifests/{flow_name}",
-                err=True,
-            )
-            resolved_dir = (asya_dir / "manifests" / flow_name).resolve()
+        resolved_dir = project.resolve_path("compiler.manifests") / flow_name
 
     # Read the compiled router code
     router_code_path = Path(output_dir) / "routers.py"
     router_code = router_code_path.read_text()
 
-    # Templates follow directory-to-key convention (see rfc.md section 7.1)
+    # Template files (NOT part of config tree — loaded by templater directly)
     templates_dir = template_path.parent
     configmap_template = templates_dir / "configmap_routers.yaml"
     kustomization_template = templates_dir / "kustomization.yaml"
+    router_template = templates_dir / "router.yaml"
 
-    stamper = ManifestStamper(
+    templater = ManifestTemplater(
         flow_name=flow_name,
         flow_function=flow_function,
         routers=compiler.routers,
         router_code=router_code,
-        config=config,
-        config_loader=config_loader,
-        template_path=template_path,
+        project=project,
+        actor_template_path=template_path,
+        router_template_path=router_template if router_template.exists() else None,
         configmap_routers_template_path=configmap_template if configmap_template.exists() else None,
         kustomization_template_path=kustomization_template if kustomization_template.exists() else None,
     )
 
-    generated = stamper.stamp(resolved_dir)
+    generated = templater.stamp(resolved_dir)
     click.echo(f"[+] Stamped {len(generated)} manifest files to: {resolved_dir}")
     if verbose:
         for f in generated:

@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../if_with_early_return.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_early_return_flow(payload: dict):
+async def start_early_return_flow(payload: dict):
     """Entrypoint for flow 'early_return_flow'"""
     _next = []
     _next.append(resolve("handler_validate"))
@@ -21,7 +21,7 @@ def start_early_return_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_early_return_flow_line_10_if(payload: dict):
+async def router_early_return_flow_line_10_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -34,7 +34,7 @@ def router_early_return_flow_line_10_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_early_return_flow(payload: dict):
+async def end_early_return_flow(payload: dict):
     """Exitpoint for flow 'early_return_flow'"""
     yield "SET", ".route.next", []
     yield payload

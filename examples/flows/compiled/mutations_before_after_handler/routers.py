@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../mutations_before_after_handler.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_mutations_before_after_handler_flow(payload: dict):
+async def start_mutations_before_after_handler_flow(payload: dict):
     """Entrypoint for flow 'mutations_before_after_handler_flow'"""
     _next = []
     p = payload
@@ -23,7 +23,7 @@ def start_mutations_before_after_handler_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
+async def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,7 +32,7 @@ def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_mutations_before_after_handler_flow_line_11_seq(payload: dict):
+async def router_mutations_before_after_handler_flow_line_11_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -43,7 +43,7 @@ def router_mutations_before_after_handler_flow_line_11_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_mutations_before_after_handler_flow(payload: dict):
+async def end_mutations_before_after_handler_flow(payload: dict):
     """Exitpoint for flow 'mutations_before_after_handler_flow'"""
     yield "SET", ".route.next", []
     yield payload

@@ -96,7 +96,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_flow" in func_names
         assert "end_flow" in func_names
@@ -117,7 +117,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         # while True should NOT produce a condition router
         assert not any("_while_" in n for n in func_names)
@@ -146,7 +146,7 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         assert tree is not None
 
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert any("while" in n for n in func_names)
         # Conditional while self-references: no loop_back
         assert not any("loop_back" in n for n in func_names)
@@ -201,7 +201,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert any("_if" in n for n in func_names)
         assert any("_while_" in n for n in func_names)
@@ -231,7 +231,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
@@ -292,7 +292,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert any("_while_" in n for n in func_names)
         # Conditional while self-references: no loop_back
@@ -320,7 +320,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert any("_if" in n for n in func_names)
         assert any("_while_" in n for n in func_names)
@@ -366,7 +366,7 @@ def complex_flow(p: dict) -> dict:
         except SyntaxError as e:
             pytest.fail(f"Complex flow generated invalid Python: {e}")
 
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert "start_complex_flow" in func_names
         assert "end_complex_flow" in func_names
         assert any("_while_" in n for n in func_names)
@@ -387,7 +387,7 @@ def agent(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_agent" in func_names
         assert any("loop_back" in n for n in func_names)
@@ -413,7 +413,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
 
         tree = ast.parse(code)
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
@@ -439,7 +439,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
         tree = ast.parse(code)
 
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert any("loop_back" in n for n in func_names)
 
     def test_return_in_conditional_while(self):
@@ -457,7 +457,7 @@ def flow(p: dict) -> dict:
         code = compiler.compile(source, "test.py")
         tree = ast.parse(code)
 
-        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef)]
+        func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert any("while" in n for n in func_names)
         assert "handler_finalize" in code
 
@@ -629,7 +629,12 @@ def agent(p: dict) -> dict:
 
     @staticmethod
     def _drive_abi_single(gen, msg_ctx: dict):
-        """Drive an ABI generator that yields exactly one payload frame."""
+        """Drive an ABI generator (sync or async) that yields exactly one payload frame."""
+        import asyncio
+        import inspect
+
+        if inspect.isasyncgen(gen):
+            return asyncio.run(TestMaxIterationsGuardIntegration._drive_abi_single_async(gen, msg_ctx))
         value = gen.send(None)
         while True:
             if (
@@ -651,6 +656,32 @@ def agent(p: dict) -> dict:
                 payload = value
                 with contextlib.suppress(StopIteration):
                     gen.send(None)
+                return payload
+
+    @staticmethod
+    async def _drive_abi_single_async(gen, msg_ctx: dict):
+        """Drive an async ABI generator that yields exactly one payload frame."""
+        value = await gen.asend(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = TestMaxIterationsGuardIntegration._resolve_path(msg_ctx, value[1])
+                    value = await gen.asend(result)
+                elif op == "SET":
+                    TestMaxIterationsGuardIntegration._set_path(msg_ctx, value[1], value[2])
+                    value = await gen.asend(None)
+                else:
+                    value = await gen.asend(None)
+            else:
+                payload = value
+                with contextlib.suppress(StopAsyncIteration):
+                    await gen.asend(None)
                 return payload
 
     def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):

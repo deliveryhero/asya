@@ -8,33 +8,36 @@ from pathlib import Path
 
 import click
 
-from asya_lab.config.discovery import find_asya_dir
+from asya_lab.cli_types import ASYA_REF, AsyaRef
+from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 @click.command()
-@click.argument("target")
+@click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="Overlay context to select (uses common/ or base/ if omitted)")
-def show(target: str, ctx: str | None) -> None:
+def show(target: AsyaRef, ctx: str | None) -> None:
     """Render kustomize manifests for a compiled flow.
 
-    TARGET is the flow name in kebab-case.
+    TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
     """
     asya_dir = find_asya_dir(Path.cwd())
     if asya_dir is None:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    flow_dir = asya_dir / "manifests" / target
+    project = AsyaProject.from_dir(asya_dir.parent)
+    flow_dir = project.resolve_path("compiler.manifests") / target.name
     if not flow_dir.is_dir():
         click.echo(f"[-] Flow not found: {flow_dir}", err=True)
         sys.exit(1)
 
     if ctx:
-        kustomize_path = flow_dir / "overlays" / ctx
-    elif (flow_dir / "common").is_dir():
-        kustomize_path = flow_dir / "common"
+        kustomize_path = flow_dir / OVERLAYS_DIR / ctx
+    elif (flow_dir / COMMON_DIR).is_dir():
+        kustomize_path = flow_dir / COMMON_DIR
     else:
-        kustomize_path = flow_dir / "base"
+        kustomize_path = flow_dir / BASE_DIR
 
     if not kustomize_path.is_dir():
         click.echo(f"[-] Kustomize path not found: {kustomize_path}", err=True)

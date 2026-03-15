@@ -39,7 +39,12 @@ KUSTOMIZATION = {
 
 def _setup_base_dir(tmp_path: Path) -> Path:
     """Create a mock .asya/manifests/<flow>/base/ directory with actor YAML."""
-    base_dir = tmp_path / ".asya" / "manifests" / "my-flow" / "base"
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir(exist_ok=True)
+    (asya_dir / "config.yaml").write_text(
+        'templates:\n  namespace: default\ncompiler:\n  manifests: ".asya/manifests"\n'
+    )
+    base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 
     actor_path = base_dir / "asyncactor-start-my-flow.yaml"

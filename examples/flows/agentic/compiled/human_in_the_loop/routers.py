@@ -16,7 +16,7 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_human_in_the_loop(payload: dict):
+async def start_human_in_the_loop(payload: dict):
     """Entrypoint for flow 'human_in_the_loop'"""
     _next = []
     p = payload
@@ -25,7 +25,7 @@ def start_human_in_the_loop(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_human_in_the_loop_line_71_if(payload: dict):
+async def router_human_in_the_loop_line_71_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -38,7 +38,7 @@ def router_human_in_the_loop_line_71_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_76_seq(payload: dict):
+async def router_human_in_the_loop_line_76_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,7 +48,7 @@ def router_human_in_the_loop_line_76_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_75_if(payload: dict):
+async def router_human_in_the_loop_line_75_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -60,7 +60,7 @@ def router_human_in_the_loop_line_75_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_66_if(payload: dict):
+async def router_human_in_the_loop_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -73,7 +73,7 @@ def router_human_in_the_loop_line_66_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_57_seq(payload: dict):
+async def router_human_in_the_loop_line_57_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -85,7 +85,7 @@ def router_human_in_the_loop_line_57_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_human_in_the_loop_line_56_loop_back_0(payload: dict):
+async def router_human_in_the_loop_line_56_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
@@ -100,7 +100,7 @@ def router_human_in_the_loop_line_56_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_human_in_the_loop(payload: dict):
+async def end_human_in_the_loop(payload: dict):
     """Exitpoint for flow 'human_in_the_loop'"""
     yield "SET", ".route.next", []
     yield payload

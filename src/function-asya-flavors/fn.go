@@ -17,9 +17,6 @@ const (
 
 	// EnvConfigKind is the Kubernetes kind for EnvironmentConfig resources.
 	EnvConfigKind = "EnvironmentConfig"
-
-	// FlavorLabel is the label key used to identify flavor EnvironmentConfigs.
-	FlavorLabel = "asya.sh/flavor"
 )
 
 // infrastructureFields are spec fields managed by the composition pipeline,
@@ -40,7 +37,8 @@ type Function struct {
 //
 // The function operates in two phases within Crossplane's reconciliation loop:
 //  1. Request phase: reads spec.flavors from the XR and sets resource requirements
-//     for each flavor's EnvironmentConfig (matched by label asya.sh/flavor=<name>).
+//     for each flavor's EnvironmentConfig (fetched by name — the EnvironmentConfig
+//     name must equal the flavor name).
 //  2. Merge phase: once Crossplane provides the EnvironmentConfigs, applies deep
 //     merge in spec.flavors order, then applies the actor's inline spec as the
 //     final override. The resolved spec is written back onto the XR's desired state.
@@ -86,9 +84,12 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 		return nil
 	}
 
-	flavorData := extractFlavorData(required, flavors, f.log)
+	flavorData, flavorDataNames := extractFlavorData(required, flavors, f.log)
 
-	merged := MergeFlavors(flavorData)
+	merged, err := MergeFlavors(flavorData, flavorDataNames)
+	if err != nil {
+		return errors.Wrapf(err, "flavor merge conflict")
+	}
 
 	// Filter infrastructure fields from flavor data
 	for k := range infrastructureFields {
@@ -97,7 +98,7 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 
 	actorSpec := extractActorInlineSpec(oxr)
 	if actorSpec != nil {
-		merged = DeepMerge(merged, actorSpec)
+		merged = ApplyActorInline(merged, actorSpec)
 	}
 
 	dxr, err := request.GetDesiredCompositeResource(req)
@@ -116,7 +117,7 @@ func (f *Function) run(req *fnv1.RunFunctionRequest, rsp *fnv1.RunFunctionRespon
 			infraOnly[k] = v
 		}
 	}
-	completeSpec := DeepMerge(infraOnly, merged)
+	completeSpec := ApplyActorInline(infraOnly, merged)
 
 	dxr.Resource.Object["spec"] = completeSpec
 
@@ -163,7 +164,8 @@ func flavorResourceKey(flavor string) string {
 }
 
 // setRequirements populates resource requirements on the response so Crossplane
-// fetches the EnvironmentConfig for each flavor by label.
+// fetches the EnvironmentConfig for each flavor by name. The EnvironmentConfig
+// name must equal the flavor name.
 func setRequirements(rsp *fnv1.RunFunctionResponse, flavors []string) {
 	if rsp.Requirements == nil {
 		rsp.Requirements = &fnv1.Requirements{}
@@ -176,12 +178,8 @@ func setRequirements(rsp *fnv1.RunFunctionResponse, flavors []string) {
 		rsp.Requirements.Resources[flavorResourceKey(flavor)] = &fnv1.ResourceSelector{
 			ApiVersion: EnvConfigAPIVersion,
 			Kind:       EnvConfigKind,
-			Match: &fnv1.ResourceSelector_MatchLabels{
-				MatchLabels: &fnv1.MatchLabels{
-					Labels: map[string]string{
-						FlavorLabel: flavor,
-					},
-				},
+			Match: &fnv1.ResourceSelector_MatchName{
+				MatchName: flavor,
 			},
 		}
 	}
@@ -201,9 +199,11 @@ func allFlavorsAvailable(required map[string][]resource.Required, flavors []stri
 }
 
 // extractFlavorData reads the data field from each flavor's EnvironmentConfig
-// in spec.flavors order, returning a slice of partial AsyncActor specs.
-func extractFlavorData(required map[string][]resource.Required, flavors []string, log logging.Logger) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(flavors))
+// in spec.flavors order, returning a slice of partial AsyncActor specs and
+// the corresponding flavor names (aligned by index).
+func extractFlavorData(required map[string][]resource.Required, flavors []string, log logging.Logger) ([]map[string]interface{}, []string) {
+	data := make([]map[string]interface{}, 0, len(flavors))
+	names := make([]string, 0, len(flavors))
 
 	for _, flavor := range flavors {
 		resources := required[flavorResourceKey(flavor)]
@@ -212,7 +212,7 @@ func extractFlavorData(required map[string][]resource.Required, flavors []string
 		}
 
 		if len(resources) > 1 {
-			log.Info("Multiple EnvironmentConfigs match flavor label, using first", "flavor", flavor, "count", len(resources))
+			log.Info("Multiple EnvironmentConfigs returned for flavor name, using first", "flavor", flavor, "count", len(resources))
 		}
 
 		envConfig := resources[0].Resource
@@ -222,16 +222,27 @@ func extractFlavorData(required map[string][]resource.Required, flavors []string
 			continue
 		}
 
-		data, ok := dataRaw.(map[string]interface{})
+		d, ok := dataRaw.(map[string]interface{})
 		if !ok {
 			log.Info("Flavor EnvironmentConfig data is not a map, skipping", "flavor", flavor)
 			continue
 		}
 
-		result = append(result, data)
+		log.Debug("Extracted flavor data", "flavor", flavor, "keys", mapKeys(d))
+		data = append(data, d)
+		names = append(names, flavor)
 	}
 
-	return result
+	return data, names
+}
+
+// mapKeys returns the top-level keys of a map for debug logging.
+func mapKeys(m map[string]interface{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
 }
 
 // extractActorInlineSpec returns all flavor-mergeable fields from the XR spec.

@@ -5,58 +5,76 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from asya_lab.config.discovery import MANIFESTS_DIR
+
 
 _ROOT_CONFIG = """\
-var:
-  project_root: "."
-  image_registry: "{image_registry}"
+templates:
   namespace: default
   transport: sqs
   router_image: "python:3.13-slim"
+  max_replicas: 5
 
 compiler:
-  routers: "${{var.project_root}}/compiled/${{dynamic:flow_function}}"
-  manifests: ".asya/manifests/${{dynamic:flow_name}}"
+  routers: "./compiled"
+  manifests: ".asya/manifests"
+  image_registry: "{image_registry}"
 """
 
 _ACTOR_TEMPLATE = """\
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: "${dynamic:actor_name}"
-  namespace: "${var.namespace}"
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
   labels:
-    asya.sh/flow: "${dynamic:flow_name}"
-    asya.sh/flow-role: "${dynamic:flow_role}"
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
 spec:
-  actor: "${dynamic:actor_name}"
-  image: "${dynamic:image}"
-  handler: "${dynamic:handler}"
-  transport: "${var.transport}"
-  env: "${dynamic:env}"
+  actor: "{{ actor_name }}"
+  image: "{{ image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: "${arg:max_replicas,5}"
+    maxReplicaCount: "{{ max_replicas }}"
+"""
+
+_ROUTER_TEMPLATE = """\
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/flow-role: "{{ flow_role }}"
+spec:
+  actor: "{{ actor_name }}"
+  image: "{{ router_image }}"
+  handler: "{{ handler }}"
+  transport: "{{ transport }}"
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
 """
 
 _CONFIGMAP_TEMPLATE = """\
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: "${dynamic:flow_name}-routers"
-  namespace: "${var.namespace}"
+  name: "{{ flow_name }}-routers"
+  namespace: "{{ namespace }}"
   labels:
-    asya.sh/flow: "${dynamic:flow_name}"
+    asya.sh/flow: "{{ flow_name }}"
     asya.sh/managed-by: asya-compiler
-data:
-  routers.py: "${dynamic:router_code}"
 """
 
 _KUSTOMIZATION_TEMPLATE = """\
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
-resources: "${dynamic:resources}"
 """
 
 _RULES_YAML = """\
@@ -98,16 +116,18 @@ def init_project(
     if not config_file.exists():
         config_file.write_text(_ROOT_CONFIG.format(image_registry=image_registry))
 
-    # compiler/templates/ — directory-to-key convention:
-    #   compiler/templates/actor.yaml              → compiler.templates.actor
-    #   compiler/templates/configmap_routers.yaml  → compiler.templates.configmap_routers
-    #   compiler/templates/kustomization.yaml      → compiler.templates.kustomization
+    # compiler/templates/ — templates are NOT part of the config tree,
+    # they are stored as files and referenced by the stamper
     templates_dir = asya_dir / "compiler" / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)
 
     actor_template = templates_dir / "actor.yaml"
     if not actor_template.exists():
         actor_template.write_text(_ACTOR_TEMPLATE)
+
+    router_template = templates_dir / "router.yaml"
+    if not router_template.exists():
+        router_template.write_text(_ROUTER_TEMPLATE)
 
     configmap_template = templates_dir / "configmap_routers.yaml"
     if not configmap_template.exists():
@@ -117,13 +137,13 @@ def init_project(
     if not kustomization_template.exists():
         kustomization_template.write_text(_KUSTOMIZATION_TEMPLATE)
 
-    # compiler/rules.yaml
-    rules_file = asya_dir / "compiler" / "rules.yaml"
+    # config.compiler.rules.yaml (filename-to-key convention)
+    rules_file = asya_dir / "config.compiler.rules.yaml"
     if not rules_file.exists():
         rules_file.write_text(_RULES_YAML)
 
     # manifests/
-    manifests_dir = asya_dir / "manifests"
+    manifests_dir = asya_dir / MANIFESTS_DIR
     manifests_dir.mkdir(exist_ok=True)
 
     # .gitignore: add .env.secret

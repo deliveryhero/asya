@@ -16,7 +16,7 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_research_and_refine(payload: dict):
+async def start_research_and_refine(payload: dict):
     """Entrypoint for flow 'research_and_refine'"""
     _next = []
     p = payload
@@ -26,7 +26,7 @@ def start_research_and_refine(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_research_and_refine_line_55_if(payload: dict):
+async def router_research_and_refine_line_55_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -38,7 +38,7 @@ def router_research_and_refine_line_55_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_51_if(payload: dict):
+async def router_research_and_refine_line_51_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -51,7 +51,7 @@ def router_research_and_refine_line_51_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_47_seq(payload: dict):
+async def router_research_and_refine_line_47_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -63,7 +63,7 @@ def router_research_and_refine_line_47_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_research_and_refine_line_46_loop_back_0(payload: dict):
+async def router_research_and_refine_line_46_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
@@ -78,7 +78,7 @@ def router_research_and_refine_line_46_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_research_and_refine(payload: dict):
+async def end_research_and_refine(payload: dict):
     """Exitpoint for flow 'research_and_refine'"""
     yield "SET", ".route.next", []
     yield payload

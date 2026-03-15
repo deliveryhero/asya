@@ -59,8 +59,40 @@ def _del_path(data: dict, path: str) -> None:
     del cur[parts[-1]]
 
 
+async def _drive_abi_single_async(gen, msg_ctx: dict) -> Any:
+    """Drive an async ABI generator that yields exactly one payload frame."""
+    value = await gen.asend(None)
+    while True:
+        if (
+            isinstance(value, tuple)
+            and len(value) >= 2
+            and isinstance(value[0], str)
+            and value[0] in ("GET", "SET", "DEL")
+        ):
+            op = value[0]
+            if op == "GET":
+                result = _resolve_path(msg_ctx, value[1])
+                value = await gen.asend(result)
+            elif op == "SET":
+                _set_path(msg_ctx, value[1], value[2])
+                value = await gen.asend(None)
+            elif op == "DEL":
+                _del_path(msg_ctx, value[1])
+                value = await gen.asend(None)
+        else:
+            payload = value
+            with contextlib.suppress(StopAsyncIteration):
+                await gen.asend(None)
+            return payload
+
+
 def _drive_abi_single(gen, msg_ctx: dict) -> Any:
-    """Drive an ABI generator that yields exactly one payload frame. Returns the payload."""
+    """Drive an ABI generator (sync or async) that yields exactly one payload frame."""
+    import asyncio
+    import inspect
+
+    if inspect.isasyncgen(gen):
+        return asyncio.run(_drive_abi_single_async(gen, msg_ctx))
     value = gen.send(None)
     while True:
         if (

@@ -26,22 +26,15 @@ spec:
   # Reference shared persistence flavor created by asya-crew chart
   flavors: [asya-persistence-s3]
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-data-processor:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "processor.handle"
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: "/state/checkpoints/data-processor"
-          resources:
-            requests:
-              cpu: 100m
-              memory: 128Mi
-            limits:
-              cpu: 500m
-              memory: 256Mi
+  image: my-data-processor:latest
+  handler: processor.handle
+  env:
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: "/state/checkpoints/data-processor"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi

@@ -46,12 +46,12 @@ spec:
         fi
         echo "[+] Transport: $TRANSPORT"
 
-        WORKLOAD_KIND=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.workload.kind}')
-        if [ -z "$WORKLOAD_KIND" ]; then
-          echo "[-] FAILED: Workload kind not configured"
+        IMAGE=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.image}')
+        if [ -z "$IMAGE" ]; then
+          echo "[-] FAILED: Image not configured"
           exit 1
         fi
-        echo "[+] Workload kind: $WORKLOAD_KIND"
+        echo "[+] Image: $IMAGE"
 
         {{- if and .Values.default.scaling .Values.default.scaling.enabled }}
         SCALING_ENABLED=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.scaling.enabled}')

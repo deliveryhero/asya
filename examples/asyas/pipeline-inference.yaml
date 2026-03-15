@@ -16,21 +16,13 @@ spec:
     maxReplicaCount: 5 # Limited by GPU availability
     queueLength: 2
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: bert-inference:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "model.predict"
-          resources:
-            requests:
-              cpu: 2000m
-              memory: 8Gi
-            limits:
-              nvidia.com/gpu: 1
-              cpu: 4000m
-              memory: 16Gi
+  image: bert-inference:latest
+  handler: model.predict
+  resources:
+    requests:
+      cpu: 2000m
+      memory: 8Gi
+    limits:
+      nvidia.com/gpu: 1
+      cpu: 4000m
+      memory: 16Gi

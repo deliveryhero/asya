@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../while_loop_processing.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_loop_flow(payload: dict):
+async def start_loop_flow(payload: dict):
     """Entrypoint for flow 'loop_flow'"""
     _next = []
     _next.append(resolve("initialize"))
@@ -21,7 +21,7 @@ def start_loop_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_19_seq(payload: dict):
+async def router_loop_flow_line_19_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,7 +31,7 @@ def router_loop_flow_line_19_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_17_seq(payload: dict):
+async def router_loop_flow_line_17_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -42,7 +42,7 @@ def router_loop_flow_line_17_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_23_if(payload: dict):
+async def router_loop_flow_line_23_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -54,7 +54,7 @@ def router_loop_flow_line_23_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_16_if(payload: dict):
+async def router_loop_flow_line_16_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -67,7 +67,7 @@ def router_loop_flow_line_16_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_13_seq(payload: dict):
+async def router_loop_flow_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -78,7 +78,7 @@ def router_loop_flow_line_13_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_12_while_0(payload: dict):
+async def router_loop_flow_line_12_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -91,7 +91,7 @@ def router_loop_flow_line_12_while_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_loop_flow_line_11_seq(payload: dict):
+async def router_loop_flow_line_11_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -101,7 +101,7 @@ def router_loop_flow_line_11_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_loop_flow(payload: dict):
+async def end_loop_flow(payload: dict):
     """Exitpoint for flow 'loop_flow'"""
     yield "SET", ".route.next", []
     yield payload

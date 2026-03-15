@@ -16,7 +16,7 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_while_true_flow(payload: dict):
+async def start_while_true_flow(payload: dict):
     """Entrypoint for flow 'while_true_flow'"""
     _next = []
     _next.append(resolve("handler_init"))
@@ -24,7 +24,7 @@ def start_while_true_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_while_true_flow_line_12_if(payload: dict):
+async def router_while_true_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -36,7 +36,7 @@ def router_while_true_flow_line_12_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_while_true_flow_line_10_loop_back_0(payload: dict):
+async def router_while_true_flow_line_10_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
@@ -52,7 +52,7 @@ def router_while_true_flow_line_10_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_while_true_flow(payload: dict):
+async def end_while_true_flow(payload: dict):
     """Exitpoint for flow 'while_true_flow'"""
     yield "SET", ".route.next", []
     yield payload

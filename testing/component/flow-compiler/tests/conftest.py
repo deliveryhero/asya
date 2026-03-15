@@ -66,8 +66,44 @@ def _del_path(data, path):
     del cur[parts[-1]]
 
 
+async def _drive_abi_async(gen, msg_ctx):
+    """Drive an async ABI generator, return list of yielded payloads."""
+    payloads = []
+    value = None
+    try:
+        value = await gen.asend(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = await gen.asend(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = await gen.asend(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = await gen.asend(None)
+            else:
+                payloads.append(value)
+                value = await gen.asend(None)
+    except StopAsyncIteration:
+        pass
+    return payloads
+
+
 def _drive_abi(gen, msg_ctx):
-    """Drive an ABI generator, return list of yielded payloads."""
+    """Drive an ABI generator (sync or async), return list of yielded payloads."""
+    import asyncio
+    import inspect
+
+    if inspect.isasyncgen(gen):
+        return asyncio.run(_drive_abi_async(gen, msg_ctx))
     payloads = []
     value = None
     try:
@@ -106,8 +142,50 @@ class AbiFrame:
         self.headers = copy.deepcopy(headers)
 
 
+async def _drive_abi_multi_async(gen, msg_ctx):
+    """Drive an async ABI generator, return list of AbiFrame capturing state at each yield."""
+    frames = []
+    value = None
+    try:
+        value = await gen.asend(None)
+        while True:
+            if (
+                isinstance(value, tuple)
+                and len(value) >= 2
+                and isinstance(value[0], str)
+                and value[0] in ("GET", "SET", "DEL")
+            ):
+                op = value[0]
+                if op == "GET":
+                    result = _resolve_path(msg_ctx, value[1])
+                    value = await gen.asend(result)
+                elif op == "SET":
+                    _set_path(msg_ctx, value[1], value[2])
+                    value = await gen.asend(None)
+                elif op == "DEL":
+                    _del_path(msg_ctx, value[1])
+                    value = await gen.asend(None)
+            else:
+                frames.append(
+                    AbiFrame(
+                        payload=value,
+                        route_next=msg_ctx.get("route", {}).get("next", []),
+                        headers=msg_ctx.get("headers", {}),
+                    )
+                )
+                value = await gen.asend(None)
+    except StopAsyncIteration:
+        pass
+    return frames
+
+
 def _drive_abi_multi(gen, msg_ctx):
-    """Drive an ABI generator, return list of AbiFrame capturing state at each yield."""
+    """Drive an ABI generator (sync or async), return list of AbiFrame capturing state at each yield."""
+    import asyncio
+    import inspect
+
+    if inspect.isasyncgen(gen):
+        return asyncio.run(_drive_abi_multi_async(gen, msg_ctx))
     frames = []
     value = None
     try:

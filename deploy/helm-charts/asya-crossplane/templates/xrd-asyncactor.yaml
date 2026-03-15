@@ -31,7 +31,8 @@ spec:
               required:
                 - actor
                 - transport
-                - workload
+                - image
+                - handler
               properties:
                 actor:
                   type: string
@@ -59,6 +60,89 @@ spec:
                     List of flavor names (EnvironmentConfigs) to compose.
                     Applied left-to-right; later flavors override earlier ones.
                     Actor inline spec is applied last and always wins.
+
+                image:
+                  type: string
+                  description: Container image for the asya-runtime container
+                  minLength: 1
+
+                imagePullPolicy:
+                  type: string
+                  description: Image pull policy for the asya-runtime container
+                  enum:
+                    - Always
+                    - IfNotPresent
+                    - Never
+                  default: IfNotPresent
+
+                handler:
+                  type: string
+                  description: >-
+                    Python handler path (module.function or module.Class.method).
+                    Injected as ASYA_HANDLER env var into the runtime container.
+                  minLength: 1
+
+                pythonExecutable:
+                  type: string
+                  description: >-
+                    Python executable used to launch the runtime container.
+                    Override when the container image does not have 'python3' on PATH
+                    (e.g. '/usr/bin/python', 'python3.12').
+                  default: python3
+                  minLength: 1
+
+                replicas:
+                  type: integer
+                  description: Number of replicas (only used when scaling is disabled)
+                  minimum: 1
+                  default: 1
+
+                env:
+                  type: array
+                  description: Additional environment variables for the asya-runtime container
+                  items:
+                    type: object
+                    required:
+                      - name
+                    properties:
+                      name:
+                        type: string
+                      value:
+                        type: string
+                      valueFrom:
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+
+                resources:
+                  type: object
+                  description: Resource requests and limits for the asya-runtime container
+                  x-kubernetes-preserve-unknown-fields: true
+
+                tolerations:
+                  type: array
+                  description: Tolerations for the actor pod
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+
+                nodeSelector:
+                  type: object
+                  description: Node selector for the actor pod
+                  x-kubernetes-preserve-unknown-fields: true
+
+                volumes:
+                  type: array
+                  description: Additional volumes to attach to the actor pod
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+
+                volumeMounts:
+                  type: array
+                  description: Additional volume mounts for the asya-runtime container
+                  items:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
 
                 scaling:
                   type: object
@@ -127,25 +211,6 @@ spec:
                       items:
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
-
-                workload:
-                  type: object
-                  description: |
-                    Workload template (Crossplane manages the Deployment).
-                    Must contain exactly one container named 'asya-runtime' without 'command' defined.
-                  properties:
-                    kind:
-                      type: string
-                      enum:
-                        - Deployment
-                      default: Deployment
-                    replicas:
-                      type: integer
-                      description: Number of replicas (only used when scaling is disabled)
-                    template:
-                      type: object
-                      description: Pod template specification
-                      x-kubernetes-preserve-unknown-fields: true
 
                 resiliency:
                   type: object

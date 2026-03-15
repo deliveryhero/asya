@@ -89,30 +89,16 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yam
 x-sink:
   enabled: true
   transport: sqs  # or rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: sqs  # or rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /state/checkpoints
 ```
 
 ```bash
@@ -148,38 +134,29 @@ metadata:
   name: my-actor
 spec:
   transport: sqs  # or rabbitmq
+  image: YOUR_IMAGE:TAG
+  handler: module.function  # or module.Class.method for class handlers
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 50
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: YOUR_IMAGE:TAG
-          env:
-          - name: ASYA_HANDLER
-            value: "module.function"
-            # For class handlers: "module.Class.method"
-          resources:
-            requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
-              memory: "2Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
 ```
 
 **Key fields to explain**:
 - `spec.transport`: Which transport to use (ask platform team)
+- `spec.image`: Container image for the actor's runtime
+- `spec.handler`: Handler path (`module.function` or `module.Class.method`)
 - `spec.scaling.enabled`: Enable KEDA autoscaling (default: false)
 - `spec.scaling.minReplicaCount`: Minimum pods (0 for scale-to-zero)
 - `spec.scaling.maxReplicaCount`: Maximum pods
 - `spec.scaling.queueLength`: Messages per replica target
-- `spec.workload.kind`: Deployment
-- `env.ASYA_HANDLER`: Handler path (`module.function` or `module.Class.method`)
 
 ### Configure Gateway Tools
 
@@ -393,7 +370,7 @@ kubectl get asya my-actor -o jsonpath='{.spec.transport}'
 kubectl logs deploy/my-actor -c asya-runtime
 
 # Check handler config
-kubectl get asya my-actor -o jsonpath='{.spec.workload.template.spec.containers[?(@.name=="asya-runtime")].env}'
+kubectl get asya my-actor -o jsonpath='{.spec.handler}'
 ```
 
 **Common issues**:
@@ -443,20 +420,15 @@ spec:
 
 ```yaml
 spec:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          resources:
-            limits:
-              nvidia.com/gpu: 1
-        nodeSelector:
-          nvidia.com/gpu: "true"
-        tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+  nodeSelector:
+    nvidia.com/gpu: "true"
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
 ```
 
 **Note**: Ensure GPU node group exists and NVIDIA device plugin is installed.

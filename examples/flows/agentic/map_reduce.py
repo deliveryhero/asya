@@ -40,10 +40,10 @@ generates a fan-out router that dispatches N messages (one per chunk)
 and a fan-in aggregator that collects all results.
 """
 
+import asyncio
+
 
 async def map_reduce(state: dict) -> dict:
-    import asyncio
-
     # Split: divide large input into manageable chunks
     state = await splitter(state)
 

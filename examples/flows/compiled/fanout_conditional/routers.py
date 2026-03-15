@@ -15,7 +15,7 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_adaptive_flow(payload: dict):
+async def start_adaptive_flow(payload: dict):
     """Entrypoint for flow 'adaptive_flow'"""
     _next = []
     _next.append(resolve("classifier"))
@@ -23,7 +23,7 @@ def start_adaptive_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_adaptive_flow_line_13(payload: dict):
+async def fanout_adaptive_flow_line_13(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 13)"""
     p = payload
 
@@ -54,7 +54,7 @@ def fanout_adaptive_flow_line_13(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def router_adaptive_flow_line_12_if(payload: dict):
+async def router_adaptive_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -67,7 +67,7 @@ def router_adaptive_flow_line_12_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_adaptive_flow(payload: dict):
+async def end_adaptive_flow(payload: dict):
     """Exitpoint for flow 'adaptive_flow'"""
     yield "SET", ".route.next", []
     yield payload

@@ -16,20 +16,12 @@ spec:
     maxReplicaCount: 20 # High parallelism again
     queueLength: 10
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: result-formatter:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "formatter.format_output"
-          resources:
-            requests:
-              cpu: 500m
-              memory: 512Mi
-            limits:
-              cpu: 1000m
-              memory: 1Gi
+  image: result-formatter:latest
+  handler: formatter.format_output
+  resources:
+    requests:
+      cpu: 500m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi

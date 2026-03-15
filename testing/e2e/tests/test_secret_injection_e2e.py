@@ -165,18 +165,10 @@ spec:
       asya.sh/transport: {TRANSPORT}
   scaling:
     enabled: false
-  workload:
-    kind: Deployment
-    replicas: 1
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.secret_echo_handler
+  replicas: 1
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.secret_echo_handler
   secretRefs:
     - secretName: {secret_name}
       keys:

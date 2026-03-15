@@ -15,31 +15,23 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 5
 
-  workload:
-    kind: Deployment
-
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: continuumio/miniconda3:latest
-          env:
-          # Custom Python executable path (e.g., conda environment)
-          - name: ASYA_PYTHONEXECUTABLE
-            value: "/opt/conda/bin/python"
-          # Configure PYTHONPATH for handler import resolution
-          # If your handler is in /app/handlers/ml_model.py with function 'predict'
-          - name: PYTHONPATH
-            value: "/app/handlers"
-          - name: ASYA_HANDLER
-            value: "ml_model.predict" # No .py extension
-          # Additional environment variables
-          - name: MODEL_PATH
-            value: "/models/my-model"
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 4Gi
-            requests:
-              cpu: 500m
-              memory: 1Gi
+  image: continuumio/miniconda3:latest
+  handler: ml_model.predict # No .py extension
+  env:
+  # Custom Python executable path (e.g., conda environment)
+  - name: ASYA_PYTHONEXECUTABLE
+    value: "/opt/conda/bin/python"
+  # Configure PYTHONPATH for handler import resolution
+  # If your handler is in /app/handlers/ml_model.py with function 'predict'
+  - name: PYTHONPATH
+    value: "/app/handlers"
+  # Additional environment variables
+  - name: MODEL_PATH
+    value: "/models/my-model"
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 4Gi
+    requests:
+      cpu: 500m
+      memory: 1Gi

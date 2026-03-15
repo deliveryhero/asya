@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../if_nested.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_conditional_nested_flow(payload: dict):
+async def start_conditional_nested_flow(payload: dict):
     """Entrypoint for flow 'conditional_nested_flow'"""
     _next = []
     _next.append(resolve("handler_validate_input"))
@@ -21,7 +21,7 @@ def start_conditional_nested_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_15_seq(payload: dict):
+async def router_conditional_nested_flow_line_15_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,7 +31,7 @@ def router_conditional_nested_flow_line_15_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_13_seq(payload: dict):
+async def router_conditional_nested_flow_line_13_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -42,7 +42,7 @@ def router_conditional_nested_flow_line_13_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_17_seq(payload: dict):
+async def router_conditional_nested_flow_line_17_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -53,7 +53,7 @@ def router_conditional_nested_flow_line_17_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_12_if(payload: dict):
+async def router_conditional_nested_flow_line_12_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -66,7 +66,7 @@ def router_conditional_nested_flow_line_12_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_22_seq(payload: dict):
+async def router_conditional_nested_flow_line_22_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -76,7 +76,7 @@ def router_conditional_nested_flow_line_22_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_20_seq(payload: dict):
+async def router_conditional_nested_flow_line_20_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -87,7 +87,7 @@ def router_conditional_nested_flow_line_20_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_9_if(payload: dict):
+async def router_conditional_nested_flow_line_9_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -100,7 +100,7 @@ def router_conditional_nested_flow_line_9_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_7_seq(payload: dict):
+async def router_conditional_nested_flow_line_7_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -111,7 +111,7 @@ def router_conditional_nested_flow_line_7_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_26_seq(payload: dict):
+async def router_conditional_nested_flow_line_26_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -121,7 +121,7 @@ def router_conditional_nested_flow_line_26_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_24_seq(payload: dict):
+async def router_conditional_nested_flow_line_24_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -132,7 +132,7 @@ def router_conditional_nested_flow_line_24_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_conditional_nested_flow_line_6_if(payload: dict):
+async def router_conditional_nested_flow_line_6_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -145,7 +145,7 @@ def router_conditional_nested_flow_line_6_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_conditional_nested_flow(payload: dict):
+async def end_conditional_nested_flow(payload: dict):
     """Exitpoint for flow 'conditional_nested_flow'"""
     yield "SET", ".route.next", []
     yield payload

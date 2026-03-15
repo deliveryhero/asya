@@ -12,14 +12,16 @@ class TestTryExceptParsing:
     """Test parsing of valid try-except constructs."""
 
     def test_simple_try_except(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except ValueError:
                     p["error"] = "validation_failed"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -41,7 +43,8 @@ class TestTryExceptParsing:
         assert len(te.finally_body) == 0
 
     def test_try_except_finally(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -50,7 +53,8 @@ class TestTryExceptParsing:
                 finally:
                     p["done"] = True
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -68,7 +72,8 @@ class TestTryExceptParsing:
         assert isinstance(te.finally_body[0], Mutation)
 
     def test_multiple_except_handlers(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -79,7 +84,8 @@ class TestTryExceptParsing:
                 except RuntimeError:
                     p["error"] = "runtime_error"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -91,14 +97,16 @@ class TestTryExceptParsing:
         assert te.handlers[2].error_types == ["RuntimeError"]
 
     def test_bare_except(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except:
                     p["error"] = "unknown"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -110,14 +118,16 @@ class TestTryExceptParsing:
         assert isinstance(te.handlers[0].body[0], Mutation)
 
     def test_tuple_exception_types(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except (ValueError, TypeError):
                     p["error"] = "type_or_value"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -127,7 +137,8 @@ class TestTryExceptParsing:
         assert te.handlers[0].error_types == ["ValueError", "TypeError"]
 
     def test_try_with_mutations_in_handler(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -136,7 +147,8 @@ class TestTryExceptParsing:
                     p["status"] = "error"
                     p["retries"] += 1
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -146,14 +158,16 @@ class TestTryExceptParsing:
         assert all(isinstance(op, Mutation) for op in te.handlers[0].body)
 
     def test_try_with_actor_in_handler(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = risky_handler(p)
                 except ValueError:
                     p = fallback_handler(p)
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -168,7 +182,8 @@ class TestTryExceptParsing:
         assert te.handlers[0].body[0].name == "fallback_handler"
 
     def test_try_with_multiple_body_statements(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler_a(p)
@@ -177,7 +192,8 @@ class TestTryExceptParsing:
                 except ValueError:
                     p["error"] = "failed"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -190,14 +206,16 @@ class TestTryExceptParsing:
         assert isinstance(te.body[2], ActorCall) and te.body[2].name == "handler_c"
 
     def test_try_except_preserves_lineno(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except ValueError:
                     p["error"] = "failed"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -213,7 +231,8 @@ class TestRaiseParsing:
     """Test parsing of raise statements."""
 
     def test_raise_in_except_body(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -221,7 +240,8 @@ class TestRaiseParsing:
                     p["error"] = "failed"
                     raise
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -232,7 +252,8 @@ class TestRaiseParsing:
         assert isinstance(te.handlers[0].body[1], Raise)
 
     def test_raise_in_except_with_condition(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -241,7 +262,8 @@ class TestRaiseParsing:
                         raise
                     p["error"] = "handled"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         _, ops = parser.parse()
 
@@ -264,7 +286,8 @@ class TestTryExceptErrors:
     """Test rejection of invalid try-except constructs."""
 
     def test_nested_try_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     try:
@@ -274,13 +297,15 @@ class TestTryExceptErrors:
                 except RuntimeError:
                     p["error"] = "outer"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="Nested try-except"):
             parser.parse()
 
     def test_try_else_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -289,62 +314,72 @@ class TestTryExceptErrors:
                 else:
                     p["status"] = "ok"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="'else' clause on 'try'"):
             parser.parse()
 
     def test_except_as_binding_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except ValueError as e:
                     p["error"] = "failed"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="binding"):
             parser.parse()
 
     def test_raise_outside_except_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 raise
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="'raise' outside except"):
             parser.parse()
 
     def test_raise_with_args_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 except ValueError:
                     raise ValueError("msg")
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="with arguments"):
             parser.parse()
 
     def test_try_without_except_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
                 finally:
                     p["done"] = True
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="at least one 'except'"):
             parser.parse()
 
     def test_raise_in_try_body_rejected(self):
-        source = textwrap.dedent("""
+        source = textwrap.dedent(
+            """
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -352,7 +387,8 @@ class TestTryExceptErrors:
                 except ValueError:
                     p["error"] = "failed"
                 return p
-        """)
+        """
+        )
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="'raise' outside except"):
             parser.parse()

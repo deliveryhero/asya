@@ -8,15 +8,17 @@ Three-layer kustomize output:
 
 from __future__ import annotations
 
+import dataclasses
 import logging
+import re
 import shutil
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
-from omegaconf import DictConfig, OmegaConf
 
-from asya_lab.config.config import ConfigLoader, _set_active_loader
+from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
+from asya_lab.config.project import AsyaProject
 from asya_lab.flow.grouper import Router
 
 
@@ -36,6 +38,7 @@ _Dumper.add_representer(str, _literal_representer)
 log = logging.getLogger(__name__)
 
 _ROUTER_PREFIXES = ("start_", "end_", "router_", "except_", "loop_", "fanout_")
+_TEMPLATE_RE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 
 @dataclass
@@ -55,7 +58,35 @@ class ActorInfo:
     is_router: bool = False
 
 
-class ManifestStamper:
+@dataclasses.dataclass(frozen=True)
+class TemplateContext:
+    """Compiler-output variables available in templates.
+
+    These are the values the compiler always computes per actor.
+    Config values from `templates:` and CLI args are merged separately.
+    """
+
+    actor_name: str
+    flow_name: str
+    flow_function: str
+    flow_role: str
+    handler: str
+    image: str
+
+
+def _resolve_template_string(text: str, context: dict[str, str]) -> str:
+    """Resolve {{ key }} placeholders in a template string."""
+
+    def _replace(m: re.Match) -> str:
+        key = m.group(1)
+        if key not in context:
+            raise KeyError(f"Unknown template variable '{{{{ {key} }}}}'. Available: {sorted(context)}")
+        return str(context[key])
+
+    return _TEMPLATE_RE.sub(_replace, text)
+
+
+class ManifestTemplater:
     """Stamps AsyncActor manifests into a kustomize directory structure.
 
     Naming convention (see rfc.md section 7.4):
@@ -63,21 +94,14 @@ class ManifestStamper:
       flow_name / actor name:         K8s/Asya name, hyphens (my-flow)
 
     The compiler (parser, grouper, codegen) works with function names.
-    The stamper converts to K8s names for all output: filenames, metadata,
+    The templater converts to K8s names for all output: filenames, metadata,
     labels, ConfigMap names. Handler references (spec.handler) keep the
     Python form since they reference Python functions.
 
-    Templates follow the directory-to-key convention:
-      .asya/compiler/templates/actor.yaml              → compiler.templates.actor
-      .asya/compiler/templates/configmap_routers.yaml  → compiler.templates.configmap_routers
-      .asya/compiler/templates/kustomization.yaml      → compiler.templates.kustomization
-
-    All templates support ${dynamic:*}, ${var:*}, and ${arg:*} interpolations.
-
-    Dynamic keys use a consistent naming scheme:
-      flow_name / actor_name:         K8s name with hyphens (my-flow, handler-a)
-      flow_function:                  Python function name with underscores (my_flow)
-    Short aliases (flow, actor) are also provided for backward compatibility.
+    Templates use {{ key }} placeholders for variable substitution.
+    Context is built from:
+      1. Config `templates:` section (user-defined values)
+      2. TemplateContext fields (compiler-computed values, override config if collision)
     """
 
     def __init__(
@@ -87,9 +111,9 @@ class ManifestStamper:
         flow_function: str,
         routers: list[Router],
         router_code: str,
-        config: DictConfig,
-        config_loader: ConfigLoader,
-        template_path: Path,
+        project: AsyaProject,
+        actor_template_path: Path,
+        router_template_path: Path | None = None,
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
     ) -> None:
@@ -97,9 +121,9 @@ class ManifestStamper:
         self.flow_function = flow_function
         self.routers = routers
         self.router_code = router_code
-        self.config = config
-        self.config_loader = config_loader
-        self.template_path = template_path
+        self.project = project
+        self.actor_template_path = actor_template_path
+        self.router_template_path = router_template_path
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
 
@@ -108,9 +132,9 @@ class ManifestStamper:
 
         Returns list of generated file paths (relative to output_dir).
         """
-        base_dir = output_dir / "base"
-        common_dir = output_dir / "common"
-        overlays_dir = output_dir / "overlays"
+        base_dir = output_dir / BASE_DIR
+        common_dir = output_dir / COMMON_DIR
+        overlays_dir = output_dir / OVERLAYS_DIR
 
         generated = []
 
@@ -121,7 +145,7 @@ class ManifestStamper:
 
         return generated
 
-    # ── base/ layer (fully regenerated) ─────────────────────────────
+    # -- base/ layer (fully regenerated) ------------------------------------
 
     def _stamp_base(self, base_dir: Path) -> list[str]:
         if base_dir.exists():
@@ -162,37 +186,37 @@ class ManifestStamper:
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
-        """Load actor template and resolve all interpolations."""
-        self.config_loader.dynamic_values = {
-            "actor_name": actor.name,
-            "actor": actor.name,
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "flow_role": actor.flow_role,
-            "handler": actor.handler,
-            "image": actor.image,
-            "env": "[]",
-        }
-        _set_active_loader(self.config_loader)
+        """Load actor template and resolve {{ key }} placeholders."""
+        if actor.is_router and self.router_template_path and self.router_template_path.exists():
+            template_path = self.router_template_path
+        else:
+            template_path = self.actor_template_path
 
-        template = OmegaConf.load(self.template_path)
+        text = template_path.read_text()
 
-        # Wrap template with var: section so ${var.*} interpolations resolve
-        wrapper = OmegaConf.create({})
-        if "var" in self.config:
-            wrapper["var"] = self.config["var"]
-        wrapper["_tmpl"] = template
+        tc = TemplateContext(
+            actor_name=actor.name,
+            flow_name=self.flow_name,
+            flow_function=self.flow_function,
+            flow_role=actor.flow_role,
+            handler=actor.handler,
+            image=actor.image,
+        )
 
-        resolved = OmegaConf.to_container(wrapper["_tmpl"], resolve=True)
-        return resolved
+        context = self.project.build_template_context()
+        # TemplateContext values (override config if collision — reserved names)
+        context.update({k: str(v) for k, v in dataclasses.asdict(tc).items()})
+
+        resolved_text = _resolve_template_string(text, context)
+        return yaml.safe_load(resolved_text)
 
     def _stamp_configmap(self, path: Path) -> None:
         """Generate ConfigMap containing router code from template."""
         if self.configmap_routers_template_path and self.configmap_routers_template_path.exists():
             cm = self._resolve_configmap_template()
         else:
-            namespace = self._resolve_var("namespace", "default")
+            context = self.project.build_template_context()
+            namespace = context.get("namespace", "default")
             cm = {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",
@@ -211,24 +235,14 @@ class ManifestStamper:
         path.write_text(yaml.dump(cm, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_configmap_template(self) -> dict:
-        """Load configmap template and resolve interpolations."""
-        self.config_loader.dynamic_values = {
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "router_code": "",
-        }
-        _set_active_loader(self.config_loader)
-
-        template = OmegaConf.load(self.configmap_routers_template_path)
-
-        wrapper = OmegaConf.create({})
-        if "var" in self.config:
-            wrapper["var"] = self.config["var"]
-        wrapper["_tmpl"] = template
-
-        resolved = OmegaConf.to_container(wrapper["_tmpl"], resolve=True)
-        return resolved
+        """Load configmap template and resolve {{ key }} placeholders."""
+        assert self.configmap_routers_template_path is not None
+        text = self.configmap_routers_template_path.read_text()
+        context = self.project.build_template_context()
+        context["flow_name"] = self.flow_name
+        context["flow_function"] = self.flow_function
+        resolved_text = _resolve_template_string(text, context)
+        return yaml.safe_load(resolved_text)
 
     def _write_kustomization(self, path: Path, resources: list[str]) -> None:
         if self.kustomization_template_path and self.kustomization_template_path.exists():
@@ -242,26 +256,16 @@ class ManifestStamper:
         path.write_text(yaml.dump(kust, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_kustomization_template(self, resources: list[str]) -> dict:
-        """Load kustomization template and resolve interpolations."""
-        self.config_loader.dynamic_values = {
-            "flow_name": self.flow_name,
-            "flow": self.flow_name,
-            "flow_function": self.flow_function,
-            "resources": "[]",
-        }
-        _set_active_loader(self.config_loader)
+        """Load kustomization template and resolve {{ key }} placeholders."""
+        assert self.kustomization_template_path is not None
+        text = self.kustomization_template_path.read_text()
+        context = self.project.build_template_context()
+        context["flow_name"] = self.flow_name
+        context["flow_function"] = self.flow_function
+        resolved_text = _resolve_template_string(text, context)
+        return yaml.safe_load(resolved_text)
 
-        template = OmegaConf.load(self.kustomization_template_path)
-
-        wrapper = OmegaConf.create({})
-        if "var" in self.config:
-            wrapper["var"] = self.config["var"]
-        wrapper["_tmpl"] = template
-
-        resolved = OmegaConf.to_container(wrapper["_tmpl"], resolve=True)
-        return resolved
-
-    # ── README (created once) ───────────────────────────────────────
+    # -- README (created once) ----------------------------------------------
 
     _README = """\
 # Kustomize Manifest Structure
@@ -313,7 +317,7 @@ Each overlay builds on top of `common/`.
         output_dir.mkdir(parents=True, exist_ok=True)
         readme_path.write_text(self._README)
 
-    # ── common/ layer (created once, never overwritten) ─────────────
+    # -- common/ layer (created once, never overwritten) --------------------
 
     def _stamp_common(self, common_dir: Path) -> list[str]:
         kust_path = common_dir / "kustomization.yaml"
@@ -324,10 +328,10 @@ Each overlay builds on top of `common/`.
         self._write_kustomization(kust_path, ["../base"])
         return ["common/kustomization.yaml"]
 
-    # ── overlays/<context>/ layer (created once per context) ────────
+    # -- overlays/<context>/ layer (created once per context) ---------------
 
     def _stamp_overlays(self, overlays_dir: Path) -> list[str]:
-        contexts = self._get_contexts()
+        contexts = self.project.get_contexts()
         if not contexts:
             return []
 
@@ -349,19 +353,18 @@ Each overlay builds on top of `common/`.
 
         return generated
 
-    # ── actor collection ────────────────────────────────────────────
+    # -- actor collection ---------------------------------------------------
 
     def _collect_actors(self) -> list[ActorInfo]:
         """Collect all actors from the compiled flow."""
-        router_image = self._resolve_var("router_image", "python:3.13-slim")
+        context = self.project.build_template_context()
+        router_image = context.get("router_image", "python:3.13-slim")
         handler_actors: dict[str, ActorInfo] = {}
         router_actors: list[ActorInfo] = []
 
         for router in self.routers:
-            # Router env: ASYA_HANDLER_* mappings for the resolve() function
             handler_env = self._build_handler_env(router)
 
-            # Actor name uses hyphens (K8s convention), handler stays as Python reference
             router_actors.append(
                 ActorInfo(
                     name=self._to_k8s_name(router.name),
@@ -373,12 +376,11 @@ Each overlay builds on top of `common/`.
                 )
             )
 
-            # Collect handler actor names (non-router actors)
             for actor_name in self._get_referenced_actors(router):
                 if self._is_router_name(actor_name):
                     continue
                 if actor_name not in handler_actors:
-                    image = self._resolve_handler_image(actor_name)
+                    image = self.project.resolve_image(actor_name)
                     k8s_name = self._to_k8s_name(actor_name)
                     handler_actors[actor_name] = ActorInfo(
                         name=k8s_name,
@@ -410,11 +412,7 @@ Each overlay builds on top of `common/`.
         return actors
 
     def _build_handler_env(self, router: Router) -> list[dict[str, str]]:
-        """Build ASYA_HANDLER_* env vars for a router actor.
-
-        These mappings allow the resolve() function in routers.py to
-        map handler short names to actor queue names at runtime.
-        """
+        """Build ASYA_HANDLER_* env vars for a router actor."""
         env: list[dict[str, str]] = []
         for actor_name in self._get_referenced_actors(router):
             if self._is_router_name(actor_name):
@@ -433,47 +431,3 @@ Each overlay builds on top of `common/`.
         if name.startswith("end_"):
             return "exitpoint"
         return "router"
-
-    # ── config resolution helpers ───────────────────────────────────
-
-    def _resolve_var(self, key: str, default: str) -> str:
-        """Resolve a var.* value from the config."""
-        try:
-            if "var" in self.config and key in self.config["var"]:
-                return str(self.config["var"][key])
-        except Exception:  # nosec B110
-            log.warning("Error resolving 'var.%s', falling back to default '%s'", key, default)
-        return default
-
-    def _resolve_handler_image(self, handler_name: str) -> str:
-        """Resolve handler name to a concrete image reference.
-
-        Stamped manifests are real K8s resources (applied via kustomize),
-        so they MUST NOT contain OmegaConf interpolations like ${var.*}.
-        All values must be fully resolved at compile time.
-        """
-        if "build" in self.config:
-            try:
-                build_entries = self.config["build"]
-                for entry in build_entries:
-                    module = str(entry.get("module", ""))
-                    if module and handler_name.startswith(module.replace(".", "_")):
-                        return str(entry["image"])
-            except Exception:  # nosec B110
-                log.warning("Error resolving handler image for '%s' from build config", handler_name)
-
-        # Resolve image_registry from var config; use handler K8s name in image path
-        registry = self._resolve_var("image_registry", "")
-        k8s_name = self._to_k8s_name(handler_name)
-        if registry:
-            return f"{registry}/{k8s_name}:latest"
-        return f"{k8s_name}:latest"
-
-    def _get_contexts(self) -> list[str]:
-        """Get context names from config."""
-        try:
-            if "contexts" in self.config:
-                return list(self.config["contexts"].keys())
-        except Exception:  # nosec B110
-            log.warning("Error getting contexts from config, falling back to empty list")
-        return []

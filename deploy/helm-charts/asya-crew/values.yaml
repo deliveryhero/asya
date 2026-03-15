@@ -50,10 +50,6 @@ x-sink:
     cooldownPeriod: 60
     queueLength: 5
 
-  # Workload configuration
-  workload:
-    kind: Deployment
-
   # Additional annotations for AsyncActor CR
   annotations: {}
 
@@ -104,10 +100,6 @@ x-sump:
     cooldownPeriod: 60
     queueLength: 5
 
-  # Workload configuration
-  workload:
-    kind: Deployment
-
   # Additional annotations for AsyncActor CR
   annotations: {}
 
@@ -156,10 +148,6 @@ checkpoint-s3:
     cooldownPeriod: 60
     queueLength: 5
 
-  # Workload configuration
-  workload:
-    kind: Deployment
-
   # Additional annotations for AsyncActor CR
   annotations: {}
 
@@ -207,10 +195,6 @@ x-pause:
     pollingInterval: 10
     cooldownPeriod: 60
     queueLength: 5
-
-  # Workload configuration
-  workload:
-    kind: Deployment
 
   # Additional annotations for AsyncActor CR
   annotations: {}
@@ -261,10 +245,6 @@ x-resume:
     pollingInterval: 10
     cooldownPeriod: 60
     queueLength: 5
-
-  # Workload configuration
-  workload:
-    kind: Deployment
 
   # Additional annotations for AsyncActor CR
   annotations: {}

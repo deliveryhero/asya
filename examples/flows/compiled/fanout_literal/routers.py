@@ -15,14 +15,14 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_analysis_flow(payload: dict):
+async def start_analysis_flow(payload: dict):
     """Entrypoint for flow 'analysis_flow'"""
     _next = []
     _next.append(resolve("fanout_analysis_flow_line_10"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_analysis_flow_line_10(payload: dict):
+async def fanout_analysis_flow_line_10(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 10)"""
     p = payload
 
@@ -54,7 +54,7 @@ def fanout_analysis_flow_line_10(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def end_analysis_flow(payload: dict):
+async def end_analysis_flow(payload: dict):
     """Exitpoint for flow 'analysis_flow'"""
     yield "SET", ".route.next", []
     yield payload
