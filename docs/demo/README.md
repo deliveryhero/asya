@@ -52,8 +52,12 @@ The flow is a pure async Python function. `generator`, `evaluator`, and
 `polisher` are unresolved names — in production, Asya resolves them to actor
 queues. Locally, we bind them to the real handler functions:
 
-```bash
-
+```python
+uv run python -c '
+import asyncio
+from demo_flows.text_improver import text_improver
+asyncio.run(text_improver({"task": "Write a limerick about message queues"}))
+'
 ```
 
 The flow runs as a single process — sequential calls, no queues, no actors.

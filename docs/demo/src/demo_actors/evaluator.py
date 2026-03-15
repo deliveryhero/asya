@@ -5,6 +5,7 @@ import json
 from litellm import completion
 from .asya_utils import actor
 
+
 @actor
 async def evaluator(payload: dict) -> dict:
     task = payload.get("task", "")
