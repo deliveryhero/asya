@@ -56,7 +56,7 @@ queues. Locally, we bind them to the real handler functions:
 uv run python -c '
 import asyncio
 from demo_flows.text_improver import text_improver
-asyncio.run(text_improver({"task": "Write a limerick about message queues"}))
+asyncio.run(text_improver({"task": "Write a haiku about message queues"}))
 '
 ```
 

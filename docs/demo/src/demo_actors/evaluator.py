@@ -2,28 +2,31 @@
 
 import json
 
-from litellm import completion
+import litellm
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from .asya_utils import actor
 
 
 @actor
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type(litellm.exceptions.APIConnectionError),
+)
 async def evaluator(payload: dict) -> dict:
     task = payload.get("task", "")
     draft = payload.get("draft", "")
 
-    response = completion(
-        model="vertex_ai/gemini-2.5-flash",
-        messages=[
-            {
-                "role": "user",
-                "content": (
-                    f"You are a writing critic. Score this text 0-100 and give feedback.\n\n"
-                    f"Task: {task}\n"
-                    f"Text:\n{draft}\n\n"
-                    f'Respond in JSON: {{"score": <int>, "feedback": "<specific improvements>"}}'
-                ),
-            }
-        ],
+    prompt = (
+        f"You are a writing critic. Score this text 0-100 and give feedback.\n\n"
+        f"Task: {task}\n"
+        f"Text:\n{draft}\n\n"
+        f'Respond in JSON: {{"score": <int>, "feedback": "<specific improvements>"}}'
+    )
+    response = await litellm.acompletion(
+        model="vertex_ai/gemini-2.0-flash",
+        messages=[{"role": "user", "content": prompt}],
+        timeout=600,
     )
 
     raw = response.choices[0].message.content

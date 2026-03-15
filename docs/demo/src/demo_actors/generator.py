@@ -1,9 +1,16 @@
 """Generator actor: produce or revise a draft based on the task and feedback."""
 
-from litellm import completion
+import litellm
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from .asya_utils import actor
 
+
 @actor
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type(litellm.exceptions.APIConnectionError),
+)
 async def generator(payload: dict) -> dict:
     task = payload.get("task", "Write something interesting")
     iteration = payload.get("iteration", 1)
@@ -21,8 +28,8 @@ async def generator(payload: dict) -> dict:
             f"Write an improved version."
         )
 
-    response = completion(
-        model="vertex_ai/gemini-2.5-flash",
+    response = await litellm.acompletion(
+        model="vertex_ai/gemini-2.0-flash",
         messages=[{"role": "user", "content": prompt}],
     )
     payload["draft"] = response.choices[0].message.content

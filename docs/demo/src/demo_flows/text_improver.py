@@ -42,5 +42,5 @@ async def text_improver(state: dict) -> dict:
 
     print("\n[.] polisher ...")
     state = await polisher(state)
-    print(f"[+] done\n")
+    print(f"[+] done\n\n{state['final_output']}")
     return state
