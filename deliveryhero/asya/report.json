@@ -1,19 +1,19 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "a7cec2a5bfce880706935271ec252ab41d91e61d",
+  "commit": "d58579c90b57fa8b4c9e7944ca40ebd72362790b",
   "coverage": {
     "type": "merged",
     "format": "Merged",
     "total": 7640,
-    "covered": 3948,
+    "covered": 3946,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "normalized_path": "src/asya-sidecar/cmd/sidecar/main.go",
         "total": 246,
-        "covered": 49,
+        "covered": 47,
         "blocks": [
           {
             "type": "statement",
@@ -175,7 +175,7 @@
             "end_line": 98,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -238,7 +238,7 @@
             "end_line": 119,
             "end_col": 26,
             "num_stmt": 2,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -247,7 +247,7 @@
             "end_line": 121,
             "end_col": 5,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33041,
+    "code": 33073,
     "test": 19196,
     "code_files": [
       {
@@ -26199,8 +26199,8 @@
         "language": "Python"
       },
       {
-        "code": 582,
-        "comment": 101,
+        "code": 587,
+        "comment": 104,
         "blank": 91,
         "path": "src/asya-lab/asya_lab/flow/dotgen.py",
         "language": "Python"
@@ -26346,9 +26346,9 @@
         "language": "Python"
       },
       {
-        "code": 1029,
-        "comment": 39,
-        "blank": 157,
+        "code": 1056,
+        "comment": 49,
+        "blank": 162,
         "path": "src/asya-lab/tests/flow/test_grouper.py",
         "language": "Python"
       },
@@ -27441,6 +27441,6 @@
       }
     ]
   },
-  "test_execution_time": 316000000000,
-  "timestamp": "2026-03-11T23:05:37.607086651Z"
+  "test_execution_time": 336000000000,
+  "timestamp": "2026-03-15T21:26:39.793562209Z"
 }
