@@ -738,8 +738,16 @@ class DotGenerator:
             if router.condition:
                 if not router.true_branch_actors or not router.false_branch_actors:
                     # One or both branches empty: the conditional itself is a
-                    # terminal (empty branch falls through to the next actor)
-                    return [last]
+                    # terminal (empty branch falls through to the next actor).
+                    # Also follow non-empty branches to find their terminals
+                    # so edges can be drawn from inner actors (e.g. an actor
+                    # inside an if-true branch at the end of a while body).
+                    terminals = [last]
+                    if router.true_branch_actors:
+                        terminals.extend(self._find_chain_terminals(router.true_branch_actors, _visited))
+                    if router.false_branch_actors:
+                        terminals.extend(self._find_chain_terminals(router.false_branch_actors, _visited))
+                    return terminals
                 # Self-referencing while loop: terminals are only in the false (exit)
                 # branch — the true branch loops internally and generates its own
                 # back-edges, so we don't follow it for terminal discovery.

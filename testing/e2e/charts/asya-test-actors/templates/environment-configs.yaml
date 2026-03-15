@@ -34,3 +34,44 @@ data:
   env:
   - name: FLAVOR_EXTRA_VAR
     value: from-flavor
+---
+# Two toleration flavors used to verify list-append merge behavior.
+# Tolerations are permissive (allow scheduling on tainted nodes) so they
+# don't prevent pods from running on untainted Kind nodes.
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: asya-test-toleration-gpu
+  labels:
+    asya.sh/flavor: asya-test-toleration-gpu
+data:
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
+---
+# Conflicting flavor: sets scaling.minReplicaCount=5 which conflicts with
+# asya-test-actor's scaling.minReplicaCount=1 (same leaf key, different value).
+# Used to verify that flavor conflicts surface as Fatal composition errors.
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: asya-test-scaling-conflict
+  labels:
+    asya.sh/flavor: asya-test-scaling-conflict
+data:
+  scaling:
+    minReplicaCount: 5
+---
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: asya-test-toleration-spot
+  labels:
+    asya.sh/flavor: asya-test-toleration-spot
+data:
+  tolerations:
+  - key: cloud.google.com/gke-spot
+    operator: Equal
+    value: "true"
+    effect: NoSchedule

@@ -1891,11 +1891,17 @@ def test_asyncactor_flavors_resolved(e2e_helper):
     1. Actor without spec.flavors is created
     2. Actor still reconciles correctly without flavor EnvironmentConfig
 
-    Expected: All three scenarios work correctly
+    Scenario 4 - List append (tolerations from two flavors):
+    1. Create actor with spec.flavors: [asya-test-actor, asya-test-toleration-gpu, asya-test-toleration-spot]
+    2. Both toleration flavors contribute to the same list field
+    3. Deployment tolerations contain entries from both flavors (appended, not replaced)
+
+    Expected: All four scenarios work correctly
     """
     actor_single = f"test-flavor-single-{e2e_helper.namespace[-4:]}"
     actor_multi = f"test-flavor-multi-{e2e_helper.namespace[-4:]}"
     actor_no_flavor = f"test-flavor-none-{e2e_helper.namespace[-4:]}"
+    actor_list_append = f"test-flavor-append-{e2e_helper.namespace[-4:]}"
 
     try:
         # --- Scenario 1: single flavor ---
@@ -1966,10 +1972,125 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] No-flavor actor: backward compat confirmed")
 
+        # --- Scenario 4: list append (tolerations from two flavors) ---
+        logger.info("Creating actor with two toleration flavors (list append)...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_list_append,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=180), (
+            "List-append actor should reach Ready=True"
+        )
+
+        deployment = kubectl_get("deployment", actor_list_append, namespace=e2e_helper.namespace)
+        pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
+        tolerations = pod_spec.get("tolerations", [])
+        toleration_keys = [t.get("key") for t in tolerations]
+        assert "nvidia.com/gpu" in toleration_keys, (
+            f"Tolerations should include GPU toleration from first flavor, got: {toleration_keys}"
+        )
+        assert "cloud.google.com/gke-spot" in toleration_keys, (
+            f"Tolerations should include spot toleration from second flavor, got: {toleration_keys}"
+        )
+        logger.info("[+] List append: tolerations from two flavors correctly appended")
+
     except Exception:
-        for actor in [actor_single, actor_multi, actor_no_flavor]:
+        for actor in [actor_single, actor_multi, actor_no_flavor, actor_list_append]:
             log_asyncactor_workload_diagnostics(actor, namespace=e2e_helper.namespace)
         raise
     finally:
-        for actor in [actor_single, actor_multi, actor_no_flavor]:
+        for actor in [actor_single, actor_multi, actor_no_flavor, actor_list_append]:
             _cleanup_actor(actor, e2e_helper.namespace)
+
+
+def test_asyncactor_flavor_conflict_rejected(e2e_helper):
+    """
+    E2E: Test that conflicting flavors produce a Fatal composition error.
+
+    Two flavors both define scaling.minReplicaCount (same leaf key, different
+    values). The composition function should return a Fatal error, causing
+    Crossplane to set the Synced condition to False with a message mentioning
+    the conflict.
+
+    Expected: Actor never reaches Ready=True; Synced condition is False with
+    a conflict error message.
+    """
+    actor_name = f"test-flavor-conflict-{e2e_helper.namespace[-4:]}"
+
+    try:
+        xr_name = None  # initialized early so the except block can reference it
+
+        # Pre-flight: verify EnvironmentConfigs exist before creating the actor,
+        # so a missing resource is diagnosed immediately rather than after a 120s timeout.
+        for ec_name in ["asya-test-actor", "asya-test-scaling-conflict"]:
+            try:
+                kubectl_get("environmentconfig", ec_name, namespace=e2e_helper.namespace)
+            except Exception as exc:
+                pytest.fail(f"Pre-flight: EnvironmentConfig {ec_name!r} not found: {exc}")
+
+        logger.info("Creating actor with conflicting scaling flavors...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_name,
+                e2e_helper.namespace,
+                scaling_enabled=False,
+                flavors=["asya-test-actor", "asya-test-scaling-conflict"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        # Wait for the claim to bind to a composite resource (XR name set in spec.resourceRef).
+        # This binding happens in the first Crossplane reconciliation — usually within seconds.
+        logger.info("Waiting for claim to bind to composite resource...")
+        for _ in range(6):  # up to 30s
+            time.sleep(5)
+            claim = kubectl_get("asyncactor", actor_name, namespace=e2e_helper.namespace)
+            xr_name = claim.get("spec", {}).get("resourceRef", {}).get("name")
+            if xr_name:
+                break
+        assert xr_name, "Claim must bind to a composite resource within 30s"
+        logger.info(f"Claim bound to XR: {xr_name}")
+
+        # Poll the XR (composite resource) for Synced=False.
+        # response.Fatal in the composition function sets Synced=False on the XR.
+        # Crossplane does NOT propagate XR.Synced=False to the claim's Synced condition,
+        # so checking the claim's Synced would always show True even on composition failure.
+        logger.info("Polling XR for Crossplane to detect flavor conflict...")
+        synced = None
+        conditions = []
+        for attempt in range(24):
+            time.sleep(5)  # poll every 5s for up to 120s
+            xr_obj = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
+            conditions = xr_obj.get("status", {}).get("conditions", [])
+            synced = next((c for c in conditions if c.get("type") == "Synced"), None)
+            if synced and synced.get("status") == "False":
+                logger.info(f"Conflict detected on XR after {(attempt + 1) * 5}s")
+                break
+
+        assert synced is not None, f"XR Synced condition should exist, got conditions: {conditions}"
+        assert synced.get("status") == "False", (
+            f"XR Synced should be False due to flavor conflict, got: {synced}"
+        )
+
+        message = synced.get("message", "")
+        assert "conflict" in message.lower() or "merge" in message.lower(), (
+            f"XR Synced message should mention flavor conflict, got: {message}"
+        )
+        logger.info(f"[+] Flavor conflict correctly rejected: {message}")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(actor_name, namespace=e2e_helper.namespace)
+        if xr_name is not None:
+            try:
+                xr_obj = kubectl_get("xasyncactor", xr_name, namespace=e2e_helper.namespace)
+                logger.error(f"XR conditions: {xr_obj.get('status', {}).get('conditions', [])}")
+            except Exception as diag_exc:
+                logger.error(f"Could not get XR status: {diag_exc}")
+        raise
+    finally:
+        _cleanup_actor(actor_name, e2e_helper.namespace)

@@ -16,6 +16,7 @@ digraph flow {
 
   executor -> router_plan_and_execute_line_55_if;
   planner -> router_plan_and_execute_line_50_while_0;
+  re_planner -> router_plan_and_execute_line_50_while_0 [constraint=false];
   router_plan_and_execute_line_50_while_0 -> executor [label="T", color=darkseagreen4];
   router_plan_and_execute_line_50_while_0 -> router_plan_and_execute_line_58_seq [label="F", color=indianred4];
   router_plan_and_execute_line_55_if -> re_planner [label="T", color=darkseagreen4];
