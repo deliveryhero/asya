@@ -11,7 +11,7 @@ functions — communicate with the platform without importing anything from Asya
 async def my_handler(payload):
     prev = yield "GET", ".route.prev"
     yield "SET", ".route.next", ["next_actor"]
-    yield "FLY", {"token": "streaming..."}
+    yield "FLY", {"partial": True, "text": "streaming..."}
     yield payload
 ```
 
@@ -92,9 +92,9 @@ async def process(payload):
     # Read metadata
     trace_id = yield "GET", ".headers.trace_id"
 
-    # Stream tokens upstream
+    # Stream tokens upstream (partial=True mirrors ADK's Event(partial=True))
     async for token in llm.stream(payload["prompt"]):
-        yield "FLY", {"type": "text_delta", "token": token}
+        yield "FLY", {"partial": True, "text": token}
 
     # Modify routing
     if payload.get("needs_review"):
@@ -186,10 +186,14 @@ real-time LLM token streaming.
 
 ```python
 async def llm_handler(payload):
+    tokens = []
     async for token in model.stream(payload["query"]):
-        yield "FLY", {"type": "text_delta", "token": token}
+        # partial=True: streaming chunk — ADK's Event(partial=True, content=Part(text=token))
+        yield "FLY", {"partial": True, "text": token}
+        tokens.append(token)
 
-    payload["response"] = await model.complete(payload["query"])
+    # yield payload is the final (non-partial) frame — ADK's Event(partial=False)
+    payload["response"] = "".join(tokens)
     yield payload
 ```
 
@@ -296,7 +300,7 @@ The runtime dispatches on the Python type of the yielded value:
 | Yielded value | Type | Instruction |
 |---|---|---|
 | `{"key": "val"}` | `dict` | EMIT downstream |
-| `("FLY", {"token": "..."})` | `(str, dict)` | FLY upstream |
+| `("FLY", {"partial": True, "text": "..."})` | `(str, dict)` | FLY upstream |
 | `("GET", ".route.prev")` | `(str, str)` | GET |
 | `("SET", ".route.next", [...])` | `(str, str, any)` | SET |
 | `("DEL", ".headers.x")` | `(str, str)` | DEL |
@@ -398,7 +402,7 @@ def actor(func):
 
 @actor
 async def llm_handler(payload):
-    yield "FLY", {"token": "thinking..."}
+    yield "FLY", {"partial": True, "text": "thinking..."}
     payload["result"] = "answer"
     yield payload
 
@@ -439,7 +443,8 @@ async def test_streaming():
 
     fly_events = [e for e in events if isinstance(e, tuple) and e[0] == "FLY"]
     assert len(fly_events) > 0
-    assert all(isinstance(e[1], dict) for e in fly_events)
+    assert all(e[1].get("partial") is True for e in fly_events)
+    assert all("text" in e[1] for e in fly_events)
 
     # The last event should be the downstream payload
     payloads = [e for e in events if isinstance(e, dict)]
@@ -545,7 +550,8 @@ yield "SET", ".headers.trace_id", "abc-123"
 yield "DEL", ".headers.trace_id"
 
 # ── Stream upstream (SSE to gateway) ────────────
-yield "FLY", {"type": "text_delta", "token": "..."}
+# partial=True mirrors ADK's Event(partial=True, content=Part(text=token))
+yield "FLY", {"partial": True, "text": "..."}
 
 # ── Emit downstream (to next actor) ─────────────
 yield payload

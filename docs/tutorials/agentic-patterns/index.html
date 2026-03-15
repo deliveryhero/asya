@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Abi protocol - Asya🎭</title>
+    <title>Agentic patterns - Asya🎭</title>
     
 
 
-<title>Abi protocol</title>
+<title>Agentic patterns</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/reference/abi-protocol/">
+<link rel="canonical" href="https://asya.sh/docs/tutorials/agentic-patterns/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Abi protocol">
+<meta property="og:title" content="Agentic patterns">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/reference/abi-protocol/">
+<meta property="og:url" content="https://asya.sh/docs/tutorials/agentic-patterns/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Abi protocol">
+<meta name="twitter:title" content="Agentic patterns">
 
 
 
@@ -774,12 +774,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Abi protocol
+          Agentic patterns
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/reference/abi-protocol.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/tutorials/agentic-patterns.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -798,501 +798,733 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <h2 id="what-is-the-abi">What is the ABI?<a class="headerlink" href="#what-is-the-abi" title="Permanent link">&para;</a></h2>
-<p>The ABI (Actor Binary Interface) is the yield-based control protocol between
-actor handlers and the Asya runtime. It lets your handler code — plain Python
-functions — communicate with the platform without importing anything from Asya.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># No imports. No pip packages. Just Python.</span>
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="n">prev</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.prev&quot;</span>
-    <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;next_actor&quot;</span><span class="p">]</span>
-    <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;streaming...&quot;</span><span class="p">}</span>
-    <span class="k">yield</span> <span class="n">payload</span>
-</code></pre></div>
-<p>Four verbs: <strong>GET</strong>, <strong>SET</strong>, <strong>DEL</strong>, <strong>FLY</strong>. That's the entire API.</p>
+    <p>This tutorial is for developers who know an agentic framework (Google ADK,
+LangGraph, CrewAI, Mastra) and want to build equivalent systems on Asya.</p>
 <hr />
-<h2 id="why-the-abi-exists">Why the ABI exists<a class="headerlink" href="#why-the-abi-exists" title="Permanent link">&para;</a></h2>
-<h3 id="the-platform-not-framework-principle">The platform-not-framework principle<a class="headerlink" href="#the-platform-not-framework-principle" title="Permanent link">&para;</a></h3>
-<p>Most AI frameworks require you to install their SDK, inherit from their base
-classes, and call their APIs. Your code becomes coupled to the framework.</p>
-<p>Asya takes a different approach: <strong>your code is just Python functions</strong>. You
-write a handler, deploy it as an actor, and the platform runs it. There are no
-<code>pip install asya</code> dependencies. No base classes. No decorators from our
-library.</p>
-<p>But actors sometimes need to do more than transform payloads — they need to:</p>
+<h2 id="asya-vs-other-agentic-frameworks">Asya vs other agentic frameworks<a class="headerlink" href="#asya-vs-other-agentic-frameworks" title="Permanent link">&para;</a></h2>
+<p>Most frameworks provide ready-made agent types: <code>SequentialAgent</code>,
+<code>ParallelAgent</code>, <code>LoopAgent</code>, <code>ReActAgent</code>. The framework is smart; your code
+plugs into it.</p>
+<p><strong>Asya takes the opposite approach: the framework is dumb; your code is
+explicit.</strong></p>
+<p>There are no built-in agent types. Instead Asya provides two primitives:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Primitive</th>
+<th>What it is</th>
+<th>Analogy</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Actor</strong></td>
+<td>A stateless function that transforms a payload dict</td>
+<td>A single tool / function call in ADK</td>
+</tr>
+<tr>
+<td><strong>Flow</strong></td>
+<td>A Python file that describes control flow between actors</td>
+<td>An agent definition — but compiled, not interpreted</td>
+</tr>
+</tbody>
+</table></div>
+<p>You express orchestration patterns (sequential, parallel, conditional, loop)
+as a <strong>Flow DSL</strong> file, which the compiler turns into router actors deployed on
+Kubernetes. Inner business logic — LLM calls, API calls, data transforms —
+lives in regular Python actor handlers.</p>
+<p>This explicit model has concrete benefits:</p>
 <ul>
-<li><strong>Read envelope metadata</strong> (where did this envelope come from?)</li>
-<li><strong>Modify routing</strong> (send the result to a different actor than planned)</li>
-<li><strong>Stream tokens upstream</strong> (deliver LLM output to the gateway in real-time)</li>
-<li><strong>Set headers</strong> (attach trace IDs, priorities, or custom metadata)</li>
+<li><strong>No hidden state machine</strong>: the routing graph is visible code, not an
+  invisible framework loop.</li>
+<li><strong>Each actor is a separate pod</strong>: actors scale independently, restart
+  independently, and are billed independently.</li>
+<li><strong>No framework lock-in in actor code</strong>: actor handlers are plain Python
+  functions with no Asya imports. You can run and test them locally without
+  any Asya infrastructure.</li>
+<li><strong>Choreography over orchestration</strong>: there is no central runner that drives
+  the flow. Envelopes carry their own routing table; each actor advances the
+  route and passes the envelope to the next queue.</li>
 </ul>
-<p>The ABI solves this without introducing dependencies. Your handler <code>yield</code>s
-tuples, and the runtime interprets them as commands. The mechanism is Python's
-own generator protocol — no library, no framework, no import.</p>
-<h3 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h3>
-<p>When you write a generator handler (a function with <code>yield</code>), the runtime
-<strong>drives</strong> your generator: it calls <code>send()</code> / <code>asend()</code> on each yield,
-dispatches the command, and resumes your code with the result.</p>
-<div class="highlight"><pre><span></span><code>Actor handler                    Runtime
-─────────────                    ───────
-yield &quot;GET&quot;, &quot;.route.prev&quot;  ──→  resolves path, reads value
-                            ←──  send([&quot;actor_a&quot;, &quot;actor_b&quot;])
-prev = ...                       (handler receives the value)
-
-yield &quot;SET&quot;, &quot;.route.next&quot;, [&quot;x&quot;]  ──→  validates access, writes value
-                                   ←──  send(None)
-
-yield {&quot;result&quot;: &quot;done&quot;}    ──→  captures as downstream frame
-                            ←──  send(None)
-</code></pre></div>
-<p>Think of each <code>yield</code> as a <strong>syscall</strong>: your actor is a userland process,
-the runtime is the kernel. The actor suspends, the runtime handles the
-request, the actor resumes.</p>
 <hr />
-<h2 id="handler-types">Handler types<a class="headerlink" href="#handler-types" title="Permanent link">&para;</a></h2>
-<p>Not all handlers need the ABI. Choose the simplest type that fits:</p>
-<h3 id="function-handlers-no-abi">Function handlers (no ABI)<a class="headerlink" href="#function-handlers-no-abi" title="Permanent link">&para;</a></h3>
-<p>Return-based handlers that transform payloads. No metadata access.</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
+<h2 id="core-concepts">Core concepts<a class="headerlink" href="#core-concepts" title="Permanent link">&para;</a></h2>
+<h3 id="the-envelope">The envelope<a class="headerlink" href="#the-envelope" title="Permanent link">&para;</a></h3>
+<p>Every message in Asya is an <strong>envelope</strong>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;env-abc123&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;route&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;prev&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;start-router&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;preprocessor&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;curr&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;llm-actor&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;next&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;formatter&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;notifier&quot;</span><span class="p">]</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;headers&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;trace_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;t-xyz&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;priority&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;high&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;payload&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;query&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;summarize this document&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<ul>
+<li><code>payload</code> — the application data. Actors read and write it.</li>
+<li><code>route.next</code> — the ordered list of actors still to process this envelope.
+  Each actor pops itself off the front and forwards to the next queue.</li>
+<li><code>headers</code> — routing metadata (trace IDs, priority, fan-in signals). Not
+  application data.</li>
+<li><code>route.prev</code> / <code>route.curr</code> — read-only history of where the envelope has
+  been.</li>
+</ul>
+<p><strong>The payload is the conversation state.</strong> Actors pass it forward; downstream
+actors see everything upstream actors wrote. There is no separate "state store"
+for typical single-conversation pipelines.</p>
+<h3 id="actors">Actors<a class="headerlink" href="#actors" title="Permanent link">&para;</a></h3>
+<p>An actor is a Python function (or class method) that transforms a payload:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Function actor — simplest form</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">summarizer</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;summary&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">])</span>
     <span class="k">return</span> <span class="n">payload</span>
 </code></pre></div>
-<h3 id="generator-handlers-with-abi">Generator handlers (with ABI)<a class="headerlink" href="#generator-handlers-with-abi" title="Permanent link">&para;</a></h3>
-<p>Yield-based handlers that can access metadata, modify routing, stream
-tokens, and emit multiple frames.</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">process</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="c1"># Read metadata</span>
-    <span class="n">trace_id</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span>
+<p>Actors know nothing about Asya. They have no imports from the framework; they
+work in isolation. Each actor runs in its own Kubernetes pod, consuming from
+its own SQS queue (or RabbitMQ exchange).</p>
+<p><strong>Generator actors</strong> have <code>yield</code> statements and can communicate with the
+platform via the ABI protocol (see <a href="#flow-vs-actor">Flow vs Actor</a> below).</p>
+<h3 id="flow-dsl">Flow DSL<a class="headerlink" href="#flow-dsl" title="Permanent link">&para;</a></h3>
+<p>A Flow is a Python file that describes how actors are connected:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">document_pipeline</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>       <span class="c1"># sequential</span>
 
-    <span class="c1"># Stream tokens upstream (partial=True mirrors ADK&#39;s Event(partial=True))</span>
-    <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">llm</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">]):</span>
-        <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
+    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;doc_type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;legal&quot;</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">legal_analyzer</span><span class="p">(</span><span class="n">state</span><span class="p">)</span> <span class="c1"># conditional branch</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">general_analyzer</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
 
-    <span class="c1"># Modify routing</span>
-    <span class="k">if</span> <span class="n">payload</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;needs_review&quot;</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;reviewer&quot;</span><span class="p">,</span> <span class="s2">&quot;notifier&quot;</span><span class="p">]</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">formatter</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>You compile it:</p>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>document_pipeline.py<span class="w"> </span>--output-dir<span class="w"> </span>compiled/<span class="w"> </span>--plot
+</code></pre></div>
+<p>The compiler generates <code>compiled/routers.py</code> — router actors that implement
+the control flow using the ABI protocol internally. You deploy these routers
+alongside your handler actors. At runtime, routers are pods that receive
+envelopes, decide the next actor, and forward.</p>
+<p>See <code>examples/flows/agentic/</code> for 15 patterns (ReAct loops, evaluator-optimizer,
+map-reduce, parallel fan-out, human-in-the-loop, etc.).</p>
+<h3 id="flow-vs-actor-what-each-can-and-cannot-do">Flow vs Actor: what each can and cannot do<a class="headerlink" href="#flow-vs-actor-what-each-can-and-cannot-do" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Capability</th>
+<th>Flow DSL</th>
+<th>Actor handler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Sequential chain</td>
+<td>✅ <code>state = await actor_a(state)</code></td>
+<td>n/a (you are the actor)</td>
+</tr>
+<tr>
+<td>Conditional routing</td>
+<td>✅ <code>if/elif/else</code></td>
+<td>✅ via ABI <code>SET .route.next</code></td>
+</tr>
+<tr>
+<td>Loops</td>
+<td>✅ <code>while</code> / <code>for</code></td>
+<td>n/a</td>
+</tr>
+<tr>
+<td>Fan-out / Fan-in</td>
+<td>✅ <code>asyncio.gather(...)</code></td>
+<td>possible but manual</td>
+</tr>
+<tr>
+<td>Try/except</td>
+<td>✅</td>
+<td>via error routing</td>
+</tr>
+<tr>
+<td><strong>Stream tokens to UI (FLY)</strong></td>
+<td>❌ not possible</td>
+<td>✅ <code>yield "FLY", {...}</code></td>
+</tr>
+<tr>
+<td>Dynamic routing at runtime</td>
+<td>❌ compile-time only</td>
+<td>✅ <code>yield "SET", ".route.next", [...]</code></td>
+</tr>
+<tr>
+<td>Read envelope metadata</td>
+<td>❌</td>
+<td>✅ <code>yield "GET", ".route.prev"</code></td>
+</tr>
+<tr>
+<td>Pause for human input</td>
+<td>❌</td>
+<td>✅ route to <code>x-pause</code> crew actor</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Why Flow cannot stream tokens (FLY)</strong></p>
+<p>FLY is an ABI instruction that sends a dict <em>upstream</em> to the gateway via a
+direct HTTP call from the sidecar, bypassing message queues entirely:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Inside a generator actor:</span>
+<span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">llm</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]):</span>
+    <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text_delta&quot;</span><span class="p">,</span> <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
+</code></pre></div>
+<p>The sidecar intercepts each <code>FLY</code> yield and forwards the dict to the mesh
+gateway over HTTP. The gateway fans it out as an SSE event to any client
+subscribed to that task's stream. This is how LLM token streaming reaches the
+browser in real-time, without waiting for the full response.</p>
+<p>Flow router actors are <strong>generated code</strong> — they only emit ABI instructions for
+routing (<code>SET</code>, <code>GET</code>). They never call an LLM and have nothing to stream.
+Streaming happens in handler actors, which hold the LLM connection and yield
+<code>FLY</code> events.</p>
+<hr />
+<h2 id="patterns">Patterns<a class="headerlink" href="#patterns" title="Permanent link">&para;</a></h2>
+<h3 id="fan-out-fan-in">Fan-out / Fan-in<a class="headerlink" href="#fan-out-fan-in" title="Permanent link">&para;</a></h3>
+<p><strong>ADK equivalent</strong>: <code>ParallelAgent</code> / <code>asyncio.gather</code> in tools</p>
+<p><strong>When to use</strong>: Multiple independent actors process the same (or different
+slices of) the payload in parallel. An aggregator merges the results. This
+reduces end-to-end latency when the actors do not depend on each other.</p>
+<h4 id="writing-the-flow">Writing the flow<a class="headerlink" href="#writing-the-flow" title="Permanent link">&para;</a></h4>
+<p>Use <code>asyncio.gather</code> in the Flow DSL:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
 
-    <span class="c1"># Emit result downstream</span>
-    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;prompt&quot;</span><span class="p">])</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">analysis_pipeline</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">preprocessor</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="c1"># Fan-out: three independent analyses run in parallel</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="k">await</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+        <span class="n">sentiment_analyzer</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+        <span class="n">topic_extractor</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+        <span class="n">entity_recognizer</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+    <span class="p">))</span>
+
+    <span class="c1"># Fan-in: aggregator receives all three results</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">aggregator</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>The compiler generates a fan-out router actor and wires each branch to the
+aggregator.</p>
+<h4 id="what-happens-internally">What happens internally<a class="headerlink" href="#what-happens-internally" title="Permanent link">&para;</a></h4>
+<p>The compiled fan-out router emits <strong>N+1 envelopes</strong> from a single incoming
+envelope:</p>
+<div class="highlight"><pre><span></span><code>                          ┌→ sentiment-analyzer ─┐
+                          │                       │
+incoming envelope → fanout-router → topic-extractor ────→ x-aggregator → aggregator-actor
+                          │                       │
+                          └→ entity-recognizer ───┘
+                          │                       │
+                          └→ [parent payload] ─────┘ (slice_index=0)
+</code></pre></div>
+<p>Each emitted envelope carries an <code>x-asya-fan-in</code> header that tells the
+aggregator what to expect:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;actor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;x-aggregator&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;origin_id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;env-abc123&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;slice_count&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;aggregation_key&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;/results&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;slice_index&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The <strong>x-aggregator crew actor</strong> collects results using the S3 split-key
+pattern: each slice writes its result to <code>s3://bucket/aggregation/{origin_id}/{slice_index}.json</code>.
+Completeness is detected by listing the prefix. When all N+1 slices have
+arrived, the aggregator emits a single envelope with all results merged into
+<code>payload["results"]</code> and routes it to the user-defined aggregator actor.</p>
+<p>The split-key pattern means <strong>zero contention</strong>: N actors write to N different
+S3 keys simultaneously with no locks, CAS, or coordination. Completeness
+detection is an S3 listing. Exactly-once fan-in emission uses atomic
+create-if-not-exists on the final merged output key.</p>
+<h4 id="map-reduce-variant">Map-reduce variant<a class="headerlink" href="#map-reduce-variant" title="Permanent link">&para;</a></h4>
+<p>For processing N items (not N fixed actors), use list comprehension:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">map_reduce</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">splitter</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="c1"># Fan-out: one actor per item</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;mapped&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="k">await</span> <span class="n">process</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]]</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">reducer</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>See <code>examples/flows/agentic/map_reduce.py</code> for a full example.</p>
+<hr />
+<h3 id="dynamic-routing">Dynamic routing<a class="headerlink" href="#dynamic-routing" title="Permanent link">&para;</a></h3>
+<p><strong>ADK equivalent</strong>: <code>event.actions.transfer_to_agent = "BillingAgent"</code></p>
+<p><strong>When to use</strong>: The next actor is decided by the LLM at runtime, not by a
+condition you can enumerate at compile time.</p>
+<p>Flow DSL compiles static conditions (<code>if state["type"] == "billing"</code>). When
+the LLM's output determines the target, use a generator actor with the ABI
+<code>SET</code> verb:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="n">VALID_TARGETS</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="n">key</span><span class="o">.</span><span class="n">removeprefix</span><span class="p">(</span><span class="s2">&quot;ASYA_HANDLER_&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">():</span> <span class="n">queue</span>
+    <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">queue</span> <span class="ow">in</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">items</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">key</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;ASYA_HANDLER_&quot;</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">dispatcher</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="n">target_key</span> <span class="o">=</span> <span class="n">payload</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="s2">&quot;_transfer_to&quot;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">target_key</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="n">payload</span>
+        <span class="k">return</span>
+
+    <span class="k">if</span> <span class="n">VALID_TARGETS</span> <span class="ow">and</span> <span class="n">target_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">VALID_TARGETS</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Unknown target: </span><span class="si">{</span><span class="n">target_key</span><span class="si">!r}</span><span class="s2">. Valid: </span><span class="si">{</span><span class="nb">sorted</span><span class="p">(</span><span class="n">VALID_TARGETS</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="n">VALID_TARGETS</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_key</span><span class="p">,</span> <span class="n">target_key</span><span class="p">)]</span>
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
-<p><strong>Rule</strong>: if you need metadata access, streaming, or routing control, use a
-generator. Otherwise, use a plain function.</p>
+<p>The <strong>enum validation</strong> (<code>VALID_TARGETS</code>) prevents the LLM from hallucinating
+an actor name that doesn't exist. The LLM outputs a logical name (<code>"billing"</code>);
+the dispatcher resolves it to the actual queue name via <code>ASYA_HANDLER_BILLING</code>
+env var.</p>
+<p><strong>Variant: self-routing LLM actor</strong> — combine the LLM call and routing in one
+actor to skip the dispatcher hop.</p>
+<p>Full example: <code>examples/actors/agentic/dynamic_routing.py</code></p>
 <hr />
-<h2 id="verb-reference">Verb reference<a class="headerlink" href="#verb-reference" title="Permanent link">&para;</a></h2>
-<h3 id="get-read-metadata">GET — read metadata<a class="headerlink" href="#get-read-metadata" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span>
-</code></pre></div>
-<p>Read a field from the envelope metadata. Returns a <strong>deep copy</strong> — mutating
-the returned value does not affect the envelope.</p>
-<div class="highlight"><pre><span></span><code><span class="n">prev</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.prev&quot;</span>       <span class="c1"># list of previous actors</span>
-<span class="n">curr</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.curr&quot;</span>       <span class="c1"># current actor name</span>
-<span class="n">nxt</span>  <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span>       <span class="c1"># list of upcoming actors</span>
-<span class="n">hdrs</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers&quot;</span>          <span class="c1"># all headers</span>
-<span class="n">tid</span>  <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span> <span class="c1"># single header</span>
-<span class="n">mid</span>  <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.id&quot;</span>              <span class="c1"># message ID</span>
-</code></pre></div>
-<h3 id="set-write-metadata">SET — write metadata<a class="headerlink" href="#set-write-metadata" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span>
-</code></pre></div>
-<p>Write a value to a writable metadata field. The value is <strong>deep copied</strong>
-into the envelope.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Replace the entire route.next</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">,</span> <span class="s2">&quot;actor_b&quot;</span><span class="p">]</span>
-
-<span class="c1"># Prepend to route.next (insert before existing actors)</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;urgent_handler&quot;</span><span class="p">]</span>
-
-<span class="c1"># Append to route.next (two options)</span>
-<span class="c1"># Option 1: read-modify-write</span>
-<span class="n">nxt</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="n">nxt</span> <span class="o">+</span> <span class="p">[</span><span class="s2">&quot;final_step&quot;</span><span class="p">]</span>
-
-<span class="c1"># Option 2: slice with a large index (Python slices handle out-of-bounds)</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[999:]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;final_step&quot;</span><span class="p">]</span>
-
-<span class="c1"># Set a header</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span><span class="p">,</span> <span class="s2">&quot;abc-123&quot;</span>
-
-<span class="c1"># Set status</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.status.phase&quot;</span><span class="p">,</span> <span class="s2">&quot;processing&quot;</span>
-</code></pre></div>
-<h3 id="del-remove-metadata">DEL — remove metadata<a class="headerlink" href="#del-remove-metadata" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;&lt;path&gt;&quot;</span>
-</code></pre></div>
-<p>Remove a field from the envelope metadata.</p>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span>
-<span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span>
-</code></pre></div>
-<h3 id="fly-stream-upstream">FLY — stream upstream<a class="headerlink" href="#fly-stream-upstream" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="o">&lt;</span><span class="nb">dict</span><span class="o">&gt;</span>
-</code></pre></div>
-<p>Emit a streaming frame <strong>upstream</strong> to the gateway. FLY frames bypass message
-queues — they're delivered directly via SSE to connected clients. Use this for
-real-time LLM token streaming.</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">llm_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
+<h3 id="live-streaming">Live streaming<a class="headerlink" href="#live-streaming" title="Permanent link">&para;</a></h3>
+<p><strong>ADK equivalent</strong>: <code>yield Event(partial=True, content=Part(text=token))</code></p>
+<p><strong>When to use</strong>: LLM generates tokens; the user should see them in real-time
+rather than waiting for the full response.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">streaming_llm</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">model</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]):</span>
-        <span class="c1"># partial=True: streaming chunk — ADK&#39;s Event(partial=True, content=Part(text=token))</span>
+    <span class="k">async</span> <span class="k">for</span> <span class="n">token</span> <span class="ow">in</span> <span class="n">call_llm_stream</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;query&quot;</span><span class="p">]):</span>
+        <span class="c1"># partial=True: streaming chunk, not persisted, forwarded to UI.</span>
+        <span class="c1"># ADK equivalent: yield Event(partial=True, content=Part(text=token))</span>
         <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
         <span class="n">tokens</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">token</span><span class="p">)</span>
 
-    <span class="c1"># yield payload is the final (non-partial) frame — ADK&#39;s Event(partial=False)</span>
+    <span class="c1"># No explicit &quot;done&quot; FLY needed. The downstream yield below is the final</span>
+    <span class="c1"># (non-partial) frame — equivalent to ADK&#39;s Event(partial=False, ...).</span>
     <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;response&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span>
-    <span class="k">yield</span> <span class="n">payload</span>
+    <span class="k">yield</span> <span class="n">payload</span>  <span class="c1"># downstream to next actor</span>
 </code></pre></div>
-<p>FLY frames are <strong>fire-and-forget</strong>: the runtime delivers them to the sidecar,
-which forwards them to the gateway. They are not routed through message queues
-and not persisted.</p>
-<h3 id="emit-send-downstream">EMIT — send downstream<a class="headerlink" href="#emit-send-downstream" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="o">&lt;</span><span class="nb">dict</span><span class="o">&gt;</span>
-</code></pre></div>
-<p>Emit a payload dict as a downstream frame. The runtime wraps it with the
-current route and headers and delivers it to the sidecar for routing to the
-next actor.</p>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;processed data&quot;</span><span class="p">}</span>
-</code></pre></div>
-<p>A generator can emit <strong>multiple frames</strong> — each yield of a dict produces a
-separate downstream envelope (fan-out):</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">splitter</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]:</span>
-        <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;item_processor&quot;</span><span class="p">]</span>
-        <span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;item&quot;</span><span class="p">:</span> <span class="n">item</span><span class="p">}</span>
-</code></pre></div>
-<hr />
-<h2 id="path-syntax">Path syntax<a class="headerlink" href="#path-syntax" title="Permanent link">&para;</a></h2>
-<p>Paths use <strong>jq-like dot notation</strong> rooted at the envelope envelope.</p>
-<h3 id="dot-access">Dot access<a class="headerlink" href="#dot-access" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>.route.next       → envelope[&quot;route&quot;][&quot;next&quot;]
-.headers.trace_id → envelope[&quot;headers&quot;][&quot;trace_id&quot;]
-.route            → envelope[&quot;route&quot;]  (entire subtree)
-</code></pre></div>
-<p>The leading <code>.</code> is required and refers to the envelope root.</p>
-<h3 id="bracket-access">Bracket access<a class="headerlink" href="#bracket-access" title="Permanent link">&para;</a></h3>
-<p>For keys containing dots or special characters:</p>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;.headers[&quot;model.config.version&quot;]&#39;</span>
-</code></pre></div>
-<p>Dot and bracket notation mix freely:</p>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s1">&#39;.status[&quot;error.detail&quot;].message&#39;</span>
-</code></pre></div>
-<h3 id="index-access">Index access<a class="headerlink" href="#index-access" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[0]&quot;</span>    <span class="c1"># first element</span>
-<span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[-1]&quot;</span>   <span class="c1"># last element</span>
-</code></pre></div>
-<h3 id="slice-access-set-only">Slice access (SET only)<a class="headerlink" href="#slice-access-set-only" title="Permanent link">&para;</a></h3>
-<p>Slices work only in SET commands on list fields:</p>
-<div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;prepend&quot;</span><span class="p">]</span>    <span class="c1"># insert at beginning</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[1:3]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;replace&quot;</span><span class="p">]</span>   <span class="c1"># replace range</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[999:]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;append&quot;</span><span class="p">]</span>   <span class="c1"># append (large index trick)</span>
-</code></pre></div>
-<hr />
-<h2 id="access-control">Access control<a class="headerlink" href="#access-control" title="Permanent link">&para;</a></h2>
-<p>Not all metadata fields are writable. The ABI enforces access control:</p>
+<p>FLY events travel directly from sidecar → mesh gateway → client SSE. They do
+not enter the queue. The <code>partial: True</code> flag follows ADK's convention:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Path prefix</th>
-<th>GET</th>
-<th>SET</th>
-<th>DEL</th>
+<th>ADK</th>
+<th>Asya</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>.id</code></td>
-<td>read</td>
-<td>deny</td>
-<td>deny</td>
+<td><code>Event(partial=True, content=Part(text=token))</code></td>
+<td><code>yield "FLY", {"partial": True, "text": token}</code></td>
 </tr>
 <tr>
-<td><code>.parent_id</code></td>
-<td>read</td>
-<td>deny</td>
-<td>deny</td>
-</tr>
-<tr>
-<td><code>.route.prev</code></td>
-<td>read</td>
-<td>deny</td>
-<td>deny</td>
-</tr>
-<tr>
-<td><code>.route.curr</code></td>
-<td>read</td>
-<td>deny</td>
-<td>deny</td>
-</tr>
-<tr>
-<td><code>.route.next</code></td>
-<td>read</td>
-<td>write</td>
-<td>write</td>
-</tr>
-<tr>
-<td><code>.headers.*</code></td>
-<td>read</td>
-<td>write</td>
-<td>write</td>
-</tr>
-<tr>
-<td><code>.status</code></td>
-<td>read</td>
-<td>write</td>
-<td>deny</td>
+<td><code>Event(partial=False, content=...)</code> — final response</td>
+<td><code>yield payload</code> — downstream frame</td>
 </tr>
 </tbody>
 </table></div>
-<p>The envelope <strong>payload</strong> is not accessible via the ABI — it's the function
-argument itself. The ABI operates on envelope metadata only.</p>
+<p>The downstream <code>yield payload</code> is the final non-partial event. Clients that
+mirror ADK's <code>event.partial</code> check can filter on <code>"partial" in event and event["partial"]</code>.</p>
+<p>Full example with Anthropic and OpenAI API snippets:
+<code>examples/actors/agentic/live_streaming.py</code></p>
 <hr />
-<h2 id="type-based-dispatch">Type-based dispatch<a class="headerlink" href="#type-based-dispatch" title="Permanent link">&para;</a></h2>
-<p>The runtime dispatches on the Python type of the yielded value:</p>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Yielded value</th>
-<th>Type</th>
-<th>Instruction</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>{"key": "val"}</code></td>
-<td><code>dict</code></td>
-<td>EMIT downstream</td>
-</tr>
-<tr>
-<td><code>("FLY", {"partial": True, "text": "..."})</code></td>
-<td><code>(str, dict)</code></td>
-<td>FLY upstream</td>
-</tr>
-<tr>
-<td><code>("GET", ".route.prev")</code></td>
-<td><code>(str, str)</code></td>
-<td>GET</td>
-</tr>
-<tr>
-<td><code>("SET", ".route.next", [...])</code></td>
-<td><code>(str, str, any)</code></td>
-<td>SET</td>
-</tr>
-<tr>
-<td><code>("DEL", ".headers.x")</code></td>
-<td><code>(str, str)</code></td>
-<td>DEL</td>
-</tr>
-<tr>
-<td>bare <code>yield</code></td>
-<td><code>None</code></td>
-<td>no-op</td>
-</tr>
-</tbody>
-</table></div>
-<p>Anything else is a <strong>protocol error</strong> and terminates execution.</p>
-<p>The key insight: <code>dict</code> = data (downstream payload), <code>tuple</code> = control
-(ABI command). The runtime never inspects the contents of dict payloads.
-This clean separation means you can put anything in your payload without
-conflicting with control signals.</p>
-<hr />
-<h2 id="delegation-and-composition">Delegation and composition<a class="headerlink" href="#delegation-and-composition" title="Permanent link">&para;</a></h2>
-<h3 id="sync-generators-yield-from">Sync generators: <code>yield from</code><a class="headerlink" href="#sync-generators-yield-from" title="Permanent link">&para;</a></h3>
-<p>Extract reusable ABI logic into helper generators:</p>
-<div class="highlight"><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_routing</span><span class="p">(</span><span class="o">*</span><span class="n">actors</span><span class="p">):</span>
-    <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">actors</span><span class="p">)</span>
+<h3 id="pause-for-human-input">Pause for human input<a class="headerlink" href="#pause-for-human-input" title="Permanent link">&para;</a></h3>
+<p><strong>ADK equivalent</strong>: <code>should_pause_invocation()</code> / long-running tool pattern</p>
+<p><strong>When to use</strong>: The pipeline must suspend, wait for a human decision, then
+resume from where it left off.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">analyst</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">analyze_risk</span><span class="p">(</span><span class="n">payload</span><span class="p">)</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;analysis&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">my_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="k">yield from</span> <span class="n">set_routing</span><span class="p">(</span><span class="s2">&quot;actor_a&quot;</span><span class="p">,</span> <span class="s2">&quot;actor_b&quot;</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;risk_level&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;high&quot;</span><span class="p">:</span>
+        <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;x-pause&quot;</span><span class="p">]</span>  <span class="c1"># signal pause</span>
+        <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;_pause_metadata&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;Approve: </span><span class="si">{</span><span class="n">result</span><span class="p">[</span><span class="s1">&#39;action&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">?&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;fields&quot;</span><span class="p">:</span> <span class="p">[</span>
+                <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;approved&quot;</span><span class="p">,</span> <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;boolean&quot;</span><span class="p">,</span> <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Approve&quot;</span><span class="p">},</span>
+                <span class="p">{</span><span class="s2">&quot;name&quot;</span><span class="p">:</span> <span class="s2">&quot;notes&quot;</span><span class="p">,</span>    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;string&quot;</span><span class="p">,</span>  <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="s2">&quot;Notes&quot;</span><span class="p">},</span>
+            <span class="p">],</span>
+        <span class="p">}</span>
+
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
-<p><code>yield from</code> is transparent to the runtime — delegated yields are dispatched
-identically to direct yields.</p>
-<h3 id="async-generators-explicit-iteration">Async generators: explicit iteration<a class="headerlink" href="#async-generators-explicit-iteration" title="Permanent link">&para;</a></h3>
-<p>Async generators don't support <code>yield from</code>. Use explicit iteration:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">set_routing</span><span class="p">(</span><span class="o">*</span><span class="n">actors</span><span class="p">):</span>
-    <span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="n">actors</span><span class="p">)</span>
-
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="k">async</span> <span class="k">for</span> <span class="n">instruction</span> <span class="ow">in</span> <span class="n">set_routing</span><span class="p">(</span><span class="s2">&quot;actor_a&quot;</span><span class="p">,</span> <span class="s2">&quot;actor_b&quot;</span><span class="p">):</span>
-        <span class="k">yield</span> <span class="n">instruction</span>
-    <span class="k">yield</span> <span class="n">payload</span>
+<p>The <code>x-pause</code> crew actor persists the envelope, sets the <code>x-asya-pause</code> header.
+The sidecar detects it and reports <code>paused</code> to the gateway. The gateway marks
+the task <code>input_required</code> (A2A terminology) and notifies the client. When the
+client sends a resume message (same task ID via A2A), the gateway routes it to
+<code>x-resume</code>, which merges human input and re-enqueues the envelope.</p>
+<div class="highlight"><pre><span></span><code>actor → x-pause ── [task paused, human reviews] ──→ x-resume → post-approval-actor
+              ↑                                         ↑
+              sidecar sets x-asya-pause           gateway routes resume
 </code></pre></div>
+<p>Compare with <code>examples/flows/agentic/human_in_the_loop.py</code>, which shows the
+<strong>poll-based approval loop</strong> in Flow DSL: the flow keeps running, hitting an
+<code>approval_gate</code> actor that polls for human input. The pause/resume pattern
+here is a true suspension — the envelope is stored, nothing runs until the
+human responds.</p>
+<p>Full example: <code>examples/actors/agentic/pause_for_human.py</code></p>
 <hr />
-<h2 id="testing-handlers-locally">Testing handlers locally<a class="headerlink" href="#testing-handlers-locally" title="Permanent link">&para;</a></h2>
-<p>The ABI's design — no imports, no dependencies — means you can test your
-handlers as ordinary Python async generators without any Asya infrastructure.</p>
-<h3 id="the-actor-wrapper-pattern">The <code>actor()</code> wrapper pattern<a class="headerlink" href="#the-actor-wrapper-pattern" title="Permanent link">&para;</a></h3>
-<p>The simplest approach: consume the generator, filter out ABI tuples (control
-events), and return the emitted payload:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">actor</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Drive a generator handler, ignoring ABI control events.&quot;&quot;&quot;</span>
-    <span class="n">events</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">async</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">gen</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)]</span>
-    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
-        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected 1 emitted frame, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">events</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
-</code></pre></div>
-<p>Now test your handlers as plain async functions:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_pipeline</span><span class="p">():</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">}</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">llm_handler</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">validator</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-    <span class="k">assert</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;valid&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span>
-</code></pre></div>
-<p>The <code>actor()</code> wrapper turns a generator handler into an awaitable. ABI
-commands (<code>yield "SET", ...</code>, <code>yield "FLY", ...</code>) are silently filtered —
-they're tuples, not dicts. Only the emitted payload passes through.</p>
-<h3 id="as-a-decorator">As a decorator<a class="headerlink" href="#as-a-decorator" title="Permanent link">&para;</a></h3>
-<p>For cleaner test code, wrap <code>actor()</code> as a decorator:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">functools</span>
+<h2 id="state-management">State management<a class="headerlink" href="#state-management" title="Permanent link">&para;</a></h2>
+<h3 id="payload-as-conversation-state">Payload as conversation state<a class="headerlink" href="#payload-as-conversation-state" title="Permanent link">&para;</a></h3>
+<p>The payload dict is the conversation state. Every actor reads from it and
+writes to it. Downstream actors see everything upstream actors wrote.</p>
+<p>This is the same concept as ADK's <code>State</code> object, but simpler: there is no
+delta tracking, no scope prefix system, no compaction. What you write is what
+the next actor reads.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Actor A</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">actor_a</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;answer&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;question&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">payload</span>
 
-<span class="k">def</span><span class="w"> </span><span class="nf">actor</span><span class="p">(</span><span class="n">func</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Decorator: turn a generator handler into an awaitable for single-payload handlers.&quot;&quot;&quot;</span>
-    <span class="nd">@functools</span><span class="o">.</span><span class="n">wraps</span><span class="p">(</span><span class="n">func</span><span class="p">)</span>
-    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">wrapper</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
-        <span class="n">gen</span> <span class="o">=</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
-        <span class="n">events</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">async</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">gen</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)]</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Expected 1 emitted frame for @actor, got </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">events</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">events</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">if</span> <span class="n">events</span> <span class="k">else</span> <span class="kc">None</span>
-    <span class="k">return</span> <span class="n">wrapper</span>
-
-<span class="nd">@actor</span>
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">llm_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;thinking...&quot;</span><span class="p">}</span>
-    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;answer&quot;</span>
-    <span class="k">yield</span> <span class="n">payload</span>
-
-<span class="c1"># In tests:</span>
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_llm</span><span class="p">():</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm_handler</span><span class="p">({</span><span class="s2">&quot;prompt&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">})</span>
-    <span class="k">assert</span> <span class="n">result</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;answer&quot;</span>
-</code></pre></div>
-<h3 id="testing-abi-control-events">Testing ABI control events<a class="headerlink" href="#testing-abi-control-events" title="Permanent link">&para;</a></h3>
-<p>When you need to verify that routing or headers are set correctly, collect
-all yields:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">collect_all</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
-<span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect all yields: both ABI commands and emitted frames.&quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="p">[</span><span class="n">e</span> <span class="k">async</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">gen</span><span class="p">]</span>
-
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_routing</span><span class="p">():</span>
-    <span class="n">events</span> <span class="o">=</span> <span class="k">await</span> <span class="n">collect_all</span><span class="p">(</span><span class="n">my_handler</span><span class="p">({</span><span class="s2">&quot;needs_review&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}))</span>
-
-    <span class="c1"># Verify ABI commands</span>
-    <span class="k">assert</span> <span class="p">(</span><span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;reviewer&quot;</span><span class="p">,</span> <span class="s2">&quot;notifier&quot;</span><span class="p">])</span> <span class="ow">in</span> <span class="n">events</span>
-
-    <span class="c1"># Verify emitted payload</span>
-    <span class="n">payloads</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)]</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">payloads</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
-</code></pre></div>
-<h3 id="testing-fly-streaming">Testing FLY streaming<a class="headerlink" href="#testing-fly-streaming" title="Permanent link">&para;</a></h3>
-<p>Verify that your handler streams the right tokens:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_streaming</span><span class="p">():</span>
-    <span class="n">events</span> <span class="o">=</span> <span class="k">await</span> <span class="n">collect_all</span><span class="p">(</span><span class="n">llm_handler</span><span class="p">({</span><span class="s2">&quot;query&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">}))</span>
-
-    <span class="n">fly_events</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;FLY&quot;</span><span class="p">]</span>
-    <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">fly_events</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;partial&quot;</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">True</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">fly_events</span><span class="p">)</span>
-    <span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="s2">&quot;text&quot;</span> <span class="ow">in</span> <span class="n">e</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">fly_events</span><span class="p">)</span>
-
-    <span class="c1"># The last event should be the downstream payload</span>
-    <span class="n">payloads</span> <span class="o">=</span> <span class="p">[</span><span class="n">e</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">events</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)]</span>
-    <span class="k">assert</span> <span class="n">payloads</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;response&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</code></pre></div>
-<h3 id="testing-in-a-flow">Testing in a flow<a class="headerlink" href="#testing-in-a-flow" title="Permanent link">&para;</a></h3>
-<p>Compose tested handlers into a flow — each <code>await actor(handler(state))</code>
-simulates a message hop through the Asya actor mesh:</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">test_full_flow</span><span class="p">():</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;analyze this&quot;</span><span class="p">}</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">preprocessor</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">classifier</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-
-    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;urgent&quot;</span><span class="p">:</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">escalator</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">actor</span><span class="p">(</span><span class="n">notifier</span><span class="p">(</span><span class="n">state</span><span class="p">))</span>
-    <span class="k">assert</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;notified&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">True</span>
-</code></pre></div>
-<p>This mirrors the actual Asya execution: each <code>await</code> represents a envelope
-passing through a queue to the next actor. The difference is that in
-production, each actor runs in its own pod; in tests, they run sequentially
-in one process.</p>
-<hr />
-<h2 id="design-rationale">Design rationale<a class="headerlink" href="#design-rationale" title="Permanent link">&para;</a></h2>
-<h3 id="why-yield-and-not-a-library-api">Why <code>yield</code> and not a library API?<a class="headerlink" href="#why-yield-and-not-a-library-api" title="Permanent link">&para;</a></h3>
-<p>An alternative design would provide an <code>asya</code> module:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">asya</span>  <span class="c1"># hypothetical</span>
-
-<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">handler</span><span class="p">(</span><span class="n">payload</span><span class="p">):</span>
-    <span class="n">route</span> <span class="o">=</span> <span class="n">asya</span><span class="o">.</span><span class="n">get_route</span><span class="p">()</span>
-    <span class="n">asya</span><span class="o">.</span><span class="n">set_route_next</span><span class="p">([</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="s2">&quot;b&quot;</span><span class="p">])</span>
-    <span class="k">await</span> <span class="n">asya</span><span class="o">.</span><span class="n">fly</span><span class="p">({</span><span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">})</span>
+<span class="c1"># Actor B sees payload[&quot;answer&quot;] written by A</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">actor_b</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;formatted&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Answer: </span><span class="si">{</span><span class="n">payload</span><span class="p">[</span><span class="s1">&#39;answer&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2">&quot;</span>
     <span class="k">return</span> <span class="n">payload</span>
 </code></pre></div>
-<p>This is what most frameworks do. But it creates coupling:</p>
-<ul>
-<li>Your handler requires <code>pip install asya</code> to run</li>
-<li>Testing requires mocking the <code>asya</code> module</li>
-<li>The runtime must manage global state for concurrent handlers</li>
-<li>Your handler can't run outside the Asya ecosystem</li>
-</ul>
-<p>With the yield-based ABI:</p>
-<ul>
-<li>Your handler is a plain Python generator — no imports</li>
-<li>Testing is trivial: iterate the generator and inspect yields</li>
-<li>No global state: the runtime drives each generator independently</li>
-<li>Your handler works anywhere Python runs</li>
-</ul>
-<h3 id="why-tuples-for-commands">Why tuples for commands?<a class="headerlink" href="#why-tuples-for-commands" title="Permanent link">&para;</a></h3>
-<p>The ABI separates <strong>control plane</strong> (tuples) from <strong>data plane</strong> (dicts).
-The runtime dispatches on <code>type(yielded_value)</code> — it never inspects dict
-contents for control signals. This means:</p>
-<ul>
-<li>You can put any key in your payload, including <code>"type"</code>, <code>"command"</code>,
-  <code>"action"</code> — nothing collides with ABI commands</li>
-<li>The runtime is a pure instruction dispatcher, not a payload parser</li>
-<li>Protocol errors are caught immediately by type checking</li>
-</ul>
-<h3 id="why-fly-instead-of-partial-true">Why FLY instead of <code>partial: True</code>?<a class="headerlink" href="#why-fly-instead-of-partial-true" title="Permanent link">&para;</a></h3>
-<p>An earlier design mixed control signals with payload data:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># Old approach: runtime had to inspect every dict for &quot;partial&quot; key</span>
-<span class="k">yield</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">}</span>
+<p><strong>Constraint</strong>: payloads must be JSON-serializable (they travel through SQS/
+RabbitMQ). For large binary data (model weights, media files), store a reference
+(S3 URL, artifact ID) in the payload and keep the actual data in external
+storage.</p>
+<h3 id="state-proxy-transparent-persistent-storage">State proxy: transparent persistent storage<a class="headerlink" href="#state-proxy-transparent-persistent-storage" title="Permanent link">&para;</a></h3>
+<p>For use cases that need persistent state across messages or across actors —
+conversation history, per-user context, fan-in aggregation — Asya provides
+the <strong>state proxy</strong>.</p>
+<p>The state proxy is a sidecar container injected alongside the actor runtime.
+It exposes a local filesystem path (e.g., <code>/state/</code>) that maps to a remote
+storage backend (S3, GCS, Redis, NATS KV). Actor code uses standard Python
+file I/O; the runtime transparently translates it to storage operations:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="n">STATE_PATH</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;ASYA_STATE_MOUNT&quot;</span><span class="p">,</span> <span class="s2">&quot;/state&quot;</span><span class="p">)</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">context_actor</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">user_id</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;user_id&quot;</span><span class="p">]</span>
+    <span class="n">history_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">STATE_PATH</span><span class="si">}</span><span class="s2">/history/</span><span class="si">{</span><span class="n">user_id</span><span class="si">}</span><span class="s2">.json&quot;</span>
+
+    <span class="c1"># Read prior conversation history (if exists)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">history_path</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">history</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">FileNotFoundError</span><span class="p">:</span>
+        <span class="n">history</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;user&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;message&quot;</span><span class="p">]})</span>
+    <span class="n">response</span> <span class="o">=</span> <span class="k">await</span> <span class="n">llm</span><span class="o">.</span><span class="n">complete</span><span class="p">(</span><span class="n">history</span><span class="p">)</span>
+    <span class="n">history</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">&quot;role&quot;</span><span class="p">:</span> <span class="s2">&quot;assistant&quot;</span><span class="p">,</span> <span class="s2">&quot;content&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">})</span>
+
+    <span class="c1"># Write updated history</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">history_path</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">history</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;response&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">response</span>
+    <span class="k">return</span> <span class="n">payload</span>
 </code></pre></div>
-<p>FLY makes the signal structural (tuple type) not semantic (dict key):</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># New approach: type dispatch, no dict inspection</span>
-<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;hello&quot;</span><span class="p">}</span>
+<p>Configure via <code>spec.stateProxy</code> in the AsyncActor manifest:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">context-actor</span>
+<span class="w">  </span><span class="nt">stateProxy</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user-history</span>
+<span class="w">      </span><span class="nt">mount</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/state</span>
+<span class="w">      </span><span class="nt">connector</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">s3</span>
+<span class="w">        </span><span class="nt">bucket</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-bucket</span>
+<span class="w">        </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actor-state/</span>
 </code></pre></div>
+<p>For local development without Kubernetes, the mount path is a real directory —
+actor code works identically.</p>
+<p>The fan-in aggregator (<code>x-aggregator</code> crew actor) uses the state proxy
+internally for the split-key pattern.</p>
+<hr />
+<h2 id="gateway-connecting-agents-to-the-world">Gateway: connecting agents to the world<a class="headerlink" href="#gateway-connecting-agents-to-the-world" title="Permanent link">&para;</a></h2>
+<h3 id="why-a-gateway">Why a gateway<a class="headerlink" href="#why-a-gateway" title="Permanent link">&para;</a></h3>
+<p>Actors communicate asynchronously through queues. This is efficient and
+resilient, but AI clients (LLMs, orchestrators, browsers) speak synchronous
+HTTP — they send a request and block waiting for a response.</p>
+<p>The <strong>asya-gateway</strong> bridges this gap. It:</p>
+<ol>
+<li>Receives a synchronous HTTP request (A2A or MCP)</li>
+<li>Creates a task record and assigns it an ID</li>
+<li>Sends the initial envelope to the actor queue</li>
+<li>Streams progress events back to the client as SSE while actors process</li>
+<li>Returns the final result when the pipeline completes</li>
+</ol>
+<div class="highlight"><pre><span></span><code>Client (LLM / browser)
+        │ POST /a2a/{skill}
+        │
+        ▼
+  asya-gateway-api          (ClusterIP + Ingress, auth enforced)
+        │ enqueue
+        ▼
+  SQS / RabbitMQ
+        │
+        ▼
+  Actor pipeline ...
+        │ FLY events → sidecar → asya-gateway-mesh → SSE → client
+        │ final result → x-sink → gateway mesh → task completed
+        ▼
+  Client receives streamed updates + final result
+</code></pre></div>
+<h3 id="dual-deployment-architecture">Dual-deployment architecture<a class="headerlink" href="#dual-deployment-architecture" title="Permanent link">&para;</a></h3>
+<p>The gateway runs as two deployments from the same binary, selected by the
+<code>ASYA_GATEWAY_MODE</code> environment variable:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Deployment</th>
+<th>Mode</th>
+<th>Routes</th>
+<th>External access</th>
+<th>Auth</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>asya-gateway-api</code></td>
+<td><code>api</code></td>
+<td><code>/a2a/*</code>, <code>/mcp</code>, <code>/.well-known/*</code></td>
+<td>Yes (Ingress)</td>
+<td>Protocol-native</td>
+</tr>
+<tr>
+<td><code>asya-gateway-mesh</code></td>
+<td><code>mesh</code></td>
+<td><code>/mesh/*</code></td>
+<td>No (ClusterIP only)</td>
+<td>Network isolation</td>
+</tr>
+</tbody>
+</table></div>
+<p>Sidecars reach the mesh gateway via in-cluster DNS
+(<code>asya-gateway-mesh.{namespace}.svc.cluster.local</code>). External clients reach
+the API gateway via Ingress. Mesh routes are <strong>unreachable from outside the
+cluster by network topology</strong>, not by middleware auth.</p>
+<h3 id="a2a-protocol">A2A protocol<a class="headerlink" href="#a2a-protocol" title="Permanent link">&para;</a></h3>
+<p>A2A (Agent-to-Agent) is the gateway's external interface for AI agent
+interoperability. It exposes actor pipelines as <strong>skills</strong> via a JSON-RPC
+endpoint.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Discover available skills</span>
+curl<span class="w"> </span>https://my-gateway/.well-known/agent.json
+
+<span class="c1"># Invoke a skill</span>
+curl<span class="w"> </span>-X<span class="w"> </span>POST<span class="w"> </span>https://my-gateway/a2a/my-skill<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-H<span class="w"> </span><span class="s2">&quot;X-API-Key: </span><span class="nv">$API_KEY</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;message&quot;: {&quot;parts&quot;: [{&quot;text&quot;: &quot;Summarize this: ...&quot;}]}}&#39;</span>
+</code></pre></div>
+<p>A2A responses use <strong>task semantics</strong>: the call returns a task ID immediately
+(<code>submitted</code>), then streams status updates (<code>working</code>, <code>input_required</code>) and
+finally the result (<code>completed</code>). This matches the async actor model directly.</p>
+<p>Key A2A states and their Asya equivalents:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>A2A state</th>
+<th>Asya internal</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>submitted</code></td>
+<td><code>pending</code></td>
+<td>Envelope queued, not yet picked up</td>
+</tr>
+<tr>
+<td><code>working</code></td>
+<td><code>running</code></td>
+<td>Actor(s) processing</td>
+</tr>
+<tr>
+<td><code>input_required</code></td>
+<td><code>paused</code></td>
+<td>Waiting for human input (x-pause)</td>
+</tr>
+<tr>
+<td><code>completed</code></td>
+<td><code>succeeded</code></td>
+<td>x-sink received final result</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td><code>failed</code></td>
+<td>x-sump received error envelope</td>
+</tr>
+</tbody>
+</table></div>
+<p>Auth: API key (<code>X-API-Key</code>) or JWT Bearer token. See
+<code>docs/architecture/gateway-security-model.md</code> for the full security model.</p>
+<h3 id="mcp-protocol">MCP protocol<a class="headerlink" href="#mcp-protocol" title="Permanent link">&para;</a></h3>
+<p>MCP (Model Context Protocol) is the gateway's interface for LLM tool calling.
+It exposes actor pipelines as <strong>tools</strong> that an LLM can call via JSON-RPC 2.0.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># List available tools</span>
+curl<span class="w"> </span>https://my-gateway/mcp<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{&quot;jsonrpc&quot;:&quot;2.0&quot;,&quot;method&quot;:&quot;tools/list&quot;,&quot;id&quot;:1}&#39;</span>
+
+<span class="c1"># Call a tool (LLM-initiated)</span>
+curl<span class="w"> </span>https://my-gateway/mcp<span class="w"> </span>-d<span class="w"> </span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;jsonrpc&quot;: &quot;2.0&quot;,</span>
+<span class="s1">  &quot;method&quot;: &quot;tools/call&quot;,</span>
+<span class="s1">  &quot;params&quot;: {&quot;name&quot;: &quot;my-tool&quot;, &quot;arguments&quot;: {&quot;text&quot;: &quot;...&quot;}},</span>
+<span class="s1">  &quot;id&quot;: 2</span>
+<span class="s1">}&#39;</span>
+</code></pre></div>
+<p>MCP supports SSE streaming (<code>/mcp/sse</code>) for real-time tool output — FLY events
+from actors arrive at the client as streaming text chunks.</p>
+<p>Auth: API key (Phase 2) or OAuth 2.1 with PKCE (Phase 3, full MCP spec
+compliance). See <code>docs/architecture/gateway-security-model.md</code>.</p>
+<h3 id="flow-registry-exposing-actor-pipelines-as-toolsskills">Flow registry: exposing actor pipelines as tools/skills<a class="headerlink" href="#flow-registry-exposing-actor-pipelines-as-toolsskills" title="Permanent link">&para;</a></h3>
+<p>Which pipelines are exposed via A2A and MCP is configured in the
+<code>gateway-flows</code> ConfigMap:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gateway-flows</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">flows.yaml</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">tools:</span>
+<span class="w">      </span><span class="no">- name: document-summarizer</span>
+<span class="w">        </span><span class="no">description: Summarizes documents using LLM</span>
+<span class="w">        </span><span class="no">actor: start-document-pipeline  # entry router actor</span>
+<span class="w">        </span><span class="no">route:</span>
+<span class="w">          </span><span class="no">- preprocessor</span>
+<span class="w">          </span><span class="no">- llm-summarizer</span>
+<span class="w">          </span><span class="no">- formatter</span>
+</code></pre></div>
+<p>The gateway polls this ConfigMap at runtime (configurable via
+<code>ASYA_CONFIG_POLL_INTERVAL</code>). Updating the ConfigMap updates the exposed
+tools without restarting the gateway.</p>
 <hr />
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1"># ── Read metadata ───────────────────────────────</span>
-<span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.path.to.field&quot;</span>
+<h3 id="adk-asya-pattern-map">ADK → Asya pattern map<a class="headerlink" href="#adk-asya-pattern-map" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>ADK pattern</th>
+<th>Asya equivalent</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SequentialAgent([A, B, C])</code></td>
+<td>Linear flow: <code>state = await A(state); state = await B(state)</code></td>
+<td>Flow DSL</td>
+</tr>
+<tr>
+<td><code>ParallelAgent([A, B, C])</code></td>
+<td><code>asyncio.gather(A(x), B(x), C(x))</code></td>
+<td>Flow DSL</td>
+</tr>
+<tr>
+<td><code>LoopAgent(sub_agents, max=5)</code></td>
+<td><code>while</code> loop in flow DSL</td>
+<td>Flow DSL</td>
+</tr>
+<tr>
+<td><code>transfer_to_agent("X")</code></td>
+<td><code>yield "SET", ".route.next", ["x"]</code> in generator actor</td>
+<td>Actor (ABI)</td>
+</tr>
+<tr>
+<td><code>Event(partial=True, content=Part(text=t))</code></td>
+<td><code>yield "FLY", {"partial": True, "text": t}</code></td>
+<td>Actor (ABI)</td>
+</tr>
+<tr>
+<td><code>should_pause_invocation()</code></td>
+<td>route to <code>x-pause</code>, set <code>_pause_metadata</code></td>
+<td>Actor (ABI)</td>
+</tr>
+<tr>
+<td><code>State</code> (delta-tracked)</td>
+<td><code>payload</code> dict (full state, JSON-serialized per hop)</td>
+<td>Envelope</td>
+</tr>
+<tr>
+<td><code>output_key</code> enrichment</td>
+<td><code>payload["key"] = result</code></td>
+<td>Anywhere</td>
+</tr>
+<tr>
+<td><code>AgentTool</code> (agent-as-tool)</td>
+<td>standard actor call (same dict→dict interface)</td>
+<td>Flow DSL</td>
+</tr>
+<tr>
+<td><code>before/after_model_callback</code></td>
+<td>no direct equivalent (pre/post actor in pipeline)</td>
+<td>Flow DSL</td>
+</tr>
+<tr>
+<td>Session/conversation history</td>
+<td>payload dict or state proxy</td>
+<td>Payload / State proxy</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="abi-quick-reference">ABI quick reference<a class="headerlink" href="#abi-quick-reference" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Read metadata</span>
+<span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.prev&quot;</span>         <span class="c1"># who processed this before</span>
+<span class="n">value</span> <span class="o">=</span> <span class="k">yield</span> <span class="s2">&quot;GET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span>   <span class="c1"># any header</span>
 
-<span class="c1"># ── Write metadata ──────────────────────────────</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">,</span> <span class="s2">&quot;actor_b&quot;</span><span class="p">]</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;prepend&quot;</span><span class="p">]</span>
-<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span><span class="p">,</span> <span class="s2">&quot;abc-123&quot;</span>
+<span class="c1"># Rewrite routing</span>
+<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">]</span>           <span class="c1"># replace next</span>
+<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[:0]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">]</span>       <span class="c1"># prepend to next</span>
+<span class="k">yield</span> <span class="s2">&quot;SET&quot;</span><span class="p">,</span> <span class="s2">&quot;.route.next[999:]&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s2">&quot;actor_a&quot;</span><span class="p">]</span>     <span class="c1"># append to next</span>
 
-<span class="c1"># ── Delete metadata ─────────────────────────────</span>
+<span class="c1"># Delete metadata</span>
 <span class="k">yield</span> <span class="s2">&quot;DEL&quot;</span><span class="p">,</span> <span class="s2">&quot;.headers.trace_id&quot;</span>
 
-<span class="c1"># ── Stream upstream (SSE to gateway) ────────────</span>
-<span class="c1"># partial=True mirrors ADK&#39;s Event(partial=True, content=Part(text=token))</span>
-<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}</span>
+<span class="c1"># Stream upstream to client (SSE)</span>
+<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text_delta&quot;</span><span class="p">,</span> <span class="s2">&quot;token&quot;</span><span class="p">:</span> <span class="s2">&quot;...&quot;</span><span class="p">}</span>
+<span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;text_done&quot;</span><span class="p">}</span>
 
-<span class="c1"># ── Emit downstream (to next actor) ─────────────</span>
+<span class="c1"># Emit downstream payload (to next actor)</span>
 <span class="k">yield</span> <span class="n">payload</span>
-
-<span class="c1"># ── Delegation ──────────────────────────────────</span>
-<span class="k">yield from</span> <span class="n">helper</span><span class="p">()</span>           <span class="c1"># sync generators</span>
-<span class="k">async</span> <span class="k">for</span> <span class="n">cmd</span> <span class="ow">in</span> <span class="n">helper</span><span class="p">():</span>   <span class="c1"># async generators</span>
-    <span class="k">yield</span> <span class="n">cmd</span>
 </code></pre></div>
 <hr />
 <h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
-<ul>
-<li><a href="../flow-dsl/">Flow DSL Reference</a> — compile Python control flow into
-  router actor networks (routers use the ABI internally)</li>
-<li><a href="../../architecture/protocols/actor-actor/">Architecture: Actor Envelope Protocol</a> —
-  envelope envelope format and routing semantics</li>
-</ul>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Document</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ABI verb reference, path syntax, testing</td>
+<td><code>docs/reference/abi-protocol.md</code></td>
+</tr>
+<tr>
+<td>Flow DSL syntax, supported constructs</td>
+<td><code>docs/reference/flow-dsl.md</code></td>
+</tr>
+<tr>
+<td>Flow DSL examples (15 patterns)</td>
+<td><code>examples/flows/agentic/</code></td>
+</tr>
+<tr>
+<td>ABI handler examples (3 patterns)</td>
+<td><code>examples/actors/agentic/</code></td>
+</tr>
+<tr>
+<td>Gateway security model (auth, dual-deployment)</td>
+<td><code>docs/architecture/gateway-security-model.md</code></td>
+</tr>
+<tr>
+<td>Envelope protocol and routing semantics</td>
+<td><code>docs/architecture/protocols/actor-actor.md</code></td>
+</tr>
+<tr>
+<td>State proxy and stateful actors</td>
+<td><code>src/asya-crew/asya_crew/</code></td>
+</tr>
+<tr>
+<td>AsyncActor XRD reference</td>
+<td><code>deploy/helm-charts/asya-crossplane/</code></td>
+</tr>
+</tbody>
+</table></div>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1526,233 +1758,139 @@ contents for control signals. This means:</p>
         
         
         
-        <a href="#what-is-the-abi"
+        <a href="#asya-vs-other-agentic-frameworks"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            What is the ABI?
+            Asya vs other agentic frameworks
         </a>
         
 
         
-        <a href="#why-the-abi-exists"
+        <a href="#core-concepts"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Why the ABI exists
+            Core concepts
         </a>
         
         
-        <a href="#the-platform-not-framework-principle"
+        <a href="#the-envelope"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            The platform-not-framework principle
+            The envelope
         </a>
         
-        <a href="#how-it-works"
+        <a href="#actors"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            How it works
+            Actors
         </a>
         
-        
-
-        
-        <a href="#handler-types"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Handler types
-        </a>
-        
-        
-        <a href="#function-handlers-no-abi"
+        <a href="#flow-dsl"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Function handlers (no ABI)
+            Flow DSL
         </a>
         
-        <a href="#generator-handlers-with-abi"
+        <a href="#flow-vs-actor-what-each-can-and-cannot-do"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Generator handlers (with ABI)
+            Flow vs Actor: what each can and cannot do
         </a>
         
         
 
         
-        <a href="#verb-reference"
+        <a href="#patterns"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Verb reference
+            Patterns
         </a>
         
         
-        <a href="#get-read-metadata"
+        <a href="#fan-out-fan-in"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            GET — read metadata
+            Fan-out / Fan-in
         </a>
         
-        <a href="#set-write-metadata"
+        <a href="#dynamic-routing"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            SET — write metadata
+            Dynamic routing
         </a>
         
-        <a href="#del-remove-metadata"
+        <a href="#live-streaming"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            DEL — remove metadata
+            Live streaming
         </a>
         
-        <a href="#fly-stream-upstream"
+        <a href="#pause-for-human-input"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            FLY — stream upstream
-        </a>
-        
-        <a href="#emit-send-downstream"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            EMIT — send downstream
+            Pause for human input
         </a>
         
         
 
         
-        <a href="#path-syntax"
+        <a href="#state-management"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Path syntax
+            State management
         </a>
         
         
-        <a href="#dot-access"
+        <a href="#payload-as-conversation-state"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Dot access
+            Payload as conversation state
         </a>
         
-        <a href="#bracket-access"
+        <a href="#state-proxy-transparent-persistent-storage"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Bracket access
-        </a>
-        
-        <a href="#index-access"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Index access
-        </a>
-        
-        <a href="#slice-access-set-only"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Slice access (SET only)
+            State proxy: transparent persistent storage
         </a>
         
         
 
         
-        <a href="#access-control"
+        <a href="#gateway-connecting-agents-to-the-world"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Access control
-        </a>
-        
-
-        
-        <a href="#type-based-dispatch"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Type-based dispatch
-        </a>
-        
-
-        
-        <a href="#delegation-and-composition"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Delegation and composition
+            Gateway: connecting agents to the world
         </a>
         
         
-        <a href="#sync-generators-yield-from"
+        <a href="#why-a-gateway"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Sync generators: yield from
+            Why a gateway
         </a>
         
-        <a href="#async-generators-explicit-iteration"
+        <a href="#dual-deployment-architecture"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Async generators: explicit iteration
+            Dual-deployment architecture
         </a>
         
-        
-
-        
-        <a href="#testing-handlers-locally"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Testing handlers locally
-        </a>
-        
-        
-        <a href="#the-actor-wrapper-pattern"
+        <a href="#a2a-protocol"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            The actor() wrapper pattern
+            A2A protocol
         </a>
         
-        <a href="#as-a-decorator"
+        <a href="#mcp-protocol"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            As a decorator
+            MCP protocol
         </a>
         
-        <a href="#testing-abi-control-events"
+        <a href="#flow-registry-exposing-actor-pipelines-as-toolsskills"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Testing ABI control events
-        </a>
-        
-        <a href="#testing-fly-streaming"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Testing FLY streaming
-        </a>
-        
-        <a href="#testing-in-a-flow"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Testing in a flow
-        </a>
-        
-        
-
-        
-        <a href="#design-rationale"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Design rationale
-        </a>
-        
-        
-        <a href="#why-yield-and-not-a-library-api"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Why yield and not a library API?
-        </a>
-        
-        <a href="#why-tuples-for-commands"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Why tuples for commands?
-        </a>
-        
-        <a href="#why-fly-instead-of-partial-true"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Why FLY instead of partial: True?
+            Flow registry: exposing actor pipelines as tools/skills
         </a>
         
         
@@ -1763,6 +1901,20 @@ contents for control signals. This means:</p>
             data-active="false" data-depth="2">
             Quick reference
         </a>
+        
+        
+        <a href="#adk-asya-pattern-map"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            ADK → Asya pattern map
+        </a>
+        
+        <a href="#abi-quick-reference"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            ABI quick reference
+        </a>
+        
         
 
         
