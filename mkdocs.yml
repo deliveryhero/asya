@@ -28,8 +28,7 @@ nav:
   - Motivation: motivation.md
   - Concepts: concepts.md
   - Getting Started: quickstart/README.md
-  - For Data Scientists 🧑‍🔬: quickstart/for-data-scientists.md
-  - For Platform Engineers ⚙️: quickstart/for-platform-engineers.md
+  - Usage: quickstart/usage.md
 - INSTALLATION:
   - AWS EKS: install/aws-eks.md
   - Local Kind: install/local-kind.md
@@ -52,6 +51,7 @@ nav:
     - RabbitMQ: architecture/transports/rabbitmq.md
     - SQS: architecture/transports/sqs.md
 - OPERATIONS:
+  - Scaling: operate/scaling.md
   - Monitoring: operate/monitoring.md
   - Troubleshooting: operate/troubleshooting.md
   - Upgrades: operate/upgrades.md

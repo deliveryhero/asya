@@ -29,7 +29,7 @@ After an actor processes an envelope, the sidecar advances the route: `curr` mov
 
 **See**: [actor-actor protocol](architecture/protocols/actor-actor.md) for the full envelope spec.
 
-![Actor mesh communication](../docs/img/actor-mesh-communication.png)
+![Actor mesh communication](img/actor-mesh-communication.png)
 
 ## Actor
 
@@ -75,7 +75,7 @@ Your handler sees only `payload: dict → dict`. The envelope structure, queue m
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md), [architecture/asya-runtime.md](architecture/asya-runtime.md)
 
-![Actor anatomy](../docs/img/actor-anatomy.png)
+![Actor anatomy](img/actor-anatomy.png)
 
 ## Crew Actors
 
