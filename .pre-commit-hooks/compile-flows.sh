@@ -4,6 +4,36 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+# Use a pinned graphviz Docker image so SVG output is reproducible across machines.
+# Falls back to local 'dot' with a warning if Docker is unavailable.
+GRAPHVIZ_IMAGE="asya-graphviz:12.2.0"
+DOT_WRAPPER_DIR=""
+
+_cleanup() {
+  [ -n "$DOT_WRAPPER_DIR" ] && rm -rf "$DOT_WRAPPER_DIR"
+}
+trap _cleanup EXIT
+
+if command -v docker >/dev/null 2>&1; then
+  if ! docker image inspect "$GRAPHVIZ_IMAGE" >/dev/null 2>&1; then
+    echo "[.] Building pinned graphviz Docker image ($GRAPHVIZ_IMAGE)..."
+    docker build -t "$GRAPHVIZ_IMAGE" \
+      -f "$REPO_ROOT/.pre-commit-hooks/Dockerfile.graphviz" \
+      "$REPO_ROOT/.pre-commit-hooks/" >/dev/null
+    echo "[+] Built $GRAPHVIZ_IMAGE"
+  fi
+  DOT_WRAPPER_DIR="$(mktemp -d)"
+  cat > "$DOT_WRAPPER_DIR/dot" << EOF
+#!/usr/bin/env bash
+exec docker run --rm -v "$REPO_ROOT:$REPO_ROOT" -w "\$PWD" $GRAPHVIZ_IMAGE "\$@"
+EOF
+  chmod +x "$DOT_WRAPPER_DIR/dot"
+  export PATH="$DOT_WRAPPER_DIR:$PATH"
+  echo "[.] Using pinned graphviz via Docker ($GRAPHVIZ_IMAGE)"
+else
+  echo "[!] Docker not found — using local dot (SVG output may differ across machines)"
+fi
+
 echo "[.] Compiling flow DSL files in parallel..."
 
 # Store PIDs of background processes
