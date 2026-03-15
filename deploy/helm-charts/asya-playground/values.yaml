@@ -164,14 +164,6 @@ sampleStorage:
         cpu: 500m
         memory: 512Mi
 
-sampleAwsCreds:
-  # Sample AWS credentials Secret for LocalStack (quickstart only)
-  # For production: Set enabled: false and create aws-creds Secret manually with real credentials
-  enabled: true
-  secretName: aws-creds
-  accessKeyId: "test"
-  secretAccessKey: "test"
-
 sampleMonitoring:
   # Prometheus + Grafana stack (demo/development only)
   # For production: Set enabled: false and use your existing monitoring infrastructure
@@ -203,24 +195,6 @@ sampleGatewayDb:
       limits:
         cpu: 250m
         memory: 256Mi
-
-# Crossplane operator configuration (passed to crossplane chart)
-# Reduces resource usage for local development
-crossplane:
-  resourcesCrossplane:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 500m
-      memory: 256Mi
-  resourcesRBACManager:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 250m
-      memory: 128Mi
 
 # Asya-Crossplane configuration (passed to asya-crossplane chart)
 # Manages AsyncActor CRDs, Compositions, and Crossplane providers

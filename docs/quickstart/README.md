@@ -16,7 +16,21 @@ through message queues and scale independently from zero based on queue depth.
 kind create cluster --name asya-quickstart
 ```
 
-## 2. Install the playground chart
+## 2. Install Crossplane
+
+Crossplane manages actor infrastructure (SQS queues, Deployments, KEDA ScaledObjects).
+It must be installed before the playground chart because the playground's providers need
+Crossplane's CRDs to be registered first.
+
+```bash
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm repo update crossplane-stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace \
+  --wait --timeout 180s
+```
+
+## 3. Install the playground chart
 
 `asya-playground` is a batteries-included quickstart: Crossplane, KEDA, LocalStack (SQS + S3),
 crew actors, and a hello-world actor — all in one release. No separate installs needed.
@@ -137,7 +151,7 @@ production setup guide.
 
 </details>
 
-## 3. Verify the installation
+## 4. Verify the installation
 
 ```bash
 kubectl get pods -n asya-demo
@@ -149,7 +163,7 @@ Expected:
 - `x-sink`, `x-sump` — `Ready` (always running, `minReplicaCount=1`)
 - `hello` — `Napping` (scaled to 0 until a message arrives)
 
-## 4. Send a test message
+## 5. Send a test message
 
 ```bash
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
@@ -165,7 +179,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-## 5. Watch scale-from-zero
+## 6. Watch scale-from-zero
 
 KEDA detects the message and scales the hello deployment from 0 to 1 (takes ~30s):
 
@@ -179,7 +193,7 @@ Once the pod is running, it shows `2/2` containers (handler + sidecar injected b
 kubectl get pods -n asya-demo -l asya.sh/actor=hello
 ```
 
-## 6. Check logs
+## 7. Check logs
 
 ```bash
 POD=$(kubectl get pods -n asya-demo -l asya.sh/actor=hello -o jsonpath='{.items[0].metadata.name}')
@@ -211,7 +225,8 @@ kind delete cluster --name asya-quickstart
 
 ---
 
-## Troubleshooting
+<details>
+<summary>Troubleshooting</summary>
 
 ### Providers not becoming Healthy
 
@@ -245,3 +260,5 @@ Delete the pod to trigger re-creation from the updated Crossplane composition:
 ```bash
 kubectl delete pod -n asya-demo -l asya.sh/actor=hello
 ```
+
+</details>

@@ -25,10 +25,6 @@ maintainers:
 
 # Local dependencies (for development/testing with unpublished chart versions)
 dependencies:
-# Crossplane manages AsyncActor infrastructure (SQS queues, Deployments, ScaledObjects)
-- name: crossplane
-  version: ">=1.18.0"
-  repository: "https://charts.crossplane.io/stable"
 # KEDA is required for autoscaling - non-optional dependency
 - name: keda
   version: ">=2.16.0"
