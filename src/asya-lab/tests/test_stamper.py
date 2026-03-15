@@ -86,9 +86,6 @@ def project():
                 "transport": "sqs",
                 "router_image": "python:3.13-slim",
             },
-            "compiler": {
-                "image_registry": "ghcr.io/test-org",
-            },
             "build": [
                 {"module": "*", "image": "ghcr.io/test-org/*:latest"},
             ],
@@ -104,9 +101,6 @@ def project_with_contexts():
                 "namespace": "test-ns",
                 "transport": "sqs",
                 "router_image": "python:3.13-slim",
-            },
-            "compiler": {
-                "image_registry": "ghcr.io/test-org",
             },
             "build": [
                 {"module": "*", "image": "ghcr.io/test-org/*:latest"},

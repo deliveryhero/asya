@@ -17,11 +17,10 @@ templates:
 compiler:
   routers: "./compiled"
   manifests: ".asya/manifests"
-  image_registry: "{image_registry}"
 
 build:
   - module: "*"
-    image: "{image_registry}/*:latest"
+    image: "{registry}/*:latest"
 """
 
 _ACTOR_TEMPLATE = """\
@@ -98,8 +97,8 @@ _RULES_YAML = """\
 def init_project(
     target_dir: Path,
     *,
-    image_registry: str = "ghcr.io/my-org",
-    transport: str = "sqs",
+    registry: str,
+    transport: str,
 ) -> Path:
     """Scaffold .asya/ project directory.
 
@@ -107,8 +106,8 @@ def init_project(
 
     Args:
         target_dir: Directory to create .asya/ in.
-        image_registry: Default image registry for var.image_registry.
-        transport: Default message transport (sqs, rabbitmq, pubsub).
+        registry: Container image registry (e.g. ghcr.io/my-org).
+        transport: Message transport (sqs, rabbitmq, pubsub).
 
     Returns:
         Path to the created .asya/ directory.
@@ -119,7 +118,7 @@ def init_project(
     # config.yaml
     config_file = asya_dir / "config.yaml"
     if not config_file.exists():
-        config_file.write_text(_ROOT_CONFIG.format(image_registry=image_registry, transport=transport))
+        config_file.write_text(_ROOT_CONFIG.format(registry=registry, transport=transport))
 
     # compiler/templates/ — templates are NOT part of the config tree,
     # they are stored as files and referenced by the stamper
