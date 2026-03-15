@@ -127,14 +127,14 @@
         }
 
         .btn-primary {
-            background: #2563eb;
+            background: #1e40af;
             color: white;
-            border-color: #2563eb;
+            border-color: #1e40af;
         }
 
         .btn-primary:hover {
-            background: #1d4ed8;
-            border-color: #1d4ed8;
+            background: #1e3a8a;
+            border-color: #1e3a8a;
         }
 
         .btn:hover {
@@ -160,6 +160,12 @@
             color: var(--text-tertiary);
             font-size: 0.95rem;
             margin-bottom: 0.5rem;
+        }
+
+        .code-block-primary {
+            background: #1e40af;
+            color: #e2e8f0;
+            border-color: #1e3a8a;
         }
 
         .code-block {
@@ -295,7 +301,7 @@
         <div class="install-section">
             <h3>Get Started</h3>
             <p>Add the Helm repository:</p>
-            <div class="code-block code-block-terminal">helm repo add asya https://asya.sh/charts && helm repo update asya</div>
+            <div class="code-block code-block-primary">helm repo add asya https://asya.sh/charts && helm repo update asya</div>
 
             <p style="margin-top: 1.5rem;">Install the quickstart (Crossplane + KEDA + LocalStack + hello actor):</p>
             <div class="code-block code-block-terminal">helm install asya asya/asya-playground \
