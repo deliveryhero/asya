@@ -28,4 +28,5 @@ async def polisher(payload: dict) -> dict:
     )
 
     payload["final_output"] = response.choices[0].message.content
+    print(f"[+] done\n\n{payload['final_output']}")
     return payload

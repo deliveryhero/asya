@@ -16,6 +16,9 @@ async def generator(payload: dict) -> dict:
     iteration = payload.get("iteration", 1)
     feedback = payload.get("feedback", "")
 
+    print(f"\n--- iteration {iteration} ---")
+    print(f"[.] task: {task}")
+
     if iteration == 1:
         prompt = f"Write a short, creative text about: {task}"
     else:
@@ -33,4 +36,6 @@ async def generator(payload: dict) -> dict:
         messages=[{"role": "user", "content": prompt}],
     )
     payload["draft"] = response.choices[0].message.content
+    preview = payload["draft"][:100].replace("\n", " ")
+    print(f"[+] draft: {preview}...")
     return payload

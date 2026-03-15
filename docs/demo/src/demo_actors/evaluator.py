@@ -41,4 +41,5 @@ async def evaluator(payload: dict) -> dict:
         payload["score"] = 50
         payload["feedback"] = raw
 
+    print(f"[+] score: {payload['score']}/100")
     return payload

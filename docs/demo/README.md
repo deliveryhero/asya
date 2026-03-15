@@ -13,9 +13,9 @@ loop until quality threshold is met, then **polisher** finalizes.
 
 ```bash
 cd docs/demo
-uv venv
-source .venv/bin/activate
 uv sync
+uv pip install -e .
+source .venv/bin/activate
 ```
 
 Install asya-lab from GitHub
@@ -38,6 +38,7 @@ gcloud projects add-iam-policy-binding $GCP_PROJECT \
   --member="serviceAccount:asya-demo@${GCP_PROJECT}.iam.gserviceaccount.com" \
   --role="roles/aiplatform.user"
 
+# Create SA key:
 gcloud iam service-accounts keys create /tmp/asya-demo-sa.json \
   --iam-account=asya-demo@${GCP_PROJECT}.iam.gserviceaccount.com
 
@@ -56,7 +57,8 @@ queues. Locally, we bind them to the real handler functions:
 uv run python -c '
 import asyncio
 from demo_flows.text_improver import text_improver
-asyncio.run(text_improver({"task": "Write a haiku about message queues"}))
+state = {"task": "Write a haiku about message queues"}
+asyncio.run(text_improver(state))
 '
 ```
 
@@ -66,7 +68,7 @@ Same code, same results.
 ## Step 2: Compile to actor graph
 
 ```bash
-asya flow compile src/demo_flow/flow.py --output-dir compiled/ --plot
+asya flow compile src/demo_flows/text_improver.py --output-dir compiled/ --plot
 ls compiled/
 # routers.py  flow.dot  flow.svg
 ```
