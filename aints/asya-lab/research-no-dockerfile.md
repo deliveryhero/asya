@@ -7,6 +7,14 @@ optional. Must be modular, composable, non-opinionated.
 
 ---
 
+For USER: links:
+- https://docs.google.com/document/d/1mFATQa3HSGBVNdXyYmXi8VrqJ_n_y9ADGypxn4INPCg/edit?tab=t.0
+- cog: https://cog.run/deploy/
+- Tilt: https://docs.tilt.dev/
+- paketo: https://paketo.io/docs/
+- kpack: https://github.com/buildpacks-community/kpack
+- buildpacks: https://buildpacks.io/docs/for-app-developers/concepts/platform/
+
 ## 1. Problem Statement
 
 Asya actors are Python handler functions deployed in containers on K8s. Today,

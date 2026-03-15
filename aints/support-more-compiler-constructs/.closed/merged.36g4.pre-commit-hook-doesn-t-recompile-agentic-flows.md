@@ -10,4 +10,5 @@ tags:
 
 
 
+
 The compile-flows.sh pre-commit hook compiles examples/flows/*.py but not examples/flows/agentic/*.py. This means agentic flow compiled output (flow.dot, flow.svg, routers.py) is never regenerated, leaving stale artifacts. For example, voting_ensemble/flow.dot still shows list(await asyncio.gather(...)) as inline code instead of fan-out/fan-in nodes because it was compiled before PR #304 fixed the parser.
