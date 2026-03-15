@@ -4,7 +4,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 ## What You'll Learn
 
-- Install and configure Crossplane with Asya compositions and injector webhook
+- Install and configure Crossplane with Asya compositions
 - Deploy gateway and crew actors for pipeline completion
 - Support data science teams with templates and IAM configuration
 - Set up monitoring with Prometheus and troubleshoot common issues
@@ -14,7 +14,7 @@ Deploy and manage Asya🎭 infrastructure.
 
 As platform engineer, you:
 
-- Deploy Crossplane compositions and asya-injector webhook
+- Deploy Crossplane compositions
 - Configure transports (SQS, RabbitMQ)
 - Manage IAM roles and permissions
 - Monitor system health
@@ -44,15 +44,11 @@ helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace
 ```
 
-### 3. Install Asya Compositions and Injector
+### 3. Install Asya Compositions
 
 ```bash
 # Install Asya XRDs and Compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-# Install asya-injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
 ```
 
 ### 4. Configure Transports
@@ -93,30 +89,16 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ -f gateway-values.yam
 x-sink:
   enabled: true
   transport: sqs  # or rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: sqs  # or rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+  - name: ASYA_PERSISTENCE_MOUNT
+    value: /state/checkpoints
 ```
 
 ```bash
@@ -128,9 +110,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ -f crew-values.yaml
 ```bash
 # Check Crossplane
 kubectl get pods -n crossplane-system
-
-# Check injector webhook
-kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda
@@ -155,38 +134,29 @@ metadata:
   name: my-actor
 spec:
   transport: sqs  # or rabbitmq
+  image: YOUR_IMAGE:TAG
+  handler: module.function  # or module.Class.method for class handlers
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 50
+    minReplicaCount: 0
+    maxReplicaCount: 50
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: YOUR_IMAGE:TAG
-          env:
-          - name: ASYA_HANDLER
-            value: "module.function"
-            # For class handlers: "module.Class.method"
-          resources:
-            requests:
-              memory: "1Gi"
-              cpu: "500m"
-            limits:
-              memory: "2Gi"
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
 ```
 
 **Key fields to explain**:
 - `spec.transport`: Which transport to use (ask platform team)
+- `spec.image`: Container image for the actor's runtime
+- `spec.handler`: Handler path (`module.function` or `module.Class.method`)
 - `spec.scaling.enabled`: Enable KEDA autoscaling (default: false)
-- `spec.scaling.minReplicas`: Minimum pods (0 for scale-to-zero)
-- `spec.scaling.maxReplicas`: Maximum pods
+- `spec.scaling.minReplicaCount`: Minimum pods (0 for scale-to-zero)
+- `spec.scaling.maxReplicaCount`: Maximum pods
 - `spec.scaling.queueLength`: Messages per replica target
-- `spec.workload.kind`: Deployment
-- `env.ASYA_HANDLER`: Handler path (`module.function` or `module.Class.method`)
 
 ### Configure Gateway Tools
 
@@ -236,7 +206,7 @@ kubectl create secret generic rabbitmq-secret \
 
 ### Prometheus Metrics
 
-**Important**: The injector webhook does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
+**Important**: Asya does NOT automatically create ServiceMonitors. You must configure Prometheus scraping.
 
 **Key sidecar metrics** (namespace: `asya_actor`):
 
@@ -326,11 +296,6 @@ histogram_quantile(0.95, rate(asya_actor_processing_duration_seconds_bucket{queu
 kubectl logs -n crossplane-system deploy/crossplane -f
 ```
 
-**View injector webhook logs**:
-```bash
-kubectl logs -n asya-system deploy/asya-injector -f
-```
-
 **View actor logs**:
 ```bash
 # Runtime logs (handler output)
@@ -405,7 +370,7 @@ kubectl get asya my-actor -o jsonpath='{.spec.transport}'
 kubectl logs deploy/my-actor -c asya-runtime
 
 # Check handler config
-kubectl get asya my-actor -o jsonpath='{.spec.workload.template.spec.containers[?(@.name=="asya-runtime")].env}'
+kubectl get asya my-actor -o jsonpath='{.spec.handler}'
 ```
 
 **Common issues**:
@@ -425,7 +390,7 @@ kubectl get asya my-actor
 
 **Status values**:
 - `Running` - Healthy
-- `Napping` - Scaled to zero (normal with minReplicas=0)
+- `Napping` - Scaled to zero (normal with minReplicaCount=0)
 - `Creating` - Initial deployment
 - `RuntimeError` - Runtime container crashing
 - `SidecarError` - Sidecar container crashing
@@ -440,8 +405,8 @@ kubectl get asya my-actor
 spec:
   scaling:
     enabled: true
-    minReplicas: 0          # Scale to zero when idle
-    maxReplicas: 50         # Max replicas
+    minReplicaCount: 0          # Scale to zero when idle
+    maxReplicaCount: 50         # Max replicas
     queueLength: 5          # Target: 5 messages per replica
     pollingInterval: 10     # Check queue every 10s
     cooldownPeriod: 60      # Wait 60s before scaling down
@@ -455,20 +420,15 @@ spec:
 
 ```yaml
 spec:
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          resources:
-            limits:
-              nvidia.com/gpu: 1
-        nodeSelector:
-          nvidia.com/gpu: "true"
-        tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
+  resources:
+    limits:
+      nvidia.com/gpu: 1
+  nodeSelector:
+    nvidia.com/gpu: "true"
+  tolerations:
+  - key: nvidia.com/gpu
+    operator: Exists
+    effect: NoSchedule
 ```
 
 **Note**: Ensure GPU node group exists and NVIDIA device plugin is installed.
@@ -480,7 +440,7 @@ spec:
 spec:
   scaling:
     enabled: true
-    minReplicas: 0  # $0 when idle
+    minReplicaCount: 0  # $0 when idle
 ```
 
 **Set appropriate queueLength**:
@@ -517,10 +477,6 @@ helm upgrade crossplane crossplane-stable/crossplane \
 
 # Upgrade Asya compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-
-# Upgrade injector webhook
-helm upgrade asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system
 
 # Upgrade gateway
 helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ \

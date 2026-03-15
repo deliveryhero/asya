@@ -288,7 +288,7 @@ def test_cold_start_backlog_processing(e2e_helper):
     3. Wait for KEDA to detect queue depth and scale up
     4. Assert all 20 messages complete with status "succeeded"
 
-    This validates the minReplicas=0 path end-to-end: backlog accumulates ->
+    This validates the minReplicaCount=0 path end-to-end: backlog accumulates ->
     KEDA detects -> pod scheduled -> container starts -> messages drain.
     """
     logger.info("Scaling test-echo to 0 for cold-start test...")

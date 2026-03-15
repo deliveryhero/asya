@@ -19,18 +19,18 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 def start_react_tool_loop(payload: dict):
     """Entrypoint for flow 'react_tool_loop'"""
     _next = []
-    state = payload
-    state['messages'] = state.get('messages', [])
-    state['iteration'] = 0
+    p = payload
+    p['messages'] = p.get('messages', [])
+    p['iteration'] = 0
     _next.append(resolve("router_react_tool_loop_line_46_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
 def router_react_tool_loop_line_66_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['observation'] = 'Unknown tool'
+    p['observation'] = 'Unknown tool'
     _next.append(resolve("router_react_tool_loop_line_72_if"))
 
     yield "SET", ".route.next[:0]", _next
@@ -38,9 +38,9 @@ def router_react_tool_loop_line_66_seq(payload: dict):
 
 def router_react_tool_loop_line_63_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['tool_name'] == 'calculator':
+    if p['tool_name'] == 'calculator':
         _next.append(resolve("calculator"))
         _next.append(resolve("router_react_tool_loop_line_72_if"))
     else:
@@ -51,9 +51,9 @@ def router_react_tool_loop_line_63_if(payload: dict):
 
 def router_react_tool_loop_line_61_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['tool_name'] == 'code_exec':
+    if p['tool_name'] == 'code_exec':
         _next.append(resolve("code_exec"))
         _next.append(resolve("router_react_tool_loop_line_72_if"))
     else:
@@ -64,10 +64,10 @@ def router_react_tool_loop_line_61_if(payload: dict):
 
 def router_react_tool_loop_line_72_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['messages'] = state.get('messages', [])
-    if state['iteration'] >= 10:
+    p['messages'] = p.get('messages', [])
+    if p['iteration'] >= 10:
         _next.append(resolve("format_response"))
     else:
         pass
@@ -77,10 +77,10 @@ def router_react_tool_loop_line_72_if(payload: dict):
 
 def router_react_tool_loop_line_59_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['tool_name'] = state['tool_calls'][0]['name']
-    if state['tool_name'] == 'web_search':
+    p['tool_name'] = p['tool_calls'][0]['name']
+    if p['tool_name'] == 'web_search':
         _next.append(resolve("web_search"))
         _next.append(resolve("router_react_tool_loop_line_72_if"))
     else:
@@ -91,9 +91,9 @@ def router_react_tool_loop_line_59_if(payload: dict):
 
 def router_react_tool_loop_line_53_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if not state.get('tool_calls'):
+    if not p.get('tool_calls'):
         _next.append(resolve("format_response"))
     else:
         _next.append(resolve("router_react_tool_loop_line_59_if"))
@@ -103,9 +103,9 @@ def router_react_tool_loop_line_53_if(payload: dict):
 
 def router_react_tool_loop_line_47_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['iteration'] += 1
+    p['iteration'] += 1
     _next.append(resolve("llm_reason"))
     _next.append(resolve("router_react_tool_loop_line_53_if"))
 
@@ -114,7 +114,7 @@ def router_react_tool_loop_line_47_seq(payload: dict):
 
 def router_react_tool_loop_line_46_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
     _self = resolve("router_react_tool_loop_line_46_loop_back_0")
     _prev = yield "GET", ".route.prev"

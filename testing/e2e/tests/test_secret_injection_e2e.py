@@ -2,8 +2,8 @@
 """
 E2E tests for AsyncActor secretRefs — Kubernetes Secret injection.
 
-Verifies that when spec.secretRefs is set on an AsyncActor, the injector
-webhook populates env[].valueFrom.secretKeyRef on the runtime container,
+Verifies that when spec.secretRefs is set on an AsyncActor, the Crossplane
+composition populates env[].valueFrom.secretKeyRef on the runtime container,
 and the running actor process can read the injected env var values.
 
 Test flow:
@@ -126,7 +126,7 @@ def test_secretrefs_injection(e2e_helper):
     Scenario:
     1. Create a K8s Secret containing a known token value
     2. Create an AsyncActor with spec.secretRefs referencing that Secret
-    3. Crossplane creates Deployment; injector webhook injects secretKeyRef env
+    3. Crossplane composition renders Deployment with secretKeyRef env
     4. K8s resolves the Secret and starts the Pod
     5. Verify runtime container pod spec has secretKeyRef pointing to our Secret
     6. kubectl exec to read the env var value from the running container
@@ -140,7 +140,6 @@ def test_secretrefs_injection(e2e_helper):
     secret_name = "test-actor-creds"
     namespace = e2e_helper.namespace
 
-    gcp_project_line = f"\n  gcpProject: {GCP_PROJECT}" if TRANSPORT == "pubsub" and GCP_PROJECT else ""
 
     secret_manifest = f"""\
 apiVersion: v1
@@ -160,21 +159,16 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  transport: {TRANSPORT}{gcp_project_line}
+  transport: {TRANSPORT}
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: {TRANSPORT}
   scaling:
     enabled: false
-  workload:
-    kind: Deployment
-    replicas: 1
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: ghcr.io/deliveryhero/asya-testing:latest
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.secret_echo_handler
+  replicas: 1
+  image: ghcr.io/deliveryhero/asya-testing:latest
+  imagePullPolicy: IfNotPresent
+  handler: asya_testing.handlers.payload.secret_echo_handler
   secretRefs:
     - secretName: {secret_name}
       keys:

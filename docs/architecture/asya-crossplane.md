@@ -68,15 +68,15 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
    - Waits for queue URL from SQS Queue status
    - References TriggerAuthentication for AWS credentials
    - Configures autoscaling policies (scale-up aggressive, scale-down gradual)
-   - Min replicas: `spec.scaling.minReplicas` (default: 0)
-   - Max replicas: `spec.scaling.maxReplicas` (default: 10)
+   - Min replicas: `spec.scaling.minReplicaCount` (default: 0)
+   - Max replicas: `spec.scaling.maxReplicaCount` (default: 10)
    - Queue length target: `spec.scaling.queueLength` (default: 5 messages/replica)
 
 5. **render-deployment**: Creates Deployment
-   - Workload template from `spec.workload.template`
+   - Pod spec rendered from flat fields: `spec.image`, `spec.handler`, `spec.env`, `spec.resources`, etc.
    - Injects labels: `asya.sh/inject=true`, `asya.sh/actor={name}`
    - ServiceAccount: Uses IRSA ServiceAccount if enabled
-   - Replicas: From `spec.workload.replicas` if scaling disabled, otherwise managed by KEDA
+   - Replicas: From `spec.replicas` if scaling disabled, otherwise managed by KEDA
 
 6. **patch-status-and-derive-phase**: Aggregates status from managed resources
    - Reads queue URL, queue ARN from SQS Queue status
@@ -180,8 +180,6 @@ Crossplane manages all resources via composite resource ownership:
 - Crossplane installed with AWS Provider (SQS) and Kubernetes Provider
 - Function Go-Templating installed
 - KEDA installed
-- cert-manager installed (for injector webhook TLS)
-- asya-injector deployed
 
 **Installation**:
 
@@ -192,10 +190,6 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --set awsProviderConfig.credentialsSource=Secret \
   --set awsAccountId=123456789012 \
   --set actorNamespace=asya-e2e
-
-# Install injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  --namespace asya-system --create-namespace
 ```
 
 **Configuration** (via `values.yaml`):
@@ -215,46 +209,36 @@ metadata:
   namespace: asya
 spec:
   transport: sqs
-  region: us-east-1
+  image: my-processor:v1
+  handler: processor.TextProcessor.process
 
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
     pollingInterval: 30
     cooldownPeriod: 300
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-          - name: asya-runtime
-            image: my-processor:v1
-            env:
-              - name: ASYA_HANDLER
-                value: processor.TextProcessor.process
-            resources:
-              requests:
-                cpu: 100m
-                memory: 256Mi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
 ```
 
-**Important**: The `asya-runtime` container must NOT define `command` field - the injector manages the entrypoint.
+**Important**: The `command` field for the runtime container is managed by the Crossplane composition — do not set it via the AsyncActor spec. Use `pythonExecutable` to override the Python binary path if needed.
 
-## CEL Validation
+## XRD Schema Validation
 
-The XRD includes CEL (Common Expression Language) validations enforced at admission time:
+The XRD enforces constraints at admission time via OpenAPI v3 schema:
 
-1. ✅ **Container structure**: `workload.template.spec.containers` must exist
-2. ✅ **Container name**: Exactly one container must be named `asya-runtime`
-3. ❌ **No custom command**: The `asya-runtime` container cannot define `command` field
-
-**Validation errors**:
-- `workload must have template.spec.containers` - Missing container spec
-- `workload must have exactly one container named 'asya-runtime'` - Wrong container name
-- `asya-runtime container must not define 'command'` - Custom command not allowed
+- ✅ **Required fields**: `image`, `handler` (and `transport` by default enum)
+- ✅ **`actor`**: must match `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` (DNS label format), max 63 chars
+- ✅ **`transport`**: enum — `sqs`, `rabbitmq`, `pubsub`
+- ✅ **`imagePullPolicy`**: enum — `Always`, `IfNotPresent`, `Never`
+- ✅ **`handler`**, **`image`**, **`pythonExecutable`**: `minLength: 1`
+- ✅ **`replicas`**: `minimum: 1`
+- ⚠️ **`volumes`**, **`tolerations`**, **`volumeMounts`**, **`nodeSelector`**, **`resources`**: use `x-kubernetes-preserve-unknown-fields: true` — any object shape is accepted at XRD schema level; validation of these fields happens when Kubernetes validates the rendered Deployment
 
 ## Comparison with asya-operator
 
@@ -262,7 +246,7 @@ The XRD includes CEL (Common Expression Language) validations enforced at admiss
 |---------|---------------|-----------------|
 | Queue Management | Operator creates queues via SDK | Crossplane AWS Provider |
 | Deployment | Operator creates Deployment | Crossplane Kubernetes Provider |
-| Sidecar Injection | Operator injects directly | Injector webhook via labels |
+| Sidecar Injection | Operator injects directly | Crossplane composition renders inline |
 | CEL Validation | In operator code | In XRD schema |
 | Credential Management | Operator copies secrets | IRSA via ServiceAccount annotations |
 | Status Model | Operator calculates status | Composition aggregates status |

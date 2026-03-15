@@ -12,20 +12,12 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     pollingInterval: 5
     cooldownPeriod: 30
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.empty_response_handler
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.empty_response_handler

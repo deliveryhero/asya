@@ -13,7 +13,7 @@ import logging
 import subprocess
 import time
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 
 logger = logging.getLogger(__name__)

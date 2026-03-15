@@ -9,7 +9,7 @@ spec:
   actor: test-timeout-cold
   transport: {{ .Values.transport }}
   {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
-  overlays:
+  flavors:
   - asya-test-actor
 
   resiliency:
@@ -17,20 +17,12 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 5
+    minReplicaCount: 0
+    maxReplicaCount: 5
     pollingInterval: 5
     cooldownPeriod: 60
     queueLength: 1
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.timeout_handler
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.timeout_handler

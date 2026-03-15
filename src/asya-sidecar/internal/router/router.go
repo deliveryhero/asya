@@ -144,6 +144,24 @@ func (r *Router) shouldReportFinalToGateway(msg *envelopes.Envelope) bool {
 	return true
 }
 
+// isMeshStatusEnabled returns true when gateway mesh-status reporting is active for this envelope.
+// Returns false when:
+//   - no progressReporter is configured (no gateway URL)
+//   - envelope header x-asya-mesh-status is "off" (explicit stealth mode)
+//   - envelope has no ID (no correlation context)
+func (r *Router) isMeshStatusEnabled(msg *envelopes.Envelope) bool {
+	if r.progressReporter == nil {
+		return false
+	}
+	if v, ok := msg.Headers[envelopes.HeaderMeshStatus]; ok {
+		if s, ok := v.(string); ok && s == envelopes.MeshStatusOff {
+			slog.Debug("Skipping mesh status reporting: x-asya-mesh-status=off", "id", msg.ID)
+			return false
+		}
+	}
+	return msg.ID != ""
+}
+
 // processEndActorEnvelope handles envelope processing for end actors (x-sink, x-sump)
 // End actors are terminal nodes that:
 // - Accept envelopes with ANY route state (no validation)
@@ -187,7 +205,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 			slog.Error("End actor runtime timeout exceeded - crashing pod to recover",
 				"timeout", r.cfg.Timeout, "message", msg.ID)
 
-			if r.progressReporter != nil {
+			if r.isMeshStatusEnabled(&msg) {
 				errorCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 				defer cancel()
 				_ = r.progressReporter.ReportFinalError(errorCtx, msg.ID, "Runtime timeout exceeded")
@@ -212,7 +230,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 	}
 
 	// Report final status to gateway if configured and envelope is terminal/not a fan-out child.
-	if r.progressReporter != nil && r.shouldReportFinalToGateway(&msg) {
+	if r.isMeshStatusEnabled(&msg) && r.shouldReportFinalToGateway(&msg) {
 		if err := r.reportFinalStatusWithMessage(ctx, &msg, resultPayload, runtimeDuration); err != nil {
 			slog.Warn("Failed to report final status to gateway", "id", msg.ID, "error", err)
 		}
@@ -567,7 +585,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 	// - Via ABI: user handler yields SET ".route.next" with new actors
 	outputRoute := response.Route
 
-	if index == 0 && r.progressReporter != nil {
+	if index == 0 && r.isMeshStatusEnabled(msg) {
 		durationMs := runtimeDuration.Milliseconds()
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:       outputRoute.Prev,
@@ -586,7 +604,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 		parentID = &msg.ID
 		slog.Debug("Fan-out: generated unique message ID", "original", msg.ID, "fanout", msgID, "index", index)
 
-		if r.progressReporter != nil {
+		if r.isMeshStatusEnabled(msg) {
 			if err := r.createFanoutMessage(ctx, msgID, *parentID, outputRoute); err != nil {
 				slog.Warn("Failed to create fanout message in gateway", "id", msgID, "error", err)
 			}
@@ -628,7 +646,7 @@ func (r *Router) handleSuccessResponse(ctx context.Context, msg *envelopes.Envel
 			}
 		}
 
-		if r.progressReporter != nil {
+		if r.isMeshStatusEnabled(msg) {
 			_ = r.progressReporter.ReportProgress(ctx, msgID, progress.ProgressUpdate{
 				Prev:          outputRoute.Prev,
 				Curr:          outputRoute.Curr,
@@ -698,7 +716,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return r.processEndActorEnvelope(ctx, *msg, queueMsg.Body, startTime)
 	}
 
-	if r.progressReporter != nil {
+	if r.isMeshStatusEnabled(msg) {
 		msgSizeKB := float64(len(queueMsg.Body)) / 1024.0
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:          msg.Route.Prev,
@@ -732,7 +750,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 			"route_actor", currentActor, "this_actor", r.cfg.ActorName, "id", msg.ID)
 	}
 
-	if r.progressReporter != nil {
+	if r.isMeshStatusEnabled(msg) {
 		_ = r.progressReporter.ReportProgress(ctx, msg.ID, progress.ProgressUpdate{
 			Prev:    msg.Route.Prev,
 			Curr:    msg.Route.Curr,
@@ -752,7 +770,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	// Build callback that forwards FLY events to gateway
 	var onUpstream func(json.RawMessage)
-	if r.progressReporter != nil {
+	if r.isMeshStatusEnabled(msg) {
 		onUpstream = func(payload json.RawMessage) {
 			if err := r.progressReporter.ForwardFly(ctx, msg.ID, payload); err != nil {
 				slog.Warn("Failed to forward FLY event", "id", msg.ID, "error", err)
@@ -1049,7 +1067,7 @@ func (r *Router) handleSLAExpiry(ctx context.Context, msg envelopes.Envelope, st
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
 
-	if r.progressReporter != nil {
+	if r.isMeshStatusEnabled(&msg) {
 		reportCtx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 		defer cancel()
 		_ = r.progressReporter.ReportFinalError(reportCtx, msg.ID, "SLA deadline expired")

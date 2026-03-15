@@ -145,16 +145,16 @@ Run:
 make -C testing/integration/gateway-actors test-one ASYA_TRANSPORT=pubsub ASYA_STORAGE=gcs
 ```
 
-The GCS profile requires an overlay (`compose/crew-gcs-overlay.yml`) that
+The GCS profile requires an flavor (`compose/crew-gcs-flavor.yml`) that
 configures the x-sink crew actor to use the GCS connector instead of the default
-S3 connector. This overlay is added automatically when `ASYA_STORAGE=gcs`.
+S3 connector. This flavor is added automatically when `ASYA_STORAGE=gcs`.
 
 ## E2E Tests: Kind Cluster
 
 **Location**: `testing/e2e/`
 
-Full Kubernetes deployment with Crossplane, the injector, gateway, KEDA, and crew
-actors. Transport is selected at the profile level.
+Full Kubernetes deployment with Crossplane, gateway, KEDA, and crew actors.
+Transport is selected at the profile level.
 
 Active profiles in CI:
 
@@ -234,16 +234,16 @@ input (XAsyncActor)
   → render-queue                 # creates the queue/topic managed resource
   → render-sa                    # creates ServiceAccount (IRSA/workload identity)
   → fetch-environment-configs    # reads EnvironmentConfigs by label selector
-  → function-asya-overlays       # merges overlays → context["asya/resolved-spec"]
-  → render-scaledobject          # reads context["asya/resolved-spec"] for KEDA
-  → render-deployment            # reads context["asya/resolved-spec"] for containers
+  → function-asya-flavors       # merges flavors → writes resolved spec to desired XR
+  → render-scaledobject          # reads $xr.spec.scaling for KEDA
+  → render-deployment            # reads flat spec fields: $xr.spec.image, $xr.spec.handler, $xr.spec.env, $xr.spec.resources, etc.
   → function-auto-ready          # sets READY condition
 ```
 
-**Bug pattern to avoid**: All three steps that touch overlay data must agree on
-the context key. `function-asya-overlays` writes `"asya/resolved-spec"`.
-Using `"asya.sh/resolved-spec"` in a downstream step silently drops all overlay
-data — `$resolvedSpec` is always empty. This was the root cause of #258.
+**How flavors are consumed**: `function-asya-flavors` writes the resolved spec
+directly onto the XR's desired state. Downstream steps read from
+`$xr.spec.*` (with a fallback to `.desired.composite.resource` in templates).
+No context key is used.
 
 ### Pub/Sub emulator: non-obvious wiring
 
@@ -265,9 +265,9 @@ this:
 
 ### `gcpProject` requirement in AsyncActor manifests
 
-The injector sets `ASYA_PUBSUB_PROJECT_ID` on sidecar containers only if the
-AsyncActor spec has a non-empty `gcpProject` field. Without it, the sidecar calls
-`pubsub.NewClient(ctx, "", ...)` and crashes immediately with
+The Crossplane composition sets `ASYA_PUBSUB_PROJECT_ID` on sidecar containers
+only if the AsyncActor spec has a non-empty `gcpProject` field. Without it, the
+sidecar calls `pubsub.NewClient(ctx, "", ...)` and crashes immediately with
 `"projectID string is empty"`.
 
 Every inline AsyncActor manifest in tests must include `gcpProject` for Pub/Sub.
@@ -336,10 +336,10 @@ timeouts — emulator gRPC pull latency is ~2x higher than SQS long-polling.
 - Add `extraPortMappings` entry in `kind-config.yaml` (shared; unused ports fine)
 - Add `profiles/<transport>-<storage>.yaml` (Helm values) and
   `profiles/.env.<transport>-<storage>` (pytest env vars using `127.0.0.1:<nodePort>`)
-- Add Crossplane composition `composition-<transport>.yaml` — use
-  `"asya/resolved-spec"` (not `"asya.sh/resolved-spec"`) in all steps that read
-  overlay data; select the correct KEDA trigger type
-- Wire the injector to set transport-specific env vars on sidecar containers
+- Add Crossplane composition `composition-<transport>.yaml` — downstream
+  steps read from `$xr.spec.*` (desired XR); select the correct KEDA
+  trigger type
+- Wire the Crossplane composition to set transport-specific env vars on sidecar containers
 - Grep existing tests for `ASYA_TRANSPORT` and `transport == "sqs"` — add new
   transport branches or skip conditions as needed
 - Add the new profile to the `e2e-tests` matrix in `.github/workflows/ci.yml`

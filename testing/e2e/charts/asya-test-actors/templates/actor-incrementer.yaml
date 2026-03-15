@@ -9,27 +9,20 @@ spec:
   actor: test-incrementer
   transport: {{ .Values.transport }}
   {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
-  overlays:
+  flavors:
   - asya-test-actor
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 10
+    minReplicaCount: 1
+    maxReplicaCount: 10
     pollingInterval: 5
     cooldownPeriod: 30
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.handlers.payload.pipeline_incrementer
-          - name: ASYA_INCLUDE_ROUTE_INFO
-            value: 'true'
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.pipeline_incrementer
+  env:
+  - name: ASYA_INCLUDE_ROUTE_INFO
+    value: 'true'

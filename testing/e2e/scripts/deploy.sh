@@ -108,14 +108,9 @@ time {
   "$ROOT_DIR/src/build-images.sh" asya-gateway asya-sidecar asya-crew asya-testing &
   BUILD_PID=$!
 
-  # Build injector image separately (not in build-images.sh registry)
-  echo "[.] Building asya-injector image..."
-  docker build -t "${IMAGE_PREFIX}asya-injector:latest" "$ROOT_DIR/src/asya-injector/" > /dev/null 2>&1 &
-  INJECTOR_BUILD_PID=$!
-
   # Build Crossplane function image (will be pushed to local registry in Phase 3)
-  echo "[.] Building function-asya-overlays image..."
-  docker build -t "function-asya-overlays:latest" "$ROOT_DIR/src/function-asya-overlays/" > /dev/null 2>&1 &
+  echo "[.] Building function-asya-flavors image..."
+  docker build -t "function-asya-flavors:latest" "$ROOT_DIR/src/function-asya-flavors/" > /dev/null 2>&1 &
   FUNCTION_BUILD_PID=$!
 
   # Build state-proxy connector image for the active profile
@@ -140,17 +135,11 @@ time {
   fi
   echo "[+] Framework Docker images built"
 
-  if ! wait "$INJECTOR_BUILD_PID"; then
-    echo "[-] Injector image build failed"
-    exit 1
-  fi
-  echo "[+] Injector image built"
-
   if ! wait "$FUNCTION_BUILD_PID"; then
-    echo "[-] function-asya-overlays build failed"
+    echo "[-] function-asya-flavors build failed"
     exit 1
   fi
-  echo "[+] function-asya-overlays image built"
+  echo "[+] function-asya-flavors image built"
 
   if [[ -n "${STATE_PROXY_BUILD_PID:-}" ]]; then
     if ! wait "$STATE_PROXY_BUILD_PID"; then
@@ -172,28 +161,25 @@ time {
 }
 echo
 
-# Phase 2: Install cluster-level infrastructure (cert-manager + Crossplane core)
+# Phase 2: Install cluster-level infrastructure (Crossplane core)
 echo "[.] Phase 2: Installing cluster-level infrastructure..."
 time {
-  echo "[.] Installing cert-manager..."
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.5/cert-manager.yaml > /dev/null 2>&1
-
   echo "[.] Installing Crossplane core..."
   helm repo add crossplane-stable https://charts.crossplane.io/stable --force-update > /dev/null 2>&1
   helm repo update crossplane-stable > /dev/null 2>&1
   helm upgrade --install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace \
+    --set 'args={--max-reconcile-rate=50,--poll-interval=10s}' \
+    --set resourcesCrossplane.limits.cpu=2000m \
+    --set resourcesCrossplane.limits.memory=2Gi \
+    --set resourcesCrossplane.requests.cpu=500m \
     --wait --timeout 5m > /dev/null 2>&1
-
-  echo "[.] Waiting for cert-manager webhooks..."
-  kubectl wait --for=condition=available deployment/cert-manager-webhook \
-    -n cert-manager --timeout=3m > /dev/null 2>&1
 
   echo "[.] Waiting for Crossplane pods..."
   kubectl wait --for=condition=available deployment/crossplane \
     -n crossplane-system --timeout=3m > /dev/null 2>&1
 
-  echo "[+] cert-manager and Crossplane core installed"
+  echo "[+] Crossplane core installed"
 }
 echo
 
@@ -202,11 +188,11 @@ echo
 # Container images (sidecar, gateway, crew, etc.) are loaded via `kind load docker-image`
 # into containerd's image store. Kubelet uses these with `imagePullPolicy: Never`.
 #
-# Crossplane Function packages (function-asya-overlays) use Crossplane's own OCI puller,
+# Crossplane Function packages (function-asya-flavors) use Crossplane's own OCI puller,
 # NOT containerd — `kind load` does NOT work for them. We run a local OCI registry
 # (registry:2), push freshly-built function images to it, and point the Crossplane
 # Function CRD at the registry's cluster-internal IP. This lets E2E tests run on the
-# same function-asya-overlays code that was just built, matching how other images work.
+# same function-asya-flavors code that was just built, matching how other images work.
 #
 # Crossplane's OCI client (go-containerregistry) uses HTTPS by default. A plain HTTP
 # registry at a private IP fails silently. We generate a self-signed TLS cert so the
@@ -214,7 +200,7 @@ echo
 # Crossplane via registryCaBundleConfig to trust the CA for pull.
 REGISTRY_NAME="${REGISTRY_NAME:-asya-e2e-registry}"
 REGISTRY_HOST_PORT=5001
-OVERLAYS_REPOSITORY=""
+FLAVORS_REPOSITORY=""
 REGISTRY_CERTS_DIR=$(mktemp -d)
 
 echo "[.] Phase 3: Loading images into Kind cluster..."
@@ -224,7 +210,6 @@ time {
     "asya-sidecar:latest"
     "asya-crew:latest"
     "asya-testing:latest"
-    "asya-injector:latest"
   )
 
   if [[ "$PROFILE" == "sqs-s3" ]]; then
@@ -333,9 +318,9 @@ TOML'
   echo "[+] containerd CA trust configured on Kind nodes"
 
   # Push function image to the TLS registry
-  docker tag "function-asya-overlays:latest" \
-    "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest"
-  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-overlays:latest" > /dev/null
+  docker tag "function-asya-flavors:latest" \
+    "localhost:${REGISTRY_HOST_PORT}/function-asya-flavors:latest"
+  docker push "localhost:${REGISTRY_HOST_PORT}/function-asya-flavors:latest" > /dev/null
 
   # Create ConfigMap with CA cert so Crossplane trusts the registry
   kubectl create configmap local-registry-ca \
@@ -349,9 +334,9 @@ TOML'
     --set "registryCaBundleConfig.key=ca-certificates.crt" \
     --wait --timeout 60s > /dev/null
 
-  OVERLAYS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-overlays"
+  FLAVORS_REPOSITORY="${REGISTRY_IP}:5000/function-asya-flavors"
   echo "[+] Local OCI registry (TLS) at ${REGISTRY_IP}:5000"
-  echo "[+] Function repository: ${OVERLAYS_REPOSITORY}"
+  echo "[+] Function repository: ${FLAVORS_REPOSITORY}"
 
   # Wait for all kind load operations
   LOAD_FAILED=false
@@ -477,9 +462,6 @@ time {
     echo "=== Crossplane Provider Logs ==="
     kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 --all-containers=true || true
     echo ""
-    echo "=== Injector Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=50 || true
-    echo ""
     echo "=== Migration Job Logs ==="
     kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/component=migration --tail=50 || true
     exit 1
@@ -488,18 +470,18 @@ time {
 }
 echo
 
-# Point function-asya-overlays at the local OCI registry.
+# Point function-asya-flavors at the local OCI registry.
 # Phase 5 created the Function CRD with the default ghcr.io URL; this upgrade
 # rewrites the package field so Crossplane pulls from our local registry instead.
-if [ -n "$OVERLAYS_REPOSITORY" ]; then
-  echo "[.] Pointing function-asya-overlays at local registry..."
+if [ -n "$FLAVORS_REPOSITORY" ]; then
+  echo "[.] Pointing function-asya-flavors at local registry..."
   helm upgrade asya-crossplane ../../../deploy/helm-charts/asya-crossplane \
     -n asya-system --reuse-values \
-    --set "functions.overlaysRepository=${OVERLAYS_REPOSITORY}" \
-    --set "functions.overlaysVersion=latest" \
-    --set "functions.overlaysPackagePullPolicy=Always" \
+    --set "functions.flavorsRepository=${FLAVORS_REPOSITORY}" \
+    --set "functions.flavorsVersion=latest" \
+    --set "functions.flavorsPackagePullPolicy=Always" \
     --wait --timeout 60s > /dev/null
-  echo "[+] Function CRD updated: ${OVERLAYS_REPOSITORY}:latest"
+  echo "[+] Function CRD updated: ${FLAVORS_REPOSITORY}:latest"
 fi
 echo
 
@@ -535,40 +517,6 @@ time {
 }
 echo
 
-# Phase 6c: Wait for asya-injector webhook TLS to be ready
-# cert-manager's cainjector asynchronously injects the CA bundle into the
-# MutatingWebhookConfiguration after the Certificate is issued. Without this
-# wait, AsyncActor creation in Phase 7 fails with "x509: certificate signed
-# by unknown authority" because the API server hasn't received the CA bundle yet.
-echo "[.] Phase 6c: Waiting for asya-injector webhook TLS..."
-time {
-  echo "[.] Waiting for Certificate to be issued..."
-  if ! kubectl wait --for=condition=Ready certificate/asya-injector-tls \
-    -n "$SYSTEM_NAMESPACE" --timeout=120s 2> /dev/null; then
-    echo "[-] Certificate not ready after 120s"
-    kubectl get certificate -n "$SYSTEM_NAMESPACE" || true
-    exit 1
-  fi
-  echo "[+] Certificate issued"
-
-  echo "[.] Waiting for CA bundle injection into webhook..."
-  for i in $(seq 1 30); do
-    CA_BUNDLE=$(kubectl get mutatingwebhookconfiguration asya-injector \
-      -o jsonpath='{.webhooks[0].clientConfig.caBundle}' 2> /dev/null)
-    if [ -n "$CA_BUNDLE" ]; then
-      echo "[+] CA bundle injected into MutatingWebhookConfiguration"
-      break
-    fi
-    if [ "$i" -eq 30 ]; then
-      echo "[-] Timeout waiting for CA bundle injection (60s)"
-      kubectl get mutatingwebhookconfiguration asya-injector -o yaml || true
-      exit 1
-    fi
-    sleep 2 # Poll for cainjector to update the webhook config
-  done
-}
-echo
-
 # Phase 7: Deploy application layer with Helmfile (test actors + system actors)
 echo "[.] Phase 7: Deploying application layer (actors)..."
 time {
@@ -585,9 +533,6 @@ time {
     echo "=== Crossplane Provider Logs ==="
     kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=100 --all-containers=true || true
     echo ""
-    echo "=== Injector Logs ==="
-    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=100 || true
-    echo ""
     echo "=== Failed Actor Pods (if any) ==="
     kubectl describe pods -n "$NAMESPACE" -l app.kubernetes.io/component=actor | grep -A 20 "State.*Waiting\|State.*Terminated" || true
     exit 1
@@ -596,14 +541,69 @@ time {
 }
 echo
 
+# Phase 7b: Stagger XR reconciliation to break backoff synchronization
+#
+# All actors are created simultaneously by Helm, so their poll timers all
+# start at t=0. Without staggering, every 10s poll fires for all 40+ actors
+# at once. Each annotation triggers an immediate reconcile which resets the
+# actor's poll timer to (annotation_time + poll-interval), spreading them
+# across different poll windows. 1s sleep between actors × 40 actors = 40s
+# of spread — more than enough to desynchronize the 10s poll cycles.
+echo "[.] Phase 7b: Staggering actor reconciliation..."
+time {
+  # Allow Crossplane a moment to create XRs from the claims we just deployed
+  sleep 5
+
+  STAGGER_COUNT=0
+  while IFS= read -r xr; do
+    [ -z "$xr" ] && continue
+    kubectl annotate "$xr" "asya.sh/stagger=$(date +%s%N)" \
+      --overwrite > /dev/null 2>&1
+    sleep 1
+    STAGGER_COUNT=$((STAGGER_COUNT + 1))
+  done < <(kubectl get xasyncactors \
+    -l "crossplane.io/claim-namespace=$NAMESPACE" \
+    --no-headers -o name 2> /dev/null | sort)
+
+  echo "[+] Staggered $STAGGER_COUNT actor XRs (1s apart)"
+}
+echo
+
 # Phase 8: Wait for Crossplane to reconcile all AsyncActor claims
 echo "[.] Phase 8: Waiting for Crossplane to reconcile AsyncActor claims..."
 time {
   if ! kubectl wait --for=condition=Ready asyncactor --all \
-    -n "$NAMESPACE" --timeout=120s; then
+    -n "$NAMESPACE" --timeout=600s; then
     echo "[!] Warning: Not all AsyncActors reconciled"
     echo "[.] Current AsyncActor status:"
     kubectl get asyncactors -n "$NAMESPACE"
+    echo "[.] Checking Crossplane composed Object resources (provider-kubernetes):"
+    kubectl get objects.kubernetes.crossplane.io -A 2> /dev/null || echo "  (no Object resources found or CRD not installed)"
+    echo "[.] Checking Deployments in $NAMESPACE:"
+    kubectl get deployments -n "$NAMESPACE" 2> /dev/null || echo "  (no Deployments found)"
+    echo "[.] XR (composite resource) status for all AsyncActors:"
+    kubectl get xasyncactors -A 2> /dev/null || echo "  (no XAsyncActor resources found)"
+    echo "[.] Conditions on test-echo XR (composite resource, not claim):"
+    kubectl describe xasyncactors -A 2> /dev/null | grep -A 5 "test-echo" | head -20 || true
+    echo "[.] SQS Queue managed resources:"
+    kubectl get queues.sqs.aws.upbound.io -A 2> /dev/null || echo "  (no SQS Queue resources found or CRD not installed)"
+    echo "[.] GCP PubSub managed resources:"
+    kubectl get topics.pubsub.gcp.upbound.io -A 2> /dev/null || true
+    kubectl get subscriptions.pubsub.gcp.upbound.io -A 2> /dev/null || true
+    echo "[.] function-asya-flavors pod status and logs:"
+    kubectl get pods -n crossplane-system -l pkg.crossplane.io/function=function-asya-flavors 2> /dev/null || true
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/function=function-asya-flavors --tail=100 2> /dev/null || echo "  (could not retrieve function-asya-flavors logs)"
+    echo "[.] Crossplane manager logs (errors for stuck actors):"
+    kubectl logs -n crossplane-system -l app=crossplane --tail=200 2> /dev/null | grep -i "error\|fail\|panic\|timeout\|test-echo" | head -30 || true
+    echo "[.] EnvironmentConfigs:"
+    kubectl get environmentconfigs -A 2> /dev/null || echo "  (no EnvironmentConfigs found)"
+    echo "[.] Conditions on test-echo AsyncActor claim:"
+    kubectl describe asyncactor test-echo -n "$NAMESPACE" 2> /dev/null | grep -A 30 "Conditions:" | head -35 || true
+    echo "[.] provider-kubernetes pod logs (last 50 lines):"
+    kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 2> /dev/null ||
+      echo "  (could not retrieve provider-kubernetes logs)"
+    echo "[.] Crossplane manager events in $NAMESPACE:"
+    kubectl get events -n "$NAMESPACE" --sort-by='.lastTimestamp' 2> /dev/null | tail -20 || true
   else
     TOTAL_ACTORS=$(kubectl get asyncactors -n "$NAMESPACE" --no-headers 2> /dev/null | wc -l)
     echo "[+] All $TOTAL_ACTORS AsyncActors reconciled (condition=Ready)"
@@ -729,10 +729,6 @@ echo
 LOGS_DIR="$SCRIPT_DIR/../.logs"
 mkdir -p "$LOGS_DIR"
 
-INJECTOR_LOGS="$LOGS_DIR/injector-$(date +%Y%m%d-%H%M%S).log"
-echo "[.] Saving injector logs to: $INJECTOR_LOGS"
-kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-injector --tail=1000 > "$INJECTOR_LOGS" 2>&1 || true
-
 CROSSPLANE_LOGS="$LOGS_DIR/crossplane-$(date +%Y%m%d-%H%M%S).log"
 echo "[.] Saving Crossplane provider logs to: $CROSSPLANE_LOGS"
 kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=1000 --all-containers=true > "$CROSSPLANE_LOGS" 2>&1 || true
@@ -741,7 +737,6 @@ echo "[+] Logs saved"
 echo
 
 echo "=== Deployment Complete (Crossplane) ==="
-echo "Injector logs saved to: $INJECTOR_LOGS"
 echo "Crossplane logs saved to: $CROSSPLANE_LOGS"
 echo ""
 echo "Next steps (from the current directory):"

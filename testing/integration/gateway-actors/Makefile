@@ -29,9 +29,9 @@ export PYTEST_OPTS
 
 COMPOSE_FILES := -f profiles/$(ASYA_TRANSPORT)-$(ASYA_STORAGE).yml
 
-# Add state proxy overlay for GCS storage
+# Add state proxy flavor for GCS storage
 ifeq ($(ASYA_STORAGE),gcs)
-COMPOSE_FILES += -f compose/crew-gcs-overlay.yml
+COMPOSE_FILES += -f compose/crew-gcs-flavor.yml
 endif
 
 COMPOSE_PROJECT := int-gateway-actors-$(ASYA_TRANSPORT)-$(ASYA_STORAGE)

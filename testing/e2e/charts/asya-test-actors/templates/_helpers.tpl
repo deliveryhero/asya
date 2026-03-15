@@ -25,10 +25,11 @@ helm.sh/chart: {{ include "asya-test-actors.chart" . }}
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+Extra spec fields injected into every AsyncActor CR.
+Ensures Crossplane selects the correct composition for the configured transport.
 */}}
 {{- define "asya-test-actors.pubsub-spec" -}}
-{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
+compositionSelector:
+  matchLabels:
+    asya.sh/transport: {{ .Values.transport }}
 {{- end }}

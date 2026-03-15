@@ -210,30 +210,27 @@ Resolve image pull policy for DLQ worker
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when gcpProject is set.
+Pub/Sub spec fields (no-op, gcpProject removed from XRD).
 */}}
 {{- define "asya-crew.pubsub-spec" -}}
-{{- if .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
 {{- end }}
 
 {{/*
-Persistence overlay name
+Persistence flavor name
 */}}
-{{- define "asya-crew.persistence.overlayName" -}}
+{{- define "asya-crew.persistence.flavorName" -}}
 {{- printf "%s-persistence-%s" .Release.Name .Values.persistence.backend }}
 {{- end }}
 
 {{/*
-Persistence overlay labels
+Persistence flavor labels
 */}}
 {{- define "asya-crew.persistence.labels" -}}
 helm.sh/chart: {{ include "asya-crew.chart" . }}
 {{- end }}
 
 {{/*
-Persistence stateProxy spec (inline on AsyncActor, bypasses EnvironmentConfig overlay)
+Persistence stateProxy spec (inline on AsyncActor, read by Crossplane composition from XR spec)
 Call with bucket name override via dict: include "asya-crew.persistence.stateProxy" (dict "Values" .Values "bucket" "my-bucket")
 If "bucket" key is absent, falls back to .Values.persistence.config.bucket.
 */}}

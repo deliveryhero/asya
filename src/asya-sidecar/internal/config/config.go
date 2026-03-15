@@ -28,6 +28,9 @@ type Config struct {
 	PubSubProjectID string
 	PubSubEndpoint  string
 
+	// Socket transport configuration (local Docker Compose testing only)
+	MeshDir string
+
 	// Runtime communication
 	SocketPath string
 	Timeout    time.Duration
@@ -136,6 +139,9 @@ func LoadFromEnv() (*Config, error) {
 		// Pub/Sub configuration
 		PubSubProjectID: getEnv("ASYA_PUBSUB_PROJECT_ID", ""),
 		PubSubEndpoint:  getEnv("ASYA_PUBSUB_ENDPOINT", ""),
+
+		// Socket transport configuration (local Docker Compose testing only)
+		MeshDir: getEnv("ASYA_SOCKET_MESH_DIR", "/var/run/asya/mesh"),
 
 		// Runtime communication - hard-coded, managed by operator
 		// ASYA_SOCKET_DIR is for internal testing only - DO NOT set in production

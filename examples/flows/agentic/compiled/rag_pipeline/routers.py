@@ -16,21 +16,21 @@ _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_rag_pipeline(payload: dict):
+async def start_rag_pipeline(payload: dict):
     """Entrypoint for flow 'rag_pipeline'"""
     _next = []
-    state = payload
-    state['retrieval_attempts'] = 0
+    p = payload
+    p['retrieval_attempts'] = 0
     _next.append(resolve("query_analyzer"))
     _next.append(resolve("router_rag_pipeline_line_52_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
-    yield state
+    yield p
 
-def router_rag_pipeline_line_66_if(payload: dict):
+async def router_rag_pipeline_line_66_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state['retrieval_attempts'] >= 3:
+    if p['retrieval_attempts'] >= 3:
         _next.append(resolve("generator"))
         _next.append(resolve("fact_checker"))
     else:
@@ -39,11 +39,11 @@ def router_rag_pipeline_line_66_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_62_if(payload: dict):
+async def router_rag_pipeline_line_62_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('is_sufficient'):
+    if p.get('is_sufficient'):
         _next.append(resolve("generator"))
         _next.append(resolve("fact_checker"))
     else:
@@ -52,11 +52,11 @@ def router_rag_pipeline_line_62_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_53_seq(payload: dict):
+async def router_rag_pipeline_line_53_seq(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    state['retrieval_attempts'] += 1
+    p['retrieval_attempts'] += 1
     _next.append(resolve("retriever"))
     _next.append(resolve("relevance_evaluator"))
     _next.append(resolve("router_rag_pipeline_line_62_if"))
@@ -64,9 +64,9 @@ def router_rag_pipeline_line_53_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_rag_pipeline_line_52_loop_back_0(payload: dict):
+async def router_rag_pipeline_line_52_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
-    state = payload
+    p = payload
     _next = []
     _self = resolve("router_rag_pipeline_line_52_loop_back_0")
     _prev = yield "GET", ".route.prev"
@@ -79,7 +79,7 @@ def router_rag_pipeline_line_52_loop_back_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_rag_pipeline(payload: dict):
+async def end_rag_pipeline(payload: dict):
     """Exitpoint for flow 'rag_pipeline'"""
     yield "SET", ".route.next", []
     yield payload

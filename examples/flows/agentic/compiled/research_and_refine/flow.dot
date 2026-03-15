@@ -4,26 +4,26 @@ digraph flow {
   node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
   edge [fontname="Courier", fontsize=10];
 
-  start_research_and_refine [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await start_research_and_refine(state)</i></td></tr><tr><td bgcolor="white" align="left">state['iteration'] = 0</td></tr><tr><td bgcolor="white" align="left">state['search_query'] = state.get('question', '')</td></tr></table>>];
-  router_research_and_refine_line_59_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_research_and_refine_l…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> state['iteration'] &gt;= 5</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_research_and_refine_line_52_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_research_and_refine_l…(state)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not state.get('gaps') or state.get('q…e', 0) &gt;= 85</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_research_and_refine_line_43_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_research_and_refine_l…(state)</i></td></tr><tr><td bgcolor="white" align="left">state['iteration'] += 1</td></tr></table>>];
-  router_research_and_refine_line_42_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await router_research_and_refine_l…(state)</i></td></tr></table>>];
-  end_research_and_refine [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await end_research_and_refine(state)</i></td></tr></table>>];
-  critic [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await critic(state)</i></td></tr></table>>];
-  refine_query [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await refine_query(state)</i></td></tr></table>>];
-  researcher [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await researcher(state)</i></td></tr></table>>];
-  write_report [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>state = await write_report(state)</i></td></tr></table>>];
+  start_research_and_refine [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_research_and_refine(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr><tr><td bgcolor="white" align="left">p['search_query'] = p.get('question', '')</td></tr></table>>];
+  router_research_and_refine_line_55_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_research_and_refine_line_55_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &gt;= 5</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
+  router_research_and_refine_line_51_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_research_and_refine_line_51_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not p.get('gaps') or p.get('quality_s…e', 0) &gt;= 85</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_research_and_refine_line_47_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_research_and_refine_line_47_s…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
+  router_research_and_refine_line_46_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_research_and_refine_line_46_l…(p)</i></td></tr></table>>];
+  end_research_and_refine [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_research_and_refine(p)</i></td></tr></table>>];
+  critic [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await critic(p)</i></td></tr></table>>];
+  refine_query [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await refine_query(p)</i></td></tr></table>>];
+  researcher [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await researcher(p)</i></td></tr></table>>];
+  write_report [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await write_report(p)</i></td></tr></table>>];
 
-  critic -> router_research_and_refine_line_52_if;
-  refine_query -> router_research_and_refine_line_59_if;
+  critic -> router_research_and_refine_line_51_if;
+  refine_query -> router_research_and_refine_line_55_if;
   researcher -> critic;
-  router_research_and_refine_line_42_loop_back_0 -> router_research_and_refine_line_43_seq [constraint=false];
-  router_research_and_refine_line_43_seq -> researcher;
-  router_research_and_refine_line_52_if -> refine_query [label="F", color=indianred4];
-  router_research_and_refine_line_52_if -> write_report [label="T", color=darkseagreen4];
-  router_research_and_refine_line_59_if -> router_research_and_refine_line_42_loop_back_0 [label="F", color=indianred4];
-  router_research_and_refine_line_59_if -> write_report [label="T", color=darkseagreen4];
-  start_research_and_refine -> router_research_and_refine_line_42_loop_back_0;
+  router_research_and_refine_line_46_loop_back_0 -> router_research_and_refine_line_47_seq [constraint=false];
+  router_research_and_refine_line_47_seq -> researcher;
+  router_research_and_refine_line_51_if -> refine_query [label="F", color=indianred4];
+  router_research_and_refine_line_51_if -> write_report [label="T", color=darkseagreen4];
+  router_research_and_refine_line_55_if -> router_research_and_refine_line_46_loop_back_0 [label="F", color=indianred4];
+  router_research_and_refine_line_55_if -> write_report [label="T", color=darkseagreen4];
+  start_research_and_refine -> router_research_and_refine_line_46_loop_back_0;
   write_report -> end_research_and_refine;
 }

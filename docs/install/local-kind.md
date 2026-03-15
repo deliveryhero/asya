@@ -31,7 +31,7 @@ make up PROFILE=sqs-s3
 - RabbitMQ or LocalStack SQS
 - MinIO or LocalStack S3
 - PostgreSQL (for gateway)
-- Asya injector webhook, gateway, crew actors, and test actors
+- Asya gateway, crew actors, and test actors
 
 **See**: `testing/e2e/README.md` for details.
 
@@ -103,10 +103,6 @@ helm install crossplane crossplane-stable/crossplane \
 # Install Asya Crossplane chart
 helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -n crossplane-system
-
-# Install Asya Injector webhook
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
 ```
 
 ### 7. Install Gateway
@@ -142,30 +138,14 @@ cat > crew-values.yaml <<'EOF'
 x-sink:
   enabled: true
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: rabbitmq
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 EOF
 
 helm install asya-crew deploy/helm-charts/asya-crew/ \
@@ -193,28 +173,21 @@ metadata:
 spec:
   transport: rabbitmq
   scaling:
-    minReplicas: 0
-    maxReplicas: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          env:
-          - name: ASYA_HANDLER
-            value: "handler.process"
-          - name: PYTHONPATH
-            value: "/app"
-          volumeMounts:
-          - name: handler
-            mountPath: /app/handler.py
-            subPath: handler.py
-        volumes:
-        - name: handler
-          configMap:
-            name: hello-handler
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  image: python:3.13-slim
+  handler: handler.process
+  env:
+  - name: PYTHONPATH
+    value: "/app"
+  volumeMounts:
+  - name: handler
+    mountPath: /app/handler.py
+    subPath: handler.py
+  volumes:
+  - name: handler
+    configMap:
+      name: hello-handler
 ```
 
 ```bash
@@ -226,8 +199,8 @@ kubectl apply -f hello-actor.yaml
 ### Via asya mcp Tool
 
 ```bash
-# Install asya-cli
-uv pip install -e ./src/asya-cli
+# Install asya-lab
+uv pip install -e ./src/asya-lab
 
 # Port-forward gateway
 kubectl port-forward -n asya-e2e svc/asya-gateway 8089:80

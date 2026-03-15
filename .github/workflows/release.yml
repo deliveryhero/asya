@@ -60,12 +60,11 @@ jobs:
         IMAGES=(
           "asya-gateway"
           "asya-sidecar"
-          "asya-injector"
           "asya-crew"
           "asya-lab"
           "asya-testing"
           "asya-ui"
-          "function-asya-overlays"
+          "function-asya-flavors"
         )
 
         for img in "${IMAGES[@]}"; do
@@ -86,12 +85,11 @@ jobs:
 
         - \`ghcr.io/${{ github.repository_owner }}/asya-gateway:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-sidecar:${{ steps.version.outputs.version }}\`
-        - \`ghcr.io/${{ github.repository_owner }}/asya-injector:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-crew:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-lab:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-testing:${{ steps.version.outputs.version }}\`
         - \`ghcr.io/${{ github.repository_owner }}/asya-ui:${{ steps.version.outputs.version }}\`
-        - \`ghcr.io/${{ github.repository_owner }}/function-asya-overlays:${{ steps.version.outputs.version }}\`
+        - \`ghcr.io/${{ github.repository_owner }}/function-asya-flavors:${{ steps.version.outputs.version }}\`
         EOF
 
         if [ "${{ github.event.release.prerelease }}" == "false" ]; then
@@ -100,6 +98,52 @@ jobs:
         All versioned images have also been tagged as \`latest\`.
         EOF
         fi
+
+  publish-pypi:
+    name: Publish asya-lab to PyPI
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.action == 'published'
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.13"
+
+    - name: Install build tools
+      run: pip install build
+
+    - name: Determine version
+      id: version
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "[.] Publishing version: ${VERSION}"
+
+    - name: Set package version
+      working-directory: src/asya-lab
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
+        echo "[.] pyproject.toml version set to: ${VERSION}"
+        grep "^version" pyproject.toml
+
+    - name: Build package
+      working-directory: src/asya-lab
+      run: python -m build
+
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: src/asya-lab/dist/
 
   reserve-image-names:
     name: Reserve placeholder image names
@@ -115,7 +159,7 @@ jobs:
         - asya-workbench
         - asya-dashboard
         - asya-webhook
-        - function-asya-overlays
+        - function-asya-flavors
 
     steps:
     - name: Log in to GitHub Container Registry

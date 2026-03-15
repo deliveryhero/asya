@@ -283,6 +283,91 @@ class SentimentActor:
 
 ---
 
+## Typed outputs and the JSON boundary
+
+Asya actors communicate through JSON-serialized envelopes. A typed Python
+object (pydantic model, dataclass) that one actor writes into `state` is
+serialized to JSON before it reaches the next actor. The next actor's handler
+receives a plain `dict`, not a typed object.
+
+This shapes two rules:
+
+**Rule 1: actors can store typed objects as outputs** — the runtime's
+`_json_default` hook serializes them automatically. No `.model_dump()` or
+`dataclasses.asdict()` needed in the adapter.
+
+**Rule 2: incoming `state` values are always plain dicts** — treat every
+value you read from `state` as a dict (or a primitive). Never use attribute
+access on an incoming state value.
+
+### Storing typed results (correct)
+
+```python
+from pydantic import BaseModel
+
+class ScoredCandidate(BaseModel):
+    text: str
+    score: float
+
+async def scorer(state: dict) -> dict:
+    # Incoming value from previous actor — it's a list of dicts, not typed objects
+    candidates = state["candidates"]
+
+    # Domain function produces typed objects
+    results = await score_all(state["query"], candidates)
+
+    # Store typed results — the runtime serializes them on forward
+    state["scores"] = results     # list[ScoredCandidate] → JSON automatically
+    return state
+```
+
+### Reading incoming typed-looking values (correct)
+
+```python
+async def ranker(state: dict) -> dict:
+    # state["scores"] is a list of plain dicts — it crossed a JSON boundary
+    # Use ["key"] access, not attribute access
+    scores = state["scores"]
+    sorted_scores = sorted(scores, key=lambda s: s["score"], reverse=True)
+    state["ranked"] = sorted_scores
+    return state
+```
+
+### Reconstructing typed objects from incoming dicts
+
+When your domain function requires typed inputs, reconstruct them inside the
+adapter using `model_validate` or direct construction:
+
+```python
+async def ranker(state: dict) -> dict:
+    # Reconstruct typed objects from the incoming dicts
+    scores = [ScoredCandidate.model_validate(s) for s in state["scores"]]
+
+    # Domain function works with typed inputs
+    ranked = rank(scores)
+
+    state["ranked"] = ranked     # ScoredCandidate list → JSON automatically
+    return state
+```
+
+### The wrong pattern
+
+```python
+async def ranker(state: dict) -> dict:
+    # WRONG: state["scores"][0] is a dict after crossing the JSON boundary
+    for s in state["scores"]:
+        print(s.score)           # AttributeError: 'dict' object has no attribute 'score'
+```
+
+### Summary of the boundary rule
+
+| Location | Type of value | Access pattern |
+|----------|--------------|----------------|
+| Output from this actor | Any Python object | Store directly — runtime serializes |
+| Input to this actor | Always `dict` / primitive | Use `["key"]` or `model_validate` |
+
+---
+
 ## Testing adapters locally
 
 Because adapters are plain Python functions, you test them with plain pytest —
@@ -409,6 +494,8 @@ in one process. The behavior is identical because adapters are pure Python.
 | Function adapter | Simple `dict → dict` transformation with typed domain types |
 | Generator adapter | Need streaming (FLY), routing control (SET), or metadata reads (GET) |
 | Class adapter | One-time initialization (model loading, connection pool) |
+| Typed outputs | Store pydantic/dataclass results in state — runtime serializes automatically |
+| Reconstruct on input | Use `Model.model_validate(state["field"])` when domain fn needs typed args |
 
 The adapter is the thin boundary between the Asya protocol and your code.
 Keep it small — ideally 5–15 lines — and put your real logic in the domain

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from asya_cli.flow import FlowCompiler
-from asya_cli.flow.errors import FlowCompileError
+from asya_lab.flow import FlowCompiler
+from asya_lab.flow.errors import FlowCompileError
 
 
 class TestCompile:

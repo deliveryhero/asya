@@ -9,21 +9,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.start_test_nested_flow
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.start_test_nested_flow
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -36,21 +28,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_4_if
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_4_if
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -63,21 +47,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_6_if
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_6_if
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -90,21 +66,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_14_if
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_14_if
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -117,21 +85,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_7_seq
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_7_seq
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -144,21 +104,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_10_seq
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_10_seq
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -171,21 +123,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_15_seq
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_15_seq
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -198,21 +142,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_18_seq
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_18_seq
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -225,21 +161,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.compiled_routers.end_test_nested_flow
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.compiled_routers.end_test_nested_flow
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -252,21 +180,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.validate_input
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.validate_input
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -279,21 +199,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.route_a_x
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.route_a_x
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -306,21 +218,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.route_a_y
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.route_a_y
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -333,21 +237,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.route_b_x
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.route_b_x
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -360,21 +256,13 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.route_b_y
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.route_b_y
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -387,18 +275,10 @@ spec:
 
   scaling:
     enabled: true
-    minReplicas: 1
-    maxReplicas: 5
+    minReplicaCount: 1
+    maxReplicaCount: 5
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: IMAGE_PLACEHOLDER
-          imagePullPolicy: IfNotPresent
-          env:
-          - name: ASYA_HANDLER
-            value: testing.e2e.flows.nested_if.flow.finalize_result
+  image: IMAGE_PLACEHOLDER
+  imagePullPolicy: IfNotPresent
+  handler: testing.e2e.flows.nested_if.flow.finalize_result

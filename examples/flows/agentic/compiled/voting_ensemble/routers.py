@@ -15,26 +15,26 @@ import copy
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_voting_ensemble(payload: dict):
+async def start_voting_ensemble(payload: dict):
     """Entrypoint for flow 'voting_ensemble'"""
     _next = []
-    _next.append(resolve("fanout_voting_ensemble_line_38"))
+    _next.append(resolve("fanout_voting_ensemble_line_40"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def fanout_voting_ensemble_line_38(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 38)"""
-    state = payload
+async def fanout_voting_ensemble_line_40(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 40)"""
+    p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_voting_ensemble_line_38")
+    _agg = resolve("fanin_voting_ensemble_line_40")
 
     _slices = []
-    _slices.append((resolve("creative_writer"), state['prompt']))
-    _slices.append((resolve("analytical_writer"), state['prompt']))
-    _slices.append((resolve("concise_writer"), state['prompt']))
+    _slices.append((resolve("creative_writer"), p['prompt']))
+    _slices.append((resolve("analytical_writer"), p['prompt']))
+    _slices.append((resolve("concise_writer"), p['prompt']))
 
     _n = len(_slices) + 1
     _fan_in = {
@@ -47,14 +47,14 @@ def fanout_voting_ensemble_line_38(payload: dict):
     # Index 0: parent payload forwarded to aggregator
     yield "SET", ".route.next", [_agg, resolve("judge")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
-    yield copy.deepcopy(state)
+    yield copy.deepcopy(p)
 
     for _i, (_actor, _payload) in enumerate(_slices):
         yield "SET", ".route.next", [_actor, _agg]
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-def end_voting_ensemble(payload: dict):
+async def end_voting_ensemble(payload: dict):
     """Exitpoint for flow 'voting_ensemble'"""
     yield "SET", ".route.next", []
     yield payload

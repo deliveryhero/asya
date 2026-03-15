@@ -70,10 +70,10 @@ The checkpointer is part of the `asya-crew` image and deployed via the
 `deploy/helm-charts/asya-crew` Helm chart. It is activated by setting
 `ASYA_PERSISTENCE_MOUNT` in the crew actor's environment.
 
-### State Proxy Overlay
+### State Proxy Flavor
 
-Persistence is wired through an `EnvironmentConfig` overlay that adds a state
-proxy sidecar to the crew actor pods. The overlay configures:
+Persistence is wired through an `EnvironmentConfig` flavor that adds a state
+proxy sidecar to the crew actor pods. The flavor configures:
 
 - `spec.stateProxy.connector.image` — backend-specific connector image
   (e.g., `asya-state-proxy-s3-buffered-lww`, `asya-state-proxy-gcs-buffered-lww`)

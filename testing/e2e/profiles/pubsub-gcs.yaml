@@ -43,7 +43,6 @@ actors:
     emulatorHost: "http://gcs-emulator.asya-system.svc.cluster.local:4443"
 
 crew:
-  gcpProject: test-project
   image:
     tag: latest
     pullPolicy: Never
@@ -65,7 +64,7 @@ crew:
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
   x-sump:
     transport: pubsub
     env:
@@ -74,7 +73,7 @@ crew:
       PUBSUB_EMULATOR_HOST: "pubsub-emulator.asya-system.svc.cluster.local:8085"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
 
 gateway:
   routes:
@@ -111,10 +110,16 @@ crossplane:
       enabled: false
     gcp:
       enabled: true
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
+    pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
+    gcpProjectId: test-project
   providerConfigs:
     install: false
   functions:
-    overlaysEnabled: true
+    flavorsEnabled: true
   gcpProviderConfig:
     name: gcp-emulator
     projectId: test-project
@@ -132,13 +137,3 @@ crossplane:
   actorNamespace: asya-e2e
   irsa:
     enabled: false
-
-injector:
-  image:
-    tag: latest
-    pullPolicy: Never
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sidecarImagePullPolicy: Never
-    pubsubEndpoint: pubsub-emulator.asya-system.svc.cluster.local:8085
-    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080

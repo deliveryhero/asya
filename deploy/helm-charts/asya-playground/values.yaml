@@ -30,7 +30,7 @@ global:
 #     --set kube-prometheus-stack.namespaceOverride=monitoring
 #
 # This deploys:
-#   - asya-demo: Crossplane, Injector, Gateway, Crew, Actors, KEDA
+#   - asya-demo: Crossplane, Gateway, Crew, Actors, KEDA
 #   - monitoring: Prometheus, Grafana, dashboards, PodMonitors
 #   - asya-infra: LocalStack SQS, S3, MinIO, PostgreSQL
 namespaces:
@@ -53,8 +53,8 @@ helloActor:
     tag: "3.13-slim"
   handler: "hello_handler.process"
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
     pollingInterval: 30
   resources:
@@ -228,15 +228,6 @@ asya-crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
-
-# Injector configuration (passed to asya-injector chart)
-# Mutating webhook that injects asya-sidecar into actor pods
-asya-injector:
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sqsEndpoint: "" # Set dynamically via helpers
-    gatewayURL: "" # Set dynamically via helpers
-    awsCredsSecret: aws-creds
 
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults
@@ -446,8 +437,8 @@ testingActors:
       memory: 128Mi
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     pollingInterval: 15
     queueLength: 5
   slow:

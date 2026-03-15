@@ -27,28 +27,21 @@ helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -f crossplane-values.yaml
 ```
 
-### 3. Upgrade Injector
-
-```bash
-helm upgrade asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system
-```
-
-### 4. Upgrade Gateway
+### 3. Upgrade Gateway
 
 ```bash
 helm upgrade asya-gateway deploy/helm-charts/asya-gateway/ \
   -f gateway-values.yaml
 ```
 
-### 5. Upgrade Crew
+### 4. Upgrade Crew
 
 ```bash
 helm upgrade asya-crew deploy/helm-charts/asya-crew/ \
   -f crew-values.yaml
 ```
 
-### 6. Verify
+### 5. Verify
 
 ```bash
 kubectl get pods -n crossplane-system
@@ -60,7 +53,6 @@ kubectl get asyncactors -A
 
 ```bash
 helm rollback asya-crossplane -n crossplane-system
-helm rollback asya-injector -n asya-system
 kubectl apply -f asyncactors-backup.yaml
 ```
 

@@ -16,6 +16,12 @@ const (
 	PhaseCanceled   = "canceled"
 )
 
+// Mesh-status header constants for stealth mode control
+const (
+	HeaderMeshStatus = "x-asya-mesh-status"
+	MeshStatusOff    = "off"
+)
+
 // Status reason constants
 const (
 	ReasonCompleted           = "Completed"

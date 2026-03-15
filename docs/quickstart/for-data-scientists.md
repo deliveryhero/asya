@@ -167,22 +167,13 @@ metadata:
   name: text-processor
 spec:
   transport: sqs       # Ask platform team which transport is supported
+  image: my-processor:v1
+  handler: src.text_processor.process  # module.function
+  # For class handlers: src.text_processor.TextProcessor.process
   scaling:
-    minReplicas: 0     # Scale to zero when idle
-    maxReplicas: 50    # Max replicas
+    minReplicaCount: 0     # Scale to zero when idle
+    maxReplicaCount: 50    # Max replicas
     queueLength: 5     # Messages per replica
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-processor:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "src.text_processor.process"  # module.function
-          # For class handlers:
-          # value: "src.text_processor.TextProcessor.process"  # module.Class.method
 ```
 
 </details>
@@ -203,8 +194,8 @@ kubectl apply -f text-processor.yaml
 If platform team deployed the gateway, use `asya mcp` CLI tool:
 
 ```bash
-# Install asya-cli
-pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+# Install asya-lab
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 
 # Set gateway URL (ask platform team)
 export ASYA_CLI_MCP_URL=http://gateway-url/
@@ -254,10 +245,8 @@ class LLMInference:
 
 **Deployment**:
 ```yaml
+handler: llm_inference.LLMInference.process
 env:
-
-- name: ASYA_HANDLER
-  value: "llm_inference.LLMInference.process"
 - name: MODEL_PATH
   value: "/models/llama3"  # Passed to __init__
 ```
@@ -286,13 +275,11 @@ class ImageClassifier:
 
 **Deployment with GPU**:
 ```yaml
+handler: image_classifier.ImageClassifier.process
 resources:
   limits:
     nvidia.com/gpu: 1
 env:
-
-- name: ASYA_HANDLER
-  value: "image_classifier.ImageClassifier.process"
 - name: MODEL_NAME
   value: "resnet50"
 ```
@@ -372,7 +359,7 @@ Each square depicts a separate actor (blue - user actor, yellow-ish - new genera
 
 Note, there's no free variables, **all state transfer** happens through payload variable `p`.
 
-![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.png)
+![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.svg)
 
 
 
@@ -394,12 +381,12 @@ Note, there's no free variables, **all state transfer** happens through payload 
 
 ### Compiling Flows
 
-Install `asya-cli` to compile flows:
+Install `asya-lab` to compile flows:
 
 ```bash
-# Install asya-cli
+# Install asya-lab
 # (or: `uv pip install ...`)
-pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-cli
+pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 ```
 
 Compile your flow:
@@ -414,7 +401,7 @@ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 
 # Options:
 #   --verbose, -v              Show verbose output
-#   --plot                     Generate flow.dot and flow.png
+#   --plot                     Generate flow.dot and flow.svg
 #   --plot-width WIDTH         Maximum width for node labels (default: 50)
 #   --overwrite               Overwrite existing output directory
 #   --disable-infinite-loop-check  Skip infinite loop detection
@@ -425,7 +412,7 @@ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 compiled/
 ├── routers.py       # Generated router actors (Python)
 ├── flow.dot         # Flow diagram (GraphViz format)
-└── flow.png         # Flow visualization (if --plot enabled)
+└── flow.svg         # Flow visualization (if --plot enabled)
 ```
 
 **Example Output**:
@@ -433,7 +420,7 @@ compiled/
 $ asya flow compile text_analysis_flow.py --output-dir ./compiled/ --plot
 [+] Successfully compiled flow to: compiled/routers.py
 [+] Generated graphviz dot file: compiled/flow.dot
-[+] Generated graphviz png plot: compiled/flow.png
+[+] Generated graphviz svg plot: compiled/flow.svg
 ```
 
 ### Understanding Generated Routers
@@ -456,7 +443,7 @@ def sample_flow(p: dict) -> dict:
 
 **Generated Flow**:
 
-![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.png)
+![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.svg)
 
 
 **Generated Routers** (see `compiled/routers.py`):
@@ -564,7 +551,7 @@ docker build -t my-flow-routers:v1 .
 
 **Step 2: Deploy Router Actors**
 
-⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-cli` tool.
+⚠️ Automatic generation of deployed charts is coming soon as part of extended functionality to easy deploying any actor by Data Scientists using `asya-lab` tool.
 
 Deploy each generated router as an AsyncActor. **IMPORTANT**: Set handler mappings in environment variables:
 
@@ -575,37 +562,28 @@ metadata:
   name: start-text-analysis-flow
 spec:
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-flow-routers:v1
-          env:
-          # This router's handler
-          - name: ASYA_HANDLER
-            value: "routers.start_text_analysis_flow"
+  image: my-flow-routers:v1
+  handler: routers.start_text_analysis_flow
+  env:
+  # Handler-to-actor mappings (for generated `resolve()` function)
+  # User handlers - map function names to deployed actor names
+  - name: ASYA_HANDLER_CLEAN_TEXT
+    value: "text_handlers.clean_text"
+  - name: ASYA_HANDLER_TOKENIZE
+    value: "text_handlers.tokenize"
+  - name: ASYA_HANDLER_ENGLISH_SENTIMENT
+    value: "sentiment.EnglishSentiment.process"
+  - name: ASYA_HANDLER_SPANISH_SENTIMENT
+    value: "sentiment.SpanishSentiment.process"
+  - name: ASYA_HANDLER_EXTRACT_ENTITIES
+    value: "nlp.extract_entities"
 
-          # Handler-to-actor mappings (for generated `resolve()` function)
-          # User handlers - map function names to deployed actor names
-          - name: ASYA_HANDLER_CLEAN_TEXT
-            value: "text_handlers.clean_text"
-          - name: ASYA_HANDLER_TOKENIZE
-            value: "text_handlers.tokenize"
-          - name: ASYA_HANDLER_ENGLISH_SENTIMENT
-            value: "sentiment.EnglishSentiment.process"
-          - name: ASYA_HANDLER_SPANISH_SENTIMENT
-            value: "sentiment.SpanishSentiment.process"
-          - name: ASYA_HANDLER_EXTRACT_ENTITIES
-            value: "nlp.extract_entities"
-
-          # Router handlers - map router function names to deployed actor names
-          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
-            value: "routers.router_text_analysis_flow_line_10_if"
-          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_15_SEQ
-            value: "routers.router_text_analysis_flow_line_15_seq"
-          # ... (add mappings for all generated routers)
+  # Router handlers - map router function names to deployed actor names
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
+    value: "routers.router_text_analysis_flow_line_10_if"
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_15_SEQ
+    value: "routers.router_text_analysis_flow_line_15_seq"
+  # ... (add mappings for all generated routers)
 ---
 # Deploy other routers similarly
 # All routers share the same handler mappings (user + router functions)
@@ -615,24 +593,17 @@ metadata:
   name: router-text-analysis-flow-line-10-if
 spec:
   transport: sqs
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-flow-routers:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "routers.router_text_analysis_flow_line_10_if"
-          # Same handler mappings as above (both user handlers AND router functions)
-          - name: ASYA_HANDLER_CLEAN_TEXT
-            value: "text_handlers.clean_text"
-          - name: ASYA_HANDLER_TOKENIZE
-            value: "text_handlers.tokenize"
-          - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
-            value: "routers.router_text_analysis_flow_line_10_if"
-          # ... (repeat all mappings)
+  image: my-flow-routers:v1
+  handler: routers.router_text_analysis_flow_line_10_if
+  env:
+  # Same handler mappings as above (both user handlers AND router functions)
+  - name: ASYA_HANDLER_CLEAN_TEXT
+    value: "text_handlers.clean_text"
+  - name: ASYA_HANDLER_TOKENIZE
+    value: "text_handlers.tokenize"
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_LINE_10_IF
+    value: "routers.router_text_analysis_flow_line_10_if"
+  # ... (repeat all mappings)
 ```
 
 **Step 3: Deploy Handler Actors**
@@ -646,23 +617,15 @@ metadata:
   name: english-sentiment
 spec:
   transport: sqs
+  image: my-sentiment-model:latest
+  handler: sentiment.EnglishSentiment.process
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-sentiment-model:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "sentiment.EnglishSentiment.process"
-          resources:
-            limits:
-              nvidia.com/gpu: 1  # GPU for ML models
+  resources:
+    limits:
+      nvidia.com/gpu: 1  # GPU for ML models
 ```
 
 **Deployment Tip**: See `examples/flows/compiled/` for complete examples. Platform teams can automate deployment chart generation (coming soon).
@@ -760,7 +723,7 @@ asya flow compile ml_pipeline_flow.py --output-dir ./compiled/ --plot
 - `router_ml_pipeline_flow_line_13_if` - Model selection
 - `end_ml_pipeline_flow` - Exit router
 
-**Visualize**: Open `compiled/flow.png` to see the control flow diagram.
+**Visualize**: Open `compiled/flow.svg` to see the control flow diagram.
 
 **Deploy**: Package routers and handlers, deploy as AsyncActor CRDs (see `examples/flows/compiled/README.md` for complete deployment examples).
 

@@ -3890,3 +3890,142 @@ func TestRouter_ProcessMessage_SLAGuard(t *testing.T) {
 		})
 	}
 }
+
+func TestRouter_IsMeshStatusEnabled(t *testing.T) {
+	tests := []struct {
+		name     string
+		headers  map[string]interface{}
+		msgID    string
+		hasGW    bool
+		expected bool
+	}{
+		{
+			name:     "enabled: gateway configured, no header, id present",
+			hasGW:    true,
+			msgID:    "abc123",
+			headers:  nil,
+			expected: true,
+		},
+		{
+			name:     "disabled: no gateway configured",
+			hasGW:    false,
+			msgID:    "abc123",
+			headers:  nil,
+			expected: false,
+		},
+		{
+			name:     "disabled: x-asya-mesh-status=off",
+			hasGW:    true,
+			msgID:    "abc123",
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: envelopes.MeshStatusOff},
+			expected: false,
+		},
+		{
+			name:     "enabled: x-asya-mesh-status with value other than off",
+			hasGW:    true,
+			msgID:    "abc123",
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: "on"},
+			expected: true,
+		},
+		{
+			name:     "disabled: empty id",
+			hasGW:    true,
+			msgID:    "",
+			headers:  nil,
+			expected: false,
+		},
+		{
+			name:     "disabled: x-asya-mesh-status=off with other headers present",
+			hasGW:    true,
+			msgID:    "abc123",
+			headers:  map[string]interface{}{envelopes.HeaderMeshStatus: envelopes.MeshStatusOff, "other": "header"},
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gwURL := ""
+			if tt.hasGW {
+				gwURL = "http://fake-gateway:8080"
+			}
+			cfg := &config.Config{
+				ActorName:  "test-actor",
+				Namespace:  "default",
+				SinkQueue:  "x-sink",
+				SumpQueue:  "x-sump",
+				GatewayURL: gwURL,
+			}
+			r := NewRouter(cfg, &mockTransport{}, nil, nil)
+
+			msg := &envelopes.Envelope{
+				ID:      tt.msgID,
+				Headers: tt.headers,
+			}
+
+			got := r.isMeshStatusEnabled(msg)
+			if got != tt.expected {
+				t.Errorf("isMeshStatusEnabled() = %v, want %v", got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestRouter_StealthMode_NoGatewayRequests(t *testing.T) {
+	mockServer := &mockHTTPServer{responses: make(map[string]mockHTTPResponse)}
+	mockServer.Start(t)
+	defer mockServer.Close()
+
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		var env envelopes.Envelope
+		_ = json.Unmarshal(body, &env)
+		return []runtime.RuntimeResponse{
+			{
+				Payload: json.RawMessage(`{"result": "ok"}`),
+				Route:   env.Route.IncrementCurrent(),
+			},
+		}, http.StatusOK
+	})
+
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		Timeout:       2 * time.Second,
+		TransportType: "rabbitmq",
+		GatewayURL:    mockServer.URL,
+	}
+
+	mockTrans := &mockTransport{}
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
+	m := metrics.NewMetrics("test", []config.CustomMetricConfig{})
+	router := NewRouter(cfg, mockTrans, runtimeClient, m)
+
+	inputMsg := envelopes.Envelope{
+		ID: "stealth-test-id",
+		Route: envelopes.Route{
+			Prev: []string{},
+			Curr: "test-actor",
+			Next: []string{"next-actor"},
+		},
+		Headers: map[string]interface{}{
+			envelopes.HeaderMeshStatus: envelopes.MeshStatusOff,
+		},
+		Payload: json.RawMessage(`{"data": "test"}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	ctx := context.Background()
+	err := router.ProcessMessage(ctx, transport.QueueMessage{ID: "msg-1", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	// Verify no /mesh/ requests were sent to gateway
+	for path, req := range mockServer.requests {
+		if strings.Contains(path, "/mesh/") {
+			t.Errorf("Unexpected gateway request in stealth mode: %s %s", req.Method, path)
+		}
+	}
+}

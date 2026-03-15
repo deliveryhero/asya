@@ -60,10 +60,8 @@ helm repo add crossplane-stable https://charts.crossplane.io/stable
 helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace
 
-# Install Asya compositions and injector
+# Install Asya compositions
 kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-helm install asya-injector deploy/helm-charts/asya-injector \
-  -n asya-system --create-namespace
 
 # Install KEDA (for autoscaling)
 helm repo add kedacore https://kedacore.github.io/charts
@@ -169,8 +167,8 @@ healthChecks:
 ```yaml
 scaling:
   enabled: true
-  minReplicas: 0  # Scale to zero when idle
-  maxReplicas: 1
+  minReplicaCount: 0  # Scale to zero when idle
+  maxReplicaCount: 1
   queueLength: 1
 ```
 
@@ -179,8 +177,8 @@ scaling:
 ```yaml
 scaling:
   enabled: true
-  minReplicas: 5
-  maxReplicas: 100
+  minReplicaCount: 5
+  maxReplicaCount: 100
   pollingInterval: 5     # Check every 5s
   cooldownPeriod: 30     # Scale down after 30s
   queueLength: 2         # Scale up at 2 messages per replica
@@ -197,10 +195,6 @@ kubectl get xrd asyncactors.asya.sh
 # Check Crossplane
 kubectl get deployment crossplane -n crossplane-system
 kubectl logs -n crossplane-system deployment/crossplane
-
-# Check injector
-kubectl get deployment asya-injector -n asya-system
-kubectl logs -n asya-system deployment/asya-injector
 
 # Check KEDA
 kubectl get crd scaledobjects.keda.sh
@@ -240,9 +234,6 @@ helm uninstall my-echo
 
 # Uninstall crew
 helm uninstall asya-crew
-
-# Uninstall injector
-helm uninstall asya-injector -n asya-system
 
 # Uninstall Crossplane
 helm uninstall crossplane -n crossplane-system

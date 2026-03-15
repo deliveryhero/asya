@@ -55,7 +55,7 @@ trigger-tests: ## Only trigger tests, assuming that Kind cluster is already up
 	@test -f $(COVERAGE_DIR)/cov-$(PROFILE).json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov-$(PROFILE).json" || echo "[-] Coverage not generated"
 	@echo "[+] Success: E2E tests with $(PROFILE) profile"
 
-test-crossplane: ## Run Crossplane + Injector E2E tests
+test-crossplane: ## Run Crossplane E2E tests
 	@echo "[.] Running Crossplane E2E tests with profile=$(PROFILE)"
 	@mkdir -p $(COVERAGE_DIR)
 	set -a && . ./profiles/.env.$(PROFILE) && set +a && \

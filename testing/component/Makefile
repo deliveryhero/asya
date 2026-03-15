@@ -1,4 +1,4 @@
-.PHONY: test test-sidecar test-runtime test-gateway test-gateway-a2a test-gateway-mcp test-state-proxy clean help
+.PHONY: test test-sidecar test-runtime test-gateway test-gateway-a2a test-gateway-mcp test-state-proxy test-transport clean help
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -13,6 +13,7 @@ test:
 	$(MAKE) -C gateway-mcp test
 	$(MAKE) -C gateway-mcp test-auth
 	$(MAKE) -C state-proxy test
+	$(MAKE) -C transport test
 	@echo "$(GREEN_START)[++] Success: All component tests passed!$(GREEN_END)"
 
 cov:
@@ -30,3 +31,4 @@ clean:
 	$(MAKE) -C gateway-a2a clean
 	$(MAKE) -C gateway-mcp clean
 	$(MAKE) -C state-proxy clean
+	$(MAKE) -C transport clean

@@ -61,7 +61,7 @@ crew:
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
   x-sump:
     transport: sqs
     env:
@@ -72,7 +72,7 @@ crew:
       AWS_SECRET_ACCESS_KEY: "test"
     scaling:
       enabled: true
-      minReplicas: 1
+      minReplicaCount: 1
 
 gateway:
   routes:
@@ -108,10 +108,17 @@ gateway:
 crossplane:
   sqs:
     receiveWaitTimeSeconds: 2
+  sidecar:
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
+    imagePullPolicy: Never
+    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
+    sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
+    sqsWaitTimeSeconds: "2"
+    awsCredsSecret: aws-creds
   providerConfigs:
     install: false
   functions:
-    overlaysEnabled: true
+    flavorsEnabled: true
   awsProviderConfig:
     name: localstack
     credentialsSource: Secret
@@ -139,15 +146,3 @@ crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
-
-injector:
-  image:
-    tag: latest
-    pullPolicy: Never
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sidecarImagePullPolicy: Never
-    sqsEndpoint: http://localstack-sqs.asya-system.svc.cluster.local:4566
-    sqsWaitTimeSeconds: "2"
-    gatewayURL: http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080
-    awsCredsSecret: aws-creds

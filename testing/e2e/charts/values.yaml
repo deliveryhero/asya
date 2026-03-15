@@ -27,15 +27,7 @@ crossplane:
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
   functions:
-    overlaysPackagePullPolicy: Never
-
-injector:
-  image:
-    tag: latest
-    pullPolicy: Never
-  config:
-    sidecarImage: ghcr.io/deliveryhero/asya-sidecar:latest
-    sidecarImagePullPolicy: Never
+    flavorsPackagePullPolicy: Never
 
 gateway:
   image:
@@ -153,7 +145,7 @@ gateway:
           required: [sleep_seconds]
     - name: test_timeout_cold
       entrypoint: test-timeout-cold
-      description: Test gateway backstop race with cold-start actor (minReplicas=0)
+      description: Test gateway backstop race with cold-start actor (minReplicaCount=0)
       timeout: 15
       mcp:
         inputSchema:
@@ -309,13 +301,11 @@ crew:
         memory: 128Mi
     scaling:
       enabled: true
-      minReplicas: 1
-      maxReplicas: 10
+      minReplicaCount: 1
+      maxReplicaCount: 10
       pollingInterval: 5
       cooldownPeriod: 30
       queueLength: 5
-    workload:
-      kind: Deployment
 
   x-sump:
     enabled: true
@@ -334,13 +324,11 @@ crew:
         memory: 128Mi
     scaling:
       enabled: true
-      minReplicas: 1
-      maxReplicas: 10
+      minReplicaCount: 1
+      maxReplicaCount: 10
       pollingInterval: 5
       cooldownPeriod: 30
       queueLength: 5
-    workload:
-      kind: Deployment
 
 transport:
   rabbitmq:

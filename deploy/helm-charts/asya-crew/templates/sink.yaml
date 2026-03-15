@@ -33,25 +33,21 @@ spec:
     {{- toYaml $sink.scaling | nindent 4 }}
   {{- end }}
 
-  workload:
-    kind: {{ $sink.workload.kind }}
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ include "asya-crew.x-sink.image" . }}
-          imagePullPolicy: {{ include "asya-crew.x-sink.imagePullPolicy" . }}
-          env:
-          {{- range $key, $value := $sink.env }}
-          {{- if ne $value "" }}
-          - name: {{ $key }}
-            value: {{ $value | quote }}
-          {{- end }}
-          {{- end }}
-          - name: ASYA_HANDLER
-            value: asya_crew.sink.sink_handler
-          {{- with $sink.resources }}
-          resources:
-            {{- toYaml . | nindent 12 }}
-          {{- end }}
+  image: {{ include "asya-crew.x-sink.image" . }}
+  imagePullPolicy: {{ include "asya-crew.x-sink.imagePullPolicy" . }}
+  handler: asya_crew.sink.sink_handler
+  {{- $envList := list }}
+  {{- range $key, $value := $sink.env }}
+  {{- if ne $value "" }}
+  {{- $envList = append $envList (dict "name" $key "value" $value) }}
+  {{- end }}
+  {{- end }}
+  {{- if $envList }}
+  env:
+    {{- toYaml $envList | nindent 4 }}
+  {{- end }}
+  {{- with $sink.resources }}
+  resources:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
 {{- end }}

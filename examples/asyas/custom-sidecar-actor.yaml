@@ -5,15 +5,15 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: custom-sidecar-actor
-  namespace: default
+  namespace: my-project
 spec:
   actor: custom-sidecar-actor
-  transport: rabbitmq
+  transport: sqs
 
   # Custom sidecar configuration
   sidecar:
-    # Use a specific version
-    image: ghcr.io/deliveryhero/asya-sidecar:v2.1.0
+    # Pin to a specific version (replace with an actual published tag)
+    image: ghcr.io/deliveryhero/asya-sidecar:latest
     imagePullPolicy: Always
 
     # Custom resource limits
@@ -36,28 +36,15 @@ spec:
     - name: CUSTOM_TIMEOUT
       value: "30"
 
-  # Custom timeouts
-  timeout:
-    processing: 600
-    gracefulShutdown: 60
-
   scaling:
     enabled: true
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
     queueLength: 5
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: custom-runtime:latest
-          env:
-          - name: ASYA_HANDLER
-            value: "handlers.process"
-          resources:
-            limits:
-              cpu: 2000m
-              memory: 2Gi
+  image: custom-runtime:latest
+  handler: handlers.process
+  resources:
+    limits:
+      cpu: 2000m
+      memory: 2Gi

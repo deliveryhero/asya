@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../sequential_pipeline.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_sequential_pipeline(payload: dict):
+async def start_sequential_pipeline(payload: dict):
     """Entrypoint for flow 'sequential_pipeline'"""
     _next = []
     _next.append(resolve("data_analyst"))
@@ -23,7 +23,7 @@ def start_sequential_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_sequential_pipeline(payload: dict):
+async def end_sequential_pipeline(payload: dict):
     """Exitpoint for flow 'sequential_pipeline'"""
     yield "SET", ".route.next", []
     yield payload

@@ -197,33 +197,6 @@ def _log_pod_diagnostics(namespace: str, failed_pods: List[Tuple[str, str, str, 
 
 @pytest.mark.core
 @pytest.mark.order(2)
-def test_injector_pod_healthy():
-    """Test that the injector pod is running."""
-    logger.info("Testing injector pod health")
-
-    namespace = require_env("SYSTEM_NAMESPACE")
-    label = "app.kubernetes.io/name=asya-injector"
-
-    pods = get_pod_status(namespace, label)
-
-    assert len(pods) > 0, "No injector pods found"
-
-    for pod_name, ready_status, phase, reason in pods:
-        ready_containers = ready_status.split()
-        total_ready = sum(1 for r in ready_containers if r == "true")
-        total_containers = len(ready_containers)
-
-        assert phase == "Running", f"Injector pod {pod_name} not Running (phase={phase}, reason={reason})"
-        assert total_ready == total_containers, (
-            f"Injector pod {pod_name} not all containers ready "
-            f"({total_ready}/{total_containers})"
-        )
-
-    logger.info(f"[+] Injector pod is healthy")
-
-
-@pytest.mark.core
-@pytest.mark.order(2)
 def test_crossplane_pods_healthy():
     """Test that Crossplane provider pods are running."""
     logger.info("Testing Crossplane provider pod health")

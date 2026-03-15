@@ -28,8 +28,7 @@ setup: ## Set up development environment (install deps, pre-commit hooks)
 	@echo "[+] Syncing Go dependencies..."
 	cd src/asya-gateway && go mod download && go mod tidy
 	cd src/asya-sidecar && go mod download && go mod tidy
-	cd src/asya-injector && go mod download && go mod tidy
-	cd src/function-asya-overlays && go mod download && go mod tidy
+	cd src/function-asya-flavors && go mod download && go mod tidy
 	cd src/asya-crew/cmd/dlq-worker && go mod download && go mod tidy
 	@echo "[++] Setup complete! Ready for development."
 
@@ -56,12 +55,10 @@ test-unit: ## Run unit tests (go + python)
 	$(MAKE) -C src/asya-runtime test-unit
 	$(MAKE) -C src/asya-crew test-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker test-unit
-	$(MAKE) -C src/asya-cli test-unit
-	$(MAKE) -C src/asya-injector test-unit
 	$(MAKE) -C src/asya-lab test-unit
 	$(MAKE) -C src/asya-state-proxy test-unit
 	$(MAKE) -C src/asya-ui test-unit
-	$(MAKE) -C src/function-asya-overlays test-unit
+	$(MAKE) -C src/function-asya-flavors test-unit
 	$(MAKE) -C src/asya-testing test-unit
 	@echo "$(GREEN_START)[++] Success: All unit tests completed successfully!$(GREEN_END)"
 
@@ -105,14 +102,12 @@ clean-e2e: ## Delete Kind cluster and cleanup
 cov: ## Run all tests with coverage and display summary
 	$(MAKE) -C src/asya-sidecar cov-unit
 	$(MAKE) -C src/asya-gateway cov-unit
-	$(MAKE) -C src/asya-injector cov-unit
 	$(MAKE) -C src/asya-runtime cov-unit
 	$(MAKE) -C src/asya-crew cov-unit
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker cov-unit
-	$(MAKE) -C src/asya-cli cov-unit
 	$(MAKE) -C src/asya-lab cov-unit
 	$(MAKE) -C src/asya-ui cov-unit
-	$(MAKE) -C src/function-asya-overlays cov-unit
+	$(MAKE) -C src/function-asya-flavors cov-unit
 	$(MAKE) -C testing/integration cov
 	$(MAKE) -C testing/component cov
 	$(MAKE) -C testing/e2e cov-e2e
@@ -124,8 +119,7 @@ cov: ## Run all tests with coverage and display summary
 build-go: ## Build all Go components
 	$(MAKE) -C src/asya-gateway build
 	$(MAKE) -C src/asya-sidecar build
-	$(MAKE) -C src/asya-injector build
-	$(MAKE) -C src/function-asya-overlays build
+	$(MAKE) -C src/function-asya-flavors build
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker build
 	@echo "$(GREEN_START)[++] Success: All Go components built successfully!$(GREEN_END)"
 
@@ -133,7 +127,7 @@ build-images: ## Build all Docker images for the framework
 	./src/build-images.sh
 
 clean: clean-integration ## Clean build artifacts
-	$(MAKE) -C src/function-asya-overlays clean
+	$(MAKE) -C src/function-asya-flavors clean
 	$(MAKE) -C src/asya-crew clean
 	$(MAKE) -C src/asya-crew/cmd/dlq-worker clean
 	$(MAKE) -C src/asya-lab clean

@@ -55,7 +55,7 @@ http://s3-localstack.{{ include "asya-playground.namespace.infra" . }}:4566
 {{- end -}}
 
 {{/*
-Gateway URL for injector and crew actors
+Gateway URL for crew actors and sidecar configuration
 */}}
 {{- define "asya-playground.gatewayURL" -}}
 {{- if (index .Values "asya-gateway").enabled -}}

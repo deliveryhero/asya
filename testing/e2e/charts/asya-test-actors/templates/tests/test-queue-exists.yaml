@@ -2,13 +2,13 @@ apiVersion: v1
 kind: Pod
 metadata:
   name: "{{ .Release.Name }}-test-queue-exists"
-  namespace: asya-system
+  namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
   annotations:
     "helm.sh/hook": test
     "helm.sh/hook-weight": "0"
-    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   restartPolicy: Never
   containers:
@@ -22,13 +22,13 @@ spec:
     - name: AWS_ACCESS_KEY_ID
       valueFrom:
         secretKeyRef:
-          name: sqs-secret
-          key: access-key-id
+          name: aws-creds
+          key: AWS_ACCESS_KEY_ID
     - name: AWS_SECRET_ACCESS_KEY
       valueFrom:
         secretKeyRef:
-          name: sqs-secret
-          key: secret-access-key
+          name: aws-creds
+          key: AWS_SECRET_ACCESS_KEY
     - name: AWS_ENDPOINT_URL
       value: "http://localstack-sqs.asya-system.svc.cluster.local:4566"
     {{- end }}
@@ -52,11 +52,22 @@ spec:
         echo "Queue name: $TEST_ACTOR"
         echo ""
 
+        # Wait for the AsyncActor XR to become Ready — guarantees queue creation completed
+        echo "[.] Waiting for AsyncActor '$TEST_ACTOR' to become Ready..."
+        if ! kubectl wait asyncactor/$TEST_ACTOR -n {{ .Release.Namespace }} \
+            --for=condition=Ready --timeout=120s; then
+          echo "[-] AsyncActor '$TEST_ACTOR' did not become Ready within 120s"
+          kubectl describe asyncactor $TEST_ACTOR -n {{ .Release.Namespace }} | grep -A 10 "Conditions:" || true
+          exit 1
+        fi
+        echo "[+] AsyncActor '$TEST_ACTOR' is Ready"
+        echo ""
+
         {{- if eq .Values.transport "rabbitmq" }}
         # RabbitMQ queue validation using rabbitmqctl
         echo "[.] Validating RabbitMQ queue..."
 
-        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
         RABBITMQ_POD="asya-rabbitmq-0"
 
         echo "Queue name: ${QUEUE_NAME}"
@@ -111,7 +122,7 @@ spec:
         echo "[.] Validating SQS queue..."
 
         AWS_REGION="${AWS_REGION:-us-east-1}"
-        QUEUE_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        QUEUE_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
 
         # Build endpoint flag for awscli v1 compatibility (v1 ignores AWS_ENDPOINT_URL)
         ENDPOINT_FLAG=""
@@ -178,7 +189,7 @@ spec:
         echo "[.] Validating Pub/Sub subscription..."
 
         PROJECT_ID="${PUBSUB_PROJECT_ID}"
-        SUBSCRIPTION_NAME="asya-{{ .Values.namespace }}-$TEST_ACTOR"
+        SUBSCRIPTION_NAME="asya-{{ .Release.Namespace }}-$TEST_ACTOR"
         EMULATOR="${PUBSUB_EMULATOR_HOST}"
 
         echo "Project: ${PROJECT_ID}"

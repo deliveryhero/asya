@@ -1,0 +1,24 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_typeddict_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_typeddict_pipeline(p)</i></td></tr></table>>];
+  router_typeddict_pipeline_line_73_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_typeddict_pipeline_line_73_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not p.get('valid', True)</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_typeddict_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_typeddict_pipeline(p)</i></td></tr></table>>];
+  error_handler [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = error_handler(p)</i></td></tr></table>>];
+  parser [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = parser(p)</i></td></tr></table>>];
+  sink_adapter [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = sink_adapter(p)</i></td></tr></table>>];
+  transformer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = transformer(p)</i></td></tr></table>>];
+  validator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = validator(p)</i></td></tr></table>>];
+
+  error_handler -> end_typeddict_pipeline;
+  parser -> validator;
+  router_typeddict_pipeline_line_73_if -> error_handler [label="T", color=darkseagreen4];
+  router_typeddict_pipeline_line_73_if -> transformer [label="F", color=indianred4];
+  sink_adapter -> end_typeddict_pipeline;
+  start_typeddict_pipeline -> parser;
+  transformer -> sink_adapter;
+  validator -> router_typeddict_pipeline_line_73_if;
+}

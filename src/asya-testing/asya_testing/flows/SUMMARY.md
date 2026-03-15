@@ -84,7 +84,7 @@ Flow actors are automatically deployed during `make up` via:
 3. Compile flow:
    ```bash
    cd flows/<flow_name>
-   uv run --with-editable ../../src/asya-cli asya flow compile flow.py -o compiled/
+   uv run --with-editable ../../src/asya-lab asya flow compile flow.py -o compiled/
    ```
 4. Create manifests: `<flow_name>/manifests/actors.yaml`
    - One AsyncActor per router function (VFS mode)

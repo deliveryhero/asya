@@ -13,18 +13,18 @@ Regenerate by running: asya flow compile ../../plan_and_execute.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_plan_and_execute(payload: dict):
+async def start_plan_and_execute(payload: dict):
     """Entrypoint for flow 'plan_and_execute'"""
     _next = []
     p = payload
     p['current_step'] = 0
     p['step_results'] = []
     _next.append(resolve("planner"))
-    _next.append(resolve("router_plan_and_execute_line_52_while_0"))
+    _next.append(resolve("router_plan_and_execute_line_50_while_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_plan_and_execute_line_63_seq(payload: dict):
+async def router_plan_and_execute_line_58_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -34,7 +34,7 @@ def router_plan_and_execute_line_63_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_plan_and_execute_line_59_if(payload: dict):
+async def router_plan_and_execute_line_55_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,21 +47,21 @@ def router_plan_and_execute_line_59_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_plan_and_execute_line_52_while_0(payload: dict):
+async def router_plan_and_execute_line_50_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['current_step'] < len(p.get('plan', [])):
         _next.append(resolve("executor"))
-        _next.append(resolve("router_plan_and_execute_line_59_if"))
-        _next.append(resolve("router_plan_and_execute_line_52_while_0"))
+        _next.append(resolve("router_plan_and_execute_line_55_if"))
+        _next.append(resolve("router_plan_and_execute_line_50_while_0"))
     else:
-        _next.append(resolve("router_plan_and_execute_line_63_seq"))
+        _next.append(resolve("router_plan_and_execute_line_58_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_plan_and_execute(payload: dict):
+async def end_plan_and_execute(payload: dict):
     """Exitpoint for flow 'plan_and_execute'"""
     yield "SET", ".route.next", []
     yield payload

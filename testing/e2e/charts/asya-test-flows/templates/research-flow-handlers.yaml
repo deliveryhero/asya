@@ -21,20 +21,12 @@ spec:
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
-    minReplicas: {{ .Values.scaling.minReplicas }}
-    maxReplicas: {{ .Values.scaling.maxReplicas }}
+    minReplicaCount: {{ .Values.scaling.minReplicaCount }}
+    maxReplicaCount: {{ .Values.scaling.maxReplicaCount }}
     pollingInterval: {{ .Values.scaling.pollingInterval }}
     cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
     queueLength: {{ .Values.scaling.queueLength }}
 
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: {{ .Values.workload.image }}
-          imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-          env:
-          - name: ASYA_HANDLER
-            value: asya_testing.flows.research_flow.flow.research_agent
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.flows.research_flow.flow.research_agent

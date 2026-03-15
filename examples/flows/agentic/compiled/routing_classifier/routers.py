@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../routing_classifier.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_routing_classifier(payload: dict):
+async def start_routing_classifier(payload: dict):
     """Entrypoint for flow 'routing_classifier'"""
     _next = []
     _next.append(resolve("classifier"))
@@ -21,11 +21,11 @@ def start_routing_classifier(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_routing_classifier_line_47_if(payload: dict):
+async def router_routing_classifier_line_47_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'account':
+    if p.get('category') == 'account':
         _next.append(resolve("account_agent"))
         _next.append(resolve("format_reply"))
     else:
@@ -35,11 +35,11 @@ def router_routing_classifier_line_47_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_routing_classifier_line_45_if(payload: dict):
+async def router_routing_classifier_line_45_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'technical':
+    if p.get('category') == 'technical':
         _next.append(resolve("technical_agent"))
         _next.append(resolve("format_reply"))
     else:
@@ -48,11 +48,11 @@ def router_routing_classifier_line_45_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_routing_classifier_line_43_if(payload: dict):
+async def router_routing_classifier_line_43_if(payload: dict):
     """Router for control flow and payload mutations"""
-    state = payload
+    p = payload
     _next = []
-    if state.get('category') == 'billing':
+    if p.get('category') == 'billing':
         _next.append(resolve("billing_agent"))
         _next.append(resolve("format_reply"))
     else:
@@ -61,7 +61,7 @@ def router_routing_classifier_line_43_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_routing_classifier(payload: dict):
+async def end_routing_classifier(payload: dict):
     """Exitpoint for flow 'routing_classifier'"""
     yield "SET", ".route.next", []
     yield payload

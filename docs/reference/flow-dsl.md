@@ -408,7 +408,7 @@ asya flow validate pipeline.py
 |---|---|
 | `routers.py` | Router functions + `resolve()` handler resolution |
 | `flow.dot` | Graphviz diagram source (with `--plot`) |
-| `flow.png` | Visual flow diagram (with `--plot`) |
+| `flow.svg` | Visual flow diagram (with `--plot`) |
 
 ### Router naming
 
@@ -488,8 +488,8 @@ spec:
   transport: sqs
   handler: handlers.analyze_sentiment
   scaling:
-    minReplicas: 0
-    maxReplicas: 10
+    minReplicaCount: 0
+    maxReplicaCount: 10
   resources:
     requests:
       nvidia.com/gpu: 1

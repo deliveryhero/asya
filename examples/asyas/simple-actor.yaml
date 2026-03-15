@@ -1,35 +1,26 @@
-# Simple Actor example with RabbitMQ transport
+# Simple Actor example
 # This is the minimal configuration needed to create an actor
 #
 # Actor name: spec.actor (required, used for queue naming and routing)
-# Queue name: asya-default-hello-actor
+# Queue name: asya-my-project-hello-actor
 
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: hello-actor
-  namespace: default
+  namespace: my-project
 spec:
   # Logical actor identity for queue naming and message routing
   actor: hello-actor
   # Reference to operator-configured transport
-  transport: rabbitmq
+  transport: sqs
 
-  # Your runtime container
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: python:3.13-slim
-          env:
-          - name: ASYA_HANDLER
-            value: "echo_handler.process"
-          resources:
-            limits:
-              cpu: 1000m
-              memory: 512Mi
-            requests:
-              cpu: 100m
-              memory: 128Mi
+  image: python:3.13-slim
+  handler: echo_handler.process
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi

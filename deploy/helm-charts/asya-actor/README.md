@@ -21,11 +21,9 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
   helm install crossplane crossplane-stable/crossplane \
     --namespace crossplane-system --create-namespace
   ```
-- Asya compositions and injector installed:
+- Asya compositions installed:
   ```bash
   kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml
-  helm install asya-injector deploy/helm-charts/asya-injector \
-    -n asya-system --create-namespace
   ```
 - KEDA installed (if scaling is enabled):
   ```bash
@@ -42,9 +40,8 @@ Generic Helm chart for deploying AsyncActor resources with comprehensive health 
 helm install my-actor deploy/helm-charts/asya-actor \
   --set name=my-actor \
   --set transport=rabbitmq \
-  --set workload.template.spec.containers[0].image=my-image:latest \
-  --set workload.template.spec.containers[0].env[0].name=ASYA_HANDLER \
-  --set workload.template.spec.containers[0].env[0].value=my_module.handler
+  --set default.image=my-image:latest \
+  --set default.handler=my_module.handler
 ```
 
 ### Using values file
@@ -56,30 +53,22 @@ name: text-processor
 namespace: production
 transport: rabbitmq
 
-scaling:
-  enabled: true
-  minReplicas: 2
-  maxReplicas: 20
-  queueLength: 10
-
-workload:
-  kind: Deployment
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-text-processor:v1.0
-        imagePullPolicy: IfNotPresent
-        env:
-        - name: ASYA_HANDLER
-          value: processors.text_handler
-        resources:
-          requests:
-            cpu: 200m
-            memory: 256Mi
-          limits:
-            cpu: 1000m
-            memory: 1Gi
+default:
+  scaling:
+    enabled: true
+    minReplicaCount: 2
+    maxReplicaCount: 20
+    queueLength: 10
+  image: my-text-processor:v1.0
+  imagePullPolicy: IfNotPresent
+  handler: processors.text_handler
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
 EOF
 
 helm install text-processor deploy/helm-charts/asya-actor \
@@ -101,18 +90,21 @@ helm install text-processor deploy/helm-charts/asya-actor \
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `scaling.enabled` | Enable KEDA autoscaling | `true` |
-| `scaling.minReplicas` | Minimum replicas | `1` |
-| `scaling.maxReplicas` | Maximum replicas | `10` |
+| `scaling.minReplicaCount` | Minimum replicas | `1` |
+| `scaling.maxReplicaCount` | Maximum replicas | `10` |
 | `scaling.pollingInterval` | KEDA polling interval (seconds) | `10` |
 | `scaling.cooldownPeriod` | KEDA cooldown period (seconds) | `60` |
 | `scaling.queueLength` | Target queue length per replica | `5` |
 
-### Workload Parameters
+### Actor Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `workload.kind` | Workload type (must be `Deployment`) | `Deployment` |
-| `workload.template` | Pod template spec | See values.yaml |
+| `default.image` | Runtime container image | `my-actor:latest` |
+| `default.imagePullPolicy` | Image pull policy | `IfNotPresent` |
+| `default.handler` | Python handler dotted path (e.g. `module.func`) | `my_module.my_handler` |
+| `default.env` | Runtime container environment variables | `[]` |
+| `default.resources` | Runtime container resource requests/limits | See values.yaml |
 
 ### Health Check Parameters
 
@@ -149,15 +141,9 @@ This executes all enabled health check tests:
 ```yaml
 name: simple-processor
 transport: rabbitmq
-workload:
-  template:
-    spec:
-      containers:
-      - name: asya-runtime
-        image: my-processor:latest
-        env:
-        - name: ASYA_HANDLER
-          value: handlers.process_payload
+default:
+  image: my-processor:latest
+  handler: handlers.process_payload
 ```
 
 ### Custom Crew Actors
@@ -183,7 +169,6 @@ healthChecks:
 Check dependencies:
 ```bash
 kubectl get xrd asyncactors.asya.sh
-kubectl get deployment asya-injector -n asya-system
 kubectl get deployment crossplane -n crossplane-system
 kubectl get crd scaledobjects.keda.sh
 ```

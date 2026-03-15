@@ -220,14 +220,7 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   -f crossplane-values.yaml
 ```
 
-### 4. Install Asya Injector
-
-```bash
-helm install asya-injector deploy/helm-charts/asya-injector/ \
-  -n asya-system --create-namespace
-```
-
-### 5. Install Gateway (Optional)
+### 4. Install Gateway (Optional)
 
 ```yaml
 # gateway-values.yaml
@@ -269,30 +262,14 @@ Suppose, we want to save all messages to the bucket `s3://asya-results-bucket`. 
 x-sink:
   enabled: true
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
   transport: sqs
-  workload:
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          env:
-          - name: ASYA_HANDLER
-            value: asya_crew.checkpointer.handler
-          - name: ASYA_PERSISTENCE_MOUNT
-            value: /state/checkpoints
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
 
 ```bash
@@ -315,18 +292,10 @@ metadata:
 spec:
   transport: sqs
   scaling:
-    minReplicas: 0
-    maxReplicas: 50
-  workload:
-    kind: Deployment
-    template:
-      spec:
-        containers:
-        - name: asya-runtime
-          image: my-actor:v1
-          env:
-          - name: ASYA_HANDLER
-            value: "handler.process"
+    minReplicaCount: 0
+    maxReplicaCount: 50
+  image: my-actor:v1
+  handler: handler.process
 ```
 
 ```bash
@@ -338,9 +307,6 @@ kubectl apply -f my-actor.yaml
 ```bash
 # Check Crossplane
 kubectl get pods -n crossplane-system
-
-# Check injector
-kubectl get pods -n asya-system
 
 # Check KEDA
 kubectl get pods -n keda
@@ -358,7 +324,7 @@ kubectl get sqsqueue
 
 - Use Spot Instances for GPU nodes
 - Enable cluster autoscaler scale-to-zero
-- Use KEDA scale-to-zero (`minReplicas: 0`)
+- Use KEDA scale-to-zero (`minReplicaCount: 0`)
 - Set appropriate `queueLength` for scaling efficiency
 - Monitor SQS costs (first 1M requests free)
 

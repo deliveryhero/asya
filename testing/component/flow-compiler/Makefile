@@ -20,11 +20,11 @@ export PYTEST_OPTS ?= -v --cov --cov-report=term
 test: clean validate-env ## Run flow compiler component tests
 	@echo "[.] Running flow compiler component tests"
 	$(MAKE) ensure-coverage-dir
-	cd $(PROJECT_ROOT)/src/asya-cli && \
+	cd $(PROJECT_ROOT)/src/asya-lab && \
 		COVERAGE_FILE=$(COVERAGE_DIR)/cov.db \
 		uv run --group test \
 		pytest $(PYTEST_OPTS) \
-		--cov=asya_cli.flow \
+		--cov=asya_lab.flow \
 		--cov-report=json:$(COVERAGE_DIR)/cov.json \
 		../../testing/component/flow-compiler/tests/
 	@test -f $(COVERAGE_DIR)/cov.json && echo "[+] Coverage JSON: $(COVERAGE_DIR)/cov.json" || echo "[-] Coverage not generated"
@@ -34,7 +34,7 @@ test-one: test ## Alias for CI compatibility (no transport/profile config needed
 
 cov: ## Display component test coverage report
 	@echo "Flow compiler (component) coverage:"
-	@test -f $(COVERAGE_DIR)/cov.db && cd $(PROJECT_ROOT)/src/asya-cli && uv run --group test coverage report --data-file=$(COVERAGE_DIR)/cov.db || echo "[-] Coverage not generated"
+	@test -f $(COVERAGE_DIR)/cov.db && cd $(PROJECT_ROOT)/src/asya-lab && uv run --group test coverage report --data-file=$(COVERAGE_DIR)/cov.db || echo "[-] Coverage not generated"
 
 clean: ## Clean coverage directory
 	rm -rf $(COVERAGE_DIR)

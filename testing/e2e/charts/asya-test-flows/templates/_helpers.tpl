@@ -23,12 +23,9 @@ asya.sh/test-type: flow
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (gcpProject). Include in AsyncActor spec when transport is pubsub.
+Pub/Sub spec fields (no-op, gcpProject removed from XRD).
 */}}
 {{- define "asya-test-flows.pubsub-spec" -}}
-{{- if and (eq .Values.transport "pubsub") .Values.gcpProject }}
-gcpProject: {{ .Values.gcpProject }}
-{{- end }}
 {{- end }}
 
 {{/*
