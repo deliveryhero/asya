@@ -1,4 +1,10 @@
-# Asya🎭
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
+    <img src="./docs/img/logo_black_w_borders.png" alt="Asya" width="320">
+  </picture>
+</p>
+
 
 🎭 is a **queue-based actor framework** for orchestrating AI/ML workloads on Kubernetes with:
 - **Independent scaling**: Each actor scales 0→N based on its own queue depth

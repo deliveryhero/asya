@@ -54,6 +54,21 @@
         body.dark .theme-icon-dark {
             display: block;
         }
+        .logo-light {
+            display: block;
+        }
+
+        .logo-dark {
+            display: none;
+        }
+
+        body.dark .logo-light {
+            display: none;
+        }
+
+        body.dark .logo-dark {
+            display: block;
+        }
 
         .container {
             max-width: 900px;
@@ -271,7 +286,10 @@
     </button>
 
     <div class="container">
-        <h1>Asya🎭</h1>
+        <p style="margin-bottom: 1rem;">
+            <img src="/docs/img/logo_black_w_borders.png" alt="Asya" class="logo-light" width="280">
+            <img src="/docs/img/logo_colored_with_borders.png" alt="Asya" class="logo-dark" width="280">
+        </p>
         <p class="tagline">Kubernetes-native Async Actor Framework</p>
         <p class="description">
             Orchestrate AI/ML workloads at scale with a powerful actor-based framework
