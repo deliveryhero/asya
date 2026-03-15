@@ -24,6 +24,8 @@ When `infer` finishes, the sidecar reads `route.next`, sends the envelope to `po
 
 This is choreography over orchestration. The failure domain of each actor is exactly one queue. A crashed actor doesn't stall others — messages accumulate until replicas come back. Each actor scales based purely on its own queue depth.
 
+![Asya actor mesh](../docs/img/actor-mesh.png)
+
 ## What Asya Is
 
 Asya is a Kubernetes-native actor mesh framework. You write pure Python functions. Asya handles queue creation, sidecar injection, autoscaling via KEDA, and message routing. The only interface between your code and the framework is the envelope payload — a plain Python dict in, a plain Python dict out.

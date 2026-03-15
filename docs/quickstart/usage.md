@@ -349,7 +349,7 @@ Each square depicts a separate actor (blue - user actor, yellow-ish - new genera
 
 Note, there's no free variables, **all state transfer** happens through payload variable `p`.
 
-![text_analysis_flow-plot](/docs/img/for-data-scientists-flows/compiled/text_analysis_flow/flow.svg)
+![text_analysis_flow-plot](/docs/img/flows/compiled/text_analysis_flow/flow.svg)
 
 
 
@@ -433,7 +433,7 @@ def sample_flow(p: dict) -> dict:
 
 **Generated Flow**:
 
-![sample-flow-plot](/docs/img/for-data-scientists-flows/compiled/sample_flow/flow.svg)
+![sample-flow-plot](/docs/img/flows/compiled/sample_flow/flow.svg)
 
 
 **Generated Routers** (see `compiled/routers.py`):

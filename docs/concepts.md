@@ -29,6 +29,8 @@ After an actor processes an envelope, the sidecar advances the route: `curr` mov
 
 **See**: [actor-actor protocol](architecture/protocols/actor-actor.md) for the full envelope spec.
 
+![Actor mesh communication](../docs/img/actor-mesh-communication.png)
+
 ## Actor
 
 An actor is a Kubernetes workload that processes one envelope at a time. You deploy it as an `AsyncActor` CRD:
@@ -72,6 +74,8 @@ Every actor pod has two containers injected by Asya:
 Your handler sees only `payload: dict → dict`. The envelope structure, queue mechanics, and routing are invisible to it.
 
 **See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md), [architecture/asya-runtime.md](architecture/asya-runtime.md)
+
+![Actor anatomy](../docs/img/actor-anatomy.png)
 
 ## Crew Actors
 
