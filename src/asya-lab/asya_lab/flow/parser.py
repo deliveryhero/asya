@@ -77,7 +77,13 @@ class FlowParser:
 
         flow_func = self._find_flow_function(tree)
         if not flow_func:
-            raise FlowCompileError("No flow function found (signature: def name(p: dict) -> dict)")
+            raise FlowCompileError(
+                "No @flow function found. Mark the entry point with @flow:\n"
+                "\n"
+                "    @flow\n"
+                "    def my_flow(p: dict) -> dict:\n"
+                "        ..."
+            )
 
         self.flow_name = flow_func.name
         self.is_async = isinstance(flow_func, ast.AsyncFunctionDef)
@@ -98,18 +104,46 @@ class FlowParser:
         return self.class_methods.copy()
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+        candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         for node in tree.body:
-            if isinstance(node, _FUNC_DEF_TYPES) and self._is_flow_function(node):
-                return node
-        return None
+            if isinstance(node, _FUNC_DEF_TYPES) and self._has_flow_decorator(node):
+                candidates.append(node)
 
-    def _is_flow_function(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        if len(candidates) > 1:
+            locs = ", ".join(f"{c.name}:{c.lineno}" for c in candidates)
+            raise FlowCompileError(f"Multiple @flow decorators found ({locs}); exactly one is required")
+
+        if not candidates:
+            return None
+
+        func = candidates[0]
+        # Strip @flow from decorator_list so it doesn't interfere with other processing
+        func.decorator_list = [d for d in func.decorator_list if not self._is_flow_decorator(d)]
+        self._validate_flow_signature(func)
+        return func
+
+    @staticmethod
+    def _is_flow_decorator(node: ast.expr) -> bool:
+        return isinstance(node, ast.Name) and node.id == "flow"
+
+    def _has_flow_decorator(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        return any(self._is_flow_decorator(d) for d in func.decorator_list)
+
+    def _validate_flow_signature(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if len(func.args.args) != 1:
-            return False
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have exactly one parameter"
+            )
         arg = func.args.args[0]
         if arg.arg not in VALID_PARAM_NAMES:
-            return False
-        return bool(func.returns)
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' parameter must be "
+                f"one of {VALID_PARAM_NAMES}, got '{arg.arg}'"
+            )
+        if not func.returns:
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have a return type annotation"
+            )
 
     def _parse_body(self, stmts: list[ast.stmt]) -> list[IROperation]:
         operations = []

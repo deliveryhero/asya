@@ -1,0 +1,18 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: llm-resilient
+  labels:
+    asya.sh/flavor: llm-resilient
+data:
+  resiliency:
+    retry:
+      policy: exponential
+      maxAttempts: 5
+      initialInterval: 1s
+      maxInterval: 60s
+      jitter: true
+      nonRetryableErrors:
+      - ContentPolicyViolation
+      - InvalidAuth
+    actorTimeout: 120s

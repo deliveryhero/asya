@@ -1,0 +1,10 @@
+templates:
+  namespace: default
+  transport: sqs
+  router_image: "python:3.13-slim"
+  max_replicas: 5
+
+compiler:
+  routers: "./compiled"
+  manifests: ".asya/manifests"
+  image_registry: "ghcr.io/my-org"

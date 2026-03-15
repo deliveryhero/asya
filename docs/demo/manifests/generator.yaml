@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: generator
+spec:
+  actor: generator
+  transport: sqs
+  image: asya-demo:latest
+  handler: demo_handlers.generator.generate
+  flavors:
+  - vertex-ai
+  - llm-resilient
+  scaling:
+    minReplicaCount: 0
+    maxReplicaCount: 3
+    queueLength: 1
