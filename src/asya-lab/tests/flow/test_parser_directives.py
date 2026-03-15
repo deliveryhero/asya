@@ -52,25 +52,6 @@ class TestInlineCommentDirectives:
         _, ops = FlowParser(source, "test.py").parse()
         assert isinstance(ops[0], ActorCall)
 
-    def test_treat_as_actor_with_name_override(self):
-        source = textwrap.dedent("""
-            def my_flow(p: dict) -> dict:
-                p = handler_v2(p)  # asya: actor name=my-handler
-                return p
-        """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], ActorCall)
-        assert ops[0].name == "my-handler"
-
-    def test_treat_as_actor_invalid_name_raises_error(self):
-        source = textwrap.dedent("""
-            def my_flow(p: dict) -> dict:
-                p = handler(p)  # asya: actor name=bad'name
-                return p
-        """)
-        with pytest.raises(FlowCompileError, match="Invalid actor name"):
-            FlowParser(source, "test.py").parse()
-
     def test_unknown_treat_as_value_raises_error(self):
         source = textwrap.dedent("""
             def my_flow(p: dict) -> dict:
@@ -201,15 +182,26 @@ class TestCallSiteDecoration:
         assert "await" in ops[0].code
         assert "enrich" in ops[0].code
 
-    def test_call_site_actor_name_override_validation(self):
-        # Directive name= on a call-site wrapper must also be validated.
+    def test_custom_wrapper_names(self):
         source = textwrap.dedent("""
             def my_flow(p: dict) -> dict:
-                p = actor(handler)(p)  # asya: actor name=bad'name
+                p = asya_actor(handler)(p)
                 return p
         """)
-        with pytest.raises(FlowCompileError, match="Invalid actor name"):
-            FlowParser(source, "test.py").parse()
+        custom = frozenset({"asya_actor", "asya_flow", "asya_inline", "asya_unfold"})
+        _, ops = FlowParser(source, "test.py", known_wrappers=custom).parse()
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+
+    def test_custom_wrapper_rejects_default_names(self):
+        source = textwrap.dedent("""
+            def my_flow(p: dict) -> dict:
+                p = actor(handler)(p)
+                return p
+        """)
+        custom = frozenset({"asya_actor", "asya_flow"})
+        with pytest.raises(FlowCompileError, match="actor"):
+            FlowParser(source, "test.py", known_wrappers=custom).parse()
 
 
 class TestDefinitionSiteDecorators:

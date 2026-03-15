@@ -23,9 +23,9 @@ from asya_lab.flow.ir import (
 )
 
 
-_DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)(?:\s+name=(\S+))?")
+_DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)")
 
-_KNOWN_WRAPPERS = frozenset({"actor", "flow", "inline", "unfold"})
+_DEFAULT_WRAPPERS = frozenset({"actor", "flow", "inline", "unfold"})
 
 _VALID_DIRECTIVES = frozenset({"actor", "flow", "inline", "unfold", "config"})
 
@@ -56,7 +56,13 @@ class _ParamNormalizer(ast.NodeTransformer):
 
 
 class FlowParser:
-    def __init__(self, source_code: str, filename: str, module_path: str = ""):
+    def __init__(
+        self,
+        source_code: str,
+        filename: str,
+        module_path: str = "",
+        known_wrappers: frozenset[str] | None = None,
+    ):
         self.source_code = source_code
         self.filename = filename
         self.module_path = module_path
@@ -67,6 +73,7 @@ class FlowParser:
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
+        self._known_wrappers: frozenset[str] = known_wrappers or _DEFAULT_WRAPPERS
         self._source_lines: list[str] = source_code.splitlines()
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
         self._decorator_index: dict[str, str] = {}
@@ -101,7 +108,7 @@ class FlowParser:
         for i, line in enumerate(self._source_lines, 1):
             m = _DIRECTIVE_PATTERN.search(line)
             if m:
-                directives[i] = AsyaDirective(treat_as=m.group(1), name=m.group(2))
+                directives[i] = AsyaDirective(treat_as=m.group(1))
         return directives
 
     def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
@@ -122,7 +129,7 @@ class FlowParser:
                     dec_name = dec.id
                 elif isinstance(dec, ast.Attribute):
                     dec_name = ast.unparse(dec)
-                if dec_name in _KNOWN_WRAPPERS:
+                if dec_name in self._known_wrappers:
                     index[node.name] = dec_name
                     break  # first matching decorator wins
         return index
@@ -288,10 +295,10 @@ class FlowParser:
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call-site decorator expression")
 
-            if wrapper_name not in _KNOWN_WRAPPERS:
+            if wrapper_name not in self._known_wrappers:
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Unknown call-site decorator '{wrapper_name}'. "
-                    f"Supported: {', '.join(sorted(_KNOWN_WRAPPERS))}"
+                    f"Supported: {', '.join(sorted(self._known_wrappers))}"
                 )
 
             if len(outer.args) != 1:
@@ -321,12 +328,6 @@ class FlowParser:
                     code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
                     return Mutation(lineno=stmt.lineno, code=code)
                 elif directive.treat_as == "actor":
-                    if directive.name:
-                        if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_.-]*$", directive.name):
-                            raise FlowCompileError(
-                                f"{self.filename}:{stmt.lineno}: Invalid actor name in directive: '{directive.name}'"
-                            )
-                        return ActorCall(lineno=stmt.lineno, name=directive.name)
                     return ActorCall(lineno=stmt.lineno, name=inner_name)
                 elif directive.treat_as in ("flow", "unfold", "config"):
                     raise FlowCompileError(
@@ -377,12 +378,7 @@ class FlowParser:
                 code = ast.unparse(stmt)
                 return Mutation(lineno=stmt.lineno, code=code)
             elif directive.treat_as == "actor":
-                if directive.name:
-                    if not re.match(r"^[a-zA-Z_][a-zA-Z0-9_.-]*$", directive.name):
-                        raise FlowCompileError(
-                            f"{self.filename}:{stmt.lineno}: Invalid actor name in directive: '{directive.name}'"
-                        )
-                    actor_name = directive.name
+                pass  # fall through to return ActorCall with original name
             elif directive.treat_as in ("flow", "unfold", "config"):
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
