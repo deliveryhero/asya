@@ -482,10 +482,11 @@ class FlowParser:
         """Parse ``p["key"] = await asyncio.gather(...)``."""
         target_key = self._extract_target_key(target)
         # Case 1: asyncio.gather(*(actor(x) for x in iterable))
+        # Also handles asyncio.gather(*[actor(x) for x in iterable]) — starred list comprehension
         if (
             len(call.args) == 1
             and isinstance(call.args[0], ast.Starred)
-            and isinstance(call.args[0].value, ast.GeneratorExp)
+            and isinstance(call.args[0].value, ast.GeneratorExp | ast.ListComp)
         ):
             genexp = call.args[0].value
             if len(genexp.generators) != 1:
