@@ -74,5 +74,3 @@ Alpha. APIs may change. Battle-tested at [Delivery Hero](https://tech.deliveryhe
 global-scale AI image enhancement. Now powering LLM and agentic workflows.
 
 Apache 2.0 licensed. **Maintainer**: Artem Yushkovskiy (`@atemate`)
-
-Logo by [Alexandra Lalenko](mailto:alexandra.lalenko@gmail.com).
