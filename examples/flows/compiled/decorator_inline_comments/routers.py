@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../decorator_inline_comments.py
 # Generated Routers (for kubernetes deployment)
 # ======================================================================
 
-def start_decorator_inline_comments_flow(payload: dict):
+async def start_decorator_inline_comments_flow(payload: dict):
     """Entrypoint for flow 'decorator_inline_comments_flow'"""
     _next = []
     p = payload
@@ -23,7 +23,7 @@ def start_decorator_inline_comments_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield p
 
-def router_decorator_inline_comments_flow_line_15_if(payload: dict):
+async def router_decorator_inline_comments_flow_line_15_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,7 +35,7 @@ def router_decorator_inline_comments_flow_line_15_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def end_decorator_inline_comments_flow(payload: dict):
+async def end_decorator_inline_comments_flow(payload: dict):
     """Exitpoint for flow 'decorator_inline_comments_flow'"""
     yield "SET", ".route.next", []
     yield payload
