@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "f4c82f96167ef36fa5a360fcb6ed189a8aabc606",
+  "commit": "8e36ad8352202503b01d0ea72e77c0c4cce5a2ab",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33150,
+    "code": 33755,
     "test": 19196,
     "code_files": [
       {
@@ -25450,6 +25450,20 @@
         "language": "Python"
       },
       {
+        "code": 61,
+        "comment": 44,
+        "blank": 27,
+        "path": "examples/flows/compiled/with_asyncio_timeout/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 73,
+        "comment": 46,
+        "blank": 32,
+        "path": "examples/flows/compiled/with_inline_ctx/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 37,
         "comment": 11,
         "blank": 23,
@@ -25755,6 +25769,20 @@
         "comment": 8,
         "blank": 11,
         "path": "examples/flows/while_with_if.py",
+        "language": "Python"
+      },
+      {
+        "code": 10,
+        "comment": 8,
+        "blank": 7,
+        "path": "examples/flows/with_asyncio_timeout.py",
+        "language": "Python"
+      },
+      {
+        "code": 13,
+        "comment": 12,
+        "blank": 9,
+        "path": "examples/flows/with_inline_ctx.py",
         "language": "Python"
       },
       {
@@ -26185,9 +26213,9 @@
         "language": "Python"
       },
       {
-        "code": 386,
-        "comment": 86,
-        "blank": 98,
+        "code": 387,
+        "comment": 122,
+        "blank": 104,
         "path": "src/asya-lab/asya_lab/flow/codegen.py",
         "language": "Python"
       },
@@ -26213,24 +26241,31 @@
         "language": "Python"
       },
       {
-        "code": 504,
-        "comment": 57,
-        "blank": 108,
+        "code": 536,
+        "comment": 63,
+        "blank": 116,
         "path": "src/asya-lab/asya_lab/flow/grouper.py",
         "language": "Python"
       },
       {
-        "code": 51,
+        "code": 57,
         "comment": 1,
-        "blank": 28,
+        "blank": 30,
         "path": "src/asya-lab/asya_lab/flow/ir.py",
         "language": "Python"
       },
       {
-        "code": 408,
-        "comment": 67,
-        "blank": 66,
+        "code": 484,
+        "comment": 81,
+        "blank": 84,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
+        "language": "Python"
+      },
+      {
+        "code": 30,
+        "comment": 12,
+        "blank": 13,
+        "path": "src/asya-lab/asya_lab/flow/rules.py",
         "language": "Python"
       },
       {
@@ -26413,6 +26448,20 @@
         "comment": 243,
         "blank": 139,
         "path": "src/asya-lab/tests/flow/test_while_integration.py",
+        "language": "Python"
+      },
+      {
+        "code": 93,
+        "comment": 83,
+        "blank": 26,
+        "path": "src/asya-lab/tests/flow/test_with_codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 210,
+        "comment": 117,
+        "blank": 52,
+        "path": "src/asya-lab/tests/flow/test_with_parser.py",
         "language": "Python"
       },
       {
@@ -27441,6 +27490,6 @@
       }
     ]
   },
-  "test_execution_time": 325000000000,
-  "timestamp": "2026-03-15T22:23:29.850248218Z"
+  "test_execution_time": 318000000000,
+  "timestamp": "2026-03-15T23:24:30.203037595Z"
 }
