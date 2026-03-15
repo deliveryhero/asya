@@ -538,6 +538,9 @@ spec:
                           {{- if .Values.sidecar.sqsEndpoint }}
                           - name: ASYA_SQS_ENDPOINT
                             value: {{ .Values.sidecar.sqsEndpoint | quote }}
+                          {{- else if .Values.sidecar.sqsLocalstackEnabled }}
+                          - name: ASYA_SQS_ENDPOINT
+                            value: {{ printf "http://localstack-sqs.%s:4566" .Release.Namespace | quote }}
                           {{- end }}
                           {{- if .Values.sidecar.sqsWaitTimeSeconds }}
                           - name: ASYA_SQS_WAIT_TIME_SECONDS

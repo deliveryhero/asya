@@ -52,7 +52,7 @@ Next steps:
        aws sqs send-message \
          --endpoint-url=http://localstack-sqs.{{ .Release.Namespace }}:4566 \
          --queue-url http://localstack-sqs.{{ .Release.Namespace }}:4566/000000000000/asya-{{ .Release.Namespace }}-{{ .Values.helloActor.name }} \
-         --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"{{ .Values.helloActor.name }}\"],\"current\":0},\"payload\":{\"name\":\"Asya\"}}'
+         --message-body '{\"id\":\"test-1\",\"route\":{\"prev\":[],\"curr\":\"{{ .Values.helloActor.name }}\",\"next\":[]},\"headers\":{},\"payload\":{\"name\":\"Asya\"}}'
      "
 {{- else if eq .Values.global.transport "rabbitmq" }}
    kubectl run rabbitmq-client --rm -i --restart=Never --image=alpine \
@@ -61,7 +61,7 @@ Next steps:
        curl -u {{ .Values.sampleTransport.rabbitmq.auth.username }}:{{ .Values.sampleTransport.rabbitmq.auth.password }} \
          -X POST http://rabbitmq.{{ .Release.Namespace }}:15672/api/exchanges/%2F/asya/publish \
          -H 'Content-Type: application/json' \
-         -d '{\"properties\":{},\"routing_key\":\"asya.{{ .Release.Namespace }}.{{ .Values.helloActor.name }}\",\"payload\":\"{\\\"id\\\":\\\"test-1\\\",\\\"route\\\":{\\\"actors\\\":[\\\"{{ .Values.helloActor.name }}\\\"],\\\"current\\\":0},\\\"payload\\\":{\\\"name\\\":\\\"Asya\\\"}}\",\"payload_encoding\":\"string\"}'
+         -d '{\"properties\":{},\"routing_key\":\"asya.{{ .Release.Namespace }}.{{ .Values.helloActor.name }}\",\"payload\":\"{\\\"id\\\":\\\"test-1\\\",\\\"route\\\":{\\\"prev\\\":[],\\\"curr\\\":\\\"{{ .Values.helloActor.name }}\\\",\\\"next\\\":[]},\\\"headers\\\":{},\\\"payload\\\":{\\\"name\\\":\\\"Asya\\\"}}\",\"payload_encoding\":\"string\"}'
      "
 {{- end }}
 

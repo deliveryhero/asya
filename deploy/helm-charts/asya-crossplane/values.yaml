@@ -52,6 +52,9 @@ awsProviderConfig:
     url: ""
     # Set to true for LocalStack
     hostnameImmutable: true
+    # When true, auto-computes endpoint URL as http://localstack-sqs.{release_namespace}:4566
+    # Takes precedence over url; implies endpoint.enabled
+    localstackEnabled: false
   # Skip validation flags (useful for LocalStack)
   skipCredentialsValidation: false
   skipMetadataApiCheck: false
@@ -71,7 +74,7 @@ awsRegion: us-east-1
 awsAccountId: "000000000000"
 
 # Namespace where AsyncActors will be created
-actorNamespace: asya-e2e
+actorNamespace: "" # defaults to release namespace
 
 # IRSA (IAM Roles for Service Accounts) configuration
 irsa:
@@ -106,6 +109,9 @@ sidecar:
   awsCredsSecret: ""
   # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
   sqsEndpoint: ""
+  # When true, auto-computes sqsEndpoint as http://localstack-sqs.{release_namespace}:4566
+  # Only used when sqsEndpoint is empty
+  sqsLocalstackEnabled: false
   # SQS long-polling wait time override (seconds)
   sqsWaitTimeSeconds: ""
   # RabbitMQ AMQP connection URL

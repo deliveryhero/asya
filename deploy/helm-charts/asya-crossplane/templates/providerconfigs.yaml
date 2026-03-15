@@ -12,15 +12,15 @@ spec:
     source: {{ .Values.awsProviderConfig.credentialsSource }}
     {{- if eq .Values.awsProviderConfig.credentialsSource "Secret" }}
     secretRef:
-      namespace: {{ .Values.awsProviderConfig.secretRef.namespace }}
+      namespace: {{ .Values.awsProviderConfig.secretRef.namespace | default .Release.Namespace }}
       name: {{ .Values.awsProviderConfig.secretRef.name }}
       key: {{ .Values.awsProviderConfig.secretRef.key }}
     {{- end }}
-  {{- if .Values.awsProviderConfig.endpoint.enabled }}
+  {{- if or .Values.awsProviderConfig.endpoint.enabled .Values.awsProviderConfig.endpoint.localstackEnabled }}
   endpoint:
     url:
       type: Static
-      static: {{ .Values.awsProviderConfig.endpoint.url }}
+      static: {{ if .Values.awsProviderConfig.endpoint.localstackEnabled }}http://localstack-sqs.{{ .Release.Namespace }}:4566{{ else }}{{ .Values.awsProviderConfig.endpoint.url }}{{ end }}
     source: Custom
     hostnameImmutable: {{ .Values.awsProviderConfig.endpoint.hostnameImmutable }}
     services:
