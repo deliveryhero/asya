@@ -145,7 +145,7 @@ helm install asya-crew asya/asya-crew \
 ```
 
 Configure external services (real AWS SQS/S3, RabbitMQ, etc.) by overriding the relevant
-values in each chart. See [For Platform Engineers](for-platform-engineers.md) for the full
+values in each chart. See [For Platform Engineers](../operate/) for the full
 production setup guide.
 
 </details>
@@ -217,8 +217,8 @@ kind delete cluster --name asya-quickstart
 
 ## What's next?
 
-- **[For Data Scientists](for-data-scientists.md)** — actor handlers, class-based actors, the Flow DSL
-- **[For Platform Engineers](for-platform-engineers.md)** — production deployment, scaling policies
+- **[Usage Guide](usage.md)** — actor handlers, class-based actors, the Flow DSL
+- **[Operate](../operate/)** — monitoring, scaling policies, troubleshooting, upgrades
 - **[Architecture](../architecture/README.md)** — deep dive into actors, envelopes, routing
 - **[Examples](../../examples/)** — sample actors and flows
 

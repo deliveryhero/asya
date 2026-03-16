@@ -28,8 +28,7 @@ nav:
   - Motivation: motivation.md
   - Concepts: concepts.md
   - Getting Started: quickstart/README.md
-  - For Data Scientists 🧑‍🔬: quickstart/for-data-scientists.md
-  - For Platform Engineers ⚙️: quickstart/for-platform-engineers.md
+  - Usage: quickstart/usage.md
 - INSTALLATION:
   - AWS EKS: install/aws-eks.md
   - Local Kind: install/local-kind.md
@@ -42,6 +41,8 @@ nav:
   - Crossplane: architecture/asya-crossplane.md
   - Gateway: architecture/asya-gateway.md
   - Crew: architecture/asya-crew.md
+  - Flow Compiler: architecture/asya-flow.md
+  - State Proxy: architecture/asya-state-proxy.md
   - CLI Tools: architecture/asya-lab.md
   - Autoscaling: architecture/autoscaling.md
   - Observability: architecture/observability.md
@@ -51,7 +52,14 @@ nav:
   - Supported Transports:
     - RabbitMQ: architecture/transports/rabbitmq.md
     - SQS: architecture/transports/sqs.md
+- REFERENCE:
+  - ABI Yield Protocol: reference/abi-protocol.md
+  - Flow DSL: reference/flow-dsl.md
+- TUTORIALS:
+  - Handler Adapter Pattern: tutorials/actor-handler-adapter-pattern.md
+  - Actor Flavors: tutorials/actor-flavors.md
 - OPERATIONS:
+  - Scaling: operate/scaling.md
   - Monitoring: operate/monitoring.md
   - Troubleshooting: operate/troubleshooting.md
   - Upgrades: operate/upgrades.md

@@ -4,41 +4,53 @@ Meet Asya🎭 - a new open-source Kubernetes-native **async actor framework** fo
 
 GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryhero/asya) ⭐
 
-<div style="width: 100%;">
-<img src="./img/asya-full.jpg" alt="Asya image" width="50%"/>
-<p style="font-size: 0.7em; font-style: italic; color: #666; margin-top: -2px;">Image generated with OpenAI</p>
-</div>
+<img src="./img/logo_colored_with_borders.png" alt="Asya" width="280"/>
 
 ## Documentation Structure
 
 ### Getting Started
-- **[Motivation](motivation.md)** - Why Asya exists, problems it solves, when to use it
-- **[Core Concepts](concepts.md)** - Actors, messages, sidecars, runtime, and system components
+- **[Motivation](motivation.md)** - Why async choreography over centralized orchestration
+- **[Core Concepts](concepts.md)** - Envelope, actor, sidecar, runtime, crew, flow DSL, gateway
+- **[Setup](quickstart/README.md)** - Install Asya locally with Kind in 5 minutes
+- **[Usage](quickstart/usage.md)** - Write handlers, deploy actors, build multi-step flows
 
 ### Architecture
-- **[Architecture Overview](architecture/README.md)** - Deep dive into system design and components
+- **[Overview](architecture/README.md)** - System design and component interactions
   - [Actors](architecture/asya-actor.md) - Stateless workloads with message-based communication
   - [Sidecar](architecture/asya-sidecar.md) - Message routing and transport management
   - [Runtime](architecture/asya-runtime.md) - User code execution environment
-  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management (includes inline sidecar rendering)
-  - [Gateway](architecture/asya-gateway.md) - Optional MCP HTTP API
-  - [Crew](architecture/asya-crew.md) - System actors for flow maintenance
-  - [Autoscaling](architecture/autoscaling.md) - KEDA integration details
-  - [Protocols](architecture/protocols/actor-actor.md) - Communication protocols between components
-  - [Transports](architecture/transports/README.md) - Message queue implementations
+  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management
+  - [Gateway](architecture/asya-gateway.md) - MCP / A2A / HTTP bridge to the async mesh
+  - [Crew](architecture/asya-crew.md) - Built-in system actors (x-sink, x-sump, x-pause, x-resume)
+  - [Flow Compiler](architecture/asya-flow.md) - How Flow DSL transforms Python into actor networks
+  - [State Proxy](architecture/asya-state-proxy.md) - Virtual persistent state for stateless actors
+  - [CLI Tools](architecture/asya-lab.md) - `asya flow`, `asya mcp`, `asya build`, `asya k`
+  - [Autoscaling](architecture/autoscaling.md) - KEDA per-actor queue-depth scaling
+  - [Observability](architecture/observability.md) - Metrics, tracing, Prometheus/Grafana
+- **Protocols**
+  - [Actor-Actor](architecture/protocols/actor-actor.md) - Envelope spec and payload enrichment
+  - [Sidecar-Runtime](architecture/protocols/sidecar-runtime.md) - Unix socket ABI between sidecar and runtime
+- **Transports**
+  - [SQS](architecture/transports/sqs.md) - AWS SQS / LocalStack configuration
+  - [RabbitMQ](architecture/transports/rabbitmq.md) - RabbitMQ configuration
+  - [All transports](architecture/transports/README.md) - Transport comparison and selection
+
+### Reference
+- **[ABI Yield Protocol](reference/abi-protocol.md)** - Generator handler yield forms (GET, SET, FLY)
+- **[Flow DSL](reference/flow-dsl.md)** - Flow DSL syntax, supported constructs, and compilation rules
+
+### Tutorials
+- **[Actor Handler Adapter Pattern](tutorials/actor-handler-adapter-pattern.md)** - Wrap third-party models with a clean handler interface
+- **[Actor Flavors](tutorials/actor-flavors.md)** - Type-aware merge and actor variant configuration
 
 ### Installation
+- **[Local Kind](install/local-kind.md)** - Local development cluster setup
 - **[AWS EKS](install/aws-eks.md)** - Production deployment on AWS
-- **[Local Kind](install/local-kind.md)** - Local development cluster
 - **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
 
-### Quickstart
-- **[Getting Started](quickstart/README.md)** - 5-minute introduction: run Asya locally, deploy your first actor
-- **[For Data Scientists](quickstart/for-data-scientists.md)** - Build and deploy your first actor
-- **[For Platform Engineers](quickstart/for-platform-engineers.md)** - Deploy and manage Asya infrastructure
-
 ### Operations
-- **[Monitoring](operate/monitoring.md)** - Observability and metrics
+- **[Scaling](operate/scaling.md)** - KEDA config, GPU workloads, cost optimization
+- **[Monitoring](operate/monitoring.md)** - Dashboards, alerts, metrics
 - **[Troubleshooting](operate/troubleshooting.md)** - Common issues and solutions
 - **[Upgrades](operate/upgrades.md)** - Version upgrade procedures
 
