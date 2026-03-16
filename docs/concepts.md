@@ -1,167 +1,126 @@
 # Core Concepts
 
-## Actors
-
-**What is an Actor?**
-
-An actor is a stateless (by default) workload that:
-
-- Receives messages from an input queue
-- Processes them via user-defined code
-- Sends results to the next queue in the route
-
-**Key characteristics**:
-
-- Stateless by design - no persistent state between messages
-- Independently scalable based on queue depth
-- Independently deployable as Kubernetes workloads
-
-**Motivation**: Alternative to monolithic pipelines. Instead of one large pipeline `A → B → C`, each step is an independent actor that can scale and deploy separately.
-
-**See**: [architecture/asya-actor.md](architecture/asya-actor.md) for details.
-
-## Sidecar
-
-**Responsibilities**:
-
-- Envelope routing between queues and runtime
-- Transport management (RabbitMQ, SQS)
-- Observability (metrics, logs)
-- Reliability (retries, error handling)
-
-**How it works**: Injected as a container into actor pods. Consumes envelopes from queues, validates envelope structure, forwards to runtime via Unix socket, routes responses to next queue.
-
-**See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md) for details.
-
-## Runtime
-
-**Responsibilities**:
-
-- User code execution
-- Processing input messages
-- Generating output messages
-
-**How it works**: Receives envelopes from sidecar via Unix socket, loads user handler (function or class), executes it, returns results back to sidecar.
-
-**Deployment**: User defines container image with Python code. The Crossplane composition mounts `asya_runtime.py` entrypoint script via ConfigMap.
-
-**See**: [architecture/asya-runtime.md](architecture/asya-runtime.md) for details.
-
-## Crew Actors
-
-**Special system actors** for framework-level tasks:
-
-- **`x-sink`**: Persists successful results to S3/MinIO, reports success to gateway
-- **`x-sump`**: Handles failures (coming soon), implements retry logic, reports errors to gateway
-- more crew actors coming soon
-
-**Future crew actors**:
-
-- Fan-in aggregation
-- Custom monitoring and alerting
-
-**See**: [architecture/asya-crew.md](architecture/asya-crew.md) for details.
-
-## Queues
-
-**Interface**: Send, receive, ack, nack messages
-
-**Transport types**:
-
-- **SQS**: AWS-managed queue service
-- **RabbitMQ**: Self-hosted open-source message broker
-
-**Pluggable design**: Transport layer is abstracted - adding new transports (Kafka, NATS, Pub/Sub) requires implementing transport interface.
-
-**See**: [architecture/transports/README.md](architecture/transports/README.md) for details.
-
 ## Envelope
 
-**Definition**: JSON object passed between actors via message queues.
+The envelope is the fundamental primitive in Asya. It is a JSON message that carries both the data and the route through the pipeline — "the message knows the way."
 
-**Structure**:
 ```json
 {
-  "id": "unique-envelope-id",
+  "id": "env-abc123",
   "route": {
-    "prev": [],
-    "curr": "preprocess",
-    "next": ["inference", "postprocess"]
+    "prev": ["preprocess"],
+    "curr": "infer",
+    "next": ["postprocess", "store"]
   },
-  "headers": {
-    "trace_id": "...",
-    "priority": "high"
-  },
-  "payload": {
-    "data": "arbitrary user data"
-  }
+  "headers": { "trace_id": "t-42", "priority": "high" },
+  "payload": { "text": "...", "cleaned": true }
 }
 ```
 
 **Fields**:
+- `id` — unique identifier for tracking and deduplication
+- `route.prev` — actors that have already processed this envelope (read-only)
+- `route.curr` — the actor currently processing it (read-only)
+- `route.next` — remaining actors in the pipeline (writable — actors can modify this for dynamic routing)
+- `headers` — metadata like trace IDs, priorities
+- `payload` — the user data flowing through the pipeline; each actor enriches it
 
-- `id` (required): Unique identifier for tracking
-- `route` (required): Actor list and current position
-- `payload` (required): User data processed by actors
-- `headers` (optional): Routing metadata (traces, priorities)
+After an actor processes an envelope, the sidecar advances the route: `curr` moves to `prev`, the first element of `next` becomes the new `curr`. The envelope then lands in the next actor's queue.
 
-**Stateful routing**: `route.current` increments after each actor processes the envelope. Note once again, this is a unique feature of 🎭: pipelines are stateless, but envelopes are stateful (they represent different pipeline executions).
+**See**: [actor-actor protocol](architecture/protocols/actor-actor.md) for the full envelope spec.
 
-**See**: [architecture/protocols/actor-actor.md](architecture/protocols/actor-actor.md) for details.
+![Actor mesh communication](img/actor-mesh-communication.png)
 
-## Crossplane Compositions
+## Actor
 
-**Responsibilities**:
+An actor is a Kubernetes workload that processes one envelope at a time. You deploy it as an `AsyncActor` CRD:
 
-- Manages lifecycle of AsyncActor CRDs
-- Creates Kubernetes Deployments
-- Configures KEDA autoscaling
-- Creates and manages message queues via cloud providers
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: infer
+spec:
+  transport: sqs
+  image: my-model:latest
+  handler: model.LLMHandler.process
+  scaling:
+    minReplicaCount: 0
+    maxReplicaCount: 20
+    queueLength: 5
+```
 
-**How it works**: Watches AsyncActor custom resources, reconciles desired state via Crossplane Compositions and cloud provider APIs.
+Asya creates: one SQS queue + one Kubernetes Deployment (with sidecar injected) + one KEDA ScaledObject. Deleting the `AsyncActor` cascades to all three.
 
-**See**: [architecture/asya-crossplane.md](architecture/asya-crossplane.md) for details.
+**Two files, two owners**: the handler (Python, written by the dev team) and the actor spec (YAML, managed by the platform team). These are decoupled — updating the scaling policy doesn't touch handler code, and changing the model doesn't touch infrastructure.
 
-## KEDA (Autoscaling)
+**See**: [architecture/asya-actor.md](architecture/asya-actor.md)
 
-**Benefits**:
+## Sidecar and Runtime
 
-- Automatic scaling based on queue depth or custom metrics
-- Scale to zero - eliminate idle resource costs
-- Handle bursty workloads efficiently
+Every actor pod has two containers injected by Asya:
 
-**Integration**: Asya Crossplane Composition creates KEDA ScaledObjects for each AsyncActor. KEDA monitors queue depth and scales actor deployments from 0 to maxReplicaCount.
+**Sidecar** (Go) handles all infrastructure concerns:
+- Polls the SQS/RabbitMQ queue for envelopes
+- Forwards envelope to the runtime via Unix socket
+- Receives the result and routes it to the next queue
+- Exposes Prometheus metrics, handles retries
 
-**Example**: Queue has 100 messages, queueLength=5 configured → KEDA scales to 20 replicas (100/5).
+**Runtime** (Python) handles all user-code concerns:
+- Loads your handler class or function once at startup
+- Executes it per envelope
+- Returns the result to the sidecar
 
-**See**: [architecture/autoscaling.md](architecture/autoscaling.md) for details.
+Your handler sees only `payload: dict → dict`. The envelope structure, queue mechanics, and routing are invisible to it.
 
-## MCP Gateway (Optional)
+**See**: [architecture/asya-sidecar.md](architecture/asya-sidecar.md), [architecture/asya-runtime.md](architecture/asya-runtime.md)
 
-As an optional component, 🎭 offers an MCP-compliant HTTP gateway, which allows external clients to easily consume async pipelines as MCP tools.
+![Actor anatomy](img/actor-anatomy.png)
 
-**Responsibilities**:
+## Crew Actors
 
-- Exposes MCP-compliant HTTP API
-- Receives HTTP requests, creates tasks
-- Tracks task status in PostgreSQL
-- Streams progress updates via Server-Sent Events (SSE)
+Crew actors are built-in system actors that handle framework-level concerns:
 
-**How it works**: Client calls tool → Gateway creates task → Sends to first actor's queue → Crew actors report status back → Gateway streams updates to client.
+| Actor | Role |
+|---|---|
+| `x-sink` | Persists successful results to S3/MinIO; reports success to the gateway |
+| `x-sump` | Receives envelopes that raised an exception; persists error details |
+| `x-pause` | Checkpoints an envelope to S3 and signals `paused` (human-in-the-loop) |
+| `x-resume` | Restores a checkpointed envelope and re-injects it into the mesh |
 
-**Use case**: Easy integration for external systems or user-facing APIs.
+`x-sink` and `x-sump` are automatic — never include them in route configs. An empty `route.next` or a `None` return routes to `x-sink`. An unhandled exception routes to `x-sump`.
 
-**See**: [architecture/asya-gateway.md](architecture/asya-gateway.md) for details.
+**See**: [architecture/asya-crew.md](architecture/asya-crew.md)
 
-## Observability (Optional)
+## Flow DSL
 
-**Built-in metrics** (OpenTelemetry):
+The Flow DSL lets you describe multi-actor pipelines in familiar Python control flow and compiles them into a set of router actors:
 
-- Actor processing time
-- Message throughput
-- Error rates
-- Queue depth
+```python
+def analysis_flow(p: dict) -> dict:
+    p = clean_text(p)
+    if p["language"] == "en":
+        p = english_model(p)
+    else:
+        p = multilingual_model(p)
+    p = store_result(p)
+    return p
+```
 
-**Integration**: Prometheus scrapes metrics, Grafana dashboards visualize actor health, pipeline performance.
+`asya flow compile analysis_flow.py` generates router actors that implement the branching logic as
+message-passing actors at Kubernetes scale. **Python in, actors out.**
 
-**See**: [architecture/observability.md](architecture/observability.md) for details.
+Flows only support actors with a 1:1 payload mapping (`return dict`). Dynamic routing (`yield "SET"`), fan-out, and `None` returns are actor-only features.
+
+**See**: [reference/flow-dsl.md](reference/flow-dsl.md), [architecture/asya-flow.md](architecture/asya-flow.md)
+
+## Gateway (Optional)
+
+The gateway exposes actor pipelines as synchronous HTTP endpoints, MCP tools, or A2A agents. It bridges sync clients to the async mesh:
+
+1. Client POSTs to `/mcp/call/my-pipeline`
+2. Gateway creates a task, sends the envelope to the first actor's queue
+3. Crew actors report progress back via `/mesh/` callbacks
+4. Gateway streams updates to the client via SSE
+
+**See**: [architecture/asya-gateway.md](architecture/asya-gateway.md)

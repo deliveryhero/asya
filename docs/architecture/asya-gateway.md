@@ -453,7 +453,7 @@ deployment model rationale, env var table, OAuth 2.1 flow walkthrough, and
 NetworkPolicy examples.
 
 ## Using MCP tools
-**See**: [For Data Scientists](../quickstart/for-data-scientists.md#using-mcp-tools) for instructions how to test MCP locally.
+**See**: [Usage](../quickstart/usage.md#using-mcp-tools) for instructions how to test MCP locally.
 
 ## Deployment Helm Charts
 

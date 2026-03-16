@@ -54,6 +54,10 @@
         body.dark .theme-icon-dark {
             display: block;
         }
+        .logo-hero {
+            display: block;
+            margin: 0 auto 2.5rem;
+        }
 
         .container {
             max-width: 900px;
@@ -69,10 +73,11 @@
 
         h1 {
             font-size: 3rem;
-            margin-bottom: 0.5rem;
+            margin-bottom: 1rem;
             color: var(--text-primary);
             font-weight: 600;
             letter-spacing: -0.02em;
+            line-height: 1;
         }
 
         .tagline {
@@ -122,18 +127,14 @@
         }
 
         .btn-primary {
-            background: var(--btn-primary-bg);
+            background: #3c63cc;
             color: white;
-            border-color: var(--btn-primary-bg);
-        }
-
-        body.dark .btn-primary {
-            color: #1a1a1a;
+            border-color: #3c63cc;
         }
 
         .btn-primary:hover {
-            background: var(--btn-primary-hover);
-            border-color: var(--btn-primary-hover);
+            background: #3050b8;
+            border-color: #3050b8;
         }
 
         .btn:hover {
@@ -272,10 +273,12 @@
 
     <div class="container">
         <h1>Asya🎭</h1>
-        <p class="tagline">Kubernetes-native Async Actor Framework</p>
+        <p class="tagline">Kubernetes-native Async Actor Mesh</p>
+        <img src="/docs/img/logo_colored_with_borders.png" alt="Asya🎭" class="logo-hero" width="240">
         <p class="description">
-            Orchestrate AI/ML workloads at scale with a powerful actor-based framework
-            built for Kubernetes. Deploy distributed systems with ease using familiar patterns.
+            Two files, two owners. Write a Python handler; deploy an AsyncActor CRD.
+            Asya injects the sidecar, creates the queue, and wires KEDA autoscaling —
+            every actor scales from zero independently, no central coordinator.
         </p>
 
         <div class="links">
@@ -291,12 +294,13 @@
 
         <div class="install-section">
             <h3>Get Started</h3>
-            <p>Install Crossplane:</p>
-            <div class="code-block code-block-terminal">helm repo add crossplane-stable https://charts.crossplane.io/stable
-helm install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace</div>
+            <p>Add the Helm repository:</p>
+            <div class="code-block code-block-terminal">helm repo add asya https://asya.sh/charts && helm repo update asya</div>
 
-            <p style="margin-top: 1.5rem;">Install Asya compositions:</p>
-            <div class="code-block code-block-terminal">kubectl apply -f https://github.com/deliveryhero/asya/releases/latest/download/asya-crossplane.yaml</div>
+            <p style="margin-top: 1.5rem;">Install the quickstart (Crossplane + KEDA + LocalStack + hello actor):</p>
+            <div class="code-block code-block-terminal">helm install asya asya/asya-playground \
+  --namespace asya-demo --create-namespace \
+  --set global.transport=sqs --timeout 600s --wait</div>
         </div>
 
         <div class="features">
