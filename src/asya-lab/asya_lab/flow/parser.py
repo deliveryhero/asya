@@ -64,10 +64,12 @@ class FlowParser:
         self.is_async: bool = False  # Whether flow function is async def
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
+        self.import_map: dict[str, str] = {}  # Map local name -> fully qualified module.name
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
         self.extracted_configs: list[dict] = []  # Config extractions from treat-as:config rules
+        self.module_constants: list[str] = []  # Module-level constant assignments
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -75,6 +77,8 @@ class FlowParser:
         except SyntaxError as e:
             raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
 
+        self._collect_imports(tree)
+        self._collect_module_constants(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
             raise FlowCompileError(
@@ -102,6 +106,37 @@ class FlowParser:
     def get_class_methods(self) -> set[str]:
         """Return set of handler names that are class methods."""
         return self.class_methods.copy()
+
+    def get_import_map(self) -> dict[str, str]:
+        """Return map of local name -> fully qualified module.name from flow imports."""
+        return dict(self.import_map)
+
+    def get_module_constants(self) -> list[str]:
+        """Return module-level constant assignments to include in generated code."""
+        return list(self.module_constants)
+
+    def _collect_imports(self, tree: ast.Module) -> None:
+        """Populate import_map from top-level `from X import Y` statements."""
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                for alias in node.names:
+                    local_name = alias.asname if alias.asname else alias.name
+                    self.import_map[local_name] = f"{node.module}.{alias.name}"
+
+    def _collect_module_constants(self, tree: ast.Module) -> None:
+        """Collect module-level assignments of literal constants for inclusion in generated code.
+
+        Only simple assignments (NAME = literal) are collected. Complex expressions,
+        function calls, and class instantiations are skipped.
+        """
+        for node in tree.body:
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Constant)
+            ):
+                self.module_constants.append(ast.unparse(node))
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
         candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []

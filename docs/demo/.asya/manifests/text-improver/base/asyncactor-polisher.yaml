@@ -2,14 +2,17 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: polisher
-  namespace: default
+  namespace: asya-demo
   labels:
     asya.sh/flow: text-improver
     asya.sh/flow-role: handler
 spec:
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: sqs
   actor: polisher
   image: asya-demo:latest
-  handler: polisher
+  handler: demo_actors.polisher.polisher
   transport: sqs
   scaling:
     enabled: true

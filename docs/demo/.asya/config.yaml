@@ -1,5 +1,5 @@
 templates:
-  namespace: default
+  namespace: asya-demo
   transport: sqs
   router_image: "python:3.13-slim"
   max_replicas: 5

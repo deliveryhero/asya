@@ -287,8 +287,12 @@ spec:
                           queueURL: {{`{{ $queueURL }}`}}
                           queueLength: "{{`{{ $queueLength }}`}}"
                           awsRegion: {{`{{ $region }}`}}
-                          {{- if .Values.awsProviderConfig.endpoint.enabled }}
+                          {{- if .Values.awsProviderConfig.endpoint.localstackEnabled }}
+                          awsEndpoint: http://localstack-sqs.{{ .Release.Namespace }}:4566
+                          {{- else if .Values.awsProviderConfig.endpoint.enabled }}
                           awsEndpoint: {{ .Values.awsProviderConfig.endpoint.url }}
+                          {{- else if .Values.sidecar.sqsEndpoint }}
+                          awsEndpoint: {{ .Values.sidecar.sqsEndpoint }}
                           {{- end }}
                       {{`{{- range ($scaling.additionalTriggers | default list) }}`}}
                       - {{`{{ toYaml . | nindent 24 }}`}}

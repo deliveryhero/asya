@@ -10,7 +10,7 @@ from asya_lab.flow.grouper import Router
 
 
 class CodeGenerator:
-    def __init__(self, flow_name: str, routers: list[Router], source_file: str, output_file: str | None = None):
+    def __init__(self, flow_name: str, routers: list[Router], source_file: str, output_file: str | None = None, module_constants: list[str] | None = None):
         self.flow_name = flow_name
         self.routers = routers
 
@@ -28,6 +28,7 @@ class CodeGenerator:
         else:
             self.source_file = os.path.basename(source_file)
 
+        self.module_constants: list[str] = module_constants or []
         self.all_handlers: set[str] = set()
 
     def _is_single_actor_flow(self) -> bool:
@@ -59,6 +60,8 @@ class CodeGenerator:
             parts.append(self._generate_max_iter_constant())
         if self._has_fan_out():
             parts.append("import copy\n")
+        if self.module_constants:
+            parts.append("\n".join(self.module_constants) + "\n")
         inline_imports = self._collect_inline_imports()
         if inline_imports:
             parts.append("\n".join(inline_imports) + "\n")
@@ -240,6 +243,11 @@ class CodeGenerator:
         Exit branches (break/return) overwrite route.next to clear any
         loop-back routers already in the queue.  Normal branches filter
         out end_ actors and append the rest to _next for prepending.
+
+        Mixed branches (non-end actors followed by an end_ actor) represent
+        a break-with-continuation: they must also overwrite the queue so the
+        loop-back router already in route.next doesn't fire after the
+        continuation actors run.
         """
         if is_exit:
             lines.append(f'{indent}yield "SET", ".route.next", []')
@@ -247,10 +255,18 @@ class CodeGenerator:
             lines.append(f"{indent}return")
         elif actors:
             filtered = [a for a in actors if not a.startswith("end_")]
-            for actor in filtered:
-                lines.append(f'{indent}_next.append(resolve("{actor}"))')
-            if not filtered:
-                lines.append(f"{indent}pass")
+            has_exit_actor = any(a.startswith("end_") for a in actors)
+            if has_exit_actor:
+                # Break-with-continuation: overwrite next (clears loop-back), return early.
+                resolved = ", ".join(f'resolve("{a}")' for a in filtered)
+                lines.append(f'{indent}yield "SET", ".route.next", [{resolved}]')
+                lines.append(f"{indent}yield p")
+                lines.append(f"{indent}return")
+            else:
+                for actor in filtered:
+                    lines.append(f'{indent}_next.append(resolve("{actor}"))')
+                if not filtered:
+                    lines.append(f"{indent}pass")
         else:
             lines.append(f"{indent}pass")
 

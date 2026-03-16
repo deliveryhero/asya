@@ -2,14 +2,17 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: generator
-  namespace: default
+  namespace: asya-demo
   labels:
     asya.sh/flow: text-improver
     asya.sh/flow-role: handler
 spec:
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: sqs
   actor: generator
   image: asya-demo:latest
-  handler: generator
+  handler: demo_actors.generator.generator
   transport: sqs
   scaling:
     enabled: true

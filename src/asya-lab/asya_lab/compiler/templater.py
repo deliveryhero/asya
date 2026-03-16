@@ -116,6 +116,7 @@ class ManifestTemplater:
         router_template_path: Path | None = None,
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
+        import_map: dict[str, str] | None = None,
     ) -> None:
         self.flow_name = flow_name
         self.flow_function = flow_function
@@ -126,6 +127,7 @@ class ManifestTemplater:
         self.router_template_path = router_template_path
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
+        self.import_map: dict[str, str] = import_map or {}
 
     def stamp(self, output_dir: Path) -> list[str]:
         """Generate kustomize-structured manifests.
@@ -182,7 +184,19 @@ class ManifestTemplater:
     def _stamp_actor(self, path: Path, actor: ActorInfo) -> None:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
-        manifest["spec"]["env"] = actor.env
+        spec = manifest["spec"]
+
+        # Inject compositionSelector from transport so Crossplane picks the right composition.
+        # Templates stay transport-agnostic; the compiler derives this from spec.transport.
+        transport = spec.get("transport")
+        if transport and "compositionSelector" not in spec:
+            manifest["spec"] = {
+                "compositionSelector": {"matchLabels": {"asya.sh/transport": transport}},
+                **spec,
+            }
+
+        template_env = manifest["spec"].get("env") or []
+        manifest["spec"]["env"] = template_env + actor.env
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
@@ -382,9 +396,10 @@ Each overlay builds on top of `common/`.
                 if actor_name not in handler_actors:
                     image = self.project.resolve_image(actor_name)
                     k8s_name = self._to_k8s_name(actor_name)
+                    handler = self.import_map.get(actor_name, actor_name)
                     handler_actors[actor_name] = ActorInfo(
                         name=k8s_name,
-                        handler=actor_name,
+                        handler=handler,
                         image=image,
                         flow_role="handler",
                     )
@@ -412,14 +427,25 @@ Each overlay builds on top of `common/`.
         return actors
 
     def _build_handler_env(self, router: Router) -> list[dict[str, str]]:
-        """Build ASYA_HANDLER_* env vars for a router actor."""
+        """Build ASYA_HANDLER_* env vars for a router actor.
+
+        All referenced actors — including other routers — get an env var so the
+        generated resolve() function can map names to actor queue identifiers.
+        Router handlers use the "routers.<name>" dotted form so that the suffix
+        index in resolve() can match on the bare function name.
+        """
+        seen: set[str] = set()
         env: list[dict[str, str]] = []
         for actor_name in self._get_referenced_actors(router):
-            if self._is_router_name(actor_name):
+            if actor_name in seen:
                 continue
-            k8s_name = self._to_k8s_name(actor_name)
+            seen.add(actor_name)
             env_var_name = f"ASYA_HANDLER_{actor_name.upper().replace('-', '_')}"
-            env.append({"name": env_var_name, "value": k8s_name})
+            if self._is_router_name(actor_name):
+                handler = f"routers.{actor_name}"
+            else:
+                handler = self.import_map.get(actor_name, actor_name)
+            env.append({"name": env_var_name, "value": handler})
         return env
 
     def _is_router_name(self, name: str) -> bool:

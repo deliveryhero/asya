@@ -11,6 +11,16 @@ spec:
   image: "{{ router_image }}"
   handler: "{{ handler }}"
   transport: "{{ transport }}"
+  env:
+  - name: PYTHONPATH
+    value: /app
+  volumes:
+  - name: handler
+    configMap:
+      name: "{{ flow_name }}-routers"
+  volumeMounts:
+  - name: handler
+    mountPath: /app
   scaling:
     enabled: true
     minReplicaCount: 0
