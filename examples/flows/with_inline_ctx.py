@@ -15,6 +15,10 @@ Compile with:
 """
 
 import contextlib
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def order_processing(p: dict) -> dict:

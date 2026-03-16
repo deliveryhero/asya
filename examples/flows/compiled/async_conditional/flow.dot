@@ -5,8 +5,8 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_content_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_content_pipeline_flow(p)</i></td></tr></table>>];
-  router_content_pipeline_flow_line_14_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_14…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'image'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_content_pipeline_flow_line_12_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_12…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'text'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_content_pipeline_flow_line_18_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_18…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'image'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_content_pipeline_flow_line_16_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_16…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'text'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   end_content_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_content_pipeline_flow(p)</i></td></tr></table>>];
   classifier [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await classifier(p)</i></td></tr></table>>];
   generic_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await generic_processor(p)</i></td></tr></table>>];
@@ -14,14 +14,14 @@ digraph flow {
   quality_check [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await quality_check(p)</i></td></tr></table>>];
   text_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await text_processor(p)</i></td></tr></table>>];
 
-  classifier -> router_content_pipeline_flow_line_12_if;
+  classifier -> router_content_pipeline_flow_line_16_if;
   generic_processor -> quality_check;
   image_processor -> quality_check;
   quality_check -> end_content_pipeline_flow;
-  router_content_pipeline_flow_line_12_if -> router_content_pipeline_flow_line_14_if [label="F", color=indianred4];
-  router_content_pipeline_flow_line_12_if -> text_processor [label="T", color=darkseagreen4];
-  router_content_pipeline_flow_line_14_if -> generic_processor [label="F", color=indianred4];
-  router_content_pipeline_flow_line_14_if -> image_processor [label="T", color=darkseagreen4];
+  router_content_pipeline_flow_line_16_if -> router_content_pipeline_flow_line_18_if [label="F", color=indianred4];
+  router_content_pipeline_flow_line_16_if -> text_processor [label="T", color=darkseagreen4];
+  router_content_pipeline_flow_line_18_if -> generic_processor [label="F", color=indianred4];
+  router_content_pipeline_flow_line_18_if -> image_processor [label="T", color=darkseagreen4];
   start_content_pipeline_flow -> classifier;
   text_processor -> quality_check;
 }

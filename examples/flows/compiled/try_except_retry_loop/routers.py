@@ -19,22 +19,22 @@ async def start_retry_pipeline(payload: dict):
     p = payload
     p['attempt'] = 0
     _next.append(resolve("prepare_request"))
-    _next.append(resolve("router_retry_pipeline_line_12_while_0"))
+    _next.append(resolve("router_retry_pipeline_line_16_while_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_retry_pipeline_line_14_try_enter_0(payload: dict):
+async def router_retry_pipeline_line_18_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
-    yield "SET", ".headers._on_error", resolve("router_retry_pipeline_line_14_except_dispatch_0")
+    yield "SET", ".headers._on_error", resolve("router_retry_pipeline_line_18_except_dispatch_0")
     _next.append(resolve("call_external_api"))
     _next.append(resolve("call_another_api"))
-    _next.append(resolve("router_retry_pipeline_line_14_try_exit_0"))
+    _next.append(resolve("router_retry_pipeline_line_18_try_exit_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_14_try_exit_0(payload: dict):
+async def router_retry_pipeline_line_18_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
@@ -44,7 +44,7 @@ async def router_retry_pipeline_line_14_try_exit_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_14_except_dispatch_0(payload: dict):
+async def router_retry_pipeline_line_18_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -59,34 +59,34 @@ async def router_retry_pipeline_line_14_except_dispatch_0(payload: dict):
         yield "DEL", ".status.error"
         pass
     else:
-        _next.append(resolve("router_retry_pipeline_line_14_reraise_0"))
+        _next.append(resolve("router_retry_pipeline_line_18_reraise_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_14_reraise_0(payload: dict):
+async def router_retry_pipeline_line_18_reraise_0(payload: dict):
     """Reraise router: raises RuntimeError for unhandled exceptions"""
     _error_type = yield "GET", ".status.error.type"
     _error_msg = yield "GET", ".status.error.message"
     raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
 
-async def router_retry_pipeline_line_13_seq(payload: dict):
+async def router_retry_pipeline_line_17_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['attempt'] += 1
-    _next.append(resolve("router_retry_pipeline_line_14_try_enter_0"))
+    _next.append(resolve("router_retry_pipeline_line_18_try_enter_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_12_while_0(payload: dict):
+async def router_retry_pipeline_line_16_while_0(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['attempt'] < 3:
-        _next.append(resolve("router_retry_pipeline_line_13_seq"))
-        _next.append(resolve("router_retry_pipeline_line_12_while_0"))
+        _next.append(resolve("router_retry_pipeline_line_17_seq"))
+        _next.append(resolve("router_retry_pipeline_line_16_while_0"))
     else:
         yield "SET", ".route.next", []
         yield p

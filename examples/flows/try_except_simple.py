@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def order_processing(p: dict) -> dict:
     try:
         p = validate_order(p)

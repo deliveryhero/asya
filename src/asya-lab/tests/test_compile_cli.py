@@ -26,6 +26,7 @@ def test_compile_py_file(tmp_path: Path):
     """Compile a simple sequential flow .py file and verify manifests are created."""
     flow_source = tmp_path / "my_flow.py"
     flow_source.write_text(
+        "@flow\n"
         "def my_flow(p: dict) -> dict:\n"
         "    p = actor_a(p)\n"
         "    p = actor_b(p)\n"

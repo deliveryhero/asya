@@ -3,6 +3,10 @@ Mutations without handlers.
 
 Tests flow with only payload mutations, no handler calls.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def mutations_only_flow(p: dict) -> dict:

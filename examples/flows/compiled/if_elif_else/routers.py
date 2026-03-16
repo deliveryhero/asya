@@ -17,33 +17,36 @@ async def start_if_elif_else_flow(payload: dict):
     """Entrypoint for flow 'if_elif_else_flow'"""
     _next = []
     _next.append(resolve("handler_validate"))
-    _next.append(resolve("router_if_elif_else_flow_line_10_if"))
+    _next.append(resolve("router_if_elif_else_flow_line_14_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_elif_else_flow_line_12_if(payload: dict):
+async def router_if_elif_else_flow_line_16_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'B':
-        _next.append(resolve("handler_type_b"))
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_type_b"), resolve("handler_finalize")]
+        yield p
+        return
     else:
-        _next.append(resolve("handler_default"))
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_default"), resolve("handler_finalize")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_elif_else_flow_line_10_if(payload: dict):
+async def router_if_elif_else_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'A':
-        _next.append(resolve("handler_type_a"))
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_type_a"), resolve("handler_finalize")]
+        yield p
+        return
     else:
-        _next.append(resolve("router_if_elif_else_flow_line_12_if"))
+        _next.append(resolve("router_if_elif_else_flow_line_16_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

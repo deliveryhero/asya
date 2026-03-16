@@ -5,6 +5,10 @@ First stage researches topics in parallel. Second stage reviews
 each research result in parallel. Each fan-out/fan-in completes
 before the next one starts.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def multi_stage_flow(p: dict) -> dict:

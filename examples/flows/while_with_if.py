@@ -4,7 +4,10 @@ If inside while loop.
 Tests conditional branching within iteration.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def if_inside_while_flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0

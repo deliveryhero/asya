@@ -1,3 +1,7 @@
+from asya_lab.flow import flow
+
+
+@flow
 def test_nested_flow(p: dict) -> dict:
     p = validate_input(p)
 

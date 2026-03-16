@@ -6,6 +6,10 @@ to either a detailed + human review path or an auto-approve path
 based on the review score. Demonstrates nested await chains
 inside conditional branches.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def review_pipeline_flow(state: dict) -> dict:

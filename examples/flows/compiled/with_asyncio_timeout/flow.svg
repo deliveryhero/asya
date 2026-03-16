@@ -34,13 +34,13 @@
 <path fill="none" stroke="black" d="M158.4,-747.52C158.4,-739.33 158.4,-730.73 158.4,-722.61"/>
 <polygon fill="black" stroke="black" points="161.9,-722.65 158.4,-712.65 154.9,-722.65 161.9,-722.65"/>
 </g>
-<!-- router_document_pipeline_line_24_seq -->
+<!-- router_document_pipeline_line_28_seq -->
 <g id="node2" class="node">
-<title>router_document_pipeline_line_24_seq</title>
+<title>router_document_pipeline_line_28_seq</title>
 <path fill="wheat" stroke="black" d="M264.8,-174.85C264.8,-174.85 12,-174.85 12,-174.85 6,-174.85 0,-168.85 0,-162.85 0,-162.85 0,-104.55 0,-104.55 0,-98.55 6,-92.55 12,-92.55 12,-92.55 264.8,-92.55 264.8,-92.55 270.8,-92.55 276.8,-98.55 276.8,-104.55 276.8,-104.55 276.8,-162.85 276.8,-162.85 276.8,-168.85 270.8,-174.85 264.8,-174.85"/>
 <polygon fill="white" stroke="none" points="14.4,-133.7 14.4,-160.45 262.4,-160.45 262.4,-133.7 14.4,-133.7"/>
 <polygon fill="none" stroke="black" points="14.4,-133.7 14.4,-160.45 262.4,-160.45 262.4,-133.7 14.4,-133.7"/>
-<text text-anchor="start" x="21.4" y="-144.95" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_document_pipeline_line_24_seq(p)</text>
+<text text-anchor="start" x="21.4" y="-144.95" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_document_pipeline_line_28_seq(p)</text>
 <polygon fill="white" stroke="none" points="14.4,-106.95 14.4,-133.7 262.4,-133.7 262.4,-106.95 14.4,-106.95"/>
 <polygon fill="none" stroke="black" points="14.4,-106.95 14.4,-133.7 262.4,-133.7 262.4,-106.95 14.4,-106.95"/>
 <text text-anchor="start" x="21.4" y="-117.2" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;done&#39;</text>
@@ -53,19 +53,19 @@
 <polygon fill="none" stroke="black" points="49.28,-14.4 49.28,-41.15 227.53,-41.15 227.53,-14.4 49.28,-14.4"/>
 <text text-anchor="start" x="56.28" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await end_document_pipeline(p)</text>
 </g>
-<!-- router_document_pipeline_line_24_seq&#45;&gt;end_document_pipeline -->
+<!-- router_document_pipeline_line_28_seq&#45;&gt;end_document_pipeline -->
 <g id="edge5" class="edge">
-<title>router_document_pipeline_line_24_seq&#45;&gt;end_document_pipeline</title>
+<title>router_document_pipeline_line_28_seq&#45;&gt;end_document_pipeline</title>
 <path fill="none" stroke="black" d="M138.4,-92.22C138.4,-84.03 138.4,-75.43 138.4,-67.31"/>
 <polygon fill="black" stroke="black" points="141.9,-67.35 138.4,-57.35 134.9,-67.35 141.9,-67.35"/>
 </g>
-<!-- router_document_pipeline_line_20_if -->
+<!-- router_document_pipeline_line_24_if -->
 <g id="node3" class="node">
-<title>router_document_pipeline_line_20_if</title>
+<title>router_document_pipeline_line_24_if</title>
 <path fill="wheat" stroke="black" d="M279.93,-525.75C279.93,-525.75 36.88,-525.75 36.88,-525.75 30.88,-525.75 24.88,-519.75 24.88,-513.75 24.88,-513.75 24.88,-420.7 24.88,-420.7 24.88,-414.7 30.88,-408.7 36.88,-408.7 36.88,-408.7 279.93,-408.7 279.93,-408.7 285.93,-408.7 291.93,-414.7 291.93,-420.7 291.93,-420.7 291.93,-513.75 291.93,-513.75 291.93,-519.75 285.93,-525.75 279.93,-525.75"/>
 <polygon fill="white" stroke="none" points="39.28,-484.6 39.28,-511.35 277.52,-511.35 277.52,-484.6 39.28,-484.6"/>
 <polygon fill="none" stroke="black" points="39.28,-484.6 39.28,-511.35 277.52,-511.35 277.52,-484.6 39.28,-484.6"/>
-<text text-anchor="start" x="46.28" y="-495.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_document_pipeline_line_20_if(p)</text>
+<text text-anchor="start" x="46.28" y="-495.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_document_pipeline_line_24_if(p)</text>
 <polygon fill="lightyellow" stroke="none" points="39.28,-457.85 39.28,-484.6 277.52,-484.6 277.52,-457.85 39.28,-457.85"/>
 <polygon fill="none" stroke="black" points="39.28,-457.85 39.28,-484.6 277.52,-484.6 277.52,-457.85 39.28,-457.85"/>
 <text text-anchor="start" x="101.78" y="-469.1" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
@@ -84,9 +84,9 @@
 <polygon fill="none" stroke="black" points="59.78,-226.25 59.78,-253 217.03,-253 217.03,-226.25 59.78,-226.25"/>
 <text text-anchor="start" x="66.78" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await sentiment_analyzer(p)</text>
 </g>
-<!-- router_document_pipeline_line_20_if&#45;&gt;sentiment_analyzer -->
+<!-- router_document_pipeline_line_24_if&#45;&gt;sentiment_analyzer -->
 <g id="edge3" class="edge">
-<title>router_document_pipeline_line_20_if&#45;&gt;sentiment_analyzer</title>
+<title>router_document_pipeline_line_24_if&#45;&gt;sentiment_analyzer</title>
 <path fill="none" stroke="#8b3a3a" d="M143.55,-408.4C140.18,-392.78 137.1,-375.81 135.4,-359.95 132.77,-335.4 134.82,-329.08 135.4,-304.4 135.59,-296.19 135.93,-287.39 136.3,-279.03"/>
 <polygon fill="#8b3a3a" stroke="#8b3a3a" points="139.79,-279.28 136.78,-269.12 132.8,-278.94 139.79,-279.28"/>
 <text text-anchor="middle" x="138.4" y="-329.05" font-family="Courier,monospace" font-size="10.00">F</text>
@@ -99,9 +99,9 @@
 <polygon fill="none" stroke="black" points="164.53,-318.8 164.53,-345.55 278.27,-345.55 278.27,-318.8 164.53,-318.8"/>
 <text text-anchor="start" x="171.53" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await translator(p)</text>
 </g>
-<!-- router_document_pipeline_line_20_if&#45;&gt;translator -->
+<!-- router_document_pipeline_line_24_if&#45;&gt;translator -->
 <g id="edge4" class="edge">
-<title>router_document_pipeline_line_20_if&#45;&gt;translator</title>
+<title>router_document_pipeline_line_24_if&#45;&gt;translator</title>
 <path fill="none" stroke="#698b69" d="M185.85,-408.25C191.89,-395.49 198.14,-382.31 203.67,-370.61"/>
 <polygon fill="#698b69" stroke="#698b69" points="206.77,-372.25 207.89,-361.72 200.44,-369.26 206.77,-372.25"/>
 <text text-anchor="middle" x="202.22" y="-381.2" font-family="Courier,monospace" font-size="10.00">T</text>
@@ -114,9 +114,9 @@
 <polygon fill="none" stroke="black" points="81.28,-577.15 81.28,-603.9 235.53,-603.9 235.53,-577.15 81.28,-577.15"/>
 <text text-anchor="start" x="88.28" y="-588.4" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await language_detector(p)</text>
 </g>
-<!-- language_detector&#45;&gt;router_document_pipeline_line_20_if -->
+<!-- language_detector&#45;&gt;router_document_pipeline_line_24_if -->
 <g id="edge1" class="edge">
-<title>language_detector&#45;&gt;router_document_pipeline_line_20_if</title>
+<title>language_detector&#45;&gt;router_document_pipeline_line_24_if</title>
 <path fill="none" stroke="black" d="M158.4,-562.3C158.4,-554.74 158.4,-546.17 158.4,-537.35"/>
 <polygon fill="black" stroke="black" points="161.9,-537.63 158.4,-527.63 154.9,-537.63 161.9,-537.63"/>
 </g>
@@ -126,9 +126,9 @@
 <path fill="none" stroke="black" d="M158.4,-654.91C158.4,-647.12 158.4,-638.47 158.4,-630.13"/>
 <polygon fill="black" stroke="black" points="161.9,-630.19 158.4,-620.19 154.9,-630.19 161.9,-630.19"/>
 </g>
-<!-- sentiment_analyzer&#45;&gt;router_document_pipeline_line_24_seq -->
+<!-- sentiment_analyzer&#45;&gt;router_document_pipeline_line_28_seq -->
 <g id="edge6" class="edge">
-<title>sentiment_analyzer&#45;&gt;router_document_pipeline_line_24_seq</title>
+<title>sentiment_analyzer&#45;&gt;router_document_pipeline_line_28_seq</title>
 <path fill="none" stroke="black" d="M138.4,-211.59C138.4,-203.9 138.4,-195.25 138.4,-186.6"/>
 <polygon fill="black" stroke="black" points="141.9,-186.83 138.4,-176.83 134.9,-186.83 141.9,-186.83"/>
 </g>

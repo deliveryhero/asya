@@ -17,18 +17,22 @@ async def start_if_empty_branches_flow(payload: dict):
     """Entrypoint for flow 'if_empty_branches_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_empty_branches_flow_line_10_if"))
+    _next.append(resolve("router_if_empty_branches_flow_line_14_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_empty_branches_flow_line_10_if(payload: dict):
+async def router_if_empty_branches_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['skip_processing']:
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield p
+        return
     else:
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

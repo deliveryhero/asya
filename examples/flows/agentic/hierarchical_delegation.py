@@ -47,6 +47,10 @@ sub-flow's start router is just another actor. This example flattens the
 hierarchy inline for clarity, but in production each team could be its
 own compiled flow deployed as an independent actor network.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def hierarchical_delegation(state: dict) -> dict:

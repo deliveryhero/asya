@@ -20,34 +20,36 @@ async def start_while_true_flow(payload: dict):
     """Entrypoint for flow 'while_true_flow'"""
     _next = []
     _next.append(resolve("handler_init"))
-    _next.append(resolve("router_while_true_flow_line_10_loop_back_0"))
+    _next.append(resolve("router_while_true_flow_line_14_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_while_true_flow_line_12_if(payload: dict):
+async def router_while_true_flow_line_16_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('done', False):
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield p
+        return
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_while_true_flow_line_10_loop_back_0(payload: dict):
+async def router_while_true_flow_line_14_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_while_true_flow_line_10_loop_back_0")
+    _self = resolve("router_while_true_flow_line_14_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 10")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 14")
 
     _next.append(resolve("handler_process"))
-    _next.append(resolve("router_while_true_flow_line_12_if"))
-    _next.append(resolve("router_while_true_flow_line_10_loop_back_0"))
+    _next.append(resolve("router_while_true_flow_line_16_if"))
+    _next.append(resolve("router_while_true_flow_line_14_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -226,6 +226,7 @@ class TestTryExceptRouterExecution:
 
     def test_try_enter_sets_on_error_and_inserts_body(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -269,6 +270,7 @@ def flow(p: dict) -> dict:
 
     def test_try_exit_clears_on_error(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -307,6 +309,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_matches_error_type(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -348,6 +351,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_matches_via_mro(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -386,6 +390,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_bare_except_catches_all(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -425,6 +430,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_unmatched_routes_to_reraise(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -469,6 +475,7 @@ def flow(p: dict) -> dict:
 
     def test_reraise_raises_runtime_error(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -500,6 +507,7 @@ def flow(p: dict) -> dict:
 
     def test_try_exit_inserts_finally_and_continuation(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -543,6 +551,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_with_finally_inserts_finally_actors(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -589,6 +598,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_multiple_handlers(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -657,6 +667,7 @@ def flow(p: dict) -> dict:
 
     def test_except_dispatch_tuple_types(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -719,6 +730,7 @@ def flow(p: dict) -> dict:
 
     def test_full_success_path(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -773,6 +785,7 @@ def flow(p: dict) -> dict:
 
     def test_payload_preserved_through_try_enter(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -801,6 +814,7 @@ def flow(p: dict) -> dict:
 
     def test_message_id_preserved(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)
@@ -849,6 +863,7 @@ def flow(p: dict) -> dict:
 
     def test_reraise_error_message_includes_details(self, compile_and_import, monkeypatch):
         source = """\
+@flow
 def flow(p: dict) -> dict:
     try:
         p = handler_a(p)

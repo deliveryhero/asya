@@ -24,6 +24,7 @@ class MLModel:
 def validate(p: dict) -> dict:
     return p
 
+@flow
 def test_flow(p: dict) -> dict:
     preprocessor = DataPreprocessor()
     model = MLModel()

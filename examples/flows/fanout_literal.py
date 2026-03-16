@@ -4,6 +4,10 @@ Fan-out via list literal - heterogeneous parallel dispatch.
 Different actors process the same input in parallel. Results are
 collected into p["analysis"] by the fan-in aggregator.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def analysis_flow(p: dict) -> dict:

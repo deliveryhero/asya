@@ -37,6 +37,10 @@ Note on control flow: The while loop, quality threshold check, and break
 are pure state transformations -- they compile into router actors. Only the
 function calls (researcher, critic, etc.) become real deployed actors.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def research_and_refine(state: dict) -> dict:

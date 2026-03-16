@@ -18,18 +18,18 @@ import copy
 async def start_multi_stage_flow(payload: dict):
     """Entrypoint for flow 'multi_stage_flow'"""
     _next = []
-    _next.append(resolve("fanout_multi_stage_flow_line_11"))
+    _next.append(resolve("fanout_multi_stage_flow_line_15"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_multi_stage_flow_line_12(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 12)"""
+async def fanout_multi_stage_flow_line_16(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 16)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_stage_flow_line_12")
+    _agg = resolve("fanin_multi_stage_flow_line_16")
 
     _slices = []
     for r in p['research']:
@@ -53,14 +53,14 @@ async def fanout_multi_stage_flow_line_12(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def fanout_multi_stage_flow_line_11(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 11)"""
+async def fanout_multi_stage_flow_line_15(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 15)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_stage_flow_line_11")
+    _agg = resolve("fanin_multi_stage_flow_line_15")
 
     _slices = []
     for t in p['topics']:
@@ -75,7 +75,7 @@ async def fanout_multi_stage_flow_line_11(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("fanout_multi_stage_flow_line_12")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("fanout_multi_stage_flow_line_16")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

@@ -882,6 +882,7 @@ class TestFanOutIntegration:
     def test_comprehension_flow_compiles_to_valid_python(self):
         code = self._compile_flow(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
@@ -895,6 +896,7 @@ class TestFanOutIntegration:
     def test_literal_flow_compiles_to_valid_python(self):
         code = self._compile_flow(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["result"] = [
                     sentiment_analyzer(p["text"]),
@@ -911,6 +913,7 @@ class TestFanOutIntegration:
     def test_gather_flow_compiles_to_valid_python(self):
         code = self._compile_flow(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p["results"] = await asyncio.gather(*(research_agent(t) for t in p["topics"]))
                 return p
@@ -923,6 +926,7 @@ class TestFanOutIntegration:
 
     def test_list_wrapped_gather_compiles_to_valid_python(self):
         code = self._compile_flow("""
+            @flow
             async def flow(p: dict) -> dict:
                 p["analysis"] = list(await asyncio.gather(
                     agent_a(p["text"]),
@@ -939,6 +943,7 @@ class TestFanOutIntegration:
     def test_fanout_between_actors_compiles(self):
         code = self._compile_flow(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = preprocessor(p)
                 p["results"] = [agent(t) for t in p["items"]]
@@ -954,6 +959,7 @@ class TestFanOutIntegration:
     def test_fanout_no_resolve_fanin(self):
         code = self._compile_flow(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["results"] = [research_agent(t) for t in p["topics"]]
                 return p
@@ -964,6 +970,7 @@ class TestFanOutIntegration:
     def test_two_fanouts_share_one_copy_import(self):
         code = self._compile_flow(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["research"] = [research_agent(t) for t in p["topics"]]
                 p["reviews"] = [review_agent(r) for r in p["research"]]

@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile ../../try_except_catch_all.py
 async def start_resilient_pipeline(payload: dict):
     """Entrypoint for flow 'resilient_pipeline'"""
     _next = []
-    _next.append(resolve("router_resilient_pipeline_line_2_try_enter_0"))
+    _next.append(resolve("router_resilient_pipeline_line_4_try_enter_0"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_5_seq(payload: dict):
+async def router_resilient_pipeline_line_7_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -30,7 +30,7 @@ async def router_resilient_pipeline_line_5_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_8_seq(payload: dict):
+async def router_resilient_pipeline_line_10_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -40,17 +40,17 @@ async def router_resilient_pipeline_line_8_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_2_try_enter_0(payload: dict):
+async def router_resilient_pipeline_line_4_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
-    yield "SET", ".headers._on_error", resolve("router_resilient_pipeline_line_2_except_dispatch_0")
+    yield "SET", ".headers._on_error", resolve("router_resilient_pipeline_line_4_except_dispatch_0")
     _next.append(resolve("risky_operation"))
-    _next.append(resolve("router_resilient_pipeline_line_2_try_exit_0"))
+    _next.append(resolve("router_resilient_pipeline_line_4_try_exit_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_2_try_exit_0(payload: dict):
+async def router_resilient_pipeline_line_4_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
@@ -60,7 +60,7 @@ async def router_resilient_pipeline_line_2_try_exit_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_2_except_dispatch_0(payload: dict):
+async def router_resilient_pipeline_line_4_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -70,10 +70,10 @@ async def router_resilient_pipeline_line_2_except_dispatch_0(payload: dict):
 
     if "ValueError" in _all_types:
         yield "DEL", ".status.error"
-        _next.append(resolve("router_resilient_pipeline_line_5_seq"))
+        _next.append(resolve("router_resilient_pipeline_line_7_seq"))
     else:
         yield "DEL", ".status.error"
-        _next.append(resolve("router_resilient_pipeline_line_8_seq"))
+        _next.append(resolve("router_resilient_pipeline_line_10_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -5,8 +5,8 @@ templates:
   max_replicas: 5
 
 build:
-  - module: "*"
-    image: "asya-demo:latest"
+- module: "*"
+  image: "asya-demo:latest"
 
 compiler:
   routers: "./src/demo_actors/compiled"

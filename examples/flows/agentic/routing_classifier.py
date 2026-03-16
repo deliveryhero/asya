@@ -33,6 +33,10 @@ Payload contract:
   state["category"]   - classification result (billing|technical|account|general)
   state["resolution"] - the specialized agent's response
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def routing_classifier(state: dict) -> dict:

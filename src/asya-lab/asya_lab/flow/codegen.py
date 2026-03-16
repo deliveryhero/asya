@@ -10,7 +10,14 @@ from asya_lab.flow.grouper import Router
 
 
 class CodeGenerator:
-    def __init__(self, flow_name: str, routers: list[Router], source_file: str, output_file: str | None = None, module_constants: list[str] | None = None):
+    def __init__(
+        self,
+        flow_name: str,
+        routers: list[Router],
+        source_file: str,
+        output_file: str | None = None,
+        module_constants: list[str] | None = None,
+    ):
         self.flow_name = flow_name
         self.routers = routers
 

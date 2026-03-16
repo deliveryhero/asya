@@ -18,19 +18,22 @@ async def start_typeddict_pipeline(payload: dict):
     _next = []
     _next.append(resolve("parser"))
     _next.append(resolve("validator"))
-    _next.append(resolve("router_typeddict_pipeline_line_73_if"))
+    _next.append(resolve("router_typeddict_pipeline_line_77_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_typeddict_pipeline_line_73_if(payload: dict):
+async def router_typeddict_pipeline_line_77_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if not p.get('valid', True):
-        _next.append(resolve("error_handler"))
+        yield "SET", ".route.next", [resolve("error_handler")]
+        yield p
+        return
     else:
-        _next.append(resolve("transformer"))
-        _next.append(resolve("sink_adapter"))
+        yield "SET", ".route.next", [resolve("transformer"), resolve("sink_adapter")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

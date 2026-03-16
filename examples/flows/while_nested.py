@@ -4,7 +4,10 @@ Nested while loops.
 Tests two-level loop nesting.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def while_nested_flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0

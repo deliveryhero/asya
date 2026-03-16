@@ -3,6 +3,10 @@ Nested if statements.
 
 Tests nested conditionals for complex decision trees.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def nested_if_flow(p: dict) -> dict:

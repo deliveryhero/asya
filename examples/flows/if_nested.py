@@ -1,3 +1,6 @@
+from asya_lab.flow import flow
+
+@flow
 
 def conditional_nested_flow(p: dict) -> dict:
     p = handler_validate_input(p)

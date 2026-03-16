@@ -4,7 +4,10 @@ While loop with break.
 Tests early loop exit.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def while_with_break_flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0
