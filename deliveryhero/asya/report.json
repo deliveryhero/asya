@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "8e36ad8352202503b01d0ea72e77c0c4cce5a2ab",
+  "commit": "fc928486b59ffe53af73e9537b4e5c1f401ed0df",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 33755,
+    "code": 33834,
     "test": 19196,
     "code_files": [
       {
@@ -24865,28 +24865,49 @@
         "code": 65,
         "comment": 45,
         "blank": 29,
-        "path": "docs/img/for-data-scientists-flows/compiled/sample_flow/routers.py",
+        "path": "docs/img/flows/compiled/sample_flow/routers.py",
         "language": "Python"
       },
       {
         "code": 77,
         "comment": 46,
         "blank": 31,
-        "path": "docs/img/for-data-scientists-flows/compiled/text_analysis_flow/routers.py",
+        "path": "docs/img/flows/compiled/text_analysis_flow/routers.py",
         "language": "Python"
       },
       {
         "code": 10,
         "comment": 0,
         "blank": 0,
-        "path": "docs/img/for-data-scientists-flows/sample_flow.py",
+        "path": "docs/img/flows/sample_flow.py",
         "language": "Python"
       },
       {
         "code": 27,
         "comment": 5,
         "blank": 9,
-        "path": "docs/img/for-data-scientists-flows/text_analysis_flow.py",
+        "path": "docs/img/flows/text_analysis_flow.py",
+        "language": "Python"
+      },
+      {
+        "code": 40,
+        "comment": 66,
+        "blank": 35,
+        "path": "examples/actors/agentic/dynamic_routing.py",
+        "language": "Python"
+      },
+      {
+        "code": 14,
+        "comment": 54,
+        "blank": 22,
+        "path": "examples/actors/agentic/live_streaming.py",
+        "language": "Python"
+      },
+      {
+        "code": 52,
+        "comment": 46,
+        "blank": 26,
+        "path": "examples/actors/agentic/pause_for_human.py",
         "language": "Python"
       },
       {
@@ -26178,7 +26199,7 @@
         "language": "Python"
       },
       {
-        "code": 57,
+        "code": 60,
         "comment": 38,
         "blank": 29,
         "path": "src/asya-lab/asya_lab/config/project.py",
@@ -26276,16 +26297,16 @@
         "language": "Python"
       },
       {
-        "code": 86,
-        "comment": 88,
-        "blank": 37,
+        "code": 38,
+        "comment": 86,
+        "blank": 25,
         "path": "src/asya-lab/asya_lab/init.py",
         "language": "Python"
       },
       {
-        "code": 23,
+        "code": 41,
         "comment": 2,
-        "blank": 10,
+        "blank": 13,
         "path": "src/asya-lab/asya_lab/init_cli.py",
         "language": "Python"
       },
@@ -27490,6 +27511,6 @@
       }
     ]
   },
-  "test_execution_time": 318000000000,
-  "timestamp": "2026-03-15T23:24:30.203037595Z"
+  "test_execution_time": 327000000000,
+  "timestamp": "2026-03-16T01:10:24.496983206Z"
 }
