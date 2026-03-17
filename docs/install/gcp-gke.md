@@ -415,35 +415,82 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 
 ## 8. Actor Deployment
 
-Clone the Asya repository and navigate to your actor project:
+The following creates a minimal `hello` actor that reads a name from the payload and
+returns a greeting. Use it to verify the full message path: Pub/Sub → sidecar → handler
+→ sidecar → x-sink.
 
 ```bash
-git clone https://github.com/deliveryhero/asya.git
-cd asya/examples/demo-kubecon   # or your own actor project directory
+mkdir hello-actor && cd hello-actor
 ```
 
-Build your actor image and push it to Artifact Registry:
+**`handler.py`** — the actor handler:
+
+```python
+def handle(payload: dict) -> dict:
+    name = payload.get("name", "world")
+    return {"greeting": f"Hello, {name}!"}
+```
+
+**`Dockerfile`**:
+
+```dockerfile
+FROM python:3.13-slim
+WORKDIR /app
+COPY handler.py .
+```
+
+**`actor.yaml`** — the AsyncActor manifest:
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: hello
+  namespace: <your-namespace>
+spec:
+  actor: hello
+  transport: pubsub
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: pubsub
+
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 3
+
+  image: <REGISTRY>/hello-actor:latest
+  handler: handler.handle
+```
+
+Build, push, and deploy:
 
 ```bash
-docker build -t ${REGISTRY}/my-actors:latest .
-docker push ${REGISTRY}/my-actors:latest
+docker build -t ${REGISTRY}/hello-actor:latest .
+docker push ${REGISTRY}/hello-actor:latest
+
+kubectl apply -f actor.yaml -n $NS
 ```
 
-Compile the flow and apply manifests:
+Watch the actor become ready (Crossplane creates the Pub/Sub topic and subscription):
 
 ```bash
-# Compile flow to AsyncActor manifests (if not already done)
-asya compile src/my_flow.py
-
-# Apply any EnvironmentConfig flavors (e.g. external API credentials)
-kubectl apply -f .asya/manifests/flavors/ -n $NS
-
-# Apply compiled AsyncActor manifests
-kubectl apply -k .asya/manifests/<flow-name>/base/ -n $NS
+kubectl get asyncactor hello -n $NS -w
 ```
 
-> `asya compile` generates kustomize manifests under `.asya/manifests/`. Use
-> `kubectl apply -k` directly if the `asya` CLI is not available on this machine.
+Send a test message via the gateway (or directly via `gcloud pubsub`):
+
+```bash
+GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+curl -s -X POST http://${GATEWAY_IP}/a2a/hello \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":"1","method":"message/send","params":{
+    "message":{"messageId":"test-1","role":"user",
+      "parts":[{"kind":"text","text":"world"}]}}}' \
+  | python3 -m json.tool
+```
 
 ---
 
