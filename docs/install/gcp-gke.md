@@ -22,10 +22,10 @@ Set these once before running any commands in this guide:
 
 ```bash
 export PROJECT=<your-gcp-project-id>
-export REGION=<region>              # e.g. europe-west1
+export ZONE=<zone>                  # e.g. europe-west1-b
 export CLUSTER=<cluster-name>       # e.g. asya
 export NS=<actor-namespace>         # e.g. asya
-export REGISTRY=${REGION}-docker.pkg.dev/${PROJECT}/<registry-name>
+export REGISTRY=${ZONE%-*}-docker.pkg.dev/${PROJECT}/<registry-name>
 export ASYA_VERSION=<release-tag>   # e.g. 0.5.5 — check github.com/deliveryhero/asya/releases
 ```
 
@@ -40,7 +40,7 @@ GKE Workload Identity — both the Crossplane GCP provider and actor pods depend
 ```bash
 gcloud container clusters create $CLUSTER \
   --project=$PROJECT \
-  --region=$REGION \
+  --zone=$ZONE \
   --num-nodes=1 \
   --machine-type=e2-standard-4 \
   --workload-pool=${PROJECT}.svc.id.goog \
@@ -49,9 +49,13 @@ gcloud container clusters create $CLUSTER \
 
 gcloud container clusters get-credentials $CLUSTER \
   --project=$PROJECT \
-  --region=$REGION
+  --zone=$ZONE
 ```
 
+> **Zonal vs regional**: `--zone` gives exactly 1 node. `--region` with `--num-nodes=1`
+> creates 1 node per zone (3 nodes in a 3-zone region). Use regional for production HA;
+> zonal for demos and cost-sensitive environments.
+>
 > The entity running `create` must have `roles/container.admin`; it is automatically
 > granted `cluster-admin` inside the new cluster.
 
@@ -63,9 +67,9 @@ gcloud container clusters get-credentials $CLUSTER \
 gcloud artifacts repositories create asya \
   --project=$PROJECT \
   --repository-format=docker \
-  --location=$REGION
+  --location=${ZONE%-*}
 
-gcloud auth configure-docker ${REGION}-docker.pkg.dev
+gcloud auth configure-docker ${ZONE%-*}-docker.pkg.dev
 ```
 
 ---
