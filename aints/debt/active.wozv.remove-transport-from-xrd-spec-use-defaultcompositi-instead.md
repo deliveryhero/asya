@@ -1,7 +1,12 @@
 ---
 title: "Remove transport from XRD spec: use defaultCompositionRef instead of per-actor compositionSelector"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/debt/wozv.remove-transport-from-xrd-spec-use-defaultcompositi-instead
+  - branch:debt/wozv.remove-transport-from-xrd-spec-use-defaultcompositi-instead
 ---
+
 
 ## Problem
 
