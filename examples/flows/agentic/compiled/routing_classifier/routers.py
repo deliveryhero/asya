@@ -17,7 +17,37 @@ async def start_routing_classifier(payload: dict):
     """Entrypoint for flow 'routing_classifier'"""
     _next = []
     _next.append(resolve("classifier"))
-    _next.append(resolve("router_routing_classifier_line_43_if"))
+    _next.append(resolve("router_routing_classifier_line_47_if"))
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_routing_classifier_line_51_if(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    if p.get('category') == 'account':
+        yield "SET", ".route.next", [resolve("account_agent"), resolve("format_reply")]
+        yield p
+        return
+    else:
+        yield "SET", ".route.next", [resolve("general_agent"), resolve("format_reply")]
+        yield p
+        return
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_routing_classifier_line_49_if(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    if p.get('category') == 'technical':
+        yield "SET", ".route.next", [resolve("technical_agent"), resolve("format_reply")]
+        yield p
+        return
+    else:
+        _next.append(resolve("router_routing_classifier_line_51_if"))
+
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -25,38 +55,12 @@ async def router_routing_classifier_line_47_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    if p.get('category') == 'account':
-        _next.append(resolve("account_agent"))
-        _next.append(resolve("format_reply"))
-    else:
-        _next.append(resolve("general_agent"))
-        _next.append(resolve("format_reply"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_routing_classifier_line_45_if(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    if p.get('category') == 'technical':
-        _next.append(resolve("technical_agent"))
-        _next.append(resolve("format_reply"))
-    else:
-        _next.append(resolve("router_routing_classifier_line_47_if"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_routing_classifier_line_43_if(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
     if p.get('category') == 'billing':
-        _next.append(resolve("billing_agent"))
-        _next.append(resolve("format_reply"))
+        yield "SET", ".route.next", [resolve("billing_agent"), resolve("format_reply")]
+        yield p
+        return
     else:
-        _next.append(resolve("router_routing_classifier_line_45_if"))
+        _next.append(resolve("router_routing_classifier_line_49_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

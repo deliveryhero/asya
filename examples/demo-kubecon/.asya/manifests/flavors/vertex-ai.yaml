@@ -1,0 +1,25 @@
+apiVersion: apiextensions.crossplane.io/v1beta1
+kind: EnvironmentConfig
+metadata:
+  name: vertex-ai
+  labels:
+    asya.sh/flavor: vertex-ai
+data:
+  env:
+  - name: GOOGLE_APPLICATION_CREDENTIALS
+    value: /secrets/gcp/sa-key.json
+  - name: VERTEXAI_PROJECT
+    valueFrom:
+      secretKeyRef:
+        name: vertex-ai-creds
+        key: project-id
+  - name: VERTEXAI_LOCATION
+    value: us-central1
+  volumes:
+  - name: gcp-creds
+    secret:
+      secretName: vertex-ai-creds
+  volumeMounts:
+  - name: gcp-creds
+    mountPath: /secrets/gcp
+    readOnly: true

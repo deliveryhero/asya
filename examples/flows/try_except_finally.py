@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def resource_pipeline(p: dict) -> dict:
     p["status"] = "started"
     try:

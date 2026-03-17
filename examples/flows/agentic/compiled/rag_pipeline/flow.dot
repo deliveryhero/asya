@@ -5,10 +5,10 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_rag_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_rag_pipeline(p)</i></td></tr><tr><td bgcolor="white" align="left">p['retrieval_attempts'] = 0</td></tr></table>>];
-  router_rag_pipeline_line_66_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_66_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['retrieval_attempts'] &gt;= 3</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_rag_pipeline_line_62_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_62_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('is_sufficient')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_rag_pipeline_line_53_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_53_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['retrieval_attempts'] += 1</td></tr></table>>];
-  router_rag_pipeline_line_52_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_52_loop_bac…(p)</i></td></tr></table>>];
+  router_rag_pipeline_line_70_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_70_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['retrieval_attempts'] &gt;= 3</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_rag_pipeline_line_66_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_66_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('is_sufficient')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_rag_pipeline_line_57_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_57_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['retrieval_attempts'] += 1</td></tr></table>>];
+  router_rag_pipeline_line_56_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_rag_pipeline_line_56_loop_bac…(p)</i></td></tr></table>>];
   end_rag_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_rag_pipeline(p)</i></td></tr></table>>];
   fact_checker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await fact_checker(p)</i></td></tr></table>>];
   generator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await generator(p)</i></td></tr></table>>];
@@ -19,15 +19,15 @@ digraph flow {
 
   fact_checker -> end_rag_pipeline;
   generator -> fact_checker;
-  query_analyzer -> router_rag_pipeline_line_52_loop_back_0;
-  query_refiner -> router_rag_pipeline_line_52_loop_back_0;
-  relevance_evaluator -> router_rag_pipeline_line_62_if;
+  query_analyzer -> router_rag_pipeline_line_56_loop_back_0;
+  query_refiner -> router_rag_pipeline_line_56_loop_back_0;
+  relevance_evaluator -> router_rag_pipeline_line_66_if;
   retriever -> relevance_evaluator;
-  router_rag_pipeline_line_52_loop_back_0 -> router_rag_pipeline_line_53_seq [constraint=false];
-  router_rag_pipeline_line_53_seq -> retriever;
-  router_rag_pipeline_line_62_if -> generator [label="T", color=darkseagreen4];
-  router_rag_pipeline_line_62_if -> router_rag_pipeline_line_66_if [label="F", color=indianred4];
+  router_rag_pipeline_line_56_loop_back_0 -> router_rag_pipeline_line_57_seq [constraint=false];
+  router_rag_pipeline_line_57_seq -> retriever;
   router_rag_pipeline_line_66_if -> generator [label="T", color=darkseagreen4];
-  router_rag_pipeline_line_66_if -> query_refiner [label="F", color=indianred4];
+  router_rag_pipeline_line_66_if -> router_rag_pipeline_line_70_if [label="F", color=indianred4];
+  router_rag_pipeline_line_70_if -> generator [label="T", color=darkseagreen4];
+  router_rag_pipeline_line_70_if -> query_refiner [label="F", color=indianred4];
   start_rag_pipeline -> query_analyzer;
 }

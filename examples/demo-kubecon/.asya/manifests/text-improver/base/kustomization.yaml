@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-end-text-improver.yaml
+- asyncactor-evaluator.yaml
+- asyncactor-generator.yaml
+- asyncactor-polisher.yaml
+- asyncactor-router-text-improver-line-20-loop-back-0.yaml
+- asyncactor-router-text-improver-line-21-seq.yaml
+- asyncactor-router-text-improver-line-26-if.yaml
+- asyncactor-router-text-improver-line-29-if.yaml
+- asyncactor-start-text-improver.yaml
+- configmap-routers.yaml

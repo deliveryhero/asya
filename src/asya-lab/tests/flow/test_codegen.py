@@ -756,6 +756,7 @@ class TestWhileLoopEndToEndCodeGen:
         from asya_lab.flow.compiler import FlowCompiler
 
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 10:
         p["i"] += 1
@@ -778,6 +779,7 @@ def flow(p: dict) -> dict:
         from asya_lab.flow.compiler import FlowCompiler
 
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -798,6 +800,7 @@ def flow(p: dict) -> dict:
         from asya_lab.flow.compiler import FlowCompiler
 
         source = """
+@flow
 def flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0
@@ -824,6 +827,7 @@ def flow(p: dict) -> dict:
         from asya_lab.flow.compiler import FlowCompiler
 
         source = """
+@flow
 def flow(p: dict) -> dict:
     p["i"] = 0
     while p["i"] < 10:
@@ -853,6 +857,7 @@ def flow(p: dict) -> dict:
         from asya_lab.flow.compiler import FlowCompiler
 
         source = """
+@flow
 def flow(p: dict) -> dict:
     if p["should_loop"]:
         while p["i"] < 10:
@@ -948,6 +953,7 @@ class TestSingleActorFlow:
 
     def test_single_actor_flow_via_compiler(self):
         source = """
+@flow
 def my_flow(p: dict) -> dict:
     p = my_actor(p)
     return p
@@ -960,6 +966,7 @@ def my_flow(p: dict) -> dict:
 
     def test_multi_actor_flow_single_actor_name_is_none(self):
         source = """
+@flow
 def my_flow(p: dict) -> dict:
     p = actor_a(p)
     p = actor_b(p)
@@ -972,6 +979,7 @@ def my_flow(p: dict) -> dict:
 
     def test_single_actor_flow_with_mutations_single_actor_name_is_none(self):
         source = """
+@flow
 def my_flow(p: dict) -> dict:
     p["x"] = 1
     p = my_actor(p)
@@ -984,6 +992,7 @@ def my_flow(p: dict) -> dict:
 
     def test_single_actor_flow_generates_valid_python(self):
         source = """
+@flow
 def pipeline(p: dict) -> dict:
     p = processor(p)
     return p

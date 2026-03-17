@@ -30,6 +30,7 @@ class TestConfigWithCompilation:
 
     def test_asyncio_timeout_generates_valid_python(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with asyncio.timeout(30):
                 p = slow_handler(p)
@@ -43,6 +44,7 @@ class TestConfigWithCompilation:
 
     def test_asyncio_timeout_no_with_in_output(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with asyncio.timeout(30):
                 p = slow_handler(p)
@@ -54,6 +56,7 @@ class TestConfigWithCompilation:
 
     def test_asyncio_timeout_actor_present_in_output(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with asyncio.timeout(30):
                 p = slow_handler(p)
@@ -64,6 +67,7 @@ class TestConfigWithCompilation:
 
     def test_config_multiple_actors_in_scope(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with asyncio.timeout(30):
                 p = handler_a(p)
@@ -82,6 +86,7 @@ class TestInlineWithCompilation:
 
     def test_inline_with_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p = handler(p)
@@ -95,6 +100,7 @@ class TestInlineWithCompilation:
 
     def test_inline_with_produces_with_keyword_in_output(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p = handler(p)
@@ -105,6 +111,7 @@ class TestInlineWithCompilation:
 
     def test_inline_async_with_produces_async_with_in_output(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with custom_ctx():
                 p = handler(p)
@@ -115,6 +122,7 @@ class TestInlineWithCompilation:
 
     def test_inline_with_actor_present_in_output(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p = handler(p)
@@ -125,6 +133,7 @@ class TestInlineWithCompilation:
 
     def test_inline_with_multiple_actors_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p = handler_a(p)
@@ -138,6 +147,7 @@ class TestInlineWithCompilation:
 
     def test_inline_with_mutations_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p["status"] = "running"
@@ -149,6 +159,7 @@ class TestInlineWithCompilation:
 
     def test_inline_nested_with_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with outer_ctx():
                 with inner_ctx():
@@ -167,6 +178,7 @@ class TestWithAfterOtherOps:
 
     def test_with_after_actor_call(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             p = first_handler(p)
             async with asyncio.timeout(30):
@@ -180,6 +192,7 @@ class TestWithAfterOtherOps:
 
     def test_with_before_mutation(self):
         source = """\
+        @flow
         async def flow(p: dict) -> dict:
             async with asyncio.timeout(30):
                 p = slow_handler(p)
@@ -191,6 +204,7 @@ class TestWithAfterOtherOps:
 
     def test_inline_with_before_condition(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             with custom_ctx():
                 p = handler(p)

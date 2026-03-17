@@ -17,19 +17,22 @@ async def start_early_return_flow(payload: dict):
     """Entrypoint for flow 'early_return_flow'"""
     _next = []
     _next.append(resolve("handler_validate"))
-    _next.append(resolve("router_early_return_flow_line_10_if"))
+    _next.append(resolve("router_early_return_flow_line_14_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_early_return_flow_line_10_if(payload: dict):
+async def router_early_return_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if not p['valid']:
-        _next.append(resolve("handler_error"))
+        yield "SET", ".route.next", [resolve("handler_error")]
+        yield p
+        return
     else:
-        _next.append(resolve("handler_process"))
-        _next.append(resolve("handler_finalize"))
+        yield "SET", ".route.next", [resolve("handler_process"), resolve("handler_finalize")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -5,6 +5,10 @@ A content pipeline that classifies input, routes to a
 type-specific processor, then runs a quality check.
 Demonstrates async/await with if/elif/else branching.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def content_pipeline_flow(state: dict) -> dict:

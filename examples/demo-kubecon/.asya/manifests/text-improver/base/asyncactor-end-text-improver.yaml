@@ -1,0 +1,30 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: end-text-improver
+  namespace: asya-demo
+  labels:
+    asya.sh/flow: text-improver
+    asya.sh/flow-role: exitpoint
+spec:
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: sqs
+  actor: end-text-improver
+  image: python:3.13-slim
+  handler: routers.end_text_improver
+  transport: sqs
+  env:
+  - name: PYTHONPATH
+    value: /app
+  volumes:
+  - name: handler
+    configMap:
+      name: text-improver-routers
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2

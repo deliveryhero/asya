@@ -46,6 +46,8 @@ class FlowCompiler:
         self.routers: list[Router] = []
         self.class_methods: set[str] = set()
         self.is_async: bool = False
+        self.import_map: dict[str, str] = {}
+        self.module_constants: list[str] = []
 
     def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> str:
         source_path = Path(source_file)
@@ -158,6 +160,8 @@ class FlowCompiler:
         # Store metadata for later use by DotGenerator
         self.class_methods = parser.get_class_methods()
         self.is_async = parser.is_async
+        self.import_map = parser.get_import_map()
+        self.module_constants = parser.get_module_constants()
         return flow_name, operations
 
     def _group(self, flow_name: str, operations):
@@ -165,5 +169,5 @@ class FlowCompiler:
         return grouper.group()
 
     def _generate(self, flow_name: str, units, filename: str, output_file: str | None = None):
-        generator = CodeGenerator(flow_name, units, filename, output_file)
+        generator = CodeGenerator(flow_name, units, filename, output_file, module_constants=self.module_constants)
         return generator.generate()

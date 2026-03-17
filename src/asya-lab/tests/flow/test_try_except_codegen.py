@@ -25,6 +25,7 @@ class TestTryExceptCodeGenValidity:
 
     def test_simple_try_except_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -40,6 +41,7 @@ class TestTryExceptCodeGenValidity:
 
     def test_try_except_finally_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -57,6 +59,7 @@ class TestTryExceptCodeGenValidity:
 
     def test_multiple_handlers_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -76,6 +79,7 @@ class TestTryExceptCodeGenValidity:
 
     def test_bare_except_generates_valid_python(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -95,6 +99,7 @@ class TestTryEnterCodeGen:
 
     def test_try_enter_sets_on_error_header(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -109,6 +114,7 @@ class TestTryEnterCodeGen:
 
     def test_try_enter_uses_resolve(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -129,6 +135,7 @@ class TestTryExitCodeGen:
 
     def test_try_exit_clears_on_error(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -147,6 +154,7 @@ class TestExceptDispatchCodeGen:
 
     def test_except_dispatch_checks_error_type(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -162,6 +170,7 @@ class TestExceptDispatchCodeGen:
 
     def test_except_dispatch_typed_handler_checks_in_all_types(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -175,6 +184,7 @@ class TestExceptDispatchCodeGen:
 
     def test_except_dispatch_bare_except_uses_if_true(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -188,6 +198,7 @@ class TestExceptDispatchCodeGen:
 
     def test_except_dispatch_clears_error_on_match(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)
@@ -205,6 +216,7 @@ class TestReraiseCodeGen:
 
     def test_reraise_raises_runtime_error(self):
         source = """\
+        @flow
         def flow(p: dict) -> dict:
             try:
                 p = risky_handler(p)

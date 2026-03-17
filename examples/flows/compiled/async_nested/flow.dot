@@ -5,7 +5,7 @@ digraph flow {
   edge [fontname="Courier", fontsize=10];
 
   start_review_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_review_pipeline_flow(p)</i></td></tr></table>>];
-  router_review_pipeline_flow_line_13_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_review_pipeline_flow_line_13_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['score'] &lt; 0.5</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  router_review_pipeline_flow_line_17_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_review_pipeline_flow_line_17_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['score'] &lt; 0.5</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
   end_review_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_review_pipeline_flow(p)</i></td></tr></table>>];
   auto_approve [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await auto_approve(p)</i></td></tr></table>>];
   detailed_review [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await detailed_review(p)</i></td></tr></table>>];
@@ -15,8 +15,8 @@ digraph flow {
   auto_approve -> end_review_pipeline_flow;
   detailed_review -> human_review;
   human_review -> end_review_pipeline_flow;
-  initial_review -> router_review_pipeline_flow_line_13_if;
-  router_review_pipeline_flow_line_13_if -> auto_approve [label="F", color=indianred4];
-  router_review_pipeline_flow_line_13_if -> detailed_review [label="T", color=darkseagreen4];
+  initial_review -> router_review_pipeline_flow_line_17_if;
+  router_review_pipeline_flow_line_17_if -> auto_approve [label="F", color=indianred4];
+  router_review_pipeline_flow_line_17_if -> detailed_review [label="T", color=darkseagreen4];
   start_review_pipeline_flow -> initial_review;
 }

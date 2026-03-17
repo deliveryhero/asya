@@ -20,11 +20,11 @@ async def start_order_processing(payload: dict):
     _next = []
     p = payload
     p['stage'] = 'validation'
-    _next.append(resolve("router_order_processing_line_23_with"))
+    _next.append(resolve("router_order_processing_line_27_with"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_order_processing_line_29_seq(payload: dict):
+async def router_order_processing_line_33_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ async def router_order_processing_line_29_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_32_seq(payload: dict):
+async def router_order_processing_line_36_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -43,26 +43,26 @@ async def router_order_processing_line_32_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_26_if(payload: dict):
+async def router_order_processing_line_30_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('valid'):
         _next.append(resolve("payment_processor"))
-        _next.append(resolve("router_order_processing_line_32_seq"))
+        _next.append(resolve("router_order_processing_line_36_seq"))
     else:
-        _next.append(resolve("router_order_processing_line_29_seq"))
+        _next.append(resolve("router_order_processing_line_33_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-def router_order_processing_line_23_with(payload: dict):
+def router_order_processing_line_27_with(payload: dict):
     """With-block router: with contextlib.suppress(KeyError)"""
     p = payload
     _next = []
     with contextlib.suppress(KeyError):
         _next.append(resolve("validate_order"))
-        _next.append(resolve("router_order_processing_line_26_if"))
+        _next.append(resolve("router_order_processing_line_30_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

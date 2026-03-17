@@ -21,57 +21,61 @@ async def start_evaluator_optimizer(payload: dict):
     _next = []
     p = payload
     p['iteration'] = 0
-    _next.append(resolve("router_evaluator_optimizer_line_54_loop_back_0"))
+    _next.append(resolve("router_evaluator_optimizer_line_58_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_evaluator_optimizer_line_68_if(payload: dict):
+async def router_evaluator_optimizer_line_72_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['iteration'] >= MAX_ITERATIONS:
-        _next.append(resolve("polisher"))
+        yield "SET", ".route.next", [resolve("polisher")]
+        yield p
+        return
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_64_if(payload: dict):
+async def router_evaluator_optimizer_line_68_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('score', 0) >= SCORE_THRESHOLD:
-        _next.append(resolve("polisher"))
+        yield "SET", ".route.next", [resolve("polisher")]
+        yield p
+        return
     else:
-        _next.append(resolve("router_evaluator_optimizer_line_68_if"))
+        _next.append(resolve("router_evaluator_optimizer_line_72_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_55_seq(payload: dict):
+async def router_evaluator_optimizer_line_59_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("generator"))
     _next.append(resolve("evaluator"))
-    _next.append(resolve("router_evaluator_optimizer_line_64_if"))
+    _next.append(resolve("router_evaluator_optimizer_line_68_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_54_loop_back_0(payload: dict):
+async def router_evaluator_optimizer_line_58_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_evaluator_optimizer_line_54_loop_back_0")
+    _self = resolve("router_evaluator_optimizer_line_58_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 54")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 58")
 
-    _next.append(resolve("router_evaluator_optimizer_line_55_seq"))
-    _next.append(resolve("router_evaluator_optimizer_line_54_loop_back_0"))
+    _next.append(resolve("router_evaluator_optimizer_line_59_seq"))
+    _next.append(resolve("router_evaluator_optimizer_line_58_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

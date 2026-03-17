@@ -4,6 +4,10 @@ Fan-out via list comprehension - homogeneous parallel dispatch.
 Each topic is processed by the same actor in parallel. Results are
 collected into p["results"] by the fan-in aggregator.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def research_flow(p: dict) -> dict:

@@ -38,6 +38,10 @@ Payload contract:
   state["exec_plan"]       - execution plan (set by execution_planner)
   state["risk_assessment"] - risk evaluation (set by risk_evaluator)
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def sequential_pipeline(state: dict) -> dict:

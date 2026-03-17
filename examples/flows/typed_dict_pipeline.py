@@ -20,6 +20,7 @@ Payload contract:
 """
 
 from typing import List, TypedDict
+from asya_lab.flow import flow
 
 
 # ---------------------------------------------------------------------------
@@ -65,6 +66,9 @@ class SinkPayload(TypedDict):
 # ---------------------------------------------------------------------------
 # Flow definition (compiled to router actors)
 # ---------------------------------------------------------------------------
+
+
+@flow
 
 
 def typeddict_pipeline(p: dict) -> dict:

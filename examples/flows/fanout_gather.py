@@ -5,6 +5,10 @@ Demonstrates both gather patterns: generator expression for
 homogeneous fan-out and explicit args for heterogeneous fan-out.
 """
 import asyncio
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def async_research_flow(p: dict) -> dict:

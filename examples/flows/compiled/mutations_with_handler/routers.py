@@ -21,11 +21,11 @@ async def start_mutations_with_handler_flow(payload: dict):
     p['step'] = 1
     p['count'] = 0
     _next.append(resolve("handler_process"))
-    _next.append(resolve("router_mutations_with_handler_flow_line_13_seq"))
+    _next.append(resolve("router_mutations_with_handler_flow_line_17_seq"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_mutations_with_handler_flow_line_13_seq(payload: dict):
+async def router_mutations_with_handler_flow_line_17_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []

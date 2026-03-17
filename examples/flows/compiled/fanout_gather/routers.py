@@ -19,18 +19,18 @@ async def start_async_research_flow(payload: dict):
     """Entrypoint for flow 'async_research_flow'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("fanout_async_research_flow_line_12"))
+    _next.append(resolve("fanout_async_research_flow_line_16"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_async_research_flow_line_12(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 12)"""
+async def fanout_async_research_flow_line_16(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 16)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_async_research_flow_line_12")
+    _agg = resolve("fanin_async_research_flow_line_16")
 
     _slices = []
     for t in p['topics']:

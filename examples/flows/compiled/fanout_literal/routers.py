@@ -18,18 +18,18 @@ import copy
 async def start_analysis_flow(payload: dict):
     """Entrypoint for flow 'analysis_flow'"""
     _next = []
-    _next.append(resolve("fanout_analysis_flow_line_10"))
+    _next.append(resolve("fanout_analysis_flow_line_14"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_analysis_flow_line_10(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 10)"""
+async def fanout_analysis_flow_line_14(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_analysis_flow_line_10")
+    _agg = resolve("fanin_analysis_flow_line_14")
 
     _slices = []
     _slices.append((resolve("sentiment_analyzer"), p['text']))

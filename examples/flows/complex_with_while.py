@@ -4,7 +4,10 @@ Complex workflow example.
 Demonstrates nested control structures combining if/else and while loops.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def complex_flow(p: dict) -> dict:
     p = handler_preprocess(p)
     p = handler_validate(p)

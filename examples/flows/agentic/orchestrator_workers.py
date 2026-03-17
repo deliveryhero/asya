@@ -44,6 +44,10 @@ Note on control flow: The while loop, if/elif dispatch, and break are pure
 state transformations -- they compile into router actors. Only the function
 calls (orchestrator, data_worker, etc.) become real deployed actors.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def orchestrator_workers(state: dict) -> dict:

@@ -266,6 +266,7 @@ class TestIfAtEndOfWhileBody:
         outgoing edge in the DOT graph.
         """
         source = textwrap.dedent("""
+            @flow
             async def plan_and_execute(state: dict) -> dict:
                 state["current_step"] = 0
                 state = await planner(state)
@@ -300,6 +301,7 @@ class TestEndToEnd:
 
     def test_simple_flow_dot(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -318,6 +320,7 @@ class TestEndToEnd:
 
     def test_conditional_flow_dot(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["condition"]:
                     p = handler_a(p)
@@ -337,6 +340,7 @@ class TestEndToEnd:
 
     def test_mutation_flow_dot(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["status"] = "processing"
                 p = handler(p)

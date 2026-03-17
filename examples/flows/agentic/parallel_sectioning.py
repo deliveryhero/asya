@@ -34,6 +34,10 @@ Payload contract:
 """
 
 import asyncio
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def parallel_sectioning(state: dict) -> dict:

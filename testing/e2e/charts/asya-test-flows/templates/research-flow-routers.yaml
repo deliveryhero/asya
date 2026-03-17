@@ -57,6 +57,6 @@ spec:
 
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_line_2
+  handler: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_line_6
   env:
   {{- include "asya-test-flows.research-flow-handler-env" . | nindent 2 }}

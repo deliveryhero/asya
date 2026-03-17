@@ -71,6 +71,7 @@ def _stamp_manifests(
         router_template_path=router_template if router_template.exists() else None,
         configmap_routers_template_path=configmap_template if configmap_template.exists() else None,
         kustomization_template_path=kustomization_template if kustomization_template.exists() else None,
+        import_map=compiler.import_map,
     )
 
     generated = templater.stamp(resolved_dir)

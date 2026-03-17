@@ -3,6 +3,10 @@ Loop processing flow example.
 
 Demonstrates while loops with break and continue statements.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def nested_loop_flow(p: dict) -> dict:

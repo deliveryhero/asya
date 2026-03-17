@@ -3,6 +3,10 @@ If statement without else.
 
 Tests conditional with only true branch.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def if_no_else_flow(p: dict) -> dict:

@@ -48,6 +48,10 @@ written into the payload and the message is re-enqueued to continue
 the flow. This requires the approval_gate actor to integrate with
 a notification/response system outside of Asya.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def human_in_the_loop(state: dict) -> dict:

@@ -26,11 +26,11 @@ async def start_llm_auditor(payload: dict):
     p['status'] = 'started'
     p['partial'] = True
     _next.append(resolve("extract_claims"))
-    _next.append(resolve("router_llm_auditor_line_37_if"))
+    _next.append(resolve("router_llm_auditor_line_41_if"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_llm_auditor_line_38_seq(payload: dict):
+async def router_llm_auditor_line_42_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -39,7 +39,7 @@ async def router_llm_auditor_line_38_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_86_seq(payload: dict):
+async def router_llm_auditor_line_90_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -49,17 +49,17 @@ async def router_llm_auditor_line_86_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_62_seq(payload: dict):
+async def router_llm_auditor_line_66_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['prev_score'] = p['aggregate_score']
-    _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
+    _next.append(resolve("router_llm_auditor_line_46_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_67_seq(payload: dict):
+async def router_llm_auditor_line_71_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -68,33 +68,33 @@ async def router_llm_auditor_line_67_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_69_if(payload: dict):
+async def router_llm_auditor_line_73_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['aggregate_score'] >= 70:
         _next.append(resolve("critique"))
         _next.append(resolve("reviser"))
-        _next.append(resolve("router_llm_auditor_line_79_if"))
+        _next.append(resolve("router_llm_auditor_line_83_if"))
     else:
         _next.append(resolve("critique"))
         _next.append(resolve("deep_reviser"))
-        _next.append(resolve("router_llm_auditor_line_79_if"))
+        _next.append(resolve("router_llm_auditor_line_83_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_80_seq(payload: dict):
+async def router_llm_auditor_line_84_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['status'] = 'max_iterations'
-    _next.append(resolve("router_llm_auditor_line_86_seq"))
+    _next.append(resolve("router_llm_auditor_line_90_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_83_seq(payload: dict):
+async def router_llm_auditor_line_87_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -103,50 +103,50 @@ async def router_llm_auditor_line_83_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_79_if(payload: dict):
+async def router_llm_auditor_line_83_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['iteration'] >= p.get('max_iterations', 5):
-        _next.append(resolve("router_llm_auditor_line_80_seq"))
+        _next.append(resolve("router_llm_auditor_line_84_seq"))
     else:
-        _next.append(resolve("router_llm_auditor_line_83_seq"))
+        _next.append(resolve("router_llm_auditor_line_87_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_66_if(payload: dict):
+async def router_llm_auditor_line_70_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['aggregate_score'] >= 90:
-        _next.append(resolve("router_llm_auditor_line_67_seq"))
+        _next.append(resolve("router_llm_auditor_line_71_seq"))
     else:
-        _next.append(resolve("router_llm_auditor_line_69_if"))
+        _next.append(resolve("router_llm_auditor_line_73_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_61_if(payload: dict):
+async def router_llm_auditor_line_65_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70:
-        _next.append(resolve("router_llm_auditor_line_62_seq"))
+        _next.append(resolve("router_llm_auditor_line_66_seq"))
     else:
-        _next.append(resolve("router_llm_auditor_line_66_if"))
+        _next.append(resolve("router_llm_auditor_line_70_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_llm_auditor_line_52(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 52)"""
+async def fanout_llm_auditor_line_56(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 56)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_llm_auditor_line_52")
+    _agg = resolve("fanin_llm_auditor_line_56")
 
     _slices = []
     _slices.append((resolve("accuracy_scorer"), p['response']))
@@ -161,7 +161,7 @@ async def fanout_llm_auditor_line_52(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("adk_llm_auditor.QualityScorer.aggregate"), resolve("router_llm_auditor_line_61_if")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("adk_llm_auditor.QualityScorer.aggregate"), resolve("router_llm_auditor_line_65_if")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 
@@ -170,28 +170,28 @@ async def fanout_llm_auditor_line_52(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def router_llm_auditor_line_46_try_enter_0(payload: dict):
+async def router_llm_auditor_line_50_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
-    yield "SET", ".headers._on_error", resolve("router_llm_auditor_line_46_except_dispatch_0")
+    yield "SET", ".headers._on_error", resolve("router_llm_auditor_line_50_except_dispatch_0")
     _next.append(resolve("llm_generate"))
-    _next.append(resolve("router_llm_auditor_line_46_try_exit_0"))
+    _next.append(resolve("router_llm_auditor_line_50_try_exit_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_46_try_exit_0(payload: dict):
+async def router_llm_auditor_line_50_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
     if "_on_error" in headers:
         yield "DEL", ".headers._on_error"
-    _next.append(resolve("fanout_llm_auditor_line_52"))
+    _next.append(resolve("fanout_llm_auditor_line_56"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
+async def router_llm_auditor_line_50_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -202,44 +202,44 @@ async def router_llm_auditor_line_46_except_dispatch_0(payload: dict):
     if True:
         yield "DEL", ".status.error"
         _next.append(resolve("fallback_generate"))
-    _next.append(resolve("fanout_llm_auditor_line_52"))
+    _next.append(resolve("fanout_llm_auditor_line_56"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_43_seq(payload: dict):
+async def router_llm_auditor_line_47_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
-    _next.append(resolve("router_llm_auditor_line_46_try_enter_0"))
+    _next.append(resolve("router_llm_auditor_line_50_try_enter_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_42_loop_back_0(payload: dict):
+async def router_llm_auditor_line_46_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_llm_auditor_line_42_loop_back_0")
+    _self = resolve("router_llm_auditor_line_46_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 42")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 46")
 
-    _next.append(resolve("router_llm_auditor_line_43_seq"))
-    _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
+    _next.append(resolve("router_llm_auditor_line_47_seq"))
+    _next.append(resolve("router_llm_auditor_line_46_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_auditor_line_37_if(payload: dict):
+async def router_llm_auditor_line_41_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if not p.get('claims'):
-        _next.append(resolve("router_llm_auditor_line_38_seq"))
+        _next.append(resolve("router_llm_auditor_line_42_seq"))
     else:
-        _next.append(resolve("router_llm_auditor_line_42_loop_back_0"))
+        _next.append(resolve("router_llm_auditor_line_46_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

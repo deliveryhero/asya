@@ -16,6 +16,7 @@ class TestFlowFunctionDetection:
     def test_detects_flow_with_p_parameter(self):
         source = textwrap.dedent(
             """
+            @flow
             def my_flow(p: dict) -> dict:
                 return p
         """
@@ -27,6 +28,7 @@ class TestFlowFunctionDetection:
     def test_detects_flow_with_payload_parameter(self):
         source = textwrap.dedent(
             """
+            @flow
             def my_flow(payload: dict) -> dict:
                 return payload
         """
@@ -43,7 +45,7 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             parser.parse()
 
     def test_rejects_function_with_wrong_parameter_name(self):
@@ -54,7 +56,7 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             parser.parse()
 
     def test_rejects_function_with_multiple_parameters(self):
@@ -65,7 +67,7 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             parser.parse()
 
     def test_rejects_function_with_no_parameters(self):
@@ -76,7 +78,7 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             parser.parse()
 
     def test_finds_first_valid_flow_function(self):
@@ -85,6 +87,7 @@ class TestFlowFunctionDetection:
             def helper(x: int) -> int:
                 return x
 
+            @flow
             def my_flow(p: dict) -> dict:
                 return p
 
@@ -103,6 +106,7 @@ class TestActorCallParsing:
     def test_parse_single_handler_call(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -119,6 +123,7 @@ class TestActorCallParsing:
     def test_parse_multiple_sequential_handlers(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -138,6 +143,7 @@ class TestActorCallParsing:
     def test_parse_method_call_as_actor(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = MyClass.process(p)
                 return p
@@ -153,6 +159,7 @@ class TestActorCallParsing:
     def test_rejects_actor_call_without_argument(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler()
                 return p
@@ -165,6 +172,7 @@ class TestActorCallParsing:
     def test_rejects_actor_call_with_multiple_arguments(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p, config)
                 return p
@@ -177,6 +185,7 @@ class TestActorCallParsing:
     def test_rejects_assignment_to_p_with_non_call(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = {"new": "dict"}
                 return p
@@ -193,6 +202,7 @@ class TestMutationParsing:
     def test_parse_simple_subscript_assignment(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["key"] = "value"
                 return p
@@ -209,6 +219,7 @@ class TestMutationParsing:
     def test_parse_multiple_mutations(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["x"] = 1
                 p["y"] = 2
@@ -228,6 +239,7 @@ class TestMutationParsing:
     def test_parse_nested_subscript_assignment(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["nested"]["key"] = "value"
                 return p
@@ -242,6 +254,7 @@ class TestMutationParsing:
     def test_parse_augmented_assignment(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["counter"] += 1
                 return p
@@ -257,6 +270,7 @@ class TestMutationParsing:
     def test_parse_various_augmented_assignments(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["a"] += 1
                 p["b"] -= 2
@@ -275,6 +289,7 @@ class TestMutationParsing:
     def test_parse_mutation_with_expression(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["result"] = p["x"] + p["y"] * 2
                 return p
@@ -293,6 +308,7 @@ class TestConditionalParsing:
     def test_parse_simple_if_else(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["condition"]:
                     p = handler_a(p)
@@ -315,6 +331,7 @@ class TestConditionalParsing:
     def test_parse_if_without_else(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["flag"]:
                     p = handler(p)
@@ -331,6 +348,7 @@ class TestConditionalParsing:
     def test_parse_if_elif_else(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"] == "A":
                     p = handler_a(p)
@@ -353,6 +371,7 @@ class TestConditionalParsing:
     def test_parse_nested_if(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["outer"]:
                     if p["inner"]:
@@ -376,6 +395,7 @@ class TestConditionalParsing:
     def test_parse_if_with_mutations_in_branches(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["type"] == "A":
                     p["label"] = "A"
@@ -401,6 +421,7 @@ class TestConditionalParsing:
     def test_parse_empty_if_branches(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["skip"]:
                     pass
@@ -420,6 +441,7 @@ class TestConditionalParsing:
     def test_parse_complex_condition_expression(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"] > 10 and p["y"] < 20:
                     p = handler(p)
@@ -440,6 +462,7 @@ class TestMixedOperations:
     def test_parse_mutations_before_handler(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["status"] = "processing"
                 p["timestamp"] = 123
@@ -459,6 +482,7 @@ class TestMixedOperations:
     def test_parse_mutations_after_handler(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 p["status"] = "complete"
@@ -474,6 +498,7 @@ class TestMixedOperations:
     def test_parse_handlers_and_mutations_interleaved(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["step"] = 1
                 p = handler_a(p)
@@ -495,6 +520,7 @@ class TestMixedOperations:
     def test_parse_conditional_with_mutations_before(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p["initialized"] = True
                 if p["condition"]:
@@ -517,6 +543,7 @@ class TestClassInstantiation:
     def test_class_instantiation_with_default_args(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = MyProcessor()
                 p = processor.process(p)
@@ -535,6 +562,7 @@ class TestClassInstantiation:
     def test_class_instantiation_with_multiple_instances(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 preprocessor = Preprocessor()
                 model = Model()
@@ -556,6 +584,7 @@ class TestClassInstantiation:
     def test_class_instantiation_rejects_positional_args(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = MyProcessor("arg1")
                 p = processor.process(p)
@@ -572,6 +601,7 @@ class TestClassInstantiation:
     def test_class_instantiation_rejects_keyword_args(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = MyProcessor(config="custom")
                 p = processor.process(p)
@@ -588,6 +618,7 @@ class TestClassInstantiation:
     def test_class_instantiation_with_function_calls_mixed(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = Preprocessor()
                 p = validator(p)
@@ -611,6 +642,7 @@ class TestClassInstantiation:
     def test_class_instantiation_multiple_args_rejects(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = MyProcessor("arg1", "arg2", key="value")
                 p = processor.process(p)
@@ -630,6 +662,7 @@ class TestEdgeCases:
     def test_parse_empty_flow(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 return p
         """
@@ -643,6 +676,7 @@ class TestEdgeCases:
     def test_rejects_multiple_assignment_targets(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p, q = handler(p)
                 return p
@@ -655,6 +689,7 @@ class TestEdgeCases:
     def test_rejects_unsupported_assignment_target(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 x = handler(p)
                 return p
@@ -667,6 +702,7 @@ class TestEdgeCases:
     def test_rejects_for_loop(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 for item in items:
                     p = handler(p)
@@ -686,6 +722,7 @@ class TestEdgeCases:
     def test_parse_pass_statement(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 pass
                 return p
@@ -700,6 +737,7 @@ class TestEdgeCases:
     def test_lineno_preserved_in_operations(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p["key"] = "value"
@@ -721,6 +759,7 @@ class TestComplexFlows:
     def test_parse_deeply_nested_conditionals(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["l1"] == "A":
                     if p["l2"] == "X":
@@ -745,6 +784,7 @@ class TestComplexFlows:
     def test_parse_multiple_conditionals_sequential(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["check1"]:
                     p = handler_1(p)
@@ -767,6 +807,7 @@ class TestComplexFlows:
     def test_parse_early_return_pattern(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["early_exit"]:
                     return p
@@ -785,6 +826,7 @@ class TestComplexFlows:
     def test_parse_all_empty_branches(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["noop"]:
                     pass
@@ -808,6 +850,7 @@ class TestWhileLoopParsing:
     def test_simple_while_with_condition(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p = handler(p)
@@ -829,6 +872,7 @@ class TestWhileLoopParsing:
     def test_while_true(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while True:
                     p = handler(p)
@@ -851,6 +895,7 @@ class TestWhileLoopParsing:
     def test_while_with_break(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p = handler(p)
@@ -871,6 +916,7 @@ class TestWhileLoopParsing:
     def test_while_with_continue(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p["i"] += 1
@@ -893,6 +939,7 @@ class TestWhileLoopParsing:
     def test_while_with_both_break_and_continue(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p["i"] += 1
@@ -920,6 +967,7 @@ class TestWhileLoopParsing:
     def test_while_with_mutations_in_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p["i"] += 1
@@ -942,6 +990,7 @@ class TestWhileLoopParsing:
     def test_while_with_if_in_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     if p["type"] == "A":
@@ -964,6 +1013,7 @@ class TestWhileLoopParsing:
     def test_nested_while_loops(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     while p["j"] < 5:
@@ -983,6 +1033,7 @@ class TestWhileLoopParsing:
     def test_while_with_code_before_and_after(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_init(p)
                 p["i"] = 0
@@ -1007,6 +1058,7 @@ class TestWhileLoopParsing:
     def test_while_preserves_lineno(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p = handler(p)
@@ -1017,11 +1069,12 @@ class TestWhileLoopParsing:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], WhileLoop)
-        assert ops[0].lineno == 3
+        assert ops[0].lineno == 4
 
     def test_break_preserves_lineno(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while True:
                     if p["stop"]:
@@ -1037,11 +1090,12 @@ class TestWhileLoopParsing:
         assert isinstance(loop.body[0], Condition)
         brk = loop.body[0].true_branch[0]
         assert isinstance(brk, Break)
-        assert brk.lineno == 5
+        assert brk.lineno == 6
 
     def test_continue_preserves_lineno(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while True:
                     if p["skip"]:
@@ -1057,11 +1111,12 @@ class TestWhileLoopParsing:
         assert isinstance(loop.body[0], Condition)
         cont = loop.body[0].true_branch[0]
         assert isinstance(cont, Continue)
-        assert cont.lineno == 5
+        assert cont.lineno == 6
 
     def test_while_empty_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     pass
@@ -1078,6 +1133,7 @@ class TestWhileLoopParsing:
     def test_while_with_complex_condition(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10 and p["status"] != "done":
                     p = handler(p)
@@ -1096,6 +1152,7 @@ class TestWhileLoopParsing:
     def test_while_with_not_condition(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while not p.get("done", False):
                     p = handler(p)
@@ -1113,6 +1170,7 @@ class TestWhileLoopParsing:
     def test_while_with_method_call_condition(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p.get("continue_flag", True):
                     p = handler(p)
@@ -1130,6 +1188,7 @@ class TestWhileLoopParsing:
     def test_while_with_return_in_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while True:
                     p = handler(p)
@@ -1154,6 +1213,7 @@ class TestWhileLoopErrors:
     def test_break_outside_loop_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 break
                 return p
@@ -1166,6 +1226,7 @@ class TestWhileLoopErrors:
     def test_continue_outside_loop_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 continue
                 return p
@@ -1178,6 +1239,7 @@ class TestWhileLoopErrors:
     def test_break_in_if_outside_loop_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"]:
                     break
@@ -1191,6 +1253,7 @@ class TestWhileLoopErrors:
     def test_continue_in_if_outside_loop_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"]:
                     continue
@@ -1204,6 +1267,7 @@ class TestWhileLoopErrors:
     def test_while_else_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p = handler(p)
@@ -1219,6 +1283,7 @@ class TestWhileLoopErrors:
     def test_for_loop_rejected_with_helpful_message(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 for i in range(10):
                     p = handler(p)
@@ -1233,6 +1298,7 @@ class TestWhileLoopErrors:
         """break inside a while loop nested inside an if is valid."""
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while True:
                     if p["x"]:
@@ -1252,6 +1318,7 @@ class TestWhileLoopErrors:
         """continue inside an if inside a while is valid."""
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     if p["skip"]:
@@ -1270,6 +1337,7 @@ class TestWhileLoopErrors:
     def test_while_only_mutations_in_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 while p["i"] < 10:
                     p["i"] += 1
@@ -1287,6 +1355,7 @@ class TestWhileLoopErrors:
     def test_while_with_class_method_in_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 processor = Processor()
                 while p["i"] < 10:
@@ -1309,6 +1378,7 @@ class TestAsyncFlowDetection:
     def test_detects_async_flow_function(self):
         source = textwrap.dedent(
             """
+            @flow
             async def my_flow(p: dict) -> dict:
                 return p
         """
@@ -1320,6 +1390,7 @@ class TestAsyncFlowDetection:
     def test_detects_async_flow_with_payload_parameter(self):
         source = textwrap.dedent(
             """
+            @flow
             async def my_flow(payload: dict) -> dict:
                 return payload
         """
@@ -1331,6 +1402,7 @@ class TestAsyncFlowDetection:
     def test_detects_async_flow_with_state_parameter(self):
         source = textwrap.dedent(
             """
+            @flow
             async def my_flow(state: dict) -> dict:
                 return state
         """
@@ -1345,6 +1417,7 @@ class TestAsyncFlowDetection:
             async def helper(x: int) -> int:
                 return x
 
+            @flow
             async def my_flow(p: dict) -> dict:
                 return p
         """
@@ -1356,6 +1429,7 @@ class TestAsyncFlowDetection:
     def test_prefers_first_valid_function_sync_or_async(self):
         source = textwrap.dedent(
             """
+            @flow
             def sync_flow(p: dict) -> dict:
                 return p
 
@@ -1374,6 +1448,7 @@ class TestAwaitActorCallParsing:
     def test_parse_single_await_call(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p = await handler(p)
                 return p
@@ -1390,6 +1465,7 @@ class TestAwaitActorCallParsing:
     def test_parse_sequential_await_calls(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p = await handler_a(p)
                 p = await handler_b(p)
@@ -1409,6 +1485,7 @@ class TestAwaitActorCallParsing:
     def test_parse_await_with_conditionals(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p = await classifier(p)
                 if p["type"] == "text":
@@ -1432,6 +1509,7 @@ class TestAwaitActorCallParsing:
     def test_parse_mixed_sync_and_await_calls(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p = sync_handler(p)
                 p = await async_handler(p)
@@ -1448,6 +1526,7 @@ class TestAwaitActorCallParsing:
     def test_rejects_await_without_argument(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 p = await handler()
                 return p
@@ -1467,6 +1546,7 @@ class TestStateParameterNormalization:
     def test_state_mutations_normalized_to_p(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(state: dict) -> dict:
                 state["key"] = "value"
                 return state
@@ -1481,6 +1561,7 @@ class TestStateParameterNormalization:
     def test_state_conditions_normalized_to_p(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(state: dict) -> dict:
                 if state["type"] == "A":
                     state = handler_a(state)
@@ -1498,6 +1579,7 @@ class TestStateParameterNormalization:
     def test_state_augmented_assignment_normalized(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(state: dict) -> dict:
                 state["counter"] += 1
                 return state
@@ -1512,6 +1594,7 @@ class TestStateParameterNormalization:
     def test_async_state_flow_fully_normalized(self):
         source = textwrap.dedent(
             """
+            @flow
             async def my_flow(state: dict) -> dict:
                 state = await classifier(state)
                 if state["content_type"] == "text":
@@ -1537,6 +1620,7 @@ class TestStateParameterNormalization:
     def test_payload_parameter_not_renamed(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(payload: dict) -> dict:
                 payload["key"] = "value"
                 return payload
@@ -1555,6 +1639,7 @@ class TestIsAsyncFlag:
     def test_sync_flow_not_async(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 return p
         """
@@ -1566,6 +1651,7 @@ class TestIsAsyncFlag:
     def test_async_flow_is_async(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 return p
         """
@@ -1581,6 +1667,7 @@ class TestExprStatementErrors:
     def test_yield_gives_descriptive_error(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 while True:
                     yield p
@@ -1594,6 +1681,7 @@ class TestExprStatementErrors:
     def test_standalone_await_gives_descriptive_error(self):
         source = textwrap.dedent(
             """
+            @flow
             async def flow(p: dict) -> dict:
                 await handler(p)
                 return p
@@ -1606,6 +1694,7 @@ class TestExprStatementErrors:
     def test_standalone_call_gives_descriptive_error(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 print(p)
                 return p

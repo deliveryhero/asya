@@ -5,10 +5,10 @@
  -->
 <!-- Title: flow Pages: 1 -->
 <svg width="971pt" height="2036pt"
- viewBox="0.00 0.00 971.36 2035.80" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ viewBox="0.00 0.00 970.51 2035.80" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 2031.8)">
 <title>flow</title>
-<polygon fill="white" stroke="none" points="-4,4 -4,-2031.8 967.36,-2031.8 967.36,4 -4,4"/>
+<polygon fill="white" stroke="none" points="-4,4 -4,-2031.8 966.51,-2031.8 966.51,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster_try_0</title>
 <polygon fill="none" stroke="#8b8989" stroke-dasharray="5,2" points="197.15,-1826.2 197.15,-1918.5 371.15,-1918.5 371.15,-1826.2 197.15,-1826.2"/>
@@ -17,41 +17,41 @@
 <!-- start_llm_auditor -->
 <g id="node1" class="node">
 <title>start_llm_auditor</title>
-<path fill="lightgreen" stroke="black" d="M203.3,-771.8C203.3,-771.8 51,-771.8 51,-771.8 45,-771.8 39,-765.8 39,-759.8 39,-759.8 39,-648 39,-648 39,-642 45,-636 51,-636 51,-636 203.3,-636 203.3,-636 209.3,-636 215.3,-642 215.3,-648 215.3,-648 215.3,-759.8 215.3,-759.8 215.3,-765.8 209.3,-771.8 203.3,-771.8"/>
-<polygon fill="white" stroke="none" points="53.4,-730.65 53.4,-757.4 200.9,-757.4 200.9,-730.65 53.4,-730.65"/>
-<polygon fill="none" stroke="black" points="53.4,-730.65 53.4,-757.4 200.9,-757.4 200.9,-730.65 53.4,-730.65"/>
-<text text-anchor="start" x="60.4" y="-741.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await start_llm_auditor(p)</text>
-<polygon fill="white" stroke="none" points="53.4,-703.9 53.4,-730.65 200.9,-730.65 200.9,-703.9 53.4,-703.9"/>
-<polygon fill="none" stroke="black" points="53.4,-703.9 53.4,-730.65 200.9,-730.65 200.9,-703.9 53.4,-703.9"/>
-<text text-anchor="start" x="60.4" y="-714.15" font-family="Courier,monospace" font-size="10.00">p[&#39;iteration&#39;] = 0</text>
-<polygon fill="white" stroke="none" points="53.4,-677.15 53.4,-703.9 200.9,-703.9 200.9,-677.15 53.4,-677.15"/>
-<polygon fill="none" stroke="black" points="53.4,-677.15 53.4,-703.9 200.9,-703.9 200.9,-677.15 53.4,-677.15"/>
-<text text-anchor="start" x="60.4" y="-687.4" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;started&#39;</text>
-<polygon fill="white" stroke="none" points="53.4,-650.4 53.4,-677.15 200.9,-677.15 200.9,-650.4 53.4,-650.4"/>
-<polygon fill="none" stroke="black" points="53.4,-650.4 53.4,-677.15 200.9,-677.15 200.9,-650.4 53.4,-650.4"/>
-<text text-anchor="start" x="60.4" y="-660.65" font-family="Courier,monospace" font-size="10.00">p[&#39;partial&#39;] = True</text>
+<path fill="lightgreen" stroke="black" d="M204.3,-771.8C204.3,-771.8 52,-771.8 52,-771.8 46,-771.8 40,-765.8 40,-759.8 40,-759.8 40,-648 40,-648 40,-642 46,-636 52,-636 52,-636 204.3,-636 204.3,-636 210.3,-636 216.3,-642 216.3,-648 216.3,-648 216.3,-759.8 216.3,-759.8 216.3,-765.8 210.3,-771.8 204.3,-771.8"/>
+<polygon fill="white" stroke="none" points="54.4,-730.65 54.4,-757.4 201.9,-757.4 201.9,-730.65 54.4,-730.65"/>
+<polygon fill="none" stroke="black" points="54.4,-730.65 54.4,-757.4 201.9,-757.4 201.9,-730.65 54.4,-730.65"/>
+<text text-anchor="start" x="61.4" y="-741.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await start_llm_auditor(p)</text>
+<polygon fill="white" stroke="none" points="54.4,-703.9 54.4,-730.65 201.9,-730.65 201.9,-703.9 54.4,-703.9"/>
+<polygon fill="none" stroke="black" points="54.4,-703.9 54.4,-730.65 201.9,-730.65 201.9,-703.9 54.4,-703.9"/>
+<text text-anchor="start" x="61.4" y="-714.15" font-family="Courier,monospace" font-size="10.00">p[&#39;iteration&#39;] = 0</text>
+<polygon fill="white" stroke="none" points="54.4,-677.15 54.4,-703.9 201.9,-703.9 201.9,-677.15 54.4,-677.15"/>
+<polygon fill="none" stroke="black" points="54.4,-677.15 54.4,-703.9 201.9,-703.9 201.9,-677.15 54.4,-677.15"/>
+<text text-anchor="start" x="61.4" y="-687.4" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;started&#39;</text>
+<polygon fill="white" stroke="none" points="54.4,-650.4 54.4,-677.15 201.9,-677.15 201.9,-650.4 54.4,-650.4"/>
+<polygon fill="none" stroke="black" points="54.4,-650.4 54.4,-677.15 201.9,-677.15 201.9,-650.4 54.4,-650.4"/>
+<text text-anchor="start" x="61.4" y="-660.65" font-family="Courier,monospace" font-size="10.00">p[&#39;partial&#39;] = True</text>
 </g>
 <!-- extract_claims -->
 <g id="node22" class="node">
 <title>extract_claims</title>
-<path fill="lightblue" stroke="black" d="M196.17,-568.25C196.17,-568.25 58.12,-568.25 58.12,-568.25 52.12,-568.25 46.12,-562.25 46.12,-556.25 46.12,-556.25 46.12,-524.7 46.12,-524.7 46.12,-518.7 52.12,-512.7 58.12,-512.7 58.12,-512.7 196.17,-512.7 196.17,-512.7 202.17,-512.7 208.17,-518.7 208.17,-524.7 208.17,-524.7 208.17,-556.25 208.17,-556.25 208.17,-562.25 202.17,-568.25 196.17,-568.25"/>
-<polygon fill="white" stroke="none" points="60.52,-527.1 60.52,-553.85 193.77,-553.85 193.77,-527.1 60.52,-527.1"/>
-<polygon fill="none" stroke="black" points="60.52,-527.1 60.52,-553.85 193.77,-553.85 193.77,-527.1 60.52,-527.1"/>
-<text text-anchor="start" x="67.52" y="-538.35" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await extract_claims(p)</text>
+<path fill="lightblue" stroke="black" d="M197.17,-568.25C197.17,-568.25 59.12,-568.25 59.12,-568.25 53.12,-568.25 47.12,-562.25 47.12,-556.25 47.12,-556.25 47.12,-524.7 47.12,-524.7 47.12,-518.7 53.12,-512.7 59.12,-512.7 59.12,-512.7 197.17,-512.7 197.17,-512.7 203.17,-512.7 209.17,-518.7 209.17,-524.7 209.17,-524.7 209.17,-556.25 209.17,-556.25 209.17,-562.25 203.17,-568.25 197.17,-568.25"/>
+<polygon fill="white" stroke="none" points="61.52,-527.1 61.52,-553.85 194.77,-553.85 194.77,-527.1 61.52,-527.1"/>
+<polygon fill="none" stroke="black" points="61.52,-527.1 61.52,-553.85 194.77,-553.85 194.77,-527.1 61.52,-527.1"/>
+<text text-anchor="start" x="68.52" y="-538.35" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await extract_claims(p)</text>
 </g>
 <!-- start_llm_auditor&#45;&gt;extract_claims -->
 <g id="edge35" class="edge">
 <title>start_llm_auditor&#45;&gt;extract_claims</title>
-<path fill="none" stroke="black" d="M127.15,-635.84C127.15,-616.88 127.15,-596.89 127.15,-580.21"/>
-<polygon fill="black" stroke="black" points="130.65,-580.22 127.15,-570.22 123.65,-580.22 130.65,-580.22"/>
+<path fill="none" stroke="black" d="M128.15,-635.84C128.15,-616.88 128.15,-596.89 128.15,-580.21"/>
+<polygon fill="black" stroke="black" points="131.65,-580.22 128.15,-570.22 124.65,-580.22 131.65,-580.22"/>
 </g>
-<!-- router_llm_auditor_line_38_seq -->
+<!-- router_llm_auditor_line_42_seq -->
 <g id="node2" class="node">
-<title>router_llm_auditor_line_38_seq</title>
+<title>router_llm_auditor_line_42_seq</title>
 <path fill="wheat" stroke="black" d="M230.3,-267.4C230.3,-267.4 12,-267.4 12,-267.4 6,-267.4 0,-261.4 0,-255.4 0,-255.4 0,-197.1 0,-197.1 0,-191.1 6,-185.1 12,-185.1 12,-185.1 230.3,-185.1 230.3,-185.1 236.3,-185.1 242.3,-191.1 242.3,-197.1 242.3,-197.1 242.3,-255.4 242.3,-255.4 242.3,-261.4 236.3,-267.4 230.3,-267.4"/>
 <polygon fill="white" stroke="none" points="14.4,-226.25 14.4,-253 227.9,-253 227.9,-226.25 14.4,-226.25"/>
 <polygon fill="none" stroke="black" points="14.4,-226.25 14.4,-253 227.9,-253 227.9,-226.25 14.4,-226.25"/>
-<text text-anchor="start" x="21.4" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_38_seq(p)</text>
+<text text-anchor="start" x="21.4" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_42_seq(p)</text>
 <polygon fill="white" stroke="none" points="14.4,-199.5 14.4,-226.25 227.9,-226.25 227.9,-199.5 14.4,-199.5"/>
 <polygon fill="none" stroke="black" points="14.4,-199.5 14.4,-226.25 227.9,-226.25 227.9,-199.5 14.4,-199.5"/>
 <text text-anchor="start" x="21.4" y="-209.75" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;no_claims&#39;</text>
@@ -59,317 +59,317 @@
 <!-- end_llm_auditor -->
 <g id="node16" class="node">
 <title>end_llm_auditor</title>
-<path fill="lightgreen" stroke="black" d="M757.42,-55.55C757.42,-55.55 608.88,-55.55 608.88,-55.55 602.88,-55.55 596.88,-49.55 596.88,-43.55 596.88,-43.55 596.88,-12 596.88,-12 596.88,-6 602.88,0 608.88,0 608.88,0 757.42,0 757.42,0 763.42,0 769.42,-6 769.42,-12 769.42,-12 769.42,-43.55 769.42,-43.55 769.42,-49.55 763.42,-55.55 757.42,-55.55"/>
-<polygon fill="white" stroke="none" points="611.27,-14.4 611.27,-41.15 755.02,-41.15 755.02,-14.4 611.27,-14.4"/>
-<polygon fill="none" stroke="black" points="611.27,-14.4 611.27,-41.15 755.02,-41.15 755.02,-14.4 611.27,-14.4"/>
-<text text-anchor="start" x="618.27" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await end_llm_auditor(p)</text>
+<path fill="lightgreen" stroke="black" d="M758.42,-55.55C758.42,-55.55 609.88,-55.55 609.88,-55.55 603.88,-55.55 597.88,-49.55 597.88,-43.55 597.88,-43.55 597.88,-12 597.88,-12 597.88,-6 603.88,0 609.88,0 609.88,0 758.42,0 758.42,0 764.42,0 770.42,-6 770.42,-12 770.42,-12 770.42,-43.55 770.42,-43.55 770.42,-49.55 764.42,-55.55 758.42,-55.55"/>
+<polygon fill="white" stroke="none" points="612.27,-14.4 612.27,-41.15 756.02,-41.15 756.02,-14.4 612.27,-14.4"/>
+<polygon fill="none" stroke="black" points="612.27,-14.4 612.27,-41.15 756.02,-41.15 756.02,-14.4 612.27,-14.4"/>
+<text text-anchor="start" x="619.27" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await end_llm_auditor(p)</text>
 </g>
-<!-- router_llm_auditor_line_38_seq&#45;&gt;end_llm_auditor -->
+<!-- router_llm_auditor_line_42_seq&#45;&gt;end_llm_auditor -->
 <g id="edge19" class="edge">
-<title>router_llm_auditor_line_38_seq&#45;&gt;end_llm_auditor</title>
-<path fill="none" stroke="black" d="M237.26,-184.66C343.52,-147.51 498.47,-93.34 594.92,-59.62"/>
-<polygon fill="black" stroke="black" points="595.8,-63.02 604.08,-56.42 593.49,-56.41 595.8,-63.02"/>
+<title>router_llm_auditor_line_42_seq&#45;&gt;end_llm_auditor</title>
+<path fill="none" stroke="black" d="M237.46,-184.66C343.91,-147.51 499.14,-93.34 595.76,-59.62"/>
+<polygon fill="black" stroke="black" points="596.66,-63.02 604.95,-56.42 594.35,-56.41 596.66,-63.02"/>
 </g>
-<!-- router_llm_auditor_line_86_seq -->
+<!-- router_llm_auditor_line_90_seq -->
 <g id="node3" class="node">
-<title>router_llm_auditor_line_86_seq</title>
-<path fill="wheat" stroke="black" d="M792.67,-267.4C792.67,-267.4 573.62,-267.4 573.62,-267.4 567.62,-267.4 561.62,-261.4 561.62,-255.4 561.62,-255.4 561.62,-197.1 561.62,-197.1 561.62,-191.1 567.62,-185.1 573.62,-185.1 573.62,-185.1 792.67,-185.1 792.67,-185.1 798.67,-185.1 804.67,-191.1 804.67,-197.1 804.67,-197.1 804.67,-255.4 804.67,-255.4 804.67,-261.4 798.67,-267.4 792.67,-267.4"/>
-<polygon fill="white" stroke="none" points="576.02,-226.25 576.02,-253 790.27,-253 790.27,-226.25 576.02,-226.25"/>
-<polygon fill="none" stroke="black" points="576.02,-226.25 576.02,-253 790.27,-253 790.27,-226.25 576.02,-226.25"/>
-<text text-anchor="start" x="583.02" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_86_seq(p)</text>
-<polygon fill="white" stroke="none" points="576.02,-199.5 576.02,-226.25 790.27,-226.25 790.27,-199.5 576.02,-199.5"/>
-<polygon fill="none" stroke="black" points="576.02,-199.5 576.02,-226.25 790.27,-226.25 790.27,-199.5 576.02,-199.5"/>
-<text text-anchor="start" x="583.02" y="-209.75" font-family="Courier,monospace" font-size="10.00">p[&#39;partial&#39;] = False</text>
+<title>router_llm_auditor_line_90_seq</title>
+<path fill="wheat" stroke="black" d="M793.67,-267.4C793.67,-267.4 574.62,-267.4 574.62,-267.4 568.62,-267.4 562.62,-261.4 562.62,-255.4 562.62,-255.4 562.62,-197.1 562.62,-197.1 562.62,-191.1 568.62,-185.1 574.62,-185.1 574.62,-185.1 793.67,-185.1 793.67,-185.1 799.67,-185.1 805.67,-191.1 805.67,-197.1 805.67,-197.1 805.67,-255.4 805.67,-255.4 805.67,-261.4 799.67,-267.4 793.67,-267.4"/>
+<polygon fill="white" stroke="none" points="577.02,-226.25 577.02,-253 791.27,-253 791.27,-226.25 577.02,-226.25"/>
+<polygon fill="none" stroke="black" points="577.02,-226.25 577.02,-253 791.27,-253 791.27,-226.25 577.02,-226.25"/>
+<text text-anchor="start" x="584.02" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_90_seq(p)</text>
+<polygon fill="white" stroke="none" points="577.02,-199.5 577.02,-226.25 791.27,-226.25 791.27,-199.5 577.02,-199.5"/>
+<polygon fill="none" stroke="black" points="577.02,-199.5 577.02,-226.25 791.27,-226.25 791.27,-199.5 577.02,-199.5"/>
+<text text-anchor="start" x="584.02" y="-209.75" font-family="Courier,monospace" font-size="10.00">p[&#39;partial&#39;] = False</text>
 </g>
 <!-- finalize -->
 <g id="node25" class="node">
 <title>finalize</title>
-<path fill="lightblue" stroke="black" d="M736.05,-148.1C736.05,-148.1 630.25,-148.1 630.25,-148.1 624.25,-148.1 618.25,-142.1 618.25,-136.1 618.25,-136.1 618.25,-104.55 618.25,-104.55 618.25,-98.55 624.25,-92.55 630.25,-92.55 630.25,-92.55 736.05,-92.55 736.05,-92.55 742.05,-92.55 748.05,-98.55 748.05,-104.55 748.05,-104.55 748.05,-136.1 748.05,-136.1 748.05,-142.1 742.05,-148.1 736.05,-148.1"/>
-<polygon fill="white" stroke="none" points="632.65,-106.95 632.65,-133.7 733.65,-133.7 733.65,-106.95 632.65,-106.95"/>
-<polygon fill="none" stroke="black" points="632.65,-106.95 632.65,-133.7 733.65,-133.7 733.65,-106.95 632.65,-106.95"/>
-<text text-anchor="start" x="639.65" y="-118.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await finalize(p)</text>
+<path fill="lightblue" stroke="black" d="M737.05,-148.1C737.05,-148.1 631.25,-148.1 631.25,-148.1 625.25,-148.1 619.25,-142.1 619.25,-136.1 619.25,-136.1 619.25,-104.55 619.25,-104.55 619.25,-98.55 625.25,-92.55 631.25,-92.55 631.25,-92.55 737.05,-92.55 737.05,-92.55 743.05,-92.55 749.05,-98.55 749.05,-104.55 749.05,-104.55 749.05,-136.1 749.05,-136.1 749.05,-142.1 743.05,-148.1 737.05,-148.1"/>
+<polygon fill="white" stroke="none" points="633.65,-106.95 633.65,-133.7 734.65,-133.7 734.65,-106.95 633.65,-106.95"/>
+<polygon fill="none" stroke="black" points="633.65,-106.95 633.65,-133.7 734.65,-133.7 734.65,-106.95 633.65,-106.95"/>
+<text text-anchor="start" x="640.65" y="-118.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await finalize(p)</text>
 </g>
-<!-- router_llm_auditor_line_86_seq&#45;&gt;finalize -->
+<!-- router_llm_auditor_line_90_seq&#45;&gt;finalize -->
 <g id="edge34" class="edge">
-<title>router_llm_auditor_line_86_seq&#45;&gt;finalize</title>
-<path fill="none" stroke="black" d="M683.15,-184.77C683.15,-176.58 683.15,-167.98 683.15,-159.86"/>
-<polygon fill="black" stroke="black" points="686.65,-159.9 683.15,-149.9 679.65,-159.9 686.65,-159.9"/>
+<title>router_llm_auditor_line_90_seq&#45;&gt;finalize</title>
+<path fill="none" stroke="black" d="M684.15,-184.77C684.15,-176.58 684.15,-167.98 684.15,-159.86"/>
+<polygon fill="black" stroke="black" points="687.65,-159.9 684.15,-149.9 680.65,-159.9 687.65,-159.9"/>
 </g>
-<!-- router_llm_auditor_line_62_seq -->
+<!-- router_llm_auditor_line_66_seq -->
 <g id="node4" class="node">
-<title>router_llm_auditor_line_62_seq</title>
-<path fill="wheat" stroke="black" d="M395.3,-1178.58C395.3,-1178.58 177,-1178.58 177,-1178.58 171,-1178.58 165,-1172.58 165,-1166.58 165,-1166.58 165,-1108.27 165,-1108.27 165,-1102.27 171,-1096.27 177,-1096.27 177,-1096.27 395.3,-1096.27 395.3,-1096.27 401.3,-1096.27 407.3,-1102.27 407.3,-1108.27 407.3,-1108.27 407.3,-1166.58 407.3,-1166.58 407.3,-1172.58 401.3,-1178.58 395.3,-1178.58"/>
-<polygon fill="white" stroke="none" points="179.4,-1137.42 179.4,-1164.17 392.9,-1164.17 392.9,-1137.42 179.4,-1137.42"/>
-<polygon fill="none" stroke="black" points="179.4,-1137.42 179.4,-1164.17 392.9,-1164.17 392.9,-1137.42 179.4,-1137.42"/>
-<text text-anchor="start" x="186.4" y="-1148.67" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_62_seq(p)</text>
-<polygon fill="white" stroke="none" points="179.4,-1110.67 179.4,-1137.42 392.9,-1137.42 392.9,-1110.67 179.4,-1110.67"/>
-<polygon fill="none" stroke="black" points="179.4,-1110.67 179.4,-1137.42 392.9,-1137.42 392.9,-1110.67 179.4,-1110.67"/>
-<text text-anchor="start" x="186.4" y="-1120.92" font-family="Courier,monospace" font-size="10.00">p[&#39;prev_score&#39;] = p[&#39;aggregate_score&#39;]</text>
+<title>router_llm_auditor_line_66_seq</title>
+<path fill="wheat" stroke="black" d="M396.67,-1178.58C396.67,-1178.58 177.62,-1178.58 177.62,-1178.58 171.62,-1178.58 165.62,-1172.58 165.62,-1166.58 165.62,-1166.58 165.62,-1108.27 165.62,-1108.27 165.62,-1102.27 171.62,-1096.27 177.62,-1096.27 177.62,-1096.27 396.67,-1096.27 396.67,-1096.27 402.67,-1096.27 408.67,-1102.27 408.67,-1108.27 408.67,-1108.27 408.67,-1166.58 408.67,-1166.58 408.67,-1172.58 402.67,-1178.58 396.67,-1178.58"/>
+<polygon fill="white" stroke="none" points="180.02,-1137.42 180.02,-1164.17 394.27,-1164.17 394.27,-1137.42 180.02,-1137.42"/>
+<polygon fill="none" stroke="black" points="180.02,-1137.42 180.02,-1164.17 394.27,-1164.17 394.27,-1137.42 180.02,-1137.42"/>
+<text text-anchor="start" x="187.02" y="-1148.67" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_66_seq(p)</text>
+<polygon fill="white" stroke="none" points="180.02,-1110.67 180.02,-1137.42 394.27,-1137.42 394.27,-1110.67 180.02,-1110.67"/>
+<polygon fill="none" stroke="black" points="180.02,-1110.67 180.02,-1137.42 394.27,-1137.42 394.27,-1110.67 180.02,-1110.67"/>
+<text text-anchor="start" x="187.02" y="-1120.92" font-family="Courier,monospace" font-size="10.00">p[&#39;prev_score&#39;] = p[&#39;aggregate_score&#39;]</text>
 </g>
-<!-- router_llm_auditor_line_42_loop_back_0 -->
+<!-- router_llm_auditor_line_46_loop_back_0 -->
 <g id="node14" class="node">
-<title>router_llm_auditor_line_42_loop_back_0</title>
-<path fill="wheat" stroke="black" d="M531.92,-254.03C531.92,-254.03 272.38,-254.03 272.38,-254.03 266.38,-254.03 260.38,-248.03 260.38,-242.03 260.38,-242.03 260.38,-210.48 260.38,-210.48 260.38,-204.48 266.38,-198.48 272.38,-198.48 272.38,-198.48 531.92,-198.48 531.92,-198.48 537.92,-198.48 543.92,-204.48 543.92,-210.48 543.92,-210.48 543.92,-242.03 543.92,-242.03 543.92,-248.03 537.92,-254.03 531.92,-254.03"/>
-<polygon fill="white" stroke="none" points="274.77,-212.88 274.77,-239.63 529.52,-239.63 529.52,-212.88 274.77,-212.88"/>
-<polygon fill="none" stroke="black" points="274.77,-212.88 274.77,-239.63 529.52,-239.63 529.52,-212.88 274.77,-212.88"/>
-<text text-anchor="start" x="281.77" y="-224.13" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_42_loop_back…(p)</text>
+<title>router_llm_auditor_line_46_loop_back_0</title>
+<path fill="wheat" stroke="black" d="M532.3,-254.03C532.3,-254.03 272,-254.03 272,-254.03 266,-254.03 260,-248.03 260,-242.03 260,-242.03 260,-210.48 260,-210.48 260,-204.48 266,-198.48 272,-198.48 272,-198.48 532.3,-198.48 532.3,-198.48 538.3,-198.48 544.3,-204.48 544.3,-210.48 544.3,-210.48 544.3,-242.03 544.3,-242.03 544.3,-248.03 538.3,-254.03 532.3,-254.03"/>
+<polygon fill="white" stroke="none" points="274.4,-212.88 274.4,-239.63 529.9,-239.63 529.9,-212.88 274.4,-212.88"/>
+<polygon fill="none" stroke="black" points="274.4,-212.88 274.4,-239.63 529.9,-239.63 529.9,-212.88 274.4,-212.88"/>
+<text text-anchor="start" x="281.4" y="-224.13" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_46_loop_back…(p)</text>
 </g>
-<!-- router_llm_auditor_line_62_seq&#45;&gt;router_llm_auditor_line_42_loop_back_0 -->
+<!-- router_llm_auditor_line_66_seq&#45;&gt;router_llm_auditor_line_46_loop_back_0 -->
 <g id="edge24" class="edge">
-<title>router_llm_auditor_line_62_seq&#45;&gt;router_llm_auditor_line_42_loop_back_0</title>
-<path fill="none" stroke="black" d="M281.16,-1096.11C277.49,-1062.99 273.15,-1014.84 273.15,-972.62 273.15,-972.62 273.15,-972.62 273.15,-373.68 273.15,-326.25 311.72,-286.9 346.69,-260.99"/>
-<polygon fill="black" stroke="black" points="348.62,-263.91 354.71,-255.24 344.54,-258.22 348.62,-263.91"/>
+<title>router_llm_auditor_line_66_seq&#45;&gt;router_llm_auditor_line_46_loop_back_0</title>
+<path fill="none" stroke="black" d="M282.16,-1096.11C278.49,-1062.99 274.15,-1014.84 274.15,-972.62 274.15,-972.62 274.15,-972.62 274.15,-373.68 274.15,-326.41 312.43,-287.05 347.12,-261.09"/>
+<polygon fill="black" stroke="black" points="349.02,-264.03 355.07,-255.34 344.92,-258.36 349.02,-264.03"/>
 </g>
-<!-- router_llm_auditor_line_67_seq -->
+<!-- router_llm_auditor_line_71_seq -->
 <g id="node5" class="node">
-<title>router_llm_auditor_line_67_seq</title>
-<path fill="wheat" stroke="black" d="M931.3,-1012.77C931.3,-1012.77 713,-1012.77 713,-1012.77 707,-1012.77 701,-1006.77 701,-1000.77 701,-1000.77 701,-942.47 701,-942.47 701,-936.47 707,-930.47 713,-930.47 713,-930.47 931.3,-930.47 931.3,-930.47 937.3,-930.47 943.3,-936.47 943.3,-942.47 943.3,-942.47 943.3,-1000.77 943.3,-1000.77 943.3,-1006.77 937.3,-1012.77 931.3,-1012.77"/>
-<polygon fill="white" stroke="none" points="715.4,-971.62 715.4,-998.37 928.9,-998.37 928.9,-971.62 715.4,-971.62"/>
-<polygon fill="none" stroke="black" points="715.4,-971.62 715.4,-998.37 928.9,-998.37 928.9,-971.62 715.4,-971.62"/>
-<text text-anchor="start" x="722.4" y="-982.87" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_67_seq(p)</text>
-<polygon fill="white" stroke="none" points="715.4,-944.87 715.4,-971.62 928.9,-971.62 928.9,-944.87 715.4,-944.87"/>
-<polygon fill="none" stroke="black" points="715.4,-944.87 715.4,-971.62 928.9,-971.62 928.9,-944.87 715.4,-944.87"/>
-<text text-anchor="start" x="722.4" y="-955.12" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;approved&#39;</text>
+<title>router_llm_auditor_line_71_seq</title>
+<path fill="wheat" stroke="black" d="M930.55,-1012.77C930.55,-1012.77 713.75,-1012.77 713.75,-1012.77 707.75,-1012.77 701.75,-1006.77 701.75,-1000.77 701.75,-1000.77 701.75,-942.47 701.75,-942.47 701.75,-936.47 707.75,-930.47 713.75,-930.47 713.75,-930.47 930.55,-930.47 930.55,-930.47 936.55,-930.47 942.55,-936.47 942.55,-942.47 942.55,-942.47 942.55,-1000.77 942.55,-1000.77 942.55,-1006.77 936.55,-1012.77 930.55,-1012.77"/>
+<polygon fill="white" stroke="none" points="716.15,-971.62 716.15,-998.37 928.15,-998.37 928.15,-971.62 716.15,-971.62"/>
+<polygon fill="none" stroke="black" points="716.15,-971.62 716.15,-998.37 928.15,-998.37 928.15,-971.62 716.15,-971.62"/>
+<text text-anchor="start" x="723.15" y="-982.87" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_71_seq(p)</text>
+<polygon fill="white" stroke="none" points="716.15,-944.87 716.15,-971.62 928.15,-971.62 928.15,-944.87 716.15,-944.87"/>
+<polygon fill="none" stroke="black" points="716.15,-944.87 716.15,-971.62 928.15,-971.62 928.15,-944.87 716.15,-944.87"/>
+<text text-anchor="start" x="723.15" y="-955.12" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;approved&#39;</text>
 </g>
-<!-- router_llm_auditor_line_67_seq&#45;&gt;end_llm_auditor -->
+<!-- router_llm_auditor_line_71_seq&#45;&gt;end_llm_auditor -->
 <g id="edge27" class="edge">
-<title>router_llm_auditor_line_67_seq&#45;&gt;end_llm_auditor</title>
-<path fill="none" stroke="black" d="M827.23,-930.23C830.11,-903.89 833.15,-868.75 833.15,-837.57 833.15,-837.57 833.15,-837.57 833.15,-119.33 833.15,-88.03 808.93,-67.27 779.95,-53.62"/>
-<polygon fill="black" stroke="black" points="781.49,-50.48 770.92,-49.69 778.7,-56.89 781.49,-50.48"/>
+<title>router_llm_auditor_line_71_seq&#45;&gt;end_llm_auditor</title>
+<path fill="none" stroke="black" d="M827.69,-930.24C830.84,-903.91 834.15,-868.77 834.15,-837.57 834.15,-837.57 834.15,-837.57 834.15,-119.33 834.15,-88.03 809.93,-67.27 780.95,-53.62"/>
+<polygon fill="black" stroke="black" points="782.49,-50.48 771.92,-49.69 779.7,-56.89 782.49,-50.48"/>
 </g>
-<!-- router_llm_auditor_line_69_if -->
+<!-- router_llm_auditor_line_73_if -->
 <g id="node6" class="node">
-<title>router_llm_auditor_line_69_if</title>
-<path fill="wheat" stroke="black" d="M653.8,-1030.15C653.8,-1030.15 444.5,-1030.15 444.5,-1030.15 438.5,-1030.15 432.5,-1024.15 432.5,-1018.15 432.5,-1018.15 432.5,-925.1 432.5,-925.1 432.5,-919.1 438.5,-913.1 444.5,-913.1 444.5,-913.1 653.8,-913.1 653.8,-913.1 659.8,-913.1 665.8,-919.1 665.8,-925.1 665.8,-925.1 665.8,-1018.15 665.8,-1018.15 665.8,-1024.15 659.8,-1030.15 653.8,-1030.15"/>
-<polygon fill="white" stroke="none" points="446.9,-989 446.9,-1015.75 651.4,-1015.75 651.4,-989 446.9,-989"/>
-<polygon fill="none" stroke="black" points="446.9,-989 446.9,-1015.75 651.4,-1015.75 651.4,-989 446.9,-989"/>
-<text text-anchor="start" x="453.9" y="-1000.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_69_if(p)</text>
-<polygon fill="lightyellow" stroke="none" points="446.9,-962.25 446.9,-989 651.4,-989 651.4,-962.25 446.9,-962.25"/>
-<polygon fill="none" stroke="black" points="446.9,-962.25 446.9,-989 651.4,-989 651.4,-962.25 446.9,-962.25"/>
-<text text-anchor="start" x="483.9" y="-973.5" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
-<text text-anchor="start" x="490.65" y="-973.5" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt;= 70</text>
-<polygon fill="none" stroke="black" points="446.9,-927.5 446.9,-962.25 651.4,-962.25 651.4,-927.5 446.9,-927.5"/>
-<polygon fill="#698b69" stroke="none" points="453.9,-934.5 453.9,-955.25 546.9,-955.25 546.9,-934.5 453.9,-934.5"/>
-<text text-anchor="start" x="487.65" y="-942.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="546.9,-934.5 546.9,-955.25 644.4,-955.25 644.4,-934.5 546.9,-934.5"/>
-<text text-anchor="start" x="580.65" y="-942.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<title>router_llm_auditor_line_73_if</title>
+<path fill="wheat" stroke="black" d="M654.05,-1030.15C654.05,-1030.15 446.25,-1030.15 446.25,-1030.15 440.25,-1030.15 434.25,-1024.15 434.25,-1018.15 434.25,-1018.15 434.25,-925.1 434.25,-925.1 434.25,-919.1 440.25,-913.1 446.25,-913.1 446.25,-913.1 654.05,-913.1 654.05,-913.1 660.05,-913.1 666.05,-919.1 666.05,-925.1 666.05,-925.1 666.05,-1018.15 666.05,-1018.15 666.05,-1024.15 660.05,-1030.15 654.05,-1030.15"/>
+<polygon fill="white" stroke="none" points="448.65,-989 448.65,-1015.75 651.65,-1015.75 651.65,-989 448.65,-989"/>
+<polygon fill="none" stroke="black" points="448.65,-989 448.65,-1015.75 651.65,-1015.75 651.65,-989 448.65,-989"/>
+<text text-anchor="start" x="455.65" y="-1000.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_73_if(p)</text>
+<polygon fill="lightyellow" stroke="none" points="448.65,-962.25 448.65,-989 651.65,-989 651.65,-962.25 448.65,-962.25"/>
+<polygon fill="none" stroke="black" points="448.65,-962.25 448.65,-989 651.65,-989 651.65,-962.25 448.65,-962.25"/>
+<text text-anchor="start" x="484.9" y="-973.5" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
+<text text-anchor="start" x="491.65" y="-973.5" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt;= 70</text>
+<polygon fill="none" stroke="black" points="448.65,-927.5 448.65,-962.25 651.65,-962.25 651.65,-927.5 448.65,-927.5"/>
+<polygon fill="#698b69" stroke="none" points="455.65,-934.5 455.65,-955.25 547.9,-955.25 547.9,-934.5 455.65,-934.5"/>
+<text text-anchor="start" x="489.02" y="-942.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="547.9,-934.5 547.9,-955.25 644.65,-955.25 644.65,-934.5 547.9,-934.5"/>
+<text text-anchor="start" x="581.27" y="-942.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
 <!-- critique -->
 <g id="node20" class="node">
 <title>critique</title>
-<path fill="lightblue" stroke="black" d="M609.42,-864.35C609.42,-864.35 502.88,-864.35 502.88,-864.35 496.88,-864.35 490.88,-858.35 490.88,-852.35 490.88,-852.35 490.88,-820.8 490.88,-820.8 490.88,-814.8 496.88,-808.8 502.88,-808.8 502.88,-808.8 609.42,-808.8 609.42,-808.8 615.42,-808.8 621.42,-814.8 621.42,-820.8 621.42,-820.8 621.42,-852.35 621.42,-852.35 621.42,-858.35 615.42,-864.35 609.42,-864.35"/>
-<polygon fill="white" stroke="none" points="505.27,-823.2 505.27,-849.95 607.02,-849.95 607.02,-823.2 505.27,-823.2"/>
-<polygon fill="none" stroke="black" points="505.27,-823.2 505.27,-849.95 607.02,-849.95 607.02,-823.2 505.27,-823.2"/>
-<text text-anchor="start" x="512.27" y="-834.45" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await critique(p)</text>
+<path fill="lightblue" stroke="black" d="M610.42,-864.35C610.42,-864.35 503.88,-864.35 503.88,-864.35 497.88,-864.35 491.88,-858.35 491.88,-852.35 491.88,-852.35 491.88,-820.8 491.88,-820.8 491.88,-814.8 497.88,-808.8 503.88,-808.8 503.88,-808.8 610.42,-808.8 610.42,-808.8 616.42,-808.8 622.42,-814.8 622.42,-820.8 622.42,-820.8 622.42,-852.35 622.42,-852.35 622.42,-858.35 616.42,-864.35 610.42,-864.35"/>
+<polygon fill="white" stroke="none" points="506.27,-823.2 506.27,-849.95 608.02,-849.95 608.02,-823.2 506.27,-823.2"/>
+<polygon fill="none" stroke="black" points="506.27,-823.2 506.27,-849.95 608.02,-849.95 608.02,-823.2 506.27,-823.2"/>
+<text text-anchor="start" x="513.27" y="-834.45" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await critique(p)</text>
 </g>
-<!-- router_llm_auditor_line_69_if&#45;&gt;critique -->
+<!-- router_llm_auditor_line_73_if&#45;&gt;critique -->
 <g id="edge28" class="edge">
-<title>router_llm_auditor_line_69_if&#45;&gt;critique</title>
-<path fill="none" stroke="#8b3a3a" d="M552.2,-912.65C552.85,-900.28 553.52,-887.51 554.12,-876.09"/>
-<polygon fill="#8b3a3a" stroke="#8b3a3a" points="557.61,-876.43 554.64,-866.26 550.62,-876.06 557.61,-876.43"/>
-<text text-anchor="middle" x="556.69" y="-885.6" font-family="Courier,monospace" font-size="10.00">F</text>
+<title>router_llm_auditor_line_73_if&#45;&gt;critique</title>
+<path fill="none" stroke="#8b3a3a" d="M553.2,-912.65C553.85,-900.28 554.52,-887.51 555.12,-876.09"/>
+<polygon fill="#8b3a3a" stroke="#8b3a3a" points="558.61,-876.43 555.64,-866.26 551.62,-876.06 558.61,-876.43"/>
+<text text-anchor="middle" x="557.69" y="-885.6" font-family="Courier,monospace" font-size="10.00">F</text>
 </g>
-<!-- router_llm_auditor_line_69_if&#45;&gt;critique -->
+<!-- router_llm_auditor_line_73_if&#45;&gt;critique -->
 <g id="edge29" class="edge">
-<title>router_llm_auditor_line_69_if&#45;&gt;critique</title>
-<path fill="none" stroke="#698b69" d="M542.78,-913.05C542.53,-902.8 542.85,-892.24 544.15,-882.35 544.43,-880.2 544.79,-878 545.2,-875.79"/>
-<polygon fill="#698b69" stroke="#698b69" points="548.56,-876.81 547.31,-866.29 541.73,-875.3 548.56,-876.81"/>
-<text text-anchor="middle" x="547.15" y="-885.6" font-family="Courier,monospace" font-size="10.00">T</text>
+<title>router_llm_auditor_line_73_if&#45;&gt;critique</title>
+<path fill="none" stroke="#698b69" d="M543.78,-913.05C543.53,-902.8 543.85,-892.24 545.15,-882.35 545.43,-880.2 545.79,-878 546.2,-875.79"/>
+<polygon fill="#698b69" stroke="#698b69" points="549.56,-876.81 548.31,-866.29 542.73,-875.3 549.56,-876.81"/>
+<text text-anchor="middle" x="548.15" y="-885.6" font-family="Courier,monospace" font-size="10.00">T</text>
 </g>
-<!-- router_llm_auditor_line_80_seq -->
+<!-- router_llm_auditor_line_84_seq -->
 <g id="node7" class="node">
-<title>router_llm_auditor_line_80_seq</title>
-<path fill="wheat" stroke="black" d="M792.67,-415.83C792.67,-415.83 573.62,-415.83 573.62,-415.83 567.62,-415.83 561.62,-409.83 561.62,-403.83 561.62,-403.83 561.62,-345.53 561.62,-345.53 561.62,-339.53 567.62,-333.53 573.62,-333.53 573.62,-333.53 792.67,-333.53 792.67,-333.53 798.67,-333.53 804.67,-339.53 804.67,-345.53 804.67,-345.53 804.67,-403.83 804.67,-403.83 804.67,-409.83 798.67,-415.83 792.67,-415.83"/>
-<polygon fill="white" stroke="none" points="576.02,-374.68 576.02,-401.43 790.27,-401.43 790.27,-374.68 576.02,-374.68"/>
-<polygon fill="none" stroke="black" points="576.02,-374.68 576.02,-401.43 790.27,-401.43 790.27,-374.68 576.02,-374.68"/>
-<text text-anchor="start" x="583.02" y="-385.93" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_80_seq(p)</text>
-<polygon fill="white" stroke="none" points="576.02,-347.93 576.02,-374.68 790.27,-374.68 790.27,-347.93 576.02,-347.93"/>
-<polygon fill="none" stroke="black" points="576.02,-347.93 576.02,-374.68 790.27,-374.68 790.27,-347.93 576.02,-347.93"/>
-<text text-anchor="start" x="583.02" y="-358.18" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;max_iterations&#39;</text>
+<title>router_llm_auditor_line_84_seq</title>
+<path fill="wheat" stroke="black" d="M793.67,-415.83C793.67,-415.83 574.62,-415.83 574.62,-415.83 568.62,-415.83 562.62,-409.83 562.62,-403.83 562.62,-403.83 562.62,-345.53 562.62,-345.53 562.62,-339.53 568.62,-333.53 574.62,-333.53 574.62,-333.53 793.67,-333.53 793.67,-333.53 799.67,-333.53 805.67,-339.53 805.67,-345.53 805.67,-345.53 805.67,-403.83 805.67,-403.83 805.67,-409.83 799.67,-415.83 793.67,-415.83"/>
+<polygon fill="white" stroke="none" points="577.02,-374.68 577.02,-401.43 791.27,-401.43 791.27,-374.68 577.02,-374.68"/>
+<polygon fill="none" stroke="black" points="577.02,-374.68 577.02,-401.43 791.27,-401.43 791.27,-374.68 577.02,-374.68"/>
+<text text-anchor="start" x="584.02" y="-385.93" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_84_seq(p)</text>
+<polygon fill="white" stroke="none" points="577.02,-347.93 577.02,-374.68 791.27,-374.68 791.27,-347.93 577.02,-347.93"/>
+<polygon fill="none" stroke="black" points="577.02,-347.93 577.02,-374.68 791.27,-374.68 791.27,-347.93 577.02,-347.93"/>
+<text text-anchor="start" x="584.02" y="-358.18" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;max_iterations&#39;</text>
 </g>
-<!-- router_llm_auditor_line_80_seq&#45;&gt;router_llm_auditor_line_86_seq -->
+<!-- router_llm_auditor_line_84_seq&#45;&gt;router_llm_auditor_line_90_seq -->
 <g id="edge32" class="edge">
-<title>router_llm_auditor_line_80_seq&#45;&gt;router_llm_auditor_line_86_seq</title>
-<path fill="none" stroke="black" d="M683.15,-333.28C683.15,-316.54 683.15,-296.92 683.15,-279.14"/>
-<polygon fill="black" stroke="black" points="686.65,-279.28 683.15,-269.28 679.65,-279.28 686.65,-279.28"/>
+<title>router_llm_auditor_line_84_seq&#45;&gt;router_llm_auditor_line_90_seq</title>
+<path fill="none" stroke="black" d="M684.15,-333.28C684.15,-316.54 684.15,-296.92 684.15,-279.14"/>
+<polygon fill="black" stroke="black" points="687.65,-279.28 684.15,-269.28 680.65,-279.28 687.65,-279.28"/>
 </g>
-<!-- router_llm_auditor_line_83_seq -->
+<!-- router_llm_auditor_line_87_seq -->
 <g id="node8" class="node">
-<title>router_llm_auditor_line_83_seq</title>
-<path fill="wheat" stroke="black" d="M531.3,-415.83C531.3,-415.83 313,-415.83 313,-415.83 307,-415.83 301,-409.83 301,-403.83 301,-403.83 301,-345.53 301,-345.53 301,-339.53 307,-333.53 313,-333.53 313,-333.53 531.3,-333.53 531.3,-333.53 537.3,-333.53 543.3,-339.53 543.3,-345.53 543.3,-345.53 543.3,-403.83 543.3,-403.83 543.3,-409.83 537.3,-415.83 531.3,-415.83"/>
-<polygon fill="white" stroke="none" points="315.4,-374.68 315.4,-401.43 528.9,-401.43 528.9,-374.68 315.4,-374.68"/>
-<polygon fill="none" stroke="black" points="315.4,-374.68 315.4,-401.43 528.9,-401.43 528.9,-374.68 315.4,-374.68"/>
-<text text-anchor="start" x="322.4" y="-385.93" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_83_seq(p)</text>
-<polygon fill="white" stroke="none" points="315.4,-347.93 315.4,-374.68 528.9,-374.68 528.9,-347.93 315.4,-347.93"/>
-<polygon fill="none" stroke="black" points="315.4,-347.93 315.4,-374.68 528.9,-374.68 528.9,-347.93 315.4,-347.93"/>
-<text text-anchor="start" x="322.4" y="-358.18" font-family="Courier,monospace" font-size="10.00">p[&#39;prev_score&#39;] = p[&#39;aggregate_score&#39;]</text>
+<title>router_llm_auditor_line_87_seq</title>
+<path fill="wheat" stroke="black" d="M532.3,-415.83C532.3,-415.83 314,-415.83 314,-415.83 308,-415.83 302,-409.83 302,-403.83 302,-403.83 302,-345.53 302,-345.53 302,-339.53 308,-333.53 314,-333.53 314,-333.53 532.3,-333.53 532.3,-333.53 538.3,-333.53 544.3,-339.53 544.3,-345.53 544.3,-345.53 544.3,-403.83 544.3,-403.83 544.3,-409.83 538.3,-415.83 532.3,-415.83"/>
+<polygon fill="white" stroke="none" points="316.4,-374.68 316.4,-401.43 529.9,-401.43 529.9,-374.68 316.4,-374.68"/>
+<polygon fill="none" stroke="black" points="316.4,-374.68 316.4,-401.43 529.9,-401.43 529.9,-374.68 316.4,-374.68"/>
+<text text-anchor="start" x="323.4" y="-385.93" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_87_seq(p)</text>
+<polygon fill="white" stroke="none" points="316.4,-347.93 316.4,-374.68 529.9,-374.68 529.9,-347.93 316.4,-347.93"/>
+<polygon fill="none" stroke="black" points="316.4,-347.93 316.4,-374.68 529.9,-374.68 529.9,-347.93 316.4,-347.93"/>
+<text text-anchor="start" x="323.4" y="-358.18" font-family="Courier,monospace" font-size="10.00">p[&#39;prev_score&#39;] = p[&#39;aggregate_score&#39;]</text>
 </g>
-<!-- router_llm_auditor_line_83_seq&#45;&gt;router_llm_auditor_line_42_loop_back_0 -->
+<!-- router_llm_auditor_line_87_seq&#45;&gt;router_llm_auditor_line_46_loop_back_0 -->
 <g id="edge33" class="edge">
-<title>router_llm_auditor_line_83_seq&#45;&gt;router_llm_auditor_line_42_loop_back_0</title>
-<path fill="none" stroke="black" d="M416.63,-333.28C413.74,-312.09 410.21,-286.28 407.37,-265.43"/>
-<polygon fill="black" stroke="black" points="410.85,-265.05 406.02,-255.61 403.91,-265.99 410.85,-265.05"/>
+<title>router_llm_auditor_line_87_seq&#45;&gt;router_llm_auditor_line_46_loop_back_0</title>
+<path fill="none" stroke="black" d="M417.36,-333.28C414.32,-312.09 410.62,-286.28 407.63,-265.43"/>
+<polygon fill="black" stroke="black" points="411.1,-265.01 406.22,-255.61 404.17,-266.01 411.1,-265.01"/>
 </g>
-<!-- router_llm_auditor_line_79_if -->
+<!-- router_llm_auditor_line_83_if -->
 <g id="node9" class="node">
-<title>router_llm_auditor_line_79_if</title>
-<path fill="wheat" stroke="black" d="M542.55,-599C542.55,-599 331.75,-599 331.75,-599 325.75,-599 319.75,-593 319.75,-587 319.75,-587 319.75,-493.95 319.75,-493.95 319.75,-487.95 325.75,-481.95 331.75,-481.95 331.75,-481.95 542.55,-481.95 542.55,-481.95 548.55,-481.95 554.55,-487.95 554.55,-493.95 554.55,-493.95 554.55,-587 554.55,-587 554.55,-593 548.55,-599 542.55,-599"/>
-<polygon fill="white" stroke="none" points="334.15,-557.85 334.15,-584.6 540.15,-584.6 540.15,-557.85 334.15,-557.85"/>
-<polygon fill="none" stroke="black" points="334.15,-557.85 334.15,-584.6 540.15,-584.6 540.15,-557.85 334.15,-557.85"/>
-<text text-anchor="start" x="342.27" y="-569.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_79_if(p)</text>
-<polygon fill="lightyellow" stroke="none" points="334.15,-531.1 334.15,-557.85 540.15,-557.85 540.15,-531.1 334.15,-531.1"/>
-<polygon fill="none" stroke="black" points="334.15,-531.1 334.15,-557.85 540.15,-557.85 540.15,-531.1 334.15,-531.1"/>
-<text text-anchor="start" x="341.15" y="-542.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
-<text text-anchor="start" x="347.9" y="-542.35" font-family="Courier,monospace" font-size="10.00"> p[&#39;iteration&#39;] &gt;= p.get(&#39;max_iterations&#39;, 5)</text>
-<polygon fill="none" stroke="black" points="334.15,-496.35 334.15,-531.1 540.15,-531.1 540.15,-496.35 334.15,-496.35"/>
-<polygon fill="#698b69" stroke="none" points="341.15,-503.35 341.15,-524.1 434.9,-524.1 434.9,-503.35 341.15,-503.35"/>
-<text text-anchor="start" x="375.27" y="-511.6" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="434.9,-503.35 434.9,-524.1 533.15,-524.1 533.15,-503.35 434.9,-503.35"/>
-<text text-anchor="start" x="469.02" y="-511.6" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<title>router_llm_auditor_line_83_if</title>
+<path fill="wheat" stroke="black" d="M543.55,-599C543.55,-599 332.75,-599 332.75,-599 326.75,-599 320.75,-593 320.75,-587 320.75,-587 320.75,-493.95 320.75,-493.95 320.75,-487.95 326.75,-481.95 332.75,-481.95 332.75,-481.95 543.55,-481.95 543.55,-481.95 549.55,-481.95 555.55,-487.95 555.55,-493.95 555.55,-493.95 555.55,-587 555.55,-587 555.55,-593 549.55,-599 543.55,-599"/>
+<polygon fill="white" stroke="none" points="335.15,-557.85 335.15,-584.6 541.15,-584.6 541.15,-557.85 335.15,-557.85"/>
+<polygon fill="none" stroke="black" points="335.15,-557.85 335.15,-584.6 541.15,-584.6 541.15,-557.85 335.15,-557.85"/>
+<text text-anchor="start" x="343.27" y="-569.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_83_if(p)</text>
+<polygon fill="lightyellow" stroke="none" points="335.15,-531.1 335.15,-557.85 541.15,-557.85 541.15,-531.1 335.15,-531.1"/>
+<polygon fill="none" stroke="black" points="335.15,-531.1 335.15,-557.85 541.15,-557.85 541.15,-531.1 335.15,-531.1"/>
+<text text-anchor="start" x="342.15" y="-542.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
+<text text-anchor="start" x="348.9" y="-542.35" font-family="Courier,monospace" font-size="10.00"> p[&#39;iteration&#39;] &gt;= p.get(&#39;max_iterations&#39;, 5)</text>
+<polygon fill="none" stroke="black" points="335.15,-496.35 335.15,-531.1 541.15,-531.1 541.15,-496.35 335.15,-496.35"/>
+<polygon fill="#698b69" stroke="none" points="342.15,-503.35 342.15,-524.1 435.9,-524.1 435.9,-503.35 342.15,-503.35"/>
+<text text-anchor="start" x="376.27" y="-511.6" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="435.9,-503.35 435.9,-524.1 534.15,-524.1 534.15,-503.35 435.9,-503.35"/>
+<text text-anchor="start" x="470.02" y="-511.6" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
-<!-- router_llm_auditor_line_79_if&#45;&gt;router_llm_auditor_line_80_seq -->
+<!-- router_llm_auditor_line_83_if&#45;&gt;router_llm_auditor_line_84_seq -->
 <g id="edge30" class="edge">
-<title>router_llm_auditor_line_79_if&#45;&gt;router_llm_auditor_line_80_seq</title>
-<path fill="none" stroke="#698b69" d="M524.23,-481.49C553.28,-462.15 585.27,-440.85 612.88,-422.46"/>
-<polygon fill="#698b69" stroke="#698b69" points="614.81,-425.38 621.19,-416.93 610.93,-419.56 614.81,-425.38"/>
-<text text-anchor="middle" x="570.53" y="-454.45" font-family="Courier,monospace" font-size="10.00">T</text>
+<title>router_llm_auditor_line_83_if&#45;&gt;router_llm_auditor_line_84_seq</title>
+<path fill="none" stroke="#698b69" d="M525.23,-481.49C554.28,-462.15 586.27,-440.85 613.88,-422.46"/>
+<polygon fill="#698b69" stroke="#698b69" points="615.81,-425.38 622.19,-416.93 611.93,-419.56 615.81,-425.38"/>
+<text text-anchor="middle" x="571.53" y="-454.45" font-family="Courier,monospace" font-size="10.00">T</text>
 </g>
-<!-- router_llm_auditor_line_79_if&#45;&gt;router_llm_auditor_line_83_seq -->
+<!-- router_llm_auditor_line_83_if&#45;&gt;router_llm_auditor_line_87_seq -->
 <g id="edge31" class="edge">
-<title>router_llm_auditor_line_79_if&#45;&gt;router_llm_auditor_line_83_seq</title>
-<path fill="none" stroke="#8b3a3a" d="M431.86,-481.73C430.24,-463.97 428.46,-444.55 426.87,-427.24"/>
-<polygon fill="#8b3a3a" stroke="#8b3a3a" points="430.4,-427.35 426,-417.71 423.43,-427.99 430.4,-427.35"/>
-<text text-anchor="middle" x="433.1" y="-454.45" font-family="Courier,monospace" font-size="10.00">F</text>
+<title>router_llm_auditor_line_83_if&#45;&gt;router_llm_auditor_line_87_seq</title>
+<path fill="none" stroke="#8b3a3a" d="M432.86,-481.73C431.24,-463.97 429.46,-444.55 427.87,-427.24"/>
+<polygon fill="#8b3a3a" stroke="#8b3a3a" points="431.4,-427.35 427,-417.71 424.43,-427.99 431.4,-427.35"/>
+<text text-anchor="middle" x="434.1" y="-454.45" font-family="Courier,monospace" font-size="10.00">F</text>
 </g>
-<!-- router_llm_auditor_line_66_if -->
+<!-- router_llm_auditor_line_70_if -->
 <g id="node10" class="node">
-<title>router_llm_auditor_line_66_if</title>
-<path fill="wheat" stroke="black" d="M653.8,-1195.95C653.8,-1195.95 444.5,-1195.95 444.5,-1195.95 438.5,-1195.95 432.5,-1189.95 432.5,-1183.95 432.5,-1183.95 432.5,-1090.9 432.5,-1090.9 432.5,-1084.9 438.5,-1078.9 444.5,-1078.9 444.5,-1078.9 653.8,-1078.9 653.8,-1078.9 659.8,-1078.9 665.8,-1084.9 665.8,-1090.9 665.8,-1090.9 665.8,-1183.95 665.8,-1183.95 665.8,-1189.95 659.8,-1195.95 653.8,-1195.95"/>
-<polygon fill="white" stroke="none" points="446.9,-1154.8 446.9,-1181.55 651.4,-1181.55 651.4,-1154.8 446.9,-1154.8"/>
-<polygon fill="none" stroke="black" points="446.9,-1154.8 446.9,-1181.55 651.4,-1181.55 651.4,-1154.8 446.9,-1154.8"/>
-<text text-anchor="start" x="453.9" y="-1166.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_66_if(p)</text>
-<polygon fill="lightyellow" stroke="none" points="446.9,-1128.05 446.9,-1154.8 651.4,-1154.8 651.4,-1128.05 446.9,-1128.05"/>
-<polygon fill="none" stroke="black" points="446.9,-1128.05 446.9,-1154.8 651.4,-1154.8 651.4,-1128.05 446.9,-1128.05"/>
-<text text-anchor="start" x="483.52" y="-1139.3" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
-<text text-anchor="start" x="490.27" y="-1139.3" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt;= 90</text>
-<polygon fill="none" stroke="black" points="446.9,-1093.3 446.9,-1128.05 651.4,-1128.05 651.4,-1093.3 446.9,-1093.3"/>
-<polygon fill="#698b69" stroke="none" points="453.9,-1100.3 453.9,-1121.05 546.9,-1121.05 546.9,-1100.3 453.9,-1100.3"/>
-<text text-anchor="start" x="487.65" y="-1108.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="546.9,-1100.3 546.9,-1121.05 644.4,-1121.05 644.4,-1100.3 546.9,-1100.3"/>
-<text text-anchor="start" x="580.65" y="-1108.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<title>router_llm_auditor_line_70_if</title>
+<path fill="wheat" stroke="black" d="M654.42,-1195.95C654.42,-1195.95 445.88,-1195.95 445.88,-1195.95 439.88,-1195.95 433.88,-1189.95 433.88,-1183.95 433.88,-1183.95 433.88,-1090.9 433.88,-1090.9 433.88,-1084.9 439.88,-1078.9 445.88,-1078.9 445.88,-1078.9 654.42,-1078.9 654.42,-1078.9 660.42,-1078.9 666.42,-1084.9 666.42,-1090.9 666.42,-1090.9 666.42,-1183.95 666.42,-1183.95 666.42,-1189.95 660.42,-1195.95 654.42,-1195.95"/>
+<polygon fill="white" stroke="none" points="448.27,-1154.8 448.27,-1181.55 652.02,-1181.55 652.02,-1154.8 448.27,-1154.8"/>
+<polygon fill="none" stroke="black" points="448.27,-1154.8 448.27,-1181.55 652.02,-1181.55 652.02,-1154.8 448.27,-1154.8"/>
+<text text-anchor="start" x="455.27" y="-1166.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_70_if(p)</text>
+<polygon fill="lightyellow" stroke="none" points="448.27,-1128.05 448.27,-1154.8 652.02,-1154.8 652.02,-1128.05 448.27,-1128.05"/>
+<polygon fill="none" stroke="black" points="448.27,-1128.05 448.27,-1154.8 652.02,-1154.8 652.02,-1128.05 448.27,-1128.05"/>
+<text text-anchor="start" x="484.52" y="-1139.3" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
+<text text-anchor="start" x="491.27" y="-1139.3" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt;= 90</text>
+<polygon fill="none" stroke="black" points="448.27,-1093.3 448.27,-1128.05 652.02,-1128.05 652.02,-1093.3 448.27,-1093.3"/>
+<polygon fill="#698b69" stroke="none" points="455.27,-1100.3 455.27,-1121.05 547.9,-1121.05 547.9,-1100.3 455.27,-1100.3"/>
+<text text-anchor="start" x="488.84" y="-1108.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="547.9,-1100.3 547.9,-1121.05 645.02,-1121.05 645.02,-1100.3 547.9,-1100.3"/>
+<text text-anchor="start" x="581.46" y="-1108.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
-<!-- router_llm_auditor_line_66_if&#45;&gt;router_llm_auditor_line_67_seq -->
+<!-- router_llm_auditor_line_70_if&#45;&gt;router_llm_auditor_line_71_seq -->
 <g id="edge25" class="edge">
-<title>router_llm_auditor_line_66_if&#45;&gt;router_llm_auditor_line_67_seq</title>
-<path fill="none" stroke="#698b69" d="M609.56,-1078.42C622.41,-1067.6 636.29,-1056.95 650.15,-1048.15 667.42,-1037.18 686.55,-1027.05 705.59,-1018.01"/>
-<polygon fill="#698b69" stroke="#698b69" points="706.88,-1021.27 714.47,-1013.88 703.93,-1014.92 706.88,-1021.27"/>
+<title>router_llm_auditor_line_70_if&#45;&gt;router_llm_auditor_line_71_seq</title>
+<path fill="none" stroke="#698b69" d="M609.63,-1078.62C622.43,-1067.73 636.29,-1057 650.15,-1048.15 667.39,-1037.14 686.51,-1026.99 705.55,-1017.94"/>
+<polygon fill="#698b69" stroke="#698b69" points="706.83,-1021.2 714.42,-1013.81 703.88,-1014.85 706.83,-1021.2"/>
 <text text-anchor="middle" x="653.15" y="-1051.4" font-family="Courier,monospace" font-size="10.00">T</text>
 </g>
-<!-- router_llm_auditor_line_66_if&#45;&gt;router_llm_auditor_line_69_if -->
+<!-- router_llm_auditor_line_70_if&#45;&gt;router_llm_auditor_line_73_if -->
 <g id="edge26" class="edge">
-<title>router_llm_auditor_line_66_if&#45;&gt;router_llm_auditor_line_69_if</title>
-<path fill="none" stroke="#8b3a3a" d="M549.15,-1078.68C549.15,-1066.69 549.15,-1053.94 549.15,-1041.6"/>
-<polygon fill="#8b3a3a" stroke="#8b3a3a" points="552.65,-1041.92 549.15,-1031.92 545.65,-1041.92 552.65,-1041.92"/>
-<text text-anchor="middle" x="552.15" y="-1051.4" font-family="Courier,monospace" font-size="10.00">F</text>
+<title>router_llm_auditor_line_70_if&#45;&gt;router_llm_auditor_line_73_if</title>
+<path fill="none" stroke="#8b3a3a" d="M550.15,-1078.68C550.15,-1066.69 550.15,-1053.94 550.15,-1041.6"/>
+<polygon fill="#8b3a3a" stroke="#8b3a3a" points="553.65,-1041.92 550.15,-1031.92 546.65,-1041.92 553.65,-1041.92"/>
+<text text-anchor="middle" x="553.15" y="-1051.4" font-family="Courier,monospace" font-size="10.00">F</text>
 </g>
-<!-- router_llm_auditor_line_61_if -->
+<!-- router_llm_auditor_line_65_if -->
 <g id="node11" class="node">
-<title>router_llm_auditor_line_61_if</title>
-<path fill="wheat" stroke="black" d="M541.05,-1361.75C541.05,-1361.75 285.25,-1361.75 285.25,-1361.75 279.25,-1361.75 273.25,-1355.75 273.25,-1349.75 273.25,-1349.75 273.25,-1256.7 273.25,-1256.7 273.25,-1250.7 279.25,-1244.7 285.25,-1244.7 285.25,-1244.7 541.05,-1244.7 541.05,-1244.7 547.05,-1244.7 553.05,-1250.7 553.05,-1256.7 553.05,-1256.7 553.05,-1349.75 553.05,-1349.75 553.05,-1355.75 547.05,-1361.75 541.05,-1361.75"/>
-<polygon fill="white" stroke="none" points="287.65,-1320.6 287.65,-1347.35 538.65,-1347.35 538.65,-1320.6 287.65,-1320.6"/>
-<polygon fill="none" stroke="black" points="287.65,-1320.6 287.65,-1347.35 538.65,-1347.35 538.65,-1320.6 287.65,-1320.6"/>
-<text text-anchor="start" x="318.65" y="-1331.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_61_if(p)</text>
-<polygon fill="lightyellow" stroke="none" points="287.65,-1293.85 287.65,-1320.6 538.65,-1320.6 538.65,-1293.85 287.65,-1293.85"/>
-<polygon fill="none" stroke="black" points="287.65,-1293.85 287.65,-1320.6 538.65,-1320.6 538.65,-1293.85 287.65,-1293.85"/>
-<text text-anchor="start" x="294.65" y="-1305.1" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
-<text text-anchor="start" x="301.4" y="-1305.1" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt; p.get(&#39;prev_sc…score&#39;] &lt; 70</text>
-<polygon fill="none" stroke="black" points="287.65,-1259.1 287.65,-1293.85 538.65,-1293.85 538.65,-1259.1 287.65,-1259.1"/>
-<polygon fill="#698b69" stroke="none" points="294.65,-1266.1 294.65,-1286.85 410.9,-1286.85 410.9,-1266.1 294.65,-1266.1"/>
-<text text-anchor="start" x="340.02" y="-1274.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="410.9,-1266.1 410.9,-1286.85 531.65,-1286.85 531.65,-1266.1 410.9,-1266.1"/>
-<text text-anchor="start" x="456.27" y="-1274.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<title>router_llm_auditor_line_65_if</title>
+<path fill="wheat" stroke="black" d="M542.05,-1361.75C542.05,-1361.75 286.25,-1361.75 286.25,-1361.75 280.25,-1361.75 274.25,-1355.75 274.25,-1349.75 274.25,-1349.75 274.25,-1256.7 274.25,-1256.7 274.25,-1250.7 280.25,-1244.7 286.25,-1244.7 286.25,-1244.7 542.05,-1244.7 542.05,-1244.7 548.05,-1244.7 554.05,-1250.7 554.05,-1256.7 554.05,-1256.7 554.05,-1349.75 554.05,-1349.75 554.05,-1355.75 548.05,-1361.75 542.05,-1361.75"/>
+<polygon fill="white" stroke="none" points="288.65,-1320.6 288.65,-1347.35 539.65,-1347.35 539.65,-1320.6 288.65,-1320.6"/>
+<polygon fill="none" stroke="black" points="288.65,-1320.6 288.65,-1347.35 539.65,-1347.35 539.65,-1320.6 288.65,-1320.6"/>
+<text text-anchor="start" x="319.27" y="-1331.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_65_if(p)</text>
+<polygon fill="lightyellow" stroke="none" points="288.65,-1293.85 288.65,-1320.6 539.65,-1320.6 539.65,-1293.85 288.65,-1293.85"/>
+<polygon fill="none" stroke="black" points="288.65,-1293.85 288.65,-1320.6 539.65,-1320.6 539.65,-1293.85 288.65,-1293.85"/>
+<text text-anchor="start" x="295.65" y="-1305.1" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
+<text text-anchor="start" x="302.4" y="-1305.1" font-family="Courier,monospace" font-size="10.00"> p[&#39;aggregate_score&#39;] &gt; p.get(&#39;prev_sc…score&#39;] &lt; 70</text>
+<polygon fill="none" stroke="black" points="288.65,-1259.1 288.65,-1293.85 539.65,-1293.85 539.65,-1259.1 288.65,-1259.1"/>
+<polygon fill="#698b69" stroke="none" points="295.65,-1266.1 295.65,-1286.85 411.9,-1286.85 411.9,-1266.1 295.65,-1266.1"/>
+<text text-anchor="start" x="341.02" y="-1274.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="411.9,-1266.1 411.9,-1286.85 532.65,-1286.85 532.65,-1266.1 411.9,-1266.1"/>
+<text text-anchor="start" x="457.27" y="-1274.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
-<!-- router_llm_auditor_line_61_if&#45;&gt;router_llm_auditor_line_62_seq -->
+<!-- router_llm_auditor_line_65_if&#45;&gt;router_llm_auditor_line_66_seq -->
 <g id="edge22" class="edge">
-<title>router_llm_auditor_line_61_if&#45;&gt;router_llm_auditor_line_62_seq</title>
-<path fill="none" stroke="#698b69" d="M368.37,-1244.48C354.08,-1226.04 338.4,-1205.82 324.6,-1188.02"/>
-<polygon fill="#698b69" stroke="#698b69" points="327.39,-1185.91 318.5,-1180.15 321.86,-1190.2 327.39,-1185.91"/>
-<text text-anchor="middle" x="356.46" y="-1217.2" font-family="Courier,monospace" font-size="10.00">T</text>
+<title>router_llm_auditor_line_65_if&#45;&gt;router_llm_auditor_line_66_seq</title>
+<path fill="none" stroke="#698b69" d="M369.37,-1244.48C355.08,-1226.04 339.4,-1205.82 325.6,-1188.02"/>
+<polygon fill="#698b69" stroke="#698b69" points="328.39,-1185.91 319.5,-1180.15 322.86,-1190.2 328.39,-1185.91"/>
+<text text-anchor="middle" x="357.46" y="-1217.2" font-family="Courier,monospace" font-size="10.00">T</text>
 </g>
-<!-- router_llm_auditor_line_61_if&#45;&gt;router_llm_auditor_line_66_if -->
+<!-- router_llm_auditor_line_65_if&#45;&gt;router_llm_auditor_line_70_if -->
 <g id="edge23" class="edge">
-<title>router_llm_auditor_line_61_if&#45;&gt;router_llm_auditor_line_66_if</title>
-<path fill="none" stroke="#8b3a3a" d="M461.1,-1244.48C471.76,-1231.63 483.15,-1217.92 494.08,-1204.76"/>
-<polygon fill="#8b3a3a" stroke="#8b3a3a" points="496.51,-1207.3 500.21,-1197.37 491.13,-1202.83 496.51,-1207.3"/>
-<text text-anchor="middle" x="488.23" y="-1217.2" font-family="Courier,monospace" font-size="10.00">F</text>
+<title>router_llm_auditor_line_65_if&#45;&gt;router_llm_auditor_line_70_if</title>
+<path fill="none" stroke="#8b3a3a" d="M462.1,-1244.48C472.76,-1231.63 484.15,-1217.92 495.08,-1204.76"/>
+<polygon fill="#8b3a3a" stroke="#8b3a3a" points="497.51,-1207.3 501.21,-1197.37 492.13,-1202.83 497.51,-1207.3"/>
+<text text-anchor="middle" x="489.23" y="-1217.2" font-family="Courier,monospace" font-size="10.00">F</text>
 </g>
-<!-- fanout_llm_auditor_line_52 -->
+<!-- fanout_llm_auditor_line_56 -->
 <g id="node12" class="node">
-<title>fanout_llm_auditor_line_52</title>
-<path fill="lightblue" stroke="black" d="M512.55,-1797.2C512.55,-1797.2 313.75,-1797.2 313.75,-1797.2 307.75,-1797.2 301.75,-1791.2 301.75,-1785.2 301.75,-1785.2 301.75,-1726.9 301.75,-1726.9 301.75,-1720.9 307.75,-1714.9 313.75,-1714.9 313.75,-1714.9 512.55,-1714.9 512.55,-1714.9 518.55,-1714.9 524.55,-1720.9 524.55,-1726.9 524.55,-1726.9 524.55,-1785.2 524.55,-1785.2 524.55,-1791.2 518.55,-1797.2 512.55,-1797.2"/>
-<polygon fill="white" stroke="none" points="316.15,-1756.05 316.15,-1782.8 510.15,-1782.8 510.15,-1756.05 316.15,-1756.05"/>
-<polygon fill="none" stroke="black" points="316.15,-1756.05 316.15,-1782.8 510.15,-1782.8 510.15,-1756.05 316.15,-1756.05"/>
-<text text-anchor="start" x="323.15" y="-1767.3" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_llm_auditor_line_52(p)</text>
-<polygon fill="#9f79ee" stroke="none" points="316.15,-1729.3 316.15,-1756.05 510.15,-1756.05 510.15,-1729.3 316.15,-1729.3"/>
-<polygon fill="none" stroke="black" points="316.15,-1729.3 316.15,-1756.05 510.15,-1756.05 510.15,-1729.3 316.15,-1729.3"/>
-<text text-anchor="start" x="377.15" y="-1740.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:literal]</text>
+<title>fanout_llm_auditor_line_56</title>
+<path fill="lightblue" stroke="black" d="M513.92,-1797.2C513.92,-1797.2 314.38,-1797.2 314.38,-1797.2 308.38,-1797.2 302.38,-1791.2 302.38,-1785.2 302.38,-1785.2 302.38,-1726.9 302.38,-1726.9 302.38,-1720.9 308.38,-1714.9 314.38,-1714.9 314.38,-1714.9 513.92,-1714.9 513.92,-1714.9 519.92,-1714.9 525.92,-1720.9 525.92,-1726.9 525.92,-1726.9 525.92,-1785.2 525.92,-1785.2 525.92,-1791.2 519.92,-1797.2 513.92,-1797.2"/>
+<polygon fill="white" stroke="none" points="316.77,-1756.05 316.77,-1782.8 511.52,-1782.8 511.52,-1756.05 316.77,-1756.05"/>
+<polygon fill="none" stroke="black" points="316.77,-1756.05 316.77,-1782.8 511.52,-1782.8 511.52,-1756.05 316.77,-1756.05"/>
+<text text-anchor="start" x="323.77" y="-1767.3" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_llm_auditor_line_56(p)</text>
+<polygon fill="#9f79ee" stroke="none" points="316.77,-1729.3 316.77,-1756.05 511.52,-1756.05 511.52,-1729.3 316.77,-1729.3"/>
+<polygon fill="none" stroke="black" points="316.77,-1729.3 316.77,-1756.05 511.52,-1756.05 511.52,-1729.3 316.77,-1729.3"/>
+<text text-anchor="start" x="378.15" y="-1740.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:literal]</text>
 </g>
 <!-- accuracy_scorer -->
 <g id="node17" class="node">
 <title>accuracy_scorer</title>
-<path fill="lightblue" stroke="black" d="M623.17,-1666.15C623.17,-1666.15 479.12,-1666.15 479.12,-1666.15 473.12,-1666.15 467.12,-1660.15 467.12,-1654.15 467.12,-1654.15 467.12,-1622.6 467.12,-1622.6 467.12,-1616.6 473.12,-1610.6 479.12,-1610.6 479.12,-1610.6 623.17,-1610.6 623.17,-1610.6 629.17,-1610.6 635.17,-1616.6 635.17,-1622.6 635.17,-1622.6 635.17,-1654.15 635.17,-1654.15 635.17,-1660.15 629.17,-1666.15 623.17,-1666.15"/>
-<polygon fill="white" stroke="none" points="481.52,-1625 481.52,-1651.75 620.77,-1651.75 620.77,-1625 481.52,-1625"/>
-<polygon fill="none" stroke="black" points="481.52,-1625 481.52,-1651.75 620.77,-1651.75 620.77,-1625 481.52,-1625"/>
-<text text-anchor="start" x="488.52" y="-1636.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await accuracy_scorer(p)</text>
+<path fill="lightblue" stroke="black" d="M624.17,-1666.15C624.17,-1666.15 480.12,-1666.15 480.12,-1666.15 474.12,-1666.15 468.12,-1660.15 468.12,-1654.15 468.12,-1654.15 468.12,-1622.6 468.12,-1622.6 468.12,-1616.6 474.12,-1610.6 480.12,-1610.6 480.12,-1610.6 624.17,-1610.6 624.17,-1610.6 630.17,-1610.6 636.17,-1616.6 636.17,-1622.6 636.17,-1622.6 636.17,-1654.15 636.17,-1654.15 636.17,-1660.15 630.17,-1666.15 624.17,-1666.15"/>
+<polygon fill="white" stroke="none" points="482.52,-1625 482.52,-1651.75 621.77,-1651.75 621.77,-1625 482.52,-1625"/>
+<polygon fill="none" stroke="black" points="482.52,-1625 482.52,-1651.75 621.77,-1651.75 621.77,-1625 482.52,-1625"/>
+<text text-anchor="start" x="489.52" y="-1636.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await accuracy_scorer(p)</text>
 </g>
-<!-- fanout_llm_auditor_line_52&#45;&gt;accuracy_scorer -->
+<!-- fanout_llm_auditor_line_56&#45;&gt;accuracy_scorer -->
 <g id="edge10" class="edge">
-<title>fanout_llm_auditor_line_52&#45;&gt;accuracy_scorer</title>
-<path fill="none" stroke="#5d478b" stroke-width="2" d="M459.12,-1714.59C470.71,-1704.55 483.2,-1693.88 494.9,-1684.15 499,-1680.74 503.31,-1677.22 507.62,-1673.72"/>
-<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="508.5,-1677.51 514.1,-1668.51 504.11,-1672.05 508.5,-1677.51"/>
-<text text-anchor="middle" x="508.02" y="-1687.4" font-family="Courier,monospace" font-size="10.00">slice 1</text>
+<title>fanout_llm_auditor_line_56&#45;&gt;accuracy_scorer</title>
+<path fill="none" stroke="#5d478b" stroke-width="2" d="M460.79,-1714.71C472.52,-1704.66 485.13,-1693.96 496.9,-1684.15 501.01,-1680.72 505.31,-1677.17 509.63,-1673.64"/>
+<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="510.55,-1677.41 516.08,-1668.37 506.12,-1671.98 510.55,-1677.41"/>
+<text text-anchor="middle" x="510.02" y="-1687.4" font-family="Courier,monospace" font-size="10.00">slice 1</text>
 </g>
 <!-- completeness_scorer -->
 <g id="node19" class="node">
 <title>completeness_scorer</title>
-<path fill="lightblue" stroke="black" d="M364.92,-1666.15C364.92,-1666.15 195.37,-1666.15 195.37,-1666.15 189.37,-1666.15 183.37,-1660.15 183.37,-1654.15 183.37,-1654.15 183.37,-1622.6 183.37,-1622.6 183.37,-1616.6 189.37,-1610.6 195.37,-1610.6 195.37,-1610.6 364.92,-1610.6 364.92,-1610.6 370.92,-1610.6 376.92,-1616.6 376.92,-1622.6 376.92,-1622.6 376.92,-1654.15 376.92,-1654.15 376.92,-1660.15 370.92,-1666.15 364.92,-1666.15"/>
-<polygon fill="white" stroke="none" points="197.77,-1625 197.77,-1651.75 362.52,-1651.75 362.52,-1625 197.77,-1625"/>
-<polygon fill="none" stroke="black" points="197.77,-1625 197.77,-1651.75 362.52,-1651.75 362.52,-1625 197.77,-1625"/>
-<text text-anchor="start" x="204.77" y="-1636.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await completeness_scorer(p)</text>
+<path fill="lightblue" stroke="black" d="M365.92,-1666.15C365.92,-1666.15 196.37,-1666.15 196.37,-1666.15 190.37,-1666.15 184.37,-1660.15 184.37,-1654.15 184.37,-1654.15 184.37,-1622.6 184.37,-1622.6 184.37,-1616.6 190.37,-1610.6 196.37,-1610.6 196.37,-1610.6 365.92,-1610.6 365.92,-1610.6 371.92,-1610.6 377.92,-1616.6 377.92,-1622.6 377.92,-1622.6 377.92,-1654.15 377.92,-1654.15 377.92,-1660.15 371.92,-1666.15 365.92,-1666.15"/>
+<polygon fill="white" stroke="none" points="198.77,-1625 198.77,-1651.75 363.52,-1651.75 363.52,-1625 198.77,-1625"/>
+<polygon fill="none" stroke="black" points="198.77,-1625 198.77,-1651.75 363.52,-1651.75 363.52,-1625 198.77,-1625"/>
+<text text-anchor="start" x="205.77" y="-1636.25" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await completeness_scorer(p)</text>
 </g>
-<!-- fanout_llm_auditor_line_52&#45;&gt;completeness_scorer -->
+<!-- fanout_llm_auditor_line_56&#45;&gt;completeness_scorer -->
 <g id="edge11" class="edge">
-<title>fanout_llm_auditor_line_52&#45;&gt;completeness_scorer</title>
-<path fill="none" stroke="#5d478b" stroke-width="2" d="M366.63,-1714.59C351.35,-1701.3 334.52,-1686.67 319.8,-1673.86"/>
-<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="323.53,-1672.47 313.69,-1668.55 318.94,-1677.75 323.53,-1672.47"/>
-<text text-anchor="middle" x="356.16" y="-1687.4" font-family="Courier,monospace" font-size="10.00">slice 2</text>
+<title>fanout_llm_auditor_line_56&#45;&gt;completeness_scorer</title>
+<path fill="none" stroke="#5d478b" stroke-width="2" d="M367.63,-1714.59C352.35,-1701.3 335.52,-1686.67 320.8,-1673.86"/>
+<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="324.53,-1672.47 314.69,-1668.55 319.94,-1677.75 324.53,-1672.47"/>
+<text text-anchor="middle" x="357.16" y="-1687.4" font-family="Courier,monospace" font-size="10.00">slice 2</text>
 </g>
-<!-- fanin_llm_auditor_line_52 -->
+<!-- fanin_llm_auditor_line_56 -->
 <g id="node24" class="node">
-<title>fanin_llm_auditor_line_52</title>
-<path fill="lightblue" stroke="black" d="M509.17,-1573.6C509.17,-1573.6 317.12,-1573.6 317.12,-1573.6 311.12,-1573.6 305.12,-1567.6 305.12,-1561.6 305.12,-1561.6 305.12,-1503.3 305.12,-1503.3 305.12,-1497.3 311.12,-1491.3 317.12,-1491.3 317.12,-1491.3 509.17,-1491.3 509.17,-1491.3 515.17,-1491.3 521.17,-1497.3 521.17,-1503.3 521.17,-1503.3 521.17,-1561.6 521.17,-1561.6 521.17,-1567.6 515.17,-1573.6 509.17,-1573.6"/>
-<polygon fill="white" stroke="none" points="319.52,-1532.45 319.52,-1559.2 506.77,-1559.2 506.77,-1532.45 319.52,-1532.45"/>
-<polygon fill="none" stroke="black" points="319.52,-1532.45 319.52,-1559.2 506.77,-1559.2 506.77,-1532.45 319.52,-1532.45"/>
-<text text-anchor="start" x="326.52" y="-1543.7" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_llm_auditor_line_52(p)</text>
-<polygon fill="#ab82ff" stroke="none" points="319.52,-1505.7 319.52,-1532.45 506.77,-1532.45 506.77,-1505.7 319.52,-1505.7"/>
-<polygon fill="none" stroke="black" points="319.52,-1505.7 319.52,-1532.45 506.77,-1532.45 506.77,-1505.7 319.52,-1505.7"/>
-<text text-anchor="start" x="395.52" y="-1516.95" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
+<title>fanin_llm_auditor_line_56</title>
+<path fill="lightblue" stroke="black" d="M510.55,-1573.6C510.55,-1573.6 317.75,-1573.6 317.75,-1573.6 311.75,-1573.6 305.75,-1567.6 305.75,-1561.6 305.75,-1561.6 305.75,-1503.3 305.75,-1503.3 305.75,-1497.3 311.75,-1491.3 317.75,-1491.3 317.75,-1491.3 510.55,-1491.3 510.55,-1491.3 516.55,-1491.3 522.55,-1497.3 522.55,-1503.3 522.55,-1503.3 522.55,-1561.6 522.55,-1561.6 522.55,-1567.6 516.55,-1573.6 510.55,-1573.6"/>
+<polygon fill="white" stroke="none" points="320.15,-1532.45 320.15,-1559.2 508.15,-1559.2 508.15,-1532.45 320.15,-1532.45"/>
+<polygon fill="none" stroke="black" points="320.15,-1532.45 320.15,-1559.2 508.15,-1559.2 508.15,-1532.45 320.15,-1532.45"/>
+<text text-anchor="start" x="327.15" y="-1543.7" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_llm_auditor_line_56(p)</text>
+<polygon fill="#ab82ff" stroke="none" points="320.15,-1505.7 320.15,-1532.45 508.15,-1532.45 508.15,-1505.7 320.15,-1505.7"/>
+<polygon fill="none" stroke="black" points="320.15,-1505.7 320.15,-1532.45 508.15,-1532.45 508.15,-1505.7 320.15,-1505.7"/>
+<text text-anchor="start" x="396.52" y="-1516.95" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
 </g>
-<!-- fanout_llm_auditor_line_52&#45;&gt;fanin_llm_auditor_line_52 -->
+<!-- fanout_llm_auditor_line_56&#45;&gt;fanin_llm_auditor_line_56 -->
 <g id="edge12" class="edge">
-<title>fanout_llm_auditor_line_52&#45;&gt;fanin_llm_auditor_line_52</title>
-<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M413.15,-1714.41C413.15,-1678.09 413.15,-1624.7 413.15,-1585.32"/>
-<polygon fill="#5d478b" stroke="#5d478b" points="416.65,-1585.35 413.15,-1575.35 409.65,-1585.35 416.65,-1585.35"/>
-<text text-anchor="middle" x="431.15" y="-1641.63" font-family="Courier,monospace" font-size="10.00">slice 0</text>
-<text text-anchor="middle" x="431.15" y="-1628.88" font-family="Courier,monospace" font-size="10.00">(parent)</text>
+<title>fanout_llm_auditor_line_56&#45;&gt;fanin_llm_auditor_line_56</title>
+<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M414.15,-1714.41C414.15,-1678.09 414.15,-1624.7 414.15,-1585.32"/>
+<polygon fill="#5d478b" stroke="#5d478b" points="417.65,-1585.35 414.15,-1575.35 410.65,-1585.35 417.65,-1585.35"/>
+<text text-anchor="middle" x="432.15" y="-1641.63" font-family="Courier,monospace" font-size="10.00">slice 0</text>
+<text text-anchor="middle" x="432.15" y="-1628.88" font-family="Courier,monospace" font-size="10.00">(parent)</text>
 </g>
-<!-- router_llm_auditor_line_43_seq -->
+<!-- router_llm_auditor_line_47_seq -->
 <g id="node13" class="node">
-<title>router_llm_auditor_line_43_seq</title>
+<title>router_llm_auditor_line_47_seq</title>
 <path fill="wheat" stroke="black" d="M393.3,-2027.8C393.3,-2027.8 175,-2027.8 175,-2027.8 169,-2027.8 163,-2021.8 163,-2015.8 163,-2015.8 163,-1957.5 163,-1957.5 163,-1951.5 169,-1945.5 175,-1945.5 175,-1945.5 393.3,-1945.5 393.3,-1945.5 399.3,-1945.5 405.3,-1951.5 405.3,-1957.5 405.3,-1957.5 405.3,-2015.8 405.3,-2015.8 405.3,-2021.8 399.3,-2027.8 393.3,-2027.8"/>
 <polygon fill="white" stroke="none" points="177.4,-1986.65 177.4,-2013.4 390.9,-2013.4 390.9,-1986.65 177.4,-1986.65"/>
 <polygon fill="none" stroke="black" points="177.4,-1986.65 177.4,-2013.4 390.9,-2013.4 390.9,-1986.65 177.4,-1986.65"/>
-<text text-anchor="start" x="184.4" y="-1997.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_43_seq(p)</text>
+<text text-anchor="start" x="184.4" y="-1997.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_47_seq(p)</text>
 <polygon fill="white" stroke="none" points="177.4,-1959.9 177.4,-1986.65 390.9,-1986.65 390.9,-1959.9 177.4,-1959.9"/>
 <polygon fill="none" stroke="black" points="177.4,-1959.9 177.4,-1986.65 390.9,-1986.65 390.9,-1959.9 177.4,-1959.9"/>
 <text text-anchor="start" x="184.4" y="-1970.15" font-family="Courier,monospace" font-size="10.00">p[&#39;iteration&#39;] += 1</text>
@@ -382,114 +382,114 @@
 <polygon fill="none" stroke="black" points="219.4,-1848.6 219.4,-1875.35 348.9,-1875.35 348.9,-1848.6 219.4,-1848.6"/>
 <text text-anchor="start" x="226.4" y="-1859.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await llm_generate(p)</text>
 </g>
-<!-- router_llm_auditor_line_43_seq&#45;&gt;llm_generate -->
+<!-- router_llm_auditor_line_47_seq&#45;&gt;llm_generate -->
 <g id="edge21" class="edge">
-<title>router_llm_auditor_line_43_seq&#45;&gt;llm_generate</title>
+<title>router_llm_auditor_line_47_seq&#45;&gt;llm_generate</title>
 <path fill="none" stroke="black" d="M284.15,-1945.14C284.15,-1930.97 284.15,-1915.11 284.15,-1901.13"/>
 <polygon fill="black" stroke="black" points="287.65,-1901.42 284.15,-1891.42 280.65,-1901.42 287.65,-1901.42"/>
 </g>
-<!-- router_llm_auditor_line_42_loop_back_0&#45;&gt;router_llm_auditor_line_43_seq -->
+<!-- router_llm_auditor_line_46_loop_back_0&#45;&gt;router_llm_auditor_line_47_seq -->
 <g id="edge20" class="edge">
-<title>router_llm_auditor_line_42_loop_back_0&#45;&gt;router_llm_auditor_line_43_seq</title>
-<path fill="none" stroke="black" d="M499.51,-254.48C516.98,-259.04 535.06,-263.53 552.15,-267.4 667.67,-293.57 728.61,-234.23 814.15,-316.15 875.08,-374.5 1001.18,-774.66 952.15,-1030.15 872.05,-1447.55 922.91,-1644.33 598.15,-1918.5 570.4,-1941.93 489.54,-1958.91 416.83,-1969.93"/>
-<polygon fill="black" stroke="black" points="416.58,-1966.43 407.2,-1971.36 417.61,-1973.35 416.58,-1966.43"/>
+<title>router_llm_auditor_line_46_loop_back_0&#45;&gt;router_llm_auditor_line_47_seq</title>
+<path fill="none" stroke="black" d="M500.17,-254.47C517.75,-259.02 535.95,-263.52 553.15,-267.4 668.69,-293.47 729.74,-234.09 815.15,-316.15 877.43,-375.98 999.93,-775.28 951.15,-1030.15 871.28,-1447.43 922.65,-1644.28 598.15,-1918.5 570.41,-1941.94 489.55,-1958.92 416.84,-1969.94"/>
+<polygon fill="black" stroke="black" points="416.59,-1966.44 407.21,-1971.37 417.61,-1973.36 416.59,-1966.44"/>
 </g>
-<!-- router_llm_auditor_line_37_if -->
+<!-- router_llm_auditor_line_41_if -->
 <g id="node15" class="node">
-<title>router_llm_auditor_line_37_if</title>
-<path fill="wheat" stroke="black" d="M231.05,-433.2C231.05,-433.2 23.25,-433.2 23.25,-433.2 17.25,-433.2 11.25,-427.2 11.25,-421.2 11.25,-421.2 11.25,-328.15 11.25,-328.15 11.25,-322.15 17.25,-316.15 23.25,-316.15 23.25,-316.15 231.05,-316.15 231.05,-316.15 237.05,-316.15 243.05,-322.15 243.05,-328.15 243.05,-328.15 243.05,-421.2 243.05,-421.2 243.05,-427.2 237.05,-433.2 231.05,-433.2"/>
-<polygon fill="white" stroke="none" points="25.65,-392.05 25.65,-418.8 228.65,-418.8 228.65,-392.05 25.65,-392.05"/>
-<polygon fill="none" stroke="black" points="25.65,-392.05 25.65,-418.8 228.65,-418.8 228.65,-392.05 25.65,-392.05"/>
-<text text-anchor="start" x="32.65" y="-403.3" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_37_if(p)</text>
-<polygon fill="lightyellow" stroke="none" points="25.65,-365.3 25.65,-392.05 228.65,-392.05 228.65,-365.3 25.65,-365.3"/>
-<polygon fill="none" stroke="black" points="25.65,-365.3 25.65,-392.05 228.65,-392.05 228.65,-365.3 25.65,-365.3"/>
-<text text-anchor="start" x="82.52" y="-376.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
-<text text-anchor="start" x="89.27" y="-376.55" font-family="Courier,monospace" font-size="10.00"> not p.get(&#39;claims&#39;)</text>
-<polygon fill="none" stroke="black" points="25.65,-330.55 25.65,-365.3 228.65,-365.3 228.65,-330.55 25.65,-330.55"/>
-<polygon fill="#698b69" stroke="none" points="32.65,-337.55 32.65,-358.3 124.9,-358.3 124.9,-337.55 32.65,-337.55"/>
-<text text-anchor="start" x="66.02" y="-345.8" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="124.9,-337.55 124.9,-358.3 221.65,-358.3 221.65,-337.55 124.9,-337.55"/>
-<text text-anchor="start" x="158.27" y="-345.8" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<title>router_llm_auditor_line_41_if</title>
+<path fill="wheat" stroke="black" d="M232.05,-433.2C232.05,-433.2 24.25,-433.2 24.25,-433.2 18.25,-433.2 12.25,-427.2 12.25,-421.2 12.25,-421.2 12.25,-328.15 12.25,-328.15 12.25,-322.15 18.25,-316.15 24.25,-316.15 24.25,-316.15 232.05,-316.15 232.05,-316.15 238.05,-316.15 244.05,-322.15 244.05,-328.15 244.05,-328.15 244.05,-421.2 244.05,-421.2 244.05,-427.2 238.05,-433.2 232.05,-433.2"/>
+<polygon fill="white" stroke="none" points="26.65,-392.05 26.65,-418.8 229.65,-418.8 229.65,-392.05 26.65,-392.05"/>
+<polygon fill="none" stroke="black" points="26.65,-392.05 26.65,-418.8 229.65,-418.8 229.65,-392.05 26.65,-392.05"/>
+<text text-anchor="start" x="33.65" y="-403.3" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await router_llm_auditor_line_41_if(p)</text>
+<polygon fill="lightyellow" stroke="none" points="26.65,-365.3 26.65,-392.05 229.65,-392.05 229.65,-365.3 26.65,-365.3"/>
+<polygon fill="none" stroke="black" points="26.65,-365.3 26.65,-392.05 229.65,-392.05 229.65,-365.3 26.65,-365.3"/>
+<text text-anchor="start" x="83.52" y="-376.55" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
+<text text-anchor="start" x="90.27" y="-376.55" font-family="Courier,monospace" font-size="10.00"> not p.get(&#39;claims&#39;)</text>
+<polygon fill="none" stroke="black" points="26.65,-330.55 26.65,-365.3 229.65,-365.3 229.65,-330.55 26.65,-330.55"/>
+<polygon fill="#698b69" stroke="none" points="33.65,-337.55 33.65,-358.3 125.9,-358.3 125.9,-337.55 33.65,-337.55"/>
+<text text-anchor="start" x="67.02" y="-345.8" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="125.9,-337.55 125.9,-358.3 222.65,-358.3 222.65,-337.55 125.9,-337.55"/>
+<text text-anchor="start" x="159.27" y="-345.8" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
-<!-- router_llm_auditor_line_37_if&#45;&gt;router_llm_auditor_line_38_seq -->
+<!-- router_llm_auditor_line_41_if&#45;&gt;router_llm_auditor_line_42_seq -->
 <g id="edge17" class="edge">
-<title>router_llm_auditor_line_37_if&#45;&gt;router_llm_auditor_line_38_seq</title>
-<path fill="none" stroke="#698b69" d="M124.78,-315.8C124.28,-303.57 123.75,-290.73 123.26,-278.75"/>
-<polygon fill="#698b69" stroke="#698b69" points="126.77,-278.93 122.86,-269.08 119.78,-279.22 126.77,-278.93"/>
-<text text-anchor="middle" x="126.97" y="-288.65" font-family="Courier,monospace" font-size="10.00">T</text>
+<title>router_llm_auditor_line_41_if&#45;&gt;router_llm_auditor_line_42_seq</title>
+<path fill="none" stroke="#698b69" d="M125.38,-315.8C124.8,-303.57 124.18,-290.73 123.61,-278.75"/>
+<polygon fill="#698b69" stroke="#698b69" points="127.12,-278.9 123.15,-269.08 120.13,-279.24 127.12,-278.9"/>
+<text text-anchor="middle" x="127.44" y="-288.65" font-family="Courier,monospace" font-size="10.00">T</text>
 </g>
-<!-- router_llm_auditor_line_37_if&#45;&gt;router_llm_auditor_line_42_loop_back_0 -->
+<!-- router_llm_auditor_line_41_if&#45;&gt;router_llm_auditor_line_46_loop_back_0 -->
 <g id="edge18" class="edge">
-<title>router_llm_auditor_line_37_if&#45;&gt;router_llm_auditor_line_42_loop_back_0</title>
-<path fill="none" stroke="#8b3a3a" d="M203.6,-315.8C219.54,-304.98 236.55,-294.29 253.15,-285.4 271.51,-275.57 291.91,-266.5 311.57,-258.6"/>
-<polygon fill="#8b3a3a" stroke="#8b3a3a" points="312.66,-261.94 320.68,-255.01 310.09,-255.42 312.66,-261.94"/>
-<text text-anchor="middle" x="256.15" y="-288.65" font-family="Courier,monospace" font-size="10.00">F</text>
+<title>router_llm_auditor_line_41_if&#45;&gt;router_llm_auditor_line_46_loop_back_0</title>
+<path fill="none" stroke="#8b3a3a" d="M204.61,-315.83C220.55,-305 237.56,-294.31 254.15,-285.4 272.4,-275.6 292.66,-266.55 312.19,-258.66"/>
+<polygon fill="#8b3a3a" stroke="#8b3a3a" points="313.22,-262.01 321.22,-255.07 310.64,-255.51 313.22,-262.01"/>
+<text text-anchor="middle" x="257.15" y="-288.65" font-family="Courier,monospace" font-size="10.00">F</text>
 </g>
-<!-- accuracy_scorer&#45;&gt;fanin_llm_auditor_line_52 -->
+<!-- accuracy_scorer&#45;&gt;fanin_llm_auditor_line_56 -->
 <g id="edge1" class="edge">
-<title>accuracy_scorer&#45;&gt;fanin_llm_auditor_line_52</title>
-<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M515.25,-1610.34C503.31,-1601.35 489.64,-1591.05 476.27,-1580.98"/>
-<polygon fill="#473c8b" stroke="#473c8b" points="478.38,-1578.19 468.29,-1574.97 474.17,-1583.78 478.38,-1578.19"/>
+<title>accuracy_scorer&#45;&gt;fanin_llm_auditor_line_56</title>
+<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M516.25,-1610.34C504.31,-1601.35 490.64,-1591.05 477.27,-1580.98"/>
+<polygon fill="#473c8b" stroke="#473c8b" points="479.38,-1578.19 469.29,-1574.97 475.17,-1583.78 479.38,-1578.19"/>
 </g>
 <!-- adk_llm_auditor_QualityScorer_aggregate -->
 <g id="node18" class="node">
 <title>adk_llm_auditor_QualityScorer_aggregate</title>
-<path fill="lightblue" stroke="black" d="M504.3,-1454.3C504.3,-1454.3 322,-1454.3 322,-1454.3 316,-1454.3 310,-1448.3 310,-1442.3 310,-1442.3 310,-1410.75 310,-1410.75 310,-1404.75 316,-1398.75 322,-1398.75 322,-1398.75 504.3,-1398.75 504.3,-1398.75 510.3,-1398.75 516.3,-1404.75 516.3,-1410.75 516.3,-1410.75 516.3,-1442.3 516.3,-1442.3 516.3,-1448.3 510.3,-1454.3 504.3,-1454.3"/>
-<polygon fill="white" stroke="none" points="324.4,-1413.15 324.4,-1439.9 501.9,-1439.9 501.9,-1413.15 324.4,-1413.15"/>
-<polygon fill="none" stroke="black" points="324.4,-1413.15 324.4,-1439.9 501.9,-1439.9 501.9,-1413.15 324.4,-1413.15"/>
-<text text-anchor="start" x="331.4" y="-1424.4" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await QualityScorer.aggregate(p)</text>
+<path fill="lightblue" stroke="black" d="M505.3,-1454.3C505.3,-1454.3 323,-1454.3 323,-1454.3 317,-1454.3 311,-1448.3 311,-1442.3 311,-1442.3 311,-1410.75 311,-1410.75 311,-1404.75 317,-1398.75 323,-1398.75 323,-1398.75 505.3,-1398.75 505.3,-1398.75 511.3,-1398.75 517.3,-1404.75 517.3,-1410.75 517.3,-1410.75 517.3,-1442.3 517.3,-1442.3 517.3,-1448.3 511.3,-1454.3 505.3,-1454.3"/>
+<polygon fill="white" stroke="none" points="325.4,-1413.15 325.4,-1439.9 502.9,-1439.9 502.9,-1413.15 325.4,-1413.15"/>
+<polygon fill="none" stroke="black" points="325.4,-1413.15 325.4,-1439.9 502.9,-1439.9 502.9,-1413.15 325.4,-1413.15"/>
+<text text-anchor="start" x="332.4" y="-1424.4" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await QualityScorer.aggregate(p)</text>
 </g>
-<!-- adk_llm_auditor_QualityScorer_aggregate&#45;&gt;router_llm_auditor_line_61_if -->
+<!-- adk_llm_auditor_QualityScorer_aggregate&#45;&gt;router_llm_auditor_line_65_if -->
 <g id="edge2" class="edge">
-<title>adk_llm_auditor_QualityScorer_aggregate&#45;&gt;router_llm_auditor_line_61_if</title>
-<path fill="none" stroke="black" d="M413.15,-1398.3C413.15,-1390.74 413.15,-1382.17 413.15,-1373.35"/>
-<polygon fill="black" stroke="black" points="416.65,-1373.63 413.15,-1363.63 409.65,-1373.63 416.65,-1373.63"/>
+<title>adk_llm_auditor_QualityScorer_aggregate&#45;&gt;router_llm_auditor_line_65_if</title>
+<path fill="none" stroke="black" d="M414.15,-1398.3C414.15,-1390.74 414.15,-1382.17 414.15,-1373.35"/>
+<polygon fill="black" stroke="black" points="417.65,-1373.63 414.15,-1363.63 410.65,-1373.63 417.65,-1373.63"/>
 </g>
-<!-- completeness_scorer&#45;&gt;fanin_llm_auditor_line_52 -->
+<!-- completeness_scorer&#45;&gt;fanin_llm_auditor_line_56 -->
 <g id="edge3" class="edge">
-<title>completeness_scorer&#45;&gt;fanin_llm_auditor_line_52</title>
-<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M314.75,-1610.34C326.25,-1601.35 339.43,-1591.05 352.32,-1580.98"/>
-<polygon fill="#473c8b" stroke="#473c8b" points="354.26,-1583.91 359.98,-1574.99 349.95,-1578.39 354.26,-1583.91"/>
+<title>completeness_scorer&#45;&gt;fanin_llm_auditor_line_56</title>
+<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M315.75,-1610.34C327.25,-1601.35 340.43,-1591.05 353.32,-1580.98"/>
+<polygon fill="#473c8b" stroke="#473c8b" points="355.26,-1583.91 360.98,-1574.99 350.95,-1578.39 355.26,-1583.91"/>
 </g>
 <!-- deep_reviser -->
 <g id="node21" class="node">
 <title>deep_reviser</title>
-<path fill="lightblue" stroke="black" d="M475.42,-731.67C475.42,-731.67 344.88,-731.67 344.88,-731.67 338.88,-731.67 332.88,-725.67 332.88,-719.67 332.88,-719.67 332.88,-688.12 332.88,-688.12 332.88,-682.12 338.88,-676.12 344.88,-676.12 344.88,-676.12 475.42,-676.12 475.42,-676.12 481.42,-676.12 487.42,-682.12 487.42,-688.12 487.42,-688.12 487.42,-719.67 487.42,-719.67 487.42,-725.67 481.42,-731.67 475.42,-731.67"/>
-<polygon fill="white" stroke="none" points="347.27,-690.52 347.27,-717.27 473.02,-717.27 473.02,-690.52 347.27,-690.52"/>
-<polygon fill="none" stroke="black" points="347.27,-690.52 347.27,-717.27 473.02,-717.27 473.02,-690.52 347.27,-690.52"/>
-<text text-anchor="start" x="354.27" y="-701.77" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await deep_reviser(p)</text>
+<path fill="lightblue" stroke="black" d="M476.42,-731.67C476.42,-731.67 345.88,-731.67 345.88,-731.67 339.88,-731.67 333.88,-725.67 333.88,-719.67 333.88,-719.67 333.88,-688.12 333.88,-688.12 333.88,-682.12 339.88,-676.12 345.88,-676.12 345.88,-676.12 476.42,-676.12 476.42,-676.12 482.42,-676.12 488.42,-682.12 488.42,-688.12 488.42,-688.12 488.42,-719.67 488.42,-719.67 488.42,-725.67 482.42,-731.67 476.42,-731.67"/>
+<polygon fill="white" stroke="none" points="348.27,-690.52 348.27,-717.27 474.02,-717.27 474.02,-690.52 348.27,-690.52"/>
+<polygon fill="none" stroke="black" points="348.27,-690.52 348.27,-717.27 474.02,-717.27 474.02,-690.52 348.27,-690.52"/>
+<text text-anchor="start" x="355.27" y="-701.77" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await deep_reviser(p)</text>
 </g>
 <!-- critique&#45;&gt;deep_reviser -->
 <g id="edge4" class="edge">
 <title>critique&#45;&gt;deep_reviser</title>
-<path fill="none" stroke="black" d="M525.9,-808.5C503.66,-788.59 473.24,-761.37 449.17,-739.82"/>
-<polygon fill="black" stroke="black" points="451.53,-737.24 441.74,-733.18 446.86,-742.45 451.53,-737.24"/>
+<path fill="none" stroke="black" d="M526.9,-808.5C504.66,-788.59 474.24,-761.37 450.17,-739.82"/>
+<polygon fill="black" stroke="black" points="452.53,-737.24 442.74,-733.18 447.86,-742.45 452.53,-737.24"/>
 </g>
 <!-- reviser -->
 <g id="node26" class="node">
 <title>reviser</title>
-<path fill="lightblue" stroke="black" d="M620.55,-731.67C620.55,-731.67 517.75,-731.67 517.75,-731.67 511.75,-731.67 505.75,-725.67 505.75,-719.67 505.75,-719.67 505.75,-688.12 505.75,-688.12 505.75,-682.12 511.75,-676.12 517.75,-676.12 517.75,-676.12 620.55,-676.12 620.55,-676.12 626.55,-676.12 632.55,-682.12 632.55,-688.12 632.55,-688.12 632.55,-719.67 632.55,-719.67 632.55,-725.67 626.55,-731.67 620.55,-731.67"/>
-<polygon fill="white" stroke="none" points="520.15,-690.52 520.15,-717.27 618.15,-717.27 618.15,-690.52 520.15,-690.52"/>
-<polygon fill="none" stroke="black" points="520.15,-690.52 520.15,-717.27 618.15,-717.27 618.15,-690.52 520.15,-690.52"/>
-<text text-anchor="start" x="527.15" y="-701.77" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await reviser(p)</text>
+<path fill="lightblue" stroke="black" d="M621.55,-731.67C621.55,-731.67 518.75,-731.67 518.75,-731.67 512.75,-731.67 506.75,-725.67 506.75,-719.67 506.75,-719.67 506.75,-688.12 506.75,-688.12 506.75,-682.12 512.75,-676.12 518.75,-676.12 518.75,-676.12 621.55,-676.12 621.55,-676.12 627.55,-676.12 633.55,-682.12 633.55,-688.12 633.55,-688.12 633.55,-719.67 633.55,-719.67 633.55,-725.67 627.55,-731.67 621.55,-731.67"/>
+<polygon fill="white" stroke="none" points="521.15,-690.52 521.15,-717.27 619.15,-717.27 619.15,-690.52 521.15,-690.52"/>
+<polygon fill="none" stroke="black" points="521.15,-690.52 521.15,-717.27 619.15,-717.27 619.15,-690.52 521.15,-690.52"/>
+<text text-anchor="start" x="528.15" y="-701.77" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await reviser(p)</text>
 </g>
 <!-- critique&#45;&gt;reviser -->
 <g id="edge5" class="edge">
 <title>critique&#45;&gt;reviser</title>
-<path fill="none" stroke="black" d="M558.84,-808.5C560.72,-789.66 563.24,-764.28 565.32,-743.35"/>
-<polygon fill="black" stroke="black" points="568.8,-743.74 566.31,-733.45 561.84,-743.05 568.8,-743.74"/>
+<path fill="none" stroke="black" d="M559.84,-808.5C561.72,-789.66 564.24,-764.28 566.32,-743.35"/>
+<polygon fill="black" stroke="black" points="569.8,-743.74 567.31,-733.45 562.84,-743.05 569.8,-743.74"/>
 </g>
-<!-- deep_reviser&#45;&gt;router_llm_auditor_line_79_if -->
+<!-- deep_reviser&#45;&gt;router_llm_auditor_line_83_if -->
 <g id="edge6" class="edge">
-<title>deep_reviser&#45;&gt;router_llm_auditor_line_79_if</title>
-<path fill="none" stroke="black" d="M414.67,-675.88C417.66,-657.99 421.73,-633.65 425.59,-610.6"/>
-<polygon fill="black" stroke="black" points="429.01,-611.35 427.21,-600.91 422.11,-610.2 429.01,-611.35"/>
+<title>deep_reviser&#45;&gt;router_llm_auditor_line_83_if</title>
+<path fill="none" stroke="black" d="M415.67,-675.88C418.66,-657.99 422.73,-633.65 426.59,-610.6"/>
+<polygon fill="black" stroke="black" points="430.01,-611.35 428.21,-600.91 423.11,-610.2 430.01,-611.35"/>
 </g>
-<!-- extract_claims&#45;&gt;router_llm_auditor_line_37_if -->
+<!-- extract_claims&#45;&gt;router_llm_auditor_line_41_if -->
 <g id="edge7" class="edge">
-<title>extract_claims&#45;&gt;router_llm_auditor_line_37_if</title>
-<path fill="none" stroke="black" d="M127.15,-512.43C127.15,-494.08 127.15,-468.93 127.15,-445.19"/>
-<polygon fill="black" stroke="black" points="130.65,-445.21 127.15,-435.21 123.65,-445.21 130.65,-445.21"/>
+<title>extract_claims&#45;&gt;router_llm_auditor_line_41_if</title>
+<path fill="none" stroke="black" d="M128.15,-512.43C128.15,-494.08 128.15,-468.93 128.15,-445.19"/>
+<polygon fill="black" stroke="black" points="131.65,-445.21 128.15,-435.21 124.65,-445.21 131.65,-445.21"/>
 </g>
 <!-- fallback_generate -->
 <g id="node23" class="node">
@@ -499,35 +499,35 @@
 <polygon fill="none" stroke="black" points="423.9,-1848.6 423.9,-1875.35 574.4,-1875.35 574.4,-1848.6 423.9,-1848.6"/>
 <text text-anchor="start" x="430.9" y="-1859.85" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fallback_generate(p)</text>
 </g>
-<!-- fallback_generate&#45;&gt;fanout_llm_auditor_line_52 -->
+<!-- fallback_generate&#45;&gt;fanout_llm_auditor_line_56 -->
 <g id="edge8" class="edge">
-<title>fallback_generate&#45;&gt;fanout_llm_auditor_line_52</title>
-<path fill="none" stroke="black" d="M476.78,-1833.94C469.77,-1825.47 461.8,-1815.84 453.93,-1806.33"/>
-<polygon fill="black" stroke="black" points="456.79,-1804.3 447.72,-1798.83 451.4,-1808.76 456.79,-1804.3"/>
+<title>fallback_generate&#45;&gt;fanout_llm_auditor_line_56</title>
+<path fill="none" stroke="black" d="M477.04,-1833.94C470.11,-1825.47 462.23,-1815.84 454.45,-1806.33"/>
+<polygon fill="black" stroke="black" points="457.37,-1804.36 448.33,-1798.83 451.95,-1808.79 457.37,-1804.36"/>
 </g>
-<!-- fanin_llm_auditor_line_52&#45;&gt;adk_llm_auditor_QualityScorer_aggregate -->
+<!-- fanin_llm_auditor_line_56&#45;&gt;adk_llm_auditor_QualityScorer_aggregate -->
 <g id="edge9" class="edge">
-<title>fanin_llm_auditor_line_52&#45;&gt;adk_llm_auditor_QualityScorer_aggregate</title>
-<path fill="none" stroke="black" d="M413.15,-1490.97C413.15,-1482.78 413.15,-1474.18 413.15,-1466.06"/>
-<polygon fill="black" stroke="black" points="416.65,-1466.1 413.15,-1456.1 409.65,-1466.1 416.65,-1466.1"/>
+<title>fanin_llm_auditor_line_56&#45;&gt;adk_llm_auditor_QualityScorer_aggregate</title>
+<path fill="none" stroke="black" d="M414.15,-1490.97C414.15,-1482.78 414.15,-1474.18 414.15,-1466.06"/>
+<polygon fill="black" stroke="black" points="417.65,-1466.1 414.15,-1456.1 410.65,-1466.1 417.65,-1466.1"/>
 </g>
 <!-- finalize&#45;&gt;end_llm_auditor -->
 <g id="edge13" class="edge">
 <title>finalize&#45;&gt;end_llm_auditor</title>
-<path fill="none" stroke="black" d="M683.15,-92.16C683.15,-84.37 683.15,-75.72 683.15,-67.38"/>
-<polygon fill="black" stroke="black" points="686.65,-67.44 683.15,-57.44 679.65,-67.44 686.65,-67.44"/>
+<path fill="none" stroke="black" d="M684.15,-92.16C684.15,-84.37 684.15,-75.72 684.15,-67.38"/>
+<polygon fill="black" stroke="black" points="687.65,-67.44 684.15,-57.44 680.65,-67.44 687.65,-67.44"/>
 </g>
-<!-- reviser&#45;&gt;router_llm_auditor_line_79_if -->
+<!-- reviser&#45;&gt;router_llm_auditor_line_83_if -->
 <g id="edge16" class="edge">
-<title>reviser&#45;&gt;router_llm_auditor_line_79_if</title>
-<path fill="none" stroke="black" d="M547.06,-675.88C531.89,-657.34 511.07,-631.87 491.62,-608.09"/>
-<polygon fill="black" stroke="black" points="494.53,-606.12 485.49,-600.59 489.11,-610.55 494.53,-606.12"/>
+<title>reviser&#45;&gt;router_llm_auditor_line_83_if</title>
+<path fill="none" stroke="black" d="M548.06,-675.88C532.89,-657.34 512.07,-631.87 492.62,-608.09"/>
+<polygon fill="black" stroke="black" points="495.53,-606.12 486.49,-600.59 490.11,-610.55 495.53,-606.12"/>
 </g>
-<!-- llm_generate&#45;&gt;fanout_llm_auditor_line_52 -->
+<!-- llm_generate&#45;&gt;fanout_llm_auditor_line_56 -->
 <g id="edge15" class="edge">
-<title>llm_generate&#45;&gt;fanout_llm_auditor_line_52</title>
-<path fill="none" stroke="black" d="M317.71,-1833.94C328.76,-1825.04 341.4,-1814.85 353.79,-1804.87"/>
-<polygon fill="black" stroke="black" points="355.97,-1807.61 361.56,-1798.61 351.58,-1802.16 355.97,-1807.61"/>
+<title>llm_generate&#45;&gt;fanout_llm_auditor_line_56</title>
+<path fill="none" stroke="black" d="M317.97,-1833.94C329.21,-1824.95 342.09,-1814.65 354.69,-1804.58"/>
+<polygon fill="black" stroke="black" points="356.54,-1807.59 362.17,-1798.61 352.17,-1802.12 356.54,-1807.59"/>
 </g>
 <!-- llm_generate&#45;&gt;fallback_generate -->
 <g id="edge14" class="edge">

@@ -37,6 +37,10 @@ Payload contract:
   state["output_safe"]   - output safety flag (set by output_validator)
   state["violation_type"] - type of safety violation if any
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def guardrails_sandwich(state: dict) -> dict:

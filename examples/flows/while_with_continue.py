@@ -4,7 +4,10 @@ While loop with continue.
 Tests skipping loop iterations.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def while_with_continue_flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0

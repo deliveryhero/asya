@@ -1,3 +1,7 @@
+from asya_lab.flow import flow
+
+
+@flow
 def research_flow(p: dict) -> dict:
     p["results"] = [research_agent(t) for t in p["topics"]]
     p = summarizer(p)

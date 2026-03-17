@@ -238,7 +238,7 @@ def test_execute_auditor_init_mutations(project_root, compile_and_import, monkey
 
     next_actors = msg_ctx["route"]["next"]
     assert "extract_claims" in next_actors
-    assert "router_llm_auditor_line_37_if" in next_actors
+    assert "router_llm_auditor_line_41_if" in next_actors
 
 
 def test_execute_auditor_no_claims_exit(project_root, compile_and_import, monkeypatch):
@@ -251,10 +251,10 @@ def test_execute_auditor_no_claims_exit(project_root, compile_and_import, monkey
 
     msg_ctx = _make_msg_ctx()
     payload = {"claims": []}
-    _drive_abi(routers.router_llm_auditor_line_37_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_41_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
-    assert "router_llm_auditor_line_38_seq" in next_actors
+    assert "router_llm_auditor_line_42_seq" in next_actors
 
 
 def test_execute_auditor_with_claims_enters_loop(
@@ -269,10 +269,10 @@ def test_execute_auditor_with_claims_enters_loop(
 
     msg_ctx = _make_msg_ctx()
     payload = {"claims": ["claim1"]}
-    _drive_abi(routers.router_llm_auditor_line_37_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_41_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
-    assert "router_llm_auditor_line_42_loop_back_0" in next_actors
+    assert "router_llm_auditor_line_46_loop_back_0" in next_actors
 
 
 def test_execute_auditor_score_approved(project_root, compile_and_import, monkeypatch):
@@ -285,10 +285,10 @@ def test_execute_auditor_score_approved(project_root, compile_and_import, monkey
 
     msg_ctx = _make_msg_ctx()
     payload = {"aggregate_score": 95}
-    _drive_abi(routers.router_llm_auditor_line_66_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_70_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
-    assert "router_llm_auditor_line_67_seq" in next_actors
+    assert "router_llm_auditor_line_71_seq" in next_actors
 
 
 def test_execute_auditor_score_standard_revision(
@@ -303,7 +303,7 @@ def test_execute_auditor_score_standard_revision(
 
     msg_ctx = _make_msg_ctx()
     payload = {"aggregate_score": 75}
-    _drive_abi(routers.router_llm_auditor_line_69_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_73_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
     assert "critique" in next_actors
@@ -322,7 +322,7 @@ def test_execute_auditor_score_deep_revision(
 
     msg_ctx = _make_msg_ctx()
     payload = {"aggregate_score": 40}
-    _drive_abi(routers.router_llm_auditor_line_69_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_73_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
     assert "critique" in next_actors
@@ -341,7 +341,7 @@ def test_execute_auditor_continue_marginal(
 
     msg_ctx = _make_msg_ctx()
     payload = {"aggregate_score": 50, "prev_score": 30}
-    _drive_abi(routers.router_llm_auditor_line_61_if(payload), msg_ctx)
+    _drive_abi(routers.router_llm_auditor_line_65_if(payload), msg_ctx)
 
     next_actors = msg_ctx["route"]["next"]
-    assert "router_llm_auditor_line_62_seq" in next_actors
+    assert "router_llm_auditor_line_66_seq" in next_actors

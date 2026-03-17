@@ -3,6 +3,10 @@ Pure sequential flow - no control structures.
 
 Tests sequential handler execution without any branching or loops.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def sequential_flow(p: dict) -> dict:

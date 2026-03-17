@@ -14,12 +14,12 @@ _cleanup() {
 }
 trap _cleanup EXIT
 
-if command -v docker >/dev/null 2>&1; then
-  if ! docker image inspect "$GRAPHVIZ_IMAGE" >/dev/null 2>&1; then
+if command -v docker > /dev/null 2>&1; then
+  if ! docker image inspect "$GRAPHVIZ_IMAGE" > /dev/null 2>&1; then
     echo "[.] Building pinned graphviz Docker image ($GRAPHVIZ_IMAGE)..."
     docker build -t "$GRAPHVIZ_IMAGE" \
       -f "$REPO_ROOT/.pre-commit-hooks/Dockerfile.graphviz" \
-      "$REPO_ROOT/.pre-commit-hooks/" >/dev/null
+      "$REPO_ROOT/.pre-commit-hooks/" > /dev/null
     echo "[+] Built $GRAPHVIZ_IMAGE"
   fi
   DOT_WRAPPER_DIR="$(mktemp -d)"
