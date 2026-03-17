@@ -21,11 +21,16 @@ REPO_ROOT = Path(__file__).parent.parent.parent.parent
 CHART_PATH = REPO_ROOT / "deploy/helm-charts/asya-crossplane"
 
 
-def helm_template(values_file: str | Path | None = None) -> list[dict]:
+def helm_template(
+    values_file: str | Path | None = None,
+    set_values: list[str] | None = None,
+) -> list[dict]:
     """Render Helm chart and return parsed YAML documents."""
     cmd = ["helm", "template", "test", str(CHART_PATH)]
     if values_file:
         cmd.extend(["-f", str(values_file)])
+    for s in set_values or []:
+        cmd.extend(["--set", s])
 
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
