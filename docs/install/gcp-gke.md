@@ -308,10 +308,17 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ### asya-gateway
 
-The gateway needs PostgreSQL for task state. For a lightweight deployment, apply a minimal
-in-cluster instance:
+The gateway needs PostgreSQL for task state. You can use any PostgreSQL-compatible
+database — managed services (Cloud SQL, AlloyDB, RDS) or an in-cluster instance.
+
+For in-cluster PostgreSQL, apply a StatefulSet with a PVC and a Secret for the password:
 
 ```bash
+# Generate a random password and store it as a Secret
+kubectl create secret generic asya-gateway-db-creds \
+  --namespace=$NS \
+  --from-literal=password=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+
 kubectl apply -n $NS -f - <<'EOF'
 apiVersion: apps/v1
 kind: StatefulSet
@@ -337,9 +344,23 @@ spec:
         - name: POSTGRES_USER
           value: asya
         - name: POSTGRES_PASSWORD
-          value: asya-db-password
+          valueFrom:
+            secretKeyRef:
+              name: asya-gateway-db-creds
+              key: password
         ports:
         - containerPort: 5432
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 5Gi
 ---
 apiVersion: v1
 kind: Service
@@ -354,7 +375,12 @@ spec:
 EOF
 ```
 
+Pass the password from the Secret into the gateway chart:
+
 ```bash
+DB_PASSWORD=$(kubectl get secret asya-gateway-db-creds -n $NS \
+  -o jsonpath='{.data.password}' | base64 -d)
+
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
@@ -365,7 +391,7 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set externalDatabase.port=5432 \
   --set externalDatabase.database=asya_gateway \
   --set externalDatabase.username=asya \
-  --set externalDatabase.password=asya-db-password \
+  --set externalDatabase.password=$DB_PASSWORD \
   --set "volumes[0].name=gcp-creds" \
   --set "volumes[0].secret.secretName=asya-actor-creds" \
   --set "volumeMounts[0].name=gcp-creds" \
@@ -389,6 +415,13 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 
 ## 8. Actor Deployment
 
+Clone the Asya repository and navigate to your actor project:
+
+```bash
+git clone https://github.com/deliveryhero/asya.git
+cd asya/examples/demo-kubecon   # or your own actor project directory
+```
+
 Build your actor image and push it to Artifact Registry:
 
 ```bash
@@ -402,7 +435,7 @@ Compile the flow and apply manifests:
 # Compile flow to AsyncActor manifests (if not already done)
 asya compile src/my_flow.py
 
-# Apply any EnvironmentConfig flavors (e.g. Vertex AI credentials)
+# Apply any EnvironmentConfig flavors (e.g. external API credentials)
 kubectl apply -f .asya/manifests/flavors/ -n $NS
 
 # Apply compiled AsyncActor manifests
