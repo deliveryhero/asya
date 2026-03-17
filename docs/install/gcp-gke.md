@@ -221,6 +221,12 @@ kubectl create secret generic gcp-keda-secret \
   --from-file=credentials.json=/tmp/asya-keda-key.json
 
 rm /tmp/asya-*-key.json
+
+# Gateway API keys — stored in a Secret, never in Helm values or shell history
+kubectl create secret generic asya-gateway-auth \
+  --namespace=$NS \
+  --from-literal=a2a-api-key=$(openssl rand -hex 24) \
+  --from-literal=mcp-api-key=$(openssl rand -hex 24)
 ```
 
 For any other handler secrets (API keys, database passwords, etc.), create them in `$NS`
@@ -433,6 +439,12 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "volumeMounts[0].readOnly=true" \
   --set "env[0].name=GOOGLE_APPLICATION_CREDENTIALS" \
   --set "env[0].value=/secrets/gcp/sa-key.json" \
+  --set "env[1].name=ASYA_A2A_API_KEY" \
+  --set "env[1].valueFrom.secretKeyRef.name=asya-gateway-auth" \
+  --set "env[1].valueFrom.secretKeyRef.key=a2a-api-key" \
+  --set "env[2].name=ASYA_MCP_API_KEY" \
+  --set "env[2].valueFrom.secretKeyRef.name=asya-gateway-auth" \
+  --set "env[2].valueFrom.secretKeyRef.key=mcp-api-key" \
   --set service.type=LoadBalancer \
   --set "flowsConfig.flows[0].name=<flow-name>" \
   --set "flowsConfig.flows[0].entrypoint=<first-actor-queue>" \
@@ -440,6 +452,44 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "flowsConfig.flows[0].mcp.progress=true" \
   --wait --timeout=5m
 ```
+
+### Gateway security
+
+`asya-gateway` is deployed as two separate Deployments from the same binary:
+
+| Deployment | Service | Reachable from | Auth |
+|---|---|---|---|
+| `asya-gateway-api` | LoadBalancer (port 80) | External clients, LLMs, AI agents | API key / JWT Bearer |
+| `asya-gateway-mesh` | ClusterIP | Actor sidecars only (in-cluster DNS) | None — network isolation |
+
+**Protected routes** (`asya-gateway-api`): all `/a2a/*` and `/mcp/*` routes require
+authentication when `ASYA_A2A_API_KEY` / `ASYA_MCP_API_KEY` are set.
+
+**Always public**: `/.well-known/agent.json` (A2A spec requirement) and `/health`
+(K8s probes).
+
+Clients must send the API key in the `X-API-Key` header for A2A, or
+`Authorization: Bearer <key>` for MCP:
+
+```bash
+A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
+  -o jsonpath='{.data.a2a-api-key}' | base64 -d)
+
+curl -X POST http://${GATEWAY_IP}/a2a/<flow-name> \
+  -H "X-API-Key: $A2A_KEY" \
+  -H "Content-Type: application/json" \
+  -d '...'
+```
+
+**For production exposure** (beyond a local demo), configure HTTPS before sharing
+the gateway URL externally:
+
+- **GCP-managed certificate**: annotate the Service or Ingress with
+  `networking.gke.io/managed-certificates` pointing to a `ManagedCertificate` resource.
+  Requires a domain name with an A record pointing at the LoadBalancer IP.
+- **cert-manager + Ingress**: standard Kubernetes approach, works with Let's Encrypt.
+- The MCP OAuth 2.1 flow (already implemented in the gateway) formally requires HTTPS
+  — HTTP is acceptable for API key auth but not for OAuth redirect URIs.
 
 ---
 
@@ -513,9 +563,12 @@ Send a test message via the gateway (or directly via `gcloud pubsub`):
 ```bash
 GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
+  -o jsonpath='{.data.a2a-api-key}' | base64 -d)
 
 curl -s -X POST http://${GATEWAY_IP}/a2a/hello \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $A2A_KEY" \
   -d '{"jsonrpc":"2.0","id":"1","method":"message/send","params":{
     "message":{"messageId":"test-1","role":"user",
       "parts":[{"kind":"text","text":"world"}]}}}' \
@@ -534,28 +587,37 @@ kubectl get asyncactors -n $NS
 # Pub/Sub topics created by Crossplane
 gcloud pubsub topics list --project=$PROJECT | grep asya
 
-# Gateway IP and health
+# Gateway IP and API keys
 GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
+  -o jsonpath='{.data.a2a-api-key}' | base64 -d)
+MCP_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
+  -o jsonpath='{.data.mcp-api-key}' | base64 -d)
+
+# Health (public, no key needed)
 curl http://${GATEWAY_IP}/health
 
-# A2A agent card (shows registered flows)
+# A2A agent card (public, no key needed)
 curl http://${GATEWAY_IP}/.well-known/agent.json | python3 -m json.tool
 
-# MCP tools list
+# MCP tools list (requires MCP key)
 SESSION_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 curl -s -X POST http://${GATEWAY_IP}/mcp \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MCP_KEY" \
   -H "Mcp-Session-Id: ${SESSION_ID}" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' > /dev/null
 curl -s -X POST http://${GATEWAY_IP}/mcp \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $MCP_KEY" \
   -H "Mcp-Session-Id: ${SESSION_ID}" \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | python3 -m json.tool
 
-# End-to-end test via A2A — POST to /a2a/{flow-name}
+# End-to-end test via A2A (requires A2A key)
 curl -s -X POST http://${GATEWAY_IP}/a2a/<flow-name> \
   -H "Content-Type: application/json" \
+  -H "X-API-Key: $A2A_KEY" \
   -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"hello"}]}}}' \
   | python3 -m json.tool
 ```
