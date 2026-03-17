@@ -141,14 +141,34 @@ gcloud iam service-accounts add-iam-policy-binding \
 
 ## 5. Credentials
 
-Three authentication mechanisms coexist:
+Three authentication mechanisms coexist. Each exists for a distinct reason:
 
-| Component | Auth method | Secret |
-|---|---|---|
-| Crossplane GCP provider | JSON key | `crossplane-system/gcp-creds` |
-| KEDA TriggerAuthentication | JSON key | `keda/gcp-keda-secret` |
-| Actor sidecars (Pub/Sub) | GKE Workload Identity | — (no secret needed) |
-| Gateway + actor handlers (Vertex AI) | JSON key via volume mount | `${NS}/asya-actor-creds` |
+**Crossplane GCP provider — JSON key (`crossplane-system/gcp-creds`)**
+
+Crossplane runs its GCP provider as a pod in `crossplane-system`, outside the actor namespace
+and outside any KSA that Workload Identity is bound to. It needs to call GCP APIs (create/delete
+Pub/Sub topics and subscriptions) using its own identity — a JSON key stored as a Kubernetes
+Secret is the standard Crossplane credential mechanism for GCP.
+
+**KEDA TriggerAuthentication — JSON key (`keda/gcp-keda-secret`)**
+
+KEDA's `TriggerAuthentication` resource for GCP Pub/Sub does not yet support Workload Identity.
+A JSON key is required until upstream KEDA adds WI support for the GCP Pub/Sub scaler.
+
+**Actor sidecars — GKE Workload Identity (no secret)**
+
+Covered in Section 4. Actor pods use the annotated `default` KSA, which transparently provides
+GCP credentials via the GKE metadata server. No secret is needed in the pod.
+
+**User secrets for actor handlers**
+
+Actor handlers often need to call external services (LLM APIs, databases, etc.). Asya passes
+these as Kubernetes Secrets mounted into actor pods via `EnvironmentConfig` flavors — the
+`asya-crossplane` chart renders the secret reference into each actor's pod spec. Currently
+Asya supports Kubernetes Secrets as the credential source; integration with secret stores
+(Vault, GCP Secret Manager, AWS Secrets Manager) is planned.
+
+Create the required secrets:
 
 ```bash
 kubectl create namespace crossplane-system
@@ -166,7 +186,8 @@ kubectl create secret generic gcp-creds \
   --namespace=crossplane-system \
   --from-file=credentials.json=/tmp/asya-crossplane-key.json
 
-# Actor credentials (Vertex AI handler + gateway Pub/Sub publisher)
+# Actor handler credentials — store whatever your handlers need as a K8s Secret,
+# then reference it in an EnvironmentConfig flavor (see examples/demo-kubecon/.asya/manifests/flavors/)
 kubectl create secret generic asya-actor-creds \
   --namespace=$NS \
   --from-file=sa-key.json=/tmp/asya-actor-key.json
@@ -181,9 +202,18 @@ rm /tmp/asya-*-key.json
 
 ---
 
-## 6. Crossplane
+## 6. Prerequisites
 
-`asya-crossplane` does not bundle the Crossplane core. Install it first:
+Two prerequisites must be installed before any Asya Helm chart. Both are independent
+open-source projects that Asya builds on.
+
+### Crossplane
+
+[Crossplane](https://crossplane.io) is a Kubernetes control plane extension that lets you
+manage cloud resources (GCP Pub/Sub topics, subscriptions) as Kubernetes CRDs. The
+`asya-crossplane` Helm chart installs Crossplane's GCP Pub/Sub provider and the Asya
+`AsyncActor` XRD and Compositions on top of it — but the Crossplane core itself must
+already be present.
 
 ```bash
 helm repo add crossplane-stable https://charts.crossplane.io/stable
@@ -194,11 +224,12 @@ helm install crossplane crossplane-stable/crossplane \
   --wait --timeout=5m
 ```
 
----
-
-## 7. Asya components (two-step install)
-
 ### KEDA
+
+[KEDA](https://keda.sh) (Kubernetes Event-Driven Autoscaling) scales actor Deployments
+based on Pub/Sub subscription backlog — scaling to 0 when a queue is empty and back up
+when messages arrive. The `asya-crossplane` Helm chart generates `ScaledObject` resources
+that KEDA watches; KEDA itself must be installed first.
 
 ```bash
 helm repo add kedacore https://kedacore.github.io/charts
@@ -208,6 +239,10 @@ helm install keda kedacore/keda \
   --namespace keda \
   --wait --timeout=5m
 ```
+
+---
+
+## 7. Asya components (two-step install)
 
 ### asya-crossplane — Step 1: providers only
 
