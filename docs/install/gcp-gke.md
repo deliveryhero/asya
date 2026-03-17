@@ -446,10 +446,6 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "env[2].valueFrom.secretKeyRef.name=asya-gateway-auth" \
   --set "env[2].valueFrom.secretKeyRef.key=mcp-api-key" \
   --set service.type=LoadBalancer \
-  --set "flowsConfig.flows[0].name=hello" \
-  --set "flowsConfig.flows[0].entrypoint=hello" \
-  --set "flowsConfig.flows[0].description=A simple hello world actor" \
-  --set "flowsConfig.flows[0].mcp.progress=true" \
   --wait --timeout=5m
 ```
 
@@ -558,7 +554,23 @@ Watch the actor become ready (Crossplane creates the Pub/Sub topic and subscript
 kubectl get asyncactor hello -n $NS -w
 ```
 
-Send a test message via the gateway (or directly via `gcloud pubsub`):
+Register the `hello` flow with the gateway. The gateway hot-reloads its
+`flows.yaml` ConfigMap — patching it is all that's needed:
+
+```bash
+kubectl patch configmap asya-gateway-flows -n $NS --type merge -p '
+data:
+  flows.yaml: |
+    flows:
+    - name: hello
+      entrypoint: hello
+      description: A simple hello world actor
+      mcp:
+        progress: true
+'
+```
+
+Send a test message via the gateway:
 
 ```bash
 GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
