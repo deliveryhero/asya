@@ -1,12 +1,12 @@
 templates:
   namespace: asya-demo
-  transport: sqs
+  transport: pubsub
   router_image: "python:3.13-slim"
   max_replicas: 5
 
 build:
 - module: "*"
-  image: "asya-demo:latest"
+  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/asya-demo:latest"
 
 compiler:
   routers: "./src/demo_actors/compiled"

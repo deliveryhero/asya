@@ -11,6 +11,9 @@ Regenerate by running: asya flow compile text_improver.py
 import os as _os
 _ASYA_MAX_LOOP_ITERATIONS = int(_os.environ.get("ASYA_MAX_LOOP_ITERATIONS", "100"))
 
+SCORE_THRESHOLD = 90
+MAX_ITERATIONS = 3
+
 
 # ======================================================================
 # Generated Routers (for kubernetes deployment)
@@ -30,7 +33,9 @@ async def router_text_improver_line_29_if(payload: dict):
     p = payload
     _next = []
     if p['iteration'] >= MAX_ITERATIONS:
-        _next.append(resolve("polisher"))
+        yield "SET", ".route.next", [resolve("polisher")]
+        yield p
+        return
     else:
         pass
 
@@ -42,7 +47,9 @@ async def router_text_improver_line_26_if(payload: dict):
     p = payload
     _next = []
     if p.get('score', 0) >= SCORE_THRESHOLD:
-        _next.append(resolve("polisher"))
+        yield "SET", ".route.next", [resolve("polisher")]
+        yield p
+        return
     else:
         _next.append(resolve("router_text_improver_line_29_if"))
 

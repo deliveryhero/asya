@@ -1,0 +1,125 @@
+# asya-playground values for GKE + GCP Pub/Sub (KubeCon demo)
+# Project: foodsci-img-gen-dev-1407-1448, Region: europe-west1
+# Transport: native GCP Pub/Sub (no LocalStack)
+# Auth: GKE Workload Identity for Crossplane + actor pods; JSON key for KEDA
+
+global:
+  transport: pubsub
+  profile: production
+
+# Disable all sample in-cluster transport/storage infrastructure
+sampleTransport:
+  sqsLocalstack:
+    enabled: false
+  rabbitmq:
+    enabled: false
+
+sampleStorage:
+  s3Localstack:
+    enabled: false
+  minio:
+    enabled: false
+
+enableAsyaCrew: true
+enableAsyaGateway: true
+
+# Lightweight in-cluster PostgreSQL for gateway — no Cloud SQL needed for a demo
+sampleGatewayDb:
+  postgresql:
+    enabled: true
+
+# ---------------------------------------------------------------------------
+# Crossplane: GCP Pub/Sub provider, Workload Identity, no AWS provider
+# ---------------------------------------------------------------------------
+asya-crossplane:
+  # Step 1: set to false; bump to true after providers are Healthy (Phase 7)
+  providerConfigs:
+    install: false
+
+  providers:
+    aws:
+      enabled: false
+    gcp:
+      enabled: true
+      pubsubVersion: "v2.5.0"
+
+  gcpProviderConfig:
+    name: default
+    projectId: "foodsci-img-gen-dev-1407-1448"
+    # Secret = JSON key (asya-demo-crossplane SA) in crossplane-system/gcp-creds
+    credentialsSource: Secret
+    secretRef:
+      namespace: crossplane-system
+      name: gcp-creds
+      key: credentials.json
+
+  sidecar:
+    gcpProjectId: "foodsci-img-gen-dev-1407-1448"
+    # asya-demo-actor SA key mounted in each actor pod sidecar for Pub/Sub access
+    gcpCredsSecret: "asya-actor-creds"
+
+  functions:
+    flavorsEnabled: true
+
+  irsa:
+    enabled: false
+
+  # KEDA uses a JSON key Secret (GCP Pub/Sub TriggerAuthentication does not yet
+  # support Workload Identity natively via TriggerAuthentication resource)
+  keda:
+    authProvider: secret
+
+  pubsub:
+    keda:
+      secretRef:
+        name: gcp-keda-secret
+        credentialsKey: credentials.json
+
+# ---------------------------------------------------------------------------
+# Crew: pubsub transport, use asya-actor KSA (bound via Workload Identity)
+# ---------------------------------------------------------------------------
+asya-crew:
+  x-sink:
+    transport: pubsub
+    compositionSelector:
+      matchLabels:
+        asya.sh/transport: pubsub
+
+  x-sump:
+    transport: pubsub
+    compositionSelector:
+      matchLabels:
+        asya.sh/transport: pubsub
+
+  dlq-worker:
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# Gateway: LoadBalancer, in-cluster PostgreSQL, text-improver route
+# ---------------------------------------------------------------------------
+asya-gateway:
+  replicaCount: 1
+  service:
+    type: LoadBalancer
+
+  externalDatabase:
+    host: asya-demo-asya-gateway-postgresql
+    port: 5432
+    database: asya_gateway
+    username: asya
+    password: asya-db-password
+
+  routes:
+    createConfigMap: true
+    defaults:
+      progress: true
+      timeout: 120
+    tools:
+    - name: text-improver
+      description: "Improve text through AI-powered generator-evaluator-polisher loop"
+      parameters:
+        task:
+          type: string
+          required: true
+          description: "Text improvement task description"
+      route: ["start-text-improver"]

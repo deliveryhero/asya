@@ -9,11 +9,11 @@ metadata:
 spec:
   compositionSelector:
     matchLabels:
-      asya.sh/transport: sqs
+      asya.sh/transport: pubsub
   actor: router-text-improver-line-26-if
   image: python:3.13-slim
   handler: routers.router_text_improver_line_26_if
-  transport: sqs
+  transport: pubsub
   env:
   - name: PYTHONPATH
     value: /app

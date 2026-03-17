@@ -9,11 +9,11 @@ metadata:
 spec:
   compositionSelector:
     matchLabels:
-      asya.sh/transport: sqs
+      asya.sh/transport: pubsub
   actor: polisher
-  image: asya-demo:latest
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/asya-demo:latest
   handler: demo_actors.polisher.polisher
-  transport: sqs
+  transport: pubsub
   scaling:
     enabled: true
     minReplicaCount: 0

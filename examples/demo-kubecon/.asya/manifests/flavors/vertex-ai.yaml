@@ -9,16 +9,13 @@ data:
   - name: GOOGLE_APPLICATION_CREDENTIALS
     value: /secrets/gcp/sa-key.json
   - name: VERTEXAI_PROJECT
-    valueFrom:
-      secretKeyRef:
-        name: vertex-ai-creds
-        key: project-id
+    value: "foodsci-img-gen-dev-1407-1448"
   - name: VERTEXAI_LOCATION
-    value: us-central1
+    value: europe-west1
   volumes:
   - name: gcp-creds
     secret:
-      secretName: vertex-ai-creds
+      secretName: asya-actor-creds
   volumeMounts:
   - name: gcp-creds
     mountPath: /secrets/gcp
