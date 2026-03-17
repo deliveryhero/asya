@@ -3,10 +3,10 @@ entries:
   asya-actor:
   - apiVersion: v2
     appVersion: 0.5.4
-    created: "2026-03-17T16:33:25.356345211Z"
+    created: "2026-03-17T16:41:46.059743735Z"
     description: Generic Helm chart for deploying AsyncActor resources with health
       validation
-    digest: 6d36157918b1075642a5c3808341e8cd1f77162cff836017f9cb515c49525094
+    digest: 254def285676ed7721c24f31646057a02d3020380797a164e4cb02a25d3402a3
     keywords:
     - asya
     - actor
@@ -22,10 +22,10 @@ entries:
   asya-crew:
   - apiVersion: v2
     appVersion: 0.5.4
-    created: "2026-03-17T16:33:25.357121872Z"
+    created: "2026-03-17T16:41:46.060820515Z"
     description: System AsyncActors with reserved roles (x-sink, x-sump, checkpoint-s3,
       ...) for Asya framework
-    digest: f512a32202cb7c87a8f837cccda69a8ebcff7f24234992bf0d4bb8bf199af244
+    digest: d3ccec081f7219a89c6d5e526323bf621105be3e5fccbc825b3e8205685df7ca
     keywords:
     - asya
     - actor
@@ -41,9 +41,9 @@ entries:
   asya-crossplane:
   - apiVersion: v2
     appVersion: 0.5.4
-    created: "2026-03-17T16:33:25.358369543Z"
+    created: "2026-03-17T16:41:46.062163583Z"
     description: Crossplane XRDs and Compositions for Asya AsyncActor
-    digest: 21cb1dba66f83fcd4c0cf1493c780c47b5d8014458aea36967c43cb4823c9506
+    digest: 51f1645060fe6d613769c53316040b23619549e040dd17825d5d1446b7fd891c
     home: https://github.com/deliveryhero/asya
     keywords:
     - asya
@@ -60,12 +60,12 @@ entries:
   asya-gateway:
   - apiVersion: v2
     appVersion: 0.5.4
-    created: "2026-03-17T16:33:25.359041388Z"
+    created: "2026-03-17T16:41:46.062827693Z"
     description: Asya MCP Gateway with PostgreSQL backend
-    digest: 298a207b8dffb2a966ba67a1a30631dc9fb3f1f9a91e0bbd89afb5adaedadbcf
+    digest: f9bdaa0c88be21f57b848848f46fe65002a917c793409668683983918e60545f
     name: asya-gateway
     type: application
     urls:
     - https://asya.sh/charts/asya-gateway-0.5.4.tgz
     version: 0.5.4
-generated: "2026-03-17T16:33:25.355650382Z"
+generated: "2026-03-17T16:41:46.059099322Z"
