@@ -143,7 +143,7 @@ async def test_start_router_routes_to_try_enter(run_handler, monkeypatch, load_r
 
     set_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next[:0]"]
     assert len(set_cmds) == 1
-    assert "actor-router_guardrails_sandwich_line_43_try_enter_0" in set_cmds[0][2]
+    assert "actor-router_guardrails_sandwich_line_47_try_enter_0" in set_cmds[0][2]
 
 
 async def test_try_enter_router_sets_on_error_header_and_actor_chain(run_handler, monkeypatch, load_routers):
@@ -151,7 +151,7 @@ async def test_try_enter_router_sets_on_error_header_and_actor_chain(run_handler
     routers = load_routers("guardrails_sandwich")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
-    result = await run_handler(routers.router_guardrails_sandwich_line_43_try_enter_0({"user_input": "hi"}))
+    result = await run_handler(routers.router_guardrails_sandwich_line_47_try_enter_0({"user_input": "hi"}))
 
     # _on_error header must be set to the except-dispatch router
     on_error_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".headers._on_error"]
@@ -175,7 +175,7 @@ async def test_except_dispatch_routes_to_safe_fallback(run_handler, monkeypatch,
 
     payload = {"user_input": "bad input", "violation_type": "prompt_injection"}
     result = await run_handler(
-        routers.router_guardrails_sandwich_line_43_except_dispatch_0(payload),
+        routers.router_guardrails_sandwich_line_47_except_dispatch_0(payload),
         get_responses={
             ".status.error.type": "RuntimeError",
             ".status.error.mro": ["Exception", "BaseException"],
