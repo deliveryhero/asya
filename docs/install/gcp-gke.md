@@ -1,26 +1,18 @@
-# GKE Installation
+# GKE + GCP Pub/Sub Installation
 
-Production or demo deployment of Asya on Google Kubernetes Engine with native GCP Pub/Sub transport.
+Deploy Asya on Google Kubernetes Engine using native GCP Pub/Sub as the message transport.
 
 ## Prerequisites
 
-- `gcloud` CLI configured and authenticated (`gcloud auth login`)
-- `kubectl` 1.24+
-- `helm` 3.14+
-- `docker` (for building actor images)
-- GKE cluster 1.30+ with Workload Identity enabled
-- GCP APIs enabled: `container.googleapis.com`, `pubsub.googleapis.com`, `artifactregistry.googleapis.com`
-
-To enable APIs:
+- `gcloud` CLI authenticated (`gcloud auth login`)
+- `kubectl` 1.24+, `helm` 3.14+, `docker`
+- GKE cluster 1.30+ with Workload Identity enabled (see Section 2)
+- GCP APIs enabled:
 
 ```bash
 gcloud services enable container.googleapis.com pubsub.googleapis.com \
   artifactregistry.googleapis.com --project=$PROJECT
 ```
-
-## Reference Cluster
-
-The `asya-demo` cluster in `foodsci-img-gen-dev-1407-1448` (europe-west1) was created with this guide and serves as the KubeCon demo environment. Use it as a reference for troubleshooting.
 
 ---
 
@@ -29,92 +21,21 @@ The `asya-demo` cluster in `foodsci-img-gen-dev-1407-1448` (europe-west1) was cr
 Set these once before running any commands in this guide:
 
 ```bash
-export PROJECT=foodsci-img-gen-dev-1407-1448
-export REGION=europe-west1
-export CLUSTER=asya-demo
-export NETWORK=aimc-gmlp-private-network
-export SUBNET=aimc-gmlp-subnet-europe-west1
-export NS=asya-demo
-export REGISTRY=${REGION}-docker.pkg.dev/${PROJECT}/asya-demo
+export PROJECT=<your-gcp-project-id>
+export REGION=<region>              # e.g. europe-west1
+export CLUSTER=<cluster-name>       # e.g. asya
+export NS=<actor-namespace>         # e.g. asya
+export REGISTRY=${REGION}-docker.pkg.dev/${PROJECT}/<registry-name>
+export ASYA_VERSION=<release-tag>   # e.g. 0.5.5 — check github.com/deliveryhero/asya/releases
 ```
 
 ---
 
-## 2. Networking
+## 2. GKE Cluster
 
-### VPC and Subnet
-
-Asya requires a VPC with at least one subnet per region. For `foodsci-img-gen-dev-1407-1448`, the shared VPC `aimc-gmlp-private-network` is used with regional subnets pre-provisioned by the platform team:
-
-```
-aimc-gmlp-private-network  (CUSTOM, REGIONAL routing)
-  └─ aimc-gmlp-subnet-europe-west1  10.12.0.0/24
-```
-
-For a new project, create the VPC and subnet:
-
-```bash
-gcloud compute networks create $NETWORK \
-  --project=$PROJECT \
-  --subnet-mode=custom
-
-gcloud compute networks subnets create $SUBNET \
-  --project=$PROJECT \
-  --network=$NETWORK \
-  --region=$REGION \
-  --range=10.12.0.0/24
-```
-
-### Cloud NAT (egress)
-
-GKE nodes need egress to reach GCP APIs (Pub/Sub, Vertex AI), pull images from GHCR/Docker Hub, and download Helm chart dependencies.
-
-**Check for an existing NAT before creating one** — in `foodsci-img-gen-dev-1407-1448` the platform team already provisions a NAT (`aimc-gmlp-nat-europe-west1`) on router `aimc-gmlp-router-europe-west1` that covers `aimc-gmlp-subnet-europe-west1`. Creating a second router+NAT on the same network/region with `ALL_SUBNETWORKS_ALL_IP_RANGES` will fail with a conflict error.
-
-```bash
-# Check for existing NAT coverage before creating
-gcloud compute routers list --project=$PROJECT --filter="region:$REGION"
-gcloud compute routers nats list \
-  --router=<existing-router-name> \
-  --router-region=$REGION \
-  --project=$PROJECT
-```
-
-If no NAT exists for your subnet, create one:
-
-```bash
-gcloud compute routers create asya-router \
-  --project=$PROJECT \
-  --region=$REGION \
-  --network=$NETWORK
-
-gcloud compute routers nats create asya-nat \
-  --project=$PROJECT \
-  --router=asya-router \
-  --router-region=$REGION \
-  --auto-allocate-nat-external-ips \
-  --nat-custom-subnet-ip-ranges=$SUBNET
-```
-
-> Using `--nat-custom-subnet-ip-ranges` instead of `--nat-all-subnet-ip-ranges` avoids conflicts
-> with existing NATs on the same router.
-
-### Current NAT config in `foodsci-img-gen-dev-1407-1448` (europe-west1)
-
-```
-Router:  aimc-gmlp-router-europe-west1
-NAT:     aimc-gmlp-nat-europe-west1
-  natIpAllocateOption: MANUAL_ONLY
-  sourceSubnetworkIpRangesToNat: LIST_OF_SUBNETWORKS
-  subnetworks:
-  - aimc-gmlp-subnet-europe-west1 → ALL_IP_RANGES
-```
-
-No additional NAT configuration is needed for `asya-demo` — the existing NAT covers the cluster subnet.
-
----
-
-## 3. GKE Cluster
+Asya has no special networking requirements. Use your existing VPC/subnet, or create a cluster
+with GKE defaults. The only Asya-required flag is `--workload-pool`, which enables
+GKE Workload Identity — both the Crossplane GCP provider and actor pods depend on it.
 
 ```bash
 gcloud container clusters create $CLUSTER \
@@ -122,147 +43,120 @@ gcloud container clusters create $CLUSTER \
   --region=$REGION \
   --num-nodes=1 \
   --machine-type=e2-standard-4 \
-  --disk-size=50 \
-  --disk-type=pd-standard \
-  --network=$NETWORK \
-  --subnetwork=$SUBNET \
   --workload-pool=${PROJECT}.svc.id.goog \
   --enable-ip-alias \
-  --no-enable-master-authorized-networks \
-  --release-channel=regular \
-  --logging=NONE \
-  --monitoring=NONE
+  --release-channel=regular
 
 gcloud container clusters get-credentials $CLUSTER \
   --project=$PROJECT \
   --region=$REGION
 ```
 
-Notes:
-- `--num-nodes=1` per zone; `europe-west1` has 3 zones, giving 3 nodes total (~12 vCPU, ~48 GB RAM)
-- `--workload-pool` enables GKE Workload Identity (required for Crossplane GCP provider)
-- `--logging=NONE --monitoring=NONE` removes Cloud Logging/Monitoring; fine for demos, reconsider for production
-- The entity running `create` must have `roles/container.admin` on the project; it is automatically
-  granted `cluster-admin` inside the new cluster
-
-### Grant kubectl access to a service account
-
-If your `kubectl` runs as a GCP service account (e.g. a Compute Engine default SA), it needs
-`roles/container.admin` at the project level to create ClusterRoles:
-
-```bash
-gcloud projects add-iam-policy-binding $PROJECT \
-  --member="serviceAccount:<YOUR_SA>@developer.gserviceaccount.com" \
-  --role="roles/container.admin" --condition=None
-```
+> The entity running `create` must have `roles/container.admin`; it is automatically
+> granted `cluster-admin` inside the new cluster.
 
 ---
 
-## 4. Artifact Registry
+## 3. Artifact Registry
 
 ```bash
-gcloud artifacts repositories create asya-demo \
+gcloud artifacts repositories create asya \
   --project=$PROJECT \
   --repository-format=docker \
-  --location=$REGION \
-  --description="Asya actor images"
+  --location=$REGION
 
-# Authenticate Docker to push
 gcloud auth configure-docker ${REGION}-docker.pkg.dev
 ```
 
 ---
 
-## 5. GCP Service Accounts
+## 4. GCP Service Accounts
 
-Three GCP service accounts are needed. All use `asya-demo-` prefix to group them by cluster/environment.
+Three service accounts are required. Names below are suggestions; adjust to your naming convention.
 
-| SA | Purpose | Roles |
+| SA | Purpose | Required roles |
 |---|---|---|
-| `asya-demo-crossplane` | Crossplane creates/deletes Pub/Sub topics and subscriptions | `roles/pubsub.admin` |
-| `asya-demo-actor` | Actor sidecars publish/consume Pub/Sub; handlers call Vertex AI | `roles/pubsub.publisher`, `roles/pubsub.subscriber`, `roles/aiplatform.user` |
-| `asya-demo-keda` | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` |
+| `asya-crossplane` | Crossplane creates/deletes Pub/Sub topics and subscriptions | `roles/pubsub.admin` |
+| `asya-actor` | Actor sidecars publish/consume Pub/Sub; handlers call Vertex AI | `roles/pubsub.publisher`, `roles/pubsub.subscriber`, `roles/aiplatform.user` |
+| `asya-keda` | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` |
 
 ```bash
-# Create SAs
-for sa in asya-demo-crossplane asya-demo-actor asya-demo-keda; do
+for sa in asya-crossplane asya-actor asya-keda; do
   gcloud iam service-accounts create $sa \
     --project=$PROJECT \
-    --display-name="Asya demo: $sa"
+    --display-name="Asya: $sa"
 done
 
 # Crossplane
 gcloud projects add-iam-policy-binding $PROJECT \
-  --member="serviceAccount:asya-demo-crossplane@${PROJECT}.iam.gserviceaccount.com" \
+  --member="serviceAccount:asya-crossplane@${PROJECT}.iam.gserviceaccount.com" \
   --role="roles/pubsub.admin" --condition=None
 
 # Actors
 for role in roles/pubsub.publisher roles/pubsub.subscriber roles/aiplatform.user; do
   gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:asya-demo-actor@${PROJECT}.iam.gserviceaccount.com" \
+    --member="serviceAccount:asya-actor@${PROJECT}.iam.gserviceaccount.com" \
     --role="$role" --condition=None
 done
 
 # KEDA
 for role in roles/monitoring.viewer roles/pubsub.viewer; do
   gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:asya-demo-keda@${PROJECT}.iam.gserviceaccount.com" \
+    --member="serviceAccount:asya-keda@${PROJECT}.iam.gserviceaccount.com" \
     --role="$role" --condition=None
 done
 ```
 
-> `--condition=None` is required when the project IAM policy already contains conditional bindings
-> (common in enterprise GCP organizations). Omitting it causes a non-interactive mode error.
+> `--condition=None` is required in projects with existing conditional IAM bindings;
+> omitting it fails non-interactively.
 
-### Actor Workload Identity (GKE)
+### Actor Workload Identity (required)
 
-Actor pods authenticate to Pub/Sub and Vertex AI via **GKE Workload Identity** — no JSON key is
-mounted into the sidecar. The `asya-crossplane` chart injects `sidecar.gcpCredsSecret` via
-`envFrom: secretRef`, but the secret key `sa-key.json` contains a dot which Kubernetes silently
-drops as an invalid env var name. WI is therefore required for sidecar Pub/Sub access.
-
-Bind the `default` Kubernetes Service Account in the actor namespace to `asya-demo-actor`:
+Actor pods authenticate to Pub/Sub via **GKE Workload Identity** — no JSON key is
+mounted in the sidecar. The `asya-crossplane` chart injects the actor secret via
+`envFrom: secretRef`, but Kubernetes silently drops env var names containing dots
+(like `sa-key.json`), so ADC falls back to the node service account which lacks
+Pub/Sub permissions. Workload Identity bypasses this entirely.
 
 ```bash
-# Annotate the default KSA — no elevated permissions required
+kubectl create namespace $NS
+
+# Annotate the default KSA in the actor namespace
 kubectl annotate serviceaccount default \
   -n $NS \
-  iam.gke.io/gcp-service-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
+  iam.gke.io/gcp-service-account=asya-actor@${PROJECT}.iam.gserviceaccount.com
 
-# Grant Workload Identity User — requires setIamPolicy (run from personal account)
+# Bind WI User role — requires setIamPolicy on the service account
 gcloud iam service-accounts add-iam-policy-binding \
-  asya-demo-actor@${PROJECT}.iam.gserviceaccount.com \
+  asya-actor@${PROJECT}.iam.gserviceaccount.com \
   --role=roles/iam.workloadIdentityUser \
   --member="serviceAccount:${PROJECT}.svc.id.goog[${NS}/default]" \
   --condition=None \
   --project=$PROJECT
 ```
 
-IAM changes propagate in ~60 seconds. Restart actor pods after this step.
+> IAM changes propagate in ~60 seconds. Restart actor pods after this step if they
+> were already running.
 
 ---
 
-## 6. Credentials
+## 5. Credentials
 
-Three authentication methods are used:
+Three authentication mechanisms coexist:
 
-- **Crossplane**: JSON key secret — Crossplane provider runs outside the actor pod context
-- **KEDA**: JSON key secret — KEDA's GCP Pub/Sub `TriggerAuthentication` does not yet support Workload Identity
-- **Actor sidecars**: GKE Workload Identity (see Section 5) — no JSON key in the sidecar
-- **Actor handlers (Vertex AI)**: JSON key via EnvironmentConfig volume mount (gateway + `asya-actor-creds` secret)
-
-Only `asya-demo-crossplane` and `asya-demo-keda` need JSON keys stored in Kubernetes Secrets.
-The `asya-actor-creds` secret is still created for the gateway's Pub/Sub publisher and the Vertex AI
-EnvironmentConfig mount — it is not injected into the sidecar.
+| Component | Auth method | Secret |
+|---|---|---|
+| Crossplane GCP provider | JSON key | `crossplane-system/gcp-creds` |
+| KEDA TriggerAuthentication | JSON key | `keda/gcp-keda-secret` |
+| Actor sidecars (Pub/Sub) | GKE Workload Identity | — (no secret needed) |
+| Gateway + actor handlers (Vertex AI) | JSON key via volume mount | `${NS}/asya-actor-creds` |
 
 ```bash
-# Create namespaces first
-kubectl create namespace $NS
 kubectl create namespace crossplane-system
 kubectl create namespace keda
 
-# Generate keys
-for sa in asya-demo-crossplane asya-demo-actor asya-demo-keda; do
+# Generate JSON keys
+for sa in asya-crossplane asya-actor asya-keda; do
   gcloud iam service-accounts keys create /tmp/${sa}-key.json \
     --iam-account=${sa}@${PROJECT}.iam.gserviceaccount.com \
     --project=$PROJECT
@@ -271,27 +165,26 @@ done
 # Crossplane provider credentials
 kubectl create secret generic gcp-creds \
   --namespace=crossplane-system \
-  --from-file=credentials.json=/tmp/asya-demo-crossplane-key.json
+  --from-file=credentials.json=/tmp/asya-crossplane-key.json
 
-# Actor credentials (Pub/Sub sidecar + Vertex AI handler)
+# Actor credentials (Vertex AI handler + gateway Pub/Sub publisher)
 kubectl create secret generic asya-actor-creds \
   --namespace=$NS \
-  --from-file=sa-key.json=/tmp/asya-demo-actor-key.json
+  --from-file=sa-key.json=/tmp/asya-actor-key.json
 
 # KEDA scaler credentials
 kubectl create secret generic gcp-keda-secret \
   --namespace=keda \
-  --from-file=credentials.json=/tmp/asya-demo-keda-key.json
-```
+  --from-file=credentials.json=/tmp/asya-keda-key.json
 
-> Delete key files from `/tmp/` after storing in Kubernetes: `rm /tmp/asya-demo-*-key.json`
+rm /tmp/asya-*-key.json
+```
 
 ---
 
-## 7. Crossplane
+## 6. Crossplane
 
-`asya-playground` does not bundle Crossplane. Install it first and wait for it to be healthy before
-proceeding.
+`asya-crossplane` does not bundle the Crossplane core. Install it first:
 
 ```bash
 helm repo add crossplane-stable https://charts.crossplane.io/stable
@@ -304,14 +197,7 @@ helm install crossplane crossplane-stable/crossplane \
 
 ---
 
-## 8. Asya components (two-step install)
-
-Install KEDA, then asya-crossplane, asya-crew, and asya-gateway from the local chart directories.
-The `asya-playground` umbrella chart can also be used once `asya.sh/charts` is published; until
-then, install each chart individually as shown below.
-
-The GCP Pub/Sub values are captured in `deploy/helm-charts/asya-playground/values-gke-pubsub.yaml`
-as a reference for the per-chart flags used here.
+## 7. Asya components (two-step install)
 
 ### KEDA
 
@@ -324,9 +210,10 @@ helm install keda kedacore/keda \
   --wait --timeout=5m
 ```
 
-### asya-crossplane — Step 1: providers only (no ProviderConfigs)
+### asya-crossplane — Step 1: providers only
 
-Crossplane providers must reach `Healthy` before their CRDs exist and ProviderConfigs can be applied.
+Crossplane providers must reach `Healthy` before their CRDs exist and ProviderConfigs
+can be created. Install with `providerConfigs.install=false` first.
 
 ```bash
 helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
@@ -352,14 +239,18 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --wait --timeout=10m
 ```
 
-Wait for the GCP Pub/Sub provider to be healthy:
+> **`sidecar.gatewayURL`** must be the base URL with **no path suffix**. The sidecar progress
+> reporter appends `/health`, `/mesh`, `/mesh/{id}/final` etc. automatically. Setting it to
+> `http://host/mesh` produces double-path URLs and silently breaks task completion callbacks.
+
+Wait for the GCP Pub/Sub provider to become healthy:
 
 ```bash
 kubectl wait provider.pkg.crossplane.io/crossplane-provider-gcp-pubsub \
   --for=condition=Healthy --timeout=300s
 ```
 
-### asya-crossplane — Step 2: install ProviderConfigs
+### asya-crossplane — Step 2: ProviderConfigs
 
 ```bash
 helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
@@ -369,12 +260,29 @@ helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --wait
 ```
 
+### function-asya-flavors version
+
+If actors stay in `ReconcileError` after installation, the chart may be pinning
+`function-asya-flavors` to a version that is not published. Check and patch:
+
+```bash
+kubectl get function.pkg.crossplane.io function-asya-flavors -o jsonpath='{.spec.package}'
+
+# Patch to the same version as your Asya release
+kubectl patch function.pkg.crossplane.io function-asya-flavors \
+  --type=merge \
+  -p "{\"spec\":{\"package\":\"ghcr.io/deliveryhero/function-asya-flavors:${ASYA_VERSION}\"}}"
+
+kubectl wait function.pkg.crossplane.io/function-asya-flavors \
+  --for=condition=Healthy --timeout=120s
+```
+
 ### asya-crew
 
 ```bash
 helm install asya-crew deploy/helm-charts/asya-crew/ \
   --namespace=$NS \
-  --set image.tag=0.5.5 \
+  --set image.tag=$ASYA_VERSION \
   --set "x-sink.transport=pubsub" \
   --set "x-sink.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
   --set "x-sump.transport=pubsub" \
@@ -385,11 +293,11 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ### asya-gateway
 
-The gateway requires exactly one transport enabled and an external PostgreSQL instance.
-Deploy a minimal PostgreSQL first (or use `externalDatabase.host=""` for in-memory / no persistence):
+The gateway needs PostgreSQL for task state. For a lightweight deployment, apply a minimal
+in-cluster instance:
 
 ```bash
-kubectl apply -n $NS -f - <<EOF
+kubectl apply -n $NS -f - <<'EOF'
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -434,7 +342,7 @@ EOF
 ```bash
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --namespace=$NS \
-  --set image.tag=0.5.5 \
+  --set image.tag=$ASYA_VERSION \
   --set transports.pubsub.enabled=true \
   --set "transports.pubsub.config.projectId=${PROJECT}" \
   --set postgresql.enabled=false \
@@ -451,101 +359,66 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "env[0].name=GOOGLE_APPLICATION_CREDENTIALS" \
   --set "env[0].value=/secrets/gcp/sa-key.json" \
   --set service.type=LoadBalancer \
-  --set "flowsConfig.flows[0].name=text-improver" \
-  --set "flowsConfig.flows[0].entrypoint=start-text-improver" \
-  --set "flowsConfig.flows[0].description=Improve text through AI-powered generator-evaluator-polisher loop" \
+  --set "flowsConfig.flows[0].name=<flow-name>" \
+  --set "flowsConfig.flows[0].entrypoint=<first-actor-queue>" \
+  --set "flowsConfig.flows[0].description=<description>" \
   --set "flowsConfig.flows[0].mcp.progress=true" \
-  --set "flowsConfig.flows[0].a2a.tags[0]=text" \
   --wait --timeout=5m
 ```
 
-> The `image.tag` must match a published release. The gateway Helm chart defaults to `latest`
-> which may be a stale image without Pub/Sub support. Pin to a specific release tag.
-> Check available tags: `docker manifest inspect ghcr.io/deliveryhero/asya-gateway:<tag>`
-
-### Fix function-asya-flavors version
-
-The `asya-crossplane` chart pins `function-asya-flavors` to version `0.5.3` which may not be
-published. If actors remain in `ReconcileError` after installation, patch the function to the
-latest available version:
-
-```bash
-# Check what's available (returns "manifest unknown" if not published)
-docker manifest inspect ghcr.io/deliveryhero/function-asya-flavors:0.5.5
-
-# Patch to latest published version
-kubectl patch function.pkg.crossplane.io function-asya-flavors \
-  --type=merge \
-  -p '{"spec":{"package":"ghcr.io/deliveryhero/function-asya-flavors:0.5.5"}}'
-
-kubectl wait function.pkg.crossplane.io/function-asya-flavors \
-  --for=condition=Healthy --timeout=120s
-```
+> The `gcp-creds` volume mount provides `GOOGLE_APPLICATION_CREDENTIALS` for the gateway's
+> own Pub/Sub publisher and for any actor handlers using Vertex AI via the `vertex-ai`
+> EnvironmentConfig flavor.
 
 ---
 
-## 9. Demo Actors
+## 8. Actor Deployment
 
-Build and push the actor image, then deploy the compiled flow:
+Build your actor image and push it to Artifact Registry:
 
 ```bash
-cd examples/demo-kubecon
-
-# Build and push
-docker build -t ${REGISTRY}/asya-demo:latest .
-docker push ${REGISTRY}/asya-demo:latest
-
-# Recompile manifests for pubsub transport (if not already done)
-asya compile src/demo_flows/text_improver.py --force
+docker build -t ${REGISTRY}/my-actors:latest .
+docker push ${REGISTRY}/my-actors:latest
 ```
 
-Apply the compiled manifests and flavors:
+Compile the flow and apply manifests:
 
 ```bash
-# Apply Vertex AI EnvironmentConfig flavor first
+# Compile flow to AsyncActor manifests (if not already done)
+asya compile src/my_flow.py
+
+# Apply any EnvironmentConfig flavors (e.g. Vertex AI credentials)
 kubectl apply -f .asya/manifests/flavors/ -n $NS
 
-# Apply compiled AsyncActor manifests via kustomize
-kubectl apply -k .asya/manifests/text-improver/base/ -n $NS
+# Apply compiled AsyncActor manifests
+kubectl apply -k .asya/manifests/<flow-name>/base/ -n $NS
 ```
 
-> `asya k apply` is a CLI shorthand that internally runs `kubectl apply -k`. Use the kubectl
-> command directly if the `asya` CLI is not configured for this cluster.
-
-After deploying, restart actor pods to pick up WI credentials if not already done:
-
-```bash
-kubectl rollout restart deployment -n $NS \
-  start-text-improver generator evaluator polisher \
-  router-text-improver-line-20-loop-back-0 router-text-improver-line-21-seq \
-  router-text-improver-line-26-if router-text-improver-line-29-if \
-  end-text-improver x-sink x-sump
-```
+> `asya compile` generates kustomize manifests under `.asya/manifests/`. Use
+> `kubectl apply -k` directly if the `asya` CLI is not available on this machine.
 
 ---
 
-## 10. Verification
+## 9. Verification
 
 ```bash
-# Cluster and providers
+# Cluster and actor status
 kubectl get nodes
 kubectl get asyncactors -n $NS
 
 # Pub/Sub topics created by Crossplane
 gcloud pubsub topics list --project=$PROJECT | grep asya
 
-# Gateway external IP
-GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-echo "Gateway: http://${GATEWAY_IP}"
-
-# Health check
+# Gateway IP and health
+GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api \
+  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 curl http://${GATEWAY_IP}/health
 
 # A2A agent card (shows registered flows)
 curl http://${GATEWAY_IP}/.well-known/agent.json | python3 -m json.tool
 
 # MCP tools list
-SESSION_ID="mcp-session-$(python3 -c 'import uuid; print(uuid.uuid4())')"
+SESSION_ID="$(python3 -c 'import uuid; print(uuid.uuid4())')"
 curl -s -X POST http://${GATEWAY_IP}/mcp \
   -H "Content-Type: application/json" \
   -H "Mcp-Session-Id: ${SESSION_ID}" \
@@ -556,20 +429,11 @@ curl -s -X POST http://${GATEWAY_IP}/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | python3 -m json.tool
 
 # End-to-end test via A2A — POST to /a2a/{flow-name}
-curl -s -X POST http://${GATEWAY_IP}/a2a/text-improver \
+curl -s -X POST http://${GATEWAY_IP}/a2a/<flow-name> \
   -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"Write a limerick about message queues"}]}}}' | python3 -m json.tool
+  -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"hello"}]}}}' \
+  | python3 -m json.tool
 ```
 
-> The A2A `message/send` call blocks until the flow completes. The text-improver flow runs
-> a generator → evaluator loop → polisher via Vertex AI Gemini and typically takes 30-120s.
-
----
-
-## Cost Notes
-
-- KEDA scales actors to 0 when queues are empty — no idle compute cost for actors
-- `--logging=NONE --monitoring=NONE` avoids Cloud Logging/Monitoring charges
-- e2-standard-4 × 3 nodes ≈ $0.50/hr; delete the cluster after demos
-- Pub/Sub first 10 GB/month free; demo traffic well within free tier
-- Vertex AI Gemini API pricing applies per token; the evaluator-optimizer loop typically uses < 5000 tokens per run
+> `message/send` blocks until the flow completes — the gateway waits for the x-sink
+> actor to POST back the final result. Flows using LLM calls typically take 30–120s.
