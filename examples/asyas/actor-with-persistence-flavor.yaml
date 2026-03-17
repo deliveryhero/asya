@@ -21,7 +21,6 @@ metadata:
   namespace: my-project
 spec:
   actor: data-processor
-  transport: sqs
 
   # Reference shared persistence flavor created by asya-crew chart
   flavors: [asya-persistence-s3]

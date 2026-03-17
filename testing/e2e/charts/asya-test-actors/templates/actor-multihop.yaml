@@ -12,8 +12,6 @@ metadata:
     asya.sh/hop-index: "{{ $i }}"
 spec:
   actor: test-multihop-{{ $i }}
-  transport: {{ $.Values.transport }}
-  {{- include "asya-test-actors.pubsub-spec" $ | nindent 2 }}
   flavors:
   - asya-test-actor
 

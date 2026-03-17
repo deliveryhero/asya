@@ -18,6 +18,8 @@ spec:
     shortNames:
       - asya
       - asyas
+  defaultCompositionRef:
+    name: asyncactor-{{ .Values.transport }}
   versions:
     - name: v1alpha1
       served: true
@@ -30,7 +32,6 @@ spec:
               type: object
               required:
                 - actor
-                - transport
                 - image
                 - handler
               properties:
@@ -40,15 +41,6 @@ spec:
                   minLength: 1
                   maxLength: 63
                   pattern: '^[a-z0-9]([a-z0-9-]*[a-z0-9])?$'
-
-                transport:
-                  type: string
-                  description: Transport type for message queue
-                  enum:
-                    - sqs
-                    - rabbitmq
-                    - pubsub
-                  default: sqs
 
                 flavors:
                   type: array
@@ -441,9 +433,6 @@ spec:
         - name: Replicas
           type: integer
           jsonPath: .status.infrastructure.workload.replicas
-        - name: Transport
-          type: string
-          jsonPath: .spec.transport
         - name: Queue
           type: string
           jsonPath: .status.queueUrl

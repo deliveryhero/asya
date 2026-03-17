@@ -23,12 +23,6 @@ asya.sh/test-type: flow
 {{- end }}
 
 {{/*
-Pub/Sub spec fields (no-op, gcpProject removed from XRD).
-*/}}
-{{- define "asya-test-flows.pubsub-spec" -}}
-{{- end }}
-
-{{/*
 Flow handler resolution environment variables for nested-if flow.
 These environment variables allow routers to resolve handler names to actor names.
 */}}

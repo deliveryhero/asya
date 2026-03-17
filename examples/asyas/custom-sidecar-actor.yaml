@@ -8,7 +8,6 @@ metadata:
   namespace: my-project
 spec:
   actor: custom-sidecar-actor
-  transport: sqs
 
   # Custom sidecar configuration
   sidecar:

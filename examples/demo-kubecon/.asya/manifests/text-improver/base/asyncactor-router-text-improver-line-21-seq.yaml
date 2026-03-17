@@ -7,13 +7,9 @@ metadata:
     asya.sh/flow: text-improver
     asya.sh/flow-role: router
 spec:
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: pubsub
   actor: router-text-improver-line-21-seq
   image: python:3.13-slim
   handler: routers.router_text_improver_line_21_seq
-  transport: pubsub
   env:
   - name: PYTHONPATH
     value: /app

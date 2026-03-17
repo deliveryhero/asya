@@ -2,7 +2,7 @@
 # This is a generic chart for deploying AsyncActors
 #
 # MODE 1: Single Actor Deployment
-#   Set name, namespace, transport, image, handler, and optional fields
+#   Set name, namespace, image, handler, and optional fields
 #
 # MODE 2: Multi-Actor Deployment
 #   Set actors list instead of individual fields
@@ -16,14 +16,15 @@ name: ""
 # Namespace to deploy the actor(s)
 namespace: default
 
-# Transport name (required if not using actors list)
-# Must reference a transport configured in the operator
-# Common values: rabbitmq, sqs
+# Transport type used by this cluster (sqs, rabbitmq, pubsub).
+# Not written to the AsyncActor spec — transport is configured cluster-wide
+# via the asya-crossplane chart's defaultCompositionRef. This value is used
+# only by the queue health check test to verify the correct queue backend.
 transport: ""
 
 # MODE 2: Multi-actor deployment
 # Deploy multiple actors with this chart
-# Each actor inherits namespace, transport, and default.* from root
+# Each actor inherits namespace and default.* from root
 # but can override any field
 actors: []
 # Example:
@@ -35,7 +36,6 @@ actors: []
 #     value: my-value
 #
 # - name: actor-two
-#   transport: sqs
 #   scaling:
 #     maxReplicaCount: 20
 #   image: my-image:latest

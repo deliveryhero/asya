@@ -5,12 +5,9 @@ from __future__ import annotations
 from pathlib import Path
 
 
-_KNOWN_TRANSPORTS = ("sqs", "rabbitmq", "pubsub")
-
 _ROOT_CONFIG = """\
 templates:
   namespace: default
-  transport: {transport}
   router_image: "python:3.13-slim"
   max_replicas: 5
 
@@ -36,7 +33,6 @@ spec:
   actor: "{{ actor_name }}"
   image: "{{ image }}"
   handler: "{{ handler }}"
-  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -56,7 +52,6 @@ spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"
   handler: "{{ handler }}"
-  transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -98,7 +93,6 @@ def init_project(
     target_dir: Path,
     *,
     registry: str,
-    transport: str,
 ) -> Path:
     """Scaffold .asya/ project directory.
 
@@ -107,7 +101,6 @@ def init_project(
     Args:
         target_dir: Directory to create .asya/ in.
         registry: Container image registry (e.g. ghcr.io/my-org).
-        transport: Message transport (sqs, rabbitmq, pubsub).
 
     Returns:
         Path to the created .asya/ directory.
@@ -118,7 +111,7 @@ def init_project(
     # config.yaml
     config_file = asya_dir / "config.yaml"
     if not config_file.exists():
-        config_file.write_text(_ROOT_CONFIG.format(registry=registry, transport=transport))
+        config_file.write_text(_ROOT_CONFIG.format(registry=registry))
 
     # compiler/templates/ — templates are NOT part of the config tree,
     # they are stored as files and referenced by the stamper

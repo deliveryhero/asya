@@ -13,10 +13,6 @@ metadata:
   {{- end }}
 spec:
   actor: {{ $resume.name }}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ $resume.transport }}
-  transport: {{ $resume.transport }}
 
   {{- with $resume.sidecar }}
   sidecar:

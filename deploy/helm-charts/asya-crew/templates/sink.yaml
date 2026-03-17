@@ -13,10 +13,6 @@ metadata:
   {{- end }}
 spec:
   actor: {{ $sink.name }}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ $sink.transport }}
-  transport: {{ $sink.transport }}
   {{- include "asya-crew.pubsub-spec" . | nindent 2 }}
   {{- if .Values.persistence.enabled }}
   stateProxy:

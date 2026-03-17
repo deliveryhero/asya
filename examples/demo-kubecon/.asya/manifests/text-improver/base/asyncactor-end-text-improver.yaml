@@ -7,13 +7,9 @@ metadata:
     asya.sh/flow: text-improver
     asya.sh/flow-role: exitpoint
 spec:
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: pubsub
   actor: end-text-improver
   image: python:3.13-slim
   handler: routers.end_text_improver
-  transport: pubsub
   env:
   - name: PYTHONPATH
     value: /app

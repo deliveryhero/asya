@@ -10,7 +10,6 @@ spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"
   handler: "{{ handler }}"
-  transport: "{{ transport }}"
   env:
   - name: PYTHONPATH
     value: /app

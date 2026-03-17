@@ -7,8 +7,6 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-slow-boundary
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
 
   scaling:
     enabled: true

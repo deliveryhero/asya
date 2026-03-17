@@ -7,8 +7,6 @@ metadata:
     {{- include "asya-test-actors.labels" . | nindent 4 }}
 spec:
   actor: test-incrementer
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-actors.pubsub-spec" . | nindent 2 }}
   flavors:
   - asya-test-actor
 

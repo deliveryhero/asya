@@ -12,11 +12,7 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: research-flow-summarizer
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
+
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}

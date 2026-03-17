@@ -8,7 +8,6 @@ metadata:
   namespace: my-project
 spec:
   actor: preprocess
-  transport: sqs
 
   scaling:
     enabled: true

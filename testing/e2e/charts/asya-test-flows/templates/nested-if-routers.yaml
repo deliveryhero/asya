@@ -10,12 +10,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: start-test-nested-flow
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
-
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -41,11 +35,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-4-if
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -70,11 +59,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-6-if
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -99,11 +83,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-14-if
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -128,11 +107,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-7-seq
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -157,11 +131,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-10-seq
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -186,11 +155,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-15-seq
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -215,11 +179,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: router-test-nested-flow-line-18-seq
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -244,11 +203,6 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: end-test-nested-flow
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}

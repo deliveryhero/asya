@@ -84,10 +84,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -151,10 +147,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: false
   image: ghcr.io/deliveryhero/asya-testing:latest
@@ -202,10 +194,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -262,10 +250,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -284,10 +268,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -355,10 +335,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -428,10 +404,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -486,10 +458,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -549,10 +517,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -616,10 +580,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
-  transport: {transport}
   scaling:
     enabled: true
     minReplicaCount: 0

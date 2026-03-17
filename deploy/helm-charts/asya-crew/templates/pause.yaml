@@ -13,10 +13,6 @@ metadata:
   {{- end }}
 spec:
   actor: {{ $pause.name }}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ $pause.transport }}
-  transport: {{ $pause.transport }}
 
   {{- with $pause.sidecar }}
   sidecar:

@@ -171,10 +171,6 @@ metadata:
   namespace: {namespace}
 spec:
   actor: {actor_name}
-  transport: {TRANSPORT}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {TRANSPORT}
   scaling:
     enabled: false
   replicas: 1

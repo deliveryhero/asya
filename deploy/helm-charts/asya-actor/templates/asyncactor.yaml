@@ -2,7 +2,6 @@
 {{- range $actors }}
 {{- $actor := . }}
 {{- $namespace := $actor.namespace | default $.Values.namespace }}
-{{- $transport := $actor.transport | default $.Values.transport }}
 {{- $scaling := $actor.scaling | default $.Values.default.scaling }}
 {{- $timeout := $actor.timeout }}
 {{- $image := $actor.image | default $.Values.default.image }}
@@ -21,10 +20,6 @@ metadata:
     {{- include "asya-actor.labels" $ | nindent 4 }}
 spec:
   actor: {{ $actor.name }}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ $transport }}
-  transport: {{ $transport }}
 
   {{- if $scaling }}
   scaling:

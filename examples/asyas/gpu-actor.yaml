@@ -8,7 +8,6 @@ metadata:
   namespace: my-project
 spec:
   actor: llm-actor
-  transport: sqs
 
   scaling:
     enabled: true

@@ -5,7 +5,7 @@ from pathlib import Path
 from asya_lab.init import init_project
 
 
-_DEFAULTS = {"registry": "ghcr.io/test", "transport": "sqs"}
+_DEFAULTS = {"registry": "ghcr.io/test"}
 
 
 class TestInitProject:
@@ -15,7 +15,7 @@ class TestInitProject:
         assert asya_dir.is_dir()
 
     def test_creates_config_yaml(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/test", transport="sqs")
+        init_project(tmp_path, registry="ghcr.io/test")
         config = tmp_path / ".asya" / "config.yaml"
         assert config.exists()
         content = config.read_text()
@@ -43,30 +43,25 @@ class TestInitProject:
         gitignore = tmp_path / ".gitignore"
         assert not gitignore.exists()
 
-    def test_transport_in_config(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/test", transport="rabbitmq")
-        config = tmp_path / ".asya" / "config.yaml"
-        assert "transport: rabbitmq" in config.read_text()
-
     def test_registry_in_build_entry(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/acme", transport="sqs")
+        init_project(tmp_path, registry="ghcr.io/acme")
         config = tmp_path / ".asya" / "config.yaml"
         content = config.read_text()
         assert "ghcr.io/acme/*:latest" in content
 
     def test_no_compiler_image_registry(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/test", transport="sqs")
+        init_project(tmp_path, registry="ghcr.io/test")
         config = tmp_path / ".asya" / "config.yaml"
         assert "image_registry" not in config.read_text()
 
 
 class TestInitIdempotent:
     def test_preserves_existing_config(self, tmp_path: Path) -> None:
-        init_project(tmp_path, registry="ghcr.io/first", transport="sqs")
+        init_project(tmp_path, registry="ghcr.io/first")
         config = tmp_path / ".asya" / "config.yaml"
         original = config.read_text()
 
-        init_project(tmp_path, registry="ghcr.io/second", transport="rabbitmq")
+        init_project(tmp_path, registry="ghcr.io/second")
         assert config.read_text() == original
 
     def test_preserves_existing_template(self, tmp_path: Path) -> None:
@@ -91,11 +86,10 @@ class TestInitIdempotent:
 class TestInitConfig:
     def test_config_loadable_by_omegaconf(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
-        init_project(tmp_path, registry="ghcr.io/test", transport="sqs")
+        init_project(tmp_path, registry="ghcr.io/test")
 
         from asya_lab.config.project import AsyaProject
 
         cfg = AsyaProject.from_dir(tmp_path).cfg
-        assert cfg.templates.transport == "sqs"
         assert cfg.build[0].module == "*"
         assert "ghcr.io/test" in cfg.build[0].image

@@ -12,8 +12,6 @@ metadata:
 spec:
   # Logical actor identity for queue naming and message routing
   actor: hello-actor
-  # Reference to operator-configured transport
-  transport: sqs
 
   image: python:3.13-slim
   handler: echo_handler.process
