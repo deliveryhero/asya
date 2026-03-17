@@ -22,42 +22,33 @@ Set these once before running any commands in this guide:
 
 ```bash
 export PROJECT=<your-gcp-project-id>
-export ZONE=<zone>                  # e.g. europe-west1-b
+export REGION=<region>              # e.g. europe-west1
 export CLUSTER=<cluster-name>       # e.g. asya
 export NS=<actor-namespace>         # e.g. asya
-export REGISTRY=${ZONE%-*}-docker.pkg.dev/${PROJECT}/<registry-name>
+export REGISTRY=${REGION}-docker.pkg.dev/${PROJECT}/<registry-name>
 export ASYA_VERSION=<release-tag>   # e.g. 0.5.5 — check github.com/deliveryhero/asya/releases
 ```
 
 ---
 
-## 2. GKE Cluster
+## 2. GKE Cluster Requirements
 
-Asya has no special networking requirements. Use your existing VPC/subnet, or create a cluster
-with GKE defaults. The only Asya-required flag is `--workload-pool`, which enables
-GKE Workload Identity — both the Crossplane GCP provider and actor pods depend on it.
+Asya has no special networking or hardware requirements. Any standard GKE cluster works.
+The one Asya-specific requirement is **GKE Workload Identity** — both the Crossplane GCP
+provider and actor sidecars rely on it for keyless authentication to GCP APIs.
+
+When creating your cluster, ensure:
+
+- `--workload-pool=${PROJECT}.svc.id.goog` is set (enables Workload Identity)
+- Kubernetes 1.30+
+- Cluster autoscaler recommended — KEDA scales actors to 0 when queues are empty,
+  and the cluster autoscaler can then drain idle nodes to reduce cost
+
+Configure `kubectl` access before proceeding:
 
 ```bash
-gcloud container clusters create $CLUSTER \
-  --project=$PROJECT \
-  --zone=$ZONE \
-  --num-nodes=1 \
-  --machine-type=e2-standard-4 \
-  --workload-pool=${PROJECT}.svc.id.goog \
-  --enable-ip-alias \
-  --release-channel=regular
-
-gcloud container clusters get-credentials $CLUSTER \
-  --project=$PROJECT \
-  --zone=$ZONE
+gcloud container clusters get-credentials $CLUSTER --project=$PROJECT --region=$REGION
 ```
-
-> **Zonal vs regional**: `--zone` gives exactly 1 node. `--region` with `--num-nodes=1`
-> creates 1 node per zone (3 nodes in a 3-zone region). Use regional for production HA;
-> zonal for demos and cost-sensitive environments.
->
-> The entity running `create` must have `roles/container.admin`; it is automatically
-> granted `cluster-admin` inside the new cluster.
 
 ---
 
@@ -67,9 +58,9 @@ gcloud container clusters get-credentials $CLUSTER \
 gcloud artifacts repositories create asya \
   --project=$PROJECT \
   --repository-format=docker \
-  --location=${ZONE%-*}
+  --location=$REGION
 
-gcloud auth configure-docker ${ZONE%-*}-docker.pkg.dev
+gcloud auth configure-docker ${REGION}-docker.pkg.dev
 ```
 
 ---
