@@ -116,11 +116,3 @@ asya-gateway:
     username: asya
     existingSecret: asya-gateway-postgresql
     existingSecretKey: password
-
-  flowsConfig:
-    flows:
-    - name: text-improver
-      entrypoint: "start-text-improver"
-      description: "Improve text through AI-powered generator-evaluator-polisher loop"
-      mcp:
-        progress: true

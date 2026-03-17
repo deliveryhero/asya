@@ -630,6 +630,18 @@ time {
 }
 echo
 
+# Phase 9b: Register test flows with the gateway
+# Flows are not seeded via Helm values — they are patched into the ConfigMap.
+echo "[.] Phase 9b: Registering test flows with gateway..."
+time {
+  kubectl create configmap asya-gateway-flows \
+    --from-file=flows.yaml="$CHARTS_DIR/flows.yaml" \
+    -n "$NAMESPACE" \
+    --dry-run=client -o yaml | kubectl apply -f -
+  echo "[+] Test flows registered"
+}
+echo
+
 # Run Helm tests after Crossplane reconciliation and pod readiness.
 # Helm tests verify the end state (labels, connectivity, schema) and need
 # Deployments to exist, so they must run after Phase 8/9.
