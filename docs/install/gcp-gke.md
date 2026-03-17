@@ -253,7 +253,6 @@ can be created. Install with `providerConfigs.install=false` first.
 helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --namespace=$NS \
   --set providerConfigs.install=false \
-  --set providers.aws.enabled=false \
   --set providers.gcp.enabled=true \
   --set providers.gcp.pubsubVersion=v2.5.0 \
   --set gcpProviderConfig.name=default \
@@ -266,7 +265,6 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --set sidecar.gcpCredsSecret=asya-actor-creds \
   --set sidecar.gatewayURL=http://asya-gateway-mesh.${NS}.svc.cluster.local \
   --set functions.flavorsEnabled=true \
-  --set irsa.enabled=false \
   --set keda.authProvider=secret \
   --set pubsub.keda.secretRef.name=gcp-keda-secret \
   --set pubsub.keda.secretRef.credentialsKey=credentials.json \
@@ -292,23 +290,6 @@ helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --reuse-values \
   --set providerConfigs.install=true \
   --wait
-```
-
-### function-asya-flavors version
-
-If actors stay in `ReconcileError` after installation, the chart may be pinning
-`function-asya-flavors` to a version that is not published. Check and patch:
-
-```bash
-kubectl get function.pkg.crossplane.io function-asya-flavors -o jsonpath='{.spec.package}'
-
-# Patch to the same version as your Asya release
-kubectl patch function.pkg.crossplane.io function-asya-flavors \
-  --type=merge \
-  -p "{\"spec\":{\"package\":\"ghcr.io/deliveryhero/function-asya-flavors:${ASYA_VERSION}\"}}"
-
-kubectl wait function.pkg.crossplane.io/function-asya-flavors \
-  --for=condition=Healthy --timeout=120s
 ```
 
 ### asya-crew
