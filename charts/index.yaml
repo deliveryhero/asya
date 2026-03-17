@@ -1,0 +1,71 @@
+apiVersion: v1
+entries:
+  asya-actor:
+  - apiVersion: v2
+    appVersion: 0.5.4
+    created: "2026-03-17T16:33:25.356345211Z"
+    description: Generic Helm chart for deploying AsyncActor resources with health
+      validation
+    digest: 6d36157918b1075642a5c3808341e8cd1f77162cff836017f9cb515c49525094
+    keywords:
+    - asya
+    - actor
+    - async
+    - kubernetes
+    maintainers:
+    - name: Asya Team
+    name: asya-actor
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-actor-0.5.4.tgz
+    version: 0.5.4
+  asya-crew:
+  - apiVersion: v2
+    appVersion: 0.5.4
+    created: "2026-03-17T16:33:25.357121872Z"
+    description: System AsyncActors with reserved roles (x-sink, x-sump, checkpoint-s3,
+      ...) for Asya framework
+    digest: f512a32202cb7c87a8f837cccda69a8ebcff7f24234992bf0d4bb8bf199af244
+    keywords:
+    - asya
+    - actor
+    - system
+    - crew
+    maintainers:
+    - name: Asya Team
+    name: asya-crew
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-crew-0.5.4.tgz
+    version: 0.5.4
+  asya-crossplane:
+  - apiVersion: v2
+    appVersion: 0.5.4
+    created: "2026-03-17T16:33:25.358369543Z"
+    description: Crossplane XRDs and Compositions for Asya AsyncActor
+    digest: 21cb1dba66f83fcd4c0cf1493c780c47b5d8014458aea36967c43cb4823c9506
+    home: https://github.com/deliveryhero/asya
+    keywords:
+    - asya
+    - crossplane
+    - asyncactor
+    - sqs
+    maintainers:
+    - name: Asya Team
+    name: asya-crossplane
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-crossplane-0.5.4.tgz
+    version: 0.5.4
+  asya-gateway:
+  - apiVersion: v2
+    appVersion: 0.5.4
+    created: "2026-03-17T16:33:25.359041388Z"
+    description: Asya MCP Gateway with PostgreSQL backend
+    digest: 298a207b8dffb2a966ba67a1a30631dc9fb3f1f9a91e0bbd89afb5adaedadbcf
+    name: asya-gateway
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-gateway-0.5.4.tgz
+    version: 0.5.4
+generated: "2026-03-17T16:33:25.355650382Z"
