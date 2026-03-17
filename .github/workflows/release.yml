@@ -276,7 +276,7 @@ jobs:
 
         python3 -m http.server 8879 --directory gh-pages/charts &
         SERVER_PID=$!
-        trap 'kill $SERVER_PID 2>/dev/null' EXIT
+        trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
         sleep 1
         curl -sf http://localhost:8879/index.yaml > /dev/null || { echo "[-] Local chart server failed to start"; exit 1; }
 
@@ -290,8 +290,8 @@ jobs:
 
         kill $SERVER_PID 2>/dev/null || true
 
-        # Restore Chart.yaml with production URLs before packaging
-        git checkout deploy/helm-charts/asya-playground/Chart.yaml
+        # Restore production repo URLs in Chart.yaml (version was already bumped by earlier step)
+        sed -i 's|http://localhost:8879|https://asya.sh/charts|g' deploy/helm-charts/asya-playground/Chart.yaml
         rm -f deploy/helm-charts/asya-playground/Chart.lock
 
         echo "[.] Packaging asya-playground..."
