@@ -344,23 +344,74 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ### asya-gateway
 
-The gateway requires PostgreSQL for task state. You can use any compatible database —
-managed services (Cloud SQL, AlloyDB, RDS) work well for production. For a quick
-in-cluster instance, use the Bitnami chart:
+The gateway requires PostgreSQL for task state. For production use Cloud SQL, AlloyDB,
+or another managed service. For a quick in-cluster instance:
+
+<details>
+<summary>In-cluster PostgreSQL (click to expand)</summary>
 
 ```bash
-helm repo add bitnami https://charts.bitnami.com/bitnami
-helm repo update bitnami
-
-helm install asya-gateway-postgresql bitnami/postgresql \
+kubectl create secret generic asya-gateway-postgresql \
   --namespace=$NS \
-  --set auth.database=asya_gateway \
-  --set auth.username=asya \
-  --set primary.persistence.size=5Gi \
-  --wait --timeout=5m
+  --from-literal=password=$(openssl rand -hex 16)
+
+kubectl apply -n $NS -f - <<'EOF'
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: asya-gateway-postgresql
+spec:
+  serviceName: asya-gateway-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: asya-gateway-postgresql
+  template:
+    metadata:
+      labels:
+        app: asya-gateway-postgresql
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: asya_gateway
+        - name: POSTGRES_USER
+          value: asya
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: asya-gateway-postgresql
+              key: password
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql/data
+          subPath: pgdata
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests:
+          storage: 5Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asya-gateway-postgresql
+spec:
+  selector:
+    app: asya-gateway-postgresql
+  ports:
+  - port: 5432
+EOF
 ```
 
-Then install the gateway, referencing the Bitnami-created secret directly:
+</details>
+
+Then install the gateway, referencing the secret directly:
 
 ```bash
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
