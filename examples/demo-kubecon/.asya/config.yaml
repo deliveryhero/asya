@@ -6,7 +6,9 @@ templates:
 
 build:
 - module: "*"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/asya-demo:latest"
+  # Set to your Artifact Registry path before compiling for GKE:
+  # {REGION}-docker.pkg.dev/{PROJECT}/{REPO}/asya-demo:latest
+  image: "asya-demo:latest"
 
 compiler:
   routers: "./src/demo_actors/compiled"

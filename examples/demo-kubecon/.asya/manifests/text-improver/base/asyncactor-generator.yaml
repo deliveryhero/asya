@@ -7,13 +7,13 @@ metadata:
     asya.sh/flow: text-improver
     asya.sh/flow-role: handler
 spec:
+  actor: generator
+  image: asya-demo:latest
+  handler: demo_actors.generator.generator
+  transport: pubsub
   compositionSelector:
     matchLabels:
       asya.sh/transport: pubsub
-  actor: generator
-  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/asya-demo:latest
-  handler: demo_actors.generator.generator
-  transport: pubsub
   scaling:
     enabled: true
     minReplicaCount: 0

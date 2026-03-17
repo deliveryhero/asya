@@ -11,6 +11,9 @@ spec:
   image: "{{ image }}"
   handler: "{{ handler }}"
   transport: "{{ transport }}"
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: "{{ transport }}"
   scaling:
     enabled: true
     minReplicaCount: 0
