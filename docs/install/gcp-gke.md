@@ -344,77 +344,26 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ### asya-gateway
 
-The gateway needs PostgreSQL for task state. You can use any PostgreSQL-compatible
-database — managed services (Cloud SQL, AlloyDB, RDS) or an in-cluster instance.
-
-For in-cluster PostgreSQL, apply a StatefulSet with a PVC and a Secret for the password:
+The gateway requires PostgreSQL for task state. You can use any compatible database —
+managed services (Cloud SQL, AlloyDB, RDS) work well for production. For a quick
+in-cluster instance, use the Bitnami chart:
 
 ```bash
-# Generate a random password and store it as a Secret
-kubectl create secret generic asya-gateway-db-creds \
-  --namespace=$NS \
-  --from-literal=password=$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo update bitnami
 
-kubectl apply -n $NS -f - <<'EOF'
-apiVersion: apps/v1
-kind: StatefulSet
-metadata:
-  name: asya-gateway-postgresql
-spec:
-  serviceName: asya-gateway-postgresql
-  replicas: 1
-  selector:
-    matchLabels:
-      app: asya-gateway-postgresql
-  template:
-    metadata:
-      labels:
-        app: asya-gateway-postgresql
-    spec:
-      containers:
-      - name: postgresql
-        image: postgres:15-alpine
-        env:
-        - name: POSTGRES_DB
-          value: asya_gateway
-        - name: POSTGRES_USER
-          value: asya
-        - name: POSTGRES_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: asya-gateway-db-creds
-              key: password
-        ports:
-        - containerPort: 5432
-        volumeMounts:
-        - name: data
-          mountPath: /var/lib/postgresql/data
-  volumeClaimTemplates:
-  - metadata:
-      name: data
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests:
-          storage: 5Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: asya-gateway-postgresql
-spec:
-  selector:
-    app: asya-gateway-postgresql
-  ports:
-  - port: 5432
-    targetPort: 5432
-EOF
+helm install asya-gateway-postgresql bitnami/postgresql \
+  --namespace=$NS \
+  --set auth.database=asya_gateway \
+  --set auth.username=asya \
+  --set primary.persistence.size=5Gi \
+  --wait --timeout=5m
 ```
 
-Pass the password from the Secret into the gateway chart:
+Then install the gateway, passing the password directly:
 
 ```bash
-DB_PASSWORD=$(kubectl get secret asya-gateway-db-creds -n $NS \
+DB_PASSWORD=$(kubectl get secret asya-gateway-postgresql -n $NS \
   -o jsonpath='{.data.password}' | base64 -d)
 
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
@@ -442,10 +391,6 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "flowsConfig.flows[0].mcp.progress=true" \
   --wait --timeout=5m
 ```
-
-> The `gcp-creds` volume mount provides `GOOGLE_APPLICATION_CREDENTIALS` for the gateway's
-> own Pub/Sub publisher and for any actor handlers using Vertex AI via the `vertex-ai`
-> EnvironmentConfig flavor.
 
 ---
 
