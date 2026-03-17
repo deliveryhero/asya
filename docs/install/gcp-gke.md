@@ -446,9 +446,9 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set "env[2].valueFrom.secretKeyRef.name=asya-gateway-auth" \
   --set "env[2].valueFrom.secretKeyRef.key=mcp-api-key" \
   --set service.type=LoadBalancer \
-  --set "flowsConfig.flows[0].name=<flow-name>" \
-  --set "flowsConfig.flows[0].entrypoint=<first-actor-queue>" \
-  --set "flowsConfig.flows[0].description=<description>" \
+  --set "flowsConfig.flows[0].name=hello" \
+  --set "flowsConfig.flows[0].entrypoint=hello" \
+  --set "flowsConfig.flows[0].description=A simple hello world actor" \
   --set "flowsConfig.flows[0].mcp.progress=true" \
   --wait --timeout=5m
 ```
@@ -475,7 +475,7 @@ Clients must send the API key in the `X-API-Key` header for A2A, or
 A2A_KEY=$(kubectl get secret asya-gateway-auth -n $NS \
   -o jsonpath='{.data.a2a-api-key}' | base64 -d)
 
-curl -X POST http://${GATEWAY_IP}/a2a/<flow-name> \
+curl -X POST http://${GATEWAY_IP}/a2a/hello \
   -H "X-API-Key: $A2A_KEY" \
   -H "Content-Type: application/json" \
   -d '...'
@@ -615,7 +615,7 @@ curl -s -X POST http://${GATEWAY_IP}/mcp \
   -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | python3 -m json.tool
 
 # End-to-end test via A2A (requires A2A key)
-curl -s -X POST http://${GATEWAY_IP}/a2a/<flow-name> \
+curl -s -X POST http://${GATEWAY_IP}/a2a/hello \
   -H "Content-Type: application/json" \
   -H "X-API-Key: $A2A_KEY" \
   -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"hello"}]}}}' \

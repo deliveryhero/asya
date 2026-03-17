@@ -45,7 +45,7 @@ asya-crossplane:
 
   gcpProviderConfig:
     name: default
-    projectId: "foodsci-img-gen-dev-1407-1448"
+    projectId: "<your-gcp-project-id>"
     # Secret = JSON key (asya-demo-crossplane SA) in crossplane-system/gcp-creds
     credentialsSource: Secret
     secretRef:
@@ -54,7 +54,7 @@ asya-crossplane:
       key: credentials.json
 
   sidecar:
-    gcpProjectId: "foodsci-img-gen-dev-1407-1448"
+    gcpProjectId: "<your-gcp-project-id>"
     # asya-demo-actor SA key mounted in each actor pod sidecar for Pub/Sub access
     gcpCredsSecret: "asya-actor-creds"
     # Base URL (no /mesh suffix) — sidecar reporter appends /health, /mesh, /mesh/{id}/final
@@ -114,19 +114,13 @@ asya-gateway:
     port: 5432
     database: asya_gateway
     username: asya
-    password: asya-db-password
+    existingSecret: asya-gateway-postgresql
+    existingSecretKey: password
 
-  routes:
-    createConfigMap: true
-    defaults:
-      progress: true
-      timeout: 120
-    tools:
+  flowsConfig:
+    flows:
     - name: text-improver
+      entrypoint: "start-text-improver"
       description: "Improve text through AI-powered generator-evaluator-polisher loop"
-      parameters:
-        task:
-          type: string
-          required: true
-          description: "Text improvement task description"
-      route: ["start-text-improver"]
+      mcp:
+        progress: true

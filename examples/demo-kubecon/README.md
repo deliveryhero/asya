@@ -137,36 +137,26 @@ export API_KEY=$(kubectl -n asya-demo get secret asya-gateway-auth \
 curl ${GATEWAY_URL}/health
 ```
 
-### Send a task via A2A
+### Send a message via A2A
+
+`message/send` blocks until the flow completes (the gateway waits for the
+x-sink actor to POST back the final result). Flows using LLM calls typically
+take 30-120s.
 
 ```bash
-curl -s -X POST ${GATEWAY_URL}/a2a/ \
+curl -s -X POST ${GATEWAY_URL}/a2a/text-improver \
   -H "Content-Type: application/json" \
   -H "X-API-Key: ${API_KEY}" \
   -d '{
-    "jsonrpc": "2.0", "method": "tasks/send", "id": 1,
+    "jsonrpc": "2.0", "method": "message/send", "id": 1,
     "params": {
       "message": {
+        "messageId": "demo-1",
         "role": "user",
-        "parts": [{"type": "text", "text": "Write a limerick about message queues"}]
-      },
-      "skill": "text-improver"
+        "parts": [{"kind": "text", "text": "Write a limerick about message queues"}]
+      }
     }
   }' | python3 -m json.tool
-```
-
-### Poll for result
-
-```bash
-TASK_ID=<task-id-from-above>
-
-curl -s -X POST ${GATEWAY_URL}/a2a/ \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: ${API_KEY}" \
-  -d "{
-    \"jsonrpc\": \"2.0\", \"method\": \"tasks/get\", \"id\": 2,
-    \"params\": {\"id\": \"${TASK_ID}\"}
-  }" | python3 -m json.tool
 ```
 
 ## Project structure
