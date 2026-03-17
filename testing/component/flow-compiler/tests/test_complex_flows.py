@@ -93,6 +93,7 @@ class TestMultiLayerNesting:
 
     def test_three_level_nesting(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["l1"] == "A":
                     if p["l2"] == "X":
@@ -124,6 +125,7 @@ class TestMultiLayerNesting:
 
     def test_nested_with_mutations_at_each_level(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["level"] = 0
                 if p["l1"]:
@@ -151,6 +153,7 @@ class TestComplexConvergence:
 
     def test_diamond_pattern(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = start_handler(p)
                 if p["condition"]:
@@ -182,6 +185,7 @@ class TestComplexConvergence:
 
     def test_multiple_convergence_points(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["first"]:
                     p = handler_1a(p)
@@ -230,6 +234,7 @@ class TestComplexMutations:
 
     def test_mutations_with_expressions(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["sum"] = p["a"] + p["b"]
                 p["product"] = p["a"] * p["b"]
@@ -245,6 +250,7 @@ class TestComplexMutations:
 
     def test_augmented_assignments(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["counter"] += 1
                 p["total"] *= 2
@@ -260,6 +266,7 @@ class TestComplexMutations:
 
     def test_nested_subscripts(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["data"]["nested"]["value"] = 42
                 return p
@@ -277,6 +284,7 @@ class TestComplexConditionals:
 
     def test_multiple_elif_chains(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["type"] == "A":
                     p = handler_a(p)
@@ -310,6 +318,7 @@ class TestComplexConditionals:
 
     def test_complex_boolean_expressions(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if (p["x"] > 10 and p["y"] < 20) or (p["z"] == "special" and p["flag"]):
                     p = handler_match(p)
@@ -336,6 +345,7 @@ class TestMixedPatterns:
 
     def test_preprocessing_pipeline(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["status"] = "init"
                 p = validate(p)
@@ -393,6 +403,7 @@ class TestMixedPatterns:
 
     def test_error_handling_pattern(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = validate_input(p)
 
@@ -431,6 +442,7 @@ class TestEdgeCasesComplex:
 
     def test_all_empty_branches_nested(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["outer"]:
                     if p["inner"]:
@@ -450,6 +462,7 @@ class TestEdgeCasesComplex:
 
     def test_single_statement_branches(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"]:
                     p["a"] = 1
@@ -476,6 +489,7 @@ class TestEdgeCasesComplex:
         handlers = "\n".join([f"def handler_{i}(p: dict) -> dict:\n    return p" for i in range(20)])
 
         source = f"""
+@flow
 def flow(p: dict) -> dict:
 {calls}
     return p
@@ -500,6 +514,7 @@ class TestCodeQuality:
 
     def test_no_syntax_errors_in_complex_flow(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["init"] = True
                 p = setup(p)
@@ -542,6 +557,7 @@ class TestCodeQuality:
 
     def test_all_routers_are_functions(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"]:
                     p = handler_a(p)
