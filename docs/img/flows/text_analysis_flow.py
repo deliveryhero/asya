@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def text_analysis_flow(p: dict) -> dict:
     # Flow entrypoint: start_text_analysis_flow
 

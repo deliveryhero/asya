@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def sample_flow(p: dict) -> dict:
     p = handler_setup(p)
     if p["type"] == "A":
