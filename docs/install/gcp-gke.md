@@ -185,11 +185,12 @@ GCP credentials via the GKE metadata server. No secret is needed in the pod.
 
 **User secrets for actor handlers**
 
-Actor handlers often need to call external services (LLM APIs, databases, etc.). Asya passes
-these as Kubernetes Secrets mounted into actor pods via `EnvironmentConfig` flavors — the
-`asya-crossplane` chart renders the secret reference into each actor's pod spec. Currently
-Asya supports Kubernetes Secrets as the credential source; integration with secret stores
-(Vault, GCP Secret Manager, AWS Secrets Manager) is planned.
+Actor handlers often need credentials for external services (LLM APIs, databases, etc.).
+Create a Kubernetes Secret in your actor namespace (`$NS`) and reference it in your
+`AsyncActor` spec via standard `env` or `envFrom` — Asya renders these directly into the
+actor pod. EnvironmentConfig flavors are cluster-scoped and not the recommended mechanism
+for per-namespace secrets. Integration with external secret stores (Vault, GCP Secret Manager,
+AWS Secrets Manager) is planned.
 
 Create the required secrets:
 
@@ -197,30 +198,42 @@ Create the required secrets:
 kubectl create namespace crossplane-system
 kubectl create namespace keda
 
-# Generate JSON keys
+# Generate JSON keys for Crossplane and KEDA
 for sa in asya-crossplane asya-actor asya-keda; do
   gcloud iam service-accounts keys create /tmp/${sa}-key.json \
     --iam-account=${sa}@${PROJECT}.iam.gserviceaccount.com \
     --project=$PROJECT
 done
 
-# Crossplane provider credentials
+# Crossplane provider credentials (crossplane-system namespace)
 kubectl create secret generic gcp-creds \
   --namespace=crossplane-system \
   --from-file=credentials.json=/tmp/asya-crossplane-key.json
 
-# Actor handler credentials — store whatever your handlers need as a K8s Secret,
-# then reference it in an EnvironmentConfig flavor (see examples/demo-kubecon/.asya/manifests/flavors/)
+# GCP credentials for the gateway and actor handlers that call GCP APIs (actor namespace)
 kubectl create secret generic asya-actor-creds \
   --namespace=$NS \
   --from-file=sa-key.json=/tmp/asya-actor-key.json
 
-# KEDA scaler credentials
+# KEDA scaler credentials (keda namespace)
 kubectl create secret generic gcp-keda-secret \
   --namespace=keda \
   --from-file=credentials.json=/tmp/asya-keda-key.json
 
 rm /tmp/asya-*-key.json
+```
+
+For any other handler secrets (API keys, database passwords, etc.), create them in `$NS`
+the same way and reference them in your `AsyncActor` spec:
+
+```yaml
+spec:
+  env:
+  - name: MY_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: my-secret
+        key: api-key
 ```
 
 ---
@@ -230,7 +243,7 @@ rm /tmp/asya-*-key.json
 Two prerequisites must be installed before any Asya Helm chart. Both are independent
 open-source projects that Asya builds on.
 
-### Crossplane
+### 🍭 Crossplane
 
 [Crossplane](https://crossplane.io) is a Kubernetes control plane extension that lets you
 manage cloud resources (GCP Pub/Sub topics, subscriptions) as Kubernetes CRDs. The
@@ -247,7 +260,7 @@ helm install crossplane crossplane-stable/crossplane \
   --wait --timeout=5m
 ```
 
-### KEDA
+### ⚡ KEDA
 
 [KEDA](https://keda.sh) (Kubernetes Event-Driven Autoscaling) scales actor Deployments
 based on Pub/Sub subscription backlog — scaling to 0 when a queue is empty and back up
@@ -265,9 +278,9 @@ helm install keda kedacore/keda \
 
 ---
 
-## 7. Asya components (two-step install)
+## 7. 🎭 Asya components  (two-step install)
 
-### asya-crossplane — Step 1: providers only
+### asya-crossplane — step 1: providers only
 
 Crossplane providers must reach `Healthy` before their CRDs exist and ProviderConfigs
 can be created. Install with `providerConfigs.install=false` first.
@@ -305,7 +318,7 @@ kubectl wait provider.pkg.crossplane.io/crossplane-provider-gcp-pubsub \
   --for=condition=Healthy --timeout=300s
 ```
 
-### asya-crossplane — Step 2: ProviderConfigs
+### asya-crossplane — step 2: ProviderConfigs
 
 ```bash
 helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
