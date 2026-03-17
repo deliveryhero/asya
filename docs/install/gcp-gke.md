@@ -67,13 +67,17 @@ gcloud auth configure-docker ${REGION}-docker.pkg.dev
 
 ## 4. GCP Service Accounts
 
-Three service accounts are required. Names below are suggestions; adjust to your naming convention.
+Three service accounts are required. The names below are suggestions — you can use any names,
+but they must be consistent with the Kubernetes secrets and the Workload Identity annotation
+created in the next steps. Asya Helm charts do not reference GCP SA names directly; they
+reference the **Kubernetes secret names** that hold the JSON keys (configured in Section 5)
+and the **KSA annotation** that links actor pods to the actor SA (configured below).
 
-| SA | Purpose | Required roles |
-|---|---|---|
-| `asya-crossplane` | Crossplane creates/deletes Pub/Sub topics and subscriptions | `roles/pubsub.admin` |
-| `asya-actor` | Actor sidecars publish/consume Pub/Sub; handlers call Vertex AI | `roles/pubsub.publisher`, `roles/pubsub.subscriber`, `roles/aiplatform.user` |
-| `asya-keda` | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` |
+| SA | Purpose | Required roles | Referenced via |
+|---|---|---|---|
+| `asya-crossplane` | Crossplane creates/deletes Pub/Sub topics and subscriptions | `roles/pubsub.admin` | JSON key in K8s secret → `gcpProviderConfig.secretRef` |
+| `asya-actor` | Actor sidecars publish/consume Pub/Sub; handlers call Vertex AI | `roles/pubsub.publisher`, `roles/pubsub.subscriber`, `roles/aiplatform.user` | WI annotation on the `default` KSA; JSON key in K8s secret for gateway |
+| `asya-keda` | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` | JSON key in K8s secret → `pubsub.keda.secretRef` |
 
 ```bash
 for sa in asya-crossplane asya-actor asya-keda; do
