@@ -214,13 +214,46 @@ done
 > `--condition=None` is required when the project IAM policy already contains conditional bindings
 > (common in enterprise GCP organizations). Omitting it causes a non-interactive mode error.
 
+### Actor Workload Identity (GKE)
+
+Actor pods authenticate to Pub/Sub and Vertex AI via **GKE Workload Identity** — no JSON key is
+mounted into the sidecar. The `asya-crossplane` chart injects `sidecar.gcpCredsSecret` via
+`envFrom: secretRef`, but the secret key `sa-key.json` contains a dot which Kubernetes silently
+drops as an invalid env var name. WI is therefore required for sidecar Pub/Sub access.
+
+Bind the `default` Kubernetes Service Account in the actor namespace to `asya-demo-actor`:
+
+```bash
+# Annotate the default KSA — no elevated permissions required
+kubectl annotate serviceaccount default \
+  -n $NS \
+  iam.gke.io/gcp-service-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
+
+# Grant Workload Identity User — requires setIamPolicy (run from personal account)
+gcloud iam service-accounts add-iam-policy-binding \
+  asya-demo-actor@${PROJECT}.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member="serviceAccount:${PROJECT}.svc.id.goog[${NS}/default]" \
+  --condition=None \
+  --project=$PROJECT
+```
+
+IAM changes propagate in ~60 seconds. Restart actor pods after this step.
+
 ---
 
 ## 6. Credentials
 
-Generate JSON keys and store them as Kubernetes Secrets. JSON keys are used because GKE Workload
-Identity for KEDA's `TriggerAuthentication` is not yet supported; key-based auth is used consistently
-across all three components for simplicity.
+Three authentication methods are used:
+
+- **Crossplane**: JSON key secret — Crossplane provider runs outside the actor pod context
+- **KEDA**: JSON key secret — KEDA's GCP Pub/Sub `TriggerAuthentication` does not yet support Workload Identity
+- **Actor sidecars**: GKE Workload Identity (see Section 5) — no JSON key in the sidecar
+- **Actor handlers (Vertex AI)**: JSON key via EnvironmentConfig volume mount (gateway + `asya-actor-creds` secret)
+
+Only `asya-demo-crossplane` and `asya-demo-keda` need JSON keys stored in Kubernetes Secrets.
+The `asya-actor-creds` secret is still created for the gateway's Pub/Sub publisher and the Vertex AI
+EnvironmentConfig mount — it is not injected into the sidecar.
 
 ```bash
 # Create namespaces first
@@ -271,43 +304,182 @@ helm install crossplane crossplane-stable/crossplane \
 
 ---
 
-## 8. asya-playground (two-step install)
+## 8. Asya components (two-step install)
 
-The `asya-playground` chart bundles KEDA, asya-crossplane, asya-crew, and asya-gateway.
+Install KEDA, then asya-crossplane, asya-crew, and asya-gateway from the local chart directories.
+The `asya-playground` umbrella chart can also be used once `asya.sh/charts` is published; until
+then, install each chart individually as shown below.
 
-The GCP Pub/Sub configuration is in `deploy/helm-charts/asya-playground/values-gke-pubsub.yaml`.
+The GCP Pub/Sub values are captured in `deploy/helm-charts/asya-playground/values-gke-pubsub.yaml`
+as a reference for the per-chart flags used here.
 
-### Step 1 — Install providers (ProviderConfigs off)
+### KEDA
+
+```bash
+helm repo add kedacore https://kedacore.github.io/charts
+helm repo update kedacore
+
+helm install keda kedacore/keda \
+  --namespace keda \
+  --wait --timeout=5m
+```
+
+### asya-crossplane — Step 1: providers only (no ProviderConfigs)
 
 Crossplane providers must reach `Healthy` before their CRDs exist and ProviderConfigs can be applied.
 
 ```bash
-helm repo add asya https://asya.sh/charts
-helm repo update asya
-
-helm install asya-demo deploy/helm-charts/asya-playground/ \
+helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --namespace=$NS \
-  --values=deploy/helm-charts/asya-playground/values-gke-pubsub.yaml \
-  --set asya-crossplane.providerConfigs.install=false \
+  --set providerConfigs.install=false \
+  --set providers.aws.enabled=false \
+  --set providers.gcp.enabled=true \
+  --set providers.gcp.pubsubVersion=v2.5.0 \
+  --set gcpProviderConfig.name=default \
+  --set gcpProviderConfig.projectId=$PROJECT \
+  --set gcpProviderConfig.credentialsSource=Secret \
+  --set gcpProviderConfig.secretRef.namespace=crossplane-system \
+  --set gcpProviderConfig.secretRef.name=gcp-creds \
+  --set gcpProviderConfig.secretRef.key=credentials.json \
+  --set sidecar.gcpProjectId=$PROJECT \
+  --set sidecar.gcpCredsSecret=asya-actor-creds \
+  --set sidecar.gatewayURL=http://asya-gateway-mesh.${NS}.svc.cluster.local \
+  --set functions.flavorsEnabled=true \
+  --set irsa.enabled=false \
+  --set keda.authProvider=secret \
+  --set pubsub.keda.secretRef.name=gcp-keda-secret \
+  --set pubsub.keda.secretRef.credentialsKey=credentials.json \
   --wait --timeout=10m
 ```
 
-Wait for the GCP Pub/Sub provider to become healthy:
+Wait for the GCP Pub/Sub provider to be healthy:
 
 ```bash
 kubectl wait provider.pkg.crossplane.io/crossplane-provider-gcp-pubsub \
-  --for=condition=Healthy \
-  --timeout=300s
+  --for=condition=Healthy --timeout=300s
 ```
 
-### Step 2 — Install ProviderConfigs
+### asya-crossplane — Step 2: install ProviderConfigs
 
 ```bash
-helm upgrade asya-demo deploy/helm-charts/asya-playground/ \
+helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --namespace=$NS \
-  --values=deploy/helm-charts/asya-playground/values-gke-pubsub.yaml \
-  --set asya-crossplane.providerConfigs.install=true \
+  --reuse-values \
+  --set providerConfigs.install=true \
   --wait
+```
+
+### asya-crew
+
+```bash
+helm install asya-crew deploy/helm-charts/asya-crew/ \
+  --namespace=$NS \
+  --set image.tag=0.5.5 \
+  --set "x-sink.transport=pubsub" \
+  --set "x-sink.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
+  --set "x-sump.transport=pubsub" \
+  --set "x-sump.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
+  --set "dlq-worker.enabled=false" \
+  --wait --timeout=5m
+```
+
+### asya-gateway
+
+The gateway requires exactly one transport enabled and an external PostgreSQL instance.
+Deploy a minimal PostgreSQL first (or use `externalDatabase.host=""` for in-memory / no persistence):
+
+```bash
+kubectl apply -n $NS -f - <<EOF
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: asya-gateway-postgresql
+spec:
+  serviceName: asya-gateway-postgresql
+  replicas: 1
+  selector:
+    matchLabels:
+      app: asya-gateway-postgresql
+  template:
+    metadata:
+      labels:
+        app: asya-gateway-postgresql
+    spec:
+      containers:
+      - name: postgresql
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_DB
+          value: asya_gateway
+        - name: POSTGRES_USER
+          value: asya
+        - name: POSTGRES_PASSWORD
+          value: asya-db-password
+        ports:
+        - containerPort: 5432
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asya-gateway-postgresql
+spec:
+  selector:
+    app: asya-gateway-postgresql
+  ports:
+  - port: 5432
+    targetPort: 5432
+EOF
+```
+
+```bash
+helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+  --namespace=$NS \
+  --set image.tag=0.5.5 \
+  --set transports.pubsub.enabled=true \
+  --set "transports.pubsub.config.projectId=${PROJECT}" \
+  --set postgresql.enabled=false \
+  --set externalDatabase.host=asya-gateway-postgresql \
+  --set externalDatabase.port=5432 \
+  --set externalDatabase.database=asya_gateway \
+  --set externalDatabase.username=asya \
+  --set externalDatabase.password=asya-db-password \
+  --set "volumes[0].name=gcp-creds" \
+  --set "volumes[0].secret.secretName=asya-actor-creds" \
+  --set "volumeMounts[0].name=gcp-creds" \
+  --set "volumeMounts[0].mountPath=/secrets/gcp" \
+  --set "volumeMounts[0].readOnly=true" \
+  --set "env[0].name=GOOGLE_APPLICATION_CREDENTIALS" \
+  --set "env[0].value=/secrets/gcp/sa-key.json" \
+  --set service.type=LoadBalancer \
+  --set "flowsConfig.flows[0].name=text-improver" \
+  --set "flowsConfig.flows[0].entrypoint=start-text-improver" \
+  --set "flowsConfig.flows[0].description=Improve text through AI-powered generator-evaluator-polisher loop" \
+  --set "flowsConfig.flows[0].mcp.progress=true" \
+  --set "flowsConfig.flows[0].a2a.tags[0]=text" \
+  --wait --timeout=5m
+```
+
+> The `image.tag` must match a published release. The gateway Helm chart defaults to `latest`
+> which may be a stale image without Pub/Sub support. Pin to a specific release tag.
+> Check available tags: `docker manifest inspect ghcr.io/deliveryhero/asya-gateway:<tag>`
+
+### Fix function-asya-flavors version
+
+The `asya-crossplane` chart pins `function-asya-flavors` to version `0.5.3` which may not be
+published. If actors remain in `ReconcileError` after installation, patch the function to the
+latest available version:
+
+```bash
+# Check what's available (returns "manifest unknown" if not published)
+docker manifest inspect ghcr.io/deliveryhero/function-asya-flavors:0.5.5
+
+# Patch to latest published version
+kubectl patch function.pkg.crossplane.io function-asya-flavors \
+  --type=merge \
+  -p '{"spec":{"package":"ghcr.io/deliveryhero/function-asya-flavors:0.5.5"}}'
+
+kubectl wait function.pkg.crossplane.io/function-asya-flavors \
+  --for=condition=Healthy --timeout=120s
 ```
 
 ---
@@ -323,15 +495,31 @@ cd examples/demo-kubecon
 docker build -t ${REGISTRY}/asya-demo:latest .
 docker push ${REGISTRY}/asya-demo:latest
 
-# Deploy
+# Recompile manifests for pubsub transport (if not already done)
 asya compile src/demo_flows/text_improver.py --force
-asya k apply src/demo_flows/text_improver.py
 ```
 
-Apply the Vertex AI EnvironmentConfig flavor:
+Apply the compiled manifests and flavors:
 
 ```bash
+# Apply Vertex AI EnvironmentConfig flavor first
 kubectl apply -f .asya/manifests/flavors/ -n $NS
+
+# Apply compiled AsyncActor manifests via kustomize
+kubectl apply -k .asya/manifests/text-improver/base/ -n $NS
+```
+
+> `asya k apply` is a CLI shorthand that internally runs `kubectl apply -k`. Use the kubectl
+> command directly if the `asya` CLI is not configured for this cluster.
+
+After deploying, restart actor pods to pick up WI credentials if not already done:
+
+```bash
+kubectl rollout restart deployment -n $NS \
+  start-text-improver generator evaluator polisher \
+  router-text-improver-line-20-loop-back-0 router-text-improver-line-21-seq \
+  router-text-improver-line-26-if router-text-improver-line-29-if \
+  end-text-improver x-sink x-sump
 ```
 
 ---
@@ -341,23 +529,40 @@ kubectl apply -f .asya/manifests/flavors/ -n $NS
 ```bash
 # Cluster and providers
 kubectl get nodes
-kubectl get providers -n crossplane-system
-
-# Actor readiness
-kubectl -n $NS get asyncactors
+kubectl get asyncactors -n $NS
 
 # Pub/Sub topics created by Crossplane
 gcloud pubsub topics list --project=$PROJECT | grep asya
 
-# Gateway endpoint
-kubectl -n $NS get svc asya-demo-asya-gateway
-curl http://<EXTERNAL_IP>/health
-curl http://<EXTERNAL_IP>/mcp/tools
+# Gateway external IP
+GATEWAY_IP=$(kubectl -n $NS get svc asya-gateway-api -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Gateway: http://${GATEWAY_IP}"
 
-# End-to-end test
-asya k send start-text-improver '{"task": "Write a limerick about message queues"}'
-asya k logs --follow
+# Health check
+curl http://${GATEWAY_IP}/health
+
+# A2A agent card (shows registered flows)
+curl http://${GATEWAY_IP}/.well-known/agent.json | python3 -m json.tool
+
+# MCP tools list
+SESSION_ID="mcp-session-$(python3 -c 'import uuid; print(uuid.uuid4())')"
+curl -s -X POST http://${GATEWAY_IP}/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: ${SESSION_ID}" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}' > /dev/null
+curl -s -X POST http://${GATEWAY_IP}/mcp \
+  -H "Content-Type: application/json" \
+  -H "Mcp-Session-Id: ${SESSION_ID}" \
+  -d '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}' | python3 -m json.tool
+
+# End-to-end test via A2A — POST to /a2a/{flow-name}
+curl -s -X POST http://${GATEWAY_IP}/a2a/text-improver \
+  -H "Content-Type: application/json" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"message/send","params":{"message":{"messageId":"test-1","role":"user","parts":[{"kind":"text","text":"Write a limerick about message queues"}]}}}' | python3 -m json.tool
 ```
+
+> The A2A `message/send` call blocks until the flow completes. The text-improver flow runs
+> a generator → evaluator loop → polisher via Vertex AI Gemini and typically takes 30-120s.
 
 ---
 

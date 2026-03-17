@@ -57,6 +57,8 @@ asya-crossplane:
     gcpProjectId: "foodsci-img-gen-dev-1407-1448"
     # asya-demo-actor SA key mounted in each actor pod sidecar for Pub/Sub access
     gcpCredsSecret: "asya-actor-creds"
+    # Base URL (no /mesh suffix) — sidecar reporter appends /health, /mesh, /mesh/{id}/final
+    gatewayURL: "http://asya-gateway-mesh.asya-demo.svc.cluster.local"
 
   functions:
     flavorsEnabled: true
@@ -79,6 +81,9 @@ asya-crossplane:
 # Crew: pubsub transport, use asya-actor KSA (bound via Workload Identity)
 # ---------------------------------------------------------------------------
 asya-crew:
+  image:
+    tag: "0.5.5"
+
   x-sink:
     transport: pubsub
     compositionSelector:
@@ -99,6 +104,8 @@ asya-crew:
 # ---------------------------------------------------------------------------
 asya-gateway:
   replicaCount: 1
+  image:
+    tag: "0.5.5"
   service:
     type: LoadBalancer
 
