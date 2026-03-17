@@ -360,12 +360,9 @@ helm install asya-gateway-postgresql bitnami/postgresql \
   --wait --timeout=5m
 ```
 
-Then install the gateway, passing the password directly:
+Then install the gateway, referencing the Bitnami-created secret directly:
 
 ```bash
-DB_PASSWORD=$(kubectl get secret asya-gateway-postgresql -n $NS \
-  -o jsonpath='{.data.password}' | base64 -d)
-
 helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
@@ -376,7 +373,8 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
   --set externalDatabase.port=5432 \
   --set externalDatabase.database=asya_gateway \
   --set externalDatabase.username=asya \
-  --set externalDatabase.password=$DB_PASSWORD \
+  --set externalDatabase.existingSecret=asya-gateway-postgresql \
+  --set externalDatabase.existingSecretKey=password \
   --set "volumes[0].name=gcp-creds" \
   --set "volumes[0].secret.secretName=asya-actor-creds" \
   --set "volumeMounts[0].name=gcp-creds" \
