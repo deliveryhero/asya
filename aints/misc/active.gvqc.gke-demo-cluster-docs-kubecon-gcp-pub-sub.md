@@ -1,7 +1,12 @@
 ---
 title: "GKE demo cluster + docs: KubeCon GCP Pub/Sub deployment"
 priority: 1 # high
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/misc/gvqc.gke-demo-cluster-docs-kubecon-gcp-pub-sub
+  - branch:misc/gvqc.gke-demo-cluster-docs-kubecon-gcp-pub-sub
 ---
+
 
 ## Goal
 
