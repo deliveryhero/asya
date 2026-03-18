@@ -1713,6 +1713,7 @@ class TestImportResolution:
             """
             from echo_handler import process
 
+            @flow
             def flow(p: dict) -> dict:
                 p = process(p)
                 return p
@@ -1729,6 +1730,7 @@ class TestImportResolution:
             """
             from echo_handler import process as handle
 
+            @flow
             def flow(p: dict) -> dict:
                 p = handle(p)
                 return p
@@ -1745,6 +1747,7 @@ class TestImportResolution:
             """
             from handlers import preprocess, postprocess
 
+            @flow
             def flow(p: dict) -> dict:
                 p = preprocess(p)
                 p = postprocess(p)
@@ -1764,6 +1767,7 @@ class TestImportResolution:
             """
             from mypackage.handlers import predict
 
+            @flow
             def flow(p: dict) -> dict:
                 p = predict(p)
                 return p
@@ -1778,6 +1782,7 @@ class TestImportResolution:
     def test_unimported_bare_call_stays_bare(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 return p
@@ -1794,6 +1799,7 @@ class TestImportResolution:
             """
             import echo_handler
 
+            @flow
             def flow(p: dict) -> dict:
                 p = echo_handler.process(p)
                 return p
