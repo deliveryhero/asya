@@ -75,17 +75,29 @@ kind: Kustomization
 """
 
 _RULES_YAML = """\
-# Compiler rules for treat-as resolution.
-# Each rule maps a Python construct to compiler behavior.
+# Compiler rules: classify Python symbols during flow compilation.
+# Most specific match wins (exact > prefix.* > . > *).
 #
-# Example:
-# - match: "tenacity.retry(stop=stop_after_attempt(X))"
-#   treat-as: config
-#   assign-to: spec.resiliency.retry.maxAttempts
+# Classification (treat-as):
+#   actor  - message boundary, separate K8s deployment
+#   inline - run code inside router verbatim
+#   unfold - expand function body into current flow
+#   flow   - sub-flow, compile recursively
+#   config - infrastructure metadata, strip and extract
 #
+# Extraction rules (where: + assign-to:):
+#   Navigate decorator AST, map values to XR spec paths.
+
+# --- Default classification rules ---
+- match: "."
+  treat-as: unfold
+
+- match: "*"
+  treat-as: inline
+
+# --- User rules below ---
 # - match: "my_lib.helper"
 #   treat-as: inline
-[]
 """
 
 

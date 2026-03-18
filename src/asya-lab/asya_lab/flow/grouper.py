@@ -10,6 +10,7 @@ from asya_lab.flow.ir import (
     Condition,
     Continue,
     FanOutCall,
+    InlineCode,
     IROperation,
     Mutation,
     Raise,
@@ -128,17 +129,22 @@ class OperationGrouper:
         while i < len(operations):
             op = operations[i]
 
-            if isinstance(op, Mutation):
-                mutations = [op]
+            if isinstance(op, Mutation | InlineCode):
+                raw_mutations: list[Mutation | InlineCode] = [op]
                 i += 1
 
                 while i < len(operations):
                     next_op = operations[i]
-                    if isinstance(next_op, Mutation):
-                        mutations.append(next_op)
+                    if isinstance(next_op, Mutation | InlineCode):
+                        raw_mutations.append(next_op)
                         i += 1
                     else:
                         break
+
+                # Normalize InlineCode → Mutation for Router compatibility
+                mutations: list[Mutation] = [
+                    m if isinstance(m, Mutation) else Mutation(lineno=m.lineno, code=m.code) for m in raw_mutations
+                ]
 
                 if i < len(operations):
                     next_op = operations[i]

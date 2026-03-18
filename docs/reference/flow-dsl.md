@@ -552,9 +552,441 @@ retries, monitoring, and deployment. There is no special "router runtime"
 
 ---
 
+## Compiler architecture
+
+### Pipeline overview
+
+```
+Source (.py)
+     |
+     v
+  [Parser]  ←── Rules Engine (AST-level classification + extraction)
+     |               ↑
+     |          Value Extractor (AST Call → spec values)
+     v
+  IR Operations (ActorCall, Mutation, Condition, ...)
+     |
+     v
+  [Grouper]
+     |
+     v
+  Routers (execution units)
+     |
+     v
+  [CodeGen]
+     |
+     v
+  routers.py + flow.dot
+```
+
+Each stage has a clear input/output contract:
+
+| Stage | Input | Output | Operates on |
+|-------|-------|--------|-------------|
+| **Parser** | Python source (AST) | `(flow_name, [IROperation])` | AST nodes |
+| **Rules Engine** | Symbol name (string) | `TreatAs` classification | Strings (AST-derived) |
+| **Value Extractor** | `ast.Call` + `CompilerRule` | `{spec_path: value}` | AST nodes |
+| **Grouper** | `[IROperation]` | `[Router]` | IR only |
+| **CodeGen** | `[Router]` | Python source string | IR only |
+
+The boundary is strict: **rules and extraction operate at AST level** (they need
+call arguments, decorator lists, function names). Everything downstream — grouper
+and codegen — operates on **IR only** and never touches AST nodes.
+
+### Stage 1: Parser (AST → IR)
+
+**Source**: `src/asya-lab/asya_lab/flow/parser.py`
+
+The parser walks the flow function's AST and produces a flat list of IR
+operations. It handles flow function discovery, parameter normalization, and
+statement classification.
+
+#### Flow function discovery
+
+The parser scans top-level function definitions for one matching the flow
+signature: a function with a single `dict`-typed parameter and `dict` return
+type.
+
+```python
+async def my_flow(state: dict) -> dict:  # matches
+def my_flow(p: dict) -> dict:           # matches (sync)
+def helper(x: int) -> int:              # does not match
+```
+
+The parameter name (`state`, `p`, `payload`) is normalized to `p` internally
+via `_ParamNormalizer`, so all downstream IR uses `p` consistently.
+
+#### Import map
+
+The parser collects all `import` and `from...import` statements from the
+module into a `{bare_name: qualified_name}` map:
+
+```python
+from tenacity import retry, stop_after_attempt
+# produces: {"retry": "tenacity.retry", "stop_after_attempt": "tenacity.stop_after_attempt"}
+```
+
+This map is passed to the value extractor so positional arguments of bare
+function calls can be resolved via `inspect.signature` on the qualified name.
+
+#### Statement classification
+
+Each statement in the flow function body maps to one IR node type:
+
+| Python construct | IR type | What happens |
+|---|---|---|
+| `p = handler(p)` | `ActorCall` | Route to named handler actor |
+| `p = await handler(p)` | `ActorCall` | Unwrap await, same as above |
+| `p["key"] = value` | `Mutation` | Inline payload transformation |
+| `p["key"] += 1` | `Mutation` | Augmented assignment |
+| `if cond: ... else: ...` | `Condition` | Branches parsed recursively |
+| `while cond: ...` | `WhileLoop` | Loop with optional condition |
+| `while True: ...` | `WhileLoop(test=None)` | Guarded at runtime |
+| `try: ... except: ...` | `TryExcept` | Exception routing |
+| `p["r"] = [a(x), b(y)]` | `FanOutCall(literal)` | Parallel dispatch |
+| `p["r"] = [a(x) for x in items]` | `FanOutCall(comprehension)` | Iterated fan-out |
+| `p["r"] = await asyncio.gather(...)` | `FanOutCall(gather)` | Concurrent gather |
+| `break` | `Break` | Exit loop |
+| `continue` | `Continue` | Jump to loop start |
+| `return state` | `Return` | Early exit |
+| `raise` | `Raise` | Re-raise in except block |
+
+#### Rules engine integration
+
+When classifying a symbol (e.g. `tenacity.retry`, `handler_a`), the parser
+consults the rules engine:
+
+1. Check for `# asya: <action>` inline comment override (highest priority)
+2. If no override and a rules engine is configured, call
+   `engine.classify(symbol, module_path=...)`
+3. Based on the result:
+   - `ACTOR` / `UNFOLD` / `FLOW` → `ActorCall` (separate actor)
+   - `INLINE` → `InlineCode` (inlined into router)
+   - `CONFIG` → `InlineCode` with extracted values from the where-tree
+   - No engine → all calls become `ActorCall` (backwards compatible)
+
+For `CONFIG` rules with `where:` trees, the parser calls
+`ValueExtractor.extract(call_node, rule)` to pull spec values and stores them
+in `InlineCode.extracted_values`.
+
+### Rules engine (AST-level classification)
+
+**Source**: `src/asya-lab/asya_lab/compiler/rules.py`
+
+The rules engine classifies Python symbols against an ordered list of compiler
+rules using a most-specific-wins strategy.
+
+#### TreatAs classifications
+
+| Value | Meaning | IR result |
+|-------|---------|-----------|
+| `actor` | Separate actor, route through queue | `ActorCall` |
+| `unfold` | Recursively compile (same-package helper) | `ActorCall` (future: inline expansion) |
+| `flow` | Embedded sub-flow | `ActorCall` (future: flow composition) |
+| `inline` | Inline code into router body | `InlineCode` |
+| `config` | Extract configuration values | `InlineCode` + `extracted_values` |
+
+#### Matching tiers
+
+Rules are matched against symbols with four tiers (lower = more specific = wins):
+
+| Tier | Pattern | Example | Matches |
+|------|---------|---------|---------|
+| 0 | Exact | `"tenacity.retry"` | `tenacity.retry` only |
+| 1 | Prefix wildcard | `"tenacity.*"` | `tenacity.retry`, `tenacity.stop`, ... |
+| 2 | Same-package dot | `"."` | Bare symbols in same root package |
+| 3 | Global wildcard | `"*"` | Everything |
+
+Within tier 1, longer prefixes win (`"tenacity.stop.*"` beats `"tenacity.*"`).
+
+#### Default rules
+
+```yaml
+- match: "."    # same-package symbols
+  treat-as: unfold
+
+- match: "*"    # everything else
+  treat-as: inline
+```
+
+Without user rules, bare symbols (same-package) are unfolded and dotted
+symbols (external) are inlined.
+
+#### User rules
+
+Loaded from `.asya/config.compiler.rules.yaml`. User rules prepend to defaults,
+so exact matches (tier 0) override wildcards:
+
+```yaml
+- match: "tenacity.retry"
+  treat-as: config
+  where:
+    - param: stop
+      where:
+        - param: {arg: 0, kwarg: "max_attempt_number"}
+          assign-to: spec.resiliency.retry.maxAttempts
+```
+
+#### Inline comment override
+
+The highest-priority classification is the `# asya: <action>` inline comment:
+
+```python
+p = external.lib(p)  # asya: actor   — forces actor regardless of rules
+p = local_helper(p)  # asya: inline  — forces inline regardless of rules
+```
+
+### Value extractor (AST-level extraction)
+
+**Source**: `src/asya-lab/asya_lab/compiler/extractor.py`
+
+The extractor pulls spec values from `ast.Call` nodes guided by `where:` trees
+in compiler rules. It produces `{spec_path: value}` dicts that the compiler
+writes into AsyncActor manifests.
+
+#### Argument binding
+
+Call arguments are bound to parameter names:
+
+1. **Keywords**: always known (`func(delay=30)` → `{"delay": 30}`)
+2. **Positional + `ParamSpec`**: rule declares both bindings
+   (`param: {arg: 0, kwarg: "delay"}` → try kwarg first, then index)
+3. **Positional + `inspect.signature`**: import the function at compile time
+   and read its signature
+4. **Positional fallback**: use index as string key (`"0"`, `"1"`, ...)
+
+#### Where-tree walking
+
+The `where:` tree is walked recursively:
+
+- **Terminal node** (`param` + `assign-to`): extract value from bound arg,
+  store at spec path
+- **Non-terminal node** (`param` + `where`): bound arg is itself a Call or
+  BinOp; bind its args and recurse into children
+- **Match-only node** (`match` + `where`, no `param`): discriminator — only
+  recurse if the current AST call's function name matches `match`
+- **BinOp flattening**: `a() | b() | c()` flattened into three calls, each
+  walked independently (tenacity's pipe combinator)
+
+#### ParamSpec
+
+Rules can declare both positional and keyword bindings:
+
+```yaml
+param: {arg: 0, kwarg: "name", type: "str"}
+```
+
+The extractor tries `kwarg` first (always known from keyword args), then falls
+back to positional `arg` index. The `type` field is metadata for future
+validation.
+
+#### Static value extraction
+
+The extractor handles these AST expression types:
+
+| AST type | Example | Extracted value |
+|----------|---------|-----------------|
+| `ast.Constant` | `30`, `"hello"`, `True` | Literal value |
+| `ast.Name` | `ValueError` | Identifier string |
+| `ast.Tuple` | `(ValueError, TypeError)` | Comma-joined string |
+| `ast.UnaryOp(USub)` | `-5` | Negated number |
+| Complex expressions | `foo()`, `x + y` | `None` (not extractable) |
+
+### IR specification
+
+**Source**: `src/asya-lab/asya_lab/flow/ir.py`
+
+All IR nodes inherit from `IROperation(lineno: int)`:
+
+```python
+# Actor invocation — routed through a queue to a separate actor
+ActorCall(name: str, treat_as: str, extracted_values: dict[str, object])
+
+# Inline code — executed inside the router function body
+InlineCode(code: str, extracted_values: dict[str, object])
+
+# Payload mutation — modifies payload fields inline
+Mutation(code: str)
+
+# Control flow
+Condition(test: str, true_branch: list[IROperation], false_branch: list[IROperation])
+WhileLoop(test: str | None, body: list[IROperation])    # None = while True
+Break()
+Continue()
+Return()
+
+# Error handling
+TryExcept(body: list[IROperation], handlers: list[ExceptHandler], finally_body: list[IROperation])
+ExceptHandler(error_types: list[str] | None, body: list[IROperation])   # None = bare except
+Raise()
+
+# Parallel execution
+FanOutCall(target_key: str, pattern: str, actor_calls: list[tuple[str, str]],
+           iter_var: str | None, iterable: str | None)
+```
+
+The IR is a flat tree: `Condition`, `WhileLoop`, and `TryExcept` contain nested
+operation lists in their branches, but there is no separate "block" concept.
+The grouper walks this tree to produce routers.
+
+### Stage 2: Grouper (IR → Routers)
+
+**Source**: `src/asya-lab/asya_lab/flow/grouper.py`
+
+The grouper transforms the flat IR operation list into a list of `Router`
+execution units. Each router becomes a separate async function in the
+generated code.
+
+#### What is a Router?
+
+A `Router` is an execution unit with:
+
+- **Mutations**: payload transformations executed inline (fused from
+  consecutive `Mutation` / `InlineCode` IR nodes)
+- **Routing decision**: conditional branch, loop-back, exception dispatch
+- **Continuation**: list of downstream actor names to visit next
+
+Key fields:
+
+```python
+Router:
+  name: str                              # e.g. "router_my_flow_line_5_if"
+  mutations: list[Mutation]              # inline payload edits
+  condition: Condition | None            # if-test (None = unconditional)
+  true_branch_actors: list[str]          # actors if condition true
+  false_branch_actors: list[str]         # actors if condition false
+  is_loop_back: bool                     # re-inserts loop body actors
+  guard_max_iter: int | None             # max iterations (while True guard)
+  is_try_enter: bool                     # sets _on_error header
+  is_try_exit: bool                      # clears _on_error on success
+  is_except_dispatch: bool               # matches error type, routes to handler
+  is_reraise: bool                       # raises for unhandled exceptions
+  is_fan_out: bool
+  fan_out_op: FanOutCall | None
+```
+
+#### Grouping rules
+
+1. **Mutation fusion**: consecutive mutations are batched into the next
+   router's `mutations` list — no separate actor for mutations
+2. **Condition**: creates a conditional router; branches processed recursively
+   with convergence labels for rejoin points
+3. **WhileLoop**: `while True` creates a self-referencing loop-back router
+   with max-iterations guard; `while cond` creates a condition router with
+   self-reference in the true branch
+4. **TryExcept**: creates four routers: try-enter (set `_on_error` header),
+   try-exit (clear header on success), except-dispatch (match error type via
+   MRO), reraise (unhandled)
+5. **FanOut**: creates a fan-out router + aggregator reference
+
+#### Convergence resolution
+
+Branches (if/else, try/except) must reconverge. The grouper uses placeholder
+labels (`CONVERGENCE_0`, `LOOP_EXIT_0`, etc.) during grouping, then resolves
+them to actual actor names in a final pass.
+
+#### Optimization
+
+- **Start router merger**: if the first router after `start_` only has
+  mutations (no branching), merge into `start_` to save one actor hop
+
+### Stage 3: Code generator (Routers → Code)
+
+**Source**: `src/asya-lab/asya_lab/flow/codegen.py`
+
+The code generator emits Python source from the router list. Each router
+becomes an `async def` function using the ABI yield protocol.
+
+#### Generated router types
+
+| Router type | Generated behavior |
+|---|---|
+| Start | Apply mutations, `SET .route.next[:0]` to prepend downstream actors |
+| Conditional | `if condition:` branch, append actors to `_next` list |
+| Loop-back | Re-insert loop body actors; for `while True`: check iteration guard via `.route.prev` count |
+| Try-enter | `SET .headers._on_error` to except-dispatch router name |
+| Try-exit | Clear `_on_error` header; chain finally + continuation actors |
+| Except-dispatch | Read `.status.error.type` + `.status.error.mro`, match handlers |
+| Reraise | Raise `RuntimeError` for unhandled exceptions |
+| Fan-out | Emit N+1 messages: parent + N sub-agents with `x-asya-fan-in` headers |
+| End | `SET .route.next` to `[]` (pipeline completion) |
+
+#### Handler resolution
+
+The generated `resolve()` function maps handler names from the flow source to
+actor names using `ASYA_HANDLER_*` environment variables:
+
+```
+ASYA_HANDLER_ANALYZE_SENTIMENT="handlers.analyze_sentiment"
+```
+
+Resolution uses suffix matching — any unambiguous suffix works:
+
+```python
+resolve("analyze_sentiment")              # shortest suffix
+resolve("handlers.analyze_sentiment")     # full path
+```
+
+Ambiguous matches raise an error listing candidates.
+
+#### Single-actor flows
+
+When a flow has exactly one actor call and no branching, the code generator
+emits a `FLOW_METADATA` constant instead of router functions:
+
+```python
+FLOW_METADATA = {
+    "flow_name": "my_flow",
+    "type": "single-actor",
+    "actor": "handler_name",
+    "labels": {"asya.sh/flow": "my_flow", "asya.sh/flow-role": "entrypoint"},
+}
+```
+
+#### Router naming convention
+
+| Pattern | Purpose |
+|---|---|
+| `start_{flow}` | Entry point |
+| `end_{flow}` | Exit point |
+| `router_{flow}_line_{N}_if` | Conditional at line N |
+| `router_{flow}_line_{N}_seq` | Sequential mutations at line N |
+| `router_{flow}_line_{N}_while_{id}` | Loop condition check |
+| `router_{flow}_line_{N}_loop_back_{id}` | Loop re-insertion |
+| `fanout_{flow}_line_{N}` | Fan-out dispatch |
+| `fanin_{flow}_line_{N}` | Fan-out aggregator |
+| `router_{flow}_line_{N}_try_enter_{id}` | Try entry |
+| `router_{flow}_line_{N}_try_exit_{id}` | Try success path |
+| `router_{flow}_line_{N}_except_dispatch_{id}` | Exception dispatch |
+| `router_{flow}_line_{N}_reraise_{id}` | Unhandled exception |
+
+### Future: adapter generation
+
+When a flow calls a decorated function (e.g. `@tool(...)`) that doesn't
+conform to the `dict -> dict` actor protocol, the compiler will generate
+an adapter handler. See aint [ch0h] for the full design.
+
+The adapter shape is inferred from the call site, not from templates:
+
+```python
+state["result"] = greet_user(state["tool_call"]["args"])  # asya: actor
+```
+
+The parser extracts input/output paths from the AST and stores them on the
+`ActorCall` IR node. The code generator reads these IR fields and emits the
+adapter — it never touches AST nodes directly.
+
+| Concern | Layer | Why |
+|---------|-------|-----|
+| Decorator pattern matching | Rules (AST) | Needs symbol names |
+| Parameter extraction | Extractor (AST) | Needs `ast.Call` arg binding |
+| Input/output path inference | Parser (AST → IR) | Needs `ast.Subscript` chains |
+| "Needs adapter?" decision | IR | `input_path is not None` on `ActorCall` |
+| Adapter code emission | Codegen (IR → Code) | Reads IR fields only |
+
+---
+
 ## Further reading
 
-- [Flow Compiler Architecture](../architecture/asya-flow.md) — compiler
-  internals: parser IR, grouper optimization, code generation
 - [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers
