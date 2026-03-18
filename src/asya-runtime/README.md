@@ -2,7 +2,7 @@
 
 Lightweight Unix socket server for actor-sidecar communication. Single Python file, no dependencies.
 
-**Python Version Support**: 3.7+ (compatible with older AI model frameworks)
+**Python Version Support**: 3.10+
 
 ## Quick Start
 
@@ -16,10 +16,8 @@ python asya_runtime.py
 When deploying actors on Kubernetes, the operator automatically injects the runtime:
 
 1. **Command injection**: The operator sets `command: ["python3", "/opt/asya/asya_runtime.py"]` for all runtime containers
-2. **Python availability**: Your container image must have `python3` (version 3.7+) available in PATH
+2. **Python availability**: Your container image must have `python3` (version 3.10+) available in PATH
 3. **Handler importability**: Your function must be importable by the runtime
-
-**Note**: Python 3.7+ support ensures compatibility with older AI model frameworks and legacy inference servers.
 
 ### Custom Python Executable
 
