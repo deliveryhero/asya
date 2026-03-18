@@ -1130,6 +1130,14 @@ helm<span class="w"> </span>install<span class="w"> </span>crossplane<span class
 </code></pre></div>
 <h3 id="2-configure-crossplane-values">2. Configure Crossplane Values<a class="headerlink" href="#2-configure-crossplane-values" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># crossplane-values.yaml</span>
+<span class="nt">providers</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">   </span><span class="c1"># opt-in: disabled by default</span>
+
+<span class="nt">irsa</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w">     </span><span class="c1"># opt-in: disabled by default</span>
+<span class="w">  </span><span class="nt">roleArnPattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}&quot;</span>
+
 <span class="nt">awsRegion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
 <span class="nt">awsProviderConfig</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span>

@@ -202,6 +202,14 @@ helm install crossplane crossplane-stable/crossplane \
 
 ```yaml
 # crossplane-values.yaml
+providers:
+  aws:
+    enabled: true   # opt-in: disabled by default
+
+irsa:
+  enabled: true     # opt-in: disabled by default
+  roleArnPattern: "arn:aws:iam::ACCOUNT_ID:role/asya-actors-{namespace}"
+
 awsRegion: us-east-1
 awsProviderConfig:
   name: default
