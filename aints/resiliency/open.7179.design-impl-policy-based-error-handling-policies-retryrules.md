@@ -103,6 +103,24 @@ Keys in `errors: [...]` support two forms:
 MRO traversal: if the exact class doesn't match, ancestors are checked in MRO order.
 So `"Exception"` would match all Python exceptions as a catch-all.
 
+### retryRules evaluation order
+
+**First matching rule wins.** The `retryRules` list is evaluated top-to-bottom;
+the first rule whose `errors` list matches the error (via exact FQN or MRO
+traversal) is applied. Rules below the first match are never evaluated for that error.
+
+Rule priority in the combined list (highest → lowest):
+1. **Compiler-generated rules** (e.g., from `try/except` flow compilation) — prepended before actor rules
+2. **Actor inline `retryRules`**
+3. **Flavor-contributed rules** — appended in `spec.flavors` order
+
+`policies.default` is the fallback when no rule in the list matches at all.
+
+This ordering means flow-level `try/except` semantics always take precedence over
+actor-level retry config for the specific error types they handle. An actor's
+`policies.default` (e.g., `maxAttempts: 5`) still applies for error types not
+caught by any `try/except` block.
+
 ### Backward compatibility
 
 `nonRetryableErrors: [X, Y]` — **removed with no migration path** (internal config).
@@ -118,8 +136,8 @@ Equivalent: define `policies.default` with the same fields.
 `policies` map: each named policy is a distinct map key — two flavors defining
 the same policy name conflict (error with flavor names + key path).
 `retryRules` list: appends across flavors in `spec.flavors` order. Actor inline
-rules append last (actor-wins). First matching rule in the combined list wins
-at runtime.
+rules prepend (actor-wins). See §retryRules evaluation order for full priority
+rules and matching semantics.
 
 Reusable platform flavor example:
 ```yaml
