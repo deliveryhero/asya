@@ -28,7 +28,9 @@ class StubConnector(StateProxyConnector):
             raise FileNotFoundError(f"Key not found: {key}")
         return io.BytesIO(self._store[key])
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        if exclusive and key in self._store:
+            raise FileExistsError(f"Key already exists: {key}")
         self._store[key] = data.read()
 
     def exists(self, key: str) -> bool:
@@ -236,6 +238,28 @@ def test_list_flat_keys_no_delimiter(server_socket):
     data = json.loads(body)
     assert "flat/one" in data["keys"]
     assert "flat/two" in data["keys"]
+
+
+def test_put_with_if_none_match_new_key_returns_204(server_socket):
+    """PUT with If-None-Match: * on a new key succeeds with 204."""
+    socket_path, _ = server_socket
+    status, _, _ = _request(socket_path, "PUT", "/keys/xb-key", body=b"sentinel", headers={"If-None-Match": "*"})
+    assert status == 204
+
+    status, _, body = _request(socket_path, "GET", "/keys/xb-key")
+    assert status == 200
+    assert body == b"sentinel"
+
+
+def test_put_with_if_none_match_existing_key_returns_409(server_socket):
+    """PUT with If-None-Match: * on an existing key returns 409."""
+    socket_path, _ = server_socket
+    _request(socket_path, "PUT", "/keys/xb-key", body=b"first")
+
+    status, _, body = _request(socket_path, "PUT", "/keys/xb-key", body=b"second", headers={"If-None-Match": "*"})
+    assert status == 409
+    data = json.loads(body)
+    assert data["error"] == "conflict"
 
 
 def test_put_empty_body(server_socket):

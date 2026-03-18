@@ -6,6 +6,7 @@ import boto3
 import pytest
 from asya_state_proxy.connectors.s3_buffered_lww.connector import S3BufferedLWW
 from asya_state_proxy.interface import KeyMeta
+from botocore.exceptions import ClientError
 from moto import mock_aws
 
 
@@ -129,6 +130,36 @@ def test_write_overwrites_existing_key_lww(connector):
     connector.write("k", io.BytesIO(b"first"))
     connector.write("k", io.BytesIO(b"second"))
     assert connector.read("k").read() == b"second"
+
+
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    assert connector.read("xb-key").read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+
+    original_put = connector._s3.put_object
+
+    def mock_put(**kwargs):
+        if "IfNoneMatch" in kwargs:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": "PreconditionFailed",
+                        "Message": "At least one of the pre-conditions you specified did not hold",
+                    }
+                },
+                "PutObject",
+            )
+        return original_put(**kwargs)
+
+    connector._s3.put_object = mock_put
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
 
 
 def test_state_prefix_is_applied(monkeypatch, s3_bucket):

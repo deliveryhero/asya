@@ -204,6 +204,36 @@ def test_delete_clears_etag_cache(connector):
     assert connector.read("k").read() == b"v2"
 
 
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    assert connector.read("xb-key").read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+
+    original_put = connector._s3.put_object
+
+    def mock_put(**kwargs):
+        if "IfNoneMatch" in kwargs:
+            raise ClientError(
+                {
+                    "Error": {
+                        "Code": "PreconditionFailed",
+                        "Message": "At least one of the pre-conditions you specified did not hold",
+                    }
+                },
+                "PutObject",
+            )
+        return original_put(**kwargs)
+
+    connector._s3.put_object = mock_put
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
+
+
 def test_cas_conflict_on_stale_etag(connector, s3_bucket):
     """Simulate CAS conflict when ETag is stale."""
     connector.write("k", io.BytesIO(b"v1"))

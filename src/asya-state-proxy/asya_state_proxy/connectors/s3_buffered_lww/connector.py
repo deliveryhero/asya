@@ -73,11 +73,23 @@ class S3BufferedLWW(S3XattrMixin, StateProxyConnector):
                 raise FileNotFoundError(f"Key not found: {key}") from exc
             raise
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Write object to S3 using last-write-wins semantics."""
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        """Write object to S3 using last-write-wins semantics.
+
+        When exclusive=True, uses IfNoneMatch='*' for atomic create-if-absent.
+        """
         full_key = self._full_key(key)
         body = data.read()
-        self._s3.put_object(Bucket=self._bucket, Key=full_key, Body=body)
+        put_kwargs: dict = {"Bucket": self._bucket, "Key": full_key, "Body": body}
+        if exclusive:
+            put_kwargs["IfNoneMatch"] = "*"
+        try:
+            self._s3.put_object(**put_kwargs)
+        except ClientError as exc:
+            code = exc.response["Error"]["Code"]
+            if code == "PreconditionFailed":
+                raise FileExistsError(f"Exclusive create failed: key={key} already exists") from exc
+            raise
         logger.debug("write key=%s size=%d", key, len(body))
 
     def exists(self, key: str) -> bool:

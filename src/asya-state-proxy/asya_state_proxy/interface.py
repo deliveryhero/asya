@@ -22,8 +22,13 @@ class StateProxyConnector(ABC):
         """GET /keys/{key} -> 200 + body stream. Raises FileNotFoundError on 404."""
 
     @abstractmethod
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """PUT /keys/{key}. Raises FileExistsError on 409 (CAS conflict)."""
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        """PUT /keys/{key}. Raises FileExistsError on 409 (CAS conflict).
+
+        When exclusive=True, the write must only succeed if the key does not
+        already exist (atomic create-if-absent). Raises FileExistsError if the
+        key is already present.
+        """
 
     @abstractmethod
     def exists(self, key: str) -> bool:

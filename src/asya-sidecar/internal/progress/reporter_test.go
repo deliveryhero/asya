@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -265,9 +266,9 @@ func TestReportProgress_AllStatuses(t *testing.T) {
 }
 
 func TestReportProgress_ConcurrentCalls(t *testing.T) {
-	requestCount := 0
+	var requestCount atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		requestCount++
+		requestCount.Add(1)
 		w.WriteHeader(http.StatusOK)
 	}))
 	defer server.Close()
@@ -297,11 +298,8 @@ func TestReportProgress_ConcurrentCalls(t *testing.T) {
 		<-done
 	}
 
-	// Give server time to process
-	time.Sleep(100 * time.Millisecond)
-
-	if requestCount != numRequests {
-		t.Errorf("Received %d requests, want %d", requestCount, numRequests)
+	if int(requestCount.Load()) != numRequests {
+		t.Errorf("Received %d requests, want %d", requestCount.Load(), numRequests)
 	}
 }
 

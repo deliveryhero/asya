@@ -81,7 +81,7 @@ class S3BufferedCAS(S3XattrMixin, StateProxyConnector):
                 raise FileNotFoundError(f"Key not found: {key}") from exc
             raise
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
         """Write object to S3 with CAS semantics when a prior ETag is cached.
 
         If the key was previously read, the write is conditional on the cached
@@ -89,21 +89,29 @@ class S3BufferedCAS(S3XattrMixin, StateProxyConnector):
         was modified externally), FileExistsError is raised.
 
         If the key has never been read, the write is unconditional (new key path).
+
+        When exclusive=True, the write uses IfNoneMatch='*' to ensure the key
+        does not already exist (atomic create-if-absent).
         """
         full_key = self._full_key(key)
         body = data.read()
 
         put_kwargs: dict = {"Bucket": self._bucket, "Key": full_key, "Body": body}
-        cached_etag = self._etags.get(key)
-        if cached_etag is not None:
-            put_kwargs["IfMatch"] = cached_etag
+        if exclusive:
+            put_kwargs["IfNoneMatch"] = "*"
+        else:
+            cached_etag = self._etags.get(key)
+            if cached_etag is not None:
+                put_kwargs["IfMatch"] = cached_etag
 
         try:
             response = self._s3.put_object(**put_kwargs)
         except ClientError as exc:
             code = exc.response["Error"]["Code"]
             if code == "PreconditionFailed":
-                raise FileExistsError(f"CAS conflict: key={key} cached_etag={cached_etag}") from exc
+                if exclusive:
+                    raise FileExistsError(f"Exclusive create failed: key={key} already exists") from exc
+                raise FileExistsError(f"CAS conflict: key={key} cached_etag={self._etags.get(key)}") from exc
             raise
 
         self._etags[key] = response["ETag"]

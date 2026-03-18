@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from asya_state_proxy.connectors.gcs_buffered_lww.connector import GCSBufferedLWW
 from asya_state_proxy.interface import KeyMeta
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound, PreconditionFailed
 
 
 TEST_BUCKET = "test-state-bucket"
@@ -51,7 +51,9 @@ def mock_client():
                         raise NotFound("not found")
                     return blob._data
 
-                def upload_from_string(data, **kwargs):
+                def upload_from_string(data, if_generation_match=None, **kwargs):
+                    if if_generation_match is not None and if_generation_match == 0 and blob._exists:
+                        raise PreconditionFailed("generation mismatch")
                     blob._data = data if isinstance(data, bytes) else data.encode()
                     blob._exists = True
                     blob.size = len(blob._data)
@@ -198,6 +200,19 @@ def test_write_overwrites_existing_key_lww(connector):
     connector.write("k", io.BytesIO(b"first"))
     connector.write("k", io.BytesIO(b"second"))
     assert connector.read("k").read() == b"second"
+
+
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    assert connector.read("xb-key").read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
 
 
 def test_state_prefix_is_applied(monkeypatch, mock_client):

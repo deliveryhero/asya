@@ -55,18 +55,26 @@ class RedisBufferedCAS(StateProxyConnector):
         logger.debug("read key=%s size=%d", key, len(data))
         return io.BytesIO(data)
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Write value to Redis using WATCH/MULTI/EXEC for CAS semantics."""
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        """Write value to Redis using WATCH/MULTI/EXEC for CAS semantics.
+
+        When exclusive=True, uses SET NX (set-if-not-exists) for atomic
+        create-if-absent.
+        """
         full_key = self._full_key(key)
         body = data.read()
-        with self._redis.pipeline() as pipe:
-            try:
-                pipe.watch(full_key)
-                pipe.multi()
-                pipe.set(full_key, body)
-                pipe.execute()
-            except redis.WatchError:
-                raise FileExistsError(f"CAS conflict: key {key} was modified concurrently") from None
+        if exclusive:
+            if not self._redis.set(full_key, body, nx=True):
+                raise FileExistsError(f"Exclusive create failed: key {key} already exists")
+        else:
+            with self._redis.pipeline() as pipe:
+                try:
+                    pipe.watch(full_key)
+                    pipe.multi()
+                    pipe.set(full_key, body)
+                    pipe.execute()
+                except redis.WatchError:
+                    raise FileExistsError(f"CAS conflict: key {key} was modified concurrently") from None
         logger.debug("write key=%s size=%d", key, len(body))
 
     def exists(self, key: str) -> bool:
