@@ -5,8 +5,8 @@ providerConfigs:
 # Crossplane provider configuration
 providers:
   aws:
-    # Enable AWS SQS provider (set to false for RabbitMQ-only deployments)
-    enabled: true
+    # Enable AWS SQS provider
+    enabled: false
     # SQS provider version
     sqsVersion: "v1.19.0"
   gcp:
@@ -83,7 +83,7 @@ actorNamespace: "" # defaults to release namespace
 # IRSA (IAM Roles for Service Accounts) configuration
 irsa:
   # Enable ServiceAccount creation with IRSA annotation
-  enabled: true
+  enabled: false
   # ServiceAccount name (shared per namespace)
   serviceAccountName: asya-actors
   # IAM role ARN pattern - {namespace} will be replaced with actual namespace

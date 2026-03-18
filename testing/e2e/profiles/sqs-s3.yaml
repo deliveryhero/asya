@@ -104,6 +104,9 @@ gateway:
 
 crossplane:
   transport: sqs
+  providers:
+    aws:
+      enabled: true
   sqs:
     receiveWaitTimeSeconds: 2
   sidecar:
