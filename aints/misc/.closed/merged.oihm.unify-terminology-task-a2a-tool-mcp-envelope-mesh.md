@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Problem
 
 The codebase uses the word "task" inconsistently. Currently `types.Task` in `src/asya-gateway/pkg/types/task.go` is a gateway-internal tracking record for any envelope in flight through the actor mesh — it is created by both A2A and MCP paths and updated by sidecar `/mesh/` callbacks.
