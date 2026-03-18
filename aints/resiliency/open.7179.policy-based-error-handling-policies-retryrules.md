@@ -30,20 +30,20 @@ spec:
         initialDelay: 1s
         maxInterval: 60s
         jitter: true
-        timeout: 600s           # total wall-clock budget across all attempts (optional)
+        maxDuration: 600s           # total wall-clock budget across all attempts (optional)
         # thenRoute omitted → x-sink (always the terminal fallback)
 
       retryFast:
         maxAttempts: 5
         backoff: exponential
         initialDelay: 500ms
-        timeout: 60s            # give up fast even if attempts remain
+        maxDuration: 60s            # give up fast even if attempts remain
 
       retryPatiently:
         maxAttempts: 3
         backoff: exponential
         initialDelay: 10s
-        timeout: 1800s          # 30 min budget for rate-limit backoff
+        maxDuration: 1800s          # 30 min budget for rate-limit backoff
 
       logAndDiscard:
         maxAttempts: 1          # default, can omit
@@ -72,18 +72,18 @@ spec:
 | `initialDelay` | duration | — | First retry delay |
 | `maxInterval` | duration | — | Cap on backoff delay |
 | `jitter` | bool | false | Add ±50% jitter |
-| `timeout` | duration | — | Total wall-clock budget across all attempts; exhausted = same effect as `maxAttempts` reached |
-| `thenRoute` | []string | ["x-sink"] | Where to route when attempts exhausted or timeout exceeded |
+| `maxDuration` | duration | — | Total wall-clock budget across all attempts; exhausted = same effect as `maxAttempts` reached |
+| `thenRoute` | []string | ["x-sink"] | Where to route when `maxAttempts` or `maxDuration` exceeded |
 
 All fields are optional. A policy with only `thenRoute` set (and `maxAttempts: 1`
 implicit) is a pure routing policy — no retry, immediately route on first failure.
 
-`resiliency.timeout.actor` vs `policies.*.timeout` are orthogonal concerns:
+`resiliency.timeout.actor` vs `policies.*.maxDuration` are orthogonal concerns:
 - `timeout.actor` is enforced per-execution by the sidecar (kills the runtime call); it applies to every attempt regardless of policy
-- `policies.*.timeout` is a stopping condition evaluated before each retry — stop retrying when wall-clock since first attempt exceeds the budget
+- `policies.*.maxDuration` is a stopping condition evaluated before each retry — stop retrying when wall-clock since first attempt exceeds the budget
 
 This mirrors tenacity's `stop` combinator: `stop_after_attempt(N) | stop_after_delay(T)`.
-`maxAttempts` and `policies.*.timeout` are that same pair — both are retry stopping conditions,
+`maxAttempts` and `maxDuration` are that same pair — both are retry stopping conditions,
 and whichever triggers first wins. `resiliency.timeout.actor` is the execution watchdog,
 orthogonal to retry logic.
 
@@ -203,7 +203,7 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
 - Add `Policies map[string]PolicyConfig`
 - Add `Rules []RetryRule`
 - Add `PolicyConfig` struct: `MaxAttempts`, `Backoff`, `InitialDelay`,
-  `MaxInterval`, `Jitter`, `Timeout time.Duration`, `ThenRoute []string`
+  `MaxInterval`, `Jitter`, `MaxDuration time.Duration`, `ThenRoute []string`
 - Add `RetryRule` struct: `Errors []string`, `Policy string`
 
 ### 3. Sidecar: error matching and policy dispatch
