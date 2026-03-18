@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -21,7 +21,7 @@ func TestHandleMeshProgress(t *testing.T) {
 		method         string
 		taskID         string
 		jobExists      bool
-		progressUpdate types.ProgressUpdate
+		progressUpdate types.EnvelopeProgressUpdate
 		wantStatus     int
 		wantProgress   float64
 	}{
@@ -30,7 +30,7 @@ func TestHandleMeshProgress(t *testing.T) {
 			method:    http.MethodPost,
 			taskID:    "test-task-1",
 			jobExists: true,
-			progressUpdate: types.ProgressUpdate{
+			progressUpdate: types.EnvelopeProgressUpdate{
 				Prev:    []string{},
 				Curr:    "parser",
 				Next:    []string{"processor", "finalizer"},
@@ -45,7 +45,7 @@ func TestHandleMeshProgress(t *testing.T) {
 			method:    http.MethodPost,
 			taskID:    "test-task-2",
 			jobExists: true,
-			progressUpdate: types.ProgressUpdate{
+			progressUpdate: types.EnvelopeProgressUpdate{
 				Prev:    []string{"parser"},
 				Curr:    "processor",
 				Next:    []string{"finalizer"},
@@ -60,7 +60,7 @@ func TestHandleMeshProgress(t *testing.T) {
 			method:    http.MethodPost,
 			taskID:    "test-task-3",
 			jobExists: true,
-			progressUpdate: types.ProgressUpdate{
+			progressUpdate: types.EnvelopeProgressUpdate{
 				Prev:    []string{"parser", "processor"},
 				Curr:    "finalizer",
 				Next:    []string{},
@@ -89,18 +89,18 @@ func TestHandleMeshProgress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create in-memory task store
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 
 			// Create test task if needed
 			if tt.jobExists {
-				task := &types.Task{
+				task := &types.Envelope{
 					ID: tt.taskID,
 					Route: types.Route{
 						Prev: []string{},
 						Curr: "parser",
 						Next: []string{"processor", "finalizer"},
 					},
-					Status: types.TaskStatusPending,
+					Status: types.EnvelopeStatusPending,
 				}
 				if err := store.Create(task); err != nil {
 					t.Fatalf("Failed to create test task: %v", err)
@@ -200,24 +200,24 @@ func TestHandleMeshProgress_ProgressCalculation(t *testing.T) {
 
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			taskID := fmt.Sprintf("test-task-%d", i)
-			task := &types.Task{
+			task := &types.Envelope{
 				ID: taskID,
 				Route: types.Route{
 					Prev: []string{},
 					Curr: "actor0",
 					Next: []string{"actor1", "actor2"},
 				},
-				Status: types.TaskStatusPending,
+				Status: types.EnvelopeStatusPending,
 			}
 			if err := store.Create(task); err != nil {
 				t.Fatalf("Failed to create test task: %v", err)
 			}
 
-			progressUpdate := types.ProgressUpdate{
+			progressUpdate := types.EnvelopeProgressUpdate{
 				Prev:   tt.prev,
 				Curr:   tt.curr,
 				Next:   tt.next,
@@ -250,18 +250,18 @@ func TestHandleMeshProgress_ProgressCalculation(t *testing.T) {
 }
 
 func TestHandleMeshProgress_SSENotification(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	taskID := "test-task-sse"
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: taskID,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 	if err := store.Create(task); err != nil {
 		t.Fatalf("Failed to create test task: %v", err)
@@ -272,7 +272,7 @@ func TestHandleMeshProgress_SSENotification(t *testing.T) {
 	defer store.Unsubscribe(taskID, updateChan)
 
 	// Send progress update
-	progressUpdate := types.ProgressUpdate{
+	progressUpdate := types.EnvelopeProgressUpdate{
 		Prev:    []string{},
 		Curr:    "actor1",
 		Next:    []string{"actor2"},
@@ -408,7 +408,7 @@ func TestHandleToolCall(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupMCP {
@@ -452,7 +452,7 @@ func TestHandleMeshStatus(t *testing.T) {
 		method      string
 		taskID      string
 		setupTask   bool
-		taskStatus  types.TaskStatus
+		taskStatus  types.EnvelopeStatus
 		wantStatus  int
 		checkFields bool
 	}{
@@ -461,7 +461,7 @@ func TestHandleMeshStatus(t *testing.T) {
 			method:      http.MethodGet,
 			taskID:      "test-task-1",
 			setupTask:   true,
-			taskStatus:  types.TaskStatusPending,
+			taskStatus:  types.EnvelopeStatusPending,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
@@ -470,7 +470,7 @@ func TestHandleMeshStatus(t *testing.T) {
 			method:      http.MethodGet,
 			taskID:      "test-task-2",
 			setupTask:   true,
-			taskStatus:  types.TaskStatusRunning,
+			taskStatus:  types.EnvelopeStatusRunning,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
@@ -479,7 +479,7 @@ func TestHandleMeshStatus(t *testing.T) {
 			method:      http.MethodGet,
 			taskID:      "test-task-3",
 			setupTask:   true,
-			taskStatus:  types.TaskStatusSucceeded,
+			taskStatus:  types.EnvelopeStatusSucceeded,
 			wantStatus:  http.StatusOK,
 			checkFields: true,
 		},
@@ -522,11 +522,11 @@ func TestHandleMeshStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupTask {
-				task := &types.Task{
+				task := &types.Envelope{
 					ID: tt.taskID,
 					Route: types.Route{
 						Prev: []string{},
@@ -539,8 +539,8 @@ func TestHandleMeshStatus(t *testing.T) {
 					t.Fatalf("Failed to create test task: %v", err)
 				}
 
-				if tt.taskStatus != types.TaskStatusPending {
-					update := types.TaskUpdate{
+				if tt.taskStatus != types.EnvelopeStatusPending {
+					update := types.EnvelopeUpdate{
 						ID:        tt.taskID,
 						Status:    tt.taskStatus,
 						Timestamp: time.Now(),
@@ -561,7 +561,7 @@ func TestHandleMeshStatus(t *testing.T) {
 			}
 
 			if tt.checkFields && tt.wantStatus == http.StatusOK {
-				var task types.Task
+				var task types.Envelope
 				if err := json.NewDecoder(rr.Body).Decode(&task); err != nil {
 					t.Fatalf("Failed to decode response: %v", err)
 				}
@@ -584,7 +584,7 @@ func TestHandleMeshActive(t *testing.T) {
 		method     string
 		taskID     string
 		setupTask  bool
-		taskStatus types.TaskStatus
+		taskStatus types.EnvelopeStatus
 		wantStatus int
 		wantActive bool
 	}{
@@ -593,7 +593,7 @@ func TestHandleMeshActive(t *testing.T) {
 			method:     http.MethodGet,
 			taskID:     "test-active-1",
 			setupTask:  true,
-			taskStatus: types.TaskStatusPending,
+			taskStatus: types.EnvelopeStatusPending,
 			wantStatus: http.StatusOK,
 			wantActive: true,
 		},
@@ -602,7 +602,7 @@ func TestHandleMeshActive(t *testing.T) {
 			method:     http.MethodGet,
 			taskID:     "test-active-2",
 			setupTask:  true,
-			taskStatus: types.TaskStatusRunning,
+			taskStatus: types.EnvelopeStatusRunning,
 			wantStatus: http.StatusOK,
 			wantActive: true,
 		},
@@ -611,7 +611,7 @@ func TestHandleMeshActive(t *testing.T) {
 			method:     http.MethodGet,
 			taskID:     "test-active-3",
 			setupTask:  true,
-			taskStatus: types.TaskStatusSucceeded,
+			taskStatus: types.EnvelopeStatusSucceeded,
 			wantStatus: http.StatusGone,
 			wantActive: false,
 		},
@@ -620,7 +620,7 @@ func TestHandleMeshActive(t *testing.T) {
 			method:     http.MethodGet,
 			taskID:     "test-active-4",
 			setupTask:  true,
-			taskStatus: types.TaskStatusFailed,
+			taskStatus: types.EnvelopeStatusFailed,
 			wantStatus: http.StatusGone,
 			wantActive: false,
 		},
@@ -629,7 +629,7 @@ func TestHandleMeshActive(t *testing.T) {
 			method:     http.MethodPost,
 			taskID:     "test-active-5",
 			setupTask:  true,
-			taskStatus: types.TaskStatusPending,
+			taskStatus: types.EnvelopeStatusPending,
 			wantStatus: http.StatusMethodNotAllowed,
 		},
 		{
@@ -651,11 +651,11 @@ func TestHandleMeshActive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupTask {
-				task := &types.Task{
+				task := &types.Envelope{
 					ID: tt.taskID,
 					Route: types.Route{
 						Prev: []string{},
@@ -667,8 +667,8 @@ func TestHandleMeshActive(t *testing.T) {
 					t.Fatalf("Failed to create test task: %v", err)
 				}
 
-				if tt.taskStatus != types.TaskStatusPending {
-					update := types.TaskUpdate{
+				if tt.taskStatus != types.EnvelopeStatusPending {
+					update := types.EnvelopeUpdate{
 						ID:        tt.taskID,
 						Status:    tt.taskStatus,
 						Timestamp: time.Now(),
@@ -718,7 +718,7 @@ func TestHandleMeshFinal(t *testing.T) {
 		setupTask      bool
 		finalUpdate    interface{}
 		wantStatus     int
-		wantTaskStatus types.TaskStatus
+		wantTaskStatus types.EnvelopeStatus
 		checkUpdate    bool
 	}{
 		{
@@ -732,7 +732,7 @@ func TestHandleMeshFinal(t *testing.T) {
 				"result": map[string]interface{}{"output": "success"},
 			},
 			wantStatus:     http.StatusOK,
-			wantTaskStatus: types.TaskStatusSucceeded,
+			wantTaskStatus: types.EnvelopeStatusSucceeded,
 			checkUpdate:    true,
 		},
 		{
@@ -749,7 +749,7 @@ func TestHandleMeshFinal(t *testing.T) {
 				},
 			},
 			wantStatus:     http.StatusOK,
-			wantTaskStatus: types.TaskStatusSucceeded,
+			wantTaskStatus: types.EnvelopeStatusSucceeded,
 			checkUpdate:    true,
 		},
 		{
@@ -763,7 +763,7 @@ func TestHandleMeshFinal(t *testing.T) {
 				"error":  "Processing error occurred",
 			},
 			wantStatus:     http.StatusOK,
-			wantTaskStatus: types.TaskStatusFailed,
+			wantTaskStatus: types.EnvelopeStatusFailed,
 			checkUpdate:    true,
 		},
 		{
@@ -776,7 +776,7 @@ func TestHandleMeshFinal(t *testing.T) {
 				"status": "failed",
 			},
 			wantStatus:     http.StatusOK,
-			wantTaskStatus: types.TaskStatusFailed,
+			wantTaskStatus: types.EnvelopeStatusFailed,
 			checkUpdate:    true,
 		},
 		{
@@ -848,18 +848,18 @@ func TestHandleMeshFinal(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			if tt.setupTask {
-				task := &types.Task{
+				task := &types.Envelope{
 					ID: tt.taskID,
 					Route: types.Route{
 						Prev: []string{},
 						Curr: "actor1",
 						Next: []string{},
 					},
-					Status: types.TaskStatusRunning,
+					Status: types.EnvelopeStatusRunning,
 				}
 				if err := store.Create(task); err != nil {
 					t.Fatalf("Failed to create test task: %v", err)
@@ -894,14 +894,14 @@ func TestHandleMeshFinal(t *testing.T) {
 					t.Errorf("Task status = %v, want %v", task.Status, tt.wantTaskStatus)
 				}
 
-				if tt.wantTaskStatus == types.TaskStatusSucceeded && task.Result == nil {
+				if tt.wantTaskStatus == types.EnvelopeStatusSucceeded && task.Result == nil {
 					updateMap := tt.finalUpdate.(map[string]interface{})
 					if _, hasResult := updateMap["result"]; hasResult {
 						t.Error("Expected result to be set for succeeded task")
 					}
 				}
 
-				if tt.wantTaskStatus == types.TaskStatusFailed {
+				if tt.wantTaskStatus == types.EnvelopeStatusFailed {
 					updateMap := tt.finalUpdate.(map[string]interface{})
 					if errMsg, hasError := updateMap["error"].(string); hasError && errMsg != "" {
 						if task.Error == "" {
@@ -1079,7 +1079,7 @@ func TestMeshPathRegex(t *testing.T) {
 }
 
 func TestMeshPathRegex_EdgeCases(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	tests := []struct {
@@ -1196,7 +1196,7 @@ func TestHandleMeshCreate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			handler := NewHandler(store)
 
 			var body []byte
@@ -1239,7 +1239,7 @@ func TestHandleMeshCreate(t *testing.T) {
 					}
 					// Status may be Pending or Running: HandleMeshCreate starts a
 					// goroutine that updates status to Running concurrently.
-					if task.Status != types.TaskStatusPending && task.Status != types.TaskStatusRunning {
+					if task.Status != types.EnvelopeStatusPending && task.Status != types.EnvelopeStatusRunning {
 						t.Errorf("Task Status = %v, want Pending or Running", task.Status)
 					}
 				}
@@ -1249,13 +1249,13 @@ func TestHandleMeshCreate(t *testing.T) {
 }
 
 func TestHandleMeshCreate_DuplicateID(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create first task
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:     "abc-123-1",
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 		Route:  types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
 	}
 	if err := store.Create(task); err != nil {

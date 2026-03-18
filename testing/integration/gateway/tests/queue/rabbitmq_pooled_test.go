@@ -23,7 +23,7 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 
 	ctx := context.Background()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-1",
 		Route: types.Route{
 			Prev: []string{},
@@ -64,7 +64,7 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numMessages; j++ {
-				job := &types.Task{
+				job := &types.Envelope{
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
 						Prev: []string{},
@@ -111,7 +111,7 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 	ctx := context.Background()
 
 	deadline := time.Now().Add(5 * time.Minute)
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-deadline",
 		Route: types.Route{
 			Prev: []string{},
@@ -140,7 +140,7 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 
 	ctx := context.Background()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-empty-route",
 		Route: types.Route{
 			Prev: []string{},
@@ -168,7 +168,7 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-cancel",
 		Route: types.Route{
 			Prev: []string{},
@@ -199,7 +199,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			job := &types.Task{
+			job := &types.Envelope{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Prev: []string{},
@@ -233,7 +233,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			job := &types.Task{
+			job := &types.Envelope{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Prev: []string{},

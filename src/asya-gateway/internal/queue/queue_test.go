@@ -13,14 +13,14 @@ import (
 func TestNewActorEnvelope(t *testing.T) {
 	tests := []struct {
 		name         string
-		task         *types.Task
+		task         *types.Envelope
 		expectErr    bool
 		validateMsg  func(*testing.T, ActorEnvelope)
 		validateJSON func(*testing.T, []byte)
 	}{
 		{
 			name: "message with deadline includes status.deadline_at",
-			task: &types.Task{
+			task: &types.Envelope{
 				ID: "task-123",
 				Route: types.Route{
 					Prev: []string{},
@@ -52,7 +52,7 @@ func TestNewActorEnvelope(t *testing.T) {
 		},
 		{
 			name: "message without deadline omits status.deadline_at",
-			task: &types.Task{
+			task: &types.Envelope{
 				ID: "task-456",
 				Route: types.Route{
 					Prev: []string{},
@@ -80,7 +80,7 @@ func TestNewActorEnvelope(t *testing.T) {
 		},
 		{
 			name: "deadline_at uses RFC3339 UTC format",
-			task: &types.Task{
+			task: &types.Envelope{
 				ID: "task-789",
 				Route: types.Route{
 					Prev: []string{},
@@ -102,7 +102,7 @@ func TestNewActorEnvelope(t *testing.T) {
 		},
 		{
 			name: "error when route.curr is empty",
-			task: &types.Task{
+			task: &types.Envelope{
 				ID: "task-error",
 				Route: types.Route{
 					Prev: []string{},

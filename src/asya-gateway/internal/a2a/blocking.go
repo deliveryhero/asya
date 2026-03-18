@@ -10,17 +10,17 @@ import (
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // terminalOrInterrupted returns true if the status represents a terminal
 // or interrupted state that should stop the blocking wait loop.
-func terminalOrInterrupted(status types.TaskStatus) bool {
+func terminalOrInterrupted(status types.EnvelopeStatus) bool {
 	switch status {
-	case types.TaskStatusSucceeded, types.TaskStatusFailed, types.TaskStatusCanceled:
+	case types.EnvelopeStatusSucceeded, types.EnvelopeStatusFailed, types.EnvelopeStatusCanceled:
 		return true
-	case types.TaskStatusPaused, types.TaskStatusAuthRequired:
+	case types.EnvelopeStatusPaused, types.EnvelopeStatusAuthRequired:
 		return true
 	default:
 		return false
@@ -41,7 +41,7 @@ const dbPollInterval = 500 * time.Millisecond
 // at dbPollInterval to detect cross-process status changes.
 func waitAndRelayEvents(
 	ctx context.Context,
-	store taskstore.TaskStore,
+	store envelopestore.EnvelopeStore,
 	taskID string,
 	timeout time.Duration,
 	reqCtx *a2asrv.RequestContext,
@@ -129,7 +129,7 @@ func writeTerminalEvent(
 	ctx context.Context,
 	reqCtx *a2asrv.RequestContext,
 	eq eventqueue.Queue,
-	status types.TaskStatus,
+	status types.EnvelopeStatus,
 ) error {
 	state := ToA2AState(status)
 	evt := a2alib.NewStatusUpdateEvent(reqCtx, state, nil)

@@ -28,12 +28,12 @@ type ActorEnvelope struct {
 }
 
 // NewActorEnvelope creates an ActorEnvelope from a Task with validated route and initial status.
-func NewActorEnvelope(task *types.Task) (ActorEnvelope, error) {
-	if task.Route.Curr == "" {
+func NewActorEnvelope(envelope *types.Envelope) (ActorEnvelope, error) {
+	if envelope.Route.Curr == "" {
 		return ActorEnvelope{}, fmt.Errorf("route has no current actor (curr is empty)")
 	}
 
-	actorName := task.Route.Curr
+	actorName := envelope.Route.Curr
 	now := time.Now().UTC().Format(time.RFC3339)
 
 	status := &ActorEnvelopeStatus{
@@ -45,14 +45,14 @@ func NewActorEnvelope(task *types.Task) (ActorEnvelope, error) {
 		UpdatedAt:   now,
 	}
 
-	if !task.Deadline.IsZero() {
-		status.DeadlineAt = task.Deadline.UTC().Format(time.RFC3339)
+	if !envelope.Deadline.IsZero() {
+		status.DeadlineAt = envelope.Deadline.UTC().Format(time.RFC3339)
 	}
 
 	msg := ActorEnvelope{
-		ID:      task.ID,
-		Route:   task.Route,
-		Payload: task.Payload,
+		ID:      envelope.ID,
+		Route:   envelope.Route,
+		Payload: envelope.Payload,
 		Status:  status,
 	}
 
@@ -67,7 +67,7 @@ type QueueMessage interface {
 
 // Client defines the interface for sending and receiving messages from queues
 type Client interface {
-	SendMessage(ctx context.Context, task *types.Task) error
+	SendMessage(ctx context.Context, envelope *types.Envelope) error
 	Receive(ctx context.Context, queueName string) (QueueMessage, error)
 	Ack(ctx context.Context, msg QueueMessage) error
 	Close() error

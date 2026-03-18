@@ -167,8 +167,8 @@ func (m *sqsMessage) DeliveryTag() uint64 {
 }
 
 // SendMessage sends a message to the current actor's queue in the route
-func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorEnvelope(task)
+func (c *SQSClient) SendMessage(ctx context.Context, envelope *types.Envelope) error {
+	actorMsg, err := NewActorEnvelope(envelope)
 	if err != nil {
 		return err
 	}
@@ -181,14 +181,14 @@ func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
 
 	// Get queue URL for current actor
 	// Add "asya-{namespace}-" prefix to convert actor name to queue name
-	actorName := task.Route.Curr
+	actorName := envelope.Route.Curr
 	queueName := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 	queueURL, err := c.resolveQueueURL(ctx, queueName)
 	if err != nil {
 		return fmt.Errorf("failed to resolve queue URL: %w", err)
 	}
 
-	slog.Info("Sending message to SQS", "taskID", task.ID, "queue", queueName, "queueURL", queueURL)
+	slog.Info("Sending message to SQS", "taskID", envelope.ID, "queue", queueName, "queueURL", queueURL)
 
 	// Send message to SQS
 	_, err = c.client.SendMessage(ctx, &sqs.SendMessageInput{
@@ -196,11 +196,11 @@ func (c *SQSClient) SendMessage(ctx context.Context, task *types.Task) error {
 		MessageBody: aws.String(string(body)),
 	})
 	if err != nil {
-		slog.Error("Failed to send to SQS", "taskID", task.ID, "queue", queueName, "queueURL", queueURL, "error", err)
+		slog.Error("Failed to send to SQS", "taskID", envelope.ID, "queue", queueName, "queueURL", queueURL, "error", err)
 		return fmt.Errorf("failed to send to SQS: %w", err)
 	}
 
-	slog.Info("Successfully sent message to SQS", "taskID", task.ID, "queue", queueName)
+	slog.Info("Successfully sent message to SQS", "taskID", envelope.ID, "queue", queueName)
 	return nil
 }
 

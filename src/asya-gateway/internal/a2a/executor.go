@@ -10,8 +10,8 @@ import (
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -19,14 +19,14 @@ import (
 // Executor implements a2asrv.AgentExecutor.
 type Executor struct {
 	queueClient queue.Client
-	taskStore   taskstore.TaskStore
+	taskStore   envelopestore.EnvelopeStore
 	registry    *toolstore.Registry
 	namespace   string
 }
 
 func NewExecutor(
 	queueClient queue.Client,
-	taskStore taskstore.TaskStore,
+	taskStore envelopestore.EnvelopeStore,
 	registry *toolstore.Registry,
 	namespace string,
 ) *Executor {
@@ -64,16 +64,16 @@ func (e *Executor) Execute(
 	// Translate A2A Message -> envelope payload + headers
 	payload, headers := MessageToPayload(msg, taskID, contextID)
 
-	// Build internal task
+	// Build envelope tracking record
 	timeoutSec := 300
 	if skill.TimeoutSec != nil {
 		timeoutSec = *skill.TimeoutSec
 	}
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID:        string(taskID),
 		ContextID: contextID,
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: skill.Actor,
@@ -85,17 +85,17 @@ func (e *Executor) Execute(
 		Deadline:   time.Now().Add(time.Duration(timeoutSec) * time.Second),
 	}
 
-	if err := e.taskStore.Create(task); err != nil {
-		return fmt.Errorf("create task: %w", err)
+	if err := e.taskStore.Create(envelope); err != nil {
+		return fmt.Errorf("create envelope: %w", err)
 	}
 
 	// Dispatch to queue
 	if e.queueClient != nil {
-		if err := e.queueClient.SendMessage(ctx, task); err != nil {
+		if err := e.queueClient.SendMessage(ctx, envelope); err != nil {
 			slog.Error("Failed to dispatch envelope to queue", "task_id", taskID, "error", err)
-			_ = e.taskStore.Update(types.TaskUpdate{
+			_ = e.taskStore.Update(types.EnvelopeUpdate{
 				ID:        string(taskID),
-				Status:    types.TaskStatusFailed,
+				Status:    types.EnvelopeStatusFailed,
 				Error:     fmt.Sprintf("dispatch failed: %v", err),
 				Timestamp: time.Now(),
 			})
@@ -131,13 +131,13 @@ func (e *Executor) Cancel(
 	}
 
 	switch task.Status {
-	case types.TaskStatusSucceeded, types.TaskStatusFailed, types.TaskStatusCanceled:
+	case types.EnvelopeStatusSucceeded, types.EnvelopeStatusFailed, types.EnvelopeStatusCanceled:
 		return a2alib.ErrTaskNotCancelable
 	}
 
-	err = e.taskStore.Update(types.TaskUpdate{
+	err = e.taskStore.Update(types.EnvelopeUpdate{
 		ID:        string(taskID),
-		Status:    types.TaskStatusCanceled,
+		Status:    types.EnvelopeStatusCanceled,
 		Message:   "Canceled by client",
 		Timestamp: time.Now(),
 	})
@@ -198,10 +198,10 @@ func (e *Executor) handleResume(
 	// Merge resume-specific header with A2A headers
 	headers["x-asya-resume-task"] = string(taskID)
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID:        fmt.Sprintf("resume-%s", taskID),
 		ContextID: contextID,
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "x-resume",
@@ -216,7 +216,7 @@ func (e *Executor) handleResume(
 	}
 
 	if e.queueClient != nil {
-		if err := e.queueClient.SendMessage(ctx, task); err != nil {
+		if err := e.queueClient.SendMessage(ctx, envelope); err != nil {
 			return fmt.Errorf("dispatch resume: %w", err)
 		}
 	}

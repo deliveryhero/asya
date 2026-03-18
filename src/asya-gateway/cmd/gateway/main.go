@@ -16,11 +16,11 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/oauth"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
 
@@ -55,20 +55,20 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Initialize task store (PostgreSQL or in-memory)
-	var taskStore taskstore.TaskStore
+	// Initialize envelope store (PostgreSQL or in-memory)
+	var envelopeStore envelopestore.EnvelopeStore
 	if dbURL != "" {
-		slog.Info("Using PostgreSQL task store")
-		pgStore, err := taskstore.NewPgStore(ctx, dbURL)
+		slog.Info("Using PostgreSQL envelope store")
+		pgStore, err := envelopestore.NewPgStore(ctx, dbURL)
 		if err != nil {
 			slog.Error("Failed to create PostgreSQL store", "error", err)
 			os.Exit(1)
 		}
 		defer pgStore.Close()
-		taskStore = pgStore
+		envelopeStore = pgStore
 	} else {
-		slog.Info("Using in-memory task store (not recommended for production)")
-		taskStore = taskstore.NewStore()
+		slog.Info("Using in-memory envelope store (not recommended for production)")
+		envelopeStore = envelopestore.NewStore()
 	}
 
 	// Initialize queue client (Pub/Sub, SQS, or RabbitMQ)
@@ -103,18 +103,18 @@ func main() {
 	}
 
 	// Create MCP server (reads tools from DB-backed registry)
-	mcpServer := mcp.NewServer(taskStore, queueClient, registry)
+	mcpServer := mcp.NewServer(envelopeStore, queueClient, registry)
 
-	// Create task handler for custom endpoints
-	taskHandler := mcp.NewHandler(taskStore)
-	taskHandler.SetServer(mcpServer) // For REST tool calls
+	// Create mesh handler for /mesh/* and /tools/call endpoints
+	meshHandler := mcp.NewHandler(envelopeStore)
+	meshHandler.SetServer(mcpServer) // For REST tool calls
 
 	// API key for endpoint auth (shared by A2A and /mesh/expose)
 	apiKey := os.Getenv("ASYA_A2A_API_KEY")
 
 	// A2A setup using a2a-go library
 	namespace := getEnv("ASYA_NAMESPACE", "default")
-	executor := a2a.NewExecutor(queueClient, taskStore, registry, namespace)
+	executor := a2a.NewExecutor(queueClient, envelopeStore, registry, namespace)
 
 	// Wire state proxy reader for GetTask history/artifact hydration.
 	// When ASYA_PERSISTENCE_MOUNT is set, the gateway reads persisted envelope state
@@ -126,7 +126,7 @@ func main() {
 		spReader = stateproxy.NewFileReader(persistMount)
 	}
 
-	storeAdapter := a2a.NewStoreAdapter(taskStore, spReader)
+	storeAdapter := a2a.NewStoreAdapter(envelopeStore, spReader)
 	cardProducer := a2a.NewCardProducer(registry)
 
 	extendedCardProducer := a2a.NewExtendedCardProducer(registry)
@@ -181,7 +181,7 @@ func main() {
 			slog.Error("ASYA_MCP_OAUTH_ENABLED=true requires ASYA_MCP_OAUTH_ISSUER and ASYA_MCP_OAUTH_SECRET")
 			os.Exit(1)
 		}
-		pgStore, ok := taskStore.(*taskstore.PgStore)
+		pgStore, ok := envelopeStore.(*envelopestore.PgStore)
 		if !ok {
 			slog.Error("OAuth 2.1 requires PostgreSQL (ASYA_DATABASE_URL must be set)")
 			os.Exit(1)
@@ -207,7 +207,7 @@ func main() {
 	// Setup routes based on ASYA_GATEWAY_MODE
 	mux := http.NewServeMux()
 	mode := os.Getenv("ASYA_GATEWAY_MODE")
-	if err := buildRoutes(mux, mode, taskHandler, mcpServer, a2aRootHandler, cardProducer, mcpMiddleware, oauthSrv); err != nil {
+	if err := buildRoutes(mux, mode, meshHandler, mcpServer, a2aRootHandler, cardProducer, mcpMiddleware, oauthSrv); err != nil {
 		slog.Error("Invalid gateway mode", "error", err)
 		os.Exit(1)
 	}
@@ -245,14 +245,14 @@ func main() {
 	slog.Info("Gateway shutdown complete")
 }
 
-func registerAPIRoutes(mux *http.ServeMux, taskHandler *mcp.Handler, mcpServer *mcp.Server,
+func registerAPIRoutes(mux *http.ServeMux, meshHandler *mcp.Handler, mcpServer *mcp.Server,
 	a2aHandler http.Handler, cardProducer *a2a.CardProducer, mcpMiddleware func(http.Handler) http.Handler) {
 	if mcpServer != nil {
 		mux.Handle("/mcp", mcpMiddleware(mcpserver.NewStreamableHTTPServer(mcpServer.GetMCPServer())))
 		mux.Handle("/mcp/sse", mcpMiddleware(mcpserver.NewSSEServer(mcpServer.GetMCPServer())))
 	}
-	if taskHandler != nil {
-		mux.Handle("/tools/call", mcpMiddleware(http.HandlerFunc(taskHandler.HandleToolCall)))
+	if meshHandler != nil {
+		mux.Handle("/tools/call", mcpMiddleware(http.HandlerFunc(meshHandler.HandleToolCall)))
 	}
 	if a2aHandler != nil {
 		mux.Handle("/a2a/", a2aHandler)
@@ -275,28 +275,28 @@ func registerOAuthRoutes(mux *http.ServeMux, oauthSrv *oauth.Server) {
 	mux.HandleFunc("/oauth/token", oauthSrv.HandleToken)
 }
 
-func registerMeshRoutes(mux *http.ServeMux, taskHandler *mcp.Handler) {
-	if taskHandler != nil {
+func registerMeshRoutes(mux *http.ServeMux, meshHandler *mcp.Handler) {
+	if meshHandler != nil {
 		mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasSuffix(r.URL.Path, "/stream") {
-				taskHandler.HandleMeshStream(w, r)
+				meshHandler.HandleMeshStream(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/active") {
-				taskHandler.HandleMeshActive(w, r)
+				meshHandler.HandleMeshActive(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/progress") {
-				taskHandler.HandleMeshProgress(w, r)
+				meshHandler.HandleMeshProgress(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/final") {
-				taskHandler.HandleMeshFinal(w, r)
+				meshHandler.HandleMeshFinal(w, r)
 			} else if strings.HasSuffix(r.URL.Path, "/fly") {
-				taskHandler.HandleMeshFly(w, r)
+				meshHandler.HandleMeshFly(w, r)
 			} else {
-				taskHandler.HandleMeshStatus(w, r)
+				meshHandler.HandleMeshStatus(w, r)
 			}
 		})
-		mux.HandleFunc("/mesh", taskHandler.HandleMeshCreate)
+		mux.HandleFunc("/mesh", meshHandler.HandleMeshCreate)
 	}
 }
 
-func buildRoutes(mux *http.ServeMux, mode string, taskHandler *mcp.Handler,
+func buildRoutes(mux *http.ServeMux, mode string, meshHandler *mcp.Handler,
 	mcpServer *mcp.Server, a2aHandler http.Handler, cardProducer *a2a.CardProducer,
 	mcpMiddleware func(http.Handler) http.Handler, oauthSrv *oauth.Server) error {
 	if mcpMiddleware == nil {
@@ -304,14 +304,14 @@ func buildRoutes(mux *http.ServeMux, mode string, taskHandler *mcp.Handler,
 	}
 	switch mode {
 	case "api":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
+		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
 	case "mesh":
-		registerMeshRoutes(mux, taskHandler)
+		registerMeshRoutes(mux, meshHandler)
 	case "testing":
-		registerAPIRoutes(mux, taskHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
+		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
-		registerMeshRoutes(mux, taskHandler)
+		registerMeshRoutes(mux, meshHandler)
 	default:
 		return fmt.Errorf("ASYA_GATEWAY_MODE must be set to api|mesh|testing, got: %q", mode)
 	}

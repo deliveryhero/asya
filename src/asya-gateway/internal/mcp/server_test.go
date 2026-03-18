@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -13,7 +13,7 @@ import (
 // MockQueueClient implements queue.Client for testing
 type MockQueueClient struct{}
 
-func (m *MockQueueClient) SendMessage(ctx context.Context, task *types.Task) error {
+func (m *MockQueueClient) SendMessage(ctx context.Context, task *types.Envelope) error {
 	return nil
 }
 
@@ -30,7 +30,7 @@ func (m *MockQueueClient) Close() error {
 }
 
 func TestNewServer_Basic(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	server := NewServer(taskStore, queueClient, nil)
@@ -54,7 +54,7 @@ func TestNewServer_Basic(t *testing.T) {
 }
 
 func TestNewServer_WithToolRegistry(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 	registry := toolstore.NewInMemoryRegistry()
 

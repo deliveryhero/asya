@@ -6,23 +6,23 @@ import (
 )
 
 // ToA2AState converts internal TaskStatus to a2a-go TaskState.
-func ToA2AState(s types.TaskStatus) a2alib.TaskState {
+func ToA2AState(s types.EnvelopeStatus) a2alib.TaskState {
 	switch s {
-	case types.TaskStatusPending:
+	case types.EnvelopeStatusPending:
 		return a2alib.TaskStateSubmitted
-	case types.TaskStatusRunning:
+	case types.EnvelopeStatusRunning:
 		return a2alib.TaskStateWorking
-	case types.TaskStatusSucceeded:
+	case types.EnvelopeStatusSucceeded:
 		return a2alib.TaskStateCompleted
-	case types.TaskStatusFailed:
+	case types.EnvelopeStatusFailed:
 		return a2alib.TaskStateFailed
-	case types.TaskStatusCanceled:
+	case types.EnvelopeStatusCanceled:
 		return a2alib.TaskStateCanceled
-	case types.TaskStatusRejected:
+	case types.EnvelopeStatusRejected:
 		return a2alib.TaskStateRejected
-	case types.TaskStatusPaused:
+	case types.EnvelopeStatusPaused:
 		return a2alib.TaskStateInputRequired
-	case types.TaskStatusAuthRequired:
+	case types.EnvelopeStatusAuthRequired:
 		return a2alib.TaskStateAuthRequired
 	default:
 		return a2alib.TaskStateUnknown
@@ -30,25 +30,25 @@ func ToA2AState(s types.TaskStatus) a2alib.TaskState {
 }
 
 // FromA2AState converts a2a-go TaskState to internal TaskStatus.
-func FromA2AState(s a2alib.TaskState) types.TaskStatus {
+func FromA2AState(s a2alib.TaskState) types.EnvelopeStatus {
 	switch s {
 	case a2alib.TaskStateSubmitted:
-		return types.TaskStatusPending
+		return types.EnvelopeStatusPending
 	case a2alib.TaskStateWorking:
-		return types.TaskStatusRunning
+		return types.EnvelopeStatusRunning
 	case a2alib.TaskStateCompleted:
-		return types.TaskStatusSucceeded
+		return types.EnvelopeStatusSucceeded
 	case a2alib.TaskStateFailed:
-		return types.TaskStatusFailed
+		return types.EnvelopeStatusFailed
 	case a2alib.TaskStateCanceled:
-		return types.TaskStatusCanceled
+		return types.EnvelopeStatusCanceled
 	case a2alib.TaskStateRejected:
-		return types.TaskStatusRejected
+		return types.EnvelopeStatusRejected
 	case a2alib.TaskStateInputRequired:
-		return types.TaskStatusPaused
+		return types.EnvelopeStatusPaused
 	case a2alib.TaskStateAuthRequired:
-		return types.TaskStatusAuthRequired
+		return types.EnvelopeStatusAuthRequired
 	default:
-		return types.TaskStatusUnknown
+		return types.EnvelopeStatusUnknown
 	}
 }

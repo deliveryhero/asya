@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -19,44 +19,44 @@ type mockQueueMessage struct {
 func (m *mockQueueMessage) Body() []byte        { return m.body }
 func (m *mockQueueMessage) DeliveryTag() uint64 { return 0 }
 
-// mockTaskStore implements taskstore.TaskStore (minimal)
+// mockTaskStore implements envelopestore.EnvelopeStore (minimal)
 type mockTaskStore struct {
-	updates []types.TaskUpdate
+	updates []types.EnvelopeUpdate
 }
 
-func (s *mockTaskStore) Create(task *types.Task) error { return nil }
+func (s *mockTaskStore) Create(task *types.Envelope) error { return nil }
 
-func (s *mockTaskStore) Get(id string) (*types.Task, error) { return nil, nil }
+func (s *mockTaskStore) Get(id string) (*types.Envelope, error) { return nil, nil }
 
-func (s *mockTaskStore) Update(update types.TaskUpdate) error {
+func (s *mockTaskStore) Update(update types.EnvelopeUpdate) error {
 	s.updates = append(s.updates, update)
 	return nil
 }
 
-func (s *mockTaskStore) UpdateProgress(update types.TaskUpdate) error { return nil }
+func (s *mockTaskStore) UpdateProgress(update types.EnvelopeUpdate) error { return nil }
 
-func (s *mockTaskStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, error) {
+func (s *mockTaskStore) GetUpdates(id string, since *time.Time) ([]types.EnvelopeUpdate, error) {
 	return nil, nil
 }
 
-func (s *mockTaskStore) Subscribe(id string) chan types.TaskUpdate {
-	return make(chan types.TaskUpdate, 1)
+func (s *mockTaskStore) Subscribe(id string) chan types.EnvelopeUpdate {
+	return make(chan types.EnvelopeUpdate, 1)
 }
 
-func (s *mockTaskStore) Unsubscribe(id string, ch chan types.TaskUpdate) {}
+func (s *mockTaskStore) Unsubscribe(id string, ch chan types.EnvelopeUpdate) {}
 
 func (s *mockTaskStore) IsActive(id string) bool { return false }
 
-func (s *mockTaskStore) Resume(id string) (*types.Task, error) { return nil, nil }
+func (s *mockTaskStore) Resume(id string) (*types.Envelope, error) { return nil, nil }
 
-func (s *mockTaskStore) List(params taskstore.ListParams) ([]*types.Task, int, error) {
+func (s *mockTaskStore) List(params envelopestore.EnvelopeListParams) ([]*types.Envelope, int, error) {
 	return nil, 0, nil
 }
 
 // mockQueueClient implements queue.Client with all no-ops
 type mockQueueClient struct{}
 
-func (m *mockQueueClient) SendMessage(ctx context.Context, task *types.Task) error { return nil }
+func (m *mockQueueClient) SendMessage(ctx context.Context, task *types.Envelope) error { return nil }
 
 func (m *mockQueueClient) Receive(ctx context.Context, queueName string) (queue.QueueMessage, error) {
 	return nil, nil
@@ -86,13 +86,13 @@ func TestProcessMessage_StatusPhaseSucceeded(t *testing.T) {
 		t.Fatalf("Failed to marshal message body: %v", err)
 	}
 
-	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.TaskStatusSucceeded)
+	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.EnvelopeStatusSucceeded)
 
 	if len(store.updates) != 1 {
 		t.Fatalf("Expected 1 update, got %d", len(store.updates))
 	}
-	if store.updates[0].Status != types.TaskStatusSucceeded {
-		t.Errorf("Status = %v, want %v", store.updates[0].Status, types.TaskStatusSucceeded)
+	if store.updates[0].Status != types.EnvelopeStatusSucceeded {
+		t.Errorf("Status = %v, want %v", store.updates[0].Status, types.EnvelopeStatusSucceeded)
 	}
 }
 
@@ -123,7 +123,7 @@ func TestProcessMessage_StatusPhaseFailed_WithReason(t *testing.T) {
 	}
 
 	// Queue-name fallback is succeeded, but status.phase="failed" should override
-	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.TaskStatusSucceeded)
+	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.EnvelopeStatusSucceeded)
 
 	if len(store.updates) != 1 {
 		t.Fatalf("Expected 1 update, got %d", len(store.updates))
@@ -131,8 +131,8 @@ func TestProcessMessage_StatusPhaseFailed_WithReason(t *testing.T) {
 
 	update := store.updates[0]
 
-	if update.Status != types.TaskStatusFailed {
-		t.Errorf("Status = %v, want %v", update.Status, types.TaskStatusFailed)
+	if update.Status != types.EnvelopeStatusFailed {
+		t.Errorf("Status = %v, want %v", update.Status, types.EnvelopeStatusFailed)
 	}
 	if update.Error == "" {
 		t.Error("Expected non-empty Error, got empty string")
@@ -141,8 +141,8 @@ func TestProcessMessage_StatusPhaseFailed_WithReason(t *testing.T) {
 		t.Error("Expected non-empty Message, got empty string")
 	}
 	// Reason should appear in the message
-	if update.Message != "Task failed: MaxRetriesExhausted" {
-		t.Errorf("Message = %q, want %q", update.Message, "Task failed: MaxRetriesExhausted")
+	if update.Message != "Envelope failed: MaxRetriesExhausted" {
+		t.Errorf("Message = %q, want %q", update.Message, "Envelope failed: MaxRetriesExhausted")
 	}
 	// Error should contain both type and message
 	if update.Error != "ValueError: Something broke" {
@@ -170,7 +170,7 @@ func TestProcessMessage_NonTerminalPhase_Skipped(t *testing.T) {
 		t.Fatalf("Failed to marshal message body: %v", err)
 	}
 
-	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.TaskStatusSucceeded)
+	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.EnvelopeStatusSucceeded)
 
 	if len(store.updates) != 0 {
 		t.Errorf("Expected 0 updates for non-terminal phase, got %d", len(store.updates))
@@ -195,12 +195,12 @@ func TestProcessMessage_NoStatusField_FallsBackToQueueName(t *testing.T) {
 	}
 
 	// Pass TaskStatusSucceeded as the queue-name fallback
-	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.TaskStatusSucceeded)
+	c.processMessage(context.Background(), &mockQueueMessage{body: body}, types.EnvelopeStatusSucceeded)
 
 	if len(store.updates) != 1 {
 		t.Fatalf("Expected 1 update, got %d", len(store.updates))
 	}
-	if store.updates[0].Status != types.TaskStatusSucceeded {
-		t.Errorf("Status = %v, want %v", store.updates[0].Status, types.TaskStatusSucceeded)
+	if store.updates[0].Status != types.EnvelopeStatusSucceeded {
+		t.Errorf("Status = %v, want %v", store.updates[0].Status, types.EnvelopeStatusSucceeded)
 	}
 }

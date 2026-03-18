@@ -10,19 +10,19 @@ import (
 func TestToA2AState(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    types.TaskStatus
+		input    types.EnvelopeStatus
 		expected a2alib.TaskState
 	}{
-		{"pending to submitted", types.TaskStatusPending, a2alib.TaskStateSubmitted},
-		{"running to working", types.TaskStatusRunning, a2alib.TaskStateWorking},
-		{"succeeded to completed", types.TaskStatusSucceeded, a2alib.TaskStateCompleted},
-		{"failed to failed", types.TaskStatusFailed, a2alib.TaskStateFailed},
-		{"canceled to canceled", types.TaskStatusCanceled, a2alib.TaskStateCanceled},
-		{"rejected to rejected", types.TaskStatusRejected, a2alib.TaskStateRejected},
-		{"paused to input_required", types.TaskStatusPaused, a2alib.TaskStateInputRequired},
-		{"auth_required to auth_required", types.TaskStatusAuthRequired, a2alib.TaskStateAuthRequired},
-		{"unknown to unknown", types.TaskStatusUnknown, a2alib.TaskStateUnknown},
-		{"invalid input to unknown", types.TaskStatus("invalid"), a2alib.TaskStateUnknown},
+		{"pending to submitted", types.EnvelopeStatusPending, a2alib.TaskStateSubmitted},
+		{"running to working", types.EnvelopeStatusRunning, a2alib.TaskStateWorking},
+		{"succeeded to completed", types.EnvelopeStatusSucceeded, a2alib.TaskStateCompleted},
+		{"failed to failed", types.EnvelopeStatusFailed, a2alib.TaskStateFailed},
+		{"canceled to canceled", types.EnvelopeStatusCanceled, a2alib.TaskStateCanceled},
+		{"rejected to rejected", types.EnvelopeStatusRejected, a2alib.TaskStateRejected},
+		{"paused to input_required", types.EnvelopeStatusPaused, a2alib.TaskStateInputRequired},
+		{"auth_required to auth_required", types.EnvelopeStatusAuthRequired, a2alib.TaskStateAuthRequired},
+		{"unknown to unknown", types.EnvelopeStatusUnknown, a2alib.TaskStateUnknown},
+		{"invalid input to unknown", types.EnvelopeStatus("invalid"), a2alib.TaskStateUnknown},
 	}
 
 	for _, tt := range tests {
@@ -39,18 +39,18 @@ func TestFromA2AState(t *testing.T) {
 	tests := []struct {
 		name     string
 		input    a2alib.TaskState
-		expected types.TaskStatus
+		expected types.EnvelopeStatus
 	}{
-		{"submitted to pending", a2alib.TaskStateSubmitted, types.TaskStatusPending},
-		{"working to running", a2alib.TaskStateWorking, types.TaskStatusRunning},
-		{"completed to succeeded", a2alib.TaskStateCompleted, types.TaskStatusSucceeded},
-		{"failed to failed", a2alib.TaskStateFailed, types.TaskStatusFailed},
-		{"canceled to canceled", a2alib.TaskStateCanceled, types.TaskStatusCanceled},
-		{"rejected to rejected", a2alib.TaskStateRejected, types.TaskStatusRejected},
-		{"input_required to paused", a2alib.TaskStateInputRequired, types.TaskStatusPaused},
-		{"auth_required to auth_required", a2alib.TaskStateAuthRequired, types.TaskStatusAuthRequired},
-		{"unknown to unknown", a2alib.TaskStateUnknown, types.TaskStatusUnknown},
-		{"invalid input to unknown", a2alib.TaskState("invalid"), types.TaskStatusUnknown},
+		{"submitted to pending", a2alib.TaskStateSubmitted, types.EnvelopeStatusPending},
+		{"working to running", a2alib.TaskStateWorking, types.EnvelopeStatusRunning},
+		{"completed to succeeded", a2alib.TaskStateCompleted, types.EnvelopeStatusSucceeded},
+		{"failed to failed", a2alib.TaskStateFailed, types.EnvelopeStatusFailed},
+		{"canceled to canceled", a2alib.TaskStateCanceled, types.EnvelopeStatusCanceled},
+		{"rejected to rejected", a2alib.TaskStateRejected, types.EnvelopeStatusRejected},
+		{"input_required to paused", a2alib.TaskStateInputRequired, types.EnvelopeStatusPaused},
+		{"auth_required to auth_required", a2alib.TaskStateAuthRequired, types.EnvelopeStatusAuthRequired},
+		{"unknown to unknown", a2alib.TaskStateUnknown, types.EnvelopeStatusUnknown},
+		{"invalid input to unknown", a2alib.TaskState("invalid"), types.EnvelopeStatusUnknown},
 	}
 
 	for _, tt := range tests {
@@ -64,16 +64,16 @@ func TestFromA2AState(t *testing.T) {
 }
 
 func TestRoundTrip(t *testing.T) {
-	statuses := []types.TaskStatus{
-		types.TaskStatusPending,
-		types.TaskStatusRunning,
-		types.TaskStatusSucceeded,
-		types.TaskStatusFailed,
-		types.TaskStatusCanceled,
-		types.TaskStatusRejected,
-		types.TaskStatusPaused,
-		types.TaskStatusAuthRequired,
-		types.TaskStatusUnknown,
+	statuses := []types.EnvelopeStatus{
+		types.EnvelopeStatusPending,
+		types.EnvelopeStatusRunning,
+		types.EnvelopeStatusSucceeded,
+		types.EnvelopeStatusFailed,
+		types.EnvelopeStatusCanceled,
+		types.EnvelopeStatusRejected,
+		types.EnvelopeStatusPaused,
+		types.EnvelopeStatusAuthRequired,
+		types.EnvelopeStatusUnknown,
 	}
 
 	for _, status := range statuses {

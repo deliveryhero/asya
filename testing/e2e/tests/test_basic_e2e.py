@@ -40,7 +40,7 @@ def test_echo_tool_basic(gateway_helper):
     )
 
     assert result["result"]["task_id"] is not None, "Should have task ID"
-    assert "Task created successfully" in result["result"]["message"]
+    assert "Envelope created successfully" in result["result"]["message"]
 
     logger.info("[+] Echo tool call succeeded")
 
@@ -56,7 +56,7 @@ def test_doubler_pipeline(gateway_helper):
     )
 
     assert result["result"]["task_id"] is not None, "Should have task ID"
-    assert "Task created successfully" in result["result"]["message"]
+    assert "Envelope created successfully" in result["result"]["message"]
 
     logger.info("[+] Pipeline processing succeeded")
 
@@ -72,7 +72,7 @@ def test_error_handling(gateway_helper):
     )
 
     assert result["result"]["task_id"] is not None, "Should have task ID"
-    assert "Task created successfully" in result["result"]["message"]
+    assert "Envelope created successfully" in result["result"]["message"]
 
     logger.info("[+] Error handling test completed")
 
@@ -88,6 +88,6 @@ def test_timeout_handling(gateway_helper):
     )
 
     assert result["result"]["task_id"] is not None, "Should have task ID"
-    assert "Task created successfully" in result["result"]["message"]
+    assert "Envelope created successfully" in result["result"]["message"]
 
     logger.info("[+] Timeout handling test completed")

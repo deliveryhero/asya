@@ -1,6 +1,6 @@
 //go:build integration
 
-package taskstore
+package envelopestore
 
 import (
 	"context"

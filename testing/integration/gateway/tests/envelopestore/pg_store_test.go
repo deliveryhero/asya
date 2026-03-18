@@ -1,19 +1,19 @@
 //go:build integration
 
-package taskstore
+package envelopestore
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func setupPgStore(t *testing.T) (*taskstore.PgStore, func()) {
+func setupPgStore(t *testing.T) (*envelopestore.PgStore, func()) {
 	t.Helper()
 
 	ctx := context.Background()
@@ -21,7 +21,7 @@ func setupPgStore(t *testing.T) (*taskstore.PgStore, func()) {
 	err := truncateTestTables(ctx)
 	require.NoError(t, err, "Failed to truncate test tables")
 
-	store, err := taskstore.NewPgStore(ctx, getPostgresURL())
+	store, err := envelopestore.NewPgStore(ctx, getPostgresURL())
 	require.NoError(t, err, "Failed to create PgStore")
 
 	cleanup := func() {
@@ -48,57 +48,59 @@ func TestPgStore_CreateAndGet(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-create-get-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Payload:    map[string]interface{}{"data": "test"},
 		TimeoutSec: 300,
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
 	retrieved, err := store.Get("test-create-get-1")
 	require.NoError(t, err)
 	assert.Equal(t, "test-create-get-1", retrieved.ID)
-	assert.Equal(t, types.TaskStatusPending, retrieved.Status)
-	assert.Equal(t, []string{"actor1", "actor2", "actor3"}, retrieved.Route.Actors)
-	assert.Equal(t, 0, retrieved.Route.Current)
+	assert.Equal(t, types.EnvelopeStatusPending, retrieved.Status)
+	assert.Equal(t, []string{}, retrieved.Route.Prev)
+	assert.Equal(t, "actor1", retrieved.Route.Curr)
+	assert.Equal(t, []string{"actor2", "actor3"}, retrieved.Route.Next)
 	assert.Equal(t, 3, retrieved.TotalActors)
 	assert.Equal(t, 0, retrieved.ActorsCompleted)
 	assert.Equal(t, 0.0, retrieved.ProgressPercent)
 }
 
-// TestPgStore_UpdateProgress_RouteActorsPersistence tests that route_actors is persisted
+// TestPgStore_UpdateProgress_RouteActorsPersistence tests that route prev/curr/next is persisted
 func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-route-persist-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
-	// Simulate actor modifying route by adding more actors
-	modifiedRoute := []string{"actor1", "actor2", "actor3", "actor4"}
-
-	update := types.TaskUpdate{
+	// Simulate actor modifying route by extending next
+	update := types.EnvelopeUpdate{
 		ID:              "test-route-persist-1",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(25.0),
-		Actors:          modifiedRoute,
-		CurrentActorIdx: intPtr(0),
-		ActorState:   strPtr("processing"),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{"actor2", "actor3", "actor4"},
+		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
 
@@ -108,10 +110,11 @@ func TestPgStore_UpdateProgress_RouteActorsPersistence(t *testing.T) {
 	// Verify route was persisted
 	retrieved, err := store.Get("test-route-persist-1")
 	require.NoError(t, err)
-	assert.Equal(t, modifiedRoute, retrieved.Route.Actors, "Route actors should be updated")
+	assert.Equal(t, []string{}, retrieved.Route.Prev)
+	assert.Equal(t, "actor1", retrieved.Route.Curr)
+	assert.Equal(t, []string{"actor2", "actor3", "actor4"}, retrieved.Route.Next)
 	assert.Equal(t, 4, retrieved.TotalActors, "TotalActors should be updated")
-	assert.Equal(t, 0, retrieved.CurrentActorIdx, "CurrentActorIdx should be updated")
-	assert.Equal(t, "actor1", retrieved.CurrentActorName, "CurrentActorName should be derived")
+	assert.Equal(t, "actor1", retrieved.CurrentActorName, "CurrentActorName should be derived from Curr")
 }
 
 // TestPgStore_UpdateProgress_MultipleUpdates tests multiple progress updates with route changes
@@ -119,40 +122,43 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-multi-update-1",
 		Route: types.Route{
-			Actors:  []string{"step1", "step2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "step1",
+			Next: []string{"step2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
-	// First update: extend route
-	update1 := types.TaskUpdate{
+	// First update: extend route (step1 still processing, step2-3 queued)
+	update1 := types.EnvelopeUpdate{
 		ID:              "test-multi-update-1",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(10.0),
-		Actors:          []string{"step1", "step2", "step3"},
-		CurrentActorIdx: intPtr(0),
-		ActorState:   strPtr("received"),
+		Prev:            []string{},
+		Curr:            "step1",
+		Next:            []string{"step2", "step3"},
+		TaskState:       strPtr("received"),
 		Timestamp:       time.Now(),
 	}
 
 	err = store.UpdateProgress(update1)
 	require.NoError(t, err)
 
-	// Second update: further extend route
-	update2 := types.TaskUpdate{
+	// Second update: step1 done, step2 now current, more steps added
+	update2 := types.EnvelopeUpdate{
 		ID:              "test-multi-update-1",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(50.0),
-		Actors:          []string{"step1", "step2", "step3", "step4", "step5"},
-		CurrentActorIdx: intPtr(1),
-		ActorState:   strPtr("processing"),
+		Prev:            []string{"step1"},
+		Curr:            "step2",
+		Next:            []string{"step3", "step4", "step5"},
+		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
 
@@ -162,9 +168,10 @@ func TestPgStore_UpdateProgress_MultipleUpdates(t *testing.T) {
 	// Verify final state
 	retrieved, err := store.Get("test-multi-update-1")
 	require.NoError(t, err)
-	assert.Equal(t, []string{"step1", "step2", "step3", "step4", "step5"}, retrieved.Route.Actors)
+	assert.Equal(t, []string{"step1"}, retrieved.Route.Prev)
+	assert.Equal(t, "step2", retrieved.Route.Curr)
+	assert.Equal(t, []string{"step3", "step4", "step5"}, retrieved.Route.Next)
 	assert.Equal(t, 5, retrieved.TotalActors)
-	assert.Equal(t, 1, retrieved.CurrentActorIdx)
 	assert.Equal(t, "step2", retrieved.CurrentActorName)
 	assert.InDelta(t, 50.0, retrieved.ProgressPercent, 0.1)
 }
@@ -174,47 +181,51 @@ func TestPgStore_GetUpdates(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-get-updates-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
 	// Send multiple progress updates
-	updates := []types.TaskUpdate{
+	updates := []types.EnvelopeUpdate{
 		{
 			ID:              "test-get-updates-1",
-			Status:          types.TaskStatusRunning,
+			Status:          types.EnvelopeStatusRunning,
 			ProgressPercent: floatPtr(10.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
-			ActorState:   strPtr("received"),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
+			TaskState:       strPtr("received"),
 			Message:         "Received at actor1",
 			Timestamp:       time.Now(),
 		},
 		{
 			ID:              "test-get-updates-1",
-			Status:          types.TaskStatusRunning,
+			Status:          types.EnvelopeStatusRunning,
 			ProgressPercent: floatPtr(50.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
-			ActorState:   strPtr("processing"),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
+			TaskState:       strPtr("processing"),
 			Message:         "Processing at actor1",
 			Timestamp:       time.Now().Add(100 * time.Millisecond),
 		},
 		{
 			ID:              "test-get-updates-1",
-			Status:          types.TaskStatusRunning,
+			Status:          types.EnvelopeStatusRunning,
 			ProgressPercent: floatPtr(100.0),
-			Actors:          []string{"actor1", "actor2"},
-			CurrentActorIdx: intPtr(0),
-			ActorState:   strPtr("completed"),
+			Prev:            []string{},
+			Curr:            "actor1",
+			Next:            []string{"actor2"},
+			TaskState:       strPtr("completed"),
 			Message:         "Completed at actor1",
 			Timestamp:       time.Now().Add(200 * time.Millisecond),
 		},
@@ -235,10 +246,10 @@ func TestPgStore_GetUpdates(t *testing.T) {
 	assert.Equal(t, "Processing at actor1", retrieved[1].Message)
 	assert.Equal(t, "Completed at actor1", retrieved[2].Message)
 
-	// Verify actor state is preserved
-	assert.Equal(t, "received", *retrieved[0].ActorState)
-	assert.Equal(t, "processing", *retrieved[1].ActorState)
-	assert.Equal(t, "completed", *retrieved[2].ActorState)
+	// Verify task state is preserved
+	assert.Equal(t, "received", *retrieved[0].TaskState)
+	assert.Equal(t, "processing", *retrieved[1].TaskState)
+	assert.Equal(t, "completed", *retrieved[2].TaskState)
 }
 
 // TestPgStore_GetUpdates_Since tests retrieving updates since a specific time
@@ -246,25 +257,27 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-get-updates-since-1",
 		Route: types.Route{
-			Actors:  []string{"actor1"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
-	firstUpdate := types.TaskUpdate{
+	firstUpdate := types.EnvelopeUpdate{
 		ID:              "test-get-updates-since-1",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(10.0),
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
-		ActorState:   strPtr("received"),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
+		TaskState:       strPtr("received"),
 		Timestamp:       time.Now(),
 	}
 
@@ -272,15 +285,16 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 	require.NoError(t, err)
 
 	cutoffTime := time.Now()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond) // polling sleep: ensure second update timestamp is after cutoff
 
-	secondUpdate := types.TaskUpdate{
+	secondUpdate := types.EnvelopeUpdate{
 		ID:              "test-get-updates-since-1",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(50.0),
-		Actors:          []string{"actor1"},
-		CurrentActorIdx: intPtr(0),
-		ActorState:   strPtr("processing"),
+		Prev:            []string{},
+		Curr:            "actor1",
+		Next:            []string{},
+		TaskState:       strPtr("processing"),
 		Timestamp:       time.Now(),
 	}
 
@@ -291,7 +305,7 @@ func TestPgStore_GetUpdates_Since(t *testing.T) {
 	retrieved, err := store.GetUpdates("test-get-updates-since-1", &cutoffTime)
 	require.NoError(t, err)
 	assert.Len(t, retrieved, 1, "Should only get updates after cutoff time")
-	assert.Equal(t, "processing", *retrieved[0].ActorState)
+	assert.Equal(t, "processing", *retrieved[0].TaskState)
 }
 
 // TestPgStore_Update_FinalStatus tests final status updates
@@ -299,23 +313,24 @@ func TestPgStore_Update_FinalStatus(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-final-status-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
 	// Send final success update
-	finalUpdate := types.TaskUpdate{
+	finalUpdate := types.EnvelopeUpdate{
 		ID:        "test-final-status-1",
-		Status:    types.TaskStatusSucceeded,
-		Message:   "Task completed successfully",
+		Status:    types.EnvelopeStatusSucceeded,
+		Message:   "Envelope completed successfully",
 		Result:    map[string]interface{}{"output": "success"},
 		Timestamp: time.Now(),
 	}
@@ -326,9 +341,9 @@ func TestPgStore_Update_FinalStatus(t *testing.T) {
 	// Verify final state
 	retrieved, err := store.Get("test-final-status-1")
 	require.NoError(t, err)
-	assert.Equal(t, types.TaskStatusSucceeded, retrieved.Status)
+	assert.Equal(t, types.EnvelopeStatusSucceeded, retrieved.Status)
 	assert.NotNil(t, retrieved.Result)
-	assert.Equal(t, "Task completed successfully", retrieved.Message)
+	assert.Equal(t, "Envelope completed successfully", retrieved.Message)
 }
 
 // TestPgStore_ConcurrentUpdates tests concurrent progress updates
@@ -336,29 +351,31 @@ func TestPgStore_ConcurrentUpdates(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-concurrent-1",
 		Route: types.Route{
-			Actors:  []string{"actor1", "actor2", "actor3"},
-			Current: 0,
+			Prev: []string{},
+			Curr: "actor1",
+			Next: []string{"actor2", "actor3"},
 		},
 		Payload: map[string]interface{}{"data": "test"},
 	}
 
-	err := store.Create(task)
+	err := store.Create(envelope)
 	require.NoError(t, err)
 
 	// Send 10 concurrent updates
 	done := make(chan error, 10)
 	for i := 0; i < 10; i++ {
 		go func(idx int) {
-			update := types.TaskUpdate{
+			update := types.EnvelopeUpdate{
 				ID:              "test-concurrent-1",
-				Status:          types.TaskStatusRunning,
+				Status:          types.EnvelopeStatusRunning,
 				ProgressPercent: floatPtr(float64(idx * 10)),
-				Actors:          []string{"actor1", "actor2", "actor3"},
-				CurrentActorIdx: intPtr(0),
-				ActorState:   strPtr("processing"),
+				Prev:            []string{},
+				Curr:            "actor1",
+				Next:            []string{"actor2", "actor3"},
+				TaskState:       strPtr("processing"),
 				Timestamp:       time.Now(),
 			}
 			done <- store.UpdateProgress(update)
@@ -371,84 +388,88 @@ func TestPgStore_ConcurrentUpdates(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	// Verify task state is consistent
+	// Verify envelope state is consistent
 	retrieved, err := store.Get("test-concurrent-1")
 	require.NoError(t, err)
-	assert.Equal(t, types.TaskStatusRunning, retrieved.Status)
+	assert.Equal(t, types.EnvelopeStatusRunning, retrieved.Status)
 	assert.GreaterOrEqual(t, retrieved.ProgressPercent, 0.0)
 }
 
-// TestPgStore_IsActive tests task active status checking
+// TestPgStore_IsActive tests envelope active status checking
 func TestPgStore_IsActive(t *testing.T) {
 	store, cleanup := setupPgStore(t)
 	defer cleanup()
 
 	tests := []struct {
 		name       string
-		task       *types.Task
-		update     *types.TaskUpdate
+		envelope   *types.Envelope
+		update     *types.EnvelopeUpdate
 		wantActive bool
 	}{
 		{
-			name: "pending task is active",
-			task: &types.Task{
+			name: "pending envelope is active",
+			envelope: &types.Envelope{
 				ID: "test-active-pending",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
 			wantActive: true,
 		},
 		{
-			name: "running task is active",
-			task: &types.Task{
+			name: "running envelope is active",
+			envelope: &types.Envelope{
 				ID: "test-active-running",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
-			update: &types.TaskUpdate{
+			update: &types.EnvelopeUpdate{
 				ID:        "test-active-running",
-				Status:    types.TaskStatusRunning,
+				Status:    types.EnvelopeStatusRunning,
 				Timestamp: time.Now(),
 			},
 			wantActive: true,
 		},
 		{
-			name: "succeeded task is not active",
-			task: &types.Task{
+			name: "succeeded envelope is not active",
+			envelope: &types.Envelope{
 				ID: "test-active-succeeded",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
-			update: &types.TaskUpdate{
+			update: &types.EnvelopeUpdate{
 				ID:        "test-active-succeeded",
-				Status:    types.TaskStatusSucceeded,
+				Status:    types.EnvelopeStatusSucceeded,
 				Result:    map[string]interface{}{"output": "done"},
 				Timestamp: time.Now(),
 			},
 			wantActive: false,
 		},
 		{
-			name: "failed task is not active",
-			task: &types.Task{
+			name: "failed envelope is not active",
+			envelope: &types.Envelope{
 				ID: "test-active-failed",
 				Route: types.Route{
-					Actors:  []string{"actor1"},
-					Current: 0,
+					Prev: []string{},
+					Curr: "actor1",
+					Next: []string{},
 				},
 				Payload: map[string]interface{}{"data": "test"},
 			},
-			update: &types.TaskUpdate{
+			update: &types.EnvelopeUpdate{
 				ID:        "test-active-failed",
-				Status:    types.TaskStatusFailed,
+				Status:    types.EnvelopeStatusFailed,
 				Error:     "Something went wrong",
 				Timestamp: time.Now(),
 			},
@@ -458,7 +479,7 @@ func TestPgStore_IsActive(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := store.Create(tt.task)
+			err := store.Create(tt.envelope)
 			require.NoError(t, err)
 
 			if tt.update != nil {
@@ -466,7 +487,7 @@ func TestPgStore_IsActive(t *testing.T) {
 				require.NoError(t, err)
 			}
 
-			active := store.IsActive(tt.task.ID)
+			active := store.IsActive(tt.envelope.ID)
 			assert.Equal(t, tt.wantActive, active)
 		})
 	}

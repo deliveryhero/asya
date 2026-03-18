@@ -9,7 +9,7 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 )
 
 // Transport test helpers
@@ -31,7 +31,7 @@ func TestMCPProtocol_Initialize(t *testing.T) {
 }
 
 func testInitialize(t *testing.T, transportName string, serverFactory func(*mcpserver.MCPServer) http.Handler) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
@@ -113,7 +113,7 @@ func TestMCPProtocol_InvalidMethod(t *testing.T) {
 }
 
 func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*mcpserver.MCPServer) http.Handler) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
@@ -151,7 +151,7 @@ func testInvalidMethod(t *testing.T, transportName string, serverFactory func(*m
 
 // TestMCPProtocol_BothTransportsWork verifies both transports can coexist
 func TestMCPProtocol_BothTransportsWork(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
