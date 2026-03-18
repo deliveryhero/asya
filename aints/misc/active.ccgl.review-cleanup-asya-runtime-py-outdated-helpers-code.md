@@ -1,7 +1,11 @@
 ---
 title: "Review + cleanup asya_runtime.py: outdated helpers, code duplication, missing corner-case tests"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:misc/ccgl.cleanup-runtime
 ---
+
 
 ## Context
 
