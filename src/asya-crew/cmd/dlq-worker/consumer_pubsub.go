@@ -14,6 +14,7 @@ import (
 type pubsubPullAPI interface {
 	Pull(ctx context.Context, req *pubsubpb.PullRequest) (*pubsubpb.PullResponse, error)
 	Acknowledge(ctx context.Context, req *pubsubpb.AcknowledgeRequest) error
+	Close() error
 }
 
 // subscriberClientAdapter adapts the real gRPC SubscriptionAdminClient to pubsubPullAPI.
@@ -27,6 +28,10 @@ func (a *subscriberClientAdapter) Pull(ctx context.Context, req *pubsubpb.PullRe
 
 func (a *subscriberClientAdapter) Acknowledge(ctx context.Context, req *pubsubpb.AcknowledgeRequest) error {
 	return a.client.Acknowledge(ctx, req)
+}
+
+func (a *subscriberClientAdapter) Close() error {
+	return a.client.Close()
 }
 
 // PubSubConsumer polls a Pub/Sub dead letter subscription using the native gRPC Pull API.
@@ -103,7 +108,7 @@ func (c *PubSubConsumer) Ack(ctx context.Context, msg *DLQMessage) error {
 	return nil
 }
 
-// Close is a no-op for the Pub/Sub consumer (client lifecycle managed externally).
+// Close releases the underlying gRPC connection.
 func (c *PubSubConsumer) Close() error {
-	return nil
+	return c.client.Close()
 }

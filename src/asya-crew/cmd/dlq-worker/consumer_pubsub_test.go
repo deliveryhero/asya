@@ -11,6 +11,7 @@ import (
 type mockPubSubClient struct {
 	pullFunc        func(ctx context.Context, req *pubsubpb.PullRequest) (*pubsubpb.PullResponse, error)
 	acknowledgeFunc func(ctx context.Context, req *pubsubpb.AcknowledgeRequest) error
+	closed          bool
 }
 
 func (m *mockPubSubClient) Pull(ctx context.Context, req *pubsubpb.PullRequest) (*pubsubpb.PullResponse, error) {
@@ -19,6 +20,11 @@ func (m *mockPubSubClient) Pull(ctx context.Context, req *pubsubpb.PullRequest) 
 
 func (m *mockPubSubClient) Acknowledge(ctx context.Context, req *pubsubpb.AcknowledgeRequest) error {
 	return m.acknowledgeFunc(ctx, req)
+}
+
+func (m *mockPubSubClient) Close() error {
+	m.closed = true
+	return nil
 }
 
 func TestPubSubConsumer_Receive(t *testing.T) {
@@ -103,6 +109,18 @@ func TestPubSubConsumer_Receive_ContextCancelled(t *testing.T) {
 	_, err := consumer.Receive(ctx)
 	if err == nil {
 		t.Fatal("expected error for cancelled context")
+	}
+}
+
+func TestPubSubConsumer_Close_ReleasesClient(t *testing.T) {
+	mock := &mockPubSubClient{}
+	consumer := newPubSubConsumerWithClient(mock, "projects/p/subscriptions/s")
+
+	if err := consumer.Close(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !mock.closed {
+		t.Error("Close() should propagate to the underlying gRPC client")
 	}
 }
 
