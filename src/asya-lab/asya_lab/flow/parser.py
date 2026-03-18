@@ -80,6 +80,7 @@ class FlowParser:
         self.rules: CompilerRules = rules if rules is not None else CompilerRules()
         self.flow_name: str | None = None
         self.is_async: bool = False  # Whether flow function is async def
+        self.imports: dict[str, str] = {}  # Map imported name to qualified module.name
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
         self.import_map: dict[str, str] = {}  # Map local name -> fully qualified module.name
@@ -171,12 +172,14 @@ class FlowParser:
         return list(self.module_constants)
 
     def _collect_imports(self, tree: ast.Module) -> None:
-        """Populate import_map from top-level `from X import Y` statements."""
+        """Populate import_map and imports from top-level `from X import Y` statements."""
         for node in tree.body:
             if isinstance(node, ast.ImportFrom) and node.module:
                 for alias in node.names:
                     local_name = alias.asname if alias.asname else alias.name
-                    self.import_map[local_name] = f"{node.module}.{alias.name}"
+                    qualified = f"{node.module}.{alias.name}"
+                    self.import_map[local_name] = qualified
+                    self.imports[local_name] = qualified
 
     def _collect_module_constants(self, tree: ast.Module) -> None:
         """Collect module-level assignments of literal constants for inclusion in generated code.
@@ -427,7 +430,8 @@ class FlowParser:
             return ActorCall(lineno=stmt.lineno, name=inner_name)
 
         if isinstance(call.func, ast.Name):
-            actor_name = call.func.id
+            # Resolve imported names: from echo_handler import process → echo_handler.process
+            actor_name = self.imports.get(call.func.id, call.func.id)
         elif isinstance(call.func, ast.Attribute):
             # Check if this is a method call on an instantiated class
             if isinstance(call.func.value, ast.Name) and call.func.value.id in self.instances:

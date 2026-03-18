@@ -47,6 +47,8 @@ class LazyGroup(click.Group):
         "build": "asya_lab.build_cli:build",
         "compile": "asya_lab.compile_cli:compile_cmd",
         "config": "asya_lab.config_cli:config",
+        "d": "asya_lab.d_cli:d",
+        "docker": "asya_lab.d_cli:d",
         "expose": "asya_lab.expose_cli:expose",
         "init": "asya_lab.init_cli:init",
         "k": "asya_lab.k_cli:k",

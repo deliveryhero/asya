@@ -85,7 +85,8 @@ def project():
                 "router_image": "python:3.13-slim",
             },
             "build": [
-                {"module": "*", "image": "ghcr.io/test-org/*:latest"},
+                {"module": "handler_a", "image": "ghcr.io/test-org/handler-a:latest"},
+                {"module": "handler_b", "image": "ghcr.io/test-org/handler-b:latest"},
             ],
         }
     )
@@ -100,7 +101,8 @@ def project_with_contexts():
                 "router_image": "python:3.13-slim",
             },
             "build": [
-                {"module": "*", "image": "ghcr.io/test-org/*:latest"},
+                {"module": "handler_a", "image": "ghcr.io/test-org/handler-a:latest"},
+                {"module": "handler_b", "image": "ghcr.io/test-org/handler-b:latest"},
             ],
             "contexts": {
                 "stg": {"kubecontext": "stg-cluster"},

@@ -12,9 +12,10 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
 
 from asya_lab.cli_types import ASYA_REF, AsyaRef
-from asya_lab.config.project import AsyaProject
+from asya_lab.config.project import AsyaProject, ImageNotConfiguredError
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
@@ -27,7 +28,7 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    project = AsyaProject.from_dir(source_path.parent)
+    project = AsyaProject.from_dir(asya_dir.parent)
     return project.resolve_path("compiler.routers") / flow_function
 
 
@@ -80,12 +81,8 @@ def _compile_flow_file(
     click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
     click.echo(f"[+] Using flow name '{flow_name}'")
 
-    actor = compiler.single_actor_name
-    if actor is not None:
-        click.echo("[+] Single-actor flow detected: no router actor needed")
-        click.echo(f"[+] Apply these labels to actor '{actor}':")
-        click.echo(f"[+]   asya.sh/flow: {flow_name}")
-        click.echo("[+]   asya.sh/flow-role: entrypoint")
+    if compiler.single_actor_name is not None:
+        click.echo("[+] Single-actor flow: no router actors needed")
 
     if plot:
         try:
@@ -107,7 +104,7 @@ def _recompile_kebab_target(
     output_dir: str | None,
     verbose: bool,
 ) -> None:
-    """Recompile from existing manifests found in .asya/."""
+    """Verify existing manifests found in .asya/."""
     from asya_lab.config.discovery import find_asya_dir
 
     asya_dir = find_asya_dir(Path.cwd())
@@ -120,15 +117,59 @@ def _recompile_kebab_target(
     manifests_dir = project.resolve_path("compiler.manifests") / target
     if not manifests_dir.exists():
         click.echo(f"[-] No existing manifests found at: {manifests_dir}", err=True)
+        click.echo("[-] Compile from source first: asya compile <flow>.py", err=True)
         sys.exit(1)
 
-    click.echo(f"[+] Recompiling '{target}' from {manifests_dir}")
+    yaml_files = list(manifests_dir.rglob("*.yaml"))
+    if not yaml_files:
+        click.echo(f"[-] No YAML manifests found in: {manifests_dir}", err=True)
+        click.echo("[-] Compile from source first: asya compile <flow>.py", err=True)
+        sys.exit(1)
 
+    click.echo(f"[+] Manifests already compiled at: {manifests_dir}")
     if verbose:
-        click.echo(f"[.] Manifests directory: {manifests_dir}")
+        for f in sorted(yaml_files):
+            click.echo(f"[.]   {f.relative_to(manifests_dir)}")
 
-    click.echo(f"[!] Recompilation from existing manifests is not yet implemented: {target}", err=True)
-    sys.exit(1)
+
+def _handle_missing_image(err: ImageNotConfiguredError) -> None:
+    """Handle ImageNotConfiguredError: prompt for image or show instructions."""
+    from asya_lab.config.discovery import find_asya_dir
+
+    # Extract module part from handler (echo_handler.process → echo_handler)
+    module_name = err.handler_name.rsplit(".", 1)[0] if "." in err.handler_name else err.handler_name
+
+    click.echo(f"[-] No Docker image configured for handler '{err.handler_name}'", err=True)
+
+    try:
+        image = input(f"Base image for '{module_name}': ").strip()
+    except (EOFError, KeyboardInterrupt):
+        click.echo("", err=True)
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    if not image:
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    # Write build entry to nearest .asya/config.yaml
+    asya_dir = find_asya_dir(Path.cwd())
+    if asya_dir is None:
+        click.echo("[-] No .asya/ directory found; add manually:", err=True)
+        click.echo(str(err), err=True)
+        sys.exit(1)
+
+    config_path = asya_dir / "config.yaml"
+    cfg: dict = {}
+    if config_path.exists():
+        cfg = yaml.safe_load(config_path.read_text()) or {}
+
+    build_list: list[dict] = cfg.get("build", [])
+    build_list.append({"module": module_name, "image": image})
+    cfg["build"] = build_list
+    config_path.write_text(yaml.dump(cfg, default_flow_style=False, sort_keys=False))
+
+    click.echo(f"[+] Added build entry: {module_name} -> {image}")
 
 
 @click.command("compile")
@@ -156,15 +197,19 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
       flow.py:my_flow      Compile specific flow function from file
       my-flow              Recompile from existing .asya/ manifests
     """
-    try:
-        if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
-        else:
-            _recompile_kebab_target(target.name, output_dir, verbose)
-    except FlowCompileError as e:
-        click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
-        click.echo(str(e), err=True)
-        sys.exit(1)
-    except (FileNotFoundError, ValueError) as e:
-        click.echo(f"[-] {e}", err=True)
-        sys.exit(1)
+    while True:
+        try:
+            if target.source is not None:
+                _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
+            else:
+                _recompile_kebab_target(target.name, output_dir, verbose)
+            break
+        except ImageNotConfiguredError as e:
+            _handle_missing_image(e)
+        except FlowCompileError as e:
+            click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
+            click.echo(str(e), err=True)
+            sys.exit(1)
+        except (FileNotFoundError, ValueError) as e:
+            click.echo(f"[-] {e}", err=True)
+            sys.exit(1)

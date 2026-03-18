@@ -1703,3 +1703,110 @@ class TestExprStatementErrors:
         parser = FlowParser(source, "test.py")
         with pytest.raises(FlowCompileError, match="standalone function call is not supported"):
             parser.parse()
+
+
+class TestImportResolution:
+    """Test that 'from module import func' resolves bare calls to module.func."""
+
+    def test_from_import_resolves_bare_call(self):
+        source = textwrap.dedent(
+            """
+            from echo_handler import process
+
+            @flow
+            def flow(p: dict) -> dict:
+                p = process(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "echo_handler.process"
+
+    def test_from_import_with_alias_resolves(self):
+        source = textwrap.dedent(
+            """
+            from echo_handler import process as handle
+
+            @flow
+            def flow(p: dict) -> dict:
+                p = handle(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "echo_handler.process"
+
+    def test_from_import_multiple_functions(self):
+        source = textwrap.dedent(
+            """
+            from handlers import preprocess, postprocess
+
+            @flow
+            def flow(p: dict) -> dict:
+                p = preprocess(p)
+                p = postprocess(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handlers.preprocess"
+        assert isinstance(ops[1], ActorCall)
+        assert ops[1].name == "handlers.postprocess"
+
+    def test_from_subpackage_import(self):
+        source = textwrap.dedent(
+            """
+            from mypackage.handlers import predict
+
+            @flow
+            def flow(p: dict) -> dict:
+                p = predict(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "mypackage.handlers.predict"
+
+    def test_unimported_bare_call_stays_bare(self):
+        source = textwrap.dedent(
+            """
+            @flow
+            def flow(p: dict) -> dict:
+                p = handler_a(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler_a"
+
+    def test_dotted_call_unaffected_by_imports(self):
+        source = textwrap.dedent(
+            """
+            import echo_handler
+
+            @flow
+            def flow(p: dict) -> dict:
+                p = echo_handler.process(p)
+                return p
+        """
+        )
+        parser = FlowParser(source, "test.py")
+        _, ops = parser.parse()
+
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "echo_handler.process"
