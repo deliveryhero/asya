@@ -23,7 +23,7 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 
 	ctx := context.Background()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-job-1",
 		Route: types.Route{
 			Prev: []string{},
@@ -35,7 +35,7 @@ func TestRabbitMQClientPooled_SendMessage(t *testing.T) {
 		},
 	}
 
-	err = client.SendMessage(ctx, task)
+	err = client.SendMessage(ctx, envelope)
 	if err != nil {
 		t.Fatalf("Failed to send message: %v", err)
 	}
@@ -64,7 +64,7 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 			defer wg.Done()
 
 			for j := 0; j < numMessages; j++ {
-				task := &types.Task{
+				envelope := &types.Envelope{
 					ID: fmt.Sprintf("job-%d-%d", id, j),
 					Route: types.Route{
 						Prev: []string{},
@@ -77,7 +77,7 @@ func TestRabbitMQClientPooled_ConcurrentSend(t *testing.T) {
 					},
 				}
 
-				if err := client.SendMessage(ctx, task); err != nil {
+				if err := client.SendMessage(ctx, envelope); err != nil {
 					errors <- err
 					return
 				}
@@ -111,7 +111,7 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 	ctx := context.Background()
 
 	deadline := time.Now().Add(5 * time.Minute)
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-job-deadline",
 		Route: types.Route{
 			Prev: []string{},
@@ -124,7 +124,7 @@ func TestRabbitMQClientPooled_SendWithDeadline(t *testing.T) {
 		Deadline: deadline,
 	}
 
-	err = client.SendMessage(ctx, task)
+	err = client.SendMessage(ctx, envelope)
 	if err != nil {
 		t.Fatalf("Failed to send message with deadline: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 
 	ctx := context.Background()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-job-empty-route",
 		Route: types.Route{
 			Prev: []string{},
@@ -150,7 +150,7 @@ func TestRabbitMQClientPooled_SendEmptyRoute(t *testing.T) {
 		Payload: map[string]interface{}{},
 	}
 
-	err = client.SendMessage(ctx, task)
+	err = client.SendMessage(ctx, envelope)
 	if err == nil {
 		t.Error("Expected error for empty route, got nil")
 	}
@@ -168,7 +168,7 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "test-job-cancel",
 		Route: types.Route{
 			Prev: []string{},
@@ -178,7 +178,7 @@ func TestRabbitMQClientPooled_ContextCancellation(t *testing.T) {
 		Payload: map[string]interface{}{},
 	}
 
-	err = client.SendMessage(ctx, task)
+	err = client.SendMessage(ctx, envelope)
 	if err == nil {
 		t.Error("Expected error with cancelled context")
 	}
@@ -199,7 +199,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			task := &types.Task{
+			envelope := &types.Envelope{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Prev: []string{},
@@ -211,7 +211,7 @@ func BenchmarkRabbitMQClientPooled_Send(b *testing.B) {
 				},
 			}
 
-			if err := client.SendMessage(ctx, task); err != nil {
+			if err := client.SendMessage(ctx, envelope); err != nil {
 				b.Fatal(err)
 			}
 			i++
@@ -233,7 +233,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		i := 0
 		for pb.Next() {
-			task := &types.Task{
+			envelope := &types.Envelope{
 				ID: fmt.Sprintf("bench-job-%d", i),
 				Route: types.Route{
 					Prev: []string{},
@@ -245,7 +245,7 @@ func BenchmarkRabbitMQClient_SendWithMutex(b *testing.B) {
 				},
 			}
 
-			if err := client.SendMessage(ctx, task); err != nil {
+			if err := client.SendMessage(ctx, envelope); err != nil {
 				b.Fatal(err)
 			}
 			i++

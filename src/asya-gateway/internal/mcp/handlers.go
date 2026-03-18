@@ -124,15 +124,15 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("Creating fanout task", "id", createReq.ID, "parent_id", createReq.ParentID)
+	slog.Info("Creating fanout envelope", "id", createReq.ID, "parent_id", createReq.ParentID)
 
 	totalActors := len(createReq.Prev) + len(createReq.Next)
 	if createReq.Curr != "" {
 		totalActors++
 	}
 
-	// Create minimal task for fanout child
-	task := &types.Envelope{
+	// Create envelope tracking record for fanout child
+	envelope := &types.Envelope{
 		ID:       createReq.ID,
 		ParentID: createReq.ParentID,
 		Status:   types.EnvelopeStatusPending,
@@ -146,13 +146,13 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 		ActorsCompleted: len(createReq.Prev),
 	}
 
-	if err := h.taskStore.Create(task); err != nil {
-		slog.Error("Failed to create fanout task", "id", createReq.ID, "error", err)
-		http.Error(w, "Failed to create task", http.StatusInternalServerError)
+	if err := h.taskStore.Create(envelope); err != nil {
+		slog.Error("Failed to create fanout envelope", "id", createReq.ID, "error", err)
+		http.Error(w, "Failed to create envelope", http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info("Fanout task created successfully", "id", createReq.ID)
+	slog.Info("Fanout envelope created successfully", "id", createReq.ID)
 
 	// Send fanout task to queue (async)
 	go func() {
@@ -160,7 +160,7 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 		_ = h.taskStore.Update(types.EnvelopeUpdate{
 			ID:        createReq.ID,
 			Status:    types.EnvelopeStatusRunning,
-			Message:   "Sending task to first actor",
+			Message:   "Sending envelope to first actor",
 			Timestamp: time.Now(),
 		})
 
@@ -173,12 +173,12 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 
-		if err := h.server.queueClient.SendMessage(ctx, task); err != nil {
-			slog.Error("Failed to send fanout task to queue", "id", createReq.ID, "error", err)
+		if err := h.server.queueClient.SendMessage(ctx, envelope); err != nil {
+			slog.Error("Failed to send fanout envelope to queue", "id", createReq.ID, "error", err)
 			_ = h.taskStore.Update(types.EnvelopeUpdate{
 				ID:        createReq.ID,
 				Status:    types.EnvelopeStatusFailed,
-				Error:     fmt.Sprintf("failed to send task: %v", err),
+				Error:     fmt.Sprintf("failed to send envelope: %v", err),
 				Timestamp: time.Now(),
 			})
 			return
@@ -612,7 +612,7 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	// Update task store
 	if err := h.taskStore.Update(update); err != nil {
 		slog.Error("Failed to update task with final status", "id", taskID, "error", err)
-		http.Error(w, "Failed to update task", http.StatusInternalServerError)
+		http.Error(w, "Failed to update envelope", http.StatusInternalServerError)
 		return
 	}
 

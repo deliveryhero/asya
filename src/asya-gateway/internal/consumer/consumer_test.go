@@ -141,8 +141,8 @@ func TestProcessMessage_StatusPhaseFailed_WithReason(t *testing.T) {
 		t.Error("Expected non-empty Message, got empty string")
 	}
 	// Reason should appear in the message
-	if update.Message != "Task failed: MaxRetriesExhausted" {
-		t.Errorf("Message = %q, want %q", update.Message, "Task failed: MaxRetriesExhausted")
+	if update.Message != "Envelope failed: MaxRetriesExhausted" {
+		t.Errorf("Message = %q, want %q", update.Message, "Envelope failed: MaxRetriesExhausted")
 	}
 	// Error should contain both type and message
 	if update.Error != "ValueError: Something broke" {

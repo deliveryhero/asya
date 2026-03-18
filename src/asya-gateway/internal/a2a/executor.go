@@ -64,13 +64,13 @@ func (e *Executor) Execute(
 	// Translate A2A Message -> envelope payload + headers
 	payload, headers := MessageToPayload(msg, taskID, contextID)
 
-	// Build internal task
+	// Build envelope tracking record
 	timeoutSec := 300
 	if skill.TimeoutSec != nil {
 		timeoutSec = *skill.TimeoutSec
 	}
 
-	task := &types.Envelope{
+	envelope := &types.Envelope{
 		ID:        string(taskID),
 		ContextID: contextID,
 		Status:    types.EnvelopeStatusPending,
@@ -85,13 +85,13 @@ func (e *Executor) Execute(
 		Deadline:   time.Now().Add(time.Duration(timeoutSec) * time.Second),
 	}
 
-	if err := e.taskStore.Create(task); err != nil {
-		return fmt.Errorf("create task: %w", err)
+	if err := e.taskStore.Create(envelope); err != nil {
+		return fmt.Errorf("create envelope: %w", err)
 	}
 
 	// Dispatch to queue
 	if e.queueClient != nil {
-		if err := e.queueClient.SendMessage(ctx, task); err != nil {
+		if err := e.queueClient.SendMessage(ctx, envelope); err != nil {
 			slog.Error("Failed to dispatch envelope to queue", "task_id", taskID, "error", err)
 			_ = e.taskStore.Update(types.EnvelopeUpdate{
 				ID:        string(taskID),
@@ -198,7 +198,7 @@ func (e *Executor) handleResume(
 	// Merge resume-specific header with A2A headers
 	headers["x-asya-resume-task"] = string(taskID)
 
-	task := &types.Envelope{
+	envelope := &types.Envelope{
 		ID:        fmt.Sprintf("resume-%s", taskID),
 		ContextID: contextID,
 		Status:    types.EnvelopeStatusPending,
@@ -216,7 +216,7 @@ func (e *Executor) handleResume(
 	}
 
 	if e.queueClient != nil {
-		if err := e.queueClient.SendMessage(ctx, task); err != nil {
+		if err := e.queueClient.SendMessage(ctx, envelope); err != nil {
 			return fmt.Errorf("dispatch resume: %w", err)
 		}
 	}

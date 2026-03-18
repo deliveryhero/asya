@@ -240,7 +240,7 @@ func (s *PgStore) Get(id string) (*types.Envelope, error) {
 		return nil, fmt.Errorf("envelope %s: %w", id, ErrNotFound)
 	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to get task: %w", err)
+		return nil, fmt.Errorf("failed to get envelope: %w", err)
 	}
 
 	// Handle nullable fields
@@ -734,7 +734,7 @@ func (s *PgStore) handleTimeout(id string) {
 	}
 
 	if err := s.Update(update); err != nil {
-		fmt.Printf("Failed to update timed out task %s: %v\n", id, err)
+		fmt.Printf("Failed to update timed out envelope %s: %v\n", id, err)
 	}
 
 	s.mu.Lock()
@@ -765,7 +765,7 @@ func (s *PgStore) Resume(id string) (*types.Envelope, error) {
 		WHERE id = $2 AND status = 'paused'
 	`, types.EnvelopeStatusRunning, id)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resume task: %w", err)
+		return nil, fmt.Errorf("failed to resume envelope: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
@@ -774,7 +774,7 @@ func (s *PgStore) Resume(id string) (*types.Envelope, error) {
 		if err != nil {
 			return nil, fmt.Errorf("envelope %s not found", id)
 		}
-		return nil, fmt.Errorf("task %s is not paused (status: %s)", id, existingEnvelope.Status)
+		return nil, fmt.Errorf("envelope %s is not paused (status: %s)", id, existingEnvelope.Status)
 	}
 
 	// Fetch updated task
@@ -850,12 +850,12 @@ func (s *PgStore) List(params EnvelopeListParams) ([]*types.Envelope, int, error
 
 	var totalCount int
 	if err := s.pool.QueryRow(s.ctx, listCountQuery, statusArg, contextIDArg).Scan(&totalCount); err != nil {
-		return nil, 0, fmt.Errorf("failed to count tasks: %w", err)
+		return nil, 0, fmt.Errorf("failed to count envelopes: %w", err)
 	}
 
 	rows, err := s.pool.Query(s.ctx, listDataQuery, statusArg, contextIDArg, limit, offset)
 	if err != nil {
-		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
+		return nil, 0, fmt.Errorf("failed to list envelopes: %w", err)
 	}
 	defer rows.Close()
 
@@ -877,7 +877,7 @@ func (s *PgStore) List(params EnvelopeListParams) ([]*types.Envelope, int, error
 			&envelope.CreatedAt, &envelope.UpdatedAt,
 		)
 		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan task: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan envelope: %w", err)
 		}
 
 		if payloadJSON != nil {

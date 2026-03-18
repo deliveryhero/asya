@@ -110,19 +110,19 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 	}
 
 	if err := json.Unmarshal(msg.Body(), &parsedMsg); err != nil {
-		slog.Error("Failed to parse task", "error", err)
+		slog.Error("Failed to parse envelope", "error", err)
 		return
 	}
 
 	// Extract task ID from top-level field
-	taskID := parsedMsg.ID
+	envelopeID := parsedMsg.ID
 
-	if taskID == "" {
+	if envelopeID == "" {
 		slog.Error("No envelope ID found, skipping", "body", string(msg.Body()[:min(len(msg.Body()), 200)]))
 		return
 	}
 
-	slog.Debug("Extracted envelope ID", "id", taskID)
+	slog.Debug("Extracted envelope ID", "id", envelopeID)
 
 	// Determine final status using status.phase, falling back to queue-based status param
 	finalStatus := status // queue-name fallback (backward compat)
@@ -135,8 +135,8 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 		// No status field: use queue-based determination (backward compat)
 	default:
 		// Non-terminal phase: silently ack without updating gateway
-		slog.Debug("Non-terminal phase in result queue, skipping task update",
-			"id", taskID, "phase", parsedMsg.Status.Phase)
+		slog.Debug("Non-terminal phase in result queue, skipping envelope update",
+			"id", envelopeID, "phase", parsedMsg.Status.Phase)
 		return
 	}
 
@@ -148,15 +148,15 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 
 	// Build the update with enriched error from status.error and status.reason
 	update := types.EnvelopeUpdate{
-		ID:        taskID,
+		ID:        envelopeID,
 		Status:    finalStatus,
 		Result:    result,
 		Timestamp: time.Now(),
 	}
 
 	if finalStatus == types.EnvelopeStatusSucceeded {
-		update.Message = "Task completed successfully"
-		slog.Debug("Marking envelope as Succeeded", "id", taskID)
+		update.Message = "Envelope completed successfully"
+		slog.Debug("Marking envelope as Succeeded", "id", envelopeID)
 	} else {
 		if parsedMsg.Status.Error != nil {
 			errType := parsedMsg.Status.Error.Type
@@ -176,21 +176,21 @@ func (c *ResultConsumer) processMessage(ctx context.Context, msg queue.QueueMess
 			}
 		}
 		if parsedMsg.Status.Reason != "" {
-			update.Message = fmt.Sprintf("Task failed: %s", parsedMsg.Status.Reason)
+			update.Message = fmt.Sprintf("Envelope failed: %s", parsedMsg.Status.Reason)
 		} else {
-			update.Message = "Task failed"
+			update.Message = "Envelope failed"
 		}
-		slog.Debug("Marking envelope as Failed", "id", taskID, "error", update.Error, "reason", parsedMsg.Status.Reason)
+		slog.Debug("Marking envelope as Failed", "id", envelopeID, "error", update.Error, "reason", parsedMsg.Status.Reason)
 	}
 
-	slog.Debug("Updating envelope with final status", "id", taskID, "status", finalStatus, "result", result)
+	slog.Debug("Updating envelope with final status", "id", envelopeID, "status", finalStatus, "result", result)
 
 	if err := c.taskStore.Update(update); err != nil {
-		slog.Error("Failed to update envelope", "id", taskID, "error", err)
+		slog.Error("Failed to update envelope", "id", envelopeID, "error", err)
 		return
 	}
 
-	slog.Debug("Envelope successfully updated to final status", "id", taskID, "status", finalStatus)
+	slog.Debug("Envelope successfully updated to final status", "id", envelopeID, "status", finalStatus)
 
-	slog.Info("Envelope marked as final status", "id", taskID, "status", finalStatus)
+	slog.Info("Envelope marked as final status", "id", envelopeID, "status", finalStatus)
 }

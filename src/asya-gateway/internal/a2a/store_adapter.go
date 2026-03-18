@@ -71,21 +71,21 @@ func (a *StoreAdapter) Save(ctx context.Context, task *a2alib.Task, event a2alib
 // from the state proxy mount. Hydration failures are logged and silently ignored —
 // history and artifacts are optional per the A2A spec.
 func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.Task, a2alib.TaskVersion, error) {
-	task, err := a.internal.Get(string(taskID))
+	envelope, err := a.internal.Get(string(taskID))
 	if err != nil {
 		if err == envelopestore.ErrNotFound || strings.Contains(err.Error(), "envelope not found") {
 			return nil, 0, a2alib.ErrTaskNotFound
 		}
-		return nil, 0, fmt.Errorf("failed to get task: %w", err)
+		return nil, 0, fmt.Errorf("failed to get envelope: %w", err)
 	}
 
-	a2aTask := internalToA2ATask(task)
-	version := a2alib.TaskVersion(task.UpdatedAt.UnixNano())
+	a2aTask := internalToA2ATask(envelope)
+	version := a2alib.TaskVersion(envelope.UpdatedAt.UnixNano())
 
-	// Hydrate history and artifacts from the state proxy for terminal/paused tasks.
-	// In-flight tasks (pending/running) are skipped — history is not available from queues.
+	// Hydrate history and artifacts from the state proxy for terminal/paused envelopes.
+	// In-flight envelopes (pending/running) are skipped — history is not available from queues.
 	if a.stateProxy != nil {
-		a.hydrateFromStateProxy(ctx, task, a2aTask)
+		a.hydrateFromStateProxy(ctx, envelope, a2aTask)
 	}
 
 	return a2aTask, version, nil
@@ -94,16 +94,16 @@ func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.T
 // hydrateFromStateProxy reads the persisted envelope from the state proxy and populates
 // History and Artifacts on a2aTask. Errors are logged and swallowed — both fields are
 // optional per the A2A spec, so callers always get a valid (possibly partial) task.
-func (a *StoreAdapter) hydrateFromStateProxy(ctx context.Context, task *types.Envelope, a2aTask *a2alib.Task) {
-	prefix := stateProxyPrefix(task.Status)
+func (a *StoreAdapter) hydrateFromStateProxy(ctx context.Context, envelope *types.Envelope, a2aTask *a2alib.Task) {
+	prefix := stateProxyPrefix(envelope.Status)
 	if prefix == "" {
 		return // in-flight task; history not available from queues
 	}
 
-	payload, err := a.stateProxy.ReadPayload(ctx, prefix, task.ID)
+	payload, err := a.stateProxy.ReadPayload(ctx, prefix, envelope.ID)
 	if err != nil {
 		slog.Warn("State proxy read failed; omitting history/artifacts",
-			"task_id", task.ID, "prefix", prefix, "error", err)
+			"task_id", envelope.ID, "prefix", prefix, "error", err)
 		return
 	}
 	if payload == nil {
@@ -229,8 +229,8 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 	}
 
 	a2aTasks := make([]*a2alib.Task, 0, len(tasks))
-	for _, task := range tasks {
-		a2aTasks = append(a2aTasks, internalToA2ATask(task))
+	for _, envelope := range tasks {
+		a2aTasks = append(a2aTasks, internalToA2ATask(envelope))
 	}
 
 	// Calculate NextPageToken
@@ -249,21 +249,21 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 }
 
 // internalToA2ATask converts an internal types.Envelope to a2a.Task.
-func internalToA2ATask(task *types.Envelope) *a2alib.Task {
+func internalToA2ATask(envelope *types.Envelope) *a2alib.Task {
 	a2aTask := &a2alib.Task{
-		ID:        a2alib.TaskID(task.ID),
-		ContextID: task.ContextID,
+		ID:        a2alib.TaskID(envelope.ID),
+		ContextID: envelope.ContextID,
 		Status: a2alib.TaskStatus{
-			State: ToA2AState(task.Status),
+			State: ToA2AState(envelope.Status),
 		},
 		Metadata: make(map[string]any),
 	}
 
-	if task.Message != "" {
-		timestamp := task.UpdatedAt
-		msg := a2alib.NewMessage(a2alib.MessageRoleAgent, &a2alib.TextPart{Text: task.Message})
-		msg.TaskID = a2alib.TaskID(task.ID)
-		msg.ContextID = task.ContextID
+	if envelope.Message != "" {
+		timestamp := envelope.UpdatedAt
+		msg := a2alib.NewMessage(a2alib.MessageRoleAgent, &a2alib.TextPart{Text: envelope.Message})
+		msg.TaskID = a2alib.TaskID(envelope.ID)
+		msg.ContextID = envelope.ContextID
 		a2aTask.Status.Message = msg
 		a2aTask.Status.Timestamp = &timestamp
 	}
