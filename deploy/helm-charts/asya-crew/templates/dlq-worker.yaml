@@ -21,7 +21,7 @@ spec:
       labels:
         {{- include "asya-crew.dlq-worker.labels" . | nindent 8 }}
     spec:
-      {{- with $dlq.imagePullSecrets }}
+      {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -36,6 +36,7 @@ spec:
       - name: dlq-worker
         image: {{ include "asya-crew.dlq-worker.image" . }}
         imagePullPolicy: {{ include "asya-crew.dlq-worker.imagePullPolicy" . }}
+        command: ["/dlq-worker"]
         securityContext:
           readOnlyRootFilesystem: true
           allowPrivilegeEscalation: false

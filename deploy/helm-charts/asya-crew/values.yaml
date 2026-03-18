@@ -297,12 +297,6 @@ sqs:
 dlq-worker:
   enabled: true
 
-  # Image configuration (separate from crew actor images)
-  image:
-    repository: ghcr.io/deliveryhero/asya-dlq-worker
-    tag: "" # defaults to Chart.appVersion
-    pullPolicy: IfNotPresent
-
   # DLQ worker configuration (all mapped to environment variables)
   config:
     # Full SQS queue URL or Pub/Sub subscription name (required to activate deployment)
@@ -346,9 +340,6 @@ dlq-worker:
 
   # Additional annotations for the Deployment
   annotations: {}
-
-  # Image pull secrets
-  imagePullSecrets: []
 
   # Service account configuration (for IRSA in production)
   serviceAccount:
