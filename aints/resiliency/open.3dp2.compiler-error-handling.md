@@ -1,5 +1,5 @@
 ---
-title: "design+impl: Compiler error handling"
+title: "Compiler error handling"
 priority: 2 # medium
 dependencies:
 - 7179
