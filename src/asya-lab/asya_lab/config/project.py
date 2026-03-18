@@ -116,13 +116,11 @@ class AsyaProject:
         Raises ImageNotConfiguredError if no matching entry is found.
         """
         cfg = self._store.cfg
-        wildcard_entry = None
 
         if "build" in cfg:
             for entry in cfg["build"]:
                 module = str(entry.get("module", ""))
                 if module == "*":
-                    wildcard_entry = entry
                     continue
                 if module and handler_name.startswith(module.replace(".", "_")):
                     return str(entry["image"])
