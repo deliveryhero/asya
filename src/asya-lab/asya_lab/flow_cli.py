@@ -8,7 +8,6 @@ from pathlib import Path
 import click
 
 from asya_lab.flow import FlowCompileError, FlowCompiler
-from asya_lab.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS
 
 
 def _stamp_manifests(
@@ -81,114 +80,7 @@ def _stamp_manifests(
             click.echo(f"[.]   {f}")
 
 
-@click.group()
-def flow():
-    """Flow DSL compiler for Asya."""
-
-
-@flow.command("compile")
-@click.argument("flow_file")
-@click.option("--output-dir", "-o", required=True, help="Output directory for compiled files")
-@click.option(
-    "--manifests-dir",
-    "-m",
-    default=None,
-    help="Output directory for kustomize manifests (default: from .asya/config.yaml)",
-)
-@click.option("--no-manifests", is_flag=True, help="Skip kustomize manifest stamping")
-@click.option(
-    "--max-iterations",
-    type=int,
-    default=DEFAULT_MAX_LOOP_ITERATIONS,
-    help=f"Max iterations for while-True loops (default: {DEFAULT_MAX_LOOP_ITERATIONS})",
-)
-@click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-@click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
-@click.option(
-    "--plot-format",
-    "plot_format",
-    default="svg",
-    type=click.Choice(["svg", "png"]),
-    show_default=True,
-    help="Output format for flow diagram",
-)
-@click.option("--plot-width", type=int, default=50, help="Max width for plot node labels (default: 50)")
-@click.option("--overwrite", is_flag=True, help="Overwrite existing files in output directory")
-def compile_cmd(
-    flow_file,
-    output_dir,
-    manifests_dir,
-    no_manifests,
-    max_iterations,
-    verbose,
-    plot,
-    plot_format,
-    plot_width,
-    overwrite,
-):
-    """Compile flow to routers and kustomize manifests."""
-    try:
-        compiler = FlowCompiler(verbose=verbose, max_iterations=max_iterations)
-
-        compiled_file = compiler.compile_file(flow_file, output_dir, overwrite=overwrite)
-        click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
-
-        actor = compiler.single_actor_name
-        if actor is not None:
-            # flow_name from compiler is the Python function name (underscores);
-            # asya.sh/flow label uses the K8s name (hyphens)
-            flow_label = compiler.flow_name.replace("_", "-") if compiler.flow_name else ""
-            click.echo("[+] Single-actor flow detected: no router actor needed")
-            click.echo(f"[+] Apply these labels to actor '{actor}':")
-            click.echo(f"[+]   asya.sh/flow: {flow_label}")
-            click.echo("[+]   asya.sh/flow-role: entrypoint")
-
-        if plot:
-            try:
-                dot_file, plot_path = compiler.generate_plot(output_dir, plot_width=plot_width, plot_format=plot_format)
-                click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-                if plot_path:
-                    click.echo(f"[+] Generated graphviz {plot_format} plot: {plot_path}")
-            except ImportError as e:
-                click.echo(f"[!] Warning: {e}", err=True)
-            except RuntimeError as e:
-                click.echo(f"[!] Warning: {e}", err=True)
-            except Exception as e:
-                click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
-
-        if not no_manifests:
-            try:
-                _stamp_manifests(compiler, flow_file, output_dir, manifests_dir, verbose)
-            except Exception as e:
-                click.echo(f"[!] Warning: Manifest stamping failed: {e}", err=True)
-                if verbose:
-                    import traceback
-
-                    traceback.print_exc()
-
-        warnings = compiler.get_warnings()
-        if warnings:
-            click.echo("\nWarnings:", err=True)
-            for warning in warnings:
-                click.echo(f"\n{warning}", err=True)
-
-    except FlowCompileError as e:
-        click.echo(f"[-] Compilation failed for {flow_file}\n", err=True)
-        click.echo(str(e), err=True)
-        sys.exit(1)
-    except (FileNotFoundError, ValueError) as e:
-        click.echo(f"[-] {e}", err=True)
-        sys.exit(1)
-    except Exception as e:
-        click.echo(f"[-] Unexpected error: {e}", err=True)
-        if verbose:
-            import traceback
-
-            traceback.print_exc()
-        sys.exit(1)
-
-
-@flow.command()
+@click.command("validate")
 @click.argument("flow_file")
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
 def validate(flow_file, verbose):
@@ -223,8 +115,3 @@ def validate(flow_file, verbose):
 
             traceback.print_exc()
         sys.exit(1)
-
-
-def main(argv=None):
-    """Legacy entry point for argparse-based invocation."""
-    flow(standalone_mode=True, args=argv)
