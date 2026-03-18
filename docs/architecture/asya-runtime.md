@@ -99,12 +99,7 @@ containers:
 
 ## Python Compatibility
 
-**Supports Python 3.7+** for compatibility with legacy AI frameworks.
-
-Runtime uses backward-compatible type hints:
-```python
-from typing import Dict, List  # Not dict, list
-```
+**Requires Python 3.10+.** The runtime uses modern type syntax (`dict[str, Any]`, `X | Y` unions) and is tested on Python 3.13.
 
 ## Async Support
 
