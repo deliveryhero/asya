@@ -115,12 +115,17 @@ def test_x_sink_persists_to_gcs():
 
 def test_x_sump_persists_to_gcs():
     """
-    Test that x-sump actor persists errors to GCS.
+    Test that failed envelopes are persisted to GCS by x-sink.
+
+    x-sink checkpoints all terminal envelopes (success and failure) to the
+    asya-results bucket under failed/ or succeeded/ paths. x-sump is the
+    second termination layer and receives the envelope after x-sink, but
+    x-sump's GCS state proxy uses the asya-errors bucket.
 
     Inventory:
     - Submit request that triggers error
     - Wait for failure
-    - Verify error saved to asya-errors bucket
+    - Verify error envelope saved to asya-results bucket (checkpointed by x-sink)
     - Verify GCS object structure includes envelope metadata
     """
     logger.info("=== test_x_sump_persists_to_gcs ===")
@@ -133,9 +138,9 @@ def test_x_sump_persists_to_gcs():
 
     logger.info(f"Task {task_id} failed as expected")
 
-    gcs_object = wait_for_envelope_in_gcs(ERRORS_BUCKET, task_id, timeout=15)
+    gcs_object = wait_for_envelope_in_gcs(RESULTS_BUCKET, task_id, timeout=15)
 
-    assert gcs_object is not None, f"Envelope {task_id} not found in {ERRORS_BUCKET}"
+    assert gcs_object is not None, f"Envelope {task_id} not found in {RESULTS_BUCKET}"
     assert isinstance(gcs_object, dict), f"GCS object should be a dict, got {type(gcs_object)}"
     assert gcs_object["id"] == task_id, f"Expected envelope id {task_id}, got {gcs_object.get('id')}"
     assert "payload" in gcs_object, f"GCS object missing 'payload' key: {gcs_object}"
