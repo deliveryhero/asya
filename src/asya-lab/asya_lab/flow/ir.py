@@ -6,6 +6,13 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class AsyaDirective:
+    """Inline comment override for compiler rules."""
+
+    treat_as: str  # "actor" | "inline"
+
+
+@dataclass
 class IROperation:
     lineno: int
 
