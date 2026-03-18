@@ -336,7 +336,46 @@ helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
 
 ### asya-crew
 
+The `dlq-worker` archives envelopes that land in the Pub/Sub dead letter topic — those are
+messages where the sidecar itself crashed before acking, bypassing the normal `x-sump` path.
+
+**Set up a dead letter topic and subscription before installing asya-crew:**
+
 ```bash
+# Dead letter topic — receives messages after maxDeliveryAttempts failures
+gcloud pubsub topics create asya-dlq --project=$PROJECT
+
+# Dead letter subscription for the dlq-worker to pull from
+gcloud pubsub subscriptions create asya-dlq-pull \
+  --topic=asya-dlq \
+  --project=$PROJECT
+
+# GCS bucket for archiving failed envelopes (optional, stdout mode if omitted)
+gcloud storage buckets create gs://asya-dlq-${PROJECT} \
+  --project=$PROJECT \
+  --location=$REGION
+
+# Grant the actor SA permission to write to the DLQ bucket
+gcloud storage buckets add-iam-policy-binding gs://asya-dlq-${PROJECT} \
+  --member="serviceAccount:asya-actor@${PROJECT}.iam.gserviceaccount.com" \
+  --role=roles/storage.objectCreator
+
+# Grant the actor SA permission to pull from the dead letter subscription and ack messages
+for role in roles/pubsub.subscriber roles/pubsub.viewer; do
+  gcloud projects add-iam-policy-binding $PROJECT \
+    --member="serviceAccount:asya-actor@${PROJECT}.iam.gserviceaccount.com" \
+    --role="$role" --condition=None
+done
+```
+
+> To attach the dead letter policy to an existing subscription:
+> `gcloud pubsub subscriptions modify-push-config my-sub --dead-letter-topic=asya-dlq --max-delivery-attempts=5`
+> Each `AsyncActor`'s subscription must be updated individually after the DLQ topic exists.
+
+```bash
+export DLQ_SUBSCRIPTION="projects/${PROJECT}/subscriptions/asya-dlq-pull"
+export DLQ_GCS_BUCKET="asya-dlq-${PROJECT}"
+
 helm install asya-crew deploy/helm-charts/asya-crew/ \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
@@ -344,9 +383,15 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
   --set "x-sink.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
   --set "x-sump.transport=pubsub" \
   --set "x-sump.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
-  --set "dlq-worker.enabled=false" \
+  --set "dlq-worker.enabled=true" \
+  --set "dlq-worker.config.transport=pubsub" \
+  --set "dlq-worker.config.queueURL=${DLQ_SUBSCRIPTION}" \
+  --set "dlq-worker.config.gcsBucket=${DLQ_GCS_BUCKET}" \
   --wait --timeout=5m
 ```
+
+> The dlq-worker pod runs under the `default` KSA, which is already annotated with the
+> `asya-actor` Workload Identity binding (Section 4). No additional credentials are needed.
 
 ### asya-gateway
 

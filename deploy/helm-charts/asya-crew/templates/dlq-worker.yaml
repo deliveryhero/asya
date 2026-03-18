@@ -47,8 +47,14 @@ spec:
           value: {{ $dlq.config.queueURL | quote }}
         - name: DLQ_TRANSPORT
           value: {{ $dlq.config.transport | quote }}
+        {{- if $dlq.config.region }}
         - name: AWS_REGION
           value: {{ $dlq.config.region | quote }}
+        {{- end }}
+        {{- if $dlq.config.pubsubProject }}
+        - name: PUBSUB_PROJECT
+          value: {{ $dlq.config.pubsubProject | quote }}
+        {{- end }}
         {{- if $dlq.config.gatewayURL }}
         - name: GATEWAY_URL
           value: {{ $dlq.config.gatewayURL | quote }}
@@ -64,6 +70,14 @@ spec:
         {{- if $dlq.config.s3Prefix }}
         - name: S3_PREFIX
           value: {{ $dlq.config.s3Prefix | quote }}
+        {{- end }}
+        {{- if $dlq.config.gcsBucket }}
+        - name: GCS_BUCKET
+          value: {{ $dlq.config.gcsBucket | quote }}
+        {{- end }}
+        {{- if $dlq.config.gcsPrefix }}
+        - name: GCS_PREFIX
+          value: {{ $dlq.config.gcsPrefix | quote }}
         {{- end }}
         {{- if $dlq.config.logLevel }}
         - name: LOG_LEVEL

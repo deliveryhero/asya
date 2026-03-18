@@ -48,6 +48,8 @@ func main() {
 		"queue_url", cfg.QueueURL,
 		"s3_bucket", cfg.S3Bucket,
 		"s3_prefix", cfg.S3Prefix,
+		"gcs_bucket", cfg.GCSBucket,
+		"gcs_prefix", cfg.GCSPrefix,
 		"gateway_url", cfg.GatewayURL)
 
 	// Setup graceful shutdown
@@ -78,6 +80,16 @@ func main() {
 			os.Exit(1)
 		}
 		slog.Info("SQS consumer initialized", "region", cfg.SQSRegion)
+	case "pubsub":
+		consumer, err = NewPubSubConsumer(ctx, PubSubConsumerConfig{
+			GCPProject:   cfg.GCPProject,
+			Subscription: cfg.QueueURL,
+		})
+		if err != nil {
+			slog.Error("Failed to create Pub/Sub consumer", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("Pub/Sub consumer initialized", "subscription", cfg.QueueURL)
 	default:
 		slog.Error("Unsupported transport", "transport", cfg.Transport)
 		os.Exit(1)
@@ -96,7 +108,18 @@ func main() {
 
 	// Create storage backend
 	var storage Storage
-	if cfg.S3Bucket != "" {
+	switch {
+	case cfg.GCSBucket != "":
+		storage, err = NewGCSStorage(ctx, GCSStorageConfig{
+			Bucket: cfg.GCSBucket,
+			Prefix: cfg.GCSPrefix,
+		})
+		if err != nil {
+			slog.Error("Failed to create GCS storage", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("GCS storage initialized", "bucket", cfg.GCSBucket, "prefix", cfg.GCSPrefix)
+	case cfg.S3Bucket != "":
 		storage, err = NewS3Storage(ctx, S3StorageConfig{
 			Region:   cfg.S3Region,
 			Endpoint: cfg.S3Endpoint,
@@ -111,9 +134,9 @@ func main() {
 			"bucket", cfg.S3Bucket,
 			"prefix", cfg.S3Prefix,
 			"endpoint", cfg.S3Endpoint)
-	} else {
+	default:
 		storage = &stdoutStorage{}
-		slog.Info("S3 not configured, DLQ messages will be written to stdout")
+		slog.Info("No bucket configured, DLQ messages will be written to stdout")
 	}
 
 	// Create and run worker

@@ -11,6 +11,7 @@ func clearEnv(t *testing.T) {
 		"DLQ_QUEUE_URL", "DLQ_TRANSPORT", "GATEWAY_URL",
 		"S3_BUCKET", "S3_ENDPOINT", "S3_PREFIX", "S3_REGION", "SQS_REGION",
 		"AWS_REGION", "LOG_LEVEL", "VISIBILITY_TIMEOUT", "WAIT_TIME_SECONDS",
+		"PUBSUB_PROJECT", "GCS_BUCKET", "GCS_PREFIX",
 	} {
 		t.Setenv(key, "")
 		os.Unsetenv(key)
@@ -192,5 +193,77 @@ func TestLoadFromEnv_SeparateRegions(t *testing.T) {
 	}
 	if cfg.S3Region != "ap-southeast-1" {
 		t.Errorf("S3Region = %q, want ap-southeast-1", cfg.S3Region)
+	}
+}
+
+func TestLoadFromEnv_PubSubTransport(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DLQ_QUEUE_URL", "projects/my-proj/subscriptions/my-dlq-sub")
+	t.Setenv("DLQ_TRANSPORT", "pubsub")
+	t.Setenv("PUBSUB_PROJECT", "my-proj")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.Transport != "pubsub" {
+		t.Errorf("Transport = %q, want pubsub", cfg.Transport)
+	}
+	if cfg.GCPProject != "my-proj" {
+		t.Errorf("GCPProject = %q, want my-proj", cfg.GCPProject)
+	}
+	if cfg.QueueURL != "projects/my-proj/subscriptions/my-dlq-sub" {
+		t.Errorf("QueueURL = %q", cfg.QueueURL)
+	}
+}
+
+func TestLoadFromEnv_PubSubMissingProject(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DLQ_QUEUE_URL", "projects/my-proj/subscriptions/my-dlq-sub")
+	t.Setenv("DLQ_TRANSPORT", "pubsub")
+	// No PUBSUB_PROJECT
+
+	_, err := LoadFromEnv()
+	if err == nil {
+		t.Fatal("expected error when pubsub transport is used without PUBSUB_PROJECT")
+	}
+}
+
+func TestLoadFromEnv_GCSBucket(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DLQ_QUEUE_URL", "projects/my-proj/subscriptions/my-dlq-sub")
+	t.Setenv("DLQ_TRANSPORT", "pubsub")
+	t.Setenv("PUBSUB_PROJECT", "my-proj")
+	t.Setenv("GCS_BUCKET", "my-dlq-archive")
+	t.Setenv("GCS_PREFIX", "dead-letters/")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.GCSBucket != "my-dlq-archive" {
+		t.Errorf("GCSBucket = %q, want my-dlq-archive", cfg.GCSBucket)
+	}
+	if cfg.GCSPrefix != "dead-letters/" {
+		t.Errorf("GCSPrefix = %q, want dead-letters/", cfg.GCSPrefix)
+	}
+}
+
+func TestLoadFromEnv_GCSDefaultPrefix(t *testing.T) {
+	clearEnv(t)
+	t.Setenv("DLQ_QUEUE_URL", "projects/p/subscriptions/s")
+	t.Setenv("DLQ_TRANSPORT", "pubsub")
+	t.Setenv("PUBSUB_PROJECT", "p")
+	t.Setenv("GCS_BUCKET", "my-bucket")
+
+	cfg, err := LoadFromEnv()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	if cfg.GCSPrefix != "dlq/" {
+		t.Errorf("GCSPrefix default = %q, want dlq/", cfg.GCSPrefix)
 	}
 }
