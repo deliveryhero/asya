@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "c315775931afc8b3a0af96516584154caf41c3a6",
+  "commit": "15675425127ebea1a103c9385c06bde187c14db3",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 34497,
+    "code": 34527,
     "test": 19196,
     "code_files": [
       {
@@ -26724,9 +26724,9 @@
         "language": "Python"
       },
       {
-        "code": 86,
-        "comment": 31,
-        "blank": 29,
+        "code": 92,
+        "comment": 33,
+        "blank": 30,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/gcs_buffered_cas/connector.py",
         "language": "Python"
       },
@@ -26745,9 +26745,9 @@
         "language": "Python"
       },
       {
-        "code": 73,
-        "comment": 15,
-        "blank": 22,
+        "code": 76,
+        "comment": 18,
+        "blank": 23,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/gcs_buffered_lww/connector.py",
         "language": "Python"
       },
@@ -26766,9 +26766,9 @@
         "language": "Python"
       },
       {
-        "code": 94,
-        "comment": 13,
-        "blank": 24,
+        "code": 98,
+        "comment": 16,
+        "blank": 25,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/redis_buffered_cas/connector.py",
         "language": "Python"
       },
@@ -26787,9 +26787,9 @@
         "language": "Python"
       },
       {
-        "code": 115,
-        "comment": 27,
-        "blank": 31,
+        "code": 120,
+        "comment": 29,
+        "blank": 32,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_cas/connector.py",
         "language": "Python"
       },
@@ -26808,9 +26808,9 @@
         "language": "Python"
       },
       {
-        "code": 97,
-        "comment": 16,
-        "blank": 24,
+        "code": 106,
+        "comment": 18,
+        "blank": 25,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_buffered_lww/connector.py",
         "language": "Python"
       },
@@ -26829,23 +26829,23 @@
         "language": "Python"
       },
       {
-        "code": 105,
-        "comment": 17,
-        "blank": 29,
+        "code": 107,
+        "comment": 21,
+        "blank": 30,
         "path": "src/asya-state-proxy/asya_state_proxy/connectors/s3_passthrough/connector.py",
         "language": "Python"
       },
       {
         "code": 28,
-        "comment": 21,
-        "blank": 19,
+        "comment": 25,
+        "blank": 20,
         "path": "src/asya-state-proxy/asya_state_proxy/interface.py",
         "language": "Python"
       },
       {
-        "code": 212,
+        "code": 213,
         "comment": 9,
-        "blank": 43,
+        "blank": 44,
         "path": "src/asya-state-proxy/asya_state_proxy/server.py",
         "language": "Python"
       },
@@ -27406,8 +27406,8 @@
       },
       {
         "code": 573,
-        "comment": 54,
-        "blank": 162,
+        "comment": 53,
+        "blank": 161,
         "path": "src/asya-sidecar/internal/progress/reporter_test.go",
         "language": "Go"
       },
@@ -27581,6 +27581,6 @@
       }
     ]
   },
-  "test_execution_time": 349000000000,
-  "timestamp": "2026-03-18T15:03:20.227651057Z"
+  "test_execution_time": 344000000000,
+  "timestamp": "2026-03-18T21:16:22.844668649Z"
 }
