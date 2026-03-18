@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/debt/y6xv.dlq-worker-add-gcs-storage-pub-sub-consumer
   - branch:debt/y6xv.dlq-worker-add-gcs-storage-pub-sub-consumer
+  - pr:323
 ---
+
 
 
 The dlq-worker currently only supports SQS consumer + S3 storage. For native GKE deployments (Pub/Sub transport), it is disabled. Add:
