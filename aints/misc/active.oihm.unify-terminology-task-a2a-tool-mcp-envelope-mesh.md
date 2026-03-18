@@ -1,7 +1,12 @@
 ---
 title: "Unify terminology: task=A2A, tool=MCP, envelope=mesh"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/misc/oihm.unify-terminology-task-a2a-tool-mcp-envelope-mesh
+  - branch:misc/oihm.unify-terminology-task-a2a-tool-mcp-envelope-mesh
 ---
+
 
 ## Problem
 
