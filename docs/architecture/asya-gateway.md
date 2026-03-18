@@ -137,10 +137,9 @@ Tool/skill registration is **ConfigMap-backed**: flows are declared in
 polling watcher (`toolstore.Watch`). Updating the ConfigMap is the only way to
 add, change, or remove an exposed tool or A2A skill — no restart is needed.
 
-The Helm chart seeds the initial `gateway-flows` ConfigMap from
-`flowsConfig.flows` in `values.yaml`. After deployment, the ConfigMap can be
-patched directly (e.g., via `asya mcp expose` or `kubectl patch`) to add new
-flows without a Helm upgrade.
+The Helm chart creates an empty `gateway-flows` ConfigMap. After deployment,
+flows are registered by patching the ConfigMap (e.g., via `asya flow expose`
+or `kubectl patch`). No Helm upgrade is needed.
 
 **See also**: `docs/internal/gateway-security.md` for all auth-related env vars
 (`ASYA_A2A_API_KEY`, `ASYA_MCP_OAUTH_*`, etc.).
