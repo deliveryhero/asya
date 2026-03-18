@@ -3306,5 +3306,3 @@ class TestAbiDispatch:
         assert frames[1]["payload"] == {"step": 2}
         assert frames[1]["route"]["curr"] == "z"
         assert frames[1]["route"]["next"] == []
-
-
