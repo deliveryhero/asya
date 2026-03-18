@@ -2521,6 +2521,41 @@ class TestAsyncGeneratorHandlers:
         assert len(responses) == 2
         assert all(f["headers"] == {"trace_id": "t1"} for f in responses)
 
+    def test_async_generator_del_verb(self):
+        """Async generator can DEL a header via ABI."""
+
+        async def gen(payload):
+            yield "DEL", ".headers.trace_id"
+            yield {"done": True}
+
+        envelope = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": []},
+            "headers": {"trace_id": "abc"},
+        }
+
+        responses = call_invoke(envelope, gen)
+
+        assert len(responses) == 1
+        assert "trace_id" not in responses[0].get("headers", {})
+
+    def test_async_generator_unknown_verb(self):
+        """Unknown ABI verb in async generator raises RuntimeError → 500."""
+
+        async def gen(payload):
+            yield "BADVERB", ".route"
+
+        envelope = {
+            "payload": {},
+            "route": {"prev": [], "curr": "a", "next": []},
+        }
+
+        responses = call_invoke(envelope, gen)
+
+        assert len(responses) == 1
+        assert responses[0]["error"] == "processing_error"
+        assert "protocol error" in responses[0]["details"]["message"]
+
 
 class TestHTTPServer:
     """Test HTTP server infrastructure."""
@@ -3253,44 +3288,23 @@ class TestAbiDispatch:
         frames = asya_runtime._drive_generator(gen({}), ctx)
         assert frames[0]["payload"]["actual"] == ["b"]
 
+    def test_per_emit_snapshot_route(self):
+        """Each emitted frame uses the route.next state at the moment of yield."""
 
-class TestFlyHelpers:
-    """Tests for fly_text and fly_status helper functions."""
+        def gen(payload):
+            yield "SET", ".route.next", ["x", "y"]
+            yield {"step": 1}
+            yield "SET", ".route.next", ["z"]
+            yield {"step": 2}
 
-    def test_fly_text_basic(self):
-        from asya_runtime import fly_text
+        ctx = self._make_ctx()
+        frames = asya_runtime._drive_generator(gen({}), ctx)
+        assert len(frames) == 2
+        assert frames[0]["payload"] == {"step": 1}
+        assert frames[0]["route"]["curr"] == "x"
+        assert frames[0]["route"]["next"] == ["y"]
+        assert frames[1]["payload"] == {"step": 2}
+        assert frames[1]["route"]["curr"] == "z"
+        assert frames[1]["route"]["next"] == []
 
-        result = fly_text("hello world")
-        assert result == {
-            "artifact_update": {
-                "artifact": {
-                    "artifact_id": "stream-0",
-                    "parts": [{"text": "hello world"}],
-                },
-                "append": True,
-                "last_chunk": False,
-            }
-        }
 
-    def test_fly_text_custom_artifact_id(self):
-        from asya_runtime import fly_text
-
-        result = fly_text("chunk", artifact_id="my-stream", last=True)
-        assert result["artifact_update"]["artifact"]["artifact_id"] == "my-stream"
-        assert result["artifact_update"]["last_chunk"] is True
-
-    def test_fly_status_basic(self):
-        from asya_runtime import fly_status
-
-        result = fly_status("Thinking...")
-        assert result == {
-            "status_update": {
-                "status": {
-                    "state": "WORKING",
-                    "message": {
-                        "role": "agent",
-                        "parts": [{"text": "Thinking..."}],
-                    },
-                }
-            }
-        }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Asya Actor Runtime - Unix Socket Server
-Supported Python versions: 3.7+
+Supported Python versions: 3.10+
 
 Simplified runtime that calls a user-specified Python function or class method.
 Async handlers (async def) are transparently supported via asyncio.run().
@@ -36,7 +36,7 @@ Handler Types:
             yield "FLY", {"type": "text_delta", "t": "hello"}  # stream to client
             yield payload                                # emit downstream frame
 
-        Writable paths: .route.next, .headers
+        Writable paths: .route.next, .headers, .status
         Read-only paths: .route.prev, .route.curr, .id
 
 State Proxy Hooks:
@@ -121,31 +121,6 @@ ASYA_ENABLE_VALIDATION = os.getenv("ASYA_ENABLE_VALIDATION", "true").lower() == 
 SOCKET_DIR = os.getenv("ASYA_SOCKET_DIR", "/var/run/asya")
 SOCKET_NAME = os.getenv("ASYA_SOCKET_NAME", "asya-runtime.sock")
 SOCKET_PATH = os.path.join(SOCKET_DIR, SOCKET_NAME)
-
-
-def fly_text(text, artifact_id="stream-0", last=False):
-    # type: (str, str, bool) -> dict
-    """Build A2A artifact_update FLY payload. Usage: yield "FLY", fly_text("hello")"""
-    return {
-        "artifact_update": {
-            "artifact": {"artifact_id": artifact_id, "parts": [{"text": text}]},
-            "append": True,
-            "last_chunk": last,
-        }
-    }
-
-
-def fly_status(message):
-    # type: (str) -> dict
-    """Build A2A status_update FLY payload. Usage: yield "FLY", fly_status("Thinking...")"""
-    return {
-        "status_update": {
-            "status": {
-                "state": "WORKING",
-                "message": {"role": "agent", "parts": [{"text": message}]},
-            }
-        }
-    }
 
 
 def _instantiate_class_handler(handler_class):
@@ -543,6 +518,43 @@ def _check_del_access(path):
     raise PermissionError(f"Cannot DEL {path}")
 
 
+def _dispatch_abi_yield(yielded, ctx, on_fly, on_emit, frames):
+    """Process one yielded value from a generator handler. Returns send_val for next send().
+
+    Handles all ABI verbs (GET, SET, DEL, FLY) and payload frames. Both sync and
+    async drivers call this — only the iteration primitives differ between them.
+    """
+    if yielded is None:
+        return None
+    if isinstance(yielded, tuple) and len(yielded) >= 2:
+        verb = yielded[0]
+        if verb == "FLY":
+            if on_fly:
+                on_fly(yielded[1])
+            return None
+        if verb == "GET":
+            segs = _parse_path(yielded[1])
+            return _resolve_get(ctx.data, segs)
+        if verb == "SET" and len(yielded) >= 3:
+            _check_set_access(yielded[1])
+            segs = _parse_path(yielded[1])
+            _resolve_set(ctx.data, segs, yielded[2])
+            return None
+        if verb == "DEL":
+            _check_del_access(yielded[1])
+            segs = _parse_path(yielded[1])
+            _resolve_del(ctx.data, segs)
+            return None
+        raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
+    # Any non-tuple, non-None value is a payload frame (dict, str, list, etc.)
+    frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
+    if on_emit:
+        on_emit(frame)
+    else:
+        frames.append(frame)
+    return None
+
+
 def _drive_generator(gen, ctx, on_fly=None, on_emit=None):
     """Drive a sync generator, dispatching ABI commands.
 
@@ -551,43 +563,12 @@ def _drive_generator(gen, ctx, on_fly=None, on_emit=None):
     """
     frames = []
     send_val = None
-
     while True:
         try:
             yielded = gen.send(send_val)
         except StopIteration:
             break
-
-        send_val = None
-
-        if yielded is None:
-            continue
-        elif isinstance(yielded, tuple) and len(yielded) >= 2:
-            verb = yielded[0]
-            if verb == "FLY":
-                if on_fly:
-                    on_fly(yielded[1])
-            elif verb == "GET":
-                segs = _parse_path(yielded[1])
-                send_val = _resolve_get(ctx.data, segs)
-            elif verb == "SET" and len(yielded) >= 3:
-                _check_set_access(yielded[1])
-                segs = _parse_path(yielded[1])
-                _resolve_set(ctx.data, segs, yielded[2])
-            elif verb == "DEL":
-                _check_del_access(yielded[1])
-                segs = _parse_path(yielded[1])
-                _resolve_del(ctx.data, segs)
-            else:
-                raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
-        else:
-            # Any non-tuple, non-None value is a payload frame (dict, str, list, etc.)
-            frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
-            if on_emit:
-                on_emit(frame)
-            else:
-                frames.append(frame)
-
+        send_val = _dispatch_abi_yield(yielded, ctx, on_fly, on_emit, frames)
     return frames
 
 
@@ -599,43 +580,12 @@ async def _drive_async_generator(gen, ctx, on_fly=None, on_emit=None):
     """
     frames = []
     send_val = None
-
     while True:
         try:
             yielded = await gen.asend(send_val)
         except StopAsyncIteration:
             break
-
-        send_val = None
-
-        if yielded is None:
-            continue
-        elif isinstance(yielded, tuple) and len(yielded) >= 2:
-            verb = yielded[0]
-            if verb == "FLY":
-                if on_fly:
-                    on_fly(yielded[1])
-            elif verb == "GET":
-                segs = _parse_path(yielded[1])
-                send_val = _resolve_get(ctx.data, segs)
-            elif verb == "SET" and len(yielded) >= 3:
-                _check_set_access(yielded[1])
-                segs = _parse_path(yielded[1])
-                _resolve_set(ctx.data, segs, yielded[2])
-            elif verb == "DEL":
-                _check_del_access(yielded[1])
-                segs = _parse_path(yielded[1])
-                _resolve_del(ctx.data, segs)
-            else:
-                raise RuntimeError(f"ABI protocol error: unknown verb {verb!r}")
-        else:
-            # Any non-tuple, non-None value is a payload frame (dict, str, list, etc.)
-            frame = _build_frame(yielded, ctx.input_route, ctx.snapshot())
-            if on_emit:
-                on_emit(frame)
-            else:
-                frames.append(frame)
-
+        send_val = _dispatch_abi_yield(yielded, ctx, on_fly, on_emit, frames)
     return frames
 
 
