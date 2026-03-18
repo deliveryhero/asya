@@ -41,14 +41,6 @@ spec:
           continue
         fi
 
-        # Verify transport
-        ASYA_TRANSPORT=$(kubectl get asyncactor {{ .name }} -n {{ $.Release.Namespace }} -o jsonpath='{.spec.transport}')
-        if [ "$ASYA_TRANSPORT" != "{{ $.Values.transport }}" ]; then
-          echo "[-] Transport mismatch: expected '{{ $.Values.transport }}', got '$ASYA_TRANSPORT'"
-          FAILED=1
-          continue
-        fi
-
         echo "[+] AsyncActor '{{ .name }}' exists and is configured correctly"
         echo ""
         {{- end }}

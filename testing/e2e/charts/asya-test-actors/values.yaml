@@ -1,6 +1,12 @@
 # Default values for asya-test-actors chart
 # This chart deploys all test actors in a single release
 
+# Transport type for queue health tests (sqs, rabbitmq, pubsub).
+# Not written to AsyncActor specs — transport is configured cluster-wide via
+# the asya-crossplane chart's defaultCompositionRef. This value is used only
+# by Helm test pods to verify the correct queue backend exists.
+transport: sqs
+
 # Common workload configuration for all actors
 workload:
   image: ghcr.io/deliveryhero/asya-testing:latest

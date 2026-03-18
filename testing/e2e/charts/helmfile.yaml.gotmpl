@@ -279,6 +279,7 @@ releases:
       - asya-crew
     values:
       - namespace: {{ .Values.actors.namespace | default "asya-e2e" }}
+        transport: {{ if .Values.transport.sqs.enabled }}sqs{{ else if .Values.transport.rabbitmq.enabled }}rabbitmq{{ else if .Values.transport.pubsub.enabled }}pubsub{{ else }}sqs{{ end }}
         workload:
           image: ghcr.io/deliveryhero/asya-testing:latest
           imagePullPolicy: Never
