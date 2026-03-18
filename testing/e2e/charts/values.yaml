@@ -90,7 +90,6 @@ gateway:
 
 actors:
   namespace: asya-e2e
-  transport: rabbitmq
   storage:
     type: minio
     endpoint: http://minio.asya-e2e.svc.cluster.local:9000
@@ -107,7 +106,6 @@ crew:
   x-sink:
     enabled: true
     name: x-sink
-    transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/results"
@@ -130,7 +128,6 @@ crew:
   x-sump:
     enabled: true
     name: x-sump
-    transport: rabbitmq
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/tmp/checkpoints/errors"

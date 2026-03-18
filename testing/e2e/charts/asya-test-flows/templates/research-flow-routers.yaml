@@ -10,11 +10,7 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: start-research-flow
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
+
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}
@@ -41,11 +37,7 @@ metadata:
     asya.sh/actor-type: router
 spec:
   actor: fanout-research-flow-l2
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
+
 
   scaling:
     enabled: {{ .Values.scaling.enabled }}

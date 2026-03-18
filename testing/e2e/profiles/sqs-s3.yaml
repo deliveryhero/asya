@@ -19,7 +19,6 @@ storage:
 
 actors:
   namespace: asya-e2e
-  transport: sqs
   storage:
     type: s3
     endpoint: http://localstack-s3.asya-system.svc.cluster.local:4566
@@ -52,7 +51,6 @@ crew:
       accessKey: test
       secretKey: test
   x-sink:
-    transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
@@ -63,7 +61,6 @@ crew:
       enabled: true
       minReplicaCount: 1
   x-sump:
-    transport: sqs
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
@@ -106,6 +103,7 @@ gateway:
     value: "asya-gateway-e2e"
 
 crossplane:
+  transport: sqs
   sqs:
     receiveWaitTimeSeconds: 2
   sidecar:

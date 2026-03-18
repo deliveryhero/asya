@@ -67,6 +67,10 @@ kubernetesProviderConfig:
   name: in-cluster
   credentialsSource: InjectedIdentity
 
+# Default transport for AsyncActors (sets defaultCompositionRef on the XRD)
+# Valid values: sqs, rabbitmq, pubsub
+transport: sqs
+
 # Default region for AWS resources
 awsRegion: us-east-1
 

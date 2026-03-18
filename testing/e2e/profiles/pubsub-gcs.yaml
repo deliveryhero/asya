@@ -33,7 +33,6 @@ storage:
 
 actors:
   namespace: asya-e2e
-  transport: pubsub
   storage:
     type: gcs
     bucket: asya-results
@@ -57,7 +56,6 @@ crew:
     connector:
       image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:dev
   x-sink:
-    transport: pubsub
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
@@ -66,7 +64,6 @@ crew:
       enabled: true
       minReplicaCount: 1
   x-sump:
-    transport: pubsub
     env:
       ASYA_GATEWAY_URL: "http://asya-gateway-mesh.asya-e2e.svc.cluster.local:8080"
       ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/errors"
@@ -105,6 +102,7 @@ gateway:
     value: "asya-gateway-e2e"
 
 crossplane:
+  transport: pubsub
   providers:
     aws:
       enabled: false

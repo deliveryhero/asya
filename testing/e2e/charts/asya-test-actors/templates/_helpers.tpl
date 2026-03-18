@@ -23,13 +23,3 @@ helm.sh/chart: {{ include "asya-test-actors.chart" . }}
 {{ toYaml . }}
 {{- end }}
 {{- end }}
-
-{{/*
-Extra spec fields injected into every AsyncActor CR.
-Ensures Crossplane selects the correct composition for the configured transport.
-*/}}
-{{- define "asya-test-actors.pubsub-spec" -}}
-compositionSelector:
-  matchLabels:
-    asya.sh/transport: {{ .Values.transport }}
-{{- end }}

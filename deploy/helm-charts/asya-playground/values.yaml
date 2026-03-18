@@ -239,10 +239,7 @@ asya-crew:
   #   repository: ghcr.io/deliveryhero/asya-crew
   #   tag: "latest"
 
-  # Crew actors need transport configuration
-  # These MUST match the global.transport setting
   x-sink:
-    transport: sqs
     sidecar:
       env:
       - name: AWS_ACCESS_KEY_ID
@@ -253,7 +250,6 @@ asya-crew:
         value: "us-east-1"
 
   x-sump:
-    transport: sqs
     sidecar:
       env:
       - name: AWS_ACCESS_KEY_ID

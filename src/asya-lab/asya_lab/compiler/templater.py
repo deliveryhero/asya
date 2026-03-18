@@ -184,16 +184,6 @@ class ManifestTemplater:
     def _stamp_actor(self, path: Path, actor: ActorInfo) -> None:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
-        spec = manifest["spec"]
-
-        # Inject compositionSelector from transport so Crossplane picks the right composition.
-        # Templates stay transport-agnostic; the compiler derives this from spec.transport.
-        transport = spec.get("transport")
-        if transport and "compositionSelector" not in spec:
-            manifest["spec"] = {
-                "compositionSelector": {"matchLabels": {"asya.sh/transport": transport}},
-                **spec,
-            }
 
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env

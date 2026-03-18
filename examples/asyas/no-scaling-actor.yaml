@@ -8,7 +8,6 @@ metadata:
   namespace: my-project
 spec:
   actor: fixed-replicas-actor
-  transport: sqs
 
   # Disable KEDA autoscaling
   scaling:

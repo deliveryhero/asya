@@ -39,13 +39,6 @@ spec:
         # Validate spec fields
         echo "Validating spec fields..."
 
-        TRANSPORT=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.transport}')
-        if [ -z "$TRANSPORT" ]; then
-          echo "[-] FAILED: Transport not configured"
-          exit 1
-        fi
-        echo "[+] Transport: $TRANSPORT"
-
         IMAGE=$(kubectl get asyncactor "$ACTOR_NAME" -n {{ .Values.namespace }} -o jsonpath='{.spec.image}')
         if [ -z "$IMAGE" ]; then
           echo "[-] FAILED: Image not configured"

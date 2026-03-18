@@ -28,11 +28,7 @@ metadata:
     asya.sh/actor-type: aggregator
 spec:
   actor: research-flow-aggregator
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
+
 
   stateProxy:
     - name: fanin

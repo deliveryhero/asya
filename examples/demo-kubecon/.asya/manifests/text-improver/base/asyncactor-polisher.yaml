@@ -10,10 +10,6 @@ spec:
   actor: polisher
   image: asya-demo:latest
   handler: demo_actors.polisher.polisher
-  transport: pubsub
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: pubsub
   scaling:
     enabled: true
     minReplicaCount: 0

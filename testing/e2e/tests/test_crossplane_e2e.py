@@ -63,12 +63,9 @@ def _actor_manifest(
     image_pull_policy: str = "IfNotPresent",
     handler: str = "asya_testing.handlers.payload.echo_handler",
     python_executable: str | None = None,
-    transport: str | None = None,
     flavors: list[str] | None = None,
 ) -> str:
     """Build an AsyncActor manifest with common defaults."""
-    transport = transport or TRANSPORT
-
     scaling_block = f"""\
   scaling:
     enabled: {str(scaling_enabled).lower()}
@@ -98,11 +95,7 @@ metadata:
   name: {name}
   namespace: {namespace}
 spec:
-  actor: {name}
-  transport: {transport}{flavors_block}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {transport}
+  actor: {name}{flavors_block}
 {scaling_block}
   image: {image}
   imagePullPolicy: {image_pull_policy}
@@ -194,7 +187,6 @@ def test_asyncactor_basic_lifecycle(e2e_helper):
 
     Expected: Full lifecycle works without errors
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -203,10 +195,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-lifecycle
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -286,7 +274,6 @@ def test_asyncactor_update_propagates(e2e_helper):
 
     Expected: Changes propagate correctly
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     initial_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -295,10 +282,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -317,10 +300,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-update
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 3
@@ -394,7 +373,6 @@ def test_asyncactor_scaling_advanced_fields_propagate(e2e_helper):
     function-go-templating into the KEDA ScaledObject. KEDA behavior itself
     is covered by test_keda_scaling.py; here we only check field propagation.
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -403,10 +381,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-scaling-advanced
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -477,7 +451,6 @@ def test_asyncactor_scaling_advanced_formula_without_target_rejected(e2e_helper)
     2. kubectl apply should fail with a validation error
     3. No AsyncActor resource should be created
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     invalid_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -486,10 +459,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-advanced-no-target
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     advanced:
       formula: "queue"
@@ -513,54 +482,6 @@ spec:
 
 
 @pytest.mark.core
-def test_asyncactor_invalid_transport(e2e_helper):
-    """
-    E2E: Test AsyncActor with invalid transport is rejected at admission.
-
-    The XRD defines transport as enum: [sqs, rabbitmq], so kubectl apply
-    with an unknown transport value fails at the Kubernetes API level.
-
-    Scenario:
-    1. Attempt to create AsyncActor with non-existent transport
-    2. kubectl apply should fail (non-zero exit code)
-    3. Error message should mention the invalid value
-
-    Expected: Admission rejection, no resource created
-    """
-    invalid_manifest = f"""
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: test-invalid-transport
-  namespace: {e2e_helper.namespace}
-spec:
-  actor: test-invalid-transport
-  transport: nonexistent-transport
-  image: ghcr.io/deliveryhero/asya-testing:latest
-  imagePullPolicy: IfNotPresent
-  handler: asya_testing.handlers.payload.echo_handler
-"""
-
-    try:
-        logger.info("Attempting to create AsyncActor with invalid transport...")
-        result = kubectl_apply_raw(invalid_manifest, namespace=e2e_helper.namespace)
-
-        assert result.returncode != 0, "kubectl apply should fail for invalid transport enum value"
-
-        stderr = result.stderr.decode()
-        logger.info(f"Admission rejection stderr: {stderr}")
-
-        assert "nonexistent-transport" in stderr or "Unsupported value" in stderr or "Invalid value" in stderr, (
-            f"Error message should reference the invalid transport value, got: {stderr}"
-        )
-
-        logger.info("[+] Invalid transport rejected at admission as expected")
-
-    finally:
-        kubectl_delete("asyncactor", "test-invalid-transport", namespace=e2e_helper.namespace)
-
-
-@pytest.mark.core
 def test_asyncactor_missing_required_field_rejected(e2e_helper):
     """
     E2E: Test that AsyncActor missing a required field is rejected at admission.
@@ -573,7 +494,6 @@ def test_asyncactor_missing_required_field_rejected(e2e_helper):
     2. kubectl apply should fail (non-zero exit code)
     3. Error message should mention the missing field
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     invalid_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -582,7 +502,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-missing-image
-  transport: {_transport}
   handler: asya_testing.handlers.payload.echo_handler
 """
     try:
@@ -618,7 +537,6 @@ def test_asyncactor_invalid_image_pull_policy_rejected(e2e_helper):
     2. kubectl apply should fail (non-zero exit code)
     3. Error message should reference the invalid value
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     invalid_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -627,7 +545,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-bad-pull-policy
-  transport: {_transport}
   image: ghcr.io/deliveryhero/asya-testing:latest
   imagePullPolicy: Lazy
   handler: asya_testing.handlers.payload.echo_handler
@@ -666,7 +583,6 @@ def test_asyncactor_invalid_actor_name_pattern_rejected(e2e_helper):
     2. kubectl apply should fail (non-zero exit code)
     3. Error message should reference the pattern constraint
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     invalid_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -675,7 +591,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: Invalid_Actor_Name
-  transport: {_transport}
   image: ghcr.io/deliveryhero/asya-testing:latest
   imagePullPolicy: IfNotPresent
   handler: asya_testing.handlers.payload.echo_handler
@@ -724,7 +639,6 @@ def test_asyncactor_loosely_typed_volumes_accepted_by_schema(e2e_helper):
 
     This test documents the validation boundary: XRD schema vs. Pod spec validation.
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     actor_name = "test-loose-volumes"
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
@@ -734,7 +648,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: {actor_name}
-  transport: {_transport}
   image: ghcr.io/deliveryhero/asya-testing:latest
   imagePullPolicy: IfNotPresent
   handler: asya_testing.handlers.payload.echo_handler
@@ -777,7 +690,6 @@ def test_asyncactor_status_conditions(e2e_helper):
 
     Expected: Status reflects actual state
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -786,10 +698,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-status
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -846,7 +754,6 @@ def test_asyncactor_with_broken_image(e2e_helper):
 
     Expected: Graceful handling of image pull failures
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -855,10 +762,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-broken-image
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   image: nonexistent/broken-image:latest
@@ -920,7 +823,6 @@ def test_asyncactor_sidecar_environment_variables(e2e_helper):
 
     Expected: All required env vars present
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -929,10 +831,6 @@ metadata:
   namespace: {e2e_helper.namespace}
 spec:
   actor: test-sidecar-env
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: false
   image: ghcr.io/deliveryhero/asya-testing:latest
@@ -1010,7 +908,6 @@ def test_asyncactor_label_propagation(e2e_helper):
 
     Expected: All user labels present on child resources, operator labels preserved
     """
-    _transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     actor_manifest = f"""
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
@@ -1023,10 +920,6 @@ metadata:
     env: test
 spec:
   actor: test-labels
-  transport: {_transport}
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {_transport}
   scaling:
     enabled: true
     minReplicaCount: 1

@@ -35,7 +35,6 @@ def template_dir(tmp_path):
             "actor": "{{ actor_name }}",
             "image": "{{ image }}",
             "handler": "{{ handler }}",
-            "transport": "{{ transport }}",
             "scaling": {
                 "enabled": True,
                 "minReplicaCount": 0,
@@ -83,7 +82,6 @@ def project():
         {
             "templates": {
                 "namespace": "test-ns",
-                "transport": "sqs",
                 "router_image": "python:3.13-slim",
             },
             "build": [
@@ -99,7 +97,6 @@ def project_with_contexts():
         {
             "templates": {
                 "namespace": "test-ns",
-                "transport": "sqs",
                 "router_image": "python:3.13-slim",
             },
             "build": [

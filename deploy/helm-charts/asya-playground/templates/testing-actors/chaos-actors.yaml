@@ -9,7 +9,6 @@ metadata:
     app: chaos-actors
     chaos-type: latency
 spec:
-  transport: {{ .Values.global.transport }}
   {{- if eq .Values.global.transport "sqs" }}
   sidecar:
     env:
@@ -54,7 +53,6 @@ metadata:
     app: chaos-actors
     chaos-type: errors
 spec:
-  transport: {{ .Values.global.transport }}
   {{- if eq .Values.global.transport "sqs" }}
   sidecar:
     env:
@@ -97,7 +95,6 @@ metadata:
     app: chaos-actors
     chaos-type: cpu
 spec:
-  transport: {{ .Values.global.transport }}
   {{- if eq .Values.global.transport "sqs" }}
   sidecar:
     env:
@@ -140,7 +137,6 @@ metadata:
     app: chaos-actors
     chaos-type: fanout
 spec:
-  transport: {{ .Values.global.transport }}
   {{- if eq .Values.global.transport "sqs" }}
   sidecar:
     env:

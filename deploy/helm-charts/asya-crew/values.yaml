@@ -16,7 +16,6 @@ image:
 x-sink:
   enabled: true
   name: x-sink
-  transport: "" # required
 
   # Sidecar configuration (passed to AsyncActor.spec.sidecar)
   # Use this to configure sidecar environment variables, resources, etc.
@@ -66,7 +65,6 @@ x-sink:
 x-sump:
   enabled: true
   name: x-sump
-  transport: "" # required
 
   # Sidecar configuration (passed to AsyncActor.spec.sidecar)
   # Use this to configure sidecar environment variables, resources, etc.
@@ -114,7 +112,6 @@ x-sump:
 checkpoint-s3:
   enabled: false
   name: checkpoint-s3
-  transport: "" # required
 
   # Sidecar configuration (passed to AsyncActor.spec.sidecar)
   # Use this to configure sidecar environment variables, resources, etc.
@@ -162,7 +159,6 @@ checkpoint-s3:
 x-pause:
   enabled: false
   name: x-pause
-  transport: "" # required
 
   # Sidecar configuration (passed to AsyncActor.spec.sidecar)
   # Use this to configure sidecar environment variables, resources, etc.
@@ -212,7 +208,6 @@ x-pause:
 x-resume:
   enabled: false
   name: x-resume
-  transport: "" # required
 
   # Sidecar configuration (passed to AsyncActor.spec.sidecar)
   # Use this to configure sidecar environment variables, resources, etc.

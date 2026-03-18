@@ -10,11 +10,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: validate-input
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -38,11 +33,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: route-a-x
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -66,11 +56,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: route-a-y
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -94,11 +79,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: route-b-x
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -122,11 +102,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: route-b-y
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -150,11 +125,6 @@ metadata:
     asya.sh/actor-type: handler
 spec:
   actor: finalize-result
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: {{ .Values.transport }}
-  transport: {{ .Values.transport }}
-  {{- include "asya-test-flows.pubsub-spec" . | nindent 2 }}
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}

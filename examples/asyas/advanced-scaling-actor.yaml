@@ -7,7 +7,6 @@ metadata:
     app: advanced-scaling-actor
 spec:
   actor: advanced-scaling-actor
-  transport: sqs
 
   scaling:
     enabled: true
