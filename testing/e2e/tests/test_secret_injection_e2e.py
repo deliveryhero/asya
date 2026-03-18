@@ -70,29 +70,41 @@ def _get_runtime_env(actor_name: str, namespace: str) -> list[dict]:
     return json.loads(raw)
 
 
-def _exec_printenv(actor_name: str, namespace: str, var_name: str) -> str:
+def _exec_printenv(actor_name: str, namespace: str, var_name: str, wait_timeout: int = 30) -> str:
     """
     kubectl exec into the running asya-runtime container and return the value
     of env var var_name (empty string if the pod is not running or var is unset).
+
+    Waits up to wait_timeout seconds for a pod to reach Running phase, since
+    Crossplane's AsyncActor Ready condition fires when the Deployment is created
+    but the pod may still be in Pending/ContainerCreating state.
     """
-    pod_result = subprocess.run(
-        [
-            "kubectl",
-            "get",
-            "pods",
-            "-n",
-            namespace,
-            "-l",
-            f"asya.sh/actor={actor_name}",
-            "--field-selector=status.phase=Running",
-            "-o",
-            "jsonpath={.items[0].metadata.name}",
-        ],
-        capture_output=True,
-        text=True,
-        timeout=10,
-    )
-    pod_name = pod_result.stdout.strip()
+    import time as _time
+    deadline = _time.monotonic() + wait_timeout
+    pod_name = ""
+    while _time.monotonic() < deadline:
+        pod_result = subprocess.run(
+            [
+                "kubectl",
+                "get",
+                "pods",
+                "-n",
+                namespace,
+                "-l",
+                f"asya.sh/actor={actor_name}",
+                "--field-selector=status.phase=Running",
+                "-o",
+                "jsonpath={.items[0].metadata.name}",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+        pod_name = pod_result.stdout.strip()
+        if pod_name:
+            break
+        _time.sleep(2)  # Poll until pod is Running
+
     if not pod_name:
         return ""
 

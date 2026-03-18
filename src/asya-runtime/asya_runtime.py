@@ -228,7 +228,28 @@ def _load_function():
             module_parts = parts[:i]
             attr_parts = parts[i:]
             break
-        except ImportError:
+        except ModuleNotFoundError as e:
+            missing = e.name or ""
+            if missing == module_path or module_path.startswith(missing + "."):
+                # The module itself doesn't exist — try a shorter path
+                logger.debug(f"Module '{module_path}' not found, trying shorter path")
+                continue
+            # A transitive dependency is missing — fail immediately with a clear message
+            if not missing:
+                logger.critical(
+                    f"FATAL: Cannot load handler '{ASYA_HANDLER}': "
+                    f"module '{module_path}' has an unspecified missing dependency. "
+                    f"Check the actor image for missing packages."
+                )
+            else:
+                logger.critical(
+                    f"FATAL: Cannot load handler '{ASYA_HANDLER}': "
+                    f"module '{module_path}' exists but requires '{missing}' which is not installed. "
+                    f"Install the missing dependency in the actor image."
+                )
+            sys.exit(1)
+        except ImportError as e:
+            logger.debug(f"Cannot import '{module_path}' as module boundary: {e}")
             continue
 
     if module is None:
