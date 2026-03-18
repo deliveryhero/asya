@@ -12,7 +12,7 @@ import logging
 import os
 from typing import BinaryIO
 
-from google.api_core.exceptions import NotFound
+from google.api_core.exceptions import NotFound, PreconditionFailed
 from google.cloud import storage
 
 from asya_state_proxy.connectors._gcs_xattr import GCSXattrMixin
@@ -65,11 +65,18 @@ class GCSBufferedLWW(GCSXattrMixin, StateProxyConnector):
         logger.debug("read key=%s size=%d", key, len(data))
         return io.BytesIO(data)
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Write object to GCS using last-write-wins semantics."""
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        """Write object to GCS using last-write-wins semantics.
+
+        When exclusive=True, uses if_generation_match=0 for atomic
+        create-if-absent (generation 0 = object must not exist).
+        """
         blob = self._bucket.blob(self._full_key(key))
         body = data.read()
-        blob.upload_from_string(body)
+        try:
+            blob.upload_from_string(body, if_generation_match=0 if exclusive else None)
+        except PreconditionFailed as exc:
+            raise FileExistsError(f"Exclusive create failed: key={key} already exists") from exc
         logger.debug("write key=%s size=%d", key, len(body))
 
     def exists(self, key: str) -> bool:

@@ -51,8 +51,10 @@ def mock_client():
                     return blob._data
 
                 def upload_from_string(data, if_generation_match=None, **kwargs):
-                    if if_generation_match is not None and if_generation_match != blob.generation:
-                        raise PreconditionFailed("generation mismatch")
+                    if if_generation_match is not None:
+                        effective_gen = blob.generation if blob._exists else 0
+                        if if_generation_match != effective_gen:
+                            raise PreconditionFailed("generation mismatch")
                     blob._data = data if isinstance(data, bytes) else data.encode()
                     blob._exists = True
                     blob.size = len(blob._data)
@@ -254,6 +256,19 @@ def test_delete_clears_generation_cache(connector):
     # Write after delete should succeed as an unconditional (new key) write
     connector.write("k", io.BytesIO(b"v2"))
     assert connector.read("k").read() == b"v2"
+
+
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    assert connector.read("xb-key").read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
 
 
 def test_cas_conflict_on_stale_generation(connector, mock_client):

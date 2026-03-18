@@ -134,6 +134,19 @@ def test_cas_conflict_raises_file_exists_error(connector):
         connector.write("k", io.BytesIO(b"v2"))
 
 
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    assert connector.read("xb-key").read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
+
+
 def test_state_prefix_is_applied(monkeypatch):
     monkeypatch.setenv("STATE_PREFIX", "my-prefix")
     conn = RedisBufferedCAS()

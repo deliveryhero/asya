@@ -131,6 +131,20 @@ def test_write_overwrites_existing_key(connector):
     assert connector.read("k").read() == b"second"
 
 
+def test_write_exclusive_new_key_succeeds(connector):
+    """Exclusive create on a non-existent key succeeds (best-effort check)."""
+    connector.write("xb-key", io.BytesIO(b"sentinel"), exclusive=True)
+    result = connector.read("xb-key")
+    assert result.read() == b"sentinel"
+
+
+def test_write_exclusive_existing_key_raises(connector):
+    """Exclusive create on an existing key raises FileExistsError (best-effort check)."""
+    connector.write("xb-key", io.BytesIO(b"first"))
+    with pytest.raises(FileExistsError, match="Exclusive create failed"):
+        connector.write("xb-key", io.BytesIO(b"second"), exclusive=True)
+
+
 def test_state_prefix_is_applied(monkeypatch, s3_bucket):
     monkeypatch.setenv("STATE_PREFIX", "my-prefix")
     conn = S3Passthrough()

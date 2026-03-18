@@ -176,8 +176,10 @@ def _make_handler(connector: StateProxyConnector) -> type:
 
             import io
 
+            exclusive = self.headers.get("If-None-Match") == "*"
+
             try:
-                connector.write(key, io.BytesIO(body), size=len(body))
+                connector.write(key, io.BytesIO(body), size=len(body), exclusive=exclusive)
                 self.send_response(204)
                 self.end_headers()
             except Exception as exc:

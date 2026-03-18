@@ -88,9 +88,16 @@ class S3Passthrough(S3XattrMixin, StateProxyConnector):
                 raise FileNotFoundError(f"Key not found: {key}") from exc
             raise
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
-        """Stream object directly to S3 without reading into memory."""
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
+        """Stream object directly to S3 without reading into memory.
+
+        When exclusive=True, performs a best-effort exists() check before
+        writing. Not atomic — the streaming upload API does not support
+        conditional writes.
+        """
         full_key = self._full_key(key)
+        if exclusive and self.exists(key):
+            raise FileExistsError(f"Exclusive create failed: key={key} already exists")
         self._s3.upload_fileobj(data, self._bucket, full_key)
         logger.debug("write key=%s size=%s", key, size)
 

@@ -78,7 +78,7 @@ class GCSBufferedCAS(GCSXattrMixin, StateProxyConnector):
         logger.debug("read key=%s size=%d generation=%d", key, len(data), blob.generation)
         return io.BytesIO(data)
 
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None:
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None:
         """Write object to GCS with CAS semantics when a prior generation is cached.
 
         If the key was previously read, the write is conditional on the cached
@@ -86,15 +86,24 @@ class GCSBufferedCAS(GCSXattrMixin, StateProxyConnector):
         fails (object was modified externally), FileExistsError is raised.
 
         If the key has never been read, the write is unconditional (new key path).
+
+        When exclusive=True, uses if_generation_match=0 to ensure the key does
+        not already exist (generation 0 means object must not exist).
         """
         blob = self._bucket.blob(self._full_key(key))
         body = data.read()
 
-        cached_gen = self._generations.get(key)
+        gen_match: int | None
+        if exclusive:
+            gen_match = 0
+        else:
+            gen_match = self._generations.get(key)
         try:
-            blob.upload_from_string(body, if_generation_match=cached_gen)
+            blob.upload_from_string(body, if_generation_match=gen_match)
         except PreconditionFailed as exc:
-            raise FileExistsError(f"CAS conflict: key={key} cached_generation={cached_gen}") from exc
+            if exclusive:
+                raise FileExistsError(f"Exclusive create failed: key={key} already exists") from exc
+            raise FileExistsError(f"CAS conflict: key={key} cached_generation={gen_match}") from exc
 
         # Fetch the new generation for subsequent CAS writes
         blob.reload()
