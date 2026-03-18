@@ -3,6 +3,8 @@ title: "design+impl: replace nonRetryableErrors with errorRoutes in resiliency c
 priority: 2 # medium
 ---
 
+superseeded by [7179]
+
 
 ## Background
 

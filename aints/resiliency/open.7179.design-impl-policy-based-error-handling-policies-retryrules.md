@@ -219,12 +219,96 @@ wins). Flavor order in `spec.flavors` = rule evaluation order.
 
 - `[nqf5]` must land first: fixes `sendRetryFailure` to route through x-sink
 
+## Usage patterns
+
+### Whitelist mode (replaces `[w76v]` retryableErrors)
+
+To retry only specific error types and fail fast on everything else, set
+`policies.default` to `maxAttempts: 1` (no retry) and add explicit rules for
+the errors you want to retry:
+
+```yaml
+resiliency:
+  policies:
+    default:
+      maxAttempts: 1            # all unmatched errors → fail fast → x-sink
+    standard:
+      maxAttempts: 3
+      backoff: exponential
+      initialDelay: 1s
+  retryRules:
+    - errors: ["ConnectionError", "TimeoutError"]
+      policy: standard          # only these two get retry
+    # everything else hits default → x-sink immediately
+```
+
+This is equivalent to tenacity's `retry_if_exception_type`:
+
+```python
+# tenacity equivalent (in-process, single function)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+@retry(
+    retry=retry_if_exception_type((ConnectionError, TimeoutError)),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=60),
+)
+def call_api(payload):
+    ...
+```
+
+The `policies` + `retryRules` model is the mesh-native equivalent: the retry
+predicate (`retry_if_exception_type`) becomes `retryRules.errors`, and the retry
+strategy (`stop_after_attempt` + `wait_exponential`) becomes the policy fields.
+Key difference: tenacity operates inside a single process; Asya's retry sends the
+envelope back through the queue (the sidecar re-delivers to the runtime), so retry
+delay is enforced by `SendWithDelay` at the transport level, not by sleeping.
+
+### Blacklist mode (replaces `nonRetryableErrors`)
+
+Retry everything by default, but immediately route specific errors away:
+
+```yaml
+resiliency:
+  policies:
+    default:
+      maxAttempts: 3
+      backoff: exponential
+    noRetry:
+      thenRoute: ["x-sink"]
+  retryRules:
+    - errors: ["openai.AuthenticationError", "openai.InvalidRequestError"]
+      policy: noRetry
+    # everything else retries via default
+```
+
+### Mixed mode
+
+Combine both: retry some errors differently, route others, fail fast on the rest:
+
+```yaml
+resiliency:
+  policies:
+    default:
+      maxAttempts: 1            # fail fast unless explicitly matched
+    retryFast:
+      maxAttempts: 5
+      backoff: exponential
+      initialDelay: 500ms
+    alertAndDiscard:
+      thenRoute: ["alert-devops"]
+  retryRules:
+    - errors: ["ConnectionError", "TimeoutError"]
+      policy: retryFast
+    - errors: ["openai.AuthenticationError"]
+      policy: alertAndDiscard
+    # everything else → default → x-sink
+```
+
 ## Supersedes
 
 - `[tj91]` in debt (narrower design, subsumed by this)
-- `[w76v]` `retryableErrors` whitelist — covered by `retryRules` + `policies.default` pattern:
-  to whitelist only specific errors, define `policies.default: { thenRoute: ["x-sink"] }`
-  and explicit retry rules for allowed error types
+- `[w76v]` `retryableErrors` whitelist — fully expressed via whitelist mode above
 
 ## Future extensions (out of scope)
 
