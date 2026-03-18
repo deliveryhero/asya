@@ -5,22 +5,22 @@ import (
 
 	"github.com/mark3labs/mcp-go/server"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
 
 // Server wraps the mark3labs MCP server
 type Server struct {
 	mcpServer   *server.MCPServer
-	taskStore   taskstore.TaskStore
+	taskStore   envelopestore.EnvelopeStore
 	queueClient queue.Client
 	registry    *Registry
 }
 
 // NewServer creates a new MCP server using mark3labs/mcp-go.
 // Tools are loaded from the DB-backed tool registry (toolstore.Registry).
-func NewServer(taskStore taskstore.TaskStore, queueClient queue.Client, toolRegistry *toolstore.Registry) *Server {
+func NewServer(taskStore envelopestore.EnvelopeStore, queueClient queue.Client, toolRegistry *toolstore.Registry) *Server {
 	s := &Server{
 		taskStore:   taskStore,
 		queueClient: queueClient,

@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/mark3labs/mcp-go/mcp"
 )
@@ -29,12 +29,12 @@ var (
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
-	taskStore taskstore.TaskStore
+	taskStore envelopestore.EnvelopeStore
 	server    *Server // For direct tool calls
 }
 
 // NewHandler creates a new HTTP handler for task management
-func NewHandler(taskStore taskstore.TaskStore) *Handler {
+func NewHandler(taskStore envelopestore.EnvelopeStore) *Handler {
 	return &Handler{
 		taskStore: taskStore,
 	}
@@ -112,7 +112,7 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse create request
-	var createReq types.CreateTaskRequest
+	var createReq types.CreateEnvelopeRequest
 
 	if err := json.NewDecoder(r.Body).Decode(&createReq); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -132,10 +132,10 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create minimal task for fanout child
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:       createReq.ID,
 		ParentID: createReq.ParentID,
-		Status:   types.TaskStatusPending,
+		Status:   types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: createReq.Prev,
 			Curr: createReq.Curr,
@@ -157,9 +157,9 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 	// Send fanout task to queue (async)
 	go func() {
 		// Update status to Running
-		_ = h.taskStore.Update(types.TaskUpdate{
+		_ = h.taskStore.Update(types.EnvelopeUpdate{
 			ID:        createReq.ID,
-			Status:    types.TaskStatusRunning,
+			Status:    types.EnvelopeStatusRunning,
 			Message:   "Sending task to first actor",
 			Timestamp: time.Now(),
 		})
@@ -175,9 +175,9 @@ func (h *Handler) HandleMeshCreate(w http.ResponseWriter, r *http.Request) {
 
 		if err := h.server.queueClient.SendMessage(ctx, task); err != nil {
 			slog.Error("Failed to send fanout task to queue", "id", createReq.ID, "error", err)
-			_ = h.taskStore.Update(types.TaskUpdate{
+			_ = h.taskStore.Update(types.EnvelopeUpdate{
 				ID:        createReq.ID,
-				Status:    types.TaskStatusFailed,
+				Status:    types.EnvelopeStatusFailed,
 				Error:     fmt.Sprintf("failed to send task: %v", err),
 				Timestamp: time.Now(),
 			})
@@ -302,7 +302,7 @@ func (s *sseWriter) writeKeepalive() {
 	s.flusher.Flush()
 }
 
-func (s *sseWriter) writeEvent(update types.TaskUpdate) {
+func (s *sseWriter) writeEvent(update types.EnvelopeUpdate) {
 	if update.PartialPayload != nil {
 		var payload map[string]any
 		eventType := "partial"
@@ -322,10 +322,10 @@ func (s *sseWriter) writeEvent(update types.TaskUpdate) {
 }
 
 // isFinalStatus checks if a status is final (Succeeded, Failed, or Canceled)
-func isFinalStatus(status types.TaskStatus) bool {
-	return status == types.TaskStatusSucceeded ||
-		status == types.TaskStatusFailed ||
-		status == types.TaskStatusCanceled
+func isFinalStatus(status types.EnvelopeStatus) bool {
+	return status == types.EnvelopeStatusSucceeded ||
+		status == types.EnvelopeStatusFailed ||
+		status == types.EnvelopeStatusCanceled
 }
 
 // HandleMeshActive handles GET /mesh/{id}/active (for actors to check if task is still valid)
@@ -382,7 +382,7 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	taskID := matches[1]
 
 	// Parse progress update
-	var progress types.ProgressUpdate
+	var progress types.EnvelopeProgressUpdate
 	if err := json.NewDecoder(r.Body).Decode(&progress); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -414,7 +414,7 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	// Fetch task to enforce monotonic progress
 	task, err := h.taskStore.Get(taskID)
 	if err != nil {
-		if errors.Is(err, taskstore.ErrNotFound) {
+		if errors.Is(err, envelopestore.ErrNotFound) {
 			slog.Debug("Task not found for progress update, skipping", "id", taskID)
 			w.WriteHeader(http.StatusOK)
 		} else {
@@ -462,9 +462,9 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	// - Copies route information (Prev/Curr/Next) to persist modifications
 	// - Adds calculated progress percentage and timestamp
 	taskState := string(progress.Status)
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              taskID,
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		Message:         progress.Message,
 		ProgressPercent: &newProgress,
 		Prev:            progress.Prev,
@@ -477,7 +477,7 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 	// If pause metadata is present, transition to paused state instead of running.
 	// The sidecar sends this when it detects the x-asya-pause header from the runtime.
 	if progress.PauseMetadata != nil {
-		update.Status = types.TaskStatusPaused
+		update.Status = types.EnvelopeStatusPaused
 		update.PauseMetadata = progress.PauseMetadata
 		slog.Info("Task paused via x-asya-pause header",
 			"task_id", taskID,
@@ -538,12 +538,12 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Determine task status from final update
-	var taskStatus types.TaskStatus
+	var taskStatus types.EnvelopeStatus
 	switch finalUpdate.Status {
 	case "succeeded":
-		taskStatus = types.TaskStatusSucceeded
+		taskStatus = types.EnvelopeStatusSucceeded
 	case "failed":
-		taskStatus = types.TaskStatusFailed
+		taskStatus = types.EnvelopeStatusFailed
 	default:
 		slog.Error("Invalid final status", "id", taskID, "status", finalUpdate.Status)
 		http.Error(w, "Invalid status: must be 'succeeded' or 'failed'", http.StatusBadRequest)
@@ -559,7 +559,7 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 
 	// Create task update
 	progressPercent := 100.0
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              taskID,
 		Status:          taskStatus,
 		Result:          finalUpdate.Result,
@@ -574,7 +574,7 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Set message and error based on status
-	if taskStatus == types.TaskStatusSucceeded {
+	if taskStatus == types.EnvelopeStatusSucceeded {
 		update.Message = "Task completed successfully"
 		if finalUpdate.Metadata != nil {
 			if s3URI, ok := finalUpdate.Metadata["s3_uri"].(string); ok {
@@ -656,9 +656,9 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create a TaskUpdate with PartialPayload for SSE broadcasting
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:             taskID,
-		Status:         types.TaskStatusRunning,
+		Status:         types.EnvelopeStatusRunning,
 		PartialPayload: json.RawMessage(body),
 		Timestamp:      time.Now(),
 	}

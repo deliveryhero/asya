@@ -9,12 +9,12 @@ import (
 
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 )
 
 // TestTransport_StreamableHTTP_Initialize tests streamable HTTP transport initialization
 func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
@@ -76,7 +76,7 @@ func TestTransport_StreamableHTTP_Initialize(t *testing.T) {
 
 // TestTransport_SSE_ServerCreation tests SSE server can be created and mounted
 func TestTransport_SSE_ServerCreation(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
@@ -92,7 +92,7 @@ func TestTransport_SSE_ServerCreation(t *testing.T) {
 
 // TestTransport_DualEndpoints tests both transports can coexist
 func TestTransport_DualEndpoints(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)
@@ -132,7 +132,7 @@ func TestTransport_DualEndpoints(t *testing.T) {
 
 // TestTransport_ContentTypes tests correct content-type handling
 func TestTransport_ContentTypes(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 
 	mcpSrv := NewServer(taskStore, queueClient, nil)

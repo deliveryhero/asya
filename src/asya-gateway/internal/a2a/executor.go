@@ -10,8 +10,8 @@ import (
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -19,14 +19,14 @@ import (
 // Executor implements a2asrv.AgentExecutor.
 type Executor struct {
 	queueClient queue.Client
-	taskStore   taskstore.TaskStore
+	taskStore   envelopestore.EnvelopeStore
 	registry    *toolstore.Registry
 	namespace   string
 }
 
 func NewExecutor(
 	queueClient queue.Client,
-	taskStore taskstore.TaskStore,
+	taskStore envelopestore.EnvelopeStore,
 	registry *toolstore.Registry,
 	namespace string,
 ) *Executor {
@@ -70,10 +70,10 @@ func (e *Executor) Execute(
 		timeoutSec = *skill.TimeoutSec
 	}
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        string(taskID),
 		ContextID: contextID,
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: skill.Actor,
@@ -93,9 +93,9 @@ func (e *Executor) Execute(
 	if e.queueClient != nil {
 		if err := e.queueClient.SendMessage(ctx, task); err != nil {
 			slog.Error("Failed to dispatch envelope to queue", "task_id", taskID, "error", err)
-			_ = e.taskStore.Update(types.TaskUpdate{
+			_ = e.taskStore.Update(types.EnvelopeUpdate{
 				ID:        string(taskID),
-				Status:    types.TaskStatusFailed,
+				Status:    types.EnvelopeStatusFailed,
 				Error:     fmt.Sprintf("dispatch failed: %v", err),
 				Timestamp: time.Now(),
 			})
@@ -131,13 +131,13 @@ func (e *Executor) Cancel(
 	}
 
 	switch task.Status {
-	case types.TaskStatusSucceeded, types.TaskStatusFailed, types.TaskStatusCanceled:
+	case types.EnvelopeStatusSucceeded, types.EnvelopeStatusFailed, types.EnvelopeStatusCanceled:
 		return a2alib.ErrTaskNotCancelable
 	}
 
-	err = e.taskStore.Update(types.TaskUpdate{
+	err = e.taskStore.Update(types.EnvelopeUpdate{
 		ID:        string(taskID),
-		Status:    types.TaskStatusCanceled,
+		Status:    types.EnvelopeStatusCanceled,
 		Message:   "Canceled by client",
 		Timestamp: time.Now(),
 	})
@@ -198,10 +198,10 @@ func (e *Executor) handleResume(
 	// Merge resume-specific header with A2A headers
 	headers["x-asya-resume-task"] = string(taskID)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        fmt.Sprintf("resume-%s", taskID),
 		ContextID: contextID,
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "x-resume",

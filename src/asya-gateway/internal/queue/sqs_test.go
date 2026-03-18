@@ -94,7 +94,7 @@ func TestSQSQueueNaming(t *testing.T) {
 			}
 
 			deadline := time.Now().Add(30 * time.Second)
-			task := &types.Task{
+			envelope := &types.Envelope{
 				ID: "test-task-1",
 				Route: types.Route{
 					Prev: []string{},
@@ -105,7 +105,7 @@ func TestSQSQueueNaming(t *testing.T) {
 				Deadline: deadline,
 			}
 
-			err := sqsClient.SendMessage(context.Background(), task)
+			err := sqsClient.SendMessage(context.Background(), envelope)
 			assert.NoError(t, err)
 
 			mockClient.AssertExpectations(t)

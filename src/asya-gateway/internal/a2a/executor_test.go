@@ -8,7 +8,7 @@ import (
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -19,7 +19,7 @@ func TestExecutorResolveSkill_ExplicitHint(t *testing.T) {
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "analyze", Actor: "start-analysis", A2AEnabled: true})
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "extract", Actor: "start-extract", A2AEnabled: true})
 
-	exec := NewExecutor(nil, taskstore.NewStore(), reg, "default")
+	exec := NewExecutor(nil, envelopestore.NewStore(), reg, "default")
 	msg := a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"})
 
 	skill, err := exec.resolveSkill(msg, map[string]any{"skill": "analyze"})
@@ -36,7 +36,7 @@ func TestExecutorResolveSkill_SingleDefault(t *testing.T) {
 	ctx := context.Background()
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "only-skill", Actor: "my-actor", A2AEnabled: true})
 
-	exec := NewExecutor(nil, taskstore.NewStore(), reg, "default")
+	exec := NewExecutor(nil, envelopestore.NewStore(), reg, "default")
 	msg := a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"})
 
 	skill, err := exec.resolveSkill(msg, nil)
@@ -54,7 +54,7 @@ func TestExecutorResolveSkill_MultipleNoHint(t *testing.T) {
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "s1", Actor: "a1", A2AEnabled: true})
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "s2", Actor: "a2", A2AEnabled: true})
 
-	exec := NewExecutor(nil, taskstore.NewStore(), reg, "default")
+	exec := NewExecutor(nil, envelopestore.NewStore(), reg, "default")
 	msg := a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"})
 
 	_, err := exec.resolveSkill(msg, nil)
@@ -65,7 +65,7 @@ func TestExecutorResolveSkill_MultipleNoHint(t *testing.T) {
 
 func TestExecutorResolveSkill_NoSkills(t *testing.T) {
 	reg := toolstore.NewInMemoryRegistry()
-	exec := NewExecutor(nil, taskstore.NewStore(), reg, "default")
+	exec := NewExecutor(nil, envelopestore.NewStore(), reg, "default")
 	msg := a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"})
 
 	_, err := exec.resolveSkill(msg, nil)
@@ -79,7 +79,7 @@ func TestExecutorExecute(t *testing.T) {
 	ctx := context.Background()
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "analyze", Actor: "start-analysis", A2AEnabled: true})
 
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	exec := NewExecutor(nil, store, reg, "default")
 
 	reqCtx := &a2asrv.RequestContext{
@@ -92,9 +92,9 @@ func TestExecutorExecute(t *testing.T) {
 	// Simulate task completion after a short delay so the blocking wait returns
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Wait for task creation
-		_ = store.Update(types.TaskUpdate{
+		_ = store.Update(types.EnvelopeUpdate{
 			ID:        string(reqCtx.TaskID),
-			Status:    types.TaskStatusSucceeded,
+			Status:    types.EnvelopeStatusSucceeded,
 			Timestamp: time.Now(),
 		})
 	}()
@@ -122,15 +122,15 @@ func TestExecutorExecute(t *testing.T) {
 
 func TestExecutorCancel(t *testing.T) {
 	reg := toolstore.NewInMemoryRegistry()
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	exec := NewExecutor(nil, store, reg, "default")
 	ctx := context.Background()
 
 	// Create a task first
 	taskID := a2alib.NewTaskID()
-	_ = store.Create(&types.Task{
+	_ = store.Create(&types.Envelope{
 		ID:     string(taskID),
-		Status: types.TaskStatusRunning,
+		Status: types.EnvelopeStatusRunning,
 	})
 
 	reqCtx := &a2asrv.RequestContext{
@@ -146,8 +146,8 @@ func TestExecutorCancel(t *testing.T) {
 
 	// Verify task was canceled in store
 	task, _ := store.Get(string(taskID))
-	if task.Status != types.TaskStatusCanceled {
-		t.Errorf("task status = %q, want %q", task.Status, types.TaskStatusCanceled)
+	if task.Status != types.EnvelopeStatusCanceled {
+		t.Errorf("task status = %q, want %q", task.Status, types.EnvelopeStatusCanceled)
 	}
 
 	if len(mockQueue.events) == 0 {
@@ -157,14 +157,14 @@ func TestExecutorCancel(t *testing.T) {
 
 func TestExecutorCancelActiveTask(t *testing.T) {
 	reg := toolstore.NewInMemoryRegistry()
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	exec := NewExecutor(nil, store, reg, "default")
 	ctx := context.Background()
 
 	taskID := a2alib.NewTaskID()
-	_ = store.Create(&types.Task{
+	_ = store.Create(&types.Envelope{
 		ID:     string(taskID),
-		Status: types.TaskStatusRunning,
+		Status: types.EnvelopeStatusRunning,
 	})
 
 	reqCtx := &a2asrv.RequestContext{
@@ -179,8 +179,8 @@ func TestExecutorCancelActiveTask(t *testing.T) {
 	}
 
 	task, _ := store.Get(string(taskID))
-	if task.Status != types.TaskStatusCanceled {
-		t.Errorf("task status = %q, want %q", task.Status, types.TaskStatusCanceled)
+	if task.Status != types.EnvelopeStatusCanceled {
+		t.Errorf("task status = %q, want %q", task.Status, types.EnvelopeStatusCanceled)
 	}
 
 	if len(mockQueue.events) == 0 {
@@ -189,26 +189,26 @@ func TestExecutorCancelActiveTask(t *testing.T) {
 }
 
 func TestExecutorCancelTerminalTask(t *testing.T) {
-	terminalStatuses := []types.TaskStatus{
-		types.TaskStatusSucceeded,
-		types.TaskStatusFailed,
-		types.TaskStatusCanceled,
+	terminalStatuses := []types.EnvelopeStatus{
+		types.EnvelopeStatusSucceeded,
+		types.EnvelopeStatusFailed,
+		types.EnvelopeStatusCanceled,
 	}
 
 	for _, status := range terminalStatuses {
 		t.Run(string(status), func(t *testing.T) {
 			reg := toolstore.NewInMemoryRegistry()
-			store := taskstore.NewStore()
+			store := envelopestore.NewStore()
 			exec := NewExecutor(nil, store, reg, "default")
 			ctx := context.Background()
 
 			taskID := a2alib.NewTaskID()
-			_ = store.Create(&types.Task{
+			_ = store.Create(&types.Envelope{
 				ID:     string(taskID),
-				Status: types.TaskStatusRunning,
+				Status: types.EnvelopeStatusRunning,
 			})
 			// Store.Create resets status to pending, so update to the terminal state
-			_ = store.Update(types.TaskUpdate{
+			_ = store.Update(types.EnvelopeUpdate{
 				ID:        string(taskID),
 				Status:    status,
 				Timestamp: time.Now(),

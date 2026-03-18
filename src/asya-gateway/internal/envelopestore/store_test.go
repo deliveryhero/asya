@@ -1,4 +1,4 @@
-package taskstore
+package envelopestore
 
 import (
 	"testing"
@@ -11,14 +11,14 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 	store := NewStore()
 
 	// Create a test job
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-1",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2", "actor3"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 
 	if err := store.Create(job); err != nil {
@@ -27,16 +27,16 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 
 	tests := []struct {
 		name          string
-		update        types.TaskUpdate
+		update        types.EnvelopeUpdate
 		wantProgress  float64
 		wantActor     string
 		wantTaskState string
 	}{
 		{
 			name: "update with progress",
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:              "test-job-1",
-				Status:          types.TaskStatusRunning,
+				Status:          types.EnvelopeStatusRunning,
 				Message:         "Processing actor 1",
 				ProgressPercent: floatPtr(25.0),
 				Prev:            []string{},
@@ -51,9 +51,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 		},
 		{
 			name: "update progress to 50%",
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:              "test-job-1",
-				Status:          types.TaskStatusRunning,
+				Status:          types.EnvelopeStatusRunning,
 				Message:         "Processing actor 2",
 				ProgressPercent: floatPtr(50.0),
 				Prev:            []string{"actor1"},
@@ -68,9 +68,9 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 		},
 		{
 			name: "update progress to 100%",
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:              "test-job-1",
-				Status:          types.TaskStatusRunning,
+				Status:          types.EnvelopeStatusRunning,
 				Message:         "Completed",
 				ProgressPercent: floatPtr(100.0),
 				Prev:            []string{"actor1", "actor2"},
@@ -105,7 +105,7 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 				t.Errorf("CurrentActorName = %v, want %v", updatedJob.CurrentActorName, tt.wantActor)
 			}
 
-			if updatedJob.Status != types.TaskStatusRunning {
+			if updatedJob.Status != types.EnvelopeStatusRunning {
 				t.Errorf("Status = %v, want Running", updatedJob.Status)
 			}
 		})
@@ -115,14 +115,14 @@ func TestUpdateProgress_InMemoryStore(t *testing.T) {
 func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 	store := NewStore()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-notify",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 
 	if err := store.Create(job); err != nil {
@@ -135,9 +135,9 @@ func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 
 	// Send progress update
 	progressPercent := 33.33
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              "test-job-notify",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		Message:         "Processing",
 		ProgressPercent: &progressPercent,
 		Prev:            []string{},
@@ -174,9 +174,9 @@ func TestUpdateProgress_NotifiesListeners(t *testing.T) {
 func TestUpdateProgress_NonExistentJob(t *testing.T) {
 	store := NewStore()
 
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              "non-existent-job",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: floatPtr(50.0),
 		Timestamp:       time.Now(),
 	}
@@ -190,14 +190,14 @@ func TestUpdateProgress_NonExistentJob(t *testing.T) {
 func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 	store := NewStore()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-multi",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 
 	if err := store.Create(job); err != nil {
@@ -206,7 +206,7 @@ func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 
 	// Create multiple subscribers
 	numSubscribers := 5
-	channels := make([]chan types.TaskUpdate, numSubscribers)
+	channels := make([]chan types.EnvelopeUpdate, numSubscribers)
 	for i := 0; i < numSubscribers; i++ {
 		channels[i] = store.Subscribe("test-job-multi")
 		defer store.Unsubscribe("test-job-multi", channels[i])
@@ -214,9 +214,9 @@ func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 
 	// Send progress update
 	progressPercent := 50.0
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              "test-job-multi",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: &progressPercent,
 		Prev:            []string{},
 		Curr:            "actor1",
@@ -247,14 +247,14 @@ func TestUpdateProgress_MultipleSubscribers(t *testing.T) {
 func TestUpdateProgress_ProgressSequence(t *testing.T) {
 	store := NewStore()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-sequence",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2", "actor3"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 
 	if err := store.Create(job); err != nil {
@@ -281,9 +281,9 @@ func TestUpdateProgress_ProgressSequence(t *testing.T) {
 	}
 
 	for i, p := range progressSequence {
-		update := types.TaskUpdate{
+		update := types.EnvelopeUpdate{
 			ID:              "test-job-sequence",
-			Status:          types.TaskStatusRunning,
+			Status:          types.EnvelopeStatusRunning,
 			ProgressPercent: &p.percent,
 			Prev:            p.prev,
 			Curr:            p.curr,
@@ -319,14 +319,14 @@ func TestUpdateProgress_ProgressSequence(t *testing.T) {
 func TestJobCreation_InitializesProgress(t *testing.T) {
 	store := NewStore()
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "test-job-init",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2", "actor3"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 
 	if err := store.Create(job); err != nil {
@@ -351,16 +351,16 @@ func TestJobCreation_InitializesProgress(t *testing.T) {
 func TestUpdate(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupJob    *types.Task
-		update      types.TaskUpdate
-		wantStatus  types.TaskStatus
+		setupJob    *types.Envelope
+		update      types.EnvelopeUpdate
+		wantStatus  types.EnvelopeStatus
 		wantError   string
 		wantResult  bool
-		checkFields func(*testing.T, *types.Task)
+		checkFields func(*testing.T, *types.Envelope)
 	}{
 		{
 			name: "update status to running",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-1",
 				Route: types.Route{
 					Prev: []string{},
@@ -368,16 +368,16 @@ func TestUpdate(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:        "test-update-1",
-				Status:    types.TaskStatusRunning,
+				Status:    types.EnvelopeStatusRunning,
 				Timestamp: time.Now(),
 			},
-			wantStatus: types.TaskStatusRunning,
+			wantStatus: types.EnvelopeStatusRunning,
 		},
 		{
 			name: "update to succeeded with result",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-2",
 				Route: types.Route{
 					Prev: []string{},
@@ -385,24 +385,24 @@ func TestUpdate(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:        "test-update-2",
-				Status:    types.TaskStatusSucceeded,
+				Status:    types.EnvelopeStatusSucceeded,
 				Result:    map[string]interface{}{"output": "success"},
 				Message:   "Processing completed",
 				Timestamp: time.Now(),
 			},
-			wantStatus: types.TaskStatusSucceeded,
+			wantStatus: types.EnvelopeStatusSucceeded,
 			wantResult: true,
-			checkFields: func(t *testing.T, task *types.Task) {
-				if task.Result == nil {
+			checkFields: func(t *testing.T, envelope *types.Envelope) {
+				if envelope.Result == nil {
 					t.Error("Expected result to be set")
 				}
 			},
 		},
 		{
 			name: "update to failed with error",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-3",
 				Route: types.Route{
 					Prev: []string{},
@@ -410,23 +410,23 @@ func TestUpdate(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:        "test-update-3",
-				Status:    types.TaskStatusFailed,
+				Status:    types.EnvelopeStatusFailed,
 				Error:     "Processing failed",
 				Message:   "Error occurred",
 				Timestamp: time.Now(),
 			},
-			wantStatus: types.TaskStatusFailed,
-			checkFields: func(t *testing.T, task *types.Task) {
-				if task.Error != "Processing failed" {
-					t.Errorf("Error = %v, want 'Processing failed'", task.Error)
+			wantStatus: types.EnvelopeStatusFailed,
+			checkFields: func(t *testing.T, envelope *types.Envelope) {
+				if envelope.Error != "Processing failed" {
+					t.Errorf("Error = %v, want 'Processing failed'", envelope.Error)
 				}
 			},
 		},
 		{
 			name: "update progress percent",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-4",
 				Route: types.Route{
 					Prev: []string{},
@@ -434,22 +434,22 @@ func TestUpdate(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:              "test-update-4",
-				Status:          types.TaskStatusRunning,
+				Status:          types.EnvelopeStatusRunning,
 				ProgressPercent: floatPtr(45.5),
 				Timestamp:       time.Now(),
 			},
-			wantStatus: types.TaskStatusRunning,
-			checkFields: func(t *testing.T, task *types.Task) {
-				if task.ProgressPercent != 45.5 {
-					t.Errorf("ProgressPercent = %v, want 45.5", task.ProgressPercent)
+			wantStatus: types.EnvelopeStatusRunning,
+			checkFields: func(t *testing.T, envelope *types.Envelope) {
+				if envelope.ProgressPercent != 45.5 {
+					t.Errorf("ProgressPercent = %v, want 45.5", envelope.ProgressPercent)
 				}
 			},
 		},
 		{
 			name: "update actor information",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-5",
 				Route: types.Route{
 					Prev: []string{},
@@ -457,25 +457,25 @@ func TestUpdate(t *testing.T) {
 					Next: []string{"actor2"},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:        "test-update-5",
-				Status:    types.TaskStatusRunning,
+				Status:    types.EnvelopeStatusRunning,
 				Prev:      []string{"actor1"},
 				Curr:      "actor2",
 				Next:      []string{},
 				TaskState: strPtr("processing"),
 				Timestamp: time.Now(),
 			},
-			wantStatus: types.TaskStatusRunning,
-			checkFields: func(t *testing.T, task *types.Task) {
-				if task.CurrentActorName != "actor2" {
-					t.Errorf("CurrentActorName = %v, want actor2", task.CurrentActorName)
+			wantStatus: types.EnvelopeStatusRunning,
+			checkFields: func(t *testing.T, envelope *types.Envelope) {
+				if envelope.CurrentActorName != "actor2" {
+					t.Errorf("CurrentActorName = %v, want actor2", envelope.CurrentActorName)
 				}
 			},
 		},
 		{
 			name: "update non-existent task",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-update-6",
 				Route: types.Route{
 					Prev: []string{},
@@ -483,12 +483,12 @@ func TestUpdate(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			update: types.TaskUpdate{
+			update: types.EnvelopeUpdate{
 				ID:        "nonexistent",
-				Status:    types.TaskStatusRunning,
+				Status:    types.EnvelopeStatusRunning,
 				Timestamp: time.Now(),
 			},
-			wantError: "task nonexistent not found",
+			wantError: "envelope nonexistent not found",
 		},
 	}
 
@@ -517,17 +517,17 @@ func TestUpdate(t *testing.T) {
 				t.Fatalf("Unexpected error: %v", err)
 			}
 
-			task, err := store.Get(tt.update.ID)
+			envelope, err := store.Get(tt.update.ID)
 			if err != nil {
-				t.Fatalf("Failed to get task: %v", err)
+				t.Fatalf("Failed to get envelope: %v", err)
 			}
 
-			if task.Status != tt.wantStatus {
-				t.Errorf("Status = %v, want %v", task.Status, tt.wantStatus)
+			if envelope.Status != tt.wantStatus {
+				t.Errorf("Status = %v, want %v", envelope.Status, tt.wantStatus)
 			}
 
 			if tt.checkFields != nil {
-				tt.checkFields(t, task)
+				tt.checkFields(t, envelope)
 			}
 		})
 	}
@@ -539,7 +539,7 @@ func TestUpdate(t *testing.T) {
 func TestUpdate_FirstWriteWins(t *testing.T) {
 	store := NewStore()
 
-	task := &types.Task{
+	envelope := &types.Envelope{
 		ID: "fw-wins-task",
 		Route: types.Route{
 			Prev: []string{},
@@ -547,37 +547,37 @@ func TestUpdate_FirstWriteWins(t *testing.T) {
 			Next: []string{},
 		},
 	}
-	if err := store.Create(task); err != nil {
+	if err := store.Create(envelope); err != nil {
 		t.Fatalf("Create: %v", err)
 	}
 
 	// Transition to Failed (e.g. from gateway backstop)
-	if err := store.Update(types.TaskUpdate{
-		ID:        task.ID,
-		Status:    types.TaskStatusFailed,
-		Error:     "task timed out",
+	if err := store.Update(types.EnvelopeUpdate{
+		ID:        envelope.ID,
+		Status:    types.EnvelopeStatusFailed,
+		Error:     "envelope timed out",
 		Timestamp: time.Now(),
 	}); err != nil {
 		t.Fatalf("Update to Failed: %v", err)
 	}
 
 	// Late x-sink report tries to overwrite with Succeeded — must be ignored.
-	if err := store.Update(types.TaskUpdate{
-		ID:        task.ID,
-		Status:    types.TaskStatusSucceeded,
+	if err := store.Update(types.EnvelopeUpdate{
+		ID:        envelope.ID,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}); err != nil {
 		t.Fatalf("Update to Succeeded returned unexpected error: %v", err)
 	}
 
-	got, err := store.Get(task.ID)
+	got, err := store.Get(envelope.ID)
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if got.Status != types.TaskStatusFailed {
+	if got.Status != types.EnvelopeStatusFailed {
 		t.Errorf("Status = %v after first-write-wins, want Failed", got.Status)
 	}
-	if got.Error != "task timed out" {
+	if got.Error != "envelope timed out" {
 		t.Errorf("Error = %q, want 'task timed out'", got.Error)
 	}
 }
@@ -586,14 +586,14 @@ func TestUpdate_FirstWriteWins(t *testing.T) {
 func TestIsActive(t *testing.T) {
 	tests := []struct {
 		name       string
-		setupJob   *types.Task
-		updateTo   types.TaskStatus
+		setupJob   *types.Envelope
+		updateTo   types.EnvelopeStatus
 		taskID     string
 		wantActive bool
 	}{
 		{
 			name: "pending task is active",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-active-1",
 				Route: types.Route{
 					Prev: []string{},
@@ -606,7 +606,7 @@ func TestIsActive(t *testing.T) {
 		},
 		{
 			name: "running task is active",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-active-2",
 				Route: types.Route{
 					Prev: []string{},
@@ -614,13 +614,13 @@ func TestIsActive(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			updateTo:   types.TaskStatusRunning,
+			updateTo:   types.EnvelopeStatusRunning,
 			taskID:     "test-active-2",
 			wantActive: true,
 		},
 		{
 			name: "succeeded task is not active",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-active-3",
 				Route: types.Route{
 					Prev: []string{},
@@ -628,13 +628,13 @@ func TestIsActive(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			updateTo:   types.TaskStatusSucceeded,
+			updateTo:   types.EnvelopeStatusSucceeded,
 			taskID:     "test-active-3",
 			wantActive: false,
 		},
 		{
 			name: "failed task is not active",
-			setupJob: &types.Task{
+			setupJob: &types.Envelope{
 				ID: "test-active-4",
 				Route: types.Route{
 					Prev: []string{},
@@ -642,7 +642,7 @@ func TestIsActive(t *testing.T) {
 					Next: []string{},
 				},
 			},
-			updateTo:   types.TaskStatusFailed,
+			updateTo:   types.EnvelopeStatusFailed,
 			taskID:     "test-active-4",
 			wantActive: false,
 		},
@@ -663,7 +663,7 @@ func TestIsActive(t *testing.T) {
 				}
 
 				if tt.updateTo != "" {
-					update := types.TaskUpdate{
+					update := types.EnvelopeUpdate{
 						ID:        tt.taskID,
 						Status:    tt.updateTo,
 						Timestamp: time.Now(),
@@ -686,7 +686,7 @@ func TestIsActive(t *testing.T) {
 func TestHandleTimeout(t *testing.T) {
 	store := NewStore()
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: "test-timeout",
 		Route: types.Route{
 			Prev: []string{},
@@ -705,10 +705,10 @@ func TestHandleTimeout(t *testing.T) {
 
 	select {
 	case update := <-updateChan:
-		if update.Status != types.TaskStatusFailed {
+		if update.Status != types.EnvelopeStatusFailed {
 			t.Errorf("Timeout update status = %v, want Failed", update.Status)
 		}
-		if update.Error != "task timed out" {
+		if update.Error != "envelope timed out" {
 			t.Errorf("Timeout error = %v, want 'task timed out'", update.Error)
 		}
 	case <-time.After(2 * time.Second):
@@ -716,7 +716,7 @@ func TestHandleTimeout(t *testing.T) {
 	}
 
 	timedOutTask, _ := store.Get("test-timeout")
-	if timedOutTask.Status != types.TaskStatusFailed {
+	if timedOutTask.Status != types.EnvelopeStatusFailed {
 		t.Errorf("Task status after timeout = %v, want Failed", timedOutTask.Status)
 	}
 }
@@ -725,7 +725,7 @@ func TestHandleTimeout(t *testing.T) {
 func TestCancelTimer(t *testing.T) {
 	store := NewStore()
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: "test-cancel-timer",
 		Route: types.Route{
 			Prev: []string{},
@@ -741,9 +741,9 @@ func TestCancelTimer(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:        "test-cancel-timer",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}
 
@@ -754,7 +754,7 @@ func TestCancelTimer(t *testing.T) {
 	time.Sleep(6 * time.Second)
 
 	completedTask, _ := store.Get("test-cancel-timer")
-	if completedTask.Status != types.TaskStatusSucceeded {
+	if completedTask.Status != types.EnvelopeStatusSucceeded {
 		t.Errorf("Status should remain Succeeded, got %v", completedTask.Status)
 	}
 }
@@ -763,7 +763,7 @@ func TestCancelTimer(t *testing.T) {
 func TestCreateDuplicate(t *testing.T) {
 	store := NewStore()
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: "test-duplicate",
 		Route: types.Route{
 			Prev: []string{},
@@ -796,7 +796,7 @@ func TestGetNonExistent(t *testing.T) {
 func TestSubscribeUnsubscribe(t *testing.T) {
 	store := NewStore()
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: "test-subscribe",
 		Route: types.Route{
 			Prev: []string{},
@@ -813,9 +813,9 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 	ch2 := store.Subscribe("test-subscribe")
 
 	progressPercent := 50.0
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              "test-subscribe",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: &progressPercent,
 		Timestamp:       time.Now(),
 	}
@@ -841,9 +841,9 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	progressPercent2 := 75.0
-	update2 := types.TaskUpdate{
+	update2 := types.EnvelopeUpdate{
 		ID:              "test-subscribe",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		ProgressPercent: &progressPercent2,
 		Timestamp:       time.Now(),
 	}
@@ -872,7 +872,7 @@ func TestSubscribeUnsubscribe(t *testing.T) {
 // TestStore_ContextID tests that ContextID is preserved through Create/Get
 func TestStore_ContextID(t *testing.T) {
 	store := NewStore()
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "ctx-test-1",
 		ContextID: "conv-123",
 		Route:     types.Route{Prev: []string{}, Curr: "a1", Next: []string{}},

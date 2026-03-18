@@ -1,4 +1,4 @@
-package taskstore
+package envelopestore
 
 import (
 	"testing"
@@ -115,12 +115,12 @@ func TestRouteUpdate_Logic(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Simulate the update logic from store.go UpdateProgress
-			task := &types.Task{
+			envelope := &types.Envelope{
 				Route:       tt.initialRoute,
 				TotalActors: len(tt.initialRoute.Prev) + 1 + len(tt.initialRoute.Next),
 			}
 
-			update := types.TaskUpdate{
+			update := types.EnvelopeUpdate{
 				Prev: tt.updatePrev,
 				Curr: tt.updateCurr,
 				Next: tt.updateNext,
@@ -128,29 +128,29 @@ func TestRouteUpdate_Logic(t *testing.T) {
 
 			// Apply update logic (mirrors store.go UpdateProgress)
 			if update.Curr != "" || len(update.Prev) > 0 || len(update.Next) > 0 {
-				task.Route.Prev = update.Prev
-				task.Route.Curr = update.Curr
-				task.Route.Next = update.Next
+				envelope.Route.Prev = update.Prev
+				envelope.Route.Curr = update.Curr
+				envelope.Route.Next = update.Next
 				total := len(update.Prev) + len(update.Next)
 				if update.Curr != "" {
 					total++
 				}
-				task.TotalActors = total
+				envelope.TotalActors = total
 			}
 
-			assert.Equal(t, tt.expectPrev, task.Route.Prev)
-			assert.Equal(t, tt.expectCurr, task.Route.Curr)
-			assert.Equal(t, tt.expectNext, task.Route.Next)
-			assert.Equal(t, tt.expectTotal, task.TotalActors)
+			assert.Equal(t, tt.expectPrev, envelope.Route.Prev)
+			assert.Equal(t, tt.expectCurr, envelope.Route.Curr)
+			assert.Equal(t, tt.expectNext, envelope.Route.Next)
+			assert.Equal(t, tt.expectTotal, envelope.TotalActors)
 		})
 	}
 }
 
 // TestTaskUpdate_FieldMapping tests that TaskUpdate fields correctly map to the new format
 func TestTaskUpdate_FieldMapping(t *testing.T) {
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              "test-id",
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		Message:         "test message",
 		Result:          nil,
 		Error:           "",
@@ -163,7 +163,7 @@ func TestTaskUpdate_FieldMapping(t *testing.T) {
 
 	// Verify all fields are accessible
 	assert.Equal(t, "test-id", update.ID)
-	assert.Equal(t, types.TaskStatusRunning, update.Status)
+	assert.Equal(t, types.EnvelopeStatusRunning, update.Status)
 	assert.Equal(t, "test message", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)
@@ -177,7 +177,7 @@ func TestTaskUpdate_FieldMapping(t *testing.T) {
 // TestProgressUpdate_TransformToTaskUpdate tests the transformation logic
 // from ProgressUpdate (external) to TaskUpdate (internal)
 func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
-	progress := types.ProgressUpdate{
+	progress := types.EnvelopeProgressUpdate{
 		ID:     "test-task-1",
 		Prev:   []string{"step1"},
 		Curr:   "step2",
@@ -190,9 +190,9 @@ func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 
 	// Simulate transformation from handlers.go
 	progressPercent := progress.ProgressPercent
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:              progress.ID,
-		Status:          types.TaskStatusRunning,
+		Status:          types.EnvelopeStatusRunning,
 		Message:         progress.Message,
 		ProgressPercent: &progressPercent,
 		Prev:            progress.Prev,
@@ -203,7 +203,7 @@ func TestProgressUpdate_TransformToTaskUpdate(t *testing.T) {
 
 	// Verify transformation preserved all data
 	assert.Equal(t, "test-task-1", update.ID)
-	assert.Equal(t, types.TaskStatusRunning, update.Status)
+	assert.Equal(t, types.EnvelopeStatusRunning, update.Status)
 	assert.Equal(t, "Processing at step2", update.Message)
 	assert.NotNil(t, update.ProgressPercent)
 	assert.Equal(t, 50.0, *update.ProgressPercent)

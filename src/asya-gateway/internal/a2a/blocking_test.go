@@ -8,7 +8,7 @@ import (
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -18,37 +18,37 @@ import (
 // fires; the updated status is only visible through Get(), mimicking a DB write
 // from a separate gateway pod that bypasses this process's in-memory listeners.
 type crossProcessStore struct {
-	taskstore.TaskStore
+	envelopestore.EnvelopeStore
 	taskID    string
 	finalAt   time.Time
-	finalStat types.TaskStatus
+	finalStat types.EnvelopeStatus
 }
 
-func (s *crossProcessStore) Get(id string) (*types.Task, error) {
+func (s *crossProcessStore) Get(id string) (*types.Envelope, error) {
 	if id == s.taskID && !time.Now().Before(s.finalAt) {
-		return &types.Task{ID: id, Status: s.finalStat}, nil
+		return &types.Envelope{ID: id, Status: s.finalStat}, nil
 	}
-	return &types.Task{ID: id, Status: types.TaskStatusPending}, nil
+	return &types.Envelope{ID: id, Status: types.EnvelopeStatusPending}, nil
 }
 
-func (s *crossProcessStore) Subscribe(_ string) chan types.TaskUpdate {
-	return make(chan types.TaskUpdate) // unbuffered, never written — simulates cross-process update
+func (s *crossProcessStore) Subscribe(_ string) chan types.EnvelopeUpdate {
+	return make(chan types.EnvelopeUpdate) // unbuffered, never written — simulates cross-process update
 }
 
-func (s *crossProcessStore) Unsubscribe(_ string, _ chan types.TaskUpdate) {}
+func (s *crossProcessStore) Unsubscribe(_ string, _ chan types.EnvelopeUpdate) {}
 
 func TestTerminalOrInterrupted(t *testing.T) {
 	tests := []struct {
-		status types.TaskStatus
+		status types.EnvelopeStatus
 		want   bool
 	}{
-		{types.TaskStatusSucceeded, true},
-		{types.TaskStatusFailed, true},
-		{types.TaskStatusCanceled, true},
-		{types.TaskStatusPaused, true},
-		{types.TaskStatusAuthRequired, true},
-		{types.TaskStatusPending, false},
-		{types.TaskStatusRunning, false},
+		{types.EnvelopeStatusSucceeded, true},
+		{types.EnvelopeStatusFailed, true},
+		{types.EnvelopeStatusCanceled, true},
+		{types.EnvelopeStatusPaused, true},
+		{types.EnvelopeStatusAuthRequired, true},
+		{types.EnvelopeStatusPending, false},
+		{types.EnvelopeStatusRunning, false},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.status), func(t *testing.T) {
@@ -60,7 +60,7 @@ func TestTerminalOrInterrupted(t *testing.T) {
 }
 
 func TestBlockingModeWaitsForCompletion(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	reg := toolstore.NewInMemoryRegistry()
 	ctx := context.Background()
 	_ = reg.Upsert(ctx, toolstore.Tool{Name: "analyze", Actor: "start-analysis", A2AEnabled: true})
@@ -79,9 +79,9 @@ func TestBlockingModeWaitsForCompletion(t *testing.T) {
 	// Simulate task completion after 100ms in a goroutine
 	go func() {
 		time.Sleep(100 * time.Millisecond) // Wait for Execute to create the task
-		_ = store.Update(types.TaskUpdate{
+		_ = store.Update(types.EnvelopeUpdate{
 			ID:        string(reqCtx.TaskID),
-			Status:    types.TaskStatusSucceeded,
+			Status:    types.EnvelopeStatusSucceeded,
 			Timestamp: time.Now(),
 		})
 	}()
@@ -119,13 +119,13 @@ func TestBlockingModeWaitsForCompletion(t *testing.T) {
 }
 
 func TestBlockingModeTimeout(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	taskID := "timeout-test-task"
 
 	// Create a task that will never complete
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:         taskID,
-		Status:     types.TaskStatusPending,
+		Status:     types.EnvelopeStatusPending,
 		TimeoutSec: 600, // Store-level timeout (long, not what we're testing)
 	})
 	if err != nil {
@@ -173,12 +173,12 @@ func TestBlockingModeTimeout(t *testing.T) {
 }
 
 func TestBlockingModeContextCanceled(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	taskID := "ctx-cancel-task"
 
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:     taskID,
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	})
 	if err != nil {
 		t.Fatalf("create task: %v", err)
@@ -211,21 +211,21 @@ func TestBlockingModeContextCanceled(t *testing.T) {
 }
 
 func TestBlockingModeAlreadyTerminal(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	taskID := "already-done-task"
 
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:     taskID,
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	})
 	if err != nil {
 		t.Fatalf("create task: %v", err)
 	}
 
 	// Update to succeeded before calling wait
-	_ = store.Update(types.TaskUpdate{
+	_ = store.Update(types.EnvelopeUpdate{
 		ID:        taskID,
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	})
 
@@ -271,11 +271,11 @@ func TestBlockingModeAlreadyTerminal(t *testing.T) {
 func TestBlockingModeCrossProcessUpdate(t *testing.T) {
 	taskID := "cross-process-task"
 	store := &crossProcessStore{
-		TaskStore: taskstore.NewStore(),
-		taskID:    taskID,
+		EnvelopeStore: envelopestore.NewStore(),
+		taskID:        taskID,
 		// Task becomes terminal after 1.5× the poll interval — requires polling to detect
 		finalAt:   time.Now().Add(dbPollInterval + dbPollInterval/2),
-		finalStat: types.TaskStatusSucceeded,
+		finalStat: types.EnvelopeStatusSucceeded,
 	}
 
 	reqCtx := &a2asrv.RequestContext{
@@ -325,12 +325,12 @@ func TestBlockingModeCrossProcessUpdate(t *testing.T) {
 // but terminal updates are still detected and forwarded immediately via subscription.
 // The subscription channel is a fast path for in-process terminal detection only.
 func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	taskID := "intermediate-task"
 
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:     taskID,
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	})
 	if err != nil {
 		t.Fatalf("create task: %v", err)
@@ -347,15 +347,15 @@ func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
 	// Simulate: running -> succeeded
 	go func() {
 		time.Sleep(50 * time.Millisecond) // Wait for subscription
-		_ = store.Update(types.TaskUpdate{
+		_ = store.Update(types.EnvelopeUpdate{
 			ID:        taskID,
-			Status:    types.TaskStatusRunning,
+			Status:    types.EnvelopeStatusRunning,
 			Timestamp: time.Now(),
 		})
 		time.Sleep(50 * time.Millisecond) // Spacing between updates
-		_ = store.Update(types.TaskUpdate{
+		_ = store.Update(types.EnvelopeUpdate{
 			ID:        taskID,
-			Status:    types.TaskStatusSucceeded,
+			Status:    types.EnvelopeStatusSucceeded,
 			Timestamp: time.Now(),
 		})
 	}()

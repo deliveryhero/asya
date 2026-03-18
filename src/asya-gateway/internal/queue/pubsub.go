@@ -66,8 +66,8 @@ func (c *PubSubClient) getOrCreateTopic(topicID string) *pubsub.Topic {
 }
 
 // SendMessage sends a message to the current actor's topic
-func (c *PubSubClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorEnvelope(task)
+func (c *PubSubClient) SendMessage(ctx context.Context, envelope *types.Envelope) error {
+	actorMsg, err := NewActorEnvelope(envelope)
 	if err != nil {
 		return err
 	}
@@ -77,10 +77,10 @@ func (c *PubSubClient) SendMessage(ctx context.Context, task *types.Task) error 
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
-	actorName := task.Route.Curr
+	actorName := envelope.Route.Curr
 	topicID := fmt.Sprintf("asya-%s-%s", c.namespace, actorName)
 
-	slog.Info("Sending message to Pub/Sub", "taskID", task.ID, "topic", topicID)
+	slog.Info("Sending message to Pub/Sub", "taskID", envelope.ID, "topic", topicID)
 
 	topic := c.getOrCreateTopic(topicID)
 	result := topic.Publish(ctx, &pubsub.Message{
@@ -89,11 +89,11 @@ func (c *PubSubClient) SendMessage(ctx context.Context, task *types.Task) error 
 
 	serverID, err := result.Get(ctx)
 	if err != nil {
-		slog.Error("Failed to publish to Pub/Sub", "taskID", task.ID, "topic", topicID, "error", err)
+		slog.Error("Failed to publish to Pub/Sub", "taskID", envelope.ID, "topic", topicID, "error", err)
 		return fmt.Errorf("failed to publish to Pub/Sub: %w", err)
 	}
 
-	slog.Info("Successfully sent message to Pub/Sub", "taskID", task.ID, "topic", topicID, "serverID", serverID)
+	slog.Info("Successfully sent message to Pub/Sub", "taskID", envelope.ID, "topic", topicID, "serverID", serverID)
 	return nil
 }
 

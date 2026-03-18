@@ -52,7 +52,7 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create task with new route format
 			deadline := time.Now().Add(30 * time.Second)
-			task := &types.Task{
+			envelope := &types.Envelope{
 				ID: "test-task-1",
 				Route: types.Route{
 					Prev: []string{},
@@ -64,7 +64,7 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 			}
 
 			// Marshal expected message to compare
-			expectedMsg, _ := NewActorEnvelope(task)
+			expectedMsg, _ := NewActorEnvelope(envelope)
 			expectedBody, _ := json.Marshal(expectedMsg)
 
 			// Create a mock channel that captures the routing key
@@ -86,7 +86,7 @@ func TestRabbitMQQueueNaming(t *testing.T) {
 			// Since we can't easily inject the mock channel without refactoring,
 			// let's at least verify the routing key construction logic
 			// The routing key is now derived from Route.Curr directly
-			actualRoutingKey := task.Route.Curr
+			actualRoutingKey := envelope.Route.Curr
 
 			assert.Equal(t, tt.expectedRoutingKey, actualRoutingKey,
 				"Actor %s should map to routing key %s", tt.actorName, tt.expectedRoutingKey)

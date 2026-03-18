@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
@@ -18,7 +18,7 @@ type MockQueueClientWithError struct {
 	sendErr error
 }
 
-func (m *MockQueueClientWithError) SendMessage(ctx context.Context, task *types.Task) error {
+func (m *MockQueueClientWithError) SendMessage(ctx context.Context, task *types.Envelope) error {
 	if m.sendErr != nil {
 		return m.sendErr
 	}
@@ -41,16 +41,16 @@ func (m *MockQueueClientWithError) Close() error {
 type MockTaskStore struct {
 	createErr error
 	updateErr error
-	tasks     map[string]*types.Task
+	tasks     map[string]*types.Envelope
 }
 
 func NewMockTaskStore() *MockTaskStore {
 	return &MockTaskStore{
-		tasks: make(map[string]*types.Task),
+		tasks: make(map[string]*types.Envelope),
 	}
 }
 
-func (m *MockTaskStore) Create(task *types.Task) error {
+func (m *MockTaskStore) Create(task *types.Envelope) error {
 	if m.createErr != nil {
 		return m.createErr
 	}
@@ -58,7 +58,7 @@ func (m *MockTaskStore) Create(task *types.Task) error {
 	return nil
 }
 
-func (m *MockTaskStore) Update(update types.TaskUpdate) error {
+func (m *MockTaskStore) Update(update types.EnvelopeUpdate) error {
 	if m.updateErr != nil {
 		return m.updateErr
 	}
@@ -69,14 +69,14 @@ func (m *MockTaskStore) Update(update types.TaskUpdate) error {
 	return nil
 }
 
-func (m *MockTaskStore) Get(id string) (*types.Task, error) {
+func (m *MockTaskStore) Get(id string) (*types.Envelope, error) {
 	if task, ok := m.tasks[id]; ok {
 		return task, nil
 	}
 	return nil, fmt.Errorf("task not found")
 }
 
-func (m *MockTaskStore) AddProgress(id string, progress types.ProgressUpdate) error {
+func (m *MockTaskStore) AddProgress(id string, progress types.EnvelopeProgressUpdate) error {
 	return nil
 }
 
@@ -85,15 +85,15 @@ func (m *MockTaskStore) Delete(id string) error {
 	return nil
 }
 
-func (m *MockTaskStore) UpdateProgress(update types.TaskUpdate) error {
+func (m *MockTaskStore) UpdateProgress(update types.EnvelopeUpdate) error {
 	return m.Update(update)
 }
 
-func (m *MockTaskStore) Subscribe(id string) chan types.TaskUpdate {
-	return make(chan types.TaskUpdate)
+func (m *MockTaskStore) Subscribe(id string) chan types.EnvelopeUpdate {
+	return make(chan types.EnvelopeUpdate)
 }
 
-func (m *MockTaskStore) Unsubscribe(id string, ch chan types.TaskUpdate) {
+func (m *MockTaskStore) Unsubscribe(id string, ch chan types.EnvelopeUpdate) {
 	close(ch)
 }
 
@@ -102,27 +102,27 @@ func (m *MockTaskStore) IsActive(id string) bool {
 	if !exists {
 		return false
 	}
-	return task.Status == types.TaskStatusPending || task.Status == types.TaskStatusRunning
+	return task.Status == types.EnvelopeStatusPending || task.Status == types.EnvelopeStatusRunning
 }
 
-func (m *MockTaskStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, error) {
-	return []types.TaskUpdate{}, nil
+func (m *MockTaskStore) GetUpdates(id string, since *time.Time) ([]types.EnvelopeUpdate, error) {
+	return []types.EnvelopeUpdate{}, nil
 }
 
-func (m *MockTaskStore) Resume(id string) (*types.Task, error) {
+func (m *MockTaskStore) Resume(id string) (*types.Envelope, error) {
 	if task, ok := m.tasks[id]; ok {
 		return task, nil
 	}
 	return nil, fmt.Errorf("task not found")
 }
 
-func (m *MockTaskStore) List(params taskstore.ListParams) ([]*types.Task, int, error) {
+func (m *MockTaskStore) List(params envelopestore.EnvelopeListParams) ([]*types.Envelope, int, error) {
 	return nil, 0, nil
 }
 
 // TestNewRegistry tests registry initialization
 func TestNewRegistry(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 	toolRegistry := toolstore.NewInMemoryRegistry()
 
@@ -144,7 +144,7 @@ func TestNewRegistry(t *testing.T) {
 
 // TestGetToolHandler tests handler retrieval
 func TestGetToolHandler(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 	toolRegistry := toolstore.NewInMemoryRegistry()
 
@@ -160,7 +160,7 @@ func TestGetToolHandler(t *testing.T) {
 
 // TestRegisterAllFromToolRegistry tests that MCP tools are registered from toolstore.Registry
 func TestRegisterAllFromToolRegistry(t *testing.T) {
-	taskStore := taskstore.NewStore()
+	taskStore := envelopestore.NewStore()
 	queueClient := &MockQueueClient{}
 	toolRegistry := toolstore.NewInMemoryRegistry()
 

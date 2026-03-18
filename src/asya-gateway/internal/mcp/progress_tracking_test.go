@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
@@ -18,11 +18,11 @@ import (
 func TestProgressTracking_EndToEnd(t *testing.T) {
 	// Setup: Create task store and handler
 	_ = context.Background()
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create a test job with 3 actors
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "integration-test-job-1",
 		Route: types.Route{
 			Prev: []string{},
@@ -30,7 +30,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 			Next: []string{"processor", "finalizer"},
 		},
 		Payload:    map[string]interface{}{"data": "test"},
-		Status:     types.TaskStatusPending,
+		Status:     types.EnvelopeStatusPending,
 		TimeoutSec: 300,
 	}
 
@@ -43,7 +43,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 	defer store.Unsubscribe(job.ID, updateChan)
 
 	// Collect all updates
-	updates := make([]types.TaskUpdate, 0)
+	updates := make([]types.EnvelopeUpdate, 0)
 	done := make(chan bool)
 
 	go func() {
@@ -90,7 +90,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 	}
 
 	for _, report := range progressReports {
-		progressUpdate := types.ProgressUpdate{
+		progressUpdate := types.EnvelopeProgressUpdate{
 			Prev:    report.prev,
 			Curr:    report.curr,
 			Next:    report.next,
@@ -158,18 +158,18 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 
 // TestProgressTracking_SSEStream tests the SSE streaming of progress updates
 func TestProgressTracking_SSEStream(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create job
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "sse-test-job",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 	_ = store.Create(job)
 
@@ -188,7 +188,7 @@ func TestProgressTracking_SSEStream(t *testing.T) {
 	// Send progress updates
 	statuses := []string{"received", "completed"}
 	for i := 0; i < 2; i++ {
-		progressUpdate := types.ProgressUpdate{
+		progressUpdate := types.EnvelopeProgressUpdate{
 			Prev:   []string{},
 			Curr:   "actor1",
 			Next:   []string{"actor2"},
@@ -231,17 +231,17 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 		t.Skip("Skipping keepalive test in short mode")
 	}
 
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: "keepalive-test-job",
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "long-running-actor",
 			Next: []string{},
 		},
-		Status: types.TaskStatusRunning,
+		Status: types.EnvelopeStatusRunning,
 	}
 	_ = store.Create(job)
 
@@ -256,9 +256,9 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 
 	time.Sleep(16 * time.Second)
 
-	_ = store.Update(types.TaskUpdate{
+	_ = store.Update(types.EnvelopeUpdate{
 		ID:        job.ID,
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	})
 
@@ -280,18 +280,18 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 
 // TestProgressTracking_ConcurrentUpdates tests handling of concurrent progress updates
 func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	taskID := "concurrent-test-task"
-	job := &types.Task{
+	job := &types.Envelope{
 		ID: taskID,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2", "actor3"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 	_ = store.Create(job)
 
@@ -301,7 +301,7 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 
 	for i := 0; i < numUpdates; i++ {
 		go func(idx int) {
-			progressUpdate := types.ProgressUpdate{
+			progressUpdate := types.EnvelopeProgressUpdate{
 				Prev:   []string{},
 				Curr:   "actor1",
 				Next:   []string{"actor2", "actor3"},
@@ -343,10 +343,10 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 // Progress updates for unknown tasks are silently accepted (200 OK) because
 // direct-SQS messages bypass gateway task creation.
 func TestProgressTracking_InvalidTaskID(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
-	progressUpdate := types.ProgressUpdate{
+	progressUpdate := types.EnvelopeProgressUpdate{
 		Prev:   []string{},
 		Curr:   "test",
 		Next:   []string{},
@@ -367,26 +367,26 @@ func TestProgressTracking_InvalidTaskID(t *testing.T) {
 
 // TestProgressTracking_RouteUpdate tests that route fields are updated on each progress report
 func TestProgressTracking_RouteUpdate(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create task with initial route
 	taskID := "route-update-test"
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: taskID,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor-a",
 			Next: []string{"actor-b"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 	if err := store.Create(task); err != nil {
 		t.Fatalf("Failed to create task: %v", err)
 	}
 
 	// Simulate actor modifying route (adding new actors to next)
-	progressUpdate := types.ProgressUpdate{
+	progressUpdate := types.EnvelopeProgressUpdate{
 		ID:      taskID,
 		Prev:    []string{},
 		Curr:    "actor-a",
@@ -430,18 +430,18 @@ func TestProgressTracking_RouteUpdate(t *testing.T) {
 
 // TestProgressTracking_RouteActorsMultipleUpdates tests route updates across multiple progress reports
 func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	taskID := "route-multi-update-test"
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: taskID,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "step1",
 			Next: []string{"step2"},
 		},
-		Status: types.TaskStatusPending,
+		Status: types.EnvelopeStatusPending,
 	}
 	if err := store.Create(task); err != nil {
 		t.Fatalf("Failed to create task: %v", err)
@@ -477,20 +477,20 @@ func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
 // TestProgressTracking_EmptyActorsList tests progress calculation when actors update is empty
 // This is a regression test for the bug where empty actors caused progress_percent = 0
 func TestProgressTracking_EmptyActorsList(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	handler := NewHandler(store)
 
 	// Create a task with 3 actors
 	taskID := "test-empty-actors-" + time.Now().Format("20060102150405")
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID: taskID,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
 			Next: []string{"actor2", "actor3"},
 		},
-		Status:     types.TaskStatusPending,
+		Status:     types.EnvelopeStatusPending,
 		TimeoutSec: 300,
 	}
 
@@ -500,7 +500,7 @@ func TestProgressTracking_EmptyActorsList(t *testing.T) {
 
 	// Send progress update with valid prev/curr/next for actor at position 1 (processing)
 	// prev=[actor1], curr=actor2, next=[actor3] => (1+0.5)*100/3 = 50.0%
-	progressUpdate := types.ProgressUpdate{
+	progressUpdate := types.EnvelopeProgressUpdate{
 		ID:      taskID,
 		Prev:    []string{"actor1"},
 		Curr:    "actor2",
@@ -555,7 +555,7 @@ func TestProgressTracking_EmptyActorsList(t *testing.T) {
 func sendProgressUpdateNew(t *testing.T, handler *Handler, taskID string, prev []string, curr string, next []string, status string) {
 	t.Helper()
 
-	progressUpdate := types.ProgressUpdate{
+	progressUpdate := types.EnvelopeProgressUpdate{
 		ID:      taskID,
 		Prev:    prev,
 		Curr:    curr,

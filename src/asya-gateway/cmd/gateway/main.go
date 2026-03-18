@@ -16,11 +16,11 @@ import (
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/mcp"
 	"github.com/deliveryhero/asya/asya-gateway/internal/oauth"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
 )
 
@@ -56,10 +56,10 @@ func main() {
 	defer cancel()
 
 	// Initialize task store (PostgreSQL or in-memory)
-	var taskStore taskstore.TaskStore
+	var taskStore envelopestore.EnvelopeStore
 	if dbURL != "" {
 		slog.Info("Using PostgreSQL task store")
-		pgStore, err := taskstore.NewPgStore(ctx, dbURL)
+		pgStore, err := envelopestore.NewPgStore(ctx, dbURL)
 		if err != nil {
 			slog.Error("Failed to create PostgreSQL store", "error", err)
 			os.Exit(1)
@@ -68,7 +68,7 @@ func main() {
 		taskStore = pgStore
 	} else {
 		slog.Info("Using in-memory task store (not recommended for production)")
-		taskStore = taskstore.NewStore()
+		taskStore = envelopestore.NewStore()
 	}
 
 	// Initialize queue client (Pub/Sub, SQS, or RabbitMQ)
@@ -181,7 +181,7 @@ func main() {
 			slog.Error("ASYA_MCP_OAUTH_ENABLED=true requires ASYA_MCP_OAUTH_ISSUER and ASYA_MCP_OAUTH_SECRET")
 			os.Exit(1)
 		}
-		pgStore, ok := taskStore.(*taskstore.PgStore)
+		pgStore, ok := taskStore.(*envelopestore.PgStore)
 		if !ok {
 			slog.Error("OAuth 2.1 requires PostgreSQL (ASYA_DATABASE_URL must be set)")
 			os.Exit(1)

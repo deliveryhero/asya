@@ -1,4 +1,4 @@
-package taskstore
+package envelopestore
 
 import (
 	"context"
@@ -18,7 +18,7 @@ import (
 type PgStore struct {
 	pool      *pgxpool.Pool
 	mu        sync.RWMutex
-	listeners map[string][]chan types.TaskUpdate
+	listeners map[string][]chan types.EnvelopeUpdate
 	timers    map[string]*time.Timer
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -72,7 +72,7 @@ func NewPgStore(ctx context.Context, connString string) (*PgStore, error) {
 
 	s := &PgStore{
 		pool:      pool,
-		listeners: make(map[string][]chan types.TaskUpdate),
+		listeners: make(map[string][]chan types.EnvelopeUpdate),
 		timers:    make(map[string]*time.Timer),
 		ctx:       storeCtx,
 		cancel:    cancel,
@@ -121,38 +121,38 @@ func totalActors(route types.Route) int {
 }
 
 // Create creates a new task
-func (s *PgStore) Create(task *types.Task) error {
+func (s *PgStore) Create(envelope *types.Envelope) error {
 	now := time.Now()
-	task.CreatedAt = now
-	task.UpdatedAt = now
-	task.Status = types.TaskStatusPending
+	envelope.CreatedAt = now
+	envelope.UpdatedAt = now
+	envelope.Status = types.EnvelopeStatusPending
 
 	// Initialize progress tracking
-	task.TotalActors = totalActors(task.Route)
-	task.ActorsCompleted = 0
-	task.ProgressPercent = 0.0
+	envelope.TotalActors = totalActors(envelope.Route)
+	envelope.ActorsCompleted = 0
+	envelope.ProgressPercent = 0.0
 
 	// Derive current actor name from route
-	currentActorName := task.Route.Curr
+	currentActorName := envelope.Route.Curr
 
 	var deadline *time.Time
-	if task.TimeoutSec > 0 {
-		d := now.Add(time.Duration(task.TimeoutSec) * time.Second)
-		task.Deadline = d
+	if envelope.TimeoutSec > 0 {
+		d := now.Add(time.Duration(envelope.TimeoutSec) * time.Second)
+		envelope.Deadline = d
 		deadline = &d
 	}
 
-	payloadJSON, err := json.Marshal(task.Payload)
+	payloadJSON, err := json.Marshal(envelope.Payload)
 	if err != nil {
 		return fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
 	// Ensure nil slices are stored as empty arrays
-	routePrev := task.Route.Prev
+	routePrev := envelope.Route.Prev
 	if routePrev == nil {
 		routePrev = []string{}
 	}
-	routeNext := task.Route.Next
+	routeNext := envelope.Route.Next
 	if routeNext == nil {
 		routeNext = []string{}
 	}
@@ -164,22 +164,22 @@ func (s *PgStore) Create(task *types.Task) error {
 	`
 
 	_, err = s.pool.Exec(s.ctx, query,
-		task.ID,
-		task.ParentID,
-		task.ContextID,
-		task.Status,
+		envelope.ID,
+		envelope.ParentID,
+		envelope.ContextID,
+		envelope.Status,
 		routePrev,
-		task.Route.Curr,
+		envelope.Route.Curr,
 		routeNext,
 		currentActorName,
 		payloadJSON,
-		task.TimeoutSec,
+		envelope.TimeoutSec,
 		deadline,
-		task.ProgressPercent,
-		task.TotalActors,
-		task.ActorsCompleted,
-		task.CreatedAt,
-		task.UpdatedAt,
+		envelope.ProgressPercent,
+		envelope.TotalActors,
+		envelope.ActorsCompleted,
+		envelope.CreatedAt,
+		envelope.UpdatedAt,
 	)
 
 	if err != nil {
@@ -187,10 +187,10 @@ func (s *PgStore) Create(task *types.Task) error {
 	}
 
 	// Set timeout timer if specified
-	if task.TimeoutSec > 0 {
+	if envelope.TimeoutSec > 0 {
 		s.mu.Lock()
-		s.timers[task.ID] = time.AfterFunc(time.Duration(task.TimeoutSec)*time.Second, func() {
-			s.handleTimeout(task.ID)
+		s.timers[envelope.ID] = time.AfterFunc(time.Duration(envelope.TimeoutSec)*time.Second, func() {
+			s.handleTimeout(envelope.ID)
 		})
 		s.mu.Unlock()
 	}
@@ -199,7 +199,7 @@ func (s *PgStore) Create(task *types.Task) error {
 }
 
 // Get retrieves a task by ID
-func (s *PgStore) Get(id string) (*types.Task, error) {
+func (s *PgStore) Get(id string) (*types.Envelope, error) {
 	query := `
 		SELECT id, parent_id, context_id, status, route_prev, route_curr, route_next, payload, result, error, message, timeout_sec, deadline,
 		       progress_percent, current_actor_name, actors_completed, total_actors, created_at, updated_at
@@ -207,7 +207,7 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 		WHERE id = $1
 	`
 
-	var task types.Task
+	var envelope types.Envelope
 	var payloadJSON, resultJSON []byte
 	var deadline *time.Time
 	var errorStr, messageStr, currentActorName *string
@@ -215,29 +215,29 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 	var timeoutSec *int
 
 	err := s.pool.QueryRow(s.ctx, query, id).Scan(
-		&task.ID,
-		&task.ParentID,
+		&envelope.ID,
+		&envelope.ParentID,
 		&contextID,
-		&task.Status,
-		&task.Route.Prev,
-		&task.Route.Curr,
-		&task.Route.Next,
+		&envelope.Status,
+		&envelope.Route.Prev,
+		&envelope.Route.Curr,
+		&envelope.Route.Next,
 		&payloadJSON,
 		&resultJSON,
 		&errorStr,
 		&messageStr,
 		&timeoutSec,
 		&deadline,
-		&task.ProgressPercent,
+		&envelope.ProgressPercent,
 		&currentActorName,
-		&task.ActorsCompleted,
-		&task.TotalActors,
-		&task.CreatedAt,
-		&task.UpdatedAt,
+		&envelope.ActorsCompleted,
+		&envelope.TotalActors,
+		&envelope.CreatedAt,
+		&envelope.UpdatedAt,
 	)
 
 	if err == pgx.ErrNoRows {
-		return nil, fmt.Errorf("task %s: %w", id, ErrNotFound)
+		return nil, fmt.Errorf("envelope %s: %w", id, ErrNotFound)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task: %w", err)
@@ -245,56 +245,56 @@ func (s *PgStore) Get(id string) (*types.Task, error) {
 
 	// Handle nullable fields
 	if contextID != nil {
-		task.ContextID = *contextID
+		envelope.ContextID = *contextID
 	}
 
 	if deadline != nil {
-		task.Deadline = *deadline
+		envelope.Deadline = *deadline
 	}
 
 	if errorStr != nil {
-		task.Error = *errorStr
+		envelope.Error = *errorStr
 	}
 
 	if messageStr != nil {
-		task.Message = *messageStr
+		envelope.Message = *messageStr
 	}
 
 	if timeoutSec != nil {
-		task.TimeoutSec = *timeoutSec
+		envelope.TimeoutSec = *timeoutSec
 	}
 
 	if currentActorName != nil {
-		task.CurrentActorName = *currentActorName
+		envelope.CurrentActorName = *currentActorName
 	}
 
 	// Ensure route slices are never nil
-	if task.Route.Prev == nil {
-		task.Route.Prev = []string{}
+	if envelope.Route.Prev == nil {
+		envelope.Route.Prev = []string{}
 	}
-	if task.Route.Next == nil {
-		task.Route.Next = []string{}
+	if envelope.Route.Next == nil {
+		envelope.Route.Next = []string{}
 	}
 
 	if payloadJSON != nil {
-		if err := json.Unmarshal(payloadJSON, &task.Payload); err != nil {
+		if err := json.Unmarshal(payloadJSON, &envelope.Payload); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 	}
 
 	if resultJSON != nil {
-		if err := json.Unmarshal(resultJSON, &task.Result); err != nil {
+		if err := json.Unmarshal(resultJSON, &envelope.Result); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal result: %w", err)
 		}
 	} else {
-		task.Result = map[string]interface{}{}
+		envelope.Result = map[string]interface{}{}
 	}
 
-	return &task, nil
+	return &envelope, nil
 }
 
 // Update updates a task's status
-func (s *PgStore) Update(update types.TaskUpdate) error {
+func (s *PgStore) Update(update types.EnvelopeUpdate) error {
 	tx, err := s.pool.Begin(s.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -344,7 +344,7 @@ func (s *PgStore) Update(update types.TaskUpdate) error {
 	}
 
 	if result.RowsAffected() == 0 {
-		return fmt.Errorf("task %s not found", update.ID)
+		return fmt.Errorf("envelope %s not found", update.ID)
 	}
 
 	// Insert update record for SSE streaming
@@ -396,11 +396,11 @@ func (s *PgStore) Update(update types.TaskUpdate) error {
 	}
 
 	// Freeze timeout timer when task is paused: save remaining budget via SQL and cancel timer
-	if update.Status == types.TaskStatusPaused {
+	if update.Status == types.EnvelopeStatusPaused {
 		if _, err := s.pool.Exec(s.ctx,
 			`UPDATE tasks SET remaining_timeout_sec = EXTRACT(EPOCH FROM (deadline - NOW())) WHERE id = $1 AND deadline IS NOT NULL`,
 			update.ID); err != nil {
-			return fmt.Errorf("failed to save remaining timeout for paused task %s: %w", update.ID, err)
+			return fmt.Errorf("failed to save remaining timeout for paused envelope %s: %w", update.ID, err)
 		}
 		s.mu.Lock()
 		s.cancelTimer(update.ID)
@@ -416,7 +416,7 @@ func (s *PgStore) Update(update types.TaskUpdate) error {
 }
 
 // UpdateProgress updates task progress (more frequent, lighter update)
-func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
+func (s *PgStore) UpdateProgress(update types.EnvelopeUpdate) error {
 	tx, err := s.pool.Begin(s.ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -532,11 +532,11 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 	}
 
 	// Freeze timeout timer when task is paused: save remaining budget and cancel timer
-	if update.Status == types.TaskStatusPaused {
+	if update.Status == types.EnvelopeStatusPaused {
 		if _, err := s.pool.Exec(s.ctx,
 			`UPDATE tasks SET remaining_timeout_sec = EXTRACT(EPOCH FROM (deadline - NOW())) WHERE id = $1 AND deadline IS NOT NULL`,
 			update.ID); err != nil {
-			return fmt.Errorf("failed to save remaining timeout for paused task %s: %w", update.ID, err)
+			return fmt.Errorf("failed to save remaining timeout for paused envelope %s: %w", update.ID, err)
 		}
 		s.mu.Lock()
 		s.cancelTimer(update.ID)
@@ -553,7 +553,7 @@ func (s *PgStore) UpdateProgress(update types.TaskUpdate) error {
 }
 
 // GetUpdates retrieves all updates for a task (for SSE streaming)
-func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, error) {
+func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.EnvelopeUpdate, error) {
 	var query string
 	var args []interface{}
 
@@ -581,9 +581,9 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 	}
 	defer rows.Close()
 
-	var updates []types.TaskUpdate
+	var updates []types.EnvelopeUpdate
 	for rows.Next() {
-		var update types.TaskUpdate
+		var update types.EnvelopeUpdate
 		var resultJSON []byte
 		var errorStr *string
 		var actorName *string
@@ -631,18 +631,18 @@ func (s *PgStore) GetUpdates(id string, since *time.Time) ([]types.TaskUpdate, e
 }
 
 // Subscribe creates a listener channel for task updates
-func (s *PgStore) Subscribe(id string) chan types.TaskUpdate {
+func (s *PgStore) Subscribe(id string) chan types.EnvelopeUpdate {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch := make(chan types.TaskUpdate, 10)
+	ch := make(chan types.EnvelopeUpdate, 10)
 	s.listeners[id] = append(s.listeners[id], ch)
 
 	return ch
 }
 
 // Unsubscribe removes a listener channel
-func (s *PgStore) Unsubscribe(id string, ch chan types.TaskUpdate) {
+func (s *PgStore) Unsubscribe(id string, ch chan types.EnvelopeUpdate) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -661,7 +661,7 @@ func (s *PgStore) Unsubscribe(id string, ch chan types.TaskUpdate) {
 }
 
 // notifyListeners sends updates to all listeners (must hold read lock)
-func (s *PgStore) notifyListeners(update types.TaskUpdate) {
+func (s *PgStore) notifyListeners(update types.EnvelopeUpdate) {
 	listeners := s.listeners[update.ID]
 	for _, ch := range listeners {
 		select {
@@ -680,7 +680,7 @@ func (s *PgStore) IsActive(id string) bool {
 		WHERE id = $1
 	`
 
-	var status types.TaskStatus
+	var status types.EnvelopeStatus
 	var deadline *time.Time
 
 	err := s.pool.QueryRow(s.ctx, query, id).Scan(&status, &deadline)
@@ -694,7 +694,7 @@ func (s *PgStore) IsActive(id string) bool {
 	}
 
 	// Paused tasks are not active (sidecar should not route further)
-	if status == types.TaskStatusPaused {
+	if status == types.EnvelopeStatusPaused {
 		return false
 	}
 
@@ -709,9 +709,9 @@ func (s *PgStore) IsActive(id string) bool {
 // handleTimeout handles task timeout (called by timer)
 func (s *PgStore) handleTimeout(id string) {
 	// Check if task is already in final state before marking as timed out
-	task, err := s.Get(id)
+	envelope, err := s.Get(id)
 	if err != nil {
-		fmt.Printf("Failed to get task %s for timeout check: %v\n", id, err)
+		fmt.Printf("Failed to get envelope %s for timeout check: %v\n", id, err)
 		s.mu.Lock()
 		delete(s.timers, id)
 		s.mu.Unlock()
@@ -719,17 +719,17 @@ func (s *PgStore) handleTimeout(id string) {
 	}
 
 	// Don't overwrite final states
-	if s.isFinal(task.Status) {
+	if s.isFinal(envelope.Status) {
 		s.mu.Lock()
 		delete(s.timers, id)
 		s.mu.Unlock()
 		return
 	}
 
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:        id,
-		Status:    types.TaskStatusFailed,
-		Error:     "task timed out",
+		Status:    types.EnvelopeStatusFailed,
+		Error:     "envelope timed out",
 		Timestamp: time.Now(),
 	}
 
@@ -751,7 +751,7 @@ func (s *PgStore) cancelTimer(id string) {
 }
 
 // Resume transitions a paused task back to running, restarting the timeout timer
-func (s *PgStore) Resume(id string) (*types.Task, error) {
+func (s *PgStore) Resume(id string) (*types.Envelope, error) {
 	// Thaw: restore remaining timeout and transition to running
 	result, err := s.pool.Exec(s.ctx, `
 		UPDATE tasks
@@ -763,29 +763,29 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 		    pause_metadata = NULL,
 		    updated_at = NOW()
 		WHERE id = $2 AND status = 'paused'
-	`, types.TaskStatusRunning, id)
+	`, types.EnvelopeStatusRunning, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resume task: %w", err)
 	}
 
 	if result.RowsAffected() == 0 {
 		// Task either doesn't exist or is not paused
-		task, err := s.Get(id)
+		existingEnvelope, err := s.Get(id)
 		if err != nil {
-			return nil, fmt.Errorf("task %s not found", id)
+			return nil, fmt.Errorf("envelope %s not found", id)
 		}
-		return nil, fmt.Errorf("task %s is not paused (status: %s)", id, task.Status)
+		return nil, fmt.Errorf("task %s is not paused (status: %s)", id, existingEnvelope.Status)
 	}
 
 	// Fetch updated task
-	task, err := s.Get(id)
+	envelope, err := s.Get(id)
 	if err != nil {
 		return nil, err
 	}
 
 	// Restart in-memory timeout timer with restored deadline
-	if !task.Deadline.IsZero() {
-		remaining := time.Until(task.Deadline)
+	if !envelope.Deadline.IsZero() {
+		remaining := time.Until(envelope.Deadline)
 		if remaining > 0 {
 			s.mu.Lock()
 			s.timers[id] = time.AfterFunc(remaining, func() {
@@ -796,17 +796,17 @@ func (s *PgStore) Resume(id string) (*types.Task, error) {
 	}
 
 	// Notify listeners
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:        id,
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Message:   "Task resumed",
-		Timestamp: task.UpdatedAt,
+		Timestamp: envelope.UpdatedAt,
 	}
 	s.mu.RLock()
 	s.notifyListeners(update)
 	s.mu.RUnlock()
 
-	return task, nil
+	return envelope, nil
 }
 
 // Constant query strings use NULL-coalescing filters so no dynamic SQL construction
@@ -827,9 +827,9 @@ const listDataQuery = `SELECT id, context_id, status, payload, result, error, ti
 	ORDER BY created_at DESC
 	LIMIT $3 OFFSET $4`
 
-// listArgs converts ListParams into the fixed positional arguments for the
+// listArgs converts EnvelopeListParams into the fixed positional arguments for the
 // constant list queries. NULL values disable the corresponding filter.
-func listArgs(params ListParams) (statusArg, contextIDArg *string, limit *int, offset int) {
+func listArgs(params EnvelopeListParams) (statusArg, contextIDArg *string, limit *int, offset int) {
 	if params.Status != nil {
 		s := string(*params.Status)
 		statusArg = &s
@@ -845,7 +845,7 @@ func listArgs(params ListParams) (statusArg, contextIDArg *string, limit *int, o
 }
 
 // List returns tasks filtered by params with pagination. Returns (tasks, totalCount, error).
-func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
+func (s *PgStore) List(params EnvelopeListParams) ([]*types.Envelope, int, error) {
 	statusArg, contextIDArg, limit, offset := listArgs(params)
 
 	var totalCount int
@@ -859,53 +859,53 @@ func (s *PgStore) List(params ListParams) ([]*types.Task, int, error) {
 	}
 	defer rows.Close()
 
-	var tasks []*types.Task
+	var tasks []*types.Envelope
 	for rows.Next() {
-		var task types.Task
+		var envelope types.Envelope
 		var payloadJSON, resultJSON, pauseMetadataJSON []byte
 		var remainingTimeout *float64
 
 		err := rows.Scan(
-			&task.ID, &task.ContextID, &task.Status,
-			&payloadJSON, &resultJSON, &task.Error,
-			&task.TimeoutSec, &task.Deadline,
+			&envelope.ID, &envelope.ContextID, &envelope.Status,
+			&payloadJSON, &resultJSON, &envelope.Error,
+			&envelope.TimeoutSec, &envelope.Deadline,
 			&remainingTimeout,
-			&task.ProgressPercent, &task.CurrentActorName, &task.Message,
+			&envelope.ProgressPercent, &envelope.CurrentActorName, &envelope.Message,
 			&pauseMetadataJSON,
-			&task.ActorsCompleted, &task.TotalActors,
-			&task.Route.Prev, &task.Route.Curr, &task.Route.Next,
-			&task.CreatedAt, &task.UpdatedAt,
+			&envelope.ActorsCompleted, &envelope.TotalActors,
+			&envelope.Route.Prev, &envelope.Route.Curr, &envelope.Route.Next,
+			&envelope.CreatedAt, &envelope.UpdatedAt,
 		)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to scan task: %w", err)
 		}
 
 		if payloadJSON != nil {
-			if err := json.Unmarshal(payloadJSON, &task.Payload); err != nil {
-				return nil, 0, fmt.Errorf("failed to unmarshal payload for task %s: %w", task.ID, err)
+			if err := json.Unmarshal(payloadJSON, &envelope.Payload); err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal payload for envelope %s: %w", envelope.ID, err)
 			}
 		}
 		if resultJSON != nil {
-			if err := json.Unmarshal(resultJSON, &task.Result); err != nil {
-				return nil, 0, fmt.Errorf("failed to unmarshal result for task %s: %w", task.ID, err)
+			if err := json.Unmarshal(resultJSON, &envelope.Result); err != nil {
+				return nil, 0, fmt.Errorf("failed to unmarshal result for envelope %s: %w", envelope.ID, err)
 			}
 		}
 		if pauseMetadataJSON != nil {
-			task.PauseMetadata = pauseMetadataJSON
+			envelope.PauseMetadata = pauseMetadataJSON
 		}
 		if remainingTimeout != nil {
-			task.RemainingTimeoutSec = remainingTimeout
+			envelope.RemainingTimeoutSec = remainingTimeout
 		}
 
-		tasks = append(tasks, &task)
+		tasks = append(tasks, &envelope)
 	}
 
 	return tasks, totalCount, nil
 }
 
 // isFinal checks if a status is final
-func (s *PgStore) isFinal(status types.TaskStatus) bool {
-	return status == types.TaskStatusSucceeded || status == types.TaskStatusFailed || status == types.TaskStatusCanceled
+func (s *PgStore) isFinal(status types.EnvelopeStatus) bool {
+	return status == types.EnvelopeStatusSucceeded || status == types.EnvelopeStatusFailed || status == types.EnvelopeStatusCanceled
 }
 
 // cleanupOldUpdates periodically removes old task updates (keep last 24 hours)

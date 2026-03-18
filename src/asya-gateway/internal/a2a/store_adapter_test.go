@@ -7,20 +7,20 @@ import (
 	"time"
 
 	a2alib "github.com/a2aproject/a2a-go/a2a"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestStoreAdapterGet(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "test-task-1",
 		ContextID: "test-context",
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
@@ -47,7 +47,7 @@ func TestStoreAdapterGet(t *testing.T) {
 }
 
 func TestStoreAdapterGetNotFound(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
 	_, _, err := adapter.Get(context.Background(), a2alib.TaskID("nonexistent"))
@@ -55,13 +55,13 @@ func TestStoreAdapterGetNotFound(t *testing.T) {
 }
 
 func TestStoreAdapterSave(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "test-task-2",
 		ContextID: "test-context",
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
@@ -90,18 +90,18 @@ func TestStoreAdapterSave(t *testing.T) {
 
 	updatedTask, err := store.Get("test-task-2")
 	require.NoError(t, err)
-	assert.Equal(t, types.TaskStatusRunning, updatedTask.Status)
+	assert.Equal(t, types.EnvelopeStatusRunning, updatedTask.Status)
 	assert.Equal(t, "Processing task", updatedTask.Message)
 }
 
 func TestStoreAdapterList(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
-	task1 := &types.Task{
+	task1 := &types.Envelope{
 		ID:        "test-task-3",
 		ContextID: "test-context",
-		Status:    types.TaskStatusPending,
+		Status:    types.EnvelopeStatusPending,
 		Route: types.Route{
 			Prev: []string{},
 			Curr: "actor1",
@@ -109,10 +109,10 @@ func TestStoreAdapterList(t *testing.T) {
 		},
 		Payload: map[string]any{"test": "data1"},
 	}
-	task2 := &types.Task{
+	task2 := &types.Envelope{
 		ID:        "test-task-4",
 		ContextID: "test-context",
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Route: types.Route{
 			Prev: []string{"actor1"},
 			Curr: "actor2",
@@ -126,9 +126,9 @@ func TestStoreAdapterList(t *testing.T) {
 	err = store.Create(task2)
 	require.NoError(t, err)
 
-	err = store.Update(types.TaskUpdate{
+	err = store.Update(types.EnvelopeUpdate{
 		ID:        "test-task-4",
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Timestamp: time.Now(),
 	})
 	require.NoError(t, err)
@@ -148,12 +148,12 @@ func TestStoreAdapterList(t *testing.T) {
 }
 
 func TestStoreAdapterListPagination(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
 	// Create 5 tasks in ctx-1
 	for i := range 5 {
-		err := store.Create(&types.Task{
+		err := store.Create(&types.Envelope{
 			ID:        fmt.Sprintf("ctx1-task-%d", i),
 			ContextID: "ctx-1",
 			Route: types.Route{
@@ -167,7 +167,7 @@ func TestStoreAdapterListPagination(t *testing.T) {
 	}
 
 	// Create 1 task in ctx-2
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:        "ctx2-task-0",
 		ContextID: "ctx-2",
 		Route: types.Route{
@@ -241,11 +241,11 @@ func TestStoreAdapterListPagination(t *testing.T) {
 }
 
 func TestStoreAdapterListStatusFilter(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
 
 	// Create a pending task
-	err := store.Create(&types.Task{
+	err := store.Create(&types.Envelope{
 		ID:        "pending-task",
 		ContextID: "ctx-filter",
 		Route: types.Route{
@@ -258,7 +258,7 @@ func TestStoreAdapterListStatusFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a task and move it to running
-	err = store.Create(&types.Task{
+	err = store.Create(&types.Envelope{
 		ID:        "running-task",
 		ContextID: "ctx-filter",
 		Route: types.Route{
@@ -270,9 +270,9 @@ func TestStoreAdapterListStatusFilter(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	err = store.Update(types.TaskUpdate{
+	err = store.Update(types.EnvelopeUpdate{
 		ID:        "running-task",
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Timestamp: time.Now(),
 	})
 	require.NoError(t, err)
@@ -320,7 +320,7 @@ func buildPayloadWithHistory(msgs []map[string]any) map[string]any {
 }
 
 func TestStoreAdapterGet_HistoryHydratedForSucceededTask(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{
 		payloads: map[string]map[string]any{
 			"succeeded/hist-task": buildPayloadWithHistory([]map[string]any{
@@ -334,17 +334,17 @@ func TestStoreAdapterGet_HistoryHydratedForSucceededTask(t *testing.T) {
 	}
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "hist-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Route:     types.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "hist-task",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}))
 
@@ -355,7 +355,7 @@ func TestStoreAdapterGet_HistoryHydratedForSucceededTask(t *testing.T) {
 }
 
 func TestStoreAdapterGet_HistoryOmittedForInFlightTask(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{
 		payloads: map[string]map[string]any{
 			// provide data for "running" prefix (should never be read)
@@ -366,17 +366,17 @@ func TestStoreAdapterGet_HistoryOmittedForInFlightTask(t *testing.T) {
 	}
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "inflight-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Route:     types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "inflight-task",
-		Status:    types.TaskStatusRunning,
+		Status:    types.EnvelopeStatusRunning,
 		Timestamp: time.Now(),
 	}))
 
@@ -386,21 +386,21 @@ func TestStoreAdapterGet_HistoryOmittedForInFlightTask(t *testing.T) {
 }
 
 func TestStoreAdapterGet_HistoryOmittedOnStateProxyError(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{err: fmt.Errorf("s3 unavailable")}
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "err-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "err-task",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}))
 
@@ -411,21 +411,21 @@ func TestStoreAdapterGet_HistoryOmittedOnStateProxyError(t *testing.T) {
 }
 
 func TestStoreAdapterGet_HistoryOmittedWhenNoFileExists(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{payloads: map[string]map[string]any{}} // empty — no files
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "no-file-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Route:     types.Route{Prev: []string{}, Curr: "", Next: []string{}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "no-file-task",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}))
 
@@ -435,7 +435,7 @@ func TestStoreAdapterGet_HistoryOmittedWhenNoFileExists(t *testing.T) {
 }
 
 func TestStoreAdapterGet_ArtifactsHydratedWhenPresent(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{
 		payloads: map[string]map[string]any{
 			"succeeded/art-task": {
@@ -458,17 +458,17 @@ func TestStoreAdapterGet_ArtifactsHydratedWhenPresent(t *testing.T) {
 	}
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "art-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "art-task",
-		Status:    types.TaskStatusSucceeded,
+		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}))
 
@@ -479,7 +479,7 @@ func TestStoreAdapterGet_ArtifactsHydratedWhenPresent(t *testing.T) {
 }
 
 func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
-	store := taskstore.NewStore()
+	store := envelopestore.NewStore()
 	sp := &fakeStateProxy{
 		payloads: map[string]map[string]any{
 			"paused/pause-task": buildPayloadWithHistory([]map[string]any{
@@ -490,17 +490,17 @@ func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
 	}
 	adapter := NewStoreAdapter(store, sp)
 
-	task := &types.Task{
+	task := &types.Envelope{
 		ID:        "pause-task",
 		ContextID: "ctx",
-		Status:    types.TaskStatusPaused,
+		Status:    types.EnvelopeStatusPaused,
 		Route:     types.Route{Prev: []string{"a"}, Curr: "x-pause", Next: []string{"x-resume"}},
 		Payload:   map[string]any{},
 	}
 	require.NoError(t, store.Create(task))
-	require.NoError(t, store.Update(types.TaskUpdate{
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
 		ID:        "pause-task",
-		Status:    types.TaskStatusPaused,
+		Status:    types.EnvelopeStatusPaused,
 		Timestamp: time.Now(),
 	}))
 

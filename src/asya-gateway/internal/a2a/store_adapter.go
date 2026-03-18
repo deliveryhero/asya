@@ -10,20 +10,20 @@ import (
 	"time"
 
 	a2alib "github.com/a2aproject/a2a-go/a2a"
+	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
-	"github.com/deliveryhero/asya/asya-gateway/internal/taskstore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
 
 // StoreAdapter wraps the internal TaskStore to implement a2asrv.TaskStore.
 type StoreAdapter struct {
-	internal   taskstore.TaskStore
+	internal   envelopestore.EnvelopeStore
 	stateProxy stateproxy.Reader // optional; nil means history/artifacts are always omitted
 }
 
 // NewStoreAdapter creates a new StoreAdapter wrapping the provided internal store.
 // stateProxy may be nil, in which case GetTask responses omit history and artifacts.
-func NewStoreAdapter(store taskstore.TaskStore, sp stateproxy.Reader) *StoreAdapter {
+func NewStoreAdapter(store envelopestore.EnvelopeStore, sp stateproxy.Reader) *StoreAdapter {
 	return &StoreAdapter{
 		internal:   store,
 		stateProxy: sp,
@@ -34,7 +34,7 @@ func NewStoreAdapter(store taskstore.TaskStore, sp stateproxy.Reader) *StoreAdap
 func (a *StoreAdapter) Save(ctx context.Context, task *a2alib.Task, event a2alib.Event, prev a2alib.TaskVersion) (a2alib.TaskVersion, error) {
 	status := FromA2AState(task.Status.State)
 
-	update := types.TaskUpdate{
+	update := types.EnvelopeUpdate{
 		ID:        string(task.ID),
 		Status:    status,
 		Timestamp: time.Now(),
@@ -66,14 +66,14 @@ func (a *StoreAdapter) Save(ctx context.Context, task *a2alib.Task, event a2alib
 	return version, nil
 }
 
-// Get calls internal.Get and translates types.Task to a2a.Task.
+// Get calls internal.Get and translates types.Envelope to a2a.Task.
 // For completed and paused tasks, it attempts to hydrate history and artifacts
 // from the state proxy mount. Hydration failures are logged and silently ignored —
 // history and artifacts are optional per the A2A spec.
 func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.Task, a2alib.TaskVersion, error) {
 	task, err := a.internal.Get(string(taskID))
 	if err != nil {
-		if err == taskstore.ErrNotFound || strings.Contains(err.Error(), "task not found") {
+		if err == envelopestore.ErrNotFound || strings.Contains(err.Error(), "envelope not found") {
 			return nil, 0, a2alib.ErrTaskNotFound
 		}
 		return nil, 0, fmt.Errorf("failed to get task: %w", err)
@@ -94,7 +94,7 @@ func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.T
 // hydrateFromStateProxy reads the persisted envelope from the state proxy and populates
 // History and Artifacts on a2aTask. Errors are logged and swallowed — both fields are
 // optional per the A2A spec, so callers always get a valid (possibly partial) task.
-func (a *StoreAdapter) hydrateFromStateProxy(ctx context.Context, task *types.Task, a2aTask *a2alib.Task) {
+func (a *StoreAdapter) hydrateFromStateProxy(ctx context.Context, task *types.Envelope, a2aTask *a2alib.Task) {
 	prefix := stateProxyPrefix(task.Status)
 	if prefix == "" {
 		return // in-flight task; history not available from queues
@@ -121,13 +121,13 @@ func (a *StoreAdapter) hydrateFromStateProxy(ctx context.Context, task *types.Ta
 
 // stateProxyPrefix maps internal task status to the filesystem prefix used by crew actors.
 // Returns "" for in-flight statuses (pending/running) where history is not available.
-func stateProxyPrefix(status types.TaskStatus) string {
+func stateProxyPrefix(status types.EnvelopeStatus) string {
 	switch status {
-	case types.TaskStatusSucceeded:
+	case types.EnvelopeStatusSucceeded:
 		return "succeeded"
-	case types.TaskStatusFailed:
+	case types.EnvelopeStatusFailed:
 		return "failed"
-	case types.TaskStatusPaused:
+	case types.EnvelopeStatusPaused:
 		return "paused"
 	default:
 		return "" // pending, running, canceled, etc.
@@ -212,7 +212,7 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 		offset = parsed
 	}
 
-	params := taskstore.ListParams{
+	params := envelopestore.EnvelopeListParams{
 		ContextID: req.ContextID,
 		Limit:     pageSize,
 		Offset:    offset,
@@ -248,8 +248,8 @@ func (a *StoreAdapter) List(ctx context.Context, req *a2alib.ListTasksRequest) (
 	}, nil
 }
 
-// internalToA2ATask converts an internal types.Task to a2a.Task.
-func internalToA2ATask(task *types.Task) *a2alib.Task {
+// internalToA2ATask converts an internal types.Envelope to a2a.Task.
+func internalToA2ATask(task *types.Envelope) *a2alib.Task {
 	a2aTask := &a2alib.Task{
 		ID:        a2alib.TaskID(task.ID),
 		ContextID: task.ContextID,

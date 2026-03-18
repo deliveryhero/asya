@@ -39,8 +39,8 @@ func NewRabbitMQClientPooled(url, exchange string, poolSize int) (*RabbitMQClien
 }
 
 // SendMessage sends a message to the current actor's queue in the route
-func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task) error {
-	msg, err := NewActorEnvelope(task)
+func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, envelope *types.Envelope) error {
+	msg, err := NewActorEnvelope(envelope)
 	if err != nil {
 		return fmt.Errorf("failed to create actor message: %w", err)
 	}
@@ -59,7 +59,7 @@ func (c *RabbitMQClientPooled) SendMessage(ctx context.Context, task *types.Task
 
 	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	routingKey := task.Route.Curr
+	routingKey := envelope.Route.Curr
 	err = ch.PublishWithContext(ctx,
 		c.pool.exchange, // exchange
 		routingKey,      // routing key (queue name)

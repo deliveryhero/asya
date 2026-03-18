@@ -72,8 +72,8 @@ func NewRabbitMQClient(url, exchange string) (*RabbitMQClient, error) {
 }
 
 // SendMessage sends a message to the current actor's queue in the route
-func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) error {
-	actorMsg, err := NewActorEnvelope(task)
+func (c *RabbitMQClient) SendMessage(ctx context.Context, envelope *types.Envelope) error {
+	actorMsg, err := NewActorEnvelope(envelope)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func (c *RabbitMQClient) SendMessage(ctx context.Context, task *types.Task) erro
 
 	// Send message to current actor's queue
 	// Use actor name as routing key (sidecar binds queue with actor name, not "asya-" prefixed name)
-	routingKey := task.Route.Curr
+	routingKey := envelope.Route.Curr
 
 	// Protect channel access with mutex for thread-safety
 	c.mu.Lock()
