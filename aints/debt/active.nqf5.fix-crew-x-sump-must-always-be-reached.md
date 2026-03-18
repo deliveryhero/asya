@@ -38,63 +38,18 @@ Change `sendRetryFailure` to send to `r.sinkQueue` instead of `r.sumpQueue`.
 x-sink already handles `phase=failed` correctly — it inspects phase only for
 fan-out filtering, not for routing.
 
-Also: replace `nonRetryableErrors` with `errorRoutes` in the resiliency config
-(no backward compatibility needed — internal config field). Decision log:
-
-### Agreed `resiliency:` schema
-
-```yaml
-spec:
-  resiliency:
-    actorTimeout: 120s
-    retry:                          # errors that return to self (same actor queue)
-      maxAttempts: 3
-      backoff: exponential
-      initialInterval: 1s
-      maxInterval: 60s
-      jitter: true
-    errorRoutes:                    # errors that skip self; values are lists (route.next)
-      ValidationError: ["notify-rejection"]
-      openai.AuthenticationError: ["x-sink"]
-```
-
-Key decisions:
-- `retry:` and `errorRoutes:` are siblings — `retry` is the default path for
-  unmatched errors; `errorRoutes` entries bypass retry entirely
-- `errorRoutes` values are **lists** (consistent with `route.next` being a list)
-- `nonRetryableErrors` removed (no migration): `nonRetryableErrors: [X]` ≡
-  `errorRoutes: { X: ["x-sink"] }` once `sendRetryFailure` routes to x-sink
-- No `"*"` wildcard key — use `retry.maxAttempts: 1` to disable retry globally
-- FQN matching: if key contains `.` → exact `module.ClassName` match;
-  if no dots → match `type.__name__` only (requires runtime to send FQN in
-  `Details.Type` and `Details.MRO`)
-
-### Error routing decision tree (post-fix)
-
-```
-error occurs at actor X
-  └─ errorRoutes key matches error type (by MRO)?
-       ├─ yes → msg.Route.Next = errorRoutes[match]; send to SinkQueue path
-       └─ no  → retry.maxAttempts remaining?
-                  ├─ yes → retryMessage (back to X's queue with delay)
-                  └─ no  → sendRetryFailure → SinkQueue (x-sink → x-sump)
-```
-
 ## Acceptance criteria
 
 - [ ] `sendRetryFailure` routes to `r.sinkQueue`, not `r.sumpQueue`
 - [ ] x-sink's hooks fire for all failure modes (non-retryable, max-retries-exhausted)
-- [ ] `nonRetryableErrors` field removed from XRD and sidecar config; replaced by `errorRoutes`
-- [ ] `errorRoutes` values are `[]string` (list), sidecar sets `msg.Route.Next` directly
-- [ ] FQN matching: runtime sends `module.ClassName` in `Details.Type`/`Details.MRO`;
-      sidecar matches by exact FQN if key contains `.`, by short name otherwise
 - [ ] Unit tests in `router_retry_test.go` updated to assert routing to x-sink
 - [ ] `docs/internal/crew-termination.md` added
 
 ## Related
 
 - `[1fac]` Sidecar: ASYA_ACTOR_ROLE unification
-- `[w76v]` Sidecar: add retryableErrors whitelist (superseded by errorRoutes — close if merged)
+- `[w76v]` Sidecar: add retryableErrors whitelist
+- see also: design aint for nonRetryableErrors → errorRoutes redesign
 
 
 ---
