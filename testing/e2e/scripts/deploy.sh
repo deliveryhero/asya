@@ -632,6 +632,8 @@ echo
 
 # Phase 9b: Register test flows with the gateway
 # Flows are not seeded via Helm values — they are patched into the ConfigMap.
+# After patching, the gateway-api deployment is restarted so the new pod mounts
+# the updated ConfigMap on startup (avoids the ~60s Kubernetes propagation delay).
 echo "[.] Phase 9b: Registering test flows with gateway..."
 time {
   kubectl create configmap asya-gateway-flows \
@@ -639,6 +641,11 @@ time {
     -n "$NAMESPACE" \
     --dry-run=client -o yaml | kubectl apply -f -
   echo "[+] Test flows registered"
+
+  echo "[.] Restarting asya-gateway-api to load updated flows on startup..."
+  kubectl rollout restart deployment/asya-gateway-api -n "$NAMESPACE"
+  kubectl rollout status deployment/asya-gateway-api -n "$NAMESPACE" --timeout=60s
+  echo "[+] asya-gateway-api restarted and ready"
 }
 echo
 

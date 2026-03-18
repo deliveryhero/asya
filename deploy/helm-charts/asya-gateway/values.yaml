@@ -126,6 +126,13 @@ migration:
 # Flow registry: flows are registered by patching the gateway-flows ConfigMap
 # after deployment (via CLI, kubectl, or RBAC-authorized actors).
 # The gateway hot-reloads flows.yaml when the ConfigMap changes.
+# To seed flows at deploy time, set `exposedFlows` to a list of flow definitions:
+#   exposedFlows:
+#   - name: my_flow
+#     entrypoint: my-actor
+#     ...
+# By default the ConfigMap starts empty; flows are added post-deploy via /mesh/expose.
+exposedFlows: []
 flowsExposerGroup: "asya-flow-exposers"
 
 # External database (if postgresql.enabled=false)
