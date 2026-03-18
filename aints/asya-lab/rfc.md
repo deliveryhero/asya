@@ -675,7 +675,7 @@ kustomize patches. Custom template variables must be added to the `templates:`
 section in config.yaml.
 
 #### 7.3.3 compiler/templates/configmap_routers.yaml
-
+make qm 
 ConfigMap template for baking compiled router code into a K8s ConfigMap.
 Router actors mount this ConfigMap for routing logic — no custom image needed.
 
