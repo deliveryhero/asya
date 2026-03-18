@@ -10,6 +10,7 @@ tags:
 
 
 
+
 The dlq-worker currently only supports SQS consumer + S3 storage. For native GKE deployments (Pub/Sub transport), it is disabled. Add:
 1. consumer_pubsub.go — Pub/Sub pull subscriber implementing the Consumer interface
 2. storage_gcs.go — GCS native storage using Workload Identity (no HMAC keys)
