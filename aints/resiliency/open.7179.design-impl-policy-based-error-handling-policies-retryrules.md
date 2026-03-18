@@ -25,7 +25,7 @@ spec:
     policies:
       default:                  # fallback when no retryRule matches
         maxAttempts: 3
-        backoff: exponential    # exponential | constant | linear
+        backoff: q    # exponential | constant | linear
         initialDelay: 1s
         maxInterval: 60s
         jitter: true
@@ -312,5 +312,41 @@ resiliency:
 
 ## Future extensions (out of scope)
 
-- Per-policy `actorTimeout` override
-- Namespace-scoped flavor ConfigMaps (`[jgwn]`)
+### Per-policy `actorTimeout`
+
+Currently `actorTimeout` is a single value at `resiliency` root — it caps every
+runtime invocation uniformly. A per-policy timeout would allow different error
+types to use different per-invocation time budgets on retry attempts.
+
+Use case: an LLM actor retrying on `openai.RateLimitError` (policy `retryPatiently`)
+may legitimately need a longer per-call timeout than the same actor retrying on
+`ConnectionError` (policy `retryFast`). The initial call uses `actorTimeout`;
+retry calls under a specific policy use the policy's `timeout` if set.
+
+Proposed addition to `PolicyConfig`:
+
+```yaml
+resiliency:
+  actorTimeout: 30s           # default for all invocations
+  policies:
+    retryPatiently:
+      maxAttempts: 3
+      backoff: exponential
+      initialDelay: 10s
+      timeout: 120s           # override for retry attempts under this policy
+    retryFast:
+      maxAttempts: 5
+      backoff: exponential
+      initialDelay: 500ms
+      # timeout omitted → inherits actorTimeout: 30s
+```
+
+Sidecar implementation: `effectiveTimeout` (already at `router.go:108`) would
+take `min(policy.Timeout, status.deadline_at - now)` when a policy timeout is set,
+falling back to `actorTimeout` otherwise. The per-policy timeout applies only to
+retry attempts, not the first attempt (which always uses `actorTimeout`).
+
+Not implemented in this ticket: requires passing the matched policy into
+`effectiveTimeout`, which currently runs before error handling.
+
+### Namespace-scoped flavor ConfigMaps (`[jgwn]`)
