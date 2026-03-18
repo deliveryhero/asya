@@ -1,4 +1,5 @@
-from asya_lab.flow import flow
+def flow(f):  # no-op: decorator used by compiler to mark flow entry points
+    return f
 
 
 @flow

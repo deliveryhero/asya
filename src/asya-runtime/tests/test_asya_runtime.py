@@ -1566,6 +1566,48 @@ class TestLoadFunction:
                 asya_runtime._load_function()
             assert excinfo.value.code == 1
 
+    def test_load_function_transitive_dep_missing(self, mock_env, tmp_path, capsys):
+        """Transitive dependency missing → exit immediately with clear message naming the dep.
+
+        This guards against the silent-fallback bug where a broken import causes the
+        runtime to try a shorter module path, misinterpret attr_parts as Class.method,
+        and emit a confusing AttributeError instead of a clear dependency error.
+        """
+        # Module exists but imports a missing dependency
+        module_file = tmp_path / "handler_with_missing_dep.py"
+        module_file.write_text("import _nonexistent_dep_xyz_abc\n\ndef my_handler(p): return p\n")
+        sys.path.insert(0, str(tmp_path))
+        try:
+            with mock_env(ASYA_HANDLER="handler_with_missing_dep.my_handler"):
+                with pytest.raises(SystemExit) as excinfo:
+                    asya_runtime._load_function()
+                assert excinfo.value.code == 1
+                err = capsys.readouterr().err
+                assert "_nonexistent_dep_xyz_abc" in err, f"Missing dep name not in error: {err!r}"
+                assert "not installed" in err, f"'not installed' not in error: {err!r}"
+        finally:
+            sys.path.pop(0)
+
+    def test_load_function_transitive_dep_does_not_fall_back_to_class(self, mock_env, tmp_path):
+        """Transitive dep failure must NOT silently fall back to class-handler path.
+
+        If the module path a.b.c fails because 'c' has a missing dep, the runtime
+        must exit rather than trying a.b with attr_parts=['c','handler'] and then
+        failing with a cryptic 'a.b has no attribute c' error.
+        """
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "broken_mod.py").write_text("import _absent_lib_xyz\n\ndef handler(p): return p\n")
+        sys.path.insert(0, str(tmp_path))
+        try:
+            with mock_env(ASYA_HANDLER="mypkg.broken_mod.handler"):
+                with pytest.raises(SystemExit) as excinfo:
+                    asya_runtime._load_function()
+                assert excinfo.value.code == 1
+        finally:
+            sys.path.pop(0)
+
     def test_load_function_too_many_attr_parts(self, mock_env, tmp_path):
         """Test that ASYA_HANDLER with too many attribute parts (a.b.C.D.method) causes exit."""
         test_module = tmp_path / "deep_module.py"

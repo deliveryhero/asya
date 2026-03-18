@@ -258,6 +258,7 @@ releases:
         value: asya-db-password
     values:
       - {{- .Values.gateway | toYaml | nindent 8 }}
+      - exposedFlows: {{- readFile "flows.yaml" | fromYaml | get "flows" | toYaml | nindent 10 }}
     labels:
       layer: infra
 
