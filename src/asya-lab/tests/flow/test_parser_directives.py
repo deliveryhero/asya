@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import ActorCall, Mutation
+from asya_lab.flow.ir import ActorCall, InlineCode, Mutation
 from asya_lab.flow.parser import FlowParser
 
 
@@ -13,6 +13,7 @@ class TestInlineCommentDirectives:
 
     def test_treat_as_actor_keeps_actor_call(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)  # asya: actor
                 return p
@@ -24,27 +25,30 @@ class TestInlineCommentDirectives:
 
     def test_treat_as_inline_converts_call_to_mutation(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = uuid_inject(p)  # asya: inline
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
         assert len(ops) == 2
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "uuid_inject" in ops[0].code
 
     def test_treat_as_inline_with_await(self):
         source = textwrap.dedent("""
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = await enrich(p)  # asya: inline
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "enrich" in ops[0].code
 
     def test_comment_without_asya_prefix_is_ignored(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)  # treat-as-inline (no asya: prefix)
                 return p
@@ -54,6 +58,7 @@ class TestInlineCommentDirectives:
 
     def test_unknown_treat_as_value_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)  # asya: decompose
                 return p
@@ -63,6 +68,7 @@ class TestInlineCommentDirectives:
 
     def test_flow_directive_raises_not_implemented(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = sub_flow(p)  # asya: flow
                 return p
@@ -72,6 +78,7 @@ class TestInlineCommentDirectives:
 
     def test_unfold_directive_raises_not_implemented(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = helper(p)  # asya: unfold
                 return p
@@ -85,6 +92,7 @@ class TestCallSiteDecoration:
 
     def test_actor_wrapper_produces_actor_call(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor(handler)(p)
                 return p
@@ -95,16 +103,18 @@ class TestCallSiteDecoration:
 
     def test_inline_wrapper_produces_mutation(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = inline(uuid_inject)(p)
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "uuid_inject" in ops[0].code
 
     def test_actor_wrapper_with_module_attribute(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor(handlers.process)(p)
                 return p
@@ -115,6 +125,7 @@ class TestCallSiteDecoration:
 
     def test_await_actor_wrapper(self):
         source = textwrap.dedent("""
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = await actor(handler)(p)
                 return p
@@ -125,6 +136,7 @@ class TestCallSiteDecoration:
 
     def test_unknown_wrapper_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = unknown_wrapper(handler)(p)
                 return p
@@ -134,6 +146,7 @@ class TestCallSiteDecoration:
 
     def test_wrapper_with_non_name_inner_arg_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor("not_a_name")(p)
                 return p
@@ -143,16 +156,18 @@ class TestCallSiteDecoration:
 
     def test_inline_wrapper_with_module_attribute(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = inline(utils.inject)(p)
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "utils.inject" in ops[0].code
 
     def test_wrapper_with_multiple_inner_args_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor(handler_a, handler_b)(p)
                 return p
@@ -163,27 +178,30 @@ class TestCallSiteDecoration:
     def test_inline_directive_overrides_actor_wrapper(self):
         # Inline comment has higher priority than call-site wrapper.
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor(stamp_timestamp)(p)  # asya: inline
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "stamp_timestamp" in ops[0].code
 
     def test_await_preserved_for_inline_call_site_wrapper(self):
         source = textwrap.dedent("""
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = await inline(enrich)(p)
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "await" in ops[0].code
         assert "enrich" in ops[0].code
 
     def test_custom_wrapper_names(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = asya_actor(handler)(p)
                 return p
@@ -195,6 +213,7 @@ class TestCallSiteDecoration:
 
     def test_custom_wrapper_rejects_default_names(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = actor(handler)(p)
                 return p
@@ -209,6 +228,7 @@ class TestDefinitionSiteDecorators:
 
     def test_actor_decorator_produces_actor_call(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -223,6 +243,7 @@ class TestDefinitionSiteDecorators:
 
     def test_inline_decorator_produces_mutation(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = uuid_inject(p)
                 return p
@@ -232,11 +253,12 @@ class TestDefinitionSiteDecorators:
                 return p
         """)
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)
         assert "uuid_inject" in ops[0].code
 
     def test_unknown_decorator_is_ignored(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -250,6 +272,7 @@ class TestDefinitionSiteDecorators:
 
     def test_multiple_decorators_first_known_wins(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -264,6 +287,7 @@ class TestDefinitionSiteDecorators:
 
     def test_inline_comment_overrides_actor_decorator(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)  # asya: inline
                 return p
@@ -274,4 +298,4 @@ class TestDefinitionSiteDecorators:
         """)
         # Inline comment (highest priority) wins over @actor
         _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], Mutation)
+        assert isinstance(ops[0], InlineCode)

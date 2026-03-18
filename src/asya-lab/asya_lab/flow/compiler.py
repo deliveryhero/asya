@@ -38,9 +38,10 @@ def _calculate_module_path(filename: str) -> str:
 
 
 class FlowCompiler:
-    def __init__(self, verbose: bool = False, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS):
+    def __init__(self, verbose: bool = False, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS, rule_engine: object | None = None):
         self.verbose = verbose
         self.max_iterations = max_iterations
+        self._rule_engine = rule_engine
         self.warnings: list[str] = []
         self.flow_name: str | None = None
         self.routers: list[Router] = []
@@ -155,7 +156,7 @@ class FlowCompiler:
 
     def _parse(self, source_code: str, filename: str):
         module_path = _calculate_module_path(filename)
-        parser = FlowParser(source_code, filename, module_path)
+        parser = FlowParser(source_code, filename, module_path, rule_engine=self._rule_engine)
         flow_name, operations = parser.parse()
         # Store metadata for later use by DotGenerator
         self.class_methods = parser.get_class_methods()

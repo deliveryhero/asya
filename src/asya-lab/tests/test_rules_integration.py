@@ -13,6 +13,7 @@ from asya_lab.flow.parser import FlowParser
 class TestCompileWithRules:
     def test_inline_comment_excludes_from_actors(self) -> None:
         source = """\
+@flow
 def my_flow(p: dict) -> dict:
     p = handler_a(p)
     p = uuid4(p)  # asya: inline
@@ -27,6 +28,7 @@ def my_flow(p: dict) -> dict:
 
     def test_default_rules_classify_external_as_inline(self) -> None:
         source = """\
+@flow
 def my_flow(p: dict) -> dict:
     p = handler_a(p)
     return p
@@ -38,6 +40,7 @@ def my_flow(p: dict) -> dict:
 
     def test_compile_without_rules_backwards_compatible(self) -> None:
         source = """\
+@flow
 def my_flow(p: dict) -> dict:
     p = handler_a(p)
     p = handler_b(p)
@@ -123,6 +126,7 @@ class TestLoadRulesFromConfig:
         engine = project.load_rules()
 
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = my_lib.configure(p, timeout=30)
                 p = handler(p)

@@ -15,6 +15,7 @@ from asya_lab.flow.ir import (
     ExceptHandler,
     FanOutCall,
     IROperation,
+    InlineCode,
     Mutation,
     Raise,
     Return,
@@ -65,6 +66,7 @@ class FlowParser:
         module_path: str = "",
         rules: CompilerRules | None = None,
         known_wrappers: frozenset[str] | None = None,
+        rule_engine: object | None = None,
     ):
         self.source_code = source_code
         self.filename = filename
@@ -84,6 +86,7 @@ class FlowParser:
         self._source_lines: list[str] = source_code.splitlines()
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
         self._decorator_index: dict[str, str] = {}
+        self._rule_engine = rule_engine
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -402,7 +405,7 @@ class FlowParser:
                     )
                 if directive.treat_as == "inline":
                     code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
-                    return Mutation(lineno=stmt.lineno, code=code)
+                    return InlineCode(lineno=stmt.lineno, code=code)
                 elif directive.treat_as == "actor":
                     return ActorCall(lineno=stmt.lineno, name=inner_name)
                 elif directive.treat_as in ("flow", "unfold", "config"):
@@ -412,7 +415,7 @@ class FlowParser:
 
             if wrapper_name == "inline":
                 code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
-                return Mutation(lineno=stmt.lineno, code=code)
+                return InlineCode(lineno=stmt.lineno, code=code)
 
             # wrapper_name == "actor"
             return ActorCall(lineno=stmt.lineno, name=inner_name)
@@ -451,18 +454,34 @@ class FlowParser:
                     f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
                 )
             if directive.treat_as == "inline":
-                code = ast.unparse(stmt)
-                return Mutation(lineno=stmt.lineno, code=code)
+                return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
             elif directive.treat_as == "actor":
-                pass  # fall through to return ActorCall with original name
+                return ActorCall(lineno=stmt.lineno, name=actor_name)
             elif directive.treat_as in ("flow", "unfold", "config"):
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
                 )
         # Definition-site decorator (lower priority than inline comment)
         elif actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
-            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
-            # "actor" -> fall through to return ActorCall
+            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        # Rule engine classification (lower priority than directives and decorators)
+        if self._rule_engine is not None:
+            qualified_name = self.import_map.get(actor_name, actor_name)
+            treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
+            if treat_as is not None:
+                from asya_lab.compiler.rules import TreatAs
+                if treat_as == TreatAs.INLINE:
+                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+                elif treat_as == TreatAs.CONFIG:
+                    rule = self._rule_engine.get_rule(qualified_name, module_path=self.module_path or None)
+                    extracted_values: dict[str, object] = {}
+                    if rule is not None and rule.where is not None:
+                        from asya_lab.compiler.extractor import ValueExtractor
+                        extracted_values = ValueExtractor(imports=self.import_map).extract(call, rule)
+                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt), extracted_values=extracted_values)
+                elif treat_as == TreatAs.UNFOLD:
+                    return ActorCall(lineno=stmt.lineno, name=actor_name, treat_as="unfold")
 
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 

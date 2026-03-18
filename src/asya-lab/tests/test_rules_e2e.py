@@ -159,6 +159,7 @@ class TestInlineClassification:
         """A dotted call like ``utils.clean(p)`` matches '*' -> inline."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = utils.clean(p)
@@ -175,6 +176,7 @@ class TestInlineClassification:
         """Multiple consecutive inline calls merge into one router's mutations."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = logging.info(p)
@@ -197,6 +199,7 @@ class TestInlineCommentOverride:
         """A bare symbol (same-package -> unfold) overridden to inline via comment."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = local_helper(p)  # asya: inline
@@ -212,6 +215,7 @@ class TestInlineCommentOverride:
         """A dotted call (default '*' -> inline) overridden to actor via comment."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)  # asya: actor
@@ -236,6 +240,7 @@ class TestUserRuleOverridesDefault:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = tenacity.retry(p)
                 p = other.lib(p)
@@ -254,6 +259,7 @@ class TestUserRuleOverridesDefault:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = mylib.process(p)
                 p = mylib.validate(p)
@@ -274,6 +280,7 @@ class TestSamePackageClassification:
         """Unfold symbols are currently emitted as actors (expansion not yet implemented)."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = local_handler(p)
                 p = another_handler(p)
@@ -292,6 +299,7 @@ class TestConditionalWithMixedClassifications:
         """Inline calls inside branches become mutations in the branch router."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 if p["type"] == "fast":
                     p = handler_fast(p)
@@ -308,6 +316,7 @@ class TestConditionalWithMixedClassifications:
         """A dotted call inside a branch is inlined within the branch router."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 if p["ready"]:
                     p = metrics.track(p)
@@ -336,6 +345,7 @@ class TestConfigWithExtractionRules:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = asyncio.timeout(p)
                 p = handler(p)
@@ -410,6 +420,7 @@ class TestTenacityRules:
         """tenacity.retry is inlined (config) in the generated router code."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = tenacity.retry(p)
                 p = handler(p)
@@ -598,6 +609,7 @@ class TestFullPipelineWithRichRules:
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = tenacity.retry(p)
                 p = logging.setup(p)
@@ -618,6 +630,7 @@ class TestFullPipelineWithRichRules:
         """Inline calls at the start of a flow are merged into the start router."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = logging.init(p)
                 p = handler_a(p)
@@ -633,6 +646,7 @@ class TestFullPipelineWithRichRules:
         """Without config.compiler.rules.yaml, default rules still apply."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)
@@ -649,6 +663,7 @@ class TestFullPipelineWithRichRules:
         """A flow with one actor generates a valid single-actor FLOW_METADATA."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -757,6 +772,7 @@ class TestBackwardsCompatibility:
     def test_no_engine_all_calls_are_actors(self) -> None:
         """Without rules, every call -- bare or dotted -- is an actor."""
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = external.lib(p)
@@ -773,6 +789,7 @@ class TestBackwardsCompatibility:
     def test_no_engine_with_mutations(self) -> None:
         """Payload mutations still work without rules."""
         source = dedent("""\
+            @flow
             async def my_flow(p: dict) -> dict:
                 p["status"] = "started"
                 p = handler(p)
