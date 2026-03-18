@@ -401,14 +401,14 @@ func TestRouter_HandleErrorResponse_WithoutOnErrorHeader(t *testing.T) {
 		t.Fatalf("handleErrorResponse returned error: %v", err)
 	}
 
-	// Should route to x-sump (backward compatible)
+	// Should route to x-sink (full termination path)
 	if len(mt.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+	if mt.sentMessages[0].queue != "asya-default-x-sink" {
 		t.Errorf("Message sent to queue %q, expected %q",
-			mt.sentMessages[0].queue, "asya-default-x-sump")
+			mt.sentMessages[0].queue, "asya-default-x-sink")
 	}
 }
 
@@ -462,14 +462,14 @@ func TestRouter_HandleErrorResponse_EmptyOnErrorHeader(t *testing.T) {
 		t.Fatalf("handleErrorResponse returned error: %v", err)
 	}
 
-	// Empty _on_error should fall through to x-sump
+	// Empty _on_error should fall through to x-sink (full termination path)
 	if len(mt.sentMessages) != 1 {
 		t.Fatalf("Expected 1 message sent, got %d", len(mt.sentMessages))
 	}
 
-	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+	if mt.sentMessages[0].queue != "asya-default-x-sink" {
 		t.Errorf("Message sent to queue %q, expected %q",
-			mt.sentMessages[0].queue, "asya-default-x-sump")
+			mt.sentMessages[0].queue, "asya-default-x-sink")
 	}
 }
 

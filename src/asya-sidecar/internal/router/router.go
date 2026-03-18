@@ -294,7 +294,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 
 	// Check MRO-based non-retryable error classification
 	if r.isNonRetryableError(response.Details.Type, response.Details.MRO) {
-		slog.Info("Non-retryable error detected, routing to x-sump",
+		slog.Info("Non-retryable error detected, routing to x-sink",
 			"id", msg.ID, "type", response.Details.Type,
 			"attempt", msg.Status.Attempt, "max_attempts", msg.Status.MaxAttempts)
 
@@ -313,13 +313,13 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 		reason := envelopes.ReasonMaxRetriesExhausted
 		metricReason := "max_retries_exhausted"
 		if durationExhausted && !attemptsExhausted {
-			slog.Info("Max retry duration exhausted, routing to x-sump",
+			slog.Info("Max retry duration exhausted, routing to x-sink",
 				"id", msg.ID, "attempt", msg.Status.Attempt,
 				"max_duration", r.cfg.Resiliency.Retry.MaxDuration)
 			reason = envelopes.ReasonMaxDurationExhausted
 			metricReason = "max_duration_exhausted"
 		} else {
-			slog.Info("Max retry attempts exhausted, routing to x-sump",
+			slog.Info("Max retry attempts exhausted, routing to x-sink",
 				"id", msg.ID, "attempt", msg.Status.Attempt,
 				"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
 		}
@@ -342,7 +342,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 		"error_type", response.Details.Type)
 
 	if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
-		slog.Error("Failed to send retry message, routing to x-sump",
+		slog.Error("Failed to send retry message, routing to x-sink",
 			"id", msg.ID, "error", err)
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
@@ -461,8 +461,8 @@ func (r *Router) retryMessage(ctx context.Context, msg *envelopes.Envelope, deta
 	return r.transport.SendWithDelay(ctx, queueName, body, delay)
 }
 
-// sendRetryFailure sends a failed envelope to the x-sump queue with proper
-// retry status information (attempt count, reason, error details).
+// sendRetryFailure sends a failed envelope to the x-sink queue so that
+// post-hooks and checkpointing run before x-sump receives it as the terminal layer.
 func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, reason string) error {
 	now := time.Now().UTC().Format(time.RFC3339)
 
@@ -527,14 +527,14 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, 
 	}
 
 	sendStart := time.Now()
-	sumpQueueName := r.resolveQueueName(r.sumpQueue)
-	err = r.transport.Send(ctx, sumpQueueName, body)
+	sinkQueueName := r.resolveQueueName(r.sinkQueue)
+	err = r.transport.Send(ctx, sinkQueueName, body)
 	sendDuration := time.Since(sendStart)
 
 	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(r.sumpQueue, r.cfg.TransportType, sendDuration)
+		r.metrics.RecordQueueSendDuration(r.sinkQueue, r.cfg.TransportType, sendDuration)
 		if err == nil {
-			r.metrics.RecordMessageSent(r.sumpQueue, "sump")
+			r.metrics.RecordMessageSent(r.sinkQueue, "sink")
 		}
 	}
 
