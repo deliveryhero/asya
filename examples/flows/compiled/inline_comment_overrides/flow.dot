@@ -1,0 +1,20 @@
+digraph flow {
+  rankdir=TB;
+  graph [fontname="Courier", fontsize=10];
+  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
+  edge [fontname="Courier", fontsize=10];
+
+  start_order_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_pipeline(p)</i></td></tr><tr><td bgcolor="white" align="left">p = normalize_keys(p)</td></tr></table>>];
+  router_order_pipeline_line_33_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_pipeline_line_33_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'rejected'</td></tr></table>>];
+  router_order_pipeline_line_32_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_pipeline_line_32_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('fraud_score', 0) &gt; 0.8</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
+  end_order_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_pipeline(p)</i></td></tr></table>>];
+  charge_payment [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = charge_payment(p)</i></td></tr></table>>];
+  validate_order [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = validate_order(p)</i></td></tr></table>>];
+
+  charge_payment -> end_order_pipeline;
+  router_order_pipeline_line_32_if -> charge_payment [label="F", color=indianred4];
+  router_order_pipeline_line_32_if -> router_order_pipeline_line_33_seq [label="T", color=darkseagreen4];
+  router_order_pipeline_line_33_seq -> end_order_pipeline;
+  start_order_pipeline -> validate_order;
+  validate_order -> router_order_pipeline_line_32_if;
+}
