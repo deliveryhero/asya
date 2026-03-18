@@ -114,7 +114,7 @@ class GatewayTestHelper:
             logger.debug(f"Extracted task_id from JSON: {task_id}")
         except (json.JSONDecodeError, ValueError):
             logger.warning(f"Could not parse response as JSON, falling back to regex: {text_content[:100]}")
-            if "Task created successfully with ID:" in text_content:
+            if "Envelope created successfully with ID:" in text_content:
                 match = re.search(r"ID: ([a-f0-9-]+)", text_content)
                 if match:
                     task_id = match.group(1)
