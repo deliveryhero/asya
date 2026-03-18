@@ -46,8 +46,16 @@ def _compile_flow_file(
     source_path = Path(target).resolve()
     source_code = source_path.read_text()
 
+    # Load rules from config (if .asya/ exists)
+    rule_engine = None
+    try:
+        project = AsyaProject.from_dir(source_path.parent)
+        rule_engine = project.load_rules()
+    except FileNotFoundError:
+        pass
+
     # Compile in-memory to learn flow_function before resolving output paths
-    compiler = FlowCompiler(verbose=verbose)
+    compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine)
     compiled_code = compiler.compile(source_code, str(source_path))
     flow_function = compiler.flow_name
 

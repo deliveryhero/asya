@@ -6,6 +6,13 @@ from dataclasses import dataclass, field
 
 
 @dataclass
+class AsyaDirective:
+    """Inline comment override for compiler rules."""
+
+    treat_as: str  # "actor" | "inline"
+
+
+@dataclass
 class IROperation:
     lineno: int
 
@@ -13,6 +20,16 @@ class IROperation:
 @dataclass
 class ActorCall(IROperation):
     name: str
+    treat_as: str = "actor"  # "actor", "unfold", "flow"
+    extracted_values: dict[str, object] = field(default_factory=dict)
+
+
+@dataclass
+class InlineCode(IROperation):
+    """Code to run inline in the router (not a separate actor)."""
+
+    code: str
+    extracted_values: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass

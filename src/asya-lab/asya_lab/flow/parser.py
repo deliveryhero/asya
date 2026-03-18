@@ -3,15 +3,20 @@
 from __future__ import annotations
 
 import ast
+import re
+from typing import TYPE_CHECKING
 
+from asya_lab.compiler.rules import TreatAs
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.ir import (
     ActorCall,
+    AsyaDirective,
     Break,
     Condition,
     Continue,
     ExceptHandler,
     FanOutCall,
+    InlineCode,
     IROperation,
     Mutation,
     Raise,
@@ -21,6 +26,17 @@ from asya_lab.flow.ir import (
     WithBlock,
 )
 from asya_lab.flow.rules import CompilerRule, CompilerRules
+
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
+
+
+_DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)")
+
+_DEFAULT_WRAPPERS = frozenset({"actor", "flow", "inline", "unfold"})
+
+_VALID_DIRECTIVES = frozenset({"actor", "flow", "inline", "unfold", "config"})
 
 
 # Parameter names accepted in flow function signatures.
@@ -55,6 +71,8 @@ class FlowParser:
         filename: str,
         module_path: str = "",
         rules: CompilerRules | None = None,
+        known_wrappers: frozenset[str] | None = None,
+        rule_engine: RuleEngine | None = None,
     ):
         self.source_code = source_code
         self.filename = filename
@@ -70,6 +88,11 @@ class FlowParser:
         self._except_depth: int = 0  # Track nesting depth for raise validation
         self.extracted_configs: list[dict] = []  # Config extractions from treat-as:config rules
         self.module_constants: list[str] = []  # Module-level constant assignments
+        self._known_wrappers: frozenset[str] = known_wrappers or _DEFAULT_WRAPPERS
+        self._source_lines: list[str] = source_code.splitlines()
+        self._directives: dict[int, AsyaDirective] = self._extract_directives()
+        self._decorator_index: dict[str, str] = {}
+        self._rule_engine: RuleEngine | None = rule_engine
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -79,6 +102,7 @@ class FlowParser:
 
         self._collect_imports(tree)
         self._collect_module_constants(tree)
+        self._decorator_index = self._build_decorator_index(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
             raise FlowCompileError(
@@ -102,6 +126,37 @@ class FlowParser:
 
         operations = self._parse_body(flow_func.body)
         return self.flow_name, operations
+
+    def _extract_directives(self) -> dict[int, AsyaDirective]:
+        directives: dict[int, AsyaDirective] = {}
+        for i, line in enumerate(self._source_lines, 1):
+            m = _DIRECTIVE_PATTERN.search(line)
+            if m:
+                directives[i] = AsyaDirective(treat_as=m.group(1))
+        return directives
+
+    def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
+        """Map function name to treat-as value for same-file definitions.
+
+        Scans module-level function definitions for @actor or @inline decorators.
+        Returns e.g. {"handler": "actor", "uuid_inject": "inline"}.
+        Only the first matching known decorator per function is recorded.
+        Unknown decorators are skipped silently.
+        """
+        index: dict[str, str] = {}
+        for node in tree.body:
+            if not isinstance(node, _FUNC_DEF_TYPES):
+                continue
+            for dec in node.decorator_list:
+                dec_name: str | None = None
+                if isinstance(dec, ast.Name):
+                    dec_name = dec.id
+                elif isinstance(dec, ast.Attribute):
+                    dec_name = ast.unparse(dec)
+                if dec_name in self._known_wrappers:
+                    index[node.name] = dec_name
+                    break  # first matching decorator wins
+        return index
 
     def get_class_methods(self) -> set[str]:
         """Return set of handler names that are class methods."""
@@ -305,13 +360,71 @@ class FlowParser:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall:
+    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | InlineCode | Mutation:
         call = stmt.value
-        # Unwrap await: `p = await handler(p)` → extract the Call
-        if isinstance(call, ast.Await):
+        # Unwrap await: `p = await handler(p)` → extract the Call.
+        # Track is_await before unwrapping so we can preserve it in generated code.
+        is_await = isinstance(call, ast.Await)
+        if isinstance(call, ast.Await):  # isinstance guard lets mypy narrow call.value
             call = call.value
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
+
+        # Handle call-site decoration: actor(handler)(p) or inline(fn)(p)
+        if isinstance(call.func, ast.Call):
+            outer = call.func
+            if isinstance(outer.func, ast.Name):
+                wrapper_name = outer.func.id
+            elif isinstance(outer.func, ast.Attribute):
+                wrapper_name = ast.unparse(outer.func)
+            else:
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call-site decorator expression")
+
+            if wrapper_name not in self._known_wrappers:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Unknown call-site decorator '{wrapper_name}'. "
+                    f"Supported: {', '.join(sorted(self._known_wrappers))}"
+                )
+
+            if len(outer.args) != 1:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Call-site decorator must take exactly one argument"
+                )
+            inner = outer.args[0]
+            if isinstance(inner, ast.Name):
+                inner_name = inner.id
+            elif isinstance(inner, ast.Attribute):
+                inner_name = ast.unparse(inner)
+            else:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Call-site decorator argument must be a function name, "
+                    f"got {type(inner).__name__}"
+                )
+
+            # Inline comment directive takes priority over the call-site wrapper
+            directive = self._directives.get(stmt.lineno)
+            if directive is not None:
+                if directive.treat_as not in _VALID_DIRECTIVES:
+                    raise FlowCompileError(
+                        f"{self.filename}:{stmt.lineno}: Unknown directive '{directive.treat_as}'. "
+                        f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
+                    )
+                if directive.treat_as == "inline":
+                    code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
+                    return InlineCode(lineno=stmt.lineno, code=code)
+                elif directive.treat_as == "actor":
+                    return ActorCall(lineno=stmt.lineno, name=inner_name)
+                elif directive.treat_as in ("flow", "unfold", "config"):
+                    raise FlowCompileError(
+                        f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
+                    )
+
+            if wrapper_name == "inline":
+                code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
+                return InlineCode(lineno=stmt.lineno, code=code)
+
+            # wrapper_name == "actor"
+            return ActorCall(lineno=stmt.lineno, name=inner_name)
 
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
@@ -337,6 +450,44 @@ class FlowParser:
 
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
+
+        # Apply inline comment directive override if present (highest priority)
+        directive = self._directives.get(stmt.lineno)
+        if directive is not None:
+            if directive.treat_as not in _VALID_DIRECTIVES:
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Unknown directive '{directive.treat_as}'. "
+                    f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
+                )
+            if directive.treat_as == "inline":
+                return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+            elif directive.treat_as == "actor":
+                return ActorCall(lineno=stmt.lineno, name=actor_name)
+            elif directive.treat_as in ("flow", "unfold", "config"):
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
+                )
+        # Definition-site decorator (lower priority than inline comment)
+        elif actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
+            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        # Rule engine classification (lower priority than directives and decorators)
+        if self._rule_engine is not None:
+            qualified_name = self.import_map.get(actor_name, actor_name)
+            treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
+            if treat_as is not None:
+                if treat_as == TreatAs.INLINE:
+                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
+                elif treat_as == TreatAs.CONFIG:
+                    from asya_lab.compiler.extractor import ValueExtractor
+
+                    rule = self._rule_engine.get_rule(qualified_name, module_path=self.module_path or None)
+                    extracted_values: dict[str, object] = {}
+                    if rule is not None and rule.where is not None:
+                        extracted_values = ValueExtractor(imports=self.import_map).extract(call, rule)
+                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt), extracted_values=extracted_values)
+                elif treat_as == TreatAs.UNFOLD:
+                    return ActorCall(lineno=stmt.lineno, name=actor_name, treat_as="unfold")
 
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 
