@@ -46,7 +46,7 @@ resiliency:
         timeout: 60s                    # how long to stay open before half-open
         interval: 30s                   # metrics reset window
         maxRequests: 1                  # concurrent requests allowed in half-open
-  retryRules:
+  rules:
     - errors: ["openai.RateLimitError"]
       policy: retryPatiently
 ```

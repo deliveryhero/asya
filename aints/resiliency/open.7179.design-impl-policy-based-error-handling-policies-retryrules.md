@@ -1,5 +1,5 @@
 ---
-title: "design+impl: policy-based error handling (policies + retryRules replaces nonRetryableErrors)"
+title: "design+impl: policy-based error handling (policies + rules replaces nonRetryableErrors)"
 priority: 1 # high
 ---
 
@@ -48,7 +48,7 @@ spec:
       alertDevops:
         thenRoute: ["alert-devops"]   # maxAttempts: 1 implicit
 
-    retryRules:
+    rules:
       - errors: ["ConnectionError", "NetworkError"]
         policy: retryFast
       - errors: ["openai.RateLimitError", "anthropic.OverloadedError"]
@@ -77,7 +77,7 @@ implicit) is a pure routing policy — no retry, immediately route on first fail
 
 ```
 error occurs at actor X
-  └─ retryRules: first matching rule by MRO order?
+  └─ rules: first matching rule by MRO order?
        ├─ match found → apply matched policy
        └─ no match → apply policies.default (or built-in default if absent)
 
@@ -89,10 +89,10 @@ apply policy:
                   └─ no  → sendRetryFailure → x-sink (phase=failed) → x-sump
 ```
 
-Note: `retryRules` first-match semantics. Rule order in spec = evaluation order.
+Note: `rules` first-match semantics. Rule order in spec = evaluation order.
 When multiple flavors contribute rules (list append), flavor order determines priority.
 
-### Error type matching in retryRules
+### Error type matching in rules
 
 Keys in `errors: [...]` support two forms:
 - **Short name** (no `.`): matches any error where `type.__name__ == key`
@@ -103,15 +103,15 @@ Keys in `errors: [...]` support two forms:
 MRO traversal: if the exact class doesn't match, ancestors are checked in MRO order.
 So `"Exception"` would match all Python exceptions as a catch-all.
 
-### retryRules evaluation order
+### rules evaluation order
 
-**First matching rule wins.** The `retryRules` list is evaluated top-to-bottom;
+**First matching rule wins.** The `rules` list is evaluated top-to-bottom;
 the first rule whose `errors` list matches the error (via exact FQN or MRO
 traversal) is applied. Rules below the first match are never evaluated for that error.
 
 Rule priority in the combined list (highest → lowest):
 1. **Compiler-generated rules** (e.g., from `try/except` flow compilation) — prepended before actor rules
-2. **Actor inline `retryRules`**
+2. **Actor inline `rules`**
 3. **Flavor-contributed rules** — appended in `spec.flavors` order
 
 `policies.default` is the fallback when no rule in the list matches at all.
@@ -125,7 +125,7 @@ caught by any `try/except` block.
 
 `nonRetryableErrors: [X, Y]` — **removed with no migration path** (internal config).
 Equivalent: add `policies.nonRetryable: { thenRoute: ["x-sink"] }` and
-`retryRules: [{ errors: [X, Y], policy: nonRetryable }]`.
+`rules: [{ errors: [X, Y], policy: nonRetryable }]`.
 
 `retry:` shorthand — **removed with no migration path**.
 Equivalent: define `policies.default` with the same fields.
@@ -135,8 +135,8 @@ Equivalent: define `policies.default` with the same fields.
 `resiliency` is a map field in the flavor merge system — merges recursively.
 `policies` map: each named policy is a distinct map key — two flavors defining
 the same policy name conflict (error with flavor names + key path).
-`retryRules` list: appends across flavors in `spec.flavors` order. Actor inline
-rules prepend (actor-wins). See §retryRules evaluation order for full priority
+`rules` list: appends across flavors in `spec.flavors` order. Actor inline
+rules prepend (actor-wins). See §rules evaluation order for full priority
 rules and matching semantics.
 
 Reusable platform flavor example:
@@ -156,7 +156,7 @@ data:
         initialDelay: 500ms
       alertDevops:
         thenRoute: ["alert-devops"]
-    retryRules:
+    rules:
       - errors: ["openai.RateLimitError"]
         policy: retryFast
       - errors: ["openai.AuthenticationError"]
@@ -186,7 +186,7 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
 - Remove `NonRetryableErrors []string`
 - Remove `Retry RetryConfig` (top-level)
 - Add `Policies map[string]PolicyConfig`
-- Add `RetryRules []RetryRule`
+- Add `rules []RetryRule`
 - Add `PolicyConfig` struct: `MaxAttempts`, `Backoff`, `InitialDelay`,
   `MaxInterval`, `Jitter`, `ThenRoute []string`
 - Add `RetryRule` struct: `Errors []string`, `Policy string`
@@ -209,13 +209,13 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
 `deploy/helm-charts/asya-crossplane/`:
 - Remove `nonRetryableErrors` from XRD spec
 - Remove `retry` top-level field
-- Add `resiliency.policies` (map) and `resiliency.retryRules` (list) to XRD (with basic syntax validators)
+- Add `resiliency.policies` (map) and `resiliency.rules` (list) to XRD (with basic syntax validators)
 - Update composition to render `ASYA_RESILIENCY_*` env vars from new schema
-- Update `docs/internal/actor-flavors.md` with retryRules ordering note
+- Update `docs/internal/actor-flavors.md` with rules ordering note
 
 ### 5. actor-flavors.md update
 
-Add note: `retryRules` list order across flavors determines rule priority (first match
+Add note: `rules` list order across flavors determines rule priority (first match
 wins). Flavor order in `spec.flavors` = rule evaluation order.
 
 ## Acceptance criteria
@@ -226,12 +226,12 @@ wins). Flavor order in `spec.flavors` = rule evaluation order.
 - [ ] `nonRetryableErrors` and top-level `retry:` removed from XRD and sidecar
 - [ ] `policies.default` is the fallback when no rule matches
 - [ ] `thenRoute` sends to x-sink path (not directly to x-sump)
-- [ ] Flavor composition: `policies` map merge, `retryRules` list append work correctly
+- [ ] Flavor composition: `policies` map merge, `rules` list append work correctly
 - [ ] Unit tests: `matchPolicy` covers FQN, short-name, MRO traversal, no-match→default
 - [ ] Unit tests: `applyPolicy` covers retry, exhausted+thenRoute, exhausted+no-thenRoute
 - [ ] Integration test: end-to-end error routing with a custom thenRoute actor
 - [ ] `docs/internal/crew-termination.md` updated to reflect new schema
-- [ ] `docs/internal/actor-flavors.md` updated with retryRules ordering note
+- [ ] `docs/internal/actor-flavors.md` updated with rules ordering note
 
 ## Dependencies
 
@@ -254,7 +254,7 @@ resiliency:
       maxAttempts: 3
       backoff: exponential
       initialDelay: 1s
-  retryRules:
+  rules:
     - errors: ["ConnectionError", "TimeoutError"]
       policy: standard          # only these two get retry
     # everything else hits default → x-sink immediately
@@ -275,8 +275,8 @@ def call_api(payload):
     ...
 ```
 
-The `policies` + `retryRules` model is the mesh-native equivalent: the retry
-predicate (`retry_if_exception_type`) becomes `retryRules.errors`, and the retry
+The `policies` + `rules` model is the mesh-native equivalent: the retry
+predicate (`retry_if_exception_type`) becomes `rules.errors`, and the retry
 strategy (`stop_after_attempt` + `wait_exponential`) becomes the policy fields.
 Key difference: tenacity operates inside a single process; Asya's retry sends the
 envelope back through the queue (the sidecar re-delivers to the runtime), so retry
@@ -294,7 +294,7 @@ resiliency:
       backoff: exponential
     noRetry:
       thenRoute: ["x-sink"]
-  retryRules:
+  rules:
     - errors: ["openai.AuthenticationError", "openai.InvalidRequestError"]
       policy: noRetry
     # everything else retries via default
@@ -315,7 +315,7 @@ resiliency:
       initialDelay: 500ms
     alertAndDiscard:
       thenRoute: ["alert-devops"]
-  retryRules:
+  rules:
     - errors: ["ConnectionError", "TimeoutError"]
       policy: retryFast
     - errors: ["openai.AuthenticationError"]
