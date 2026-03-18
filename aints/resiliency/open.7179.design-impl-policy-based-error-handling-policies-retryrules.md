@@ -20,26 +20,30 @@ per-error-type retry config, or reusable named policies across actors.
 ```yaml
 spec:
   resiliency:
-    actorTimeout: 120s          # unchanged
+    timeout:
+      actor: 120s               # per-execution deadline; kills runtime on breach (enforced by sidecar)
 
     policies:
-      default:                  # fallback when no retryRule matches
+      default:                  # fallback when no rule matches
         maxAttempts: 3          # xrd must validate min value 1, and -1 would mean infinity
-        backoff: q    # exponential | constant | linear
+        backoff: exponential    # exponential | constant | linear
         initialDelay: 1s
         maxInterval: 60s
         jitter: true
+        timeout: 600s           # total wall-clock budget across all attempts (optional)
         # thenRoute omitted → x-sink (always the terminal fallback)
 
       retryFast:
         maxAttempts: 5
         backoff: exponential
         initialDelay: 500ms
+        timeout: 60s            # give up fast even if attempts remain
 
       retryPatiently:
         maxAttempts: 3
         backoff: exponential
         initialDelay: 10s
+        timeout: 1800s          # 30 min budget for rate-limit backoff
 
       logAndDiscard:
         maxAttempts: 1          # default, can omit
@@ -68,10 +72,20 @@ spec:
 | `initialDelay` | duration | — | First retry delay |
 | `maxInterval` | duration | — | Cap on backoff delay |
 | `jitter` | bool | false | Add ±50% jitter |
-| `thenRoute` | []string | ["x-sink"] | Where to route when attempts exhausted |
+| `timeout` | duration | — | Total wall-clock budget across all attempts; exhausted = same effect as `maxAttempts` reached |
+| `thenRoute` | []string | ["x-sink"] | Where to route when attempts exhausted or timeout exceeded |
 
 All fields are optional. A policy with only `thenRoute` set (and `maxAttempts: 1`
 implicit) is a pure routing policy — no retry, immediately route on first failure.
+
+`resiliency.timeout.actor` vs `policies.*.timeout` are orthogonal concerns:
+- `timeout.actor` is enforced per-execution by the sidecar (kills the runtime call); it applies to every attempt regardless of policy
+- `policies.*.timeout` is a stopping condition evaluated before each retry — stop retrying when wall-clock since first attempt exceeds the budget
+
+This mirrors tenacity's `stop` combinator: `stop_after_attempt(N) | stop_after_delay(T)`.
+`maxAttempts` and `policies.*.timeout` are that same pair — both are retry stopping conditions,
+and whichever triggers first wins. `resiliency.timeout.actor` is the execution watchdog,
+orthogonal to retry logic.
 
 ### Decision tree
 
@@ -82,9 +96,9 @@ error occurs at actor X
        └─ no match → apply policies.default (or built-in default if absent)
 
 apply policy:
-  └─ attempts < maxAttempts?
+  └─ attempts < maxAttempts AND wall-clock since first attempt < timeout?
        ├─ yes → retryMessage (back to X's queue with backoff delay)
-       └─ no (exhausted) → thenRoute configured?
+       └─ no (attempts exhausted OR timeout exceeded) → thenRoute configured?
                   ├─ yes → set msg.Route.Next = thenRoute; send normally
                   └─ no  → sendRetryFailure → x-sink (phase=failed) → x-sump
 ```
@@ -185,10 +199,11 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
 `src/asya-sidecar/internal/config/config.go`:
 - Remove `NonRetryableErrors []string`
 - Remove `Retry RetryConfig` (top-level)
+- Add `Timeout TimeoutConfig` struct: `Actor time.Duration`
 - Add `Policies map[string]PolicyConfig`
-- Add `rules []RetryRule`
+- Add `Rules []RetryRule`
 - Add `PolicyConfig` struct: `MaxAttempts`, `Backoff`, `InitialDelay`,
-  `MaxInterval`, `Jitter`, `ThenRoute []string`
+  `MaxInterval`, `Jitter`, `Timeout time.Duration`, `ThenRoute []string`
 - Add `RetryRule` struct: `Errors []string`, `Policy string`
 
 ### 3. Sidecar: error matching and policy dispatch
@@ -198,9 +213,10 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
   - For each rule: checks if any `errors` key matches errorType or any MRO ancestor
   - Short-name match: `type.__name__` suffix; FQN match: exact string
 - `applyPolicy(ctx, msg, policy)` — dispatches based on policy:
-  - `maxAttempts > 1` and attempts remaining: `retryMessage` (existing)
-  - Exhausted + `thenRoute` set: `msg.Route.Next = policy.ThenRoute; send to SinkQueue`
+  - attempts remaining AND within `policy.Timeout` wall-clock budget: `retryMessage` (existing)
+  - Exhausted (attempts OR timeout) + `thenRoute` set: `msg.Route.Next = policy.ThenRoute; send to SinkQueue`
   - Exhausted + no `thenRoute`: `sendRetryFailure` → SinkQueue (after `[nqf5]` fix)
+  - Wall-clock tracking: first-attempt timestamp stored in `msg.Headers["x-asya-first-attempt"]`
 - Remove `isNonRetryableError`
 - Remove `handleErrorResponse` retry/non-retryable split — replace with `matchPolicy` + `applyPolicy`
 
