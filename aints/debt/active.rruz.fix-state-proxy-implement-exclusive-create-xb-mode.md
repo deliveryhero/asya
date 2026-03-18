@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/debt/rruz.fix-state-proxy-implement-exclusive-create-xb-mode
   - branch:debt/rruz.fix-state-proxy-implement-exclusive-create-xb-mode
+  - pr:326
 ---
+
 
 
 ## Problem
