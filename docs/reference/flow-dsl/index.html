@@ -1484,10 +1484,641 @@ routers modify routing metadata instead of business data.</p>
 retries, monitoring, and deployment. There is no special "router runtime"
 — it's actors all the way down.</p>
 <hr />
+<h2 id="compiler-architecture">Compiler architecture<a class="headerlink" href="#compiler-architecture" title="Permanent link">&para;</a></h2>
+<h3 id="pipeline-overview">Pipeline overview<a class="headerlink" href="#pipeline-overview" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Source (.py)
+     |
+     v
+  [Parser]  ←── Rules Engine (AST-level classification + extraction)
+     |               ↑
+     |          Value Extractor (AST Call → spec values)
+     v
+  IR Operations (ActorCall, Mutation, Condition, ...)
+     |
+     v
+  [Grouper]
+     |
+     v
+  Routers (execution units)
+     |
+     v
+  [CodeGen]
+     |
+     v
+  routers.py + flow.dot
+</code></pre></div>
+<p>Each stage has a clear input/output contract:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Stage</th>
+<th>Input</th>
+<th>Output</th>
+<th>Operates on</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Parser</strong></td>
+<td>Python source (AST)</td>
+<td><code>(flow_name, [IROperation])</code></td>
+<td>AST nodes</td>
+</tr>
+<tr>
+<td><strong>Rules Engine</strong></td>
+<td>Symbol name (string)</td>
+<td><code>TreatAs</code> classification</td>
+<td>Strings (AST-derived)</td>
+</tr>
+<tr>
+<td><strong>Value Extractor</strong></td>
+<td><code>ast.Call</code> + <code>CompilerRule</code></td>
+<td><code>{spec_path: value}</code></td>
+<td>AST nodes</td>
+</tr>
+<tr>
+<td><strong>Grouper</strong></td>
+<td><code>[IROperation]</code></td>
+<td><code>[Router]</code></td>
+<td>IR only</td>
+</tr>
+<tr>
+<td><strong>CodeGen</strong></td>
+<td><code>[Router]</code></td>
+<td>Python source string</td>
+<td>IR only</td>
+</tr>
+</tbody>
+</table></div>
+<p>The boundary is strict: <strong>rules and extraction operate at AST level</strong> (they need
+call arguments, decorator lists, function names). Everything downstream — grouper
+and codegen — operates on <strong>IR only</strong> and never touches AST nodes.</p>
+<h3 id="stage-1-parser-ast-ir">Stage 1: Parser (AST → IR)<a class="headerlink" href="#stage-1-parser-ast-ir" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/parser.py</code></p>
+<p>The parser walks the flow function's AST and produces a flat list of IR
+operations. It handles flow function discovery, parameter normalization, and
+statement classification.</p>
+<h4 id="flow-function-discovery">Flow function discovery<a class="headerlink" href="#flow-function-discovery" title="Permanent link">&para;</a></h4>
+<p>The parser scans top-level function definitions for one matching the flow
+signature: a function with a single <code>dict</code>-typed parameter and <code>dict</code> return
+type.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># matches</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>           <span class="c1"># matches (sync)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">helper</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>              <span class="c1"># does not match</span>
+</code></pre></div>
+<p>The parameter name (<code>state</code>, <code>p</code>, <code>payload</code>) is normalized to <code>p</code> internally
+via <code>_ParamNormalizer</code>, so all downstream IR uses <code>p</code> consistently.</p>
+<h4 id="import-map">Import map<a class="headerlink" href="#import-map" title="Permanent link">&para;</a></h4>
+<p>The parser collects all <code>import</code> and <code>from...import</code> statements from the
+module into a <code>{bare_name: qualified_name}</code> map:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">tenacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">retry</span><span class="p">,</span> <span class="n">stop_after_attempt</span>
+<span class="c1"># produces: {&quot;retry&quot;: &quot;tenacity.retry&quot;, &quot;stop_after_attempt&quot;: &quot;tenacity.stop_after_attempt&quot;}</span>
+</code></pre></div>
+<p>This map is passed to the value extractor so positional arguments of bare
+function calls can be resolved via <code>inspect.signature</code> on the qualified name.</p>
+<h4 id="statement-classification">Statement classification<a class="headerlink" href="#statement-classification" title="Permanent link">&para;</a></h4>
+<p>Each statement in the flow function body maps to one IR node type:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Python construct</th>
+<th>IR type</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p = handler(p)</code></td>
+<td><code>ActorCall</code></td>
+<td>Route to named handler actor</td>
+</tr>
+<tr>
+<td><code>p = await handler(p)</code></td>
+<td><code>ActorCall</code></td>
+<td>Unwrap await, same as above</td>
+</tr>
+<tr>
+<td><code>p["key"] = value</code></td>
+<td><code>Mutation</code></td>
+<td>Inline payload transformation</td>
+</tr>
+<tr>
+<td><code>p["key"] += 1</code></td>
+<td><code>Mutation</code></td>
+<td>Augmented assignment</td>
+</tr>
+<tr>
+<td><code>if cond: ... else: ...</code></td>
+<td><code>Condition</code></td>
+<td>Branches parsed recursively</td>
+</tr>
+<tr>
+<td><code>while cond: ...</code></td>
+<td><code>WhileLoop</code></td>
+<td>Loop with optional condition</td>
+</tr>
+<tr>
+<td><code>while True: ...</code></td>
+<td><code>WhileLoop(test=None)</code></td>
+<td>Guarded at runtime</td>
+</tr>
+<tr>
+<td><code>try: ... except: ...</code></td>
+<td><code>TryExcept</code></td>
+<td>Exception routing</td>
+</tr>
+<tr>
+<td><code>p["r"] = [a(x), b(y)]</code></td>
+<td><code>FanOutCall(literal)</code></td>
+<td>Parallel dispatch</td>
+</tr>
+<tr>
+<td><code>p["r"] = [a(x) for x in items]</code></td>
+<td><code>FanOutCall(comprehension)</code></td>
+<td>Iterated fan-out</td>
+</tr>
+<tr>
+<td><code>p["r"] = await asyncio.gather(...)</code></td>
+<td><code>FanOutCall(gather)</code></td>
+<td>Concurrent gather</td>
+</tr>
+<tr>
+<td><code>break</code></td>
+<td><code>Break</code></td>
+<td>Exit loop</td>
+</tr>
+<tr>
+<td><code>continue</code></td>
+<td><code>Continue</code></td>
+<td>Jump to loop start</td>
+</tr>
+<tr>
+<td><code>return state</code></td>
+<td><code>Return</code></td>
+<td>Early exit</td>
+</tr>
+<tr>
+<td><code>raise</code></td>
+<td><code>Raise</code></td>
+<td>Re-raise in except block</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="rules-engine-integration">Rules engine integration<a class="headerlink" href="#rules-engine-integration" title="Permanent link">&para;</a></h4>
+<p>When classifying a symbol (e.g. <code>tenacity.retry</code>, <code>handler_a</code>), the parser
+consults the rules engine:</p>
+<ol>
+<li>Check for <code># asya: &lt;action&gt;</code> inline comment override (highest priority)</li>
+<li>If no override and a rules engine is configured, call
+   <code>engine.classify(symbol, module_path=...)</code></li>
+<li>Based on the result:</li>
+<li><code>ACTOR</code> / <code>UNFOLD</code> / <code>FLOW</code> → <code>ActorCall</code> (separate actor)</li>
+<li><code>INLINE</code> → <code>InlineCode</code> (inlined into router)</li>
+<li><code>CONFIG</code> → <code>InlineCode</code> with extracted values from the where-tree</li>
+<li>No engine → all calls become <code>ActorCall</code> (backwards compatible)</li>
+</ol>
+<p>For <code>CONFIG</code> rules with <code>where:</code> trees, the parser calls
+<code>ValueExtractor.extract(call_node, rule)</code> to pull spec values and stores them
+in <code>InlineCode.extracted_values</code>.</p>
+<h3 id="rules-engine-ast-level-classification">Rules engine (AST-level classification)<a class="headerlink" href="#rules-engine-ast-level-classification" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/rules.py</code></p>
+<p>The rules engine classifies Python symbols against an ordered list of compiler
+rules using a most-specific-wins strategy.</p>
+<h4 id="treatas-classifications">TreatAs classifications<a class="headerlink" href="#treatas-classifications" title="Permanent link">&para;</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+<th>IR result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor</code></td>
+<td>Separate actor, route through queue</td>
+<td><code>ActorCall</code></td>
+</tr>
+<tr>
+<td><code>unfold</code></td>
+<td>Recursively compile (same-package helper)</td>
+<td><code>ActorCall</code> (future: inline expansion)</td>
+</tr>
+<tr>
+<td><code>flow</code></td>
+<td>Embedded sub-flow</td>
+<td><code>ActorCall</code> (future: flow composition)</td>
+</tr>
+<tr>
+<td><code>inline</code></td>
+<td>Inline code into router body</td>
+<td><code>InlineCode</code></td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>Extract configuration values</td>
+<td><code>InlineCode</code> + <code>extracted_values</code></td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="matching-tiers">Matching tiers<a class="headerlink" href="#matching-tiers" title="Permanent link">&para;</a></h4>
+<p>Rules are matched against symbols with four tiers (lower = more specific = wins):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Pattern</th>
+<th>Example</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Exact</td>
+<td><code>"tenacity.retry"</code></td>
+<td><code>tenacity.retry</code> only</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Prefix wildcard</td>
+<td><code>"tenacity.*"</code></td>
+<td><code>tenacity.retry</code>, <code>tenacity.stop</code>, ...</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Same-package dot</td>
+<td><code>"."</code></td>
+<td>Bare symbols in same root package</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Global wildcard</td>
+<td><code>"*"</code></td>
+<td>Everything</td>
+</tr>
+</tbody>
+</table></div>
+<p>Within tier 1, longer prefixes win (<code>"tenacity.stop.*"</code> beats <code>"tenacity.*"</code>).</p>
+<h4 id="default-rules">Default rules<a class="headerlink" href="#default-rules" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w">    </span><span class="c1"># same-package symbols</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unfold</span>
+
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*&quot;</span><span class="w">    </span><span class="c1"># everything else</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">inline</span>
+</code></pre></div>
+<p>Without user rules, bare symbols (same-package) are unfolded and dotted
+symbols (external) are inlined.</p>
+<h4 id="user-rules">User rules<a class="headerlink" href="#user-rules" title="Permanent link">&para;</a></h4>
+<p>Loaded from <code>.asya/config.compiler.rules.yaml</code>. User rules prepend to defaults,
+so exact matches (tier 0) override wildcards:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;max_attempt_number&quot;</span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.retry.maxAttempts</span>
+</code></pre></div>
+<h4 id="inline-comment-override">Inline comment override<a class="headerlink" href="#inline-comment-override" title="Permanent link">&para;</a></h4>
+<p>The highest-priority classification is the <code># asya: &lt;action&gt;</code> inline comment:</p>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">external</span><span class="o">.</span><span class="n">lib</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: actor   — forces actor regardless of rules</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">local_helper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline  — forces inline regardless of rules</span>
+</code></pre></div>
+<h3 id="value-extractor-ast-level-extraction">Value extractor (AST-level extraction)<a class="headerlink" href="#value-extractor-ast-level-extraction" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/extractor.py</code></p>
+<p>The extractor pulls spec values from <code>ast.Call</code> nodes guided by <code>where:</code> trees
+in compiler rules. It produces <code>{spec_path: value}</code> dicts that the compiler
+writes into AsyncActor manifests.</p>
+<h4 id="argument-binding">Argument binding<a class="headerlink" href="#argument-binding" title="Permanent link">&para;</a></h4>
+<p>Call arguments are bound to parameter names:</p>
+<ol>
+<li><strong>Keywords</strong>: always known (<code>func(delay=30)</code> → <code>{"delay": 30}</code>)</li>
+<li><strong>Positional + <code>ParamSpec</code></strong>: rule declares both bindings
+   (<code>param: {arg: 0, kwarg: "delay"}</code> → try kwarg first, then index)</li>
+<li><strong>Positional + <code>inspect.signature</code></strong>: import the function at compile time
+   and read its signature</li>
+<li><strong>Positional fallback</strong>: use index as string key (<code>"0"</code>, <code>"1"</code>, ...)</li>
+</ol>
+<h4 id="where-tree-walking">Where-tree walking<a class="headerlink" href="#where-tree-walking" title="Permanent link">&para;</a></h4>
+<p>The <code>where:</code> tree is walked recursively:</p>
+<ul>
+<li><strong>Terminal node</strong> (<code>param</code> + <code>assign-to</code>): extract value from bound arg,
+  store at spec path</li>
+<li><strong>Non-terminal node</strong> (<code>param</code> + <code>where</code>): bound arg is itself a Call or
+  BinOp; bind its args and recurse into children</li>
+<li><strong>Match-only node</strong> (<code>match</code> + <code>where</code>, no <code>param</code>): discriminator — only
+  recurse if the current AST call's function name matches <code>match</code></li>
+<li><strong>BinOp flattening</strong>: <code>a() | b() | c()</code> flattened into three calls, each
+  walked independently (tenacity's pipe combinator)</li>
+</ul>
+<h4 id="paramspec">ParamSpec<a class="headerlink" href="#paramspec" title="Permanent link">&para;</a></h4>
+<p>Rules can declare both positional and keyword bindings:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;name&quot;</span><span class="p p-Indicator">,</span><span class="nt"> type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;str&quot;</span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>The extractor tries <code>kwarg</code> first (always known from keyword args), then falls
+back to positional <code>arg</code> index. The <code>type</code> field is metadata for future
+validation.</p>
+<h4 id="static-value-extraction">Static value extraction<a class="headerlink" href="#static-value-extraction" title="Permanent link">&para;</a></h4>
+<p>The extractor handles these AST expression types:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>AST type</th>
+<th>Example</th>
+<th>Extracted value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ast.Constant</code></td>
+<td><code>30</code>, <code>"hello"</code>, <code>True</code></td>
+<td>Literal value</td>
+</tr>
+<tr>
+<td><code>ast.Name</code></td>
+<td><code>ValueError</code></td>
+<td>Identifier string</td>
+</tr>
+<tr>
+<td><code>ast.Tuple</code></td>
+<td><code>(ValueError, TypeError)</code></td>
+<td>Comma-joined string</td>
+</tr>
+<tr>
+<td><code>ast.UnaryOp(USub)</code></td>
+<td><code>-5</code></td>
+<td>Negated number</td>
+</tr>
+<tr>
+<td>Complex expressions</td>
+<td><code>foo()</code>, <code>x + y</code></td>
+<td><code>None</code> (not extractable)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="ir-specification">IR specification<a class="headerlink" href="#ir-specification" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/ir.py</code></p>
+<p>All IR nodes inherit from <code>IROperation(lineno: int)</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Actor invocation — routed through a queue to a separate actor</span>
+<span class="n">ActorCall</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">treat_as</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span>
+
+<span class="c1"># Inline code — executed inside the router function body</span>
+<span class="n">InlineCode</span><span class="p">(</span><span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span>
+
+<span class="c1"># Payload mutation — modifies payload fields inline</span>
+<span class="n">Mutation</span><span class="p">(</span><span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+
+<span class="c1"># Control flow</span>
+<span class="n">Condition</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">true_branch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">],</span> <span class="n">false_branch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>
+<span class="n">WhileLoop</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>    <span class="c1"># None = while True</span>
+<span class="n">Break</span><span class="p">()</span>
+<span class="n">Continue</span><span class="p">()</span>
+<span class="n">Return</span><span class="p">()</span>
+
+<span class="c1"># Error handling</span>
+<span class="n">TryExcept</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">],</span> <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExceptHandler</span><span class="p">],</span> <span class="n">finally_body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>
+<span class="n">ExceptHandler</span><span class="p">(</span><span class="n">error_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>   <span class="c1"># None = bare except</span>
+<span class="n">Raise</span><span class="p">()</span>
+
+<span class="c1"># Parallel execution</span>
+<span class="n">FanOutCall</span><span class="p">(</span><span class="n">target_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">actor_calls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+           <span class="n">iter_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">iterable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+<p>The IR is a flat tree: <code>Condition</code>, <code>WhileLoop</code>, and <code>TryExcept</code> contain nested
+operation lists in their branches, but there is no separate "block" concept.
+The grouper walks this tree to produce routers.</p>
+<h3 id="stage-2-grouper-ir-routers">Stage 2: Grouper (IR → Routers)<a class="headerlink" href="#stage-2-grouper-ir-routers" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/grouper.py</code></p>
+<p>The grouper transforms the flat IR operation list into a list of <code>Router</code>
+execution units. Each router becomes a separate async function in the
+generated code.</p>
+<h4 id="what-is-a-router">What is a Router?<a class="headerlink" href="#what-is-a-router" title="Permanent link">&para;</a></h4>
+<p>A <code>Router</code> is an execution unit with:</p>
+<ul>
+<li><strong>Mutations</strong>: payload transformations executed inline (fused from
+  consecutive <code>Mutation</code> / <code>InlineCode</code> IR nodes)</li>
+<li><strong>Routing decision</strong>: conditional branch, loop-back, exception dispatch</li>
+<li><strong>Continuation</strong>: list of downstream actor names to visit next</li>
+</ul>
+<p>Key fields:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Router</span><span class="p">:</span>
+  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>                              <span class="c1"># e.g. &quot;router_my_flow_line_5_if&quot;</span>
+  <span class="n">mutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Mutation</span><span class="p">]</span>              <span class="c1"># inline payload edits</span>
+  <span class="n">condition</span><span class="p">:</span> <span class="n">Condition</span> <span class="o">|</span> <span class="kc">None</span>            <span class="c1"># if-test (None = unconditional)</span>
+  <span class="n">true_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>          <span class="c1"># actors if condition true</span>
+  <span class="n">false_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>         <span class="c1"># actors if condition false</span>
+  <span class="n">is_loop_back</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># re-inserts loop body actors</span>
+  <span class="n">guard_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>             <span class="c1"># max iterations (while True guard)</span>
+  <span class="n">is_try_enter</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># sets _on_error header</span>
+  <span class="n">is_try_exit</span><span class="p">:</span> <span class="nb">bool</span>                      <span class="c1"># clears _on_error on success</span>
+  <span class="n">is_except_dispatch</span><span class="p">:</span> <span class="nb">bool</span>               <span class="c1"># matches error type, routes to handler</span>
+  <span class="n">is_reraise</span><span class="p">:</span> <span class="nb">bool</span>                       <span class="c1"># raises for unhandled exceptions</span>
+  <span class="n">is_fan_out</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">fan_out_op</span><span class="p">:</span> <span class="n">FanOutCall</span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+<h4 id="grouping-rules">Grouping rules<a class="headerlink" href="#grouping-rules" title="Permanent link">&para;</a></h4>
+<ol>
+<li><strong>Mutation fusion</strong>: consecutive mutations are batched into the next
+   router's <code>mutations</code> list — no separate actor for mutations</li>
+<li><strong>Condition</strong>: creates a conditional router; branches processed recursively
+   with convergence labels for rejoin points</li>
+<li><strong>WhileLoop</strong>: <code>while True</code> creates a self-referencing loop-back router
+   with max-iterations guard; <code>while cond</code> creates a condition router with
+   self-reference in the true branch</li>
+<li><strong>TryExcept</strong>: creates four routers: try-enter (set <code>_on_error</code> header),
+   try-exit (clear header on success), except-dispatch (match error type via
+   MRO), reraise (unhandled)</li>
+<li><strong>FanOut</strong>: creates a fan-out router + aggregator reference</li>
+</ol>
+<h4 id="convergence-resolution">Convergence resolution<a class="headerlink" href="#convergence-resolution" title="Permanent link">&para;</a></h4>
+<p>Branches (if/else, try/except) must reconverge. The grouper uses placeholder
+labels (<code>CONVERGENCE_0</code>, <code>LOOP_EXIT_0</code>, etc.) during grouping, then resolves
+them to actual actor names in a final pass.</p>
+<h4 id="optimization">Optimization<a class="headerlink" href="#optimization" title="Permanent link">&para;</a></h4>
+<ul>
+<li><strong>Start router merger</strong>: if the first router after <code>start_</code> only has
+  mutations (no branching), merge into <code>start_</code> to save one actor hop</li>
+</ul>
+<h3 id="stage-3-code-generator-routers-code">Stage 3: Code generator (Routers → Code)<a class="headerlink" href="#stage-3-code-generator-routers-code" title="Permanent link">&para;</a></h3>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/codegen.py</code></p>
+<p>The code generator emits Python source from the router list. Each router
+becomes an <code>async def</code> function using the ABI yield protocol.</p>
+<h4 id="generated-router-types">Generated router types<a class="headerlink" href="#generated-router-types" title="Permanent link">&para;</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Router type</th>
+<th>Generated behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start</td>
+<td>Apply mutations, <code>SET .route.next[:0]</code> to prepend downstream actors</td>
+</tr>
+<tr>
+<td>Conditional</td>
+<td><code>if condition:</code> branch, append actors to <code>_next</code> list</td>
+</tr>
+<tr>
+<td>Loop-back</td>
+<td>Re-insert loop body actors; for <code>while True</code>: check iteration guard via <code>.route.prev</code> count</td>
+</tr>
+<tr>
+<td>Try-enter</td>
+<td><code>SET .headers._on_error</code> to except-dispatch router name</td>
+</tr>
+<tr>
+<td>Try-exit</td>
+<td>Clear <code>_on_error</code> header; chain finally + continuation actors</td>
+</tr>
+<tr>
+<td>Except-dispatch</td>
+<td>Read <code>.status.error.type</code> + <code>.status.error.mro</code>, match handlers</td>
+</tr>
+<tr>
+<td>Reraise</td>
+<td>Raise <code>RuntimeError</code> for unhandled exceptions</td>
+</tr>
+<tr>
+<td>Fan-out</td>
+<td>Emit N+1 messages: parent + N sub-agents with <code>x-asya-fan-in</code> headers</td>
+</tr>
+<tr>
+<td>End</td>
+<td><code>SET .route.next</code> to <code>[]</code> (pipeline completion)</td>
+</tr>
+</tbody>
+</table></div>
+<h4 id="handler-resolution_1">Handler resolution<a class="headerlink" href="#handler-resolution_1" title="Permanent link">&para;</a></h4>
+<p>The generated <code>resolve()</code> function maps handler names from the flow source to
+actor names using <code>ASYA_HANDLER_*</code> environment variables:</p>
+<div class="highlight"><pre><span></span><code>ASYA_HANDLER_ANALYZE_SENTIMENT=&quot;handlers.analyze_sentiment&quot;
+</code></pre></div>
+<p>Resolution uses suffix matching — any unambiguous suffix works:</p>
+<div class="highlight"><pre><span></span><code><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;analyze_sentiment&quot;</span><span class="p">)</span>              <span class="c1"># shortest suffix</span>
+<span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handlers.analyze_sentiment&quot;</span><span class="p">)</span>     <span class="c1"># full path</span>
+</code></pre></div>
+<p>Ambiguous matches raise an error listing candidates.</p>
+<h4 id="single-actor-flows">Single-actor flows<a class="headerlink" href="#single-actor-flows" title="Permanent link">&para;</a></h4>
+<p>When a flow has exactly one actor call and no branching, the code generator
+emits a <code>FLOW_METADATA</code> constant instead of router functions:</p>
+<div class="highlight"><pre><span></span><code><span class="n">FLOW_METADATA</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;flow_name&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;single-actor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actor&quot;</span><span class="p">:</span> <span class="s2">&quot;handler_name&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;asya.sh/flow&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span> <span class="s2">&quot;asya.sh/flow-role&quot;</span><span class="p">:</span> <span class="s2">&quot;entrypoint&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<h4 id="router-naming-convention">Router naming convention<a class="headerlink" href="#router-naming-convention" title="Permanent link">&para;</a></h4>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_{flow}</code></td>
+<td>Entry point</td>
+</tr>
+<tr>
+<td><code>end_{flow}</code></td>
+<td>Exit point</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_if</code></td>
+<td>Conditional at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_seq</code></td>
+<td>Sequential mutations at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_while_{id}</code></td>
+<td>Loop condition check</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_loop_back_{id}</code></td>
+<td>Loop re-insertion</td>
+</tr>
+<tr>
+<td><code>fanout_{flow}_line_{N}</code></td>
+<td>Fan-out dispatch</td>
+</tr>
+<tr>
+<td><code>fanin_{flow}_line_{N}</code></td>
+<td>Fan-out aggregator</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_try_enter_{id}</code></td>
+<td>Try entry</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_try_exit_{id}</code></td>
+<td>Try success path</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_except_dispatch_{id}</code></td>
+<td>Exception dispatch</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_reraise_{id}</code></td>
+<td>Unhandled exception</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="future-adapter-generation">Future: adapter generation<a class="headerlink" href="#future-adapter-generation" title="Permanent link">&para;</a></h3>
+<p>When a flow calls a decorated function (e.g. <code>@tool(...)</code>) that doesn't
+conform to the <code>dict -&gt; dict</code> actor protocol, the compiler will generate
+an adapter handler. See aint [ch0h] for the full design.</p>
+<p>The adapter shape is inferred from the call site, not from templates:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">greet_user</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;tool_call&quot;</span><span class="p">][</span><span class="s2">&quot;args&quot;</span><span class="p">])</span>  <span class="c1"># asya: actor</span>
+</code></pre></div>
+<p>The parser extracts input/output paths from the AST and stores them on the
+<code>ActorCall</code> IR node. The code generator reads these IR fields and emits the
+adapter — it never touches AST nodes directly.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Layer</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decorator pattern matching</td>
+<td>Rules (AST)</td>
+<td>Needs symbol names</td>
+</tr>
+<tr>
+<td>Parameter extraction</td>
+<td>Extractor (AST)</td>
+<td>Needs <code>ast.Call</code> arg binding</td>
+</tr>
+<tr>
+<td>Input/output path inference</td>
+<td>Parser (AST → IR)</td>
+<td>Needs <code>ast.Subscript</code> chains</td>
+</tr>
+<tr>
+<td>"Needs adapter?" decision</td>
+<td>IR</td>
+<td><code>input_path is not None</code> on <code>ActorCall</code></td>
+</tr>
+<tr>
+<td>Adapter code emission</td>
+<td>Codegen (IR → Code)</td>
+<td>Reads IR fields only</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
 <h2 id="further-reading">Further reading<a class="headerlink" href="#further-reading" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../../architecture/asya-flow/">Flow Compiler Architecture</a> — compiler
-  internals: parser IR, grouper optimization, code generation</li>
 <li><a href="../abi-protocol/">ABI Protocol Reference</a> —
   yield-based metadata access used by generated routers and user handlers</li>
 </ul>
@@ -2043,6 +2674,64 @@ retries, monitoring, and deployment. There is no special "router runtime"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Routers are actors too
+        </a>
+        
+        
+
+        
+        <a href="#compiler-architecture"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Compiler architecture
+        </a>
+        
+        
+        <a href="#pipeline-overview"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Pipeline overview
+        </a>
+        
+        <a href="#stage-1-parser-ast-ir"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Stage 1: Parser (AST → IR)
+        </a>
+        
+        <a href="#rules-engine-ast-level-classification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Rules engine (AST-level classification)
+        </a>
+        
+        <a href="#value-extractor-ast-level-extraction"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Value extractor (AST-level extraction)
+        </a>
+        
+        <a href="#ir-specification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            IR specification
+        </a>
+        
+        <a href="#stage-2-grouper-ir-routers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Stage 2: Grouper (IR → Routers)
+        </a>
+        
+        <a href="#stage-3-code-generator-routers-code"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Stage 3: Code generator (Routers → Code)
+        </a>
+        
+        <a href="#future-adapter-generation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Future: adapter generation
         </a>
         
         
