@@ -319,22 +319,6 @@ asya-gateway:
   #   sqsEndpoint: ""
   #   sqsRegion: ""
 
-  # Gateway routes configuration (ACTIVELY USED - configure your tools/routes)
-  routes:
-    createConfigMap: true
-    defaults:
-      progress: true
-      timeout: 30
-    tools:
-    - name: hello
-      description: "Test hello-world actor"
-      parameters:
-        name:
-          type: string
-          required: true
-          description: "Name to greet"
-      route: ["hello"]
-
   # PostgreSQL connection (ACTIVELY USED - configure database)
   # Uses bundled PostgreSQL by default (asya-gateway-postgresql service)
   # For external PostgreSQL: Set sampleGatewayDb.postgresql.enabled: false and configure externalDatabase below

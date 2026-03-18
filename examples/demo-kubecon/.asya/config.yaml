@@ -1,11 +1,13 @@
 templates:
   namespace: asya-demo
-  transport: sqs
+  transport: pubsub
   router_image: "python:3.13-slim"
   max_replicas: 5
 
 build:
 - module: "*"
+  # Set to your Artifact Registry path before compiling for GKE:
+  # {REGION}-docker.pkg.dev/{PROJECT}/{REPO}/asya-demo:latest
   image: "asya-demo:latest"
 
 compiler:

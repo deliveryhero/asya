@@ -7,13 +7,13 @@ metadata:
     asya.sh/flow: text-improver
     asya.sh/flow-role: handler
 spec:
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: sqs
   actor: evaluator
   image: asya-demo:latest
   handler: demo_actors.evaluator.evaluator
-  transport: sqs
+  transport: pubsub
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: pubsub
   scaling:
     enabled: true
     minReplicaCount: 0

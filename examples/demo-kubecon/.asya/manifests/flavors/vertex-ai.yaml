@@ -11,14 +11,17 @@ data:
   - name: VERTEXAI_PROJECT
     valueFrom:
       secretKeyRef:
-        name: vertex-ai-creds
+        name: asya-actor-creds
         key: project-id
   - name: VERTEXAI_LOCATION
-    value: us-central1
+    valueFrom:
+      secretKeyRef:
+        name: asya-actor-creds
+        key: location
   volumes:
   - name: gcp-creds
     secret:
-      secretName: vertex-ai-creds
+      secretName: asya-actor-creds
   volumeMounts:
   - name: gcp-creds
     mountPath: /secrets/gcp
