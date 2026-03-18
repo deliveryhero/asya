@@ -263,8 +263,8 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [7179] | P1 | design+impl: policy-based error handling (policies + rules replaces nonRetryableErrors) | — | — | — |
-| ○ open | [3dp2] | P2 | design+impl: Compiler error handling | — | — | — |
+| ○ open | [7179] | P1 | Policy-based error handling (timeout + policies + rules replaces nonRetryableErrors) | — | — | — |
+| ○ open | [3dp2] | P2 | Compiler error handling | — | — | — |
 
 ## stateful-actors/
 
