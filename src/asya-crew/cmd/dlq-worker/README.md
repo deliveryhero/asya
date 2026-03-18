@@ -114,7 +114,7 @@ The DLQ worker is deployed as a regular Kubernetes Deployment (NOT an AsyncActor
 
 ### Helm (via asya-crew chart)
 
-The DLQ worker is enabled by default in the asya-crew Helm chart. Set `dlq-worker.config.queueURL` to activate it:
+The DLQ worker is disabled by default in the asya-crew Helm chart. Set `dlq-worker.enabled: true` and `dlq-worker.config.queueURL` to activate it:
 
 ```yaml
 # values.yaml override
