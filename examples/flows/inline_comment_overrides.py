@@ -18,7 +18,10 @@ Priority order:
   3. Default resolution
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def order_pipeline(p: dict) -> dict:
     # inline: fast local normalization, no actor queue needed
     p = normalize_keys(p)  # asya: inline

@@ -8,6 +8,8 @@ Unknown decorators on handler functions are ignored by the compiler.
 
 import uuid
 
+from asya_lab.flow import flow
+
 
 # Compiler classification hints — identity functions at runtime.
 # The flow compiler recognises @actor and @inline on function definitions
@@ -20,6 +22,7 @@ def inline(f):
     return f
 
 
+@flow
 def decorator_definitions_flow(p: dict) -> dict:
     p = inject_trace(p)
     p = validate(p)

@@ -9,6 +9,8 @@ validator and enricher are separate actors.
 
 import time
 
+from asya_lab.flow import flow
+
 
 # Compiler classification hints — identity functions at runtime.
 # The flow compiler recognises these names to classify calls:
@@ -22,6 +24,7 @@ def inline(f):
     return f
 
 
+@flow
 def decorator_callsite_flow(p: dict) -> dict:
     p = inline(stamp_timestamp)(p)
     p = actor(validator)(p)

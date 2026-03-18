@@ -8,7 +8,10 @@ classifier is explicitly marked as an actor boundary.
 
 import uuid
 
+from asya_lab.flow import flow
 
+
+@flow
 def decorator_inline_comments_flow(p: dict) -> dict:
     p = inject_id(p)           # asya: inline
     p = classifier(p)          # asya: actor
