@@ -269,7 +269,7 @@ def test_happy_path(transport_helper):
 
 def test_error_handling(transport_helper):
     """Test runtime error handling."""
-    transport_helper.purge_queue("asya-default-x-sump")
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-error-handling-1",
         "route": {"prev": [], "curr": "test-error", "next": []},
@@ -278,11 +278,11 @@ def test_error_handling(transport_helper):
     logger.info(f"Publishing error test envelope to test-error: {json.dumps(envelope, indent=2)}")
 
     transport_helper.publish_envelope("asya-default-test-error", envelope)
-    logger.info("Envelope published, waiting for error in asya-x-sump...")
+    logger.info("Envelope published, waiting for error in asya-x-sink...")
 
-    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "No message in x-sump queue"
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "No message in x-sink queue"
 
     # Error is inside payload (nested format)
     payload = result.get("payload", {})
@@ -298,7 +298,7 @@ def test_error_handling(transport_helper):
 
 def test_oom_error(transport_helper):
     """Test OOM error detection and recovery."""
-    transport_helper.purge_queue("asya-default-x-sump")
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-oom-error-1",
         "route": {"prev": [], "curr": "test-oom-queue", "next": []},
@@ -307,11 +307,11 @@ def test_oom_error(transport_helper):
     logger.info(f"Publishing OOM test envelope: {json.dumps(envelope, indent=2)}")
 
     transport_helper.publish_envelope("asya-default-test-oom-queue", envelope)
-    logger.info("Waiting for OOM error in asya-x-sump...")
+    logger.info("Waiting for OOM error in asya-x-sink...")
 
-    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "No message in x-sump queue"
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "No message in x-sink queue"
 
     error_data = str(result)
     logger.info(f"Error data: {error_data[:200]}...")
@@ -323,7 +323,7 @@ def test_oom_error(transport_helper):
 
 def test_cuda_oom_error(transport_helper):
     """Test CUDA OOM error detection."""
-    transport_helper.purge_queue("asya-default-x-sump")
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-cuda-oom-error-1",
         "route": {"prev": [], "curr": "test-cuda-oom-queue", "next": []},
@@ -332,8 +332,8 @@ def test_cuda_oom_error(transport_helper):
 
     transport_helper.publish_envelope("asya-default-test-cuda-oom-queue", envelope)
 
-    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
-    assert result is not None, "No message in x-sump queue"
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
+    assert result is not None, "No message in x-sink queue"
 
     error_data = str(result)
     assert "cuda" in error_data.lower() or "memory" in error_data.lower(), (
@@ -396,6 +396,7 @@ def test_empty_response(transport_helper):
 
 def test_large_payload(transport_helper):
     """Test large payload handling."""
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-large-payload-1",
         "route": {"prev": [], "curr": "test-large-queue", "next": []},
@@ -413,6 +414,7 @@ def test_large_payload(transport_helper):
 
 def test_unicode_handling(transport_helper):
     """Test Unicode/UTF-8 handling."""
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-unicode-handling-1",
         "route": {"prev": [], "curr": "test-unicode", "next": []},
@@ -491,8 +493,9 @@ def test_conditional_success(transport_helper):
 
 def test_conditional_error(transport_helper):
     """Test conditional handler with error action."""
-    # Purge source queue to ensure clean state
+    # Purge source and sink queues to ensure clean state
     transport_helper.purge_queue("test-conditional-queue")
+    transport_helper.purge_queue("asya-default-x-sink")
 
     envelope = {
         "id": "test-conditional-error-1",
@@ -502,12 +505,13 @@ def test_conditional_error(transport_helper):
 
     transport_helper.publish_envelope("asya-default-test-conditional-queue", envelope)
 
-    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=20)
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=20)
     assert result is not None, "Conditional error not caught"
 
 
 def test_nested_data(transport_helper):
     """Test deeply nested data structures."""
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-nested-data-1",
         "route": {"prev": [], "curr": "test-nested", "next": []},
@@ -531,7 +535,7 @@ def test_invalid_route_current(transport_helper):
     a read-only path. The runtime catches the PermissionError and routes the message
     to x-sump as a processing_error.
     """
-    transport_helper.purge_queue("asya-default-x-sump")
+    transport_helper.purge_queue("asya-default-x-sink")
     envelope = {
         "id": "test-invalid-route-current-1",
         "route": {"prev": [], "curr": "test-invalid-route", "next": ["should-not-reach"]},
@@ -540,11 +544,11 @@ def test_invalid_route_current(transport_helper):
     logger.info(f"Publishing envelope to test-invalid-route: {json.dumps(envelope, indent=2)}")
 
     transport_helper.publish_envelope("asya-default-test-invalid-route", envelope)
-    logger.info("Envelope published, waiting for result in asya-x-sump...")
+    logger.info("Envelope published, waiting for result in asya-x-sink...")
 
-    result = transport_helper.assert_envelope_in_queue("asya-default-x-sump", timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "Message with read-only VFS write attempt should route to x-sump"
+    result = transport_helper.assert_envelope_in_queue("asya-default-x-sink", timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "Message with read-only VFS write attempt should route to x-sink"
 
     payload = result.get("payload", {})
     error_msg = payload.get("error", "")

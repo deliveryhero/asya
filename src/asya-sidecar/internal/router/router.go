@@ -1282,16 +1282,46 @@ func (r *Router) reportFinalStatusWithMessage(ctx context.Context, msg *envelope
 		}
 	}
 
-	// Determine status from queue name
+	// Determine status from envelope phase and actor name.
+	// x-sink now receives both succeeded and failed envelopes — use the envelope's
+	// phase to distinguish them. x-sump only ever receives failed envelopes.
 	var status string
 	var errorMsg string
 	var errorDetails interface{}
 	var currentActorIdx *int
 	var currentActorName string
 
+	isFailed := msg.Status != nil && msg.Status.Phase == envelopes.PhaseFailed
+
 	switch r.actorName {
 	case r.sinkQueue:
-		status = statusSucceeded
+		if isFailed {
+			status = statusFailed
+			// Extract error info from msg.Status.Error (set by sendRetryFailure)
+			if msg.Status.Error != nil {
+				errorMsg = msg.Status.Error.Message
+				errorDetails = msg.Status.Error
+			}
+			// Extract error info from payload fallback (set by sendRetryFailure payload field)
+			if errorMsg == "" {
+				var msgPayload map[string]interface{}
+				if err := json.Unmarshal(msg.Payload, &msgPayload); err == nil {
+					if e, ok := msgPayload["error"].(string); ok {
+						errorMsg = e
+					}
+					if d, ok := msgPayload["details"]; ok {
+						errorDetails = d
+					}
+				}
+			}
+			if msg.Route.Curr != "" {
+				currentActorName = msg.Route.Curr
+				idx := len(msg.Route.Prev)
+				currentActorIdx = &idx
+			}
+		} else {
+			status = statusSucceeded
+		}
 	case r.sumpQueue:
 		status = statusFailed
 		// For x-sump, extract error info from msg.Payload (not result)

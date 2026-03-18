@@ -40,17 +40,17 @@ SINK_QUEUE = "asya-default-x-sink"
 
 
 def test_retry_max_attempts_exhausted(transport_helper):
-    """Test that after max retry attempts, message goes to x-sump with MaxRetriesExhausted.
+    """Test that after max retry attempts, message goes to x-sink with MaxRetriesExhausted.
 
     The actor is configured with max_attempts=3 and constant 1s delay.
     The handler always raises ValueError, so the sidecar retries 3 times
-    then sends to x-sump with reason=MaxRetriesExhausted.
+    then sends to x-sink with reason=MaxRetriesExhausted.
     """
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "sqs":
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-retry-exhausted-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
@@ -61,9 +61,9 @@ def test_retry_max_attempts_exhausted(transport_helper):
     transport_helper.publish_envelope(RETRY_FAIL_QUEUE, envelope)
 
     # 3 attempts with 1s delay between each = ~3-5s total processing
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=30)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "No message in x-sump after retry exhaustion"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=30)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "No message in x-sink after retry exhaustion"
 
     # Verify status fields
     status = result.get("status", {})
@@ -91,7 +91,7 @@ def test_retry_status_timestamps(transport_helper):
     if transport != "sqs":
         pytest.skip("Retry with delay requires SQS transport (RabbitMQ lacks SendWithDelay)")
 
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-retry-timestamps-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
@@ -100,8 +100,8 @@ def test_retry_status_timestamps(transport_helper):
 
     transport_helper.publish_envelope(RETRY_FAIL_QUEUE, envelope)
 
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=30)
-    assert result is not None, "No message in x-sump after retry"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=30)
+    assert result is not None, "No message in x-sink after retry"
 
     status = result.get("status", {})
     assert "created_at" in status, "Missing created_at timestamp"
@@ -121,13 +121,13 @@ def test_retry_status_timestamps(transport_helper):
 
 
 def test_retry_non_retryable_error(transport_helper):
-    """Test that non-retryable errors go to x-sump immediately without retry.
+    """Test that non-retryable errors go to x-sink immediately without retry.
 
     The actor has non_retryable_errors=ValueError configured, so ValueError
     from error_handler is classified as non-retryable and sent directly
-    to x-sump with reason=NonRetryableFailure.
+    to x-sink with reason=NonRetryableFailure.
     """
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-nonretryable-1",
         "route": {"prev": [], "curr": "test-retry-nonretryable", "next": []},
@@ -137,9 +137,9 @@ def test_retry_non_retryable_error(transport_helper):
 
     transport_helper.publish_envelope(RETRY_NONRETRYABLE_QUEUE, envelope)
 
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "Non-retryable error not routed to x-sump"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "Non-retryable error not routed to x-sink"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
@@ -158,9 +158,9 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
     The actor has non_retryable_errors=Exception configured and the handler
     raises MemoryError. MemoryError's MRO includes Exception, so the sidecar
-    classifies it as non-retryable via ancestor match and sends directly to x-sump.
+    classifies it as non-retryable via ancestor match and sends directly to x-sink.
     """
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-mro-nonretryable-1",
         "route": {"prev": [], "curr": "test-retry-mro", "next": []},
@@ -170,9 +170,9 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
     transport_helper.publish_envelope(RETRY_MRO_QUEUE, envelope)
 
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "MRO-classified non-retryable error not in x-sump"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "MRO-classified non-retryable error not in x-sink"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
@@ -195,16 +195,16 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
 
 def test_retry_delay_not_supported_fallback(transport_helper):
-    """Test that when SendWithDelay is not supported, message goes to x-sump.
+    """Test that when SendWithDelay is not supported, message goes to x-sink.
 
     RabbitMQ transport returns ErrDelayNotSupported for SendWithDelay.
-    The sidecar falls back to sending the message to x-sump immediately.
+    The sidecar falls back to sending the message to x-sink immediately.
     """
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "rabbitmq":
         pytest.skip("This test verifies RabbitMQ fallback for unsupported delay")
 
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-delay-fallback-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
@@ -214,9 +214,9 @@ def test_retry_delay_not_supported_fallback(transport_helper):
 
     transport_helper.publish_envelope(RETRY_FAIL_QUEUE, envelope)
 
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=10)
-    logger.info(f"Result from x-sump: {json.dumps(result, indent=2) if result else 'None'}")
-    assert result is not None, "RabbitMQ fallback not routed to x-sump"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=10)
+    logger.info(f"Result from x-sink: {json.dumps(result, indent=2) if result else 'None'}")
+    assert result is not None, "RabbitMQ fallback not routed to x-sink"
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
@@ -261,13 +261,13 @@ def test_retry_success_after_one_failure(transport_helper):
 
 def test_retry_created_at_preserved(transport_helper):
     """status.created_at is preserved across all retry attempts.
-    Uses test-retry-fail actor which exhausts attempts, then checks sump."""
+    Uses test-retry-fail actor which exhausts attempts, then checks x-sink."""
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "sqs":
         pytest.skip("Retry with delay requires SQS transport")
 
     transport_helper.purge_queue(RETRY_FAIL_QUEUE)
-    transport_helper.purge_queue(SUMP_QUEUE)
+    transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
         "id": "test-created-at-preserved-1",
         "route": {"prev": [], "curr": "test-retry-fail", "next": []},
@@ -275,8 +275,8 @@ def test_retry_created_at_preserved(transport_helper):
     }
     transport_helper.publish_envelope(RETRY_FAIL_QUEUE, envelope)
 
-    result = transport_helper.get_envelope(SUMP_QUEUE, timeout=30)
-    assert result is not None, "Message should reach x-sump after retry exhaustion"
+    result = transport_helper.get_envelope(SINK_QUEUE, timeout=30)
+    assert result is not None, "Message should reach x-sink after retry exhaustion"
 
     status = result.get("status", {})
     assert "created_at" in status, "created_at must be present"
