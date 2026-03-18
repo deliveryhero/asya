@@ -159,7 +159,7 @@ Resolve image pull policy for x-resume actor (convenience wrapper)
 {{/*
 DLQ Worker helpers
 The DLQ worker is a standalone Go binary (NOT an AsyncActor).
-It uses a separate image (asya-dlq-worker) with its own image config.
+It is bundled in the asya-crew image and invoked via command override.
 */}}
 
 {{/*
@@ -191,22 +191,20 @@ app.kubernetes.io/component: crew
 {{- end }}
 
 {{/*
-Resolve image for DLQ worker
-Uses dlq-worker.image config (separate from the crew actor images)
+Resolve image for DLQ worker — uses the shared asya-crew image.
+The /dlq-worker binary is compiled into it; the Deployment overrides the command.
 */}}
 {{- define "asya-crew.dlq-worker.image" -}}
-{{- $dlq := index .Values "dlq-worker" }}
-{{- $repository := $dlq.image.repository | default "ghcr.io/deliveryhero/asya-dlq-worker" }}
-{{- $tag := $dlq.image.tag | default .Chart.AppVersion }}
-{{- printf "%s:%s" $repository $tag }}
+{{- $global := .Values.image }}
+{{- $tag := $global.tag | default .Chart.AppVersion }}
+{{- printf "%s:%s" $global.repository $tag }}
 {{- end }}
 
 {{/*
 Resolve image pull policy for DLQ worker
 */}}
 {{- define "asya-crew.dlq-worker.imagePullPolicy" -}}
-{{- $dlq := index .Values "dlq-worker" }}
-{{- $dlq.image.pullPolicy | default "IfNotPresent" }}
+{{- .Values.image.pullPolicy | default "IfNotPresent" }}
 {{- end }}
 
 {{/*

@@ -292,29 +292,29 @@ sqs:
 dlq-worker:
   enabled: true
 
-  # Image configuration (separate from crew actor images)
-  image:
-    repository: ghcr.io/deliveryhero/asya-dlq-worker
-    tag: "" # defaults to Chart.appVersion
-    pullPolicy: IfNotPresent
-
   # DLQ worker configuration (all mapped to environment variables)
   config:
-    # Full SQS queue URL for the DLQ (required to activate deployment)
+    # Full SQS queue URL or Pub/Sub subscription name (required to activate deployment)
     # When empty, the Deployment is not rendered even if enabled: true
     queueURL: ""
-    # Transport type (currently only "sqs" supported)
+    # Transport type: "sqs" or "pubsub"
     transport: sqs
-    # AWS region for SQS
+    # AWS region for SQS (required when transport=sqs)
     region: us-east-1
     # Gateway URL for reporting failure status (optional, empty = disabled)
     gatewayURL: ""
-    # S3 bucket for message persistence (optional, empty = stdout mode)
+    # S3 bucket for message persistence (optional, empty = stdout mode unless gcsBucket is set)
     s3Bucket: ""
     # Custom S3 endpoint for MinIO or LocalStack (optional)
     s3Endpoint: ""
     # S3 key prefix for stored messages (optional, default: dlq/)
     s3Prefix: ""
+    # GCP project ID (required when transport=pubsub)
+    pubsubProject: ""
+    # GCS bucket for message persistence (optional, takes precedence over s3Bucket)
+    gcsBucket: ""
+    # GCS key prefix for stored messages (optional, default: dlq/)
+    gcsPrefix: ""
     # Log level: DEBUG, INFO, WARN, ERROR (optional, default: INFO)
     logLevel: ""
 
@@ -335,9 +335,6 @@ dlq-worker:
 
   # Additional annotations for the Deployment
   annotations: {}
-
-  # Image pull secrets
-  imagePullSecrets: []
 
   # Service account configuration (for IRSA in production)
   serviceAccount:

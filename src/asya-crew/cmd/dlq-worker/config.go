@@ -9,14 +9,17 @@ import (
 
 // Config holds DLQ worker configuration loaded from environment variables.
 type Config struct {
-	QueueURL          string // DLQ_QUEUE_URL: Full SQS queue URL for the DLQ
-	Transport         string // DLQ_TRANSPORT: Transport type (sqs)
+	QueueURL          string // DLQ_QUEUE_URL: Full SQS queue URL or Pub/Sub subscription name
+	Transport         string // DLQ_TRANSPORT: Transport type (sqs, pubsub)
 	GatewayURL        string // GATEWAY_URL: Gateway base URL for status reporting (optional)
 	S3Bucket          string // S3_BUCKET: S3 bucket for message persistence
 	S3Endpoint        string // S3_ENDPOINT: Custom S3 endpoint for MinIO (optional)
 	S3Prefix          string // S3_PREFIX: Key prefix for stored messages (default: "dlq/")
 	S3Region          string // S3_REGION or AWS_REGION: S3 region
 	SQSRegion         string // SQS_REGION or AWS_REGION: SQS region
+	GCPProject        string // PUBSUB_PROJECT: GCP project ID (required when transport=pubsub)
+	GCSBucket         string // GCS_BUCKET: GCS bucket for message persistence (optional)
+	GCSPrefix         string // GCS_PREFIX: Key prefix for GCS stored messages (default: "dlq/")
 	LogLevel          string // LOG_LEVEL: Logging level (default: "INFO")
 	VisibilityTimeout int32  // VISIBILITY_TIMEOUT: SQS visibility timeout in seconds (default: 300)
 	WaitTimeSeconds   int32  // WAIT_TIME_SECONDS: SQS long polling wait time (default: 20)
@@ -34,12 +37,18 @@ func LoadFromEnv() (*Config, error) {
 		S3Prefix:   os.Getenv("S3_PREFIX"),
 		S3Region:   os.Getenv("S3_REGION"),
 		SQSRegion:  os.Getenv("SQS_REGION"),
+		GCPProject: os.Getenv("PUBSUB_PROJECT"),
+		GCSBucket:  os.Getenv("GCS_BUCKET"),
+		GCSPrefix:  os.Getenv("GCS_PREFIX"),
 		LogLevel:   os.Getenv("LOG_LEVEL"),
 	}
 
 	// Defaults
 	if cfg.S3Prefix == "" {
 		cfg.S3Prefix = "dlq/"
+	}
+	if cfg.GCSPrefix == "" {
+		cfg.GCSPrefix = "dlq/"
 	}
 	if cfg.LogLevel == "" {
 		cfg.LogLevel = "INFO"
@@ -80,10 +89,19 @@ func LoadFromEnv() (*Config, error) {
 	if cfg.Transport == "" {
 		missing = append(missing, "DLQ_TRANSPORT")
 	}
-	if cfg.SQSRegion == "" {
-		missing = append(missing, "SQS_REGION or AWS_REGION")
+
+	switch cfg.Transport {
+	case "sqs":
+		if cfg.SQSRegion == "" {
+			missing = append(missing, "SQS_REGION or AWS_REGION")
+		}
+	case "pubsub":
+		if cfg.GCPProject == "" {
+			missing = append(missing, "PUBSUB_PROJECT")
+		}
 	}
-	// S3_BUCKET is optional: when unset, messages are written to stdout
+
+	// S3_BUCKET is optional: when unset, messages are written to stdout (or GCS if GCS_BUCKET is set)
 	// S3_REGION is only required when S3_BUCKET is set
 	if cfg.S3Bucket != "" && cfg.S3Region == "" {
 		missing = append(missing, "S3_REGION or AWS_REGION (required when S3_BUCKET is set)")
@@ -94,8 +112,8 @@ func LoadFromEnv() (*Config, error) {
 	}
 
 	// Validate transport type
-	if cfg.Transport != "sqs" {
-		return nil, fmt.Errorf("unsupported DLQ_TRANSPORT: %q (supported: sqs)", cfg.Transport)
+	if cfg.Transport != "sqs" && cfg.Transport != "pubsub" {
+		return nil, fmt.Errorf("unsupported DLQ_TRANSPORT: %q (supported: sqs, pubsub)", cfg.Transport)
 	}
 
 	return cfg, nil
