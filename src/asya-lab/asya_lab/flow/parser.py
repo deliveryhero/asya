@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import ast
 import re
+from typing import TYPE_CHECKING
 
+from asya_lab.compiler.rules import TreatAs
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.ir import (
     ActorCall,
@@ -14,8 +16,8 @@ from asya_lab.flow.ir import (
     Continue,
     ExceptHandler,
     FanOutCall,
-    IROperation,
     InlineCode,
+    IROperation,
     Mutation,
     Raise,
     Return,
@@ -24,6 +26,10 @@ from asya_lab.flow.ir import (
     WithBlock,
 )
 from asya_lab.flow.rules import CompilerRule, CompilerRules
+
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
 
 
 _DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)")
@@ -66,7 +72,7 @@ class FlowParser:
         module_path: str = "",
         rules: CompilerRules | None = None,
         known_wrappers: frozenset[str] | None = None,
-        rule_engine: object | None = None,
+        rule_engine: RuleEngine | None = None,
     ):
         self.source_code = source_code
         self.filename = filename
@@ -86,7 +92,7 @@ class FlowParser:
         self._source_lines: list[str] = source_code.splitlines()
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
         self._decorator_index: dict[str, str] = {}
-        self._rule_engine = rule_engine
+        self._rule_engine: RuleEngine | None = rule_engine
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -354,7 +360,7 @@ class FlowParser:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
+    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | InlineCode | Mutation:
         call = stmt.value
         # Unwrap await: `p = await handler(p)` → extract the Call.
         # Track is_await before unwrapping so we can preserve it in generated code.
@@ -470,14 +476,14 @@ class FlowParser:
             qualified_name = self.import_map.get(actor_name, actor_name)
             treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
             if treat_as is not None:
-                from asya_lab.compiler.rules import TreatAs
                 if treat_as == TreatAs.INLINE:
                     return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
                 elif treat_as == TreatAs.CONFIG:
+                    from asya_lab.compiler.extractor import ValueExtractor
+
                     rule = self._rule_engine.get_rule(qualified_name, module_path=self.module_path or None)
                     extracted_values: dict[str, object] = {}
                     if rule is not None and rule.where is not None:
-                        from asya_lab.compiler.extractor import ValueExtractor
                         extracted_values = ValueExtractor(imports=self.import_map).extract(call, rule)
                     return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt), extracted_values=extracted_values)
                 elif treat_as == TreatAs.UNFOLD:

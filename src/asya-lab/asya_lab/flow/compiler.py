@@ -4,11 +4,16 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from asya_lab.flow.codegen import CodeGenerator
 from asya_lab.flow.dotgen import DotGenerator
 from asya_lab.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS, OperationGrouper, Router
 from asya_lab.flow.parser import FlowParser
+
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
 
 
 def _calculate_module_path(filename: str) -> str:
@@ -38,10 +43,15 @@ def _calculate_module_path(filename: str) -> str:
 
 
 class FlowCompiler:
-    def __init__(self, verbose: bool = False, max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS, rule_engine: object | None = None):
+    def __init__(
+        self,
+        verbose: bool = False,
+        max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS,
+        rule_engine: RuleEngine | None = None,
+    ):
         self.verbose = verbose
         self.max_iterations = max_iterations
-        self._rule_engine = rule_engine
+        self._rule_engine: RuleEngine | None = rule_engine
         self.warnings: list[str] = []
         self.flow_name: str | None = None
         self.routers: list[Router] = []

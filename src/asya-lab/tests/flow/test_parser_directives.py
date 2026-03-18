@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import ActorCall, InlineCode, Mutation
+from asya_lab.flow.ir import ActorCall, InlineCode
 from asya_lab.flow.parser import FlowParser
 
 
