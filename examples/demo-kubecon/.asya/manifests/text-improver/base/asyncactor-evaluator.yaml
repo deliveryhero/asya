@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: evaluator
+  namespace: asya-demo
+  labels:
+    asya.sh/flow: text-improver
+    asya.sh/flow-role: handler
+spec:
+  actor: evaluator
+  image: asya-demo:latest
+  handler: demo_actors.evaluator.evaluator
+  transport: pubsub
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: pubsub
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

@@ -1,3 +1,8 @@
+def flow(f):  # no-op: decorator used by compiler to mark flow entry points
+    return f
+
+
+@flow
 def test_nested_flow(p: dict) -> dict:
     p = validate_input(p)
 

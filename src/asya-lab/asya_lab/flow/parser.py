@@ -64,10 +64,12 @@ class FlowParser:
         self.is_async: bool = False  # Whether flow function is async def
         self.instances: dict[str, str] = {}  # Map instance variable to class name
         self.class_methods: set[str] = set()  # Track class method handlers
+        self.import_map: dict[str, str] = {}  # Map local name -> fully qualified module.name
         self._loop_depth: int = 0  # Track nesting depth for break/continue validation
         self._try_depth: int = 0  # Track nesting depth for nested try rejection
         self._except_depth: int = 0  # Track nesting depth for raise validation
         self.extracted_configs: list[dict] = []  # Config extractions from treat-as:config rules
+        self.module_constants: list[str] = []  # Module-level constant assignments
 
     def parse(self) -> tuple[str, list[IROperation]]:
         try:
@@ -75,9 +77,17 @@ class FlowParser:
         except SyntaxError as e:
             raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
 
+        self._collect_imports(tree)
+        self._collect_module_constants(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
-            raise FlowCompileError("No flow function found (signature: def name(p: dict) -> dict)")
+            raise FlowCompileError(
+                "No @flow function found. Mark the entry point with @flow:\n"
+                "\n"
+                "    @flow\n"
+                "    def my_flow(p: dict) -> dict:\n"
+                "        ..."
+            )
 
         self.flow_name = flow_func.name
         self.is_async = isinstance(flow_func, ast.AsyncFunctionDef)
@@ -97,19 +107,78 @@ class FlowParser:
         """Return set of handler names that are class methods."""
         return self.class_methods.copy()
 
-    def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
-        for node in tree.body:
-            if isinstance(node, _FUNC_DEF_TYPES) and self._is_flow_function(node):
-                return node
-        return None
+    def get_import_map(self) -> dict[str, str]:
+        """Return map of local name -> fully qualified module.name from flow imports."""
+        return dict(self.import_map)
 
-    def _is_flow_function(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+    def get_module_constants(self) -> list[str]:
+        """Return module-level constant assignments to include in generated code."""
+        return list(self.module_constants)
+
+    def _collect_imports(self, tree: ast.Module) -> None:
+        """Populate import_map from top-level `from X import Y` statements."""
+        for node in tree.body:
+            if isinstance(node, ast.ImportFrom) and node.module:
+                for alias in node.names:
+                    local_name = alias.asname if alias.asname else alias.name
+                    self.import_map[local_name] = f"{node.module}.{alias.name}"
+
+    def _collect_module_constants(self, tree: ast.Module) -> None:
+        """Collect module-level assignments of literal constants for inclusion in generated code.
+
+        Only simple assignments (NAME = literal) are collected. Complex expressions,
+        function calls, and class instantiations are skipped.
+        """
+        for node in tree.body:
+            if (
+                isinstance(node, ast.Assign)
+                and len(node.targets) == 1
+                and isinstance(node.targets[0], ast.Name)
+                and isinstance(node.value, ast.Constant)
+            ):
+                self.module_constants.append(ast.unparse(node))
+
+    def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+        candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
+        for node in tree.body:
+            if isinstance(node, _FUNC_DEF_TYPES) and self._has_flow_decorator(node):
+                candidates.append(node)
+
+        if len(candidates) > 1:
+            locs = ", ".join(f"{c.name}:{c.lineno}" for c in candidates)
+            raise FlowCompileError(f"Multiple @flow decorators found ({locs}); exactly one is required")
+
+        if not candidates:
+            return None
+
+        func = candidates[0]
+        # Strip @flow from decorator_list so it doesn't interfere with other processing
+        func.decorator_list = [d for d in func.decorator_list if not self._is_flow_decorator(d)]
+        self._validate_flow_signature(func)
+        return func
+
+    @staticmethod
+    def _is_flow_decorator(node: ast.expr) -> bool:
+        return isinstance(node, ast.Name) and node.id == "flow"
+
+    def _has_flow_decorator(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        return any(self._is_flow_decorator(d) for d in func.decorator_list)
+
+    def _validate_flow_signature(self, func: ast.FunctionDef | ast.AsyncFunctionDef) -> None:
         if len(func.args.args) != 1:
-            return False
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have exactly one parameter"
+            )
         arg = func.args.args[0]
         if arg.arg not in VALID_PARAM_NAMES:
-            return False
-        return bool(func.returns)
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' parameter must be "
+                f"one of {VALID_PARAM_NAMES}, got '{arg.arg}'"
+            )
+        if not func.returns:
+            raise FlowCompileError(
+                f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have a return type annotation"
+            )
 
     def _parse_body(self, stmts: list[ast.stmt]) -> list[IROperation]:
         operations = []

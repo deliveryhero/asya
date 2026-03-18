@@ -41,6 +41,10 @@ and a fan-in aggregator that collects all results.
 """
 
 import asyncio
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def map_reduce(state: dict) -> dict:

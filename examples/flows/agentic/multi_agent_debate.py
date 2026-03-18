@@ -45,6 +45,10 @@ each debater revises in parallel, then convergence is checked.
 """
 
 import asyncio
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def multi_agent_debate(state: dict) -> dict:

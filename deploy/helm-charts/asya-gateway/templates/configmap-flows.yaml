@@ -8,4 +8,7 @@ metadata:
     asya.sh/config-type: flows
 data:
   flows.yaml: |
-    {{- toYaml (dict "flows" .Values.flowsConfig.flows) | nindent 4 }}
+    flows:
+    {{- if .Values.exposedFlows }}
+    {{- .Values.exposedFlows | toYaml | nindent 4 }}
+    {{- end }}

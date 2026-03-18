@@ -123,18 +123,17 @@ migration:
       memory: 128Mi
   backoffLimit: 5
 
-# Flow registry ConfigMap configuration.
-# The gateway-flows ConfigMap is managed externally (by actors via RBAC or manually).
+# Flow registry: flows are registered by patching the gateway-flows ConfigMap
+# after deployment (via CLI, kubectl, or RBAC-authorized actors).
 # The gateway hot-reloads flows.yaml when the ConfigMap changes.
-flowsConfig:
-  # mountPath is the directory where flows.yaml is mounted inside the gateway containers.
-  mountPath: /etc/asya/flows
-  # exposerGroup is the Kubernetes Group bound to the flow-exposer RBAC Role,
-  # allowing members to patch the gateway-flows ConfigMap.
-  exposerGroup: "asya-flow-exposers"
-  # flows is the list of FlowConfig entries seeded into the gateway-flows ConfigMap at deploy time.
-  # Each entry maps to an MCP tool and/or A2A skill exposed by the gateway.
-  flows: []
+# To seed flows at deploy time, set `exposedFlows` to a list of flow definitions:
+#   exposedFlows:
+#   - name: my_flow
+#     entrypoint: my-actor
+#     ...
+# By default the ConfigMap starts empty; flows are added post-deploy via /mesh/expose.
+exposedFlows: []
+flowsExposerGroup: "asya-flow-exposers"
 
 # External database (if postgresql.enabled=false)
 # Leave host empty to use in-memory store (no persistence)

@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def data_pipeline(p: dict) -> dict:
     try:
         p = parse_input(p)

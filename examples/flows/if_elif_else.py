@@ -3,6 +3,10 @@ If-elif-else chain.
 
 Tests multi-branch conditional routing.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def if_elif_else_flow(p: dict) -> dict:

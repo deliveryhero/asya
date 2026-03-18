@@ -3,6 +3,10 @@ Early return in conditional.
 
 Tests early exit pattern for error handling.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def early_return_flow(p: dict) -> dict:

@@ -17,19 +17,22 @@ async def start_review_pipeline_flow(payload: dict):
     """Entrypoint for flow 'review_pipeline_flow'"""
     _next = []
     _next.append(resolve("initial_review"))
-    _next.append(resolve("router_review_pipeline_flow_line_13_if"))
+    _next.append(resolve("router_review_pipeline_flow_line_17_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_review_pipeline_flow_line_13_if(payload: dict):
+async def router_review_pipeline_flow_line_17_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['score'] < 0.5:
-        _next.append(resolve("detailed_review"))
-        _next.append(resolve("human_review"))
+        yield "SET", ".route.next", [resolve("detailed_review"), resolve("human_review")]
+        yield p
+        return
     else:
-        _next.append(resolve("auto_approve"))
+        yield "SET", ".route.next", [resolve("auto_approve")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

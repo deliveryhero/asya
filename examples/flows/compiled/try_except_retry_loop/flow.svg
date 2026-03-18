@@ -39,13 +39,13 @@
 <path fill="none" stroke="black" d="M555.75,-389.09C555.34,-377.17 554.89,-364.16 554.48,-352.37"/>
 <polygon fill="black" stroke="black" points="557.99,-352.45 554.14,-342.57 550.99,-352.69 557.99,-352.45"/>
 </g>
-<!-- router_retry_pipeline_line_13_seq -->
+<!-- router_retry_pipeline_line_17_seq -->
 <g id="node2" class="node">
-<title>router_retry_pipeline_line_13_seq</title>
+<title>router_retry_pipeline_line_17_seq</title>
 <path fill="wheat" stroke="black" d="M212.3,-82.3C212.3,-82.3 12,-82.3 12,-82.3 6,-82.3 0,-76.3 0,-70.3 0,-70.3 0,-12 0,-12 0,-6 6,0 12,0 12,0 212.3,0 212.3,0 218.3,0 224.3,-6 224.3,-12 224.3,-12 224.3,-70.3 224.3,-70.3 224.3,-76.3 218.3,-82.3 212.3,-82.3"/>
 <polygon fill="white" stroke="none" points="14.4,-41.15 14.4,-67.9 209.9,-67.9 209.9,-41.15 14.4,-41.15"/>
 <polygon fill="none" stroke="black" points="14.4,-41.15 14.4,-67.9 209.9,-67.9 209.9,-41.15 14.4,-41.15"/>
-<text text-anchor="start" x="21.4" y="-52.4" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_retry_pipeline_line_13_seq(p)</text>
+<text text-anchor="start" x="21.4" y="-52.4" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_retry_pipeline_line_17_seq(p)</text>
 <polygon fill="white" stroke="none" points="14.4,-14.4 14.4,-41.15 209.9,-41.15 209.9,-14.4 14.4,-14.4"/>
 <polygon fill="none" stroke="black" points="14.4,-14.4 14.4,-41.15 209.9,-41.15 209.9,-14.4 14.4,-14.4"/>
 <text text-anchor="start" x="21.4" y="-24.65" font-family="Courier,monospace" font-size="10.00">p[&#39;attempt&#39;] += 1</text>
@@ -58,32 +58,32 @@
 <polygon fill="none" stroke="black" points="325.65,-417.17 325.65,-443.92 444.65,-443.92 444.65,-417.17 325.65,-417.17"/>
 <text text-anchor="start" x="332.65" y="-428.42" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = call_external_api(p)</text>
 </g>
-<!-- router_retry_pipeline_line_13_seq&#45;&gt;call_external_api -->
+<!-- router_retry_pipeline_line_17_seq&#45;&gt;call_external_api -->
 <g id="edge9" class="edge">
-<title>router_retry_pipeline_line_13_seq&#45;&gt;call_external_api</title>
+<title>router_retry_pipeline_line_17_seq&#45;&gt;call_external_api</title>
 <path fill="none" stroke="black" d="M88.77,-82.74C56.43,-144.86 8.2,-264.34 66.15,-340.65 94.39,-377.84 215.26,-403.63 299.81,-417.51"/>
 <polygon fill="black" stroke="black" points="299.05,-420.93 309.47,-419.07 300.16,-414.02 299.05,-420.93"/>
 </g>
-<!-- router_retry_pipeline_line_12_while_0 -->
+<!-- router_retry_pipeline_line_16_while_0 -->
 <g id="node3" class="node">
-<title>router_retry_pipeline_line_12_while_0</title>
-<path fill="wheat" stroke="black" d="M430.05,-248.1C430.05,-248.1 210.25,-248.1 210.25,-248.1 204.25,-248.1 198.25,-242.1 198.25,-236.1 198.25,-236.1 198.25,-143.05 198.25,-143.05 198.25,-137.05 204.25,-131.05 210.25,-131.05 210.25,-131.05 430.05,-131.05 430.05,-131.05 436.05,-131.05 442.05,-137.05 442.05,-143.05 442.05,-143.05 442.05,-236.1 442.05,-236.1 442.05,-242.1 436.05,-248.1 430.05,-248.1"/>
-<polygon fill="white" stroke="none" points="212.65,-206.95 212.65,-233.7 427.65,-233.7 427.65,-206.95 212.65,-206.95"/>
-<polygon fill="none" stroke="black" points="212.65,-206.95 212.65,-233.7 427.65,-233.7 427.65,-206.95 212.65,-206.95"/>
-<text text-anchor="start" x="219.65" y="-218.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_retry_pipeline_line_12_while_0(p)</text>
-<polygon fill="lightyellow" stroke="none" points="212.65,-180.2 212.65,-206.95 427.65,-206.95 427.65,-180.2 212.65,-180.2"/>
-<polygon fill="none" stroke="black" points="212.65,-180.2 212.65,-206.95 427.65,-206.95 427.65,-180.2 212.65,-180.2"/>
+<title>router_retry_pipeline_line_16_while_0</title>
+<path fill="wheat" stroke="black" d="M430.42,-248.1C430.42,-248.1 209.87,-248.1 209.87,-248.1 203.87,-248.1 197.87,-242.1 197.87,-236.1 197.87,-236.1 197.87,-143.05 197.87,-143.05 197.87,-137.05 203.87,-131.05 209.87,-131.05 209.87,-131.05 430.42,-131.05 430.42,-131.05 436.42,-131.05 442.42,-137.05 442.42,-143.05 442.42,-143.05 442.42,-236.1 442.42,-236.1 442.42,-242.1 436.42,-248.1 430.42,-248.1"/>
+<polygon fill="white" stroke="none" points="212.27,-206.95 212.27,-233.7 428.02,-233.7 428.02,-206.95 212.27,-206.95"/>
+<polygon fill="none" stroke="black" points="212.27,-206.95 212.27,-233.7 428.02,-233.7 428.02,-206.95 212.27,-206.95"/>
+<text text-anchor="start" x="219.27" y="-218.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_retry_pipeline_line_16_while_0(p)</text>
+<polygon fill="lightyellow" stroke="none" points="212.27,-180.2 212.27,-206.95 428.02,-206.95 428.02,-180.2 212.27,-180.2"/>
+<polygon fill="none" stroke="black" points="212.27,-180.2 212.27,-206.95 428.02,-206.95 428.02,-180.2 212.27,-180.2"/>
 <text text-anchor="start" x="280.4" y="-191.45" font-family="Courier,monospace" font-weight="bold" font-size="10.00">if</text>
 <text text-anchor="start" x="287.15" y="-191.45" font-family="Courier,monospace" font-size="10.00"> p[&#39;attempt&#39;] &lt; 3</text>
-<polygon fill="none" stroke="black" points="212.65,-145.45 212.65,-180.2 427.65,-180.2 427.65,-145.45 212.65,-145.45"/>
-<polygon fill="#698b69" stroke="none" points="219.65,-152.45 219.65,-173.2 317.9,-173.2 317.9,-152.45 219.65,-152.45"/>
-<text text-anchor="start" x="256.02" y="-160.7" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
-<polygon fill="#8b3a3a" stroke="none" points="317.9,-152.45 317.9,-173.2 420.65,-173.2 420.65,-152.45 317.9,-152.45"/>
-<text text-anchor="start" x="354.27" y="-160.7" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
+<polygon fill="none" stroke="black" points="212.27,-145.45 212.27,-180.2 428.02,-180.2 428.02,-145.45 212.27,-145.45"/>
+<polygon fill="#698b69" stroke="none" points="219.27,-152.45 219.27,-173.2 317.9,-173.2 317.9,-152.45 219.27,-152.45"/>
+<text text-anchor="start" x="255.84" y="-160.7" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">TRUE</text>
+<polygon fill="#8b3a3a" stroke="none" points="317.9,-152.45 317.9,-173.2 421.02,-173.2 421.02,-152.45 317.9,-152.45"/>
+<text text-anchor="start" x="354.46" y="-160.7" font-family="Courier,monospace" font-weight="bold" font-size="10.00" fill="white">FALSE</text>
 </g>
-<!-- router_retry_pipeline_line_12_while_0&#45;&gt;router_retry_pipeline_line_13_seq -->
+<!-- router_retry_pipeline_line_16_while_0&#45;&gt;router_retry_pipeline_line_17_seq -->
 <g id="edge8" class="edge">
-<title>router_retry_pipeline_line_12_while_0&#45;&gt;router_retry_pipeline_line_13_seq</title>
+<title>router_retry_pipeline_line_16_while_0&#45;&gt;router_retry_pipeline_line_17_seq</title>
 <path fill="none" stroke="#698b69" d="M237.94,-130.7C218.42,-116.96 197.82,-102.46 179.07,-89.26"/>
 <polygon fill="#698b69" stroke="#698b69" points="181.17,-86.46 170.98,-83.56 177.14,-92.18 181.17,-86.46"/>
 <text text-anchor="middle" x="212.91" y="-103.55" font-family="Courier,monospace" font-size="10.00">T</text>
@@ -96,9 +96,9 @@
 <polygon fill="none" stroke="black" points="256.52,-27.77 256.52,-54.52 383.77,-54.52 383.77,-27.77 256.52,-27.77"/>
 <text text-anchor="start" x="263.52" y="-39.02" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = end_retry_pipeline(p)</text>
 </g>
-<!-- router_retry_pipeline_line_12_while_0&#45;&gt;end_retry_pipeline -->
+<!-- router_retry_pipeline_line_16_while_0&#45;&gt;end_retry_pipeline -->
 <g id="edge7" class="edge">
-<title>router_retry_pipeline_line_12_while_0&#45;&gt;end_retry_pipeline</title>
+<title>router_retry_pipeline_line_16_while_0&#45;&gt;end_retry_pipeline</title>
 <path fill="none" stroke="#8b3a3a" d="M320.15,-130.7C320.15,-113.76 320.15,-95.67 320.15,-80.28"/>
 <polygon fill="#8b3a3a" stroke="#8b3a3a" points="323.65,-80.62 320.15,-70.62 316.65,-80.62 323.65,-80.62"/>
 <text text-anchor="middle" x="323.15" y="-103.55" font-family="Courier,monospace" font-size="10.00">F</text>
@@ -111,15 +111,15 @@
 <polygon fill="none" stroke="black" points="89.28,-299.5 89.28,-326.25 173.03,-326.25 173.03,-299.5 89.28,-299.5"/>
 <text text-anchor="start" x="96.28" y="-310.75" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = log_retry(p)</text>
 </g>
-<!-- log_retry&#45;&gt;router_retry_pipeline_line_12_while_0 -->
+<!-- log_retry&#45;&gt;router_retry_pipeline_line_16_while_0 -->
 <g id="edge5" class="edge">
-<title>log_retry&#45;&gt;router_retry_pipeline_line_12_while_0</title>
+<title>log_retry&#45;&gt;router_retry_pipeline_line_16_while_0</title>
 <path fill="none" stroke="black" d="M173.57,-284.65C187.71,-275.58 204.11,-265.05 220.72,-254.39"/>
 <polygon fill="black" stroke="black" points="222.16,-257.63 228.68,-249.28 218.37,-251.74 222.16,-257.63"/>
 </g>
-<!-- prepare_request&#45;&gt;router_retry_pipeline_line_12_while_0 -->
+<!-- prepare_request&#45;&gt;router_retry_pipeline_line_16_while_0 -->
 <g id="edge6" class="edge">
-<title>prepare_request&#45;&gt;router_retry_pipeline_line_12_while_0</title>
+<title>prepare_request&#45;&gt;router_retry_pipeline_line_16_while_0</title>
 <path fill="none" stroke="black" d="M500.86,-284.65C483.02,-275.37 462.26,-264.56 441.31,-253.65"/>
 <polygon fill="black" stroke="black" points="443.17,-250.67 432.69,-249.16 439.94,-256.88 443.17,-250.67"/>
 </g>
@@ -137,9 +137,9 @@
 <polygon fill="none" stroke="black" points="326.02,-299.5 326.02,-326.25 444.27,-326.25 444.27,-299.5 326.02,-299.5"/>
 <text text-anchor="start" x="333.02" y="-310.75" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = call_another_api(p)</text>
 </g>
-<!-- call_another_api&#45;&gt;router_retry_pipeline_line_12_while_0 -->
+<!-- call_another_api&#45;&gt;router_retry_pipeline_line_16_while_0 -->
 <g id="edge3" class="edge">
-<title>call_another_api&#45;&gt;router_retry_pipeline_line_12_while_0</title>
+<title>call_another_api&#45;&gt;router_retry_pipeline_line_16_while_0</title>
 <path fill="none" stroke="black" d="M370.56,-284.65C366.33,-276.75 361.51,-267.75 356.56,-258.52"/>
 <polygon fill="black" stroke="black" points="359.69,-256.96 351.88,-249.8 353.52,-260.26 359.69,-256.96"/>
 </g>

@@ -5,167 +5,167 @@
  -->
 <!-- Title: flow Pages: 1 -->
 <svg width="303pt" height="1013pt"
- viewBox="0.00 0.00 302.80 1013.45" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ viewBox="0.00 0.00 303.18 1013.45" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 1009.45)">
 <title>flow</title>
-<polygon fill="white" stroke="none" points="-4,4 -4,-1009.45 298.8,-1009.45 298.8,4 -4,4"/>
+<polygon fill="white" stroke="none" points="-4,4 -4,-1009.45 299.18,-1009.45 299.18,4 -4,4"/>
 <!-- start_multi_stage_flow -->
 <g id="node1" class="node">
 <title>start_multi_stage_flow</title>
-<path fill="lightgreen" stroke="black" d="M191.05,-1005.45C191.05,-1005.45 39.5,-1005.45 39.5,-1005.45 33.5,-1005.45 27.5,-999.45 27.5,-993.45 27.5,-993.45 27.5,-961.9 27.5,-961.9 27.5,-955.9 33.5,-949.9 39.5,-949.9 39.5,-949.9 191.05,-949.9 191.05,-949.9 197.05,-949.9 203.05,-955.9 203.05,-961.9 203.05,-961.9 203.05,-993.45 203.05,-993.45 203.05,-999.45 197.05,-1005.45 191.05,-1005.45"/>
-<polygon fill="white" stroke="none" points="41.9,-964.3 41.9,-991.05 188.65,-991.05 188.65,-964.3 41.9,-964.3"/>
-<polygon fill="none" stroke="black" points="41.9,-964.3 41.9,-991.05 188.65,-991.05 188.65,-964.3 41.9,-964.3"/>
-<text text-anchor="start" x="48.9" y="-975.55" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = start_multi_stage_flow(p)</text>
+<path fill="lightgreen" stroke="black" d="M191.43,-1005.45C191.43,-1005.45 39.88,-1005.45 39.88,-1005.45 33.88,-1005.45 27.88,-999.45 27.88,-993.45 27.88,-993.45 27.88,-961.9 27.88,-961.9 27.88,-955.9 33.88,-949.9 39.88,-949.9 39.88,-949.9 191.43,-949.9 191.43,-949.9 197.43,-949.9 203.43,-955.9 203.43,-961.9 203.43,-961.9 203.43,-993.45 203.43,-993.45 203.43,-999.45 197.43,-1005.45 191.43,-1005.45"/>
+<polygon fill="white" stroke="none" points="42.28,-964.3 42.28,-991.05 189.03,-991.05 189.03,-964.3 42.28,-964.3"/>
+<polygon fill="none" stroke="black" points="42.28,-964.3 42.28,-991.05 189.03,-991.05 189.03,-964.3 42.28,-964.3"/>
+<text text-anchor="start" x="49.28" y="-975.55" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = start_multi_stage_flow(p)</text>
 </g>
-<!-- fanout_multi_stage_flow_line_11 -->
+<!-- fanout_multi_stage_flow_line_15 -->
 <g id="node3" class="node">
-<title>fanout_multi_stage_flow_line_11</title>
-<path fill="lightblue" stroke="black" d="M213.55,-912.9C213.55,-912.9 17,-912.9 17,-912.9 11,-912.9 5,-906.9 5,-900.9 5,-900.9 5,-815.85 5,-815.85 5,-809.85 11,-803.85 17,-803.85 17,-803.85 213.55,-803.85 213.55,-803.85 219.55,-803.85 225.55,-809.85 225.55,-815.85 225.55,-815.85 225.55,-900.9 225.55,-900.9 225.55,-906.9 219.55,-912.9 213.55,-912.9"/>
-<polygon fill="white" stroke="none" points="19.4,-871.75 19.4,-898.5 211.15,-898.5 211.15,-871.75 19.4,-871.75"/>
-<polygon fill="none" stroke="black" points="19.4,-871.75 19.4,-898.5 211.15,-898.5 211.15,-871.75 19.4,-871.75"/>
-<text text-anchor="start" x="26.4" y="-883" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanout_multi_stage_flow_line_11(p)</text>
-<polygon fill="#9f79ee" stroke="none" points="19.4,-845 19.4,-871.75 211.15,-871.75 211.15,-845 19.4,-845"/>
-<polygon fill="none" stroke="black" points="19.4,-845 19.4,-871.75 211.15,-871.75 211.15,-845 19.4,-845"/>
-<text text-anchor="start" x="57.15" y="-856.25" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:comprehension]</text>
-<polygon fill="#8968cd" stroke="none" points="19.4,-818.25 19.4,-845 211.15,-845 211.15,-818.25 19.4,-818.25"/>
-<polygon fill="none" stroke="black" points="19.4,-818.25 19.4,-845 211.15,-845 211.15,-818.25 19.4,-818.25"/>
+<title>fanout_multi_stage_flow_line_15</title>
+<path fill="lightblue" stroke="black" d="M214.3,-912.9C214.3,-912.9 17,-912.9 17,-912.9 11,-912.9 5,-906.9 5,-900.9 5,-900.9 5,-815.85 5,-815.85 5,-809.85 11,-803.85 17,-803.85 17,-803.85 214.3,-803.85 214.3,-803.85 220.3,-803.85 226.3,-809.85 226.3,-815.85 226.3,-815.85 226.3,-900.9 226.3,-900.9 226.3,-906.9 220.3,-912.9 214.3,-912.9"/>
+<polygon fill="white" stroke="none" points="19.4,-871.75 19.4,-898.5 211.9,-898.5 211.9,-871.75 19.4,-871.75"/>
+<polygon fill="none" stroke="black" points="19.4,-871.75 19.4,-898.5 211.9,-898.5 211.9,-871.75 19.4,-871.75"/>
+<text text-anchor="start" x="26.4" y="-883" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanout_multi_stage_flow_line_15(p)</text>
+<polygon fill="#9f79ee" stroke="none" points="19.4,-845 19.4,-871.75 211.9,-871.75 211.9,-845 19.4,-845"/>
+<polygon fill="none" stroke="black" points="19.4,-845 19.4,-871.75 211.9,-871.75 211.9,-845 19.4,-845"/>
+<text text-anchor="start" x="57.53" y="-856.25" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:comprehension]</text>
+<polygon fill="#8968cd" stroke="none" points="19.4,-818.25 19.4,-845 211.9,-845 211.9,-818.25 19.4,-818.25"/>
+<polygon fill="none" stroke="black" points="19.4,-818.25 19.4,-845 211.9,-845 211.9,-818.25 19.4,-818.25"/>
 <text text-anchor="start" x="26.4" y="-828.5" font-family="Courier,monospace" font-size="10.00">for t in p[&#39;topics&#39;]</text>
 </g>
-<!-- start_multi_stage_flow&#45;&gt;fanout_multi_stage_flow_line_11 -->
+<!-- start_multi_stage_flow&#45;&gt;fanout_multi_stage_flow_line_15 -->
 <g id="edge9" class="edge">
-<title>start_multi_stage_flow&#45;&gt;fanout_multi_stage_flow_line_11</title>
-<path fill="none" stroke="black" d="M115.28,-949.47C115.28,-941.94 115.28,-933.43 115.28,-924.72"/>
-<polygon fill="black" stroke="black" points="118.78,-924.73 115.28,-914.73 111.78,-924.73 118.78,-924.73"/>
+<title>start_multi_stage_flow&#45;&gt;fanout_multi_stage_flow_line_15</title>
+<path fill="none" stroke="black" d="M115.65,-949.47C115.65,-941.94 115.65,-933.43 115.65,-924.72"/>
+<polygon fill="black" stroke="black" points="119.15,-924.73 115.65,-914.73 112.15,-924.73 119.15,-924.73"/>
 </g>
-<!-- fanout_multi_stage_flow_line_12 -->
+<!-- fanout_multi_stage_flow_line_16 -->
 <g id="node2" class="node">
-<title>fanout_multi_stage_flow_line_12</title>
-<path fill="lightblue" stroke="black" d="M209.93,-530.5C209.93,-530.5 12.62,-530.5 12.62,-530.5 6.62,-530.5 0.63,-524.5 0.63,-518.5 0.63,-518.5 0.63,-433.45 0.63,-433.45 0.63,-427.45 6.63,-421.45 12.63,-421.45 12.63,-421.45 209.93,-421.45 209.93,-421.45 215.93,-421.45 221.93,-427.45 221.93,-433.45 221.93,-433.45 221.93,-518.5 221.93,-518.5 221.93,-524.5 215.93,-530.5 209.93,-530.5"/>
-<polygon fill="white" stroke="none" points="15.03,-489.35 15.03,-516.1 207.53,-516.1 207.53,-489.35 15.03,-489.35"/>
-<polygon fill="none" stroke="black" points="15.03,-489.35 15.03,-516.1 207.53,-516.1 207.53,-489.35 15.03,-489.35"/>
-<text text-anchor="start" x="22.03" y="-500.6" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanout_multi_stage_flow_line_12(p)</text>
-<polygon fill="#9f79ee" stroke="none" points="15.03,-462.6 15.03,-489.35 207.53,-489.35 207.53,-462.6 15.03,-462.6"/>
-<polygon fill="none" stroke="black" points="15.03,-462.6 15.03,-489.35 207.53,-489.35 207.53,-462.6 15.03,-462.6"/>
-<text text-anchor="start" x="53.15" y="-473.85" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:comprehension]</text>
-<polygon fill="#8968cd" stroke="none" points="15.03,-435.85 15.03,-462.6 207.53,-462.6 207.53,-435.85 15.03,-435.85"/>
-<polygon fill="none" stroke="black" points="15.03,-435.85 15.03,-462.6 207.53,-462.6 207.53,-435.85 15.03,-435.85"/>
+<title>fanout_multi_stage_flow_line_16</title>
+<path fill="lightblue" stroke="black" d="M210.68,-530.5C210.68,-530.5 12.62,-530.5 12.62,-530.5 6.62,-530.5 0.62,-524.5 0.62,-518.5 0.62,-518.5 0.62,-433.45 0.62,-433.45 0.62,-427.45 6.62,-421.45 12.62,-421.45 12.62,-421.45 210.68,-421.45 210.68,-421.45 216.68,-421.45 222.68,-427.45 222.68,-433.45 222.68,-433.45 222.68,-518.5 222.68,-518.5 222.68,-524.5 216.68,-530.5 210.68,-530.5"/>
+<polygon fill="white" stroke="none" points="15.03,-489.35 15.03,-516.1 208.28,-516.1 208.28,-489.35 15.03,-489.35"/>
+<polygon fill="none" stroke="black" points="15.03,-489.35 15.03,-516.1 208.28,-516.1 208.28,-489.35 15.03,-489.35"/>
+<text text-anchor="start" x="22.03" y="-500.6" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanout_multi_stage_flow_line_16(p)</text>
+<polygon fill="#9f79ee" stroke="none" points="15.03,-462.6 15.03,-489.35 208.28,-489.35 208.28,-462.6 15.03,-462.6"/>
+<polygon fill="none" stroke="black" points="15.03,-462.6 15.03,-489.35 208.28,-489.35 208.28,-462.6 15.03,-462.6"/>
+<text text-anchor="start" x="53.53" y="-473.85" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:comprehension]</text>
+<polygon fill="#8968cd" stroke="none" points="15.03,-435.85 15.03,-462.6 208.28,-462.6 208.28,-435.85 15.03,-435.85"/>
+<polygon fill="none" stroke="black" points="15.03,-435.85 15.03,-462.6 208.28,-462.6 208.28,-435.85 15.03,-435.85"/>
 <text text-anchor="start" x="22.03" y="-446.1" font-family="Courier,monospace" font-size="10.00">for r in p[&#39;research&#39;]</text>
 </g>
-<!-- fanin_multi_stage_flow_line_12 -->
+<!-- fanin_multi_stage_flow_line_16 -->
 <g id="node6" class="node">
-<title>fanin_multi_stage_flow_line_12</title>
-<path fill="lightblue" stroke="black" d="M202.55,-267.4C202.55,-267.4 12,-267.4 12,-267.4 6,-267.4 0,-261.4 0,-255.4 0,-255.4 0,-197.1 0,-197.1 0,-191.1 6,-185.1 12,-185.1 12,-185.1 202.55,-185.1 202.55,-185.1 208.55,-185.1 214.55,-191.1 214.55,-197.1 214.55,-197.1 214.55,-255.4 214.55,-255.4 214.55,-261.4 208.55,-267.4 202.55,-267.4"/>
-<polygon fill="white" stroke="none" points="14.4,-226.25 14.4,-253 200.15,-253 200.15,-226.25 14.4,-226.25"/>
-<polygon fill="none" stroke="black" points="14.4,-226.25 14.4,-253 200.15,-253 200.15,-226.25 14.4,-226.25"/>
-<text text-anchor="start" x="21.4" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanin_multi_stage_flow_line_12(p)</text>
-<polygon fill="#ab82ff" stroke="none" points="14.4,-199.5 14.4,-226.25 200.15,-226.25 200.15,-199.5 14.4,-199.5"/>
-<polygon fill="none" stroke="black" points="14.4,-199.5 14.4,-226.25 200.15,-226.25 200.15,-199.5 14.4,-199.5"/>
-<text text-anchor="start" x="89.65" y="-210.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
+<title>fanin_multi_stage_flow_line_16</title>
+<path fill="lightblue" stroke="black" d="M203.3,-267.4C203.3,-267.4 12,-267.4 12,-267.4 6,-267.4 0,-261.4 0,-255.4 0,-255.4 0,-197.1 0,-197.1 0,-191.1 6,-185.1 12,-185.1 12,-185.1 203.3,-185.1 203.3,-185.1 209.3,-185.1 215.3,-191.1 215.3,-197.1 215.3,-197.1 215.3,-255.4 215.3,-255.4 215.3,-261.4 209.3,-267.4 203.3,-267.4"/>
+<polygon fill="white" stroke="none" points="14.4,-226.25 14.4,-253 200.9,-253 200.9,-226.25 14.4,-226.25"/>
+<polygon fill="none" stroke="black" points="14.4,-226.25 14.4,-253 200.9,-253 200.9,-226.25 14.4,-226.25"/>
+<text text-anchor="start" x="21.4" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanin_multi_stage_flow_line_16(p)</text>
+<polygon fill="#ab82ff" stroke="none" points="14.4,-199.5 14.4,-226.25 200.9,-226.25 200.9,-199.5 14.4,-199.5"/>
+<polygon fill="none" stroke="black" points="14.4,-199.5 14.4,-226.25 200.9,-226.25 200.9,-199.5 14.4,-199.5"/>
+<text text-anchor="start" x="90.03" y="-210.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
 </g>
-<!-- fanout_multi_stage_flow_line_12&#45;&gt;fanin_multi_stage_flow_line_12 -->
+<!-- fanout_multi_stage_flow_line_16&#45;&gt;fanin_multi_stage_flow_line_16 -->
 <g id="edge5" class="edge">
-<title>fanout_multi_stage_flow_line_12&#45;&gt;fanin_multi_stage_flow_line_12</title>
-<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M107.32,-421.17C106.08,-401.87 104.88,-379.95 104.28,-359.95 103.52,-335.27 103.8,-329.08 104.28,-304.4 104.43,-296.2 104.69,-287.51 104.98,-279.04"/>
-<polygon fill="#5d478b" stroke="#5d478b" points="108.48,-279.32 105.35,-269.19 101.48,-279.06 108.48,-279.32"/>
-<text text-anchor="middle" x="122.28" y="-335.43" font-family="Courier,monospace" font-size="10.00">slice 0</text>
-<text text-anchor="middle" x="122.28" y="-322.68" font-family="Courier,monospace" font-size="10.00">(parent)</text>
+<title>fanout_multi_stage_flow_line_16&#45;&gt;fanin_multi_stage_flow_line_16</title>
+<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M107.7,-421.17C106.46,-401.87 105.26,-379.95 104.65,-359.95 103.9,-335.27 104.17,-329.08 104.65,-304.4 104.81,-296.2 105.06,-287.51 105.36,-279.04"/>
+<polygon fill="#5d478b" stroke="#5d478b" points="108.85,-279.32 105.73,-269.19 101.86,-279.06 108.85,-279.32"/>
+<text text-anchor="middle" x="122.65" y="-335.43" font-family="Courier,monospace" font-size="10.00">slice 0</text>
+<text text-anchor="middle" x="122.65" y="-322.68" font-family="Courier,monospace" font-size="10.00">(parent)</text>
 </g>
 <!-- review_agent -->
 <g id="node8" class="node">
 <title>review_agent</title>
-<path fill="lightblue" stroke="black" d="M268.93,-359.95C268.93,-359.95 161.62,-359.95 161.62,-359.95 155.62,-359.95 149.62,-353.95 149.62,-347.95 149.62,-347.95 149.62,-316.4 149.62,-316.4 149.62,-310.4 155.62,-304.4 161.62,-304.4 161.62,-304.4 268.93,-304.4 268.93,-304.4 274.93,-304.4 280.93,-310.4 280.93,-316.4 280.93,-316.4 280.93,-347.95 280.93,-347.95 280.93,-353.95 274.93,-359.95 268.93,-359.95"/>
-<polygon fill="white" stroke="none" points="164.03,-318.8 164.03,-345.55 266.52,-345.55 266.52,-318.8 164.03,-318.8"/>
-<polygon fill="none" stroke="black" points="164.03,-318.8 164.03,-345.55 266.52,-345.55 266.52,-318.8 164.03,-318.8"/>
-<text text-anchor="start" x="171.03" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = review_agent(p)</text>
+<path fill="lightblue" stroke="black" d="M269.3,-359.95C269.3,-359.95 162,-359.95 162,-359.95 156,-359.95 150,-353.95 150,-347.95 150,-347.95 150,-316.4 150,-316.4 150,-310.4 156,-304.4 162,-304.4 162,-304.4 269.3,-304.4 269.3,-304.4 275.3,-304.4 281.3,-310.4 281.3,-316.4 281.3,-316.4 281.3,-347.95 281.3,-347.95 281.3,-353.95 275.3,-359.95 269.3,-359.95"/>
+<polygon fill="white" stroke="none" points="164.4,-318.8 164.4,-345.55 266.9,-345.55 266.9,-318.8 164.4,-318.8"/>
+<polygon fill="none" stroke="black" points="164.4,-318.8 164.4,-345.55 266.9,-345.55 266.9,-318.8 164.4,-318.8"/>
+<text text-anchor="start" x="171.4" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = review_agent(p)</text>
 </g>
-<!-- fanout_multi_stage_flow_line_12&#45;&gt;review_agent -->
+<!-- fanout_multi_stage_flow_line_16&#45;&gt;review_agent -->
 <g id="edge6" class="edge">
-<title>fanout_multi_stage_flow_line_12&#45;&gt;review_agent</title>
-<path fill="none" stroke="#5d478b" stroke-width="2" d="M150.89,-420.96C163.65,-403.56 177.47,-384.71 189.03,-368.96"/>
-<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="190.66,-372.65 193.75,-362.52 185.02,-368.51 190.66,-372.65"/>
-<text text-anchor="middle" x="200.76" y="-393.95" font-family="Courier,monospace" font-size="10.00">slice 1..N</text>
-<text text-anchor="middle" x="200.76" y="-381.2" font-family="Courier,monospace" font-size="10.00">(per r)</text>
+<title>fanout_multi_stage_flow_line_16&#45;&gt;review_agent</title>
+<path fill="none" stroke="#5d478b" stroke-width="2" d="M151.26,-420.96C164.03,-403.56 177.85,-384.71 189.4,-368.96"/>
+<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="191.04,-372.65 194.13,-362.52 185.39,-368.51 191.04,-372.65"/>
+<text text-anchor="middle" x="201.14" y="-393.95" font-family="Courier,monospace" font-size="10.00">slice 1..N</text>
+<text text-anchor="middle" x="201.14" y="-381.2" font-family="Courier,monospace" font-size="10.00">(per r)</text>
 </g>
-<!-- fanin_multi_stage_flow_line_11 -->
+<!-- fanin_multi_stage_flow_line_15 -->
 <g id="node5" class="node">
-<title>fanin_multi_stage_flow_line_11</title>
-<path fill="lightblue" stroke="black" d="M206.18,-649.8C206.18,-649.8 16.38,-649.8 16.38,-649.8 10.38,-649.8 4.38,-643.8 4.38,-637.8 4.38,-637.8 4.38,-579.5 4.38,-579.5 4.38,-573.5 10.38,-567.5 16.38,-567.5 16.38,-567.5 206.18,-567.5 206.18,-567.5 212.18,-567.5 218.18,-573.5 218.18,-579.5 218.18,-579.5 218.18,-637.8 218.18,-637.8 218.18,-643.8 212.18,-649.8 206.18,-649.8"/>
-<polygon fill="white" stroke="none" points="18.78,-608.65 18.78,-635.4 203.78,-635.4 203.78,-608.65 18.78,-608.65"/>
-<polygon fill="none" stroke="black" points="18.78,-608.65 18.78,-635.4 203.78,-635.4 203.78,-608.65 18.78,-608.65"/>
-<text text-anchor="start" x="25.78" y="-619.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanin_multi_stage_flow_line_11(p)</text>
-<polygon fill="#ab82ff" stroke="none" points="18.78,-581.9 18.78,-608.65 203.78,-608.65 203.78,-581.9 18.78,-581.9"/>
-<polygon fill="none" stroke="black" points="18.78,-581.9 18.78,-608.65 203.78,-608.65 203.78,-581.9 18.78,-581.9"/>
-<text text-anchor="start" x="93.65" y="-593.15" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
+<title>fanin_multi_stage_flow_line_15</title>
+<path fill="lightblue" stroke="black" d="M206.93,-649.8C206.93,-649.8 16.38,-649.8 16.38,-649.8 10.38,-649.8 4.38,-643.8 4.38,-637.8 4.38,-637.8 4.38,-579.5 4.38,-579.5 4.38,-573.5 10.38,-567.5 16.38,-567.5 16.38,-567.5 206.93,-567.5 206.93,-567.5 212.93,-567.5 218.93,-573.5 218.93,-579.5 218.93,-579.5 218.93,-637.8 218.93,-637.8 218.93,-643.8 212.93,-649.8 206.93,-649.8"/>
+<polygon fill="white" stroke="none" points="18.78,-608.65 18.78,-635.4 204.53,-635.4 204.53,-608.65 18.78,-608.65"/>
+<polygon fill="none" stroke="black" points="18.78,-608.65 18.78,-635.4 204.53,-635.4 204.53,-608.65 18.78,-608.65"/>
+<text text-anchor="start" x="25.78" y="-619.9" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = fanin_multi_stage_flow_line_15(p)</text>
+<polygon fill="#ab82ff" stroke="none" points="18.78,-581.9 18.78,-608.65 204.53,-608.65 204.53,-581.9 18.78,-581.9"/>
+<polygon fill="none" stroke="black" points="18.78,-581.9 18.78,-608.65 204.53,-608.65 204.53,-581.9 18.78,-581.9"/>
+<text text-anchor="start" x="94.03" y="-593.15" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
 </g>
-<!-- fanout_multi_stage_flow_line_11&#45;&gt;fanin_multi_stage_flow_line_11 -->
+<!-- fanout_multi_stage_flow_line_15&#45;&gt;fanin_multi_stage_flow_line_15 -->
 <g id="edge3" class="edge">
-<title>fanout_multi_stage_flow_line_11&#45;&gt;fanin_multi_stage_flow_line_11</title>
-<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M111.32,-803.57C110.08,-784.27 108.88,-762.35 108.28,-742.35 107.52,-717.67 107.8,-711.48 108.28,-686.8 108.43,-678.6 108.69,-669.91 108.98,-661.44"/>
-<polygon fill="#5d478b" stroke="#5d478b" points="112.48,-661.72 109.35,-651.59 105.48,-661.46 112.48,-661.72"/>
-<text text-anchor="middle" x="126.28" y="-717.82" font-family="Courier,monospace" font-size="10.00">slice 0</text>
-<text text-anchor="middle" x="126.28" y="-705.07" font-family="Courier,monospace" font-size="10.00">(parent)</text>
+<title>fanout_multi_stage_flow_line_15&#45;&gt;fanin_multi_stage_flow_line_15</title>
+<path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M111.7,-803.57C110.46,-784.27 109.26,-762.35 108.65,-742.35 107.9,-717.67 108.17,-711.48 108.65,-686.8 108.81,-678.6 109.06,-669.91 109.36,-661.44"/>
+<polygon fill="#5d478b" stroke="#5d478b" points="112.85,-661.72 109.73,-651.59 105.86,-661.46 112.85,-661.72"/>
+<text text-anchor="middle" x="126.65" y="-717.82" font-family="Courier,monospace" font-size="10.00">slice 0</text>
+<text text-anchor="middle" x="126.65" y="-705.07" font-family="Courier,monospace" font-size="10.00">(parent)</text>
 </g>
 <!-- research_agent -->
 <g id="node7" class="node">
 <title>research_agent</title>
-<path fill="lightblue" stroke="black" d="M282.8,-742.35C282.8,-742.35 165.75,-742.35 165.75,-742.35 159.75,-742.35 153.75,-736.35 153.75,-730.35 153.75,-730.35 153.75,-698.8 153.75,-698.8 153.75,-692.8 159.75,-686.8 165.75,-686.8 165.75,-686.8 282.8,-686.8 282.8,-686.8 288.8,-686.8 294.8,-692.8 294.8,-698.8 294.8,-698.8 294.8,-730.35 294.8,-730.35 294.8,-736.35 288.8,-742.35 282.8,-742.35"/>
-<polygon fill="white" stroke="none" points="168.15,-701.2 168.15,-727.95 280.4,-727.95 280.4,-701.2 168.15,-701.2"/>
-<polygon fill="none" stroke="black" points="168.15,-701.2 168.15,-727.95 280.4,-727.95 280.4,-701.2 168.15,-701.2"/>
-<text text-anchor="start" x="175.15" y="-712.45" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = research_agent(p)</text>
+<path fill="lightblue" stroke="black" d="M283.18,-742.35C283.18,-742.35 166.12,-742.35 166.12,-742.35 160.12,-742.35 154.12,-736.35 154.12,-730.35 154.12,-730.35 154.12,-698.8 154.12,-698.8 154.12,-692.8 160.12,-686.8 166.12,-686.8 166.12,-686.8 283.18,-686.8 283.18,-686.8 289.18,-686.8 295.18,-692.8 295.18,-698.8 295.18,-698.8 295.18,-730.35 295.18,-730.35 295.18,-736.35 289.18,-742.35 283.18,-742.35"/>
+<polygon fill="white" stroke="none" points="168.53,-701.2 168.53,-727.95 280.77,-727.95 280.77,-701.2 168.53,-701.2"/>
+<polygon fill="none" stroke="black" points="168.53,-701.2 168.53,-727.95 280.77,-727.95 280.77,-701.2 168.53,-701.2"/>
+<text text-anchor="start" x="175.53" y="-712.45" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = research_agent(p)</text>
 </g>
-<!-- fanout_multi_stage_flow_line_11&#45;&gt;research_agent -->
+<!-- fanout_multi_stage_flow_line_15&#45;&gt;research_agent -->
 <g id="edge4" class="edge">
-<title>fanout_multi_stage_flow_line_11&#45;&gt;research_agent</title>
-<path fill="none" stroke="#5d478b" stroke-width="2" d="M156.79,-803.36C170.17,-785.96 184.66,-767.11 196.77,-751.36"/>
-<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="198.43,-754.94 201.75,-744.88 192.88,-750.67 198.43,-754.94"/>
-<text text-anchor="middle" x="208.14" y="-776.35" font-family="Courier,monospace" font-size="10.00">slice 1..N</text>
-<text text-anchor="middle" x="208.14" y="-763.6" font-family="Courier,monospace" font-size="10.00">(per t)</text>
+<title>fanout_multi_stage_flow_line_15&#45;&gt;research_agent</title>
+<path fill="none" stroke="#5d478b" stroke-width="2" d="M157.17,-803.36C170.55,-785.96 185.03,-767.11 197.14,-751.36"/>
+<polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="198.8,-754.94 202.12,-744.88 193.25,-750.67 198.8,-754.94"/>
+<text text-anchor="middle" x="208.52" y="-776.35" font-family="Courier,monospace" font-size="10.00">slice 1..N</text>
+<text text-anchor="middle" x="208.52" y="-763.6" font-family="Courier,monospace" font-size="10.00">(per t)</text>
 </g>
 <!-- end_multi_stage_flow -->
 <g id="node4" class="node">
 <title>end_multi_stage_flow</title>
-<path fill="lightgreen" stroke="black" d="M181.18,-55.55C181.18,-55.55 33.38,-55.55 33.38,-55.55 27.38,-55.55 21.38,-49.55 21.38,-43.55 21.38,-43.55 21.38,-12 21.38,-12 21.38,-6 27.38,0 33.38,0 33.38,0 181.18,0 181.18,0 187.18,0 193.18,-6 193.18,-12 193.18,-12 193.18,-43.55 193.18,-43.55 193.18,-49.55 187.18,-55.55 181.18,-55.55"/>
-<polygon fill="white" stroke="none" points="35.78,-14.4 35.78,-41.15 178.78,-41.15 178.78,-14.4 35.78,-14.4"/>
-<polygon fill="none" stroke="black" points="35.78,-14.4 35.78,-41.15 178.78,-41.15 178.78,-14.4 35.78,-14.4"/>
-<text text-anchor="start" x="42.78" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = end_multi_stage_flow(p)</text>
+<path fill="lightgreen" stroke="black" d="M181.55,-55.55C181.55,-55.55 33.75,-55.55 33.75,-55.55 27.75,-55.55 21.75,-49.55 21.75,-43.55 21.75,-43.55 21.75,-12 21.75,-12 21.75,-6 27.75,0 33.75,0 33.75,0 181.55,0 181.55,0 187.55,0 193.55,-6 193.55,-12 193.55,-12 193.55,-43.55 193.55,-43.55 193.55,-49.55 187.55,-55.55 181.55,-55.55"/>
+<polygon fill="white" stroke="none" points="36.15,-14.4 36.15,-41.15 179.15,-41.15 179.15,-14.4 36.15,-14.4"/>
+<polygon fill="none" stroke="black" points="36.15,-14.4 36.15,-41.15 179.15,-41.15 179.15,-14.4 36.15,-14.4"/>
+<text text-anchor="start" x="43.15" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = end_multi_stage_flow(p)</text>
 </g>
-<!-- fanin_multi_stage_flow_line_11&#45;&gt;fanout_multi_stage_flow_line_12 -->
+<!-- fanin_multi_stage_flow_line_15&#45;&gt;fanout_multi_stage_flow_line_16 -->
 <g id="edge1" class="edge">
-<title>fanin_multi_stage_flow_line_11&#45;&gt;fanout_multi_stage_flow_line_12</title>
-<path fill="none" stroke="black" d="M111.28,-567.02C111.28,-559 111.28,-550.39 111.28,-541.8"/>
-<polygon fill="black" stroke="black" points="114.78,-542.07 111.28,-532.07 107.78,-542.07 114.78,-542.07"/>
+<title>fanin_multi_stage_flow_line_15&#45;&gt;fanout_multi_stage_flow_line_16</title>
+<path fill="none" stroke="black" d="M111.65,-567.02C111.65,-559 111.65,-550.39 111.65,-541.8"/>
+<polygon fill="black" stroke="black" points="115.15,-542.07 111.65,-532.07 108.15,-542.07 115.15,-542.07"/>
 </g>
 <!-- summarizer -->
 <g id="node9" class="node">
 <title>summarizer</title>
-<path fill="lightblue" stroke="black" d="M157.18,-148.1C157.18,-148.1 57.38,-148.1 57.38,-148.1 51.38,-148.1 45.38,-142.1 45.38,-136.1 45.38,-136.1 45.38,-104.55 45.38,-104.55 45.38,-98.55 51.38,-92.55 57.38,-92.55 57.38,-92.55 157.18,-92.55 157.18,-92.55 163.18,-92.55 169.18,-98.55 169.18,-104.55 169.18,-104.55 169.18,-136.1 169.18,-136.1 169.18,-142.1 163.18,-148.1 157.18,-148.1"/>
-<polygon fill="white" stroke="none" points="59.78,-106.95 59.78,-133.7 154.78,-133.7 154.78,-106.95 59.78,-106.95"/>
-<polygon fill="none" stroke="black" points="59.78,-106.95 59.78,-133.7 154.78,-133.7 154.78,-106.95 59.78,-106.95"/>
-<text text-anchor="start" x="66.78" y="-118.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = summarizer(p)</text>
+<path fill="lightblue" stroke="black" d="M157.55,-148.1C157.55,-148.1 57.75,-148.1 57.75,-148.1 51.75,-148.1 45.75,-142.1 45.75,-136.1 45.75,-136.1 45.75,-104.55 45.75,-104.55 45.75,-98.55 51.75,-92.55 57.75,-92.55 57.75,-92.55 157.55,-92.55 157.55,-92.55 163.55,-92.55 169.55,-98.55 169.55,-104.55 169.55,-104.55 169.55,-136.1 169.55,-136.1 169.55,-142.1 163.55,-148.1 157.55,-148.1"/>
+<polygon fill="white" stroke="none" points="60.15,-106.95 60.15,-133.7 155.15,-133.7 155.15,-106.95 60.15,-106.95"/>
+<polygon fill="none" stroke="black" points="60.15,-106.95 60.15,-133.7 155.15,-133.7 155.15,-106.95 60.15,-106.95"/>
+<text text-anchor="start" x="67.15" y="-118.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = summarizer(p)</text>
 </g>
-<!-- fanin_multi_stage_flow_line_12&#45;&gt;summarizer -->
+<!-- fanin_multi_stage_flow_line_16&#45;&gt;summarizer -->
 <g id="edge2" class="edge">
-<title>fanin_multi_stage_flow_line_12&#45;&gt;summarizer</title>
-<path fill="none" stroke="black" d="M107.28,-184.77C107.28,-176.58 107.28,-167.98 107.28,-159.86"/>
-<polygon fill="black" stroke="black" points="110.78,-159.9 107.28,-149.9 103.78,-159.9 110.78,-159.9"/>
+<title>fanin_multi_stage_flow_line_16&#45;&gt;summarizer</title>
+<path fill="none" stroke="black" d="M107.65,-184.77C107.65,-176.58 107.65,-167.98 107.65,-159.86"/>
+<polygon fill="black" stroke="black" points="111.15,-159.9 107.65,-149.9 104.15,-159.9 111.15,-159.9"/>
 </g>
-<!-- research_agent&#45;&gt;fanin_multi_stage_flow_line_11 -->
+<!-- research_agent&#45;&gt;fanin_multi_stage_flow_line_15 -->
 <g id="edge7" class="edge">
-<title>research_agent&#45;&gt;fanin_multi_stage_flow_line_11</title>
-<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M194.88,-686.54C185.39,-677.81 174.55,-667.85 163.91,-658.05"/>
-<polygon fill="#473c8b" stroke="#473c8b" points="166.28,-655.48 156.55,-651.29 161.54,-660.63 166.28,-655.48"/>
+<title>research_agent&#45;&gt;fanin_multi_stage_flow_line_15</title>
+<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M195.26,-686.54C185.76,-677.81 174.93,-667.85 164.28,-658.05"/>
+<polygon fill="#473c8b" stroke="#473c8b" points="166.65,-655.48 156.92,-651.29 161.91,-660.63 166.65,-655.48"/>
 </g>
-<!-- review_agent&#45;&gt;fanin_multi_stage_flow_line_12 -->
+<!-- review_agent&#45;&gt;fanin_multi_stage_flow_line_16 -->
 <g id="edge8" class="edge">
-<title>review_agent&#45;&gt;fanin_multi_stage_flow_line_12</title>
-<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M187.18,-304.14C178.11,-295.41 167.75,-285.45 157.58,-275.65"/>
-<polygon fill="#473c8b" stroke="#473c8b" points="160.2,-273.32 150.57,-268.91 155.35,-278.37 160.2,-273.32"/>
+<title>review_agent&#45;&gt;fanin_multi_stage_flow_line_16</title>
+<path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M187.56,-304.14C178.48,-295.41 168.13,-285.45 157.95,-275.65"/>
+<polygon fill="#473c8b" stroke="#473c8b" points="160.58,-273.32 150.95,-268.91 155.72,-278.37 160.58,-273.32"/>
 </g>
 <!-- summarizer&#45;&gt;end_multi_stage_flow -->
 <g id="edge10" class="edge">
 <title>summarizer&#45;&gt;end_multi_stage_flow</title>
-<path fill="none" stroke="black" d="M107.28,-92.16C107.28,-84.37 107.28,-75.72 107.28,-67.38"/>
-<polygon fill="black" stroke="black" points="110.78,-67.44 107.28,-57.44 103.78,-67.44 110.78,-67.44"/>
+<path fill="none" stroke="black" d="M107.65,-92.16C107.65,-84.37 107.65,-75.72 107.65,-67.38"/>
+<polygon fill="black" stroke="black" points="111.15,-67.44 107.65,-57.44 104.15,-67.44 111.15,-67.44"/>
 </g>
 </g>
 </svg>

@@ -19,11 +19,11 @@ async def start_mutations_before_after_handler_flow(payload: dict):
     p = payload
     p['step'] = 1
     _next.append(resolve("handler_a"))
-    _next.append(resolve("router_mutations_before_after_handler_flow_line_11_seq"))
+    _next.append(resolve("router_mutations_before_after_handler_flow_line_15_seq"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
+async def router_mutations_before_after_handler_flow_line_17_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,13 +32,13 @@ async def router_mutations_before_after_handler_flow_line_13_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_mutations_before_after_handler_flow_line_11_seq(payload: dict):
+async def router_mutations_before_after_handler_flow_line_15_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['step'] = 2
     _next.append(resolve("handler_b"))
-    _next.append(resolve("router_mutations_before_after_handler_flow_line_13_seq"))
+    _next.append(resolve("router_mutations_before_after_handler_flow_line_17_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

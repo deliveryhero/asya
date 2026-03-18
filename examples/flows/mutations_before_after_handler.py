@@ -3,6 +3,10 @@ Mutations before and after handler.
 
 Tests mutation grouping around handler calls.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def mutations_before_after_handler_flow(p: dict) -> dict:

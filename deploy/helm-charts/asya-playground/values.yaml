@@ -230,9 +230,7 @@ asya-crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
-  sidecar:
-    # sqsLocalstackEnabled auto-computes http://localstack-sqs.{release_namespace}:4566
-    sqsLocalstackEnabled: true
+  sidecar: {}
 
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults
@@ -320,22 +318,6 @@ asya-gateway:
   #   rabbitmqURL: ""
   #   sqsEndpoint: ""
   #   sqsRegion: ""
-
-  # Gateway routes configuration (ACTIVELY USED - configure your tools/routes)
-  routes:
-    createConfigMap: true
-    defaults:
-      progress: true
-      timeout: 30
-    tools:
-    - name: hello
-      description: "Test hello-world actor"
-      parameters:
-        name:
-          type: string
-          required: true
-          description: "Name to greet"
-      route: ["hello"]
 
   # PostgreSQL connection (ACTIVELY USED - configure database)
   # Uses bundled PostgreSQL by default (asya-gateway-postgresql service)

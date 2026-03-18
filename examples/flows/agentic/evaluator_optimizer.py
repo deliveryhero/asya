@@ -42,10 +42,14 @@ Payload contract:
 """
 
 import os
+from asya_lab.flow import flow
 
 # static deployment-time configuration can be passed via env vars:
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", 85))
 MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", 5))
+
+
+@flow
 
 
 async def evaluator_optimizer(state: dict) -> dict:

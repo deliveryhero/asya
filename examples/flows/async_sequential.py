@@ -7,6 +7,10 @@ async/await with sequential handler execution.
 
 Reference: https://github.com/google/adk-samples/tree/main/python/agents/llm-auditor
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def llm_auditor_flow(state: dict) -> dict:

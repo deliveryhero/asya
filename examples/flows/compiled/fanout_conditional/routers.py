@@ -19,18 +19,18 @@ async def start_adaptive_flow(payload: dict):
     """Entrypoint for flow 'adaptive_flow'"""
     _next = []
     _next.append(resolve("classifier"))
-    _next.append(resolve("router_adaptive_flow_line_12_if"))
+    _next.append(resolve("router_adaptive_flow_line_16_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_adaptive_flow_line_13(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 13)"""
+async def fanout_adaptive_flow_line_17(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 17)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_adaptive_flow_line_13")
+    _agg = resolve("fanin_adaptive_flow_line_17")
 
     _slices = []
     _slices.append((resolve("fast_analyzer"), p['text']))
@@ -54,15 +54,16 @@ async def fanout_adaptive_flow_line_13(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def router_adaptive_flow_line_12_if(payload: dict):
+async def router_adaptive_flow_line_16_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['parallel']:
-        _next.append(resolve("fanout_adaptive_flow_line_13"))
+        _next.append(resolve("fanout_adaptive_flow_line_17"))
     else:
-        _next.append(resolve("sequential_analyzer"))
-        _next.append(resolve("formatter"))
+        yield "SET", ".route.next", [resolve("sequential_analyzer"), resolve("formatter")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload

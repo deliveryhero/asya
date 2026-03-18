@@ -13,6 +13,7 @@ class TestMinimalFlows:
 
     def test_empty_flow(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 return p
         """)
@@ -26,6 +27,7 @@ class TestMinimalFlows:
 
     def test_single_handler(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -45,6 +47,7 @@ class TestMinimalFlows:
 
     def test_single_mutation(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["key"] = "value"
                 return p
@@ -63,6 +66,7 @@ class TestSequentialFlows:
 
     def test_multiple_handlers_sequential(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -87,6 +91,7 @@ class TestSequentialFlows:
 
     def test_mutations_only(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["x"] = 1
                 p["y"] = 2
@@ -102,6 +107,7 @@ class TestSequentialFlows:
 
     def test_mutations_with_handler(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["status"] = "init"
                 p["timestamp"] = 123
@@ -126,6 +132,7 @@ class TestSimpleConditionals:
 
     def test_if_else_simple(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["type"] == "A":
                     p = handler_a(p)
@@ -152,6 +159,7 @@ class TestSimpleConditionals:
 
     def test_if_no_else(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["flag"]:
                     p = handler(p)
@@ -170,6 +178,7 @@ class TestSimpleConditionals:
 
     def test_if_elif_else(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"] == "A":
                     p = handler_a(p)
@@ -195,6 +204,7 @@ class TestSimpleConditionals:
 
     def test_empty_branches(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["skip"]:
                     pass
@@ -216,6 +226,7 @@ class TestConditionalWithMutations:
 
     def test_mutations_in_branches(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["type"] == "A":
                     p["label"] = "A"
@@ -239,6 +250,7 @@ class TestConditionalWithMutations:
 
     def test_mutations_before_conditional(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["initialized"] = True
                 if p["condition"]:
@@ -261,6 +273,7 @@ class TestConditionalWithMutations:
 
     def test_mutations_after_conditional(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["condition"]:
                     p = handler_a(p)
@@ -287,6 +300,7 @@ class TestNestedConditionals:
 
     def test_nested_if_in_true_branch(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["outer"]:
                     if p["inner"]:
@@ -313,6 +327,7 @@ class TestNestedConditionals:
 
     def test_deeply_nested(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["l1"] == "A":
                     if p["l2"] == "X":
@@ -336,6 +351,7 @@ class TestConvergence:
 
     def test_branches_converge_to_handler(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["condition"]:
                     p = handler_a(p)
@@ -361,6 +377,7 @@ class TestConvergence:
 
     def test_nested_branches_converge(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["outer"]:
                     if p["inner"]:
@@ -398,6 +415,7 @@ class TestEarlyReturn:
 
     def test_early_return_in_branch(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["early_exit"]:
                     return p
@@ -421,6 +439,7 @@ class TestComplexPatterns:
 
     def test_preprocessing_conditional_postprocessing(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["status"] = "processing"
                 p = preprocess(p)
@@ -460,6 +479,7 @@ class TestComplexPatterns:
 
     def test_multiple_sequential_conditionals(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["check1"]:
                     p = handler_1(p)
@@ -504,11 +524,12 @@ class TestErrorCases:
         """)
 
         compiler = FlowCompiler()
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             compiler.compile(source, "test.py")
 
     def test_invalid_handler_call(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler()
                 return p
@@ -524,6 +545,7 @@ class TestCodeGeneration:
 
     def test_generated_code_is_valid_python(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -542,6 +564,7 @@ class TestCodeGeneration:
 
     def test_generated_code_contains_all_functions(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)

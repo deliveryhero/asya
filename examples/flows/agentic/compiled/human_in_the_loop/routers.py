@@ -21,24 +21,24 @@ async def start_human_in_the_loop(payload: dict):
     _next = []
     p = payload
     p['attempt'] = 0
-    _next.append(resolve("router_human_in_the_loop_line_56_loop_back_0"))
+    _next.append(resolve("router_human_in_the_loop_line_60_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_human_in_the_loop_line_71_if(payload: dict):
+async def router_human_in_the_loop_line_75_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('approval') == 'rejected':
         _next.append(resolve("revision_agent"))
-        _next.append(resolve("router_human_in_the_loop_line_75_if"))
+        _next.append(resolve("router_human_in_the_loop_line_79_if"))
     else:
-        _next.append(resolve("router_human_in_the_loop_line_75_if"))
+        _next.append(resolve("router_human_in_the_loop_line_79_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_76_seq(payload: dict):
+async def router_human_in_the_loop_line_80_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,54 +48,55 @@ async def router_human_in_the_loop_line_76_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_75_if(payload: dict):
+async def router_human_in_the_loop_line_79_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['attempt'] >= 3:
-        _next.append(resolve("router_human_in_the_loop_line_76_seq"))
+        _next.append(resolve("router_human_in_the_loop_line_80_seq"))
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_66_if(payload: dict):
+async def router_human_in_the_loop_line_70_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('approval') in ('approved', 'modified'):
-        _next.append(resolve("executor"))
-        _next.append(resolve("notifier"))
+        yield "SET", ".route.next", [resolve("executor"), resolve("notifier")]
+        yield p
+        return
     else:
-        _next.append(resolve("router_human_in_the_loop_line_71_if"))
+        _next.append(resolve("router_human_in_the_loop_line_75_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_57_seq(payload: dict):
+async def router_human_in_the_loop_line_61_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['attempt'] += 1
     _next.append(resolve("proposal_generator"))
     _next.append(resolve("approval_gate"))
-    _next.append(resolve("router_human_in_the_loop_line_66_if"))
+    _next.append(resolve("router_human_in_the_loop_line_70_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_56_loop_back_0(payload: dict):
+async def router_human_in_the_loop_line_60_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_human_in_the_loop_line_56_loop_back_0")
+    _self = resolve("router_human_in_the_loop_line_60_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 56")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 60")
 
-    _next.append(resolve("router_human_in_the_loop_line_57_seq"))
-    _next.append(resolve("router_human_in_the_loop_line_56_loop_back_0"))
+    _next.append(resolve("router_human_in_the_loop_line_61_seq"))
+    _next.append(resolve("router_human_in_the_loop_line_60_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -17,11 +17,11 @@ async def start_if_mutations_in_branches_flow(payload: dict):
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_mutations_in_branches_flow_line_10_if"))
+    _next.append(resolve("router_if_mutations_in_branches_flow_line_14_if"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_15_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ async def router_if_mutations_in_branches_flow_line_11_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_20_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -44,15 +44,15 @@ async def router_if_mutations_in_branches_flow_line_16_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_10_if(payload: dict):
+async def router_if_mutations_in_branches_flow_line_14_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'A':
-        _next.append(resolve("router_if_mutations_in_branches_flow_line_11_seq"))
+        _next.append(resolve("router_if_mutations_in_branches_flow_line_15_seq"))
     else:
         _next.append(resolve("handler_type_b"))
-        _next.append(resolve("router_if_mutations_in_branches_flow_line_16_seq"))
+        _next.append(resolve("router_if_mutations_in_branches_flow_line_20_seq"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

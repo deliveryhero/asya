@@ -3,6 +3,10 @@ If with empty branches.
 
 Tests conditionals with pass statements (no handlers in branches).
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def if_empty_branches_flow(p: dict) -> dict:

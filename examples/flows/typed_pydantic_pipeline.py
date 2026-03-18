@@ -40,6 +40,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel
+from asya_lab.flow import flow
 
 
 # =============================================================================
@@ -170,6 +171,9 @@ def generate_response(ranked: RankedResults) -> SearchResponse:
 # State values from previous actors always arrive as plain dicts (after JSON
 # deserialization). model_validate bridges the dict → typed object gap.
 # =============================================================================
+
+
+@flow
 
 
 def ingester(state: dict) -> dict:

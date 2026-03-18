@@ -5,10 +5,10 @@
  -->
 <!-- Title: flow Pages: 1 -->
 <svg width="452pt" height="616pt"
- viewBox="0.00 0.00 451.52 615.67" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+ viewBox="0.00 0.00 451.90 615.67" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
 <g id="graph0" class="graph" transform="scale(1 1) rotate(0) translate(4 611.67)">
 <title>flow</title>
-<polygon fill="white" stroke="none" points="-4,4 -4,-611.67 447.52,-611.67 447.52,4 -4,4"/>
+<polygon fill="white" stroke="none" points="-4,4 -4,-611.67 447.9,-611.67 447.9,4 -4,4"/>
 <g id="clust1" class="cluster">
 <title>cluster_try_0</title>
 <polygon fill="none" stroke="#8b8989" stroke-dasharray="5,2" points="8,-288.4 8,-498.38 198,-498.38 198,-288.4 8,-288.4"/>
@@ -44,16 +44,16 @@
 <path fill="none" stroke="black" d="M103,-525.02C103,-510.84 103,-494.98 103,-481"/>
 <polygon fill="black" stroke="black" points="106.5,-481.3 103,-471.3 99.5,-481.3 106.5,-481.3"/>
 </g>
-<!-- router_resource_pipeline_line_7_seq -->
+<!-- router_resource_pipeline_line_9_seq -->
 <g id="node2" class="node">
-<title>router_resource_pipeline_line_7_seq</title>
-<path fill="wheat" stroke="black" d="M431.52,-483C431.52,-483 218.47,-483 218.47,-483 212.47,-483 206.47,-477 206.47,-471 206.47,-471 206.47,-412.7 206.47,-412.7 206.47,-406.7 212.47,-400.7 218.47,-400.7 218.47,-400.7 431.52,-400.7 431.52,-400.7 437.52,-400.7 443.52,-406.7 443.52,-412.7 443.52,-412.7 443.52,-471 443.52,-471 443.52,-477 437.52,-483 431.52,-483"/>
-<polygon fill="white" stroke="none" points="220.88,-441.85 220.88,-468.6 429.12,-468.6 429.12,-441.85 220.88,-441.85"/>
-<polygon fill="none" stroke="black" points="220.88,-441.85 220.88,-468.6 429.12,-468.6 429.12,-441.85 220.88,-441.85"/>
-<text text-anchor="start" x="227.88" y="-453.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_resource_pipeline_line_7_seq(p)</text>
-<polygon fill="white" stroke="none" points="220.88,-415.1 220.88,-441.85 429.12,-441.85 429.12,-415.1 220.88,-415.1"/>
-<polygon fill="none" stroke="black" points="220.88,-415.1 220.88,-441.85 429.12,-441.85 429.12,-415.1 220.88,-415.1"/>
-<text text-anchor="start" x="227.88" y="-425.35" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;failed&#39;</text>
+<title>router_resource_pipeline_line_9_seq</title>
+<path fill="wheat" stroke="black" d="M431.9,-483C431.9,-483 218.1,-483 218.1,-483 212.1,-483 206.1,-477 206.1,-471 206.1,-471 206.1,-412.7 206.1,-412.7 206.1,-406.7 212.1,-400.7 218.1,-400.7 218.1,-400.7 431.9,-400.7 431.9,-400.7 437.9,-400.7 443.9,-406.7 443.9,-412.7 443.9,-412.7 443.9,-471 443.9,-471 443.9,-477 437.9,-483 431.9,-483"/>
+<polygon fill="white" stroke="none" points="220.5,-441.85 220.5,-468.6 429.5,-468.6 429.5,-441.85 220.5,-441.85"/>
+<polygon fill="none" stroke="black" points="220.5,-441.85 220.5,-468.6 429.5,-468.6 429.5,-441.85 220.5,-441.85"/>
+<text text-anchor="start" x="227.5" y="-453.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = router_resource_pipeline_line_9_seq(p)</text>
+<polygon fill="white" stroke="none" points="220.5,-415.1 220.5,-441.85 429.5,-441.85 429.5,-415.1 220.5,-415.1"/>
+<polygon fill="none" stroke="black" points="220.5,-415.1 220.5,-441.85 429.5,-441.85 429.5,-415.1 220.5,-415.1"/>
+<text text-anchor="start" x="227.5" y="-425.35" font-family="Courier,monospace" font-size="10.00">p[&#39;status&#39;] = &#39;failed&#39;</text>
 </g>
 <!-- handle_failure -->
 <g id="node5" class="node">
@@ -63,9 +63,9 @@
 <polygon fill="none" stroke="black" points="230.12,-310.8 230.12,-337.55 337.88,-337.55 337.88,-310.8 230.12,-310.8"/>
 <text text-anchor="start" x="237.12" y="-322.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = handle_failure(p)</text>
 </g>
-<!-- router_resource_pipeline_line_7_seq&#45;&gt;handle_failure -->
+<!-- router_resource_pipeline_line_9_seq&#45;&gt;handle_failure -->
 <g id="edge7" class="edge">
-<title>router_resource_pipeline_line_7_seq&#45;&gt;handle_failure</title>
+<title>router_resource_pipeline_line_9_seq&#45;&gt;handle_failure</title>
 <path fill="none" stroke="black" d="M307.67,-400.39C305.33,-394.49 303.04,-388.47 301,-382.7 298.78,-376.41 296.61,-369.66 294.59,-363.09"/>
 <polygon fill="black" stroke="black" points="298.02,-362.32 291.81,-353.74 291.31,-364.32 298.02,-362.32"/>
 </g>
@@ -119,9 +119,9 @@
 <path fill="none" stroke="black" d="M103,-413.73C103,-398.79 103,-380 103,-363.58"/>
 <polygon fill="black" stroke="black" points="106.5,-363.64 103,-353.64 99.5,-363.64 106.5,-363.64"/>
 </g>
-<!-- process_with_resource&#45;&gt;router_resource_pipeline_line_7_seq -->
+<!-- process_with_resource&#45;&gt;router_resource_pipeline_line_9_seq -->
 <g id="edge5" class="edge">
-<title>process_with_resource&#45;&gt;router_resource_pipeline_line_7_seq</title>
+<title>process_with_resource&#45;&gt;router_resource_pipeline_line_9_seq</title>
 <path fill="none" stroke="#8b8989" stroke-dasharray="5,2" d="M198,-374.67C210.92,-381.41 224.13,-388.29 236.92,-394.96"/>
 <polygon fill="#8b8989" stroke="#8b8989" points="235.22,-398.01 245.7,-399.53 238.45,-391.81 235.22,-398.01"/>
 <text text-anchor="middle" x="253.47" y="-373.2" font-family="Courier,monospace" font-size="10.00">except RuntimeError</text>

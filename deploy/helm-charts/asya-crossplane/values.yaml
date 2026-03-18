@@ -109,9 +109,6 @@ sidecar:
   awsCredsSecret: ""
   # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
   sqsEndpoint: ""
-  # When true, auto-computes sqsEndpoint as http://localstack-sqs.{release_namespace}:4566
-  # Only used when sqsEndpoint is empty
-  sqsLocalstackEnabled: false
   # SQS long-polling wait time override (seconds)
   sqsWaitTimeSeconds: ""
   # RabbitMQ AMQP connection URL

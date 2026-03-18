@@ -8,6 +8,10 @@ timeout configured at the actor level, not inside a Python context manager.
 Compile with:
     asya flow compile with_asyncio_timeout.py --output-dir compiled/
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def document_pipeline(p: dict) -> dict:

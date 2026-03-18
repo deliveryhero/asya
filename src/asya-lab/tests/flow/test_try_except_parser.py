@@ -14,6 +14,7 @@ class TestTryExceptParsing:
     def test_simple_try_except(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -45,6 +46,7 @@ class TestTryExceptParsing:
     def test_try_except_finally(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -74,6 +76,7 @@ class TestTryExceptParsing:
     def test_multiple_except_handlers(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -99,6 +102,7 @@ class TestTryExceptParsing:
     def test_bare_except(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -120,6 +124,7 @@ class TestTryExceptParsing:
     def test_tuple_exception_types(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -139,6 +144,7 @@ class TestTryExceptParsing:
     def test_try_with_mutations_in_handler(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -160,6 +166,7 @@ class TestTryExceptParsing:
     def test_try_with_actor_in_handler(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = risky_handler(p)
@@ -184,6 +191,7 @@ class TestTryExceptParsing:
     def test_try_with_multiple_body_statements(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler_a(p)
@@ -208,6 +216,7 @@ class TestTryExceptParsing:
     def test_try_except_preserves_lineno(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -221,10 +230,10 @@ class TestTryExceptParsing:
 
         assert isinstance(ops[0], TryExcept)
         te = ops[0]
-        assert te.lineno == 3
-        assert te.body[0].lineno == 4
-        assert te.handlers[0].lineno == 5
-        assert te.handlers[0].body[0].lineno == 6
+        assert te.lineno == 4
+        assert te.body[0].lineno == 5
+        assert te.handlers[0].lineno == 6
+        assert te.handlers[0].body[0].lineno == 7
 
 
 class TestRaiseParsing:
@@ -233,6 +242,7 @@ class TestRaiseParsing:
     def test_raise_in_except_body(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -254,6 +264,7 @@ class TestRaiseParsing:
     def test_raise_in_except_with_condition(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -288,6 +299,7 @@ class TestTryExceptErrors:
     def test_nested_try_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     try:
@@ -306,6 +318,7 @@ class TestTryExceptErrors:
     def test_try_else_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -323,6 +336,7 @@ class TestTryExceptErrors:
     def test_except_as_binding_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -338,6 +352,7 @@ class TestTryExceptErrors:
     def test_raise_outside_except_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 raise
                 return p
@@ -350,6 +365,7 @@ class TestTryExceptErrors:
     def test_raise_with_args_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -365,6 +381,7 @@ class TestTryExceptErrors:
     def test_try_without_except_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)
@@ -380,6 +397,7 @@ class TestTryExceptErrors:
     def test_raise_in_try_body_rejected(self):
         source = textwrap.dedent(
             """
+            @flow
             def flow(p: dict) -> dict:
                 try:
                     p = handler(p)

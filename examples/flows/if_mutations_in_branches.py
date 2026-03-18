@@ -3,6 +3,10 @@ If with mutations in branches.
 
 Tests mutations mixed with handlers in conditionals.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def if_mutations_in_branches_flow(p: dict) -> dict:

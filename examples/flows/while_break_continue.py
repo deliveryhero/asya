@@ -4,7 +4,10 @@ While loop with both break and continue.
 Tests complex loop control flow.
 """
 
+from asya_lab.flow import flow
 
+
+@flow
 def while_break_continue_flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0

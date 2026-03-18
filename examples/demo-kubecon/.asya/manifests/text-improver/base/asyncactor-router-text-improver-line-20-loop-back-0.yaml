@@ -1,0 +1,34 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-text-improver-line-20-loop-back-0
+  namespace: asya-demo
+  labels:
+    asya.sh/flow: text-improver
+    asya.sh/flow-role: router
+spec:
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: pubsub
+  actor: router-text-improver-line-20-loop-back-0
+  image: python:3.13-slim
+  handler: routers.router_text_improver_line_20_loop_back_0
+  transport: pubsub
+  env:
+  - name: PYTHONPATH
+    value: /app
+  - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_LINE_21_SEQ
+    value: routers.router_text_improver_line_21_seq
+  - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_LINE_20_LOOP_BACK_0
+    value: routers.router_text_improver_line_20_loop_back_0
+  volumes:
+  - name: handler
+    configMap:
+      name: text-improver-routers
+  volumeMounts:
+  - name: handler
+    mountPath: /app
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2

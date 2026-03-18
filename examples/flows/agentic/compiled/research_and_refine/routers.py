@@ -22,58 +22,62 @@ async def start_research_and_refine(payload: dict):
     p = payload
     p['iteration'] = 0
     p['search_query'] = p.get('question', '')
-    _next.append(resolve("router_research_and_refine_line_46_loop_back_0"))
+    _next.append(resolve("router_research_and_refine_line_50_loop_back_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_research_and_refine_line_55_if(payload: dict):
+async def router_research_and_refine_line_59_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['iteration'] >= 5:
-        _next.append(resolve("write_report"))
+        yield "SET", ".route.next", [resolve("write_report")]
+        yield p
+        return
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_51_if(payload: dict):
+async def router_research_and_refine_line_55_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if not p.get('gaps') or p.get('quality_score', 0) >= 85:
-        _next.append(resolve("write_report"))
+        yield "SET", ".route.next", [resolve("write_report")]
+        yield p
+        return
     else:
         _next.append(resolve("refine_query"))
-        _next.append(resolve("router_research_and_refine_line_55_if"))
+        _next.append(resolve("router_research_and_refine_line_59_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_47_seq(payload: dict):
+async def router_research_and_refine_line_51_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("researcher"))
     _next.append(resolve("critic"))
-    _next.append(resolve("router_research_and_refine_line_51_if"))
+    _next.append(resolve("router_research_and_refine_line_55_if"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_46_loop_back_0(payload: dict):
+async def router_research_and_refine_line_50_loop_back_0(payload: dict):
     """Loop-back router: re-inserts loop actors into route (guarded)"""
     p = payload
     _next = []
-    _self = resolve("router_research_and_refine_line_46_loop_back_0")
+    _self = resolve("router_research_and_refine_line_50_loop_back_0")
     _prev = yield "GET", ".route.prev"
     if _prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS:
-        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 46")
+        raise RuntimeError(f"Max loop iterations ({_ASYA_MAX_LOOP_ITERATIONS}) exceeded for while-loop at line 50")
 
-    _next.append(resolve("router_research_and_refine_line_47_seq"))
-    _next.append(resolve("router_research_and_refine_line_46_loop_back_0"))
+    _next.append(resolve("router_research_and_refine_line_51_seq"))
+    _next.append(resolve("router_research_and_refine_line_50_loop_back_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

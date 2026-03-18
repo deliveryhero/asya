@@ -6,6 +6,187 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.5] - 2026-03-17
+
+
+
+
+
+## [0.5.4] - 2026-03-17
+
+## Major Changes
+
+* feat(compiler): require @flow decorator on flow entry points (#315) @atemate
+* feat(branding): add project logos to README and website (#313) @atemate
+* fix: Patch asya CLI configuration [pwsf] (#311) @atemate
+* feat(flow): with/async with context manager support in flow compiler [2t1q] (#281) @atemate
+* fix(compiler): include agentic flows in pre-commit + starred list comprehension gather [36g4] (#310) @atemate
+* fix(compiler): if-at-end-of-while-body loses loop back-edge continuation (#309) @atemate
+* feat(flavors): type-aware merge with conflict detection [ai6o] (#306) @atemate
+* feat(cli): asya build + asya k commands [4g10] (#298) @atemate
+* fix(compiler): handle list(await asyncio.gather(...)) as fan-out pattern (#304) @atemate
+* feat(xrd)!: flatten AsyncActor workload spec — promote image/handler to root fields [lfcf] (#303) @atemate
+* fix(flow-compiler): generate SVG instead of PNG for deterministic pre-commit flow diagrams [bvs4] (#302) @atemate
+* feat(xrd): harmonize AsyncActor scaling spec with KEDA — rename min/maxReplicas, add additionalTriggers [8nhy] (#301) @atemate
+* feat(sidecar): Unix socket transport for local Docker Compose testing [cavw] (#299) @atemate
+* feat(crossplane)!: inline sidecar injection — render full pod spec in Crossplane compositions [af25] (#293) @atemate
+* feat(cli): add compile, expose, show, status commands [5ifn] (#297) @atemate
+* feat(compiler): manifest stamping with kustomize output [hox4] (#296) @atemate
+* feat(cli): config system + asya init [pyt1] (#295) @atemate
+* feat(xrd): remove provider-specific fields from AsyncActor XRD [8gc6] (#292) @atemate
+* fix(e2e): increase pubsub-gcs status condition test timeout (#291) @atemate
+* feat(runtime): smart JSON serialization for pydantic, dataclasses, typed structs [1mx1] (#279) @atemate
+* feat(sidecar): stealth mode via x-asya-mesh-status: off header [4v09] (#284) @atemate
+* fix(examples): validate and fix all AsyncActor examples for SQS transport (#286) @atemate
+* feat(gateway): configurable ConfigMap poll interval (default 10s) (#283) @atemate
+* feat(crossplane): add scaling.advanced to AsyncActor XRD [1ffa] (#276) @atemate
+* feat(injector): K8s Secrets injection for AsyncActor [wcnw] (#282) @atemate
+* feat(gateway): ConfigMap-based flow registry [zaai] (#277) @atemate
+* feat(gateway): MCP API key + OAuth 2.1 auth [b51i+rcvm] (#271) @atemate
+* feat(e2e): Crossplane DLQ support + drift detection tests + cold-start scaling (#270) @atemate
+* fix(e2e): fix two root causes of failing e2e tests (#274) @atemate
+* feat(gateway): GetTask history and artifacts from state proxy [tgfp] (#273) @atemate
+* feat(gateway): Phase 1 — dual-deployment gateway split (api/mesh modes) [1fuy] (#269) @atemate
+* feat(e2e): A2A protocol compliance e2e + integration tests (aint 0s9s) (#266) @atemate
+* feat(cli): skip start router for single-actor flows [zmuh] (#267) @atemate
+* feat(crew): simplify checkpointer key to {prefix}/{id}.json [nqv1] (#265) @atemate
+* feat(gateway): A2A Phase 3 — JWT auth + Extended Agent Card [5vps] (#262) @atemate
+* feat(gateway): DB-backed tool registry replacing YAML config [j1oh] (#261) @atemate
+* fix(test): increase SLA integration test timeouts for CI reliability (#263) @atemate
+* feat(gateway): Phase 1 Track B - A2A data layer refinements [tqel] (#260) @atemate
+* fix: Un-xfail fan-out/fan-in E2E tests: VFS→ABI migration + stateProxy overlay (#255) @atemate
+* feat(gateway): A2A Phase 2 — ListTasks, CancelTask, blocking, auth, FLY helpers (#259) @atemate
+* feat(gateway): A2A Phase 1 — replace hand-rolled types with a2a-go v0.3.7 (#257) @atemate
+* feat: add Pub/Sub + GCS test profiles (integration + E2E) (#256) @atemate
+* feat(crossplane): propagate user labels from AsyncActor to composed resources (#253) @atemate
+* feat(state-proxy): add GCS bucket connectors (CAS + LWW) (#250) @atemate
+* feat(transport): add Google Cloud Pub/Sub transport support (#251) @atemate
+* feat(sidecar): stream SSE frames instead of buffering (#242) @atemate
+* fix(e2e): reduce CPU requests to fit 4-CPU CI Kind node (#254) @atemate
+* feat(state-proxy): xattr-based metadata API for backend attributes (#249) @atemate
+* fix(flow): improve fan-out detection and fix break routing in while loops (#246) @atemate
+* feat(e2e): local OCI registry for function-asya-overlays (#244) @atemate
+* feat(flow): expand compiler syntax support and improve error messages (#243) @atemate
+* fix(sidecar): close TOCTOU race between SLA pre-check and effectiveTimeout (#236) @atemate
+* feat!: replace VFS with yield-based ABI protocol for actor-runtime communication (#239) @atemate
+* feat(crew): built-in persistence flavors for checkpointer (debt/1k5a8e) (#224) @atemate
+* fix(release): use local URLs in helm index for playground dep build (#232) @atemate
+
+## Other Changes
+
+* feat(compiler): require @flow decorator on flow entry points (#315) @atemate
+* feat(branding): add project logos to README and website (#313) @atemate
+* docs: agentic patterns tutorial + ABI actor examples (streaming, dynamic routing, pause/resume) [amn1] (#285) @atemate
+* fix: Patch asya CLI configuration [pwsf] (#311) @atemate
+* docs(quickstart): simplify happy path, fix playground chart bugs (#312) @atemate
+* feat(flow): with/async with context manager support in flow compiler [2t1q] (#281) @atemate
+* fix(compiler): include agentic flows in pre-commit + starred list comprehension gather [36g4] (#310) @atemate
+* fix(compiler): if-at-end-of-while-body loses loop back-edge continuation (#309) @atemate
+* feat(flavors): type-aware merge with conflict detection [ai6o] (#306) @atemate
+* feat(cli): asya build + asya k commands [4g10] (#298) @atemate
+* fix(compiler): handle list(await asyncio.gather(...)) as fan-out pattern (#304) @atemate
+* feat(xrd)!: flatten AsyncActor workload spec — promote image/handler to root fields [lfcf] (#303) @atemate
+* fix(flow-compiler): generate SVG instead of PNG for deterministic pre-commit flow diagrams [bvs4] (#302) @atemate
+* feat(xrd): harmonize AsyncActor scaling spec with KEDA — rename min/maxReplicas, add additionalTriggers [8nhy] (#301) @atemate
+* feat(sidecar): Unix socket transport for local Docker Compose testing [cavw] (#299) @atemate
+* feat(crossplane)!: inline sidecar injection — render full pod spec in Crossplane compositions [af25] (#293) @atemate
+* feat(cli): add compile, expose, show, status commands [5ifn] (#297) @atemate
+* feat(compiler): manifest stamping with kustomize output [hox4] (#296) @atemate
+* feat(cli): config system + asya init [pyt1] (#295) @atemate
+* chore: Actualize and optimize AGENTS.md (#294) @atemate
+* feat(xrd): remove provider-specific fields from AsyncActor XRD [8gc6] (#292) @atemate
+* refactor(flavors): simplify merge, write resolved spec back to XR [u5pd] (#290) @atemate
+* fix(e2e): increase pubsub-gcs status condition test timeout (#291) @atemate
+* chore: Revert: rename overlay back to flavor (#233) (#288) @atemate
+* feat(runtime): smart JSON serialization for pydantic, dataclasses, typed structs [1mx1] (#279) @atemate
+* feat(sidecar): stealth mode via x-asya-mesh-status: off header [4v09] (#284) @atemate
+* fix(examples): validate and fix all AsyncActor examples for SQS transport (#286) @atemate
+* feat(gateway): configurable ConfigMap poll interval (default 10s) (#283) @atemate
+* feat(crossplane): add scaling.advanced to AsyncActor XRD [1ffa] (#276) @atemate
+* feat(injector): K8s Secrets injection for AsyncActor [wcnw] (#282) @atemate
+* feat(gateway): ConfigMap-based flow registry [zaai] (#277) @atemate
+* docs(internal): gateway security model reference [4iga] (#275) @atemate
+* test(e2e): SLA and gateway backstop race tests [1kow] (#272) @atemate
+* feat(gateway): MCP API key + OAuth 2.1 auth [b51i+rcvm] (#271) @atemate
+* feat(e2e): Crossplane DLQ support + drift detection tests + cold-start scaling (#270) @atemate
+* fix(e2e): fix two root causes of failing e2e tests (#274) @atemate
+* feat(gateway): GetTask history and artifacts from state proxy [tgfp] (#273) @atemate
+* docs(tutorials): add adapter-pattern tutorial [p5nr] (#268) @atemate
+* feat(gateway): Phase 1 — dual-deployment gateway split (api/mesh modes) [1fuy] (#269) @atemate
+* feat(e2e): A2A protocol compliance e2e + integration tests (aint 0s9s) (#266) @atemate
+* feat(cli): skip start router for single-actor flows [zmuh] (#267) @atemate
+* feat(crew): simplify checkpointer key to {prefix}/{id}.json [nqv1] (#265) @atemate
+* feat(gateway): A2A Phase 3 — JWT auth + Extended Agent Card [5vps] (#262) @atemate
+* feat(gateway): DB-backed tool registry replacing YAML config [j1oh] (#261) @atemate
+* docs(internal): extend transport and state-proxy testing docs to all test levels (#264) @atemate
+* ci(e2e): enable Pub/Sub + GCS profile in E2E test matrix (#258) @atemate
+* fix(test): increase SLA integration test timeouts for CI reliability (#263) @atemate
+* feat(gateway): Phase 1 Track B - A2A data layer refinements [tqel] (#260) @atemate
+* fix: Un-xfail fan-out/fan-in E2E tests: VFS→ABI migration + stateProxy overlay (#255) @atemate
+* feat(gateway): A2A Phase 2 — ListTasks, CancelTask, blocking, auth, FLY helpers (#259) @atemate
+* feat(gateway): A2A Phase 1 — replace hand-rolled types with a2a-go v0.3.7 (#257) @atemate
+* feat: add Pub/Sub + GCS test profiles (integration + E2E) (#256) @atemate
+* refactor: rename Message to back Envelope and /tasks/ to /mesh/ (#245) @atemate
+* feat(crossplane): propagate user labels from AsyncActor to composed resources (#253) @atemate
+* docs: add 15 agentic flow patterns with compiled output (#252) @atemate
+* feat(state-proxy): add GCS bucket connectors (CAS + LWW) (#250) @atemate
+* feat(transport): add Google Cloud Pub/Sub transport support (#251) @atemate
+* feat(sidecar): stream SSE frames instead of buffering (#242) @atemate
+* fix(e2e): reduce CPU requests to fit 4-CPU CI Kind node (#254) @atemate
+* perf(e2e): cut E2E runtime from 80min to 31min with SQS tuning and NodePort (#248) @atemate
+* feat(state-proxy): xattr-based metadata API for backend attributes (#249) @atemate
+* fix(flow): improve fan-out detection and fix break routing in while loops (#246) @atemate
+* feat(e2e): local OCI registry for function-asya-overlays (#244) @atemate
+* feat(flow): expand compiler syntax support and improve error messages (#243) @atemate
+* fix(sidecar): close TOCTOU race between SLA pre-check and effectiveTimeout (#236) @atemate
+* test(e2e): clean up scaling tests, upgrade Kind to k8s 1.32, reduce S3 log noise (#234) @atemate
+* docs: replace VFS references with ABI yield protocol (#241) @atemate
+* docs: add ABI protocol reference with testing patterns (#240) @atemate
+* docs: add Flow DSL reference with CPS explanation (#238) @atemate
+* feat!: replace VFS with yield-based ABI protocol for actor-runtime communication (#239) @atemate
+* refactor: rename flavor to overlay across the codebase (#233) @atemate
+* feat(crew): built-in persistence flavors for checkpointer (debt/1k5a8e) (#224) @atemate
+* test(flow): ADK LLM Auditor compilation and execution tests (#219) @atemate
+* docs: update CHANGELOG.md for v0.5.1 and v0.5.4 (#231) @[github-actions[bot]](https://github.com/apps/github-actions)
+* fix(release): use local URLs in helm index for playground dep build (#232) @atemate
+
+## Installation
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the Crossplane compositions and gateway:
+```bash
+helm install asya-crossplane asya/asya-crossplane \
+  --version 0.5.4 \
+  --namespace asya-system \
+  --create-namespace
+helm install asya-gateway asya/asya-gateway \
+  --version 0.5.4 \
+  --namespace asya
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-crew:0.5.4`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.4`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.4`
+- `ghcr.io/deliveryhero/asya-testing:0.5.4`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.5.3] - 2026-02-27
 
 ## Major Changes
@@ -1048,6 +1229,12 @@ All images are published to GitHub Container Registry:
 [0.5.2]: https://github.com/deliveryhero/asya/releases/tag/v0.5.2
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.3...HEAD
 [0.5.3]: https://github.com/deliveryhero/asya/releases/tag/v0.5.3
+
+
+[0.5.4]: https://github.com/deliveryhero/asya/releases/tag/v0.5.4
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.5...HEAD
+[0.5.5]: https://github.com/deliveryhero/asya/releases/tag/v0.5.5
 

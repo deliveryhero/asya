@@ -14,6 +14,7 @@ class TestCompile:
 
     def test_compile_single_actor_flow_generates_metadata(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 return p
@@ -29,6 +30,7 @@ class TestCompile:
 
     def test_compile_multi_actor_flow_generates_routers(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -44,6 +46,7 @@ class TestCompile:
 
     def test_compile_with_conditionals(self):
         source = textwrap.dedent("""
+            @flow
             def my_flow(p: dict) -> dict:
                 if p["x"]:
                     p = handler_a(p)
@@ -59,6 +62,7 @@ class TestCompile:
 
     def test_compile_preserves_routers(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -77,6 +81,7 @@ class TestValidate:
 
     def test_validate_correct_flow(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -98,7 +103,7 @@ class TestValidate:
         """)
         compiler = FlowCompiler()
 
-        with pytest.raises(FlowCompileError, match="No flow function found"):
+        with pytest.raises(FlowCompileError, match="No @flow function found"):
             compiler.validate(source, "test.py")
 
 
@@ -109,6 +114,7 @@ class TestCompileFile:
         # Use two actors so a start router is generated
         source_file = tmp_path / "flow.py"
         source_file.write_text(textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -158,6 +164,7 @@ class TestCompileFile:
     def test_compile_file_creates_output_directory(self, tmp_path: Path):
         source_file = tmp_path / "flow.py"
         source_file.write_text(textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 return p
         """))
@@ -183,6 +190,7 @@ class TestGeneratePlot:
 
     def test_generate_plot_creates_dot_file(self, tmp_path: Path):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 return p
@@ -205,6 +213,7 @@ class TestGeneratePlot:
 
     def test_generate_plot_dot_content_valid(self, tmp_path: Path):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"]:
                     p = handler_a(p)

@@ -32,6 +32,10 @@ Payload contract:
 """
 
 import asyncio
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def voting_ensemble(state: dict) -> dict:

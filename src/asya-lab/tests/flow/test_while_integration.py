@@ -86,6 +86,7 @@ class TestSimpleWhileCompilation:
 
     def test_compile_simple_while(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 3:
         p["i"] += 1
@@ -106,6 +107,7 @@ def flow(p: dict) -> dict:
 
     def test_compile_while_true(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -129,6 +131,7 @@ class TestWhileWithBreak:
 
     def test_while_with_break_structure(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0
@@ -160,6 +163,7 @@ class TestWhileWithContinue:
 
     def test_while_with_continue_structure(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0
@@ -186,6 +190,7 @@ class TestWhileWithIfInBody:
 
     def test_if_inside_while(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p["i"] = 0
     while p["i"] < 10:
@@ -214,6 +219,7 @@ class TestNestedWhileLoops:
 
     def test_two_level_nesting(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p["i"] = 0
     while p["i"] < 10:
@@ -246,6 +252,7 @@ class TestWhileMutationsInBody:
 
     def test_mutations_inside_loop(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p["i"] = 0
     p["sum"] = 0
@@ -274,6 +281,7 @@ class TestWhileBreakContinueCombined:
 
     def test_break_and_continue_combined(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     p = handler_init(p)
     p["i"] = 0
@@ -307,6 +315,7 @@ class TestWhileInsideIf:
 
     def test_while_in_true_branch(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     if p.get("needs_enrichment"):
         while p.get("batch_count", 0) < p.get("max_batches", 3):
@@ -331,6 +340,7 @@ class TestComplexFlow:
 
     def test_complex_flow_compiles(self):
         source = """
+@flow
 def complex_flow(p: dict) -> dict:
     p = handler_preprocess(p)
     p = handler_validate(p)
@@ -374,6 +384,7 @@ def complex_flow(p: dict) -> dict:
     def test_react_loop_pattern(self):
         """Test the ReAct (Reasoning + Acting) loop pattern from the RFC."""
         source = """
+@flow
 def agent(p: dict) -> dict:
     while True:
         p = llm_call(p)
@@ -400,6 +411,7 @@ class TestSequentialWhileLoops:
 
     def test_two_sequential_whiles(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 10:
         p["i"] += 1
@@ -428,6 +440,7 @@ class TestWhileReturnInBody:
 
     def test_return_in_while_true(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -444,6 +457,7 @@ def flow(p: dict) -> dict:
 
     def test_return_in_conditional_while(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 10:
         p["i"] += 1
@@ -467,6 +481,7 @@ class TestWhileOnlyMutationsInBody:
 
     def test_mutations_only_body(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 10:
         p["i"] += 1
@@ -532,6 +547,7 @@ class TestMaxIterationsGuardIntegration:
 
     def test_while_true_generates_guard_code(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -554,6 +570,7 @@ def flow(p: dict) -> dict:
 
     def test_while_condition_no_guard_code(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while p["i"] < 10:
         p["i"] += 1
@@ -567,6 +584,7 @@ def flow(p: dict) -> dict:
 
     def test_custom_max_iterations_via_compiler(self):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -581,6 +599,7 @@ def flow(p: dict) -> dict:
 
     def test_react_loop_gets_guard(self):
         source = """
+@flow
 def agent(p: dict) -> dict:
     while True:
         p = llm_call(p)
@@ -686,6 +705,7 @@ def agent(p: dict) -> dict:
 
     def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)
@@ -733,6 +753,7 @@ def flow(p: dict) -> dict:
 
     def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
         source = """
+@flow
 def flow(p: dict) -> dict:
     while True:
         p = handler(p)

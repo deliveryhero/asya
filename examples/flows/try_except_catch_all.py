@@ -1,3 +1,5 @@
+from asya_lab.flow import flow
+@flow
 def resilient_pipeline(p: dict) -> dict:
     try:
         p = risky_operation(p)

@@ -56,6 +56,7 @@ class TestRouterExecution:
     def test_simple_flow_routing(self):
         # Two actors: generates start router (single-actor flows skip the start router)
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -81,6 +82,7 @@ class TestRouterExecution:
 
     def test_sequential_handlers_routing(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler_a(p)
                 p = handler_b(p)
@@ -118,6 +120,7 @@ class TestConditionalRouting:
 
     def test_true_branch_routing(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["go_left"]:
                     p = left_handler(p)
@@ -147,6 +150,7 @@ class TestConditionalRouting:
 
     def test_false_branch_routing(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["go_left"]:
                     p = left_handler(p)
@@ -176,6 +180,7 @@ class TestConditionalRouting:
 
     def test_complex_condition_evaluation(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["x"] > 10 and p["y"] < 20:
                     p = handler_match(p)
@@ -216,6 +221,7 @@ class TestMutationRouting:
 
     def test_mutation_modifies_payload(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["key"] = "value"
                 p = handler(p)
@@ -238,6 +244,7 @@ class TestMutationRouting:
 
     def test_multiple_mutations(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["x"] = 1
                 p["y"] = 2
@@ -258,6 +265,7 @@ class TestMutationRouting:
 
     def test_mutations_in_conditional_branches(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["type"] == "A":
                     p["label"] = "A"
@@ -302,6 +310,7 @@ class TestConvergenceRouting:
 
     def test_branches_converge_to_same_handler(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 if p["condition"]:
                     p = handler_a(p)
@@ -345,6 +354,7 @@ class TestEndRouter:
 
     def test_end_router_returns_message_unchanged(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 return p
         """)
@@ -373,6 +383,7 @@ class TestResolveFunction:
     def test_resolve_finds_handler_from_env(self):
         # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 p = finalizer(p)
@@ -397,6 +408,7 @@ class TestResolveFunction:
     def test_resolve_raises_on_missing_handler(self):
         # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 p = finalizer(p)
@@ -420,6 +432,7 @@ class TestResolveFunction:
 
         # Two actors: resolve() is only generated for multi-actor flows
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 p = finalizer(p)
@@ -446,6 +459,7 @@ class TestRouteInsertion:
 
     def test_router_prepends_to_next(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p["init"] = True
                 p = handler(p)
@@ -467,6 +481,7 @@ class TestRouteInsertion:
     def test_router_preserves_existing_route(self):
         # Two actors: start router is generated (single-actor flows skip the start router)
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 p = handler(p)
                 p = finalizer(p)
@@ -503,6 +518,7 @@ class TestFanOutInsideWhileLoop:
     def test_fanout_inside_while_compiles(self):
         """Fan-out inside while True compiles without errors."""
         source = textwrap.dedent("""
+            @flow
             async def debate(p: dict) -> dict:
                 while True:
                     p["positions"] = [
@@ -538,6 +554,7 @@ class TestFanOutInsideWhileLoop:
     def test_fanout_router_yields_n_plus_1_frames(self):
         """Fan-out router inside loop yields 4 frames (1 parent + 3 debaters)."""
         source = textwrap.dedent("""
+            @flow
             async def debate(p: dict) -> dict:
                 while True:
                     p["positions"] = [
@@ -573,6 +590,7 @@ class TestFanOutInsideWhileLoop:
     def test_break_exits_loop(self):
         """Break clears route.next to exit the loop."""
         source = textwrap.dedent("""
+            @flow
             async def debate(p: dict) -> dict:
                 while True:
                     p = await convergence_checker(p)
@@ -606,6 +624,7 @@ class TestFanOutInsideWhileLoop:
     def test_continue_loops_back(self):
         """When break condition is NOT met, route.next preserves the loop_back router."""
         source = textwrap.dedent("""
+            @flow
             async def debate(p: dict) -> dict:
                 while True:
                     p = await convergence_checker(p)
@@ -639,6 +658,7 @@ class TestFanOutInsideWhileLoop:
     def test_fanout_with_continuation_inside_loop(self):
         """Fan-out followed by actor call inside a loop compiles correctly."""
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 while True:
                     p["results"] = [

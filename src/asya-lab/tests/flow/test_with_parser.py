@@ -31,6 +31,7 @@ class TestWithParserRejectsUnknown:
 
     def test_unknown_context_manager_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with unknown_ctx():
                     p = handler(p)
@@ -42,6 +43,7 @@ class TestWithParserRejectsUnknown:
 
     def test_async_with_unknown_raises_error(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with unknown_ctx():
                     p = handler(p)
@@ -53,6 +55,7 @@ class TestWithParserRejectsUnknown:
 
     def test_default_rules_reject_unknown_context_manager(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with totally_unknown():
                     p = handler(p)
@@ -68,6 +71,7 @@ class TestConfigRuleWith:
 
     def test_asyncio_timeout_body_ops_returned(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     p = slow_handler(p)
@@ -83,6 +87,7 @@ class TestConfigRuleWith:
 
     def test_config_with_multiple_body_actors(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     p = slow_handler(p)
@@ -101,6 +106,7 @@ class TestConfigRuleWith:
 
     def test_config_with_body_mutations(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     p["status"] = "running"
@@ -117,6 +123,7 @@ class TestConfigRuleWith:
 
     def test_config_extracts_args_into_metadata(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     p = handler(p)
@@ -139,6 +146,7 @@ class TestConfigRuleWith:
             )
         )
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with my_timeout(60):
                     p = handler(p)
@@ -157,6 +165,7 @@ class TestInlineRuleWith:
 
     def test_inline_produces_with_block(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with custom_ctx():
                     p = handler(p)
@@ -177,6 +186,7 @@ class TestInlineRuleWith:
 
     def test_async_with_inline_produces_async_with_block(self):
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with custom_ctx():
                     p = handler(p)
@@ -194,6 +204,7 @@ class TestInlineRuleWith:
 
     def test_inline_with_mutations_in_body(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with custom_ctx():
                     p["status"] = "running"
@@ -213,6 +224,7 @@ class TestInlineRuleWith:
 
     def test_inline_with_block_preserves_lineno(self):
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with custom_ctx():
                     p = handler(p)
@@ -223,11 +235,12 @@ class TestInlineRuleWith:
         _, ops = parser.parse()
 
         assert isinstance(ops[0], WithBlock)
-        assert ops[0].lineno == 3
+        assert ops[0].lineno == 4
 
     def test_inline_with_as_binding_includes_alias_in_expr(self):
         """Optional `as name` binding preserved in expr string."""
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with custom_ctx() as cm:
                     p = handler(p)
@@ -251,6 +264,7 @@ class TestNestedWith:
             outer_timeout=CompilerRule(treat_as="config", extract={}),
         )
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     async with asyncio.timeout(10):
@@ -268,6 +282,7 @@ class TestNestedWith:
     def test_nested_inline_managers_produce_nested_with_blocks(self):
         """Outer inline wraps inner inline: outer `WithBlock` contains inner `WithBlock`."""
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with outer_ctx():
                     with inner_ctx():
@@ -294,6 +309,7 @@ class TestNestedWith:
     def test_nested_config_then_inline(self):
         """Outer config stripped → remaining op is inline WithBlock."""
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30):
                     with custom_ctx():
@@ -330,6 +346,7 @@ class TestMultipleWithItems:
             }
         )
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30), another_config():
                     p = handler(p)
@@ -345,6 +362,7 @@ class TestMultipleWithItems:
     def test_multiple_inline_items_combined_in_expr(self):
         """Two inline items → single WithBlock with both in expr."""
         source = textwrap.dedent("""
+            @flow
             def flow(p: dict) -> dict:
                 with ctx_a(), ctx_b():
                     p = handler(p)
@@ -363,6 +381,7 @@ class TestMultipleWithItems:
     def test_mixed_treat_as_raises_error(self):
         """Config + inline in the same `with` statement is unsupported."""
         source = textwrap.dedent("""
+            @flow
             async def flow(p: dict) -> dict:
                 async with asyncio.timeout(30), custom_ctx():
                     p = handler(p)

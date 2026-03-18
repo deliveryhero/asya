@@ -14,12 +14,12 @@ _cleanup() {
 }
 trap _cleanup EXIT
 
-if command -v docker >/dev/null 2>&1; then
-  if ! docker image inspect "$GRAPHVIZ_IMAGE" >/dev/null 2>&1; then
+if command -v docker > /dev/null 2>&1; then
+  if ! docker image inspect "$GRAPHVIZ_IMAGE" > /dev/null 2>&1; then
     echo "[.] Building pinned graphviz Docker image ($GRAPHVIZ_IMAGE)..."
     docker build -t "$GRAPHVIZ_IMAGE" \
       -f "$REPO_ROOT/.pre-commit-hooks/Dockerfile.graphviz" \
-      "$REPO_ROOT/.pre-commit-hooks/" >/dev/null
+      "$REPO_ROOT/.pre-commit-hooks/" > /dev/null
     echo "[+] Built $GRAPHVIZ_IMAGE"
   fi
   DOT_WRAPPER_DIR="$(mktemp -d)"
@@ -42,7 +42,7 @@ pids=()
 for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
   "$REPO_ROOT"/examples/flows/*.py \
   "$REPO_ROOT"/examples/flows/agentic/*.py \
-  "$REPO_ROOT"/docs/img/for-data-scientists-flows/*.py; do
+  "$REPO_ROOT"/docs/img/flows/*.py; do
   [ -f "$flow_file" ] || continue
 
   flow_dir="$(dirname "$flow_file")"

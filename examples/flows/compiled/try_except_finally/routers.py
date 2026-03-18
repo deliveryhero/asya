@@ -18,11 +18,11 @@ async def start_resource_pipeline(payload: dict):
     _next = []
     p = payload
     p['status'] = 'started'
-    _next.append(resolve("router_resource_pipeline_line_3_try_enter_0"))
+    _next.append(resolve("router_resource_pipeline_line_5_try_enter_0"))
     yield "SET", ".route.next[:0]", _next
     yield p
 
-async def router_resource_pipeline_line_7_seq(payload: dict):
+async def router_resource_pipeline_line_9_seq(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,18 +32,18 @@ async def router_resource_pipeline_line_7_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_3_try_enter_0(payload: dict):
+async def router_resource_pipeline_line_5_try_enter_0(payload: dict):
     """Try-enter router: sets _on_error header and inserts try body"""
     _next = []
-    yield "SET", ".headers._on_error", resolve("router_resource_pipeline_line_3_except_dispatch_0")
+    yield "SET", ".headers._on_error", resolve("router_resource_pipeline_line_5_except_dispatch_0")
     _next.append(resolve("acquire_resource"))
     _next.append(resolve("process_with_resource"))
-    _next.append(resolve("router_resource_pipeline_line_3_try_exit_0"))
+    _next.append(resolve("router_resource_pipeline_line_5_try_exit_0"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_3_try_exit_0(payload: dict):
+async def router_resource_pipeline_line_5_try_exit_0(payload: dict):
     """Try-exit router: clears _on_error header (success path)"""
     _next = []
     headers = yield "GET", ".headers"
@@ -55,7 +55,7 @@ async def router_resource_pipeline_line_3_try_exit_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_3_except_dispatch_0(payload: dict):
+async def router_resource_pipeline_line_5_except_dispatch_0(payload: dict):
     """Except-dispatch router: matches error type and routes to handler"""
     p = payload
     _next = []
@@ -65,16 +65,16 @@ async def router_resource_pipeline_line_3_except_dispatch_0(payload: dict):
 
     if "RuntimeError" in _all_types:
         yield "DEL", ".status.error"
-        _next.append(resolve("router_resource_pipeline_line_7_seq"))
+        _next.append(resolve("router_resource_pipeline_line_9_seq"))
     else:
-        _next.append(resolve("router_resource_pipeline_line_3_reraise_0"))
+        _next.append(resolve("router_resource_pipeline_line_5_reraise_0"))
     _next.append(resolve("release_resource"))
     _next.append(resolve("finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_3_reraise_0(payload: dict):
+async def router_resource_pipeline_line_5_reraise_0(payload: dict):
     """Reraise router: raises RuntimeError for unhandled exceptions"""
     _error_type = yield "GET", ".status.error.type"
     _error_msg = yield "GET", ".status.error.message"

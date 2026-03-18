@@ -3,6 +3,10 @@ Minimal flow - single handler.
 
 Tests the simplest possible flow compilation.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 def minimal_flow(p: dict) -> dict:

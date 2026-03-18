@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: polisher
+  namespace: asya-demo
+  labels:
+    asya.sh/flow: text-improver
+    asya.sh/flow-role: handler
+spec:
+  actor: polisher
+  image: asya-demo:latest
+  handler: demo_actors.polisher.polisher
+  transport: pubsub
+  compositionSelector:
+    matchLabels:
+      asya.sh/transport: pubsub
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

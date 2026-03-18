@@ -31,13 +31,13 @@
 <path fill="none" stroke="black" d="M227.77,-620.16C227.77,-612.37 227.77,-603.72 227.77,-595.38"/>
 <polygon fill="black" stroke="black" points="231.28,-595.44 227.78,-585.44 224.28,-595.44 231.28,-595.44"/>
 </g>
-<!-- fanout_parallel_sectioning_line_44 -->
+<!-- fanout_parallel_sectioning_line_48 -->
 <g id="node2" class="node">
-<title>fanout_parallel_sectioning_line_44</title>
+<title>fanout_parallel_sectioning_line_48</title>
 <path fill="lightblue" stroke="black" d="M344.8,-491C344.8,-491 110.75,-491 110.75,-491 104.75,-491 98.75,-485 98.75,-479 98.75,-479 98.75,-420.7 98.75,-420.7 98.75,-414.7 104.75,-408.7 110.75,-408.7 110.75,-408.7 344.8,-408.7 344.8,-408.7 350.8,-408.7 356.8,-414.7 356.8,-420.7 356.8,-420.7 356.8,-479 356.8,-479 356.8,-485 350.8,-491 344.8,-491"/>
 <polygon fill="white" stroke="none" points="113.15,-449.85 113.15,-476.6 342.4,-476.6 342.4,-449.85 113.15,-449.85"/>
 <polygon fill="none" stroke="black" points="113.15,-449.85 113.15,-476.6 342.4,-476.6 342.4,-449.85 113.15,-449.85"/>
-<text text-anchor="start" x="120.15" y="-461.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_parallel_sectioning_line_44(p)</text>
+<text text-anchor="start" x="120.15" y="-461.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_parallel_sectioning_line_48(p)</text>
 <polygon fill="#9f79ee" stroke="none" points="113.15,-423.1 113.15,-449.85 342.4,-449.85 342.4,-423.1 113.15,-423.1"/>
 <polygon fill="none" stroke="black" points="113.15,-423.1 113.15,-449.85 342.4,-449.85 342.4,-423.1 113.15,-423.1"/>
 <text text-anchor="start" x="190.27" y="-434.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:gather]</text>
@@ -50,27 +50,27 @@
 <polygon fill="none" stroke="black" points="14.4,-318.8 14.4,-345.55 161.15,-345.55 161.15,-318.8 14.4,-318.8"/>
 <text text-anchor="start" x="21.4" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await entity_recognizer(p)</text>
 </g>
-<!-- fanout_parallel_sectioning_line_44&#45;&gt;entity_recognizer -->
+<!-- fanout_parallel_sectioning_line_48&#45;&gt;entity_recognizer -->
 <g id="edge4" class="edge">
-<title>fanout_parallel_sectioning_line_44&#45;&gt;entity_recognizer</title>
+<title>fanout_parallel_sectioning_line_48&#45;&gt;entity_recognizer</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M178.81,-408.39C162.73,-395.1 145.01,-380.47 129.51,-367.66"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="132.95,-365.96 123.01,-362.29 128.49,-371.36 132.95,-365.96"/>
 <text text-anchor="middle" x="167.08" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 3</text>
 </g>
-<!-- fanin_parallel_sectioning_line_44 -->
+<!-- fanin_parallel_sectioning_line_48 -->
 <g id="node6" class="node">
-<title>fanin_parallel_sectioning_line_44</title>
+<title>fanin_parallel_sectioning_line_48</title>
 <path fill="lightblue" stroke="black" d="M368.43,-267.4C368.43,-267.4 141.12,-267.4 141.12,-267.4 135.12,-267.4 129.12,-261.4 129.12,-255.4 129.12,-255.4 129.12,-197.1 129.12,-197.1 129.12,-191.1 135.12,-185.1 141.12,-185.1 141.12,-185.1 368.43,-185.1 368.43,-185.1 374.43,-185.1 380.43,-191.1 380.43,-197.1 380.43,-197.1 380.43,-255.4 380.43,-255.4 380.43,-261.4 374.43,-267.4 368.43,-267.4"/>
 <polygon fill="white" stroke="none" points="143.52,-226.25 143.52,-253 366.02,-253 366.02,-226.25 143.52,-226.25"/>
 <polygon fill="none" stroke="black" points="143.52,-226.25 143.52,-253 366.02,-253 366.02,-226.25 143.52,-226.25"/>
-<text text-anchor="start" x="150.52" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_parallel_sectioning_line_44(p)</text>
+<text text-anchor="start" x="150.52" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_parallel_sectioning_line_48(p)</text>
 <polygon fill="#ab82ff" stroke="none" points="143.52,-199.5 143.52,-226.25 366.02,-226.25 366.02,-199.5 143.52,-199.5"/>
 <polygon fill="none" stroke="black" points="143.52,-199.5 143.52,-226.25 366.02,-226.25 366.02,-199.5 143.52,-199.5"/>
 <text text-anchor="start" x="237.15" y="-210.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
 </g>
-<!-- fanout_parallel_sectioning_line_44&#45;&gt;fanin_parallel_sectioning_line_44 -->
+<!-- fanout_parallel_sectioning_line_48&#45;&gt;fanin_parallel_sectioning_line_48 -->
 <g id="edge5" class="edge">
-<title>fanout_parallel_sectioning_line_44&#45;&gt;fanin_parallel_sectioning_line_44</title>
+<title>fanout_parallel_sectioning_line_48&#45;&gt;fanin_parallel_sectioning_line_48</title>
 <path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M220.35,-408.25C216.32,-379.06 213.51,-338.92 220.77,-304.4 222.6,-295.74 225.46,-286.87 228.76,-278.36"/>
 <polygon fill="#5d478b" stroke="#5d478b" points="231.95,-279.81 232.56,-269.23 225.49,-277.12 231.95,-279.81"/>
 <text text-anchor="middle" x="238.77" y="-335.43" font-family="Courier,monospace" font-size="10.00">slice 0</text>
@@ -84,9 +84,9 @@
 <polygon fill="none" stroke="black" points="280.15,-318.8 280.15,-345.55 437.4,-345.55 437.4,-318.8 280.15,-318.8"/>
 <text text-anchor="start" x="287.15" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await sentiment_analyzer(p)</text>
 </g>
-<!-- fanout_parallel_sectioning_line_44&#45;&gt;sentiment_analyzer -->
+<!-- fanout_parallel_sectioning_line_48&#45;&gt;sentiment_analyzer -->
 <g id="edge6" class="edge">
-<title>fanout_parallel_sectioning_line_44&#45;&gt;sentiment_analyzer</title>
+<title>fanout_parallel_sectioning_line_48&#45;&gt;sentiment_analyzer</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M273.59,-408.39C288.64,-395.1 305.22,-380.47 319.72,-367.66"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="320.54,-371.61 325.72,-362.36 315.91,-366.36 320.54,-371.61"/>
 <text text-anchor="middle" x="318.13" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 1</text>
@@ -99,9 +99,9 @@
 <polygon fill="none" stroke="black" points="484.27,-318.8 484.27,-345.55 621.27,-345.55 621.27,-318.8 484.27,-318.8"/>
 <text text-anchor="start" x="491.27" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await topic_extractor(p)</text>
 </g>
-<!-- fanout_parallel_sectioning_line_44&#45;&gt;topic_extractor -->
+<!-- fanout_parallel_sectioning_line_48&#45;&gt;topic_extractor -->
 <g id="edge7" class="edge">
-<title>fanout_parallel_sectioning_line_44&#45;&gt;topic_extractor</title>
+<title>fanout_parallel_sectioning_line_48&#45;&gt;topic_extractor</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M341.9,-408.23C382.69,-393.71 427.96,-377.6 466.06,-364.04"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="465.51,-367.95 473.76,-361.3 463.17,-361.35 465.51,-367.95"/>
 <text text-anchor="middle" x="432.88" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 2</text>
@@ -128,33 +128,33 @@
 <path fill="none" stroke="black" d="M254.77,-92.16C254.77,-84.37 254.77,-75.72 254.77,-67.38"/>
 <polygon fill="black" stroke="black" points="258.28,-67.44 254.78,-57.44 251.28,-67.44 258.28,-67.44"/>
 </g>
-<!-- entity_recognizer&#45;&gt;fanin_parallel_sectioning_line_44 -->
+<!-- entity_recognizer&#45;&gt;fanin_parallel_sectioning_line_48 -->
 <g id="edge2" class="edge">
-<title>entity_recognizer&#45;&gt;fanin_parallel_sectioning_line_44</title>
+<title>entity_recognizer&#45;&gt;fanin_parallel_sectioning_line_48</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M131.22,-304.14C146.08,-294.89 163.17,-284.26 179.8,-273.91"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="181.59,-276.92 188.23,-268.66 177.89,-270.97 181.59,-276.92"/>
 </g>
-<!-- fanin_parallel_sectioning_line_44&#45;&gt;aggregator -->
+<!-- fanin_parallel_sectioning_line_48&#45;&gt;aggregator -->
 <g id="edge3" class="edge">
-<title>fanin_parallel_sectioning_line_44&#45;&gt;aggregator</title>
+<title>fanin_parallel_sectioning_line_48&#45;&gt;aggregator</title>
 <path fill="none" stroke="black" d="M254.77,-184.77C254.77,-176.58 254.77,-167.98 254.77,-159.86"/>
 <polygon fill="black" stroke="black" points="258.28,-159.9 254.78,-149.9 251.28,-159.9 258.28,-159.9"/>
 </g>
-<!-- preprocessor&#45;&gt;fanout_parallel_sectioning_line_44 -->
+<!-- preprocessor&#45;&gt;fanout_parallel_sectioning_line_48 -->
 <g id="edge8" class="edge">
-<title>preprocessor&#45;&gt;fanout_parallel_sectioning_line_44</title>
+<title>preprocessor&#45;&gt;fanout_parallel_sectioning_line_48</title>
 <path fill="none" stroke="black" d="M227.77,-527.74C227.77,-520.05 227.77,-511.4 227.77,-502.75"/>
 <polygon fill="black" stroke="black" points="231.28,-502.98 227.78,-492.98 224.28,-502.98 231.28,-502.98"/>
 </g>
-<!-- sentiment_analyzer&#45;&gt;fanin_parallel_sectioning_line_44 -->
+<!-- sentiment_analyzer&#45;&gt;fanin_parallel_sectioning_line_48 -->
 <g id="edge9" class="edge">
-<title>sentiment_analyzer&#45;&gt;fanin_parallel_sectioning_line_44</title>
+<title>sentiment_analyzer&#45;&gt;fanin_parallel_sectioning_line_48</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M331.72,-304.14C323.07,-295.5 313.21,-285.64 303.5,-275.94"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="306.04,-273.53 296.49,-268.93 301.09,-278.48 306.04,-273.53"/>
 </g>
-<!-- topic_extractor&#45;&gt;fanin_parallel_sectioning_line_44 -->
+<!-- topic_extractor&#45;&gt;fanin_parallel_sectioning_line_48 -->
 <g id="edge11" class="edge">
-<title>topic_extractor&#45;&gt;fanin_parallel_sectioning_line_44</title>
+<title>topic_extractor&#45;&gt;fanin_parallel_sectioning_line_48</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M474.87,-304.01C446.44,-294.09 413.5,-282.6 381.9,-271.58"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="383.26,-268.35 372.67,-268.36 380.96,-274.96 383.26,-268.35"/>
 </g>

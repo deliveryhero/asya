@@ -14,7 +14,7 @@ repos:
     exclude: (^|/)compiled/
   - id: check-yaml
     args: ["--allow-multiple-documents"]
-    exclude: (^|/)helm-charts/|testing/e2e/charts/|mkdocs\.yml
+    exclude: (^|/)helm-charts/|testing/e2e/charts/|mkdocs\.yml|(^|/)templates/
   - id: check-added-large-files
     args: ["--maxkb=1000"]
   - id: check-merge-conflict

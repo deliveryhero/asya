@@ -21,6 +21,7 @@ Payload contract:
 
 from dataclasses import dataclass, field
 from typing import List
+from asya_lab.flow import flow
 
 
 # ---------------------------------------------------------------------------
@@ -62,6 +63,9 @@ class FormattedResult:
 # ---------------------------------------------------------------------------
 # Flow definition (compiled to router actors)
 # ---------------------------------------------------------------------------
+
+
+@flow
 
 
 def typed_dataclass_pipeline(p: dict) -> dict:

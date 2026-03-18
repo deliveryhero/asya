@@ -1,3 +1,8 @@
+def flow(f):  # no-op: decorator used by compiler to mark flow entry points
+    return f
+
+
+@flow
 def research_flow(p: dict) -> dict:
     p["results"] = [research_agent(t) for t in p["topics"]]
     p = summarizer(p)

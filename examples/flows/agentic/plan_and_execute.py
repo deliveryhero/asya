@@ -39,6 +39,10 @@ Note on control flow: The while loop and step counter are pure state
 transformations -- they compile into router actors. Only the function
 calls (planner, executor, etc.) become real deployed actors.
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def plan_and_execute(state: dict) -> dict:

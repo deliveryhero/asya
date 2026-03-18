@@ -17,20 +17,20 @@
 <polygon fill="none" stroke="black" points="297.4,-542.4 297.4,-569.15 470.4,-569.15 470.4,-542.4 297.4,-542.4"/>
 <text text-anchor="start" x="304.4" y="-553.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await start_voting_ensemble(p)</text>
 </g>
-<!-- fanout_voting_ensemble_line_40 -->
+<!-- fanout_voting_ensemble_line_44 -->
 <g id="node2" class="node">
-<title>fanout_voting_ensemble_line_40</title>
+<title>fanout_voting_ensemble_line_44</title>
 <path fill="lightblue" stroke="black" d="M496.8,-491C496.8,-491 271,-491 271,-491 265,-491 259,-485 259,-479 259,-479 259,-420.7 259,-420.7 259,-414.7 265,-408.7 271,-408.7 271,-408.7 496.8,-408.7 496.8,-408.7 502.8,-408.7 508.8,-414.7 508.8,-420.7 508.8,-420.7 508.8,-479 508.8,-479 508.8,-485 502.8,-491 496.8,-491"/>
 <polygon fill="white" stroke="none" points="273.4,-449.85 273.4,-476.6 494.4,-476.6 494.4,-449.85 273.4,-449.85"/>
 <polygon fill="none" stroke="black" points="273.4,-449.85 273.4,-476.6 494.4,-476.6 494.4,-449.85 273.4,-449.85"/>
-<text text-anchor="start" x="280.4" y="-461.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_voting_ensemble_line_40(p)</text>
+<text text-anchor="start" x="280.4" y="-461.1" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanout_voting_ensemble_line_44(p)</text>
 <polygon fill="#9f79ee" stroke="none" points="273.4,-423.1 273.4,-449.85 494.4,-449.85 494.4,-423.1 273.4,-423.1"/>
 <polygon fill="none" stroke="black" points="273.4,-423.1 273.4,-449.85 494.4,-449.85 494.4,-423.1 273.4,-423.1"/>
 <text text-anchor="start" x="346.4" y="-434.35" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;out:gather]</text>
 </g>
-<!-- start_voting_ensemble&#45;&gt;fanout_voting_ensemble_line_40 -->
+<!-- start_voting_ensemble&#45;&gt;fanout_voting_ensemble_line_44 -->
 <g id="edge10" class="edge">
-<title>start_voting_ensemble&#45;&gt;fanout_voting_ensemble_line_40</title>
+<title>start_voting_ensemble&#45;&gt;fanout_voting_ensemble_line_44</title>
 <path fill="none" stroke="black" d="M383.9,-527.74C383.9,-520.05 383.9,-511.4 383.9,-502.75"/>
 <polygon fill="black" stroke="black" points="387.4,-502.98 383.9,-492.98 380.4,-502.98 387.4,-502.98"/>
 </g>
@@ -42,9 +42,9 @@
 <polygon fill="none" stroke="black" points="14.4,-318.8 14.4,-345.55 157.4,-345.55 157.4,-318.8 14.4,-318.8"/>
 <text text-anchor="start" x="21.4" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await analytical_writer(p)</text>
 </g>
-<!-- fanout_voting_ensemble_line_40&#45;&gt;analytical_writer -->
+<!-- fanout_voting_ensemble_line_44&#45;&gt;analytical_writer -->
 <g id="edge5" class="edge">
-<title>fanout_voting_ensemble_line_40&#45;&gt;analytical_writer</title>
+<title>fanout_voting_ensemble_line_44&#45;&gt;analytical_writer</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M279.26,-408.23C242.17,-393.83 201.05,-377.87 166.3,-364.39"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="169.15,-361.73 158.56,-361.38 166.61,-368.26 169.15,-361.73"/>
 <text text-anchor="middle" x="239.46" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 2</text>
@@ -57,9 +57,9 @@
 <polygon fill="none" stroke="black" points="204.27,-318.8 204.27,-345.55 337.52,-345.55 337.52,-318.8 204.27,-318.8"/>
 <text text-anchor="start" x="211.27" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await concise_writer(p)</text>
 </g>
-<!-- fanout_voting_ensemble_line_40&#45;&gt;concise_writer -->
+<!-- fanout_voting_ensemble_line_44&#45;&gt;concise_writer -->
 <g id="edge6" class="edge">
-<title>fanout_voting_ensemble_line_40&#45;&gt;concise_writer</title>
+<title>fanout_voting_ensemble_line_44&#45;&gt;concise_writer</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M344.38,-408.39C331.64,-395.35 317.63,-381.01 305.29,-368.38"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="309.06,-367.23 299.57,-362.52 304.06,-372.12 309.06,-367.23"/>
 <text text-anchor="middle" x="337.51" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 3</text>
@@ -72,27 +72,27 @@
 <polygon fill="none" stroke="black" points="384.52,-318.8 384.52,-345.55 519.27,-345.55 519.27,-318.8 384.52,-318.8"/>
 <text text-anchor="start" x="391.52" y="-330.05" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await creative_writer(p)</text>
 </g>
-<!-- fanout_voting_ensemble_line_40&#45;&gt;creative_writer -->
+<!-- fanout_voting_ensemble_line_44&#45;&gt;creative_writer -->
 <g id="edge7" class="edge">
-<title>fanout_voting_ensemble_line_40&#45;&gt;creative_writer</title>
+<title>fanout_voting_ensemble_line_44&#45;&gt;creative_writer</title>
 <path fill="none" stroke="#5d478b" stroke-width="2" d="M407.68,-408.39C414.98,-395.97 422.98,-382.38 430.14,-370.2"/>
 <polygon fill="#5d478b" stroke="#5d478b" stroke-width="2" points="432.33,-373.36 434.39,-362.97 426.3,-369.82 432.33,-373.36"/>
 <text text-anchor="middle" x="437.12" y="-381.2" font-family="Courier,monospace" font-size="10.00">slice 1</text>
 </g>
-<!-- fanin_voting_ensemble_line_40 -->
+<!-- fanin_voting_ensemble_line_44 -->
 <g id="node7" class="node">
-<title>fanin_voting_ensemble_line_40</title>
+<title>fanin_voting_ensemble_line_44</title>
 <path fill="lightblue" stroke="black" d="M457.42,-267.4C457.42,-267.4 238.37,-267.4 238.37,-267.4 232.37,-267.4 226.37,-261.4 226.37,-255.4 226.37,-255.4 226.37,-197.1 226.37,-197.1 226.37,-191.1 232.37,-185.1 238.37,-185.1 238.37,-185.1 457.42,-185.1 457.42,-185.1 463.42,-185.1 469.42,-191.1 469.42,-197.1 469.42,-197.1 469.42,-255.4 469.42,-255.4 469.42,-261.4 463.42,-267.4 457.42,-267.4"/>
 <polygon fill="white" stroke="none" points="240.77,-226.25 240.77,-253 455.02,-253 455.02,-226.25 240.77,-226.25"/>
 <polygon fill="none" stroke="black" points="240.77,-226.25 240.77,-253 455.02,-253 455.02,-226.25 240.77,-226.25"/>
-<text text-anchor="start" x="247.77" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_voting_ensemble_line_40(p)</text>
+<text text-anchor="start" x="247.77" y="-237.5" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await fanin_voting_ensemble_line_44(p)</text>
 <polygon fill="#ab82ff" stroke="none" points="240.77,-199.5 240.77,-226.25 455.02,-226.25 455.02,-199.5 240.77,-199.5"/>
 <polygon fill="none" stroke="black" points="240.77,-199.5 240.77,-226.25 455.02,-226.25 455.02,-199.5 240.77,-199.5"/>
 <text text-anchor="start" x="330.27" y="-210.75" font-family="Courier,monospace" font-weight="bold" font-size="10.00">[fan&#45;in]</text>
 </g>
-<!-- fanout_voting_ensemble_line_40&#45;&gt;fanin_voting_ensemble_line_40 -->
+<!-- fanout_voting_ensemble_line_44&#45;&gt;fanin_voting_ensemble_line_44 -->
 <g id="edge8" class="edge">
-<title>fanout_voting_ensemble_line_40&#45;&gt;fanin_voting_ensemble_line_40</title>
+<title>fanout_voting_ensemble_line_44&#45;&gt;fanin_voting_ensemble_line_44</title>
 <path fill="none" stroke="#5d478b" stroke-dasharray="5,2" d="M493.17,-408.3C513.02,-395.87 531.14,-380 542.9,-359.95 555.39,-338.65 556.78,-324.82 542.9,-304.4 527.7,-282.04 504.91,-266.16 480.21,-254.88"/>
 <polygon fill="#5d478b" stroke="#5d478b" points="481.87,-251.78 471.29,-251.07 479.11,-258.22 481.87,-251.78"/>
 <text text-anchor="middle" x="570.8" y="-335.43" font-family="Courier,monospace" font-size="10.00">slice 0</text>
@@ -106,21 +106,21 @@
 <polygon fill="none" stroke="black" points="263.27,-14.4 263.27,-41.15 432.52,-41.15 432.52,-14.4 263.27,-14.4"/>
 <text text-anchor="start" x="270.27" y="-25.65" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await end_voting_ensemble(p)</text>
 </g>
-<!-- analytical_writer&#45;&gt;fanin_voting_ensemble_line_40 -->
+<!-- analytical_writer&#45;&gt;fanin_voting_ensemble_line_44 -->
 <g id="edge1" class="edge">
-<title>analytical_writer&#45;&gt;fanin_voting_ensemble_line_40</title>
+<title>analytical_writer&#45;&gt;fanin_voting_ensemble_line_44</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M154.4,-304.01C179.13,-294.19 207.75,-282.84 235.27,-271.93"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="236.34,-275.27 244.35,-268.33 233.76,-268.76 236.34,-275.27"/>
 </g>
-<!-- concise_writer&#45;&gt;fanin_voting_ensemble_line_40 -->
+<!-- concise_writer&#45;&gt;fanin_voting_ensemble_line_44 -->
 <g id="edge2" class="edge">
-<title>concise_writer&#45;&gt;fanin_voting_ensemble_line_40</title>
+<title>concise_writer&#45;&gt;fanin_voting_ensemble_line_44</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M290.93,-304.14C297.08,-295.84 304.05,-286.43 310.96,-277.11"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="313.77,-279.2 316.91,-269.08 308.14,-275.03 313.77,-279.2"/>
 </g>
-<!-- creative_writer&#45;&gt;fanin_voting_ensemble_line_40 -->
+<!-- creative_writer&#45;&gt;fanin_voting_ensemble_line_44 -->
 <g id="edge3" class="edge">
-<title>creative_writer&#45;&gt;fanin_voting_ensemble_line_40</title>
+<title>creative_writer&#45;&gt;fanin_voting_ensemble_line_44</title>
 <path fill="none" stroke="#473c8b" stroke-dasharray="5,2" d="M424.85,-304.14C416.2,-295.5 406.34,-285.64 396.63,-275.94"/>
 <polygon fill="#473c8b" stroke="#473c8b" points="399.16,-273.53 389.61,-268.93 394.21,-278.48 399.16,-273.53"/>
 </g>
@@ -132,9 +132,9 @@
 <polygon fill="none" stroke="black" points="301.15,-106.95 301.15,-133.7 394.65,-133.7 394.65,-106.95 301.15,-106.95"/>
 <text text-anchor="start" x="308.15" y="-118.2" font-family="Courier,monospace" font-style="italic" font-size="10.00">p = await judge(p)</text>
 </g>
-<!-- fanin_voting_ensemble_line_40&#45;&gt;judge -->
+<!-- fanin_voting_ensemble_line_44&#45;&gt;judge -->
 <g id="edge4" class="edge">
-<title>fanin_voting_ensemble_line_40&#45;&gt;judge</title>
+<title>fanin_voting_ensemble_line_44&#45;&gt;judge</title>
 <path fill="none" stroke="black" d="M347.9,-184.77C347.9,-176.58 347.9,-167.98 347.9,-159.86"/>
 <polygon fill="black" stroke="black" points="351.4,-159.9 347.9,-149.9 344.4,-159.9 351.4,-159.9"/>
 </g>

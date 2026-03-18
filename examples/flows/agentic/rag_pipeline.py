@@ -40,6 +40,10 @@ Payload contract:
   state["answer"]       - generated answer
   state["citations"]    - source citations
 """
+from asya_lab.flow import flow
+
+
+@flow
 
 
 async def rag_pipeline(state: dict) -> dict:
