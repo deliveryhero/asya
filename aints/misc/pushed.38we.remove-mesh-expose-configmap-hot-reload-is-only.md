@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Context
 
 The gateway has documentation and stale code references to a `POST /mesh/expose` endpoint that was
