@@ -1,9 +1,14 @@
 ---
 title: "Phase 1: Core pipeline rewrite (parser + codegen + analyzer + graphgen)"
 priority: 1 # high
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer
+  - branch:compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer
 dependencies:
   - 7179
 ---
+
 
 ## Overview
 
