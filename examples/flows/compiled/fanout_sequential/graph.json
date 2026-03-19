@@ -8,9 +8,39 @@
       "is_generated": true
     },
     {
+      "id": "fanin_multi_stage_flow_line_15",
+      "flow_role": "router",
+      "label": "fanin_multi_stage_flow_line_15",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_multi_stage_flow_line_16",
+      "flow_role": "router",
+      "label": "fanin_multi_stage_flow_line_16",
+      "is_generated": false
+    },
+    {
+      "id": "research_agent",
+      "flow_role": "actor",
+      "label": "research_agent",
+      "is_generated": false
+    },
+    {
+      "id": "review_agent",
+      "flow_role": "actor",
+      "label": "review_agent",
+      "is_generated": false
+    },
+    {
       "id": "router_multi_stage_flow_line_15_fanout_2",
       "flow_role": "router",
       "label": "router_multi_stage_flow_line_15_fanout_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_multi_stage_flow_line_16_fanout_1",
+      "flow_role": "router",
+      "label": "router_multi_stage_flow_line_16_fanout_1",
       "is_generated": true
     },
     {
@@ -18,6 +48,12 @@
       "flow_role": "entry",
       "label": "start_multi_stage_flow",
       "is_generated": true
+    },
+    {
+      "id": "summarizer",
+      "flow_role": "actor",
+      "label": "summarizer",
+      "is_generated": false
     }
   ],
   "edges": [
@@ -28,13 +64,61 @@
       "type": "prepend"
     },
     {
+      "from": "router_multi_stage_flow_line_16_fanout_1",
+      "to": "fanin_multi_stage_flow_line_16",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fanin_multi_stage_flow_line_16",
+      "to": "summarizer",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_stage_flow_line_16_fanout_1",
+      "to": "review_agent",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "review_agent",
+      "to": "fanin_multi_stage_flow_line_16",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_stage_flow_line_15_fanout_2",
+      "to": "fanin_multi_stage_flow_line_15",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fanin_multi_stage_flow_line_15",
+      "to": "router_multi_stage_flow_line_16_fanout_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_stage_flow_line_15_fanout_2",
+      "to": "research_agent",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "research_agent",
+      "to": "fanin_multi_stage_flow_line_15",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "end_multi_stage_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
     },
     {
-      "from": "router_multi_stage_flow_line_15_fanout_2",
+      "from": "summarizer",
       "to": "end_multi_stage_flow",
       "label": null,
       "type": "continuation"

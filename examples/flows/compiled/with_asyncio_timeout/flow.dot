@@ -1,4 +1,4 @@
-digraph "document_pipeline" {
+digraph "with_asyncio_timeout" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

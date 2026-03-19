@@ -78,6 +78,69 @@ def _collect_append_chains(
     return chains
 
 
+def _collect_resolve_vars(func_node: ast.AST) -> dict[str, str]:
+    """Collect variable assignments from resolve() calls.
+
+    Tracks patterns like: _agg = resolve("fanin_name")
+    Returns: {"_agg": "fanin_name"}
+    """
+    var_map: dict[str, str] = {}
+    for node in ast.walk(func_node):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name):
+            name = _extract_resolve_arg(node.value)
+            if name:
+                var_map[node.targets[0].id] = name
+    return var_map
+
+
+def _collect_slices_targets(func_node: ast.AST) -> list[str]:
+    """Collect handler names from _slices.append((resolve("name"), ...)) patterns.
+
+    Fanout codegen populates _slices with (actor, payload) tuples:
+        _slices.append((resolve("research_agent"), t))
+
+    Returns list of handler names used as fanout slice targets.
+    """
+    targets: list[str] = []
+    for node in ast.walk(func_node):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "append"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == "_slices"
+            and len(node.args) == 1
+            and isinstance(node.args[0], ast.Tuple)
+            and len(node.args[0].elts) >= 1
+        ):
+            name = _extract_resolve_arg(node.args[0].elts[0])
+            if name:
+                targets.append(name)
+    return targets
+
+
+def _is_in_slices_loop(parent_map: dict[int, ast.AST], node: ast.AST) -> bool:
+    """Check if a node is inside a for-loop iterating over _slices."""
+    current = node
+    while id(current) in parent_map:
+        parent = parent_map[id(current)]
+        if isinstance(parent, ast.For):
+            iter_node = parent.iter
+            if isinstance(iter_node, ast.Name) and iter_node.id == "_slices":
+                return True
+            if (
+                isinstance(iter_node, ast.Call)
+                and isinstance(iter_node.func, ast.Name)
+                and iter_node.func.id == "enumerate"
+                and len(iter_node.args) == 1
+                and isinstance(iter_node.args[0], ast.Name)
+                and iter_node.args[0].id == "_slices"
+            ):
+                return True
+        current = parent
+    return False
+
+
 def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     """Extract yield ABI patterns from an AST function node.
 
@@ -85,6 +148,7 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     - yield "SET", ".route.next", [...]  -> explicit routing edge
     - yield "SET", ".route.next[:0]", [...]  -> prepend routing edge
     - yield "SET", ".route.next[:0]", _next  -> prepend via variable (codegen pattern)
+    - yield "SET", ".route.next", [a, b] + tail  -> BinOp list concat (fanout parent yield)
     - yield "SET", ".route.next", []  -> abort / terminal
     - yield payload  -> implicit pass-through
     - yield "FLY", {...}  -> no routing edge (streaming only)
@@ -95,6 +159,10 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     parent_map = _build_parent_map(func_node)
     # Pre-collect targets from _next.append(resolve(...)) grouped by branch
     append_chains = _collect_append_chains(func_node, parent_map)
+    # Track resolve() variable assignments for fanout patterns
+    resolve_vars = _collect_resolve_vars(func_node)
+    # Collect fanout slice targets from _slices.append((resolve("name"), ...))
+    slice_targets = _collect_slices_targets(func_node)
 
     for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
@@ -119,13 +187,17 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
         if not isinstance(path_str, str) or not path_str.startswith(".route.next"):
             continue
 
+        # Skip yields inside for-loops over _slices — handled separately below
+        if slice_targets and _is_in_slices_loop(parent_map, node):
+            continue
+
         edge_type = "prepend" if "[:0]" in path_str else "set"
 
-        # Extract target names from resolve() calls in the list literal
-        inline_targets = _extract_resolve_targets(targets_node)
+        # Extract target names from resolve() calls in the list literal or BinOp
+        inline_targets = _extract_resolve_targets(targets_node, resolve_vars)
 
         if inline_targets:
-            # Inline list literal: build sequential chain
+            # Inline list literal or BinOp: build sequential chain
             condition = _find_enclosing_condition(parent_map, node)
             edges.extend(_chain_to_edges(handler_name, inline_targets, condition, edge_type))
         elif isinstance(targets_node, ast.Name) and targets_node.id == "_next":
@@ -159,6 +231,14 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
                     }
                 )
 
+    # Fanout slice edges: router → each slice actor → aggregator
+    if slice_targets:
+        agg_name = resolve_vars.get("_agg")
+        for target in slice_targets:
+            edges.append({"from": handler_name, "to": target, "label": None, "type": "fanout"})
+            if agg_name:
+                edges.append({"from": target, "to": agg_name, "label": None, "type": "continuation"})
+
     return edges
 
 
@@ -177,15 +257,30 @@ def _chain_to_edges(source: str, targets: list[str], condition: str | None, edge
     return result
 
 
-def _extract_resolve_targets(node: ast.expr) -> list[str]:
-    """Extract handler names from resolve() calls in a list expression."""
+def _extract_resolve_targets(node: ast.expr, resolve_vars: dict[str, str] | None = None) -> list[str]:
+    """Extract handler names from resolve() calls in a list expression.
+
+    Handles:
+    - Plain list: [resolve("a"), resolve("b")]
+    - Variable references: [_agg, resolve("b")] where _agg = resolve("fanin_...")
+    - BinOp (list concat): [resolve("a"), _agg] + _next_tail — extracts from left list
+    """
+    resolve_vars = resolve_vars or {}
     targets: list[str] = []
+
+    # Handle BinOp: [targets...] + variable — extract from the list portion
+    if isinstance(node, ast.BinOp) and isinstance(node.op, ast.Add):
+        if isinstance(node.left, ast.List):
+            return _extract_resolve_targets(node.left, resolve_vars)
+        return []
 
     if isinstance(node, ast.List):
         for elt in node.elts:
             name = _extract_resolve_arg(elt)
             if name:
                 targets.append(name)
+            elif isinstance(elt, ast.Name) and elt.id in resolve_vars:
+                targets.append(resolve_vars[elt.id])
 
     return targets
 
@@ -331,6 +426,8 @@ def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -
         return "entry"
     if name.startswith("end_"):
         return "exit"
+    if name.startswith("fanin_"):
+        return "router"
 
     # Check if it's a target of any edge but not a source -> could be exit
     is_source = any(e["from"] == name for e in edges)

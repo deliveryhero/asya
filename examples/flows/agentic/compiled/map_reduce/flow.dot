@@ -2,12 +2,19 @@ digraph "map_reduce" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    chunk_processor [label="chunk_processor", fillcolor=lightblue];
     end_map_reduce [label="end_map_reduce", fillcolor=palegreen];
+    fanin_map_reduce_line_55 [label="fanin_map_reduce_line_55", fillcolor=lightblue];
+    reducer [label="reducer", fillcolor=lightblue];
     router_map_reduce_line_55_fanout_1 [label="router_map_reduce_line_55_fanout_1", fillcolor=wheat];
     splitter [label="splitter", fillcolor=lightblue];
     start_map_reduce [label="start_map_reduce", fillcolor=palegreen];
 
     start_map_reduce -> splitter;
     splitter -> router_map_reduce_line_55_fanout_1;
-    router_map_reduce_line_55_fanout_1 -> end_map_reduce;
+    router_map_reduce_line_55_fanout_1 -> fanin_map_reduce_line_55;
+    fanin_map_reduce_line_55 -> reducer;
+    router_map_reduce_line_55_fanout_1 -> chunk_processor;
+    chunk_processor -> fanin_map_reduce_line_55;
+    reducer -> end_map_reduce;
 }

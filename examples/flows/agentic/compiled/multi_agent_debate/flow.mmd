@@ -2,8 +2,16 @@ flowchart TD
     %% Flow: multi_agent_debate
 
     convergence_checker[convergence_checker]
+    debater_a[debater_a]
+    debater_b[debater_b]
+    debater_c[debater_c]
     end_multi_agent_debate([end_multi_agent_debate])
+    fanin_multi_agent_debate_line_57[fanin_multi_agent_debate_line_57]
+    fanin_multi_agent_debate_line_74[fanin_multi_agent_debate_line_74]
     final_judge[final_judge]
+    revise_a[revise_a]
+    revise_b[revise_b]
+    revise_c[revise_c]
     router_multi_agent_debate_line_55_seq_7{{router_multi_agent_debate_line_55_seq_7}}
     router_multi_agent_debate_line_57_fanout_6{{router_multi_agent_debate_line_57_fanout_6}}
     router_multi_agent_debate_line_63_while_1{{router_multi_agent_debate_line_63_while_1}}
@@ -14,6 +22,13 @@ flowchart TD
     start_multi_agent_debate([start_multi_agent_debate])
 
     start_multi_agent_debate --> router_multi_agent_debate_line_55_seq_7
+    router_multi_agent_debate_line_74_fanout_2 --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_a
+    revise_a --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_b
+    revise_b --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_c
+    revise_c --> fanin_multi_agent_debate_line_74
     router_multi_agent_debate_line_71_if_3 -->|not (p['round'] >= 3)| router_multi_agent_debate_line_74_fanout_2
     router_multi_agent_debate_line_71_if_3 -->|p['round'] >= 3| final_judge
     router_multi_agent_debate_line_68_if_4 -->|not (p.get('converged'))| router_multi_agent_debate_line_71_if_3
@@ -22,7 +37,13 @@ flowchart TD
     convergence_checker --> router_multi_agent_debate_line_68_if_4
     router_multi_agent_debate_line_63_while_1 --> router_multi_agent_debate_line_64_seq_5
     router_multi_agent_debate_line_64_seq_5 --> router_multi_agent_debate_line_63_while_1
+    router_multi_agent_debate_line_57_fanout_6 --> fanin_multi_agent_debate_line_57
+    fanin_multi_agent_debate_line_57 --> router_multi_agent_debate_line_63_while_1
+    router_multi_agent_debate_line_57_fanout_6 --> debater_a
+    debater_a --> fanin_multi_agent_debate_line_57
+    router_multi_agent_debate_line_57_fanout_6 --> debater_b
+    debater_b --> fanin_multi_agent_debate_line_57
+    router_multi_agent_debate_line_57_fanout_6 --> debater_c
+    debater_c --> fanin_multi_agent_debate_line_57
     router_multi_agent_debate_line_55_seq_7 --> router_multi_agent_debate_line_57_fanout_6
-    final_judge --> end_multi_agent_debate
-    router_multi_agent_debate_line_57_fanout_6 --> end_multi_agent_debate
-    router_multi_agent_debate_line_74_fanout_2 --> end_multi_agent_debate
+    fanin_multi_agent_debate_line_74 --> end_multi_agent_debate

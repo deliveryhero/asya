@@ -1,39 +1,30 @@
-digraph flow {
-  rankdir=TB;
-  compound=true;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "try_except_finally" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_resource_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_resource_pipeline(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'started'</td></tr></table>>];
-  router_resource_pipeline_line_9_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_resource_pipeline_line_9_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'failed'</td></tr></table>>];
-  end_resource_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_resource_pipeline(p)</i></td></tr></table>>];
-  finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize(p)</i></td></tr></table>>];
-  handle_failure [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_failure(p)</i></td></tr></table>>];
-  subgraph cluster_try_0 {
-    style=dashed;
-    color="snow4";
-    fontname="Courier";
-    fontsize=10;
-    label="try";
-    acquire_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = acquire_resource(p)</i></td></tr></table>>];
-    process_with_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_with_resource(p)</i></td></tr></table>>];
-  }
-  subgraph cluster_finally_0 {
-    style=dashed;
-    color="gray50";
-    fontname="Courier";
-    fontsize=10;
-    label="finally";
-    release_resource [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = release_resource(p)</i></td></tr></table>>];
-  }
+    acquire_resource [label="acquire_resource", fillcolor=lightblue];
+    end_resource_pipeline [label="end_resource_pipeline", fillcolor=palegreen];
+    finalize [label="finalize", fillcolor=lightblue];
+    handle_failure [label="handle_failure", fillcolor=lightblue];
+    process_with_resource [label="process_with_resource", fillcolor=lightblue];
+    release_resource [label="release_resource", fillcolor=lightblue];
+    router_resource_pipeline_line_5_except_dispatch_0 [label="router_resource_pipeline_line_5_except_dispatch_0", fillcolor=wheat];
+    router_resource_pipeline_line_5_reraise_0 [label="router_resource_pipeline_line_5_reraise_0", fillcolor=wheat];
+    router_resource_pipeline_line_5_try_enter_0 [label="router_resource_pipeline_line_5_try_enter_0", fillcolor=wheat];
+    router_resource_pipeline_line_5_try_exit_0 [label="router_resource_pipeline_line_5_try_exit_0", fillcolor=wheat];
+    router_resource_pipeline_line_9_seq [label="router_resource_pipeline_line_9_seq", fillcolor=wheat];
+    start_resource_pipeline [label="start_resource_pipeline", fillcolor=palegreen];
 
-  acquire_resource -> process_with_resource;
-  finalize -> end_resource_pipeline;
-  handle_failure -> release_resource;
-  process_with_resource -> release_resource;
-  process_with_resource -> router_resource_pipeline_line_9_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except RuntimeError", constraint=false];
-  release_resource -> finalize;
-  router_resource_pipeline_line_9_seq -> handle_failure;
-  start_resource_pipeline -> acquire_resource;
+    start_resource_pipeline -> router_resource_pipeline_line_5_try_enter_0;
+    router_resource_pipeline_line_9_seq -> handle_failure;
+    router_resource_pipeline_line_5_try_enter_0 -> acquire_resource;
+    acquire_resource -> process_with_resource;
+    process_with_resource -> router_resource_pipeline_line_5_try_exit_0;
+    router_resource_pipeline_line_5_try_exit_0 -> release_resource;
+    release_resource -> finalize;
+    router_resource_pipeline_line_5_except_dispatch_0 -> release_resource;
+    release_resource -> finalize;
+    router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_9_seq [label="'RuntimeError' in _all_types"];
+    router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_5_reraise_0 [label="not ('RuntimeError' in _all_types)"];
+    finalize -> end_resource_pipeline;
 }

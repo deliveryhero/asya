@@ -3,11 +3,18 @@ digraph "async_research_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_async_research_flow [label="end_async_research_flow", fillcolor=palegreen];
+    fanin_async_research_flow_line_16 [label="fanin_async_research_flow_line_16", fillcolor=lightblue];
+    postprocessor [label="postprocessor", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
+    research_agent [label="research_agent", fillcolor=lightblue];
     router_async_research_flow_line_16_fanout_1 [label="router_async_research_flow_line_16_fanout_1", fillcolor=wheat];
     start_async_research_flow [label="start_async_research_flow", fillcolor=palegreen];
 
     start_async_research_flow -> preprocessor;
     preprocessor -> router_async_research_flow_line_16_fanout_1;
-    router_async_research_flow_line_16_fanout_1 -> end_async_research_flow;
+    router_async_research_flow_line_16_fanout_1 -> fanin_async_research_flow_line_16;
+    fanin_async_research_flow_line_16 -> postprocessor;
+    router_async_research_flow_line_16_fanout_1 -> research_agent;
+    research_agent -> fanin_async_research_flow_line_16;
+    postprocessor -> end_async_research_flow;
 }

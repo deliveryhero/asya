@@ -3,9 +3,23 @@ digraph "multi_stage_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_multi_stage_flow [label="end_multi_stage_flow", fillcolor=palegreen];
+    fanin_multi_stage_flow_line_15 [label="fanin_multi_stage_flow_line_15", fillcolor=lightblue];
+    fanin_multi_stage_flow_line_16 [label="fanin_multi_stage_flow_line_16", fillcolor=lightblue];
+    research_agent [label="research_agent", fillcolor=lightblue];
+    review_agent [label="review_agent", fillcolor=lightblue];
     router_multi_stage_flow_line_15_fanout_2 [label="router_multi_stage_flow_line_15_fanout_2", fillcolor=wheat];
+    router_multi_stage_flow_line_16_fanout_1 [label="router_multi_stage_flow_line_16_fanout_1", fillcolor=wheat];
     start_multi_stage_flow [label="start_multi_stage_flow", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightblue];
 
     start_multi_stage_flow -> router_multi_stage_flow_line_15_fanout_2;
-    router_multi_stage_flow_line_15_fanout_2 -> end_multi_stage_flow;
+    router_multi_stage_flow_line_16_fanout_1 -> fanin_multi_stage_flow_line_16;
+    fanin_multi_stage_flow_line_16 -> summarizer;
+    router_multi_stage_flow_line_16_fanout_1 -> review_agent;
+    review_agent -> fanin_multi_stage_flow_line_16;
+    router_multi_stage_flow_line_15_fanout_2 -> fanin_multi_stage_flow_line_15;
+    fanin_multi_stage_flow_line_15 -> router_multi_stage_flow_line_16_fanout_1;
+    router_multi_stage_flow_line_15_fanout_2 -> research_agent;
+    research_agent -> fanin_multi_stage_flow_line_15;
+    summarizer -> end_multi_stage_flow;
 }

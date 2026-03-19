@@ -3,9 +3,16 @@ digraph "research_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_research_flow [label="end_research_flow", fillcolor=palegreen];
+    fanin_research_flow_line_7 [label="fanin_research_flow_line_7", fillcolor=lightblue];
+    research_agent [label="research_agent", fillcolor=lightblue];
     router_research_flow_line_7_fanout_1 [label="router_research_flow_line_7_fanout_1", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightblue];
 
     start_research_flow -> router_research_flow_line_7_fanout_1;
-    router_research_flow_line_7_fanout_1 -> end_research_flow;
+    router_research_flow_line_7_fanout_1 -> fanin_research_flow_line_7;
+    fanin_research_flow_line_7 -> summarizer;
+    router_research_flow_line_7_fanout_1 -> research_agent;
+    research_agent -> fanin_research_flow_line_7;
+    summarizer -> end_research_flow;
 }

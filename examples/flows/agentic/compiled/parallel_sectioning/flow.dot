@@ -2,12 +2,25 @@ digraph "parallel_sectioning" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    aggregator [label="aggregator", fillcolor=lightblue];
     end_parallel_sectioning [label="end_parallel_sectioning", fillcolor=palegreen];
+    entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
+    fanin_parallel_sectioning_line_48 [label="fanin_parallel_sectioning_line_48", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
     router_parallel_sectioning_line_48_fanout_1 [label="router_parallel_sectioning_line_48_fanout_1", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_parallel_sectioning [label="start_parallel_sectioning", fillcolor=palegreen];
+    topic_extractor [label="topic_extractor", fillcolor=lightblue];
 
     start_parallel_sectioning -> preprocessor;
     preprocessor -> router_parallel_sectioning_line_48_fanout_1;
-    router_parallel_sectioning_line_48_fanout_1 -> end_parallel_sectioning;
+    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48;
+    fanin_parallel_sectioning_line_48 -> aggregator;
+    router_parallel_sectioning_line_48_fanout_1 -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_parallel_sectioning_line_48;
+    router_parallel_sectioning_line_48_fanout_1 -> topic_extractor;
+    topic_extractor -> fanin_parallel_sectioning_line_48;
+    router_parallel_sectioning_line_48_fanout_1 -> entity_recognizer;
+    entity_recognizer -> fanin_parallel_sectioning_line_48;
+    aggregator -> end_parallel_sectioning;
 }

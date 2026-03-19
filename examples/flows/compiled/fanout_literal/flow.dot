@@ -3,9 +3,22 @@ digraph "analysis_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_analysis_flow [label="end_analysis_flow", fillcolor=palegreen];
+    entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
+    fanin_analysis_flow_line_14 [label="fanin_analysis_flow_line_14", fillcolor=lightblue];
+    merge_analysis [label="merge_analysis", fillcolor=lightblue];
     router_analysis_flow_line_14_fanout_1 [label="router_analysis_flow_line_14_fanout_1", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
+    topic_extractor [label="topic_extractor", fillcolor=lightblue];
 
     start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
-    router_analysis_flow_line_14_fanout_1 -> end_analysis_flow;
+    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14;
+    fanin_analysis_flow_line_14 -> merge_analysis;
+    router_analysis_flow_line_14_fanout_1 -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_analysis_flow_line_14;
+    router_analysis_flow_line_14_fanout_1 -> topic_extractor;
+    topic_extractor -> fanin_analysis_flow_line_14;
+    router_analysis_flow_line_14_fanout_1 -> entity_recognizer;
+    entity_recognizer -> fanin_analysis_flow_line_14;
+    merge_analysis -> end_analysis_flow;
 }

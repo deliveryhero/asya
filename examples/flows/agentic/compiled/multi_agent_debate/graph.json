@@ -8,15 +8,63 @@
       "is_generated": false
     },
     {
+      "id": "debater_a",
+      "flow_role": "actor",
+      "label": "debater_a",
+      "is_generated": false
+    },
+    {
+      "id": "debater_b",
+      "flow_role": "actor",
+      "label": "debater_b",
+      "is_generated": false
+    },
+    {
+      "id": "debater_c",
+      "flow_role": "actor",
+      "label": "debater_c",
+      "is_generated": false
+    },
+    {
       "id": "end_multi_agent_debate",
       "flow_role": "exit",
       "label": "end_multi_agent_debate",
       "is_generated": true
     },
     {
+      "id": "fanin_multi_agent_debate_line_57",
+      "flow_role": "router",
+      "label": "fanin_multi_agent_debate_line_57",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_multi_agent_debate_line_74",
+      "flow_role": "router",
+      "label": "fanin_multi_agent_debate_line_74",
+      "is_generated": false
+    },
+    {
       "id": "final_judge",
       "flow_role": "actor",
       "label": "final_judge",
+      "is_generated": false
+    },
+    {
+      "id": "revise_a",
+      "flow_role": "actor",
+      "label": "revise_a",
+      "is_generated": false
+    },
+    {
+      "id": "revise_b",
+      "flow_role": "actor",
+      "label": "revise_b",
+      "is_generated": false
+    },
+    {
+      "id": "revise_c",
+      "flow_role": "actor",
+      "label": "revise_c",
       "is_generated": false
     },
     {
@@ -76,6 +124,48 @@
       "type": "prepend"
     },
     {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "fanin_multi_agent_debate_line_74",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "revise_a",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "revise_a",
+      "to": "fanin_multi_agent_debate_line_74",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "revise_b",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "revise_b",
+      "to": "fanin_multi_agent_debate_line_74",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "revise_c",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "revise_c",
+      "to": "fanin_multi_agent_debate_line_74",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "router_multi_agent_debate_line_71_if_3",
       "to": "router_multi_agent_debate_line_74_fanout_2",
       "label": "not (p['round'] >= 3)",
@@ -124,6 +214,54 @@
       "type": "continuation"
     },
     {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "fanin_multi_agent_debate_line_57",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fanin_multi_agent_debate_line_57",
+      "to": "router_multi_agent_debate_line_63_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "debater_a",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "debater_a",
+      "to": "fanin_multi_agent_debate_line_57",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "debater_b",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "debater_b",
+      "to": "fanin_multi_agent_debate_line_57",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "debater_c",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "debater_c",
+      "to": "fanin_multi_agent_debate_line_57",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "router_multi_agent_debate_line_55_seq_7",
       "to": "router_multi_agent_debate_line_57_fanout_6",
       "label": null,
@@ -136,19 +274,7 @@
       "type": "abort"
     },
     {
-      "from": "final_judge",
-      "to": "end_multi_agent_debate",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_multi_agent_debate_line_57_fanout_6",
-      "to": "end_multi_agent_debate",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "from": "fanin_multi_agent_debate_line_74",
       "to": "end_multi_agent_debate",
       "label": null,
       "type": "continuation"

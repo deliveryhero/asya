@@ -8,16 +8,46 @@
       "is_generated": true
     },
     {
+      "id": "entity_recognizer",
+      "flow_role": "actor",
+      "label": "entity_recognizer",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_analysis_flow_line_14",
+      "flow_role": "router",
+      "label": "fanin_analysis_flow_line_14",
+      "is_generated": false
+    },
+    {
+      "id": "merge_analysis",
+      "flow_role": "actor",
+      "label": "merge_analysis",
+      "is_generated": false
+    },
+    {
       "id": "router_analysis_flow_line_14_fanout_1",
       "flow_role": "router",
       "label": "router_analysis_flow_line_14_fanout_1",
       "is_generated": true
     },
     {
+      "id": "sentiment_analyzer",
+      "flow_role": "actor",
+      "label": "sentiment_analyzer",
+      "is_generated": false
+    },
+    {
       "id": "start_analysis_flow",
       "flow_role": "entry",
       "label": "start_analysis_flow",
       "is_generated": true
+    },
+    {
+      "id": "topic_extractor",
+      "flow_role": "actor",
+      "label": "topic_extractor",
+      "is_generated": false
     }
   ],
   "edges": [
@@ -28,13 +58,61 @@
       "type": "prepend"
     },
     {
+      "from": "router_analysis_flow_line_14_fanout_1",
+      "to": "fanin_analysis_flow_line_14",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fanin_analysis_flow_line_14",
+      "to": "merge_analysis",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_analysis_flow_line_14_fanout_1",
+      "to": "sentiment_analyzer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "sentiment_analyzer",
+      "to": "fanin_analysis_flow_line_14",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_analysis_flow_line_14_fanout_1",
+      "to": "topic_extractor",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "topic_extractor",
+      "to": "fanin_analysis_flow_line_14",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_analysis_flow_line_14_fanout_1",
+      "to": "entity_recognizer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "entity_recognizer",
+      "to": "fanin_analysis_flow_line_14",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "end_analysis_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
     },
     {
-      "from": "router_analysis_flow_line_14_fanout_1",
+      "from": "merge_analysis",
       "to": "end_analysis_flow",
       "label": null,
       "type": "continuation"

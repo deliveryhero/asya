@@ -1,0 +1,110 @@
+{
+  "flow_name": "try_except_simple",
+  "nodes": [
+    {
+      "id": "end_order_processing",
+      "flow_role": "exit",
+      "label": "end_order_processing",
+      "is_generated": true
+    },
+    {
+      "id": "notify_rejection",
+      "flow_role": "actor",
+      "label": "notify_rejection",
+      "is_generated": false
+    },
+    {
+      "id": "router_order_processing_line_4_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_order_processing_line_4_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_reraise_0",
+      "flow_role": "actor",
+      "label": "router_order_processing_line_4_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_try_enter_0",
+      "flow_role": "router",
+      "label": "router_order_processing_line_4_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_try_exit_0",
+      "flow_role": "router",
+      "label": "router_order_processing_line_4_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_7_seq",
+      "flow_role": "router",
+      "label": "router_order_processing_line_7_seq",
+      "is_generated": true
+    },
+    {
+      "id": "start_order_processing",
+      "flow_role": "entry",
+      "label": "start_order_processing",
+      "is_generated": true
+    },
+    {
+      "id": "validate_order",
+      "flow_role": "actor",
+      "label": "validate_order",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_order_processing",
+      "to": "router_order_processing_line_4_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_7_seq",
+      "to": "notify_rejection",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_4_try_enter_0",
+      "to": "validate_order",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_order",
+      "to": "router_order_processing_line_4_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_order_processing_line_4_except_dispatch_0",
+      "to": "router_order_processing_line_7_seq",
+      "label": "'ValueError' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_4_except_dispatch_0",
+      "to": "router_order_processing_line_4_reraise_0",
+      "label": "not ('ValueError' in _all_types)",
+      "type": "prepend"
+    },
+    {
+      "from": "end_order_processing",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_order_processing_line_4_try_exit_0",
+      "to": "end_order_processing",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

@@ -3,7 +3,10 @@ digraph "adaptive_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     classifier [label="classifier", fillcolor=lightblue];
+    deep_analyzer [label="deep_analyzer", fillcolor=lightblue];
     end_adaptive_flow [label="end_adaptive_flow", fillcolor=palegreen];
+    fanin_adaptive_flow_line_17 [label="fanin_adaptive_flow_line_17", fillcolor=lightblue];
+    fast_analyzer [label="fast_analyzer", fillcolor=lightblue];
     formatter [label="formatter", fillcolor=lightblue];
     router_adaptive_flow_line_16_if_2 [label="router_adaptive_flow_line_16_if_2", fillcolor=wheat];
     router_adaptive_flow_line_17_fanout_1 [label="router_adaptive_flow_line_17_fanout_1", fillcolor=wheat];
@@ -12,9 +15,15 @@ digraph "adaptive_flow" {
 
     start_adaptive_flow -> classifier;
     classifier -> router_adaptive_flow_line_16_if_2;
+    router_adaptive_flow_line_17_fanout_1 -> fanin_adaptive_flow_line_17;
+    router_adaptive_flow_line_17_fanout_1 -> fast_analyzer;
+    fast_analyzer -> fanin_adaptive_flow_line_17;
+    router_adaptive_flow_line_17_fanout_1 -> deep_analyzer;
+    deep_analyzer -> fanin_adaptive_flow_line_17;
     router_adaptive_flow_line_16_if_2 -> router_adaptive_flow_line_17_fanout_1 [label="p['parallel']"];
     router_adaptive_flow_line_17_fanout_1 -> formatter;
     router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="not (p['parallel'])"];
     sequential_analyzer -> formatter;
+    fanin_adaptive_flow_line_17 -> end_adaptive_flow;
     formatter -> end_adaptive_flow;
 }
