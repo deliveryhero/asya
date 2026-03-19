@@ -4,8 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import ActorCall, Mutation, Return, WithBlock
-from asya_lab.flow.parser import FlowParser
+from asya_lab.flow.parser import ActorCall, FlowParser, Mutation, Return
 from asya_lab.flow.rules import CompilerRule, CompilerRules
 
 
@@ -78,7 +77,9 @@ class TestConfigRuleWith:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -95,7 +96,9 @@ class TestConfigRuleWith:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 3
         assert isinstance(ops[0], ActorCall)
@@ -114,7 +117,9 @@ class TestConfigRuleWith:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 3
         assert isinstance(ops[0], Mutation)
@@ -153,7 +158,9 @@ class TestConfigRuleWith:
                 return p
         """)
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -161,9 +168,9 @@ class TestConfigRuleWith:
 
 
 class TestInlineRuleWith:
-    """`treat-as: inline` wraps body ops in a WithBlock IR node."""
+    """Inline with blocks are no longer supported in the simplified compiler."""
 
-    def test_inline_produces_with_block(self):
+    def test_inline_with_rejected(self):
         source = textwrap.dedent("""
             @flow
             def flow(p: dict) -> dict:
@@ -173,18 +180,10 @@ class TestInlineRuleWith:
         """)
         rules = _inline_rules("custom_ctx")
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
+        with pytest.raises(FlowCompileError, match="not supported"):
+            parser.parse()
 
-        assert len(ops) == 2
-        assert isinstance(ops[0], WithBlock)
-        wb = ops[0]
-        assert wb.expr == "custom_ctx()"
-        assert wb.is_async is False
-        assert len(wb.body) == 1
-        assert isinstance(wb.body[0], ActorCall)
-        assert wb.body[0].name == "handler"
-
-    def test_async_with_inline_produces_async_with_block(self):
+    def test_async_with_inline_rejected(self):
         source = textwrap.dedent("""
             @flow
             async def flow(p: dict) -> dict:
@@ -194,65 +193,8 @@ class TestInlineRuleWith:
         """)
         rules = _inline_rules("custom_ctx")
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert len(ops) == 2
-        assert isinstance(ops[0], WithBlock)
-        wb = ops[0]
-        assert wb.is_async is True
-        assert wb.expr == "custom_ctx()"
-
-    def test_inline_with_mutations_in_body(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                with custom_ctx():
-                    p["status"] = "running"
-                    p = handler(p)
-                return p
-        """)
-        rules = _inline_rules("custom_ctx")
-        parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert len(ops) == 2
-        assert isinstance(ops[0], WithBlock)
-        wb = ops[0]
-        assert len(wb.body) == 2
-        assert isinstance(wb.body[0], Mutation)
-        assert isinstance(wb.body[1], ActorCall)
-
-    def test_inline_with_block_preserves_lineno(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                with custom_ctx():
-                    p = handler(p)
-                return p
-        """)
-        rules = _inline_rules("custom_ctx")
-        parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert isinstance(ops[0], WithBlock)
-        assert ops[0].lineno == 4
-
-    def test_inline_with_as_binding_includes_alias_in_expr(self):
-        """Optional `as name` binding preserved in expr string."""
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                with custom_ctx() as cm:
-                    p = handler(p)
-                return p
-        """)
-        rules = _inline_rules("custom_ctx")
-        parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert isinstance(ops[0], WithBlock)
-        assert "custom_ctx()" in ops[0].expr
-        assert "as cm" in ops[0].expr
+        with pytest.raises(FlowCompileError, match="not supported"):
+            parser.parse()
 
 
 class TestNestedWith:
@@ -272,7 +214,9 @@ class TestNestedWith:
                 return p
         """)
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -280,7 +224,7 @@ class TestNestedWith:
         assert isinstance(ops[1], Return)
 
     def test_nested_inline_managers_produce_nested_with_blocks(self):
-        """Outer inline wraps inner inline: outer `WithBlock` contains inner `WithBlock`."""
+        """Nested inline with blocks are rejected."""
         source = textwrap.dedent("""
             @flow
             def flow(p: dict) -> dict:
@@ -291,23 +235,11 @@ class TestNestedWith:
         """)
         rules = _inline_rules("outer_ctx", "inner_ctx")
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert len(ops) == 2
-        outer = ops[0]
-        assert isinstance(outer, WithBlock)
-        assert "outer_ctx" in outer.expr
-
-        assert len(outer.body) == 1
-        inner = outer.body[0]
-        assert isinstance(inner, WithBlock)
-        assert "inner_ctx" in inner.expr
-
-        assert len(inner.body) == 1
-        assert isinstance(inner.body[0], ActorCall)
+        with pytest.raises(FlowCompileError, match="not supported"):
+            parser.parse()
 
     def test_nested_config_then_inline(self):
-        """Outer config stripped → remaining op is inline WithBlock."""
+        """Outer config + inner inline → inner inline is rejected."""
         source = textwrap.dedent("""
             @flow
             async def flow(p: dict) -> dict:
@@ -323,12 +255,8 @@ class TestNestedWith:
             }
         )
         parser = FlowParser(source, "test.py", rules=rules2)
-        _, ops = parser.parse()
-
-        assert len(ops) == 2
-        assert isinstance(ops[0], WithBlock)
-        assert "custom_ctx" in ops[0].expr
-        assert isinstance(ops[1], Return)
+        with pytest.raises(FlowCompileError, match="not supported"):
+            parser.parse()
 
 
 class TestMultipleWithItems:
@@ -353,14 +281,16 @@ class TestMultipleWithItems:
                 return p
         """)
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
         assert isinstance(ops[1], Return)
 
     def test_multiple_inline_items_combined_in_expr(self):
-        """Two inline items → single WithBlock with both in expr."""
+        """Multiple inline with items are rejected."""
         source = textwrap.dedent("""
             @flow
             def flow(p: dict) -> dict:
@@ -370,13 +300,8 @@ class TestMultipleWithItems:
         """)
         rules = _inline_rules("ctx_a", "ctx_b")
         parser = FlowParser(source, "test.py", rules=rules)
-        _, ops = parser.parse()
-
-        assert len(ops) == 2
-        assert isinstance(ops[0], WithBlock)
-        wb = ops[0]
-        assert "ctx_a()" in wb.expr
-        assert "ctx_b()" in wb.expr
+        with pytest.raises(FlowCompileError, match="not supported"):
+            parser.parse()
 
     def test_mixed_treat_as_raises_error(self):
         """Config + inline in the same `with` statement is unsupported."""
@@ -394,5 +319,5 @@ class TestMultipleWithItems:
             }
         )
         parser = FlowParser(source, "test.py", rules=rules)
-        with pytest.raises(FlowCompileError, match="mixed"):
+        with pytest.raises(FlowCompileError):
             parser.parse()

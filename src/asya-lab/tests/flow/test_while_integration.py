@@ -1,13 +1,11 @@
 """Integration tests for while loop compilation.
 
-These tests exercise the full compilation pipeline (parse -> group -> codegen)
+These tests exercise the full compilation pipeline (parse -> codegen -> analyze)
 and validate that the generated router code correctly manipulates envelope routes
 for various while loop patterns.
 """
 
 import ast
-import contextlib
-import re
 import sys
 import tempfile
 from pathlib import Path
@@ -102,8 +100,6 @@ def flow(p: dict) -> dict:
         assert "start_flow" in func_names
         assert "end_flow" in func_names
         assert any("while" in n for n in func_names)
-        # Conditional while self-references: no loop_back router
-        assert not any("loop_back" in n for n in func_names)
 
     def test_compile_while_true(self):
         source = """
@@ -121,9 +117,8 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
-        # while True should NOT produce a condition router
-        assert not any("_while_" in n for n in func_names)
-        assert any("loop_back" in n for n in func_names)
+        # while True uses the same naming: router_..._while_...
+        assert any("while" in n for n in func_names)
 
 
 class TestWhileWithBreak:
@@ -151,8 +146,6 @@ def flow(p: dict) -> dict:
 
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert any("while" in n for n in func_names)
-        # Conditional while self-references: no loop_back
-        assert not any("loop_back" in n for n in func_names)
 
         # Should reference handler_finalize in the generated code (break exits to it)
         assert "handler_finalize" in code
@@ -181,7 +174,7 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         assert tree is not None
 
-        # continue should reference the while condition router (not loop_back)
+        # continue should reference the while router
         assert "_while_" in code
 
 
@@ -239,11 +232,7 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
-        loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
-
-        # Conditional whiles self-reference: no loop_backs
-        assert len(loop_backs) == 0
         assert len(whiles) == 2
 
 
@@ -303,8 +292,6 @@ def flow(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert any("_while_" in n for n in func_names)
-        # Conditional while self-references: no loop_back
-        assert not any("loop_back" in n for n in func_names)
         assert "handler_check" in code
         assert "handler_process" in code
         assert "handler_finalize" in code
@@ -401,7 +388,7 @@ def agent(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_agent" in func_names
-        assert any("loop_back" in n for n in func_names)
+        assert any("while" in n for n in func_names)
         assert "llm_call" in code
         assert "execute_tool" in code
 
@@ -427,11 +414,7 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
-        loop_backs = [n for n in func_names if "loop_back" in n]
         whiles = [n for n in func_names if "_while_" in n]
-
-        # Conditional whiles self-reference: no loop_backs
-        assert len(loop_backs) == 0
         assert len(whiles) == 2
 
 
@@ -453,7 +436,7 @@ def flow(p: dict) -> dict:
         tree = ast.parse(code)
 
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
-        assert any("loop_back" in n for n in func_names)
+        assert any("while" in n for n in func_names)
 
     def test_return_in_conditional_while(self):
         source = """
@@ -494,7 +477,7 @@ def flow(p: dict) -> dict:
 
 
 class TestExampleFlowsCompile:
-    """Compile all example flows from later/ directory and verify valid Python output."""
+    """Compile all example flows from examples/flows/ directory and verify valid Python output."""
 
     EXAMPLES_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent / "examples" / "flows"
 
@@ -540,254 +523,3 @@ class TestExampleFlowsCompile:
 
     def test_complex(self):
         self._compile_example("complex_with_while.py")
-
-
-class TestMaxIterationsGuardIntegration:
-    """Test max_iterations guard through the full compilation pipeline."""
-
-    def test_while_true_generates_guard_code(self):
-        source = """
-@flow
-def flow(p: dict) -> dict:
-    while True:
-        p = handler(p)
-        if p["done"]:
-            break
-    return p
-"""
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert 'yield "GET", ".route.prev"' in code
-        assert "_prev.count(_self) >= _ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "RuntimeError" in code
-        # No payload pollution
-        assert "__loop_" not in code
-
-        tree = ast.parse(code)
-        assert tree is not None
-
-    def test_while_condition_no_guard_code(self):
-        source = """
-@flow
-def flow(p: dict) -> dict:
-    while p["i"] < 10:
-        p["i"] += 1
-        p = handler(p)
-    return p
-"""
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert "_ASYA_MAX_LOOP_ITERATIONS" not in code
-
-    def test_custom_max_iterations_via_compiler(self):
-        source = """
-@flow
-def flow(p: dict) -> dict:
-    while True:
-        p = handler(p)
-        if p["done"]:
-            break
-    return p
-"""
-        compiler = FlowCompiler(max_iterations=10)
-        code = compiler.compile(source, "test.py")
-
-        assert '"10"' in code
-
-    def test_react_loop_gets_guard(self):
-        source = """
-@flow
-def agent(p: dict) -> dict:
-    while True:
-        p = llm_call(p)
-        if p.get("tool_calls"):
-            p = execute_tool(p)
-        else:
-            return p
-    return p
-"""
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert "_ASYA_MAX_LOOP_ITERATIONS" in code
-        assert "RuntimeError" in code
-
-        tree = ast.parse(code)
-        assert tree is not None
-
-    @staticmethod
-    def _resolve_path(data: dict, path: str):
-        """Resolve a dotted path on a nested dict."""
-        parts = path.lstrip(".").split(".")
-        cur = data
-        for p in parts:
-            cur = cur[p]
-        return cur
-
-    @staticmethod
-    def _set_path(data: dict, path: str, value):
-        """Set a value at a dotted path on a nested dict."""
-        parts = path.lstrip(".").split(".")
-        cur = data
-        last = parts[-1]
-        for p in parts[:-1]:
-            if p not in cur:
-                cur[p] = {}
-            cur = cur[p]
-        m = re.match(r"^(\w+)\[(-?\d*):(-?\d*)\]$", last)
-        if m:
-            key = m.group(1)
-            start = int(m.group(2)) if m.group(2) else None
-            stop = int(m.group(3)) if m.group(3) else None
-            cur[key][start:stop] = value
-        else:
-            cur[last] = value
-
-    @staticmethod
-    def _drive_abi_single(gen, msg_ctx: dict):
-        """Drive an ABI generator (sync or async) that yields exactly one payload frame."""
-        import asyncio
-        import inspect
-
-        if inspect.isasyncgen(gen):
-            return asyncio.run(TestMaxIterationsGuardIntegration._drive_abi_single_async(gen, msg_ctx))
-        value = gen.send(None)
-        while True:
-            if (
-                isinstance(value, tuple)
-                and len(value) >= 2
-                and isinstance(value[0], str)
-                and value[0] in ("GET", "SET", "DEL")
-            ):
-                op = value[0]
-                if op == "GET":
-                    result = TestMaxIterationsGuardIntegration._resolve_path(msg_ctx, value[1])
-                    value = gen.send(result)
-                elif op == "SET":
-                    TestMaxIterationsGuardIntegration._set_path(msg_ctx, value[1], value[2])
-                    value = gen.send(None)
-                else:
-                    value = gen.send(None)
-            else:
-                payload = value
-                with contextlib.suppress(StopIteration):
-                    gen.send(None)
-                return payload
-
-    @staticmethod
-    async def _drive_abi_single_async(gen, msg_ctx: dict):
-        """Drive an async ABI generator that yields exactly one payload frame."""
-        value = await gen.asend(None)
-        while True:
-            if (
-                isinstance(value, tuple)
-                and len(value) >= 2
-                and isinstance(value[0], str)
-                and value[0] in ("GET", "SET", "DEL")
-            ):
-                op = value[0]
-                if op == "GET":
-                    result = TestMaxIterationsGuardIntegration._resolve_path(msg_ctx, value[1])
-                    value = await gen.asend(result)
-                elif op == "SET":
-                    TestMaxIterationsGuardIntegration._set_path(msg_ctx, value[1], value[2])
-                    value = await gen.asend(None)
-                else:
-                    value = await gen.asend(None)
-            else:
-                payload = value
-                with contextlib.suppress(StopAsyncIteration):
-                    await gen.asend(None)
-                return payload
-
-    def test_guard_execution_raises_at_limit(self, compile_and_import, monkeypatch):
-        source = """
-@flow
-def flow(p: dict) -> dict:
-    while True:
-        p = handler(p)
-        if p.get("done"):
-            break
-    return p
-"""
-        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
-        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "3")
-
-        mod = compile_and_import(source)
-        monkeypatch.setattr(mod, "resolve", lambda name: name)
-
-        loop_back_name = None
-        loop_back_fn = None
-        for name in dir(mod):
-            if "loop_back" in name:
-                loop_back_name = name
-                loop_back_fn = getattr(mod, name)
-                break
-        assert loop_back_name is not None
-        assert loop_back_fn is not None
-
-        payload = {"value": 1}
-
-        # 3 iterations should succeed (prev accumulates loop_back visits)
-        prev_list = ["start_flow"]
-        for _ in range(3):
-            msg_ctx = {
-                "id": "test-msg",
-                "route": {"prev": list(prev_list), "next": []},
-                "headers": {},
-            }
-            self._drive_abi_single(loop_back_fn(payload), msg_ctx)
-            prev_list = [*prev_list, loop_back_name]
-
-        # 4th iteration should raise (3 past visits in prev)
-        msg_ctx = {
-            "id": "test-msg",
-            "route": {"prev": list(prev_list), "next": []},
-            "headers": {},
-        }
-        with pytest.raises(RuntimeError, match="Max loop iterations"):
-            self._drive_abi_single(loop_back_fn(payload), msg_ctx)
-
-    def test_guard_execution_succeeds_under_limit(self, compile_and_import, monkeypatch):
-        source = """
-@flow
-def flow(p: dict) -> dict:
-    while True:
-        p = handler(p)
-        if p.get("done"):
-            break
-    return p
-"""
-        monkeypatch.setenv("ASYA_HANDLER_HANDLER", "handler")
-        monkeypatch.setenv("ASYA_MAX_LOOP_ITERATIONS", "5")
-
-        mod = compile_and_import(source)
-        monkeypatch.setattr(mod, "resolve", lambda name: name)
-
-        loop_back_name = None
-        loop_back_fn = None
-        for name in dir(mod):
-            if "loop_back" in name:
-                loop_back_name = name
-                loop_back_fn = getattr(mod, name)
-                break
-        assert loop_back_name is not None
-        assert loop_back_fn is not None
-
-        payload = {"value": 1}
-        prev_list = ["start_flow"]
-
-        for _ in range(5):
-            msg_ctx = {
-                "id": "test-msg",
-                "route": {"prev": list(prev_list), "next": []},
-                "headers": {},
-            }
-            result = self._drive_abi_single(loop_back_fn(payload), msg_ctx)
-            prev_list = [*prev_list, loop_back_name]
-
-        # Payload stays clean (no __loop_ keys injected)
-        assert not any(k.startswith("__loop_") for k in result)

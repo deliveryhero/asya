@@ -4,32 +4,84 @@ from __future__ import annotations
 
 import ast
 import re
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from asya_lab.compiler.rules import TreatAs
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import (
-    ActorCall,
-    AsyaDirective,
-    Break,
-    Condition,
-    Continue,
-    ExceptHandler,
-    FanOutCall,
-    InlineCode,
-    IROperation,
-    Mutation,
-    Raise,
-    Return,
-    TryExcept,
-    WhileLoop,
-    WithBlock,
-)
 from asya_lab.flow.rules import CompilerRule, CompilerRules
 
 
 if TYPE_CHECKING:
     from asya_lab.compiler.rules import RuleEngine
+
+
+# ---------------------------------------------------------------------------
+# Operation types (replaces ir.py)
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ActorCall:
+    name: str
+    lineno: int
+    source_file: str = ""
+
+
+@dataclass
+class Mutation:
+    code: str
+    lineno: int
+
+
+@dataclass
+class Conditional:
+    test: str
+    true_branch: list[Operation]
+    false_branch: list[Operation]
+    lineno: int
+
+
+@dataclass
+class Loop:
+    test: str | None  # None = while True
+    body: list[Operation]
+    lineno: int
+
+
+@dataclass
+class FanOut:
+    target_key: str
+    pattern: str  # "comprehension" | "literal" | "gather"
+    actor_calls: list[tuple[str, str]]  # (actor_name, payload_expr)
+    lineno: int
+    iter_var: str | None = None
+    iterable: str | None = None
+
+
+@dataclass
+class Break:
+    lineno: int
+
+
+@dataclass
+class Continue:
+    lineno: int
+
+
+@dataclass
+class Return:
+    lineno: int
+
+
+Operation = ActorCall | Mutation | Conditional | Loop | FanOut | Break | Continue | Return
+
+
+@dataclass
+class AsyaDirective:
+    """Inline comment override for compiler rules."""
+
+    treat_as: str  # "actor" | "inline"
 
 
 _DIRECTIVE_PATTERN = re.compile(r"#\s*asya:\s*(\w+)")
@@ -39,21 +91,33 @@ _DEFAULT_WRAPPERS = frozenset({"actor", "flow", "inline", "unfold"})
 _VALID_DIRECTIVES = frozenset({"actor", "flow", "inline", "unfold", "config"})
 
 
+@dataclass
+class ParseResult:
+    flow_name: str
+    operations: list[Operation]
+    actors: list[str]  # all actor names referenced
+    resiliency_rules: list[dict] = field(default_factory=list)
+    extracted_configs: list[dict] = field(default_factory=list)
+    ignore_decorators: list[str] = field(default_factory=list)
+    imports: list[str] = field(default_factory=list)
+    constants: list[str] = field(default_factory=list)
+    is_async: bool = False
+    class_methods: set[str] = field(default_factory=set)
+    import_map: dict[str, str] = field(default_factory=dict)
+
+
+# ---------------------------------------------------------------------------
+# Parser
+# ---------------------------------------------------------------------------
+
 # Parameter names accepted in flow function signatures.
-# The canonical name used in generated code is "p".
 VALID_PARAM_NAMES = ("p", "payload", "state")
 
-# Function definition types (sync and async)
 _FUNC_DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
 
 
 class _ParamNormalizer(ast.NodeTransformer):
-    """Rename flow parameter references to the canonical name 'p'.
-
-    Generated router code uses ``p = payload``, so all mutations and
-    condition tests must reference ``p``.  This transformer
-    rewrites the AST *before* unparsing so downstream code stays simple.
-    """
+    """Rename flow parameter references to the canonical name 'p'."""
 
     def __init__(self, old_name: str) -> None:
         self.old_name = old_name
@@ -79,22 +143,21 @@ class FlowParser:
         self.module_path = module_path
         self.rules: CompilerRules = rules if rules is not None else CompilerRules()
         self.flow_name: str | None = None
-        self.is_async: bool = False  # Whether flow function is async def
-        self.instances: dict[str, str] = {}  # Map instance variable to class name
-        self.class_methods: set[str] = set()  # Track class method handlers
-        self.import_map: dict[str, str] = {}  # Map local name -> fully qualified module.name
-        self._loop_depth: int = 0  # Track nesting depth for break/continue validation
-        self._try_depth: int = 0  # Track nesting depth for nested try rejection
-        self._except_depth: int = 0  # Track nesting depth for raise validation
-        self.extracted_configs: list[dict] = []  # Config extractions from treat-as:config rules
-        self.module_constants: list[str] = []  # Module-level constant assignments
+        self.is_async: bool = False
+        self.instances: dict[str, str] = {}
+        self.class_methods: set[str] = set()
+        self.import_map: dict[str, str] = {}
+        self._loop_depth: int = 0
+        self.extracted_configs: list[dict] = []
+        self.module_constants: list[str] = []
+        self._actors: list[str] = []
         self._known_wrappers: frozenset[str] = known_wrappers or _DEFAULT_WRAPPERS
         self._source_lines: list[str] = source_code.splitlines()
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
         self._decorator_index: dict[str, str] = {}
         self._rule_engine: RuleEngine | None = rule_engine
 
-    def parse(self) -> tuple[str, list[IROperation]]:
+    def parse(self) -> ParseResult:
         try:
             tree = ast.parse(self.source_code, filename=self.filename)
         except SyntaxError as e:
@@ -116,7 +179,6 @@ class FlowParser:
         self.flow_name = flow_func.name
         self.is_async = isinstance(flow_func, ast.AsyncFunctionDef)
 
-        # Normalize parameter name to "p" so generated code is consistent
         param_name = flow_func.args.args[0].arg
         if param_name != "p":
             normalizer = _ParamNormalizer(param_name)
@@ -125,7 +187,28 @@ class FlowParser:
             ast.fix_missing_locations(flow_func)
 
         operations = self._parse_body(flow_func.body)
-        return self.flow_name, operations
+
+        return ParseResult(
+            flow_name=self.flow_name,
+            operations=operations,
+            actors=list(self._actors),
+            extracted_configs=self.extracted_configs,
+            imports=list(self.import_map.values()),
+            constants=self.module_constants,
+            is_async=self.is_async,
+            class_methods=self.class_methods.copy(),
+            import_map=dict(self.import_map),
+        )
+
+    # -- Compatibility methods for existing compiler.py --
+    def get_class_methods(self) -> set[str]:
+        return self.class_methods.copy()
+
+    def get_import_map(self) -> dict[str, str]:
+        return dict(self.import_map)
+
+    def get_module_constants(self) -> list[str]:
+        return list(self.module_constants)
 
     def _extract_directives(self) -> dict[int, AsyaDirective]:
         directives: dict[int, AsyaDirective] = {}
@@ -136,13 +219,7 @@ class FlowParser:
         return directives
 
     def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
-        """Map function name to treat-as value for same-file definitions.
-
-        Scans module-level function definitions for @actor or @inline decorators.
-        Returns e.g. {"handler": "actor", "uuid_inject": "inline"}.
-        Only the first matching known decorator per function is recorded.
-        Unknown decorators are skipped silently.
-        """
+        """Map function name to treat-as value for same-file definitions."""
         index: dict[str, str] = {}
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
@@ -155,23 +232,12 @@ class FlowParser:
                     dec_name = ast.unparse(dec)
                 if dec_name in self._known_wrappers:
                     index[node.name] = dec_name
-                    break  # first matching decorator wins
+                    break
         return index
 
-    def get_class_methods(self) -> set[str]:
-        """Return set of handler names that are class methods."""
-        return self.class_methods.copy()
-
-    def get_import_map(self) -> dict[str, str]:
-        """Return map of local name -> fully qualified module.name from flow imports."""
-        return dict(self.import_map)
-
-    def get_module_constants(self) -> list[str]:
-        """Return module-level constant assignments to include in generated code."""
-        return list(self.module_constants)
+    # -- Import/constant collection --
 
     def _collect_imports(self, tree: ast.Module) -> None:
-        """Populate import_map from top-level `from X import Y` statements."""
         for node in tree.body:
             if isinstance(node, ast.ImportFrom) and node.module:
                 for alias in node.names:
@@ -179,11 +245,6 @@ class FlowParser:
                     self.import_map[local_name] = f"{node.module}.{alias.name}"
 
     def _collect_module_constants(self, tree: ast.Module) -> None:
-        """Collect module-level assignments of literal constants for inclusion in generated code.
-
-        Only simple assignments (NAME = literal) are collected. Complex expressions,
-        function calls, and class instantiations are skipped.
-        """
         for node in tree.body:
             if (
                 isinstance(node, ast.Assign)
@@ -192,6 +253,8 @@ class FlowParser:
                 and isinstance(node.value, ast.Constant)
             ):
                 self.module_constants.append(ast.unparse(node))
+
+    # -- Flow function detection --
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
         candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
@@ -207,7 +270,6 @@ class FlowParser:
             return None
 
         func = candidates[0]
-        # Strip @flow from decorator_list so it doesn't interfere with other processing
         func.decorator_list = [d for d in func.decorator_list if not self._is_flow_decorator(d)]
         self._validate_flow_signature(func)
         return func
@@ -235,14 +297,16 @@ class FlowParser:
                 f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have a return type annotation"
             )
 
-    def _parse_body(self, stmts: list[ast.stmt]) -> list[IROperation]:
-        operations = []
+    # -- Statement parsing --
+
+    def _parse_body(self, stmts: list[ast.stmt]) -> list[Operation]:
+        operations: list[Operation] = []
         for stmt in stmts:
             ops = self._parse_statement(stmt)
             operations.extend(ops)
         return operations
 
-    def _parse_statement(self, stmt: ast.stmt) -> list[IROperation]:
+    def _parse_statement(self, stmt: ast.stmt) -> list[Operation]:
         if isinstance(stmt, ast.Assign):
             return self._parse_assign(stmt)
         elif isinstance(stmt, ast.AugAssign):
@@ -252,7 +316,10 @@ class FlowParser:
         elif isinstance(stmt, ast.While):
             return self._parse_while(stmt)
         elif isinstance(stmt, ast.Try):
-            return self._parse_try(stmt)
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: try/except is not supported in the simplified compiler. "
+                f"Use resiliency rules in .asya/config.yaml instead (see aint 7179)."
+            )
         elif isinstance(stmt, ast.With | ast.AsyncWith):
             return self._parse_with(stmt)
         elif isinstance(stmt, ast.For):
@@ -272,20 +339,22 @@ class FlowParser:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'continue' outside loop")
             return [Continue(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Raise):
-            return self._parse_raise(stmt)
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: 'raise' is not supported in the simplified compiler. "
+                f"Use resiliency rules in .asya/config.yaml instead."
+            )
         elif isinstance(stmt, ast.Expr):
             return self._parse_expr(stmt)
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported statement type: {type(stmt).__name__}")
 
-    def _parse_assign(self, stmt: ast.Assign) -> list[IROperation]:
+    def _parse_assign(self, stmt: ast.Assign) -> list[Operation]:
         if len(stmt.targets) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Multiple assignment targets not supported")
 
         target = stmt.targets[0]
 
         if isinstance(target, ast.Name) and target.id in ("p", "payload"):
-            # Assignment to p: must be actor call (possibly wrapped in await)
             value = stmt.value
             if isinstance(value, ast.Await):
                 value = value.value
@@ -294,14 +363,11 @@ class FlowParser:
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
         elif isinstance(target, ast.Subscript):
-            # Check for fan-out patterns only on payload subscripts (p["key"])
             base: ast.expr = target
             while isinstance(base, ast.Subscript):
                 base = base.value
             if isinstance(base, ast.Name) and base.id == "p":
                 value = stmt.value
-                # Unwrap list() wrapper — list(await asyncio.gather(...)) is equivalent
-                # to await asyncio.gather(...) for fan-out detection purposes
                 if (
                     isinstance(value, ast.Call)
                     and isinstance(value.func, ast.Name)
@@ -310,7 +376,6 @@ class FlowParser:
                     and not value.keywords
                 ):
                     value = value.args[0]
-                # Unwrap await for asyncio.gather detection
                 if isinstance(value, ast.Await):
                     value = value.value
                 if isinstance(value, ast.ListComp):
@@ -319,31 +384,22 @@ class FlowParser:
                     return [self._parse_fanout_literal(stmt, target, value)]
                 elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
                     return [self._parse_fanout_gather(stmt, target, value)]
-            # Subscript assignment: payload mutation
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
         elif isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):
-            # Assignment to variable: could be class instantiation or invalid
             call = stmt.value
-
-            # Check if it's a call to a capitalized name (likely a class)
             is_class_call = isinstance(call.func, ast.Name) and call.func.id[0].isupper()
 
             if call.args or call.keywords:
-                # Has arguments
                 if is_class_call:
-                    # Class instantiation with arguments - validate and reject
                     self._validate_class_instantiation(stmt)
-                    return []  # Never reached, but helps mypy
+                    return []
                 else:
-                    # Function call assigned to variable - not supported
                     raise FlowCompileError(
                         f"{self.filename}:{stmt.lineno}: Unsupported assignment target. "
                         f"Handler results must be assigned to 'p', not '{target.id}'"
                     )
             else:
-                # No arguments - valid class instantiation
-                # Extract class name from the call
                 if isinstance(call.func, ast.Name):
                     class_name = call.func.id
                 elif isinstance(call.func, ast.Attribute):
@@ -352,98 +408,34 @@ class FlowParser:
                     raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported class instantiation")
 
                 self.instances[target.id] = class_name
-                return []  # No operation generated - just tracking
+                return []
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported assignment target")
 
-    def _parse_augassign(self, stmt: ast.AugAssign) -> list[IROperation]:
+    def _parse_augassign(self, stmt: ast.AugAssign) -> list[Operation]:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | InlineCode | Mutation:
+    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
         call = stmt.value
-        # Unwrap await: `p = await handler(p)` → extract the Call.
-        # Track is_await before unwrapping so we can preserve it in generated code.
-        is_await = isinstance(call, ast.Await)
-        if isinstance(call, ast.Await):  # isinstance guard lets mypy narrow call.value
+        if isinstance(call, ast.Await):
             call = call.value
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
 
-        # Handle call-site decoration: actor(handler)(p) or inline(fn)(p)
-        if isinstance(call.func, ast.Call):
-            outer = call.func
-            if isinstance(outer.func, ast.Name):
-                wrapper_name = outer.func.id
-            elif isinstance(outer.func, ast.Attribute):
-                wrapper_name = ast.unparse(outer.func)
-            else:
-                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call-site decorator expression")
-
-            if wrapper_name not in self._known_wrappers:
-                raise FlowCompileError(
-                    f"{self.filename}:{stmt.lineno}: Unknown call-site decorator '{wrapper_name}'. "
-                    f"Supported: {', '.join(sorted(self._known_wrappers))}"
-                )
-
-            if len(outer.args) != 1:
-                raise FlowCompileError(
-                    f"{self.filename}:{stmt.lineno}: Call-site decorator must take exactly one argument"
-                )
-            inner = outer.args[0]
-            if isinstance(inner, ast.Name):
-                inner_name = inner.id
-            elif isinstance(inner, ast.Attribute):
-                inner_name = ast.unparse(inner)
-            else:
-                raise FlowCompileError(
-                    f"{self.filename}:{stmt.lineno}: Call-site decorator argument must be a function name, "
-                    f"got {type(inner).__name__}"
-                )
-
-            # Inline comment directive takes priority over the call-site wrapper
-            directive = self._directives.get(stmt.lineno)
-            if directive is not None:
-                if directive.treat_as not in _VALID_DIRECTIVES:
-                    raise FlowCompileError(
-                        f"{self.filename}:{stmt.lineno}: Unknown directive '{directive.treat_as}'. "
-                        f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
-                    )
-                if directive.treat_as == "inline":
-                    code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
-                    return InlineCode(lineno=stmt.lineno, code=code)
-                elif directive.treat_as == "actor":
-                    return ActorCall(lineno=stmt.lineno, name=inner_name)
-                elif directive.treat_as in ("flow", "unfold", "config"):
-                    raise FlowCompileError(
-                        f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
-                    )
-
-            if wrapper_name == "inline":
-                code = f"p = {'await ' if is_await else ''}{inner_name}(p)"
-                return InlineCode(lineno=stmt.lineno, code=code)
-
-            # wrapper_name == "actor"
-            return ActorCall(lineno=stmt.lineno, name=inner_name)
-
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
         elif isinstance(call.func, ast.Attribute):
-            # Check if this is a method call on an instantiated class
             if isinstance(call.func.value, ast.Name) and call.func.value.id in self.instances:
-                # Instance method call - use module.ClassName.method format
                 instance_var = call.func.value.id
                 class_name = self.instances[instance_var]
                 method_name = call.func.attr
-                # Prefix with module path if available and class is local
                 if self.module_path and "." not in class_name:
                     actor_name = f"{self.module_path}.{class_name}.{method_name}"
                 else:
                     actor_name = f"{class_name}.{method_name}"
-                # Track that this is a class method
                 self.class_methods.add(actor_name)
             else:
-                # Regular attribute access (module.function)
                 actor_name = ast.unparse(call.func)
         else:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call type")
@@ -451,7 +443,7 @@ class FlowParser:
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
 
-        # Apply inline comment directive override if present (highest priority)
+        # Inline comment directive takes priority
         directive = self._directives.get(stmt.lineno)
         if directive is not None:
             if directive.treat_as not in _VALID_DIRECTIVES:
@@ -460,49 +452,36 @@ class FlowParser:
                     f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
                 )
             if directive.treat_as == "inline":
-                return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
-            elif directive.treat_as == "actor":
-                return ActorCall(lineno=stmt.lineno, name=actor_name)
+                return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
             elif directive.treat_as in ("flow", "unfold", "config"):
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
                 )
-        # Definition-site decorator (lower priority than inline comment)
-        elif actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
-            return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
 
-        # Rule engine classification (lower priority than directives and decorators)
+        # Definition-site decorator (lower priority)
+        if actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
+            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        # Rule engine classification (lowest priority)
         if self._rule_engine is not None:
             qualified_name = self.import_map.get(actor_name, actor_name)
             treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
-            if treat_as is not None:
-                if treat_as == TreatAs.INLINE:
-                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt))
-                elif treat_as == TreatAs.CONFIG:
-                    from asya_lab.compiler.extractor import ValueExtractor
+            if treat_as is not None and treat_as == TreatAs.INLINE:
+                return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
 
-                    rule = self._rule_engine.get_rule(qualified_name, module_path=self.module_path or None)
-                    extracted_values: dict[str, object] = {}
-                    if rule is not None and rule.where is not None:
-                        extracted_values = ValueExtractor(imports=self.import_map).extract(call, rule)
-                    return InlineCode(lineno=stmt.lineno, code=ast.unparse(stmt), extracted_values=extracted_values)
-                elif treat_as == TreatAs.UNFOLD:
-                    return ActorCall(lineno=stmt.lineno, name=actor_name, treat_as="unfold")
-
+        self._actors.append(actor_name)
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 
-    def _parse_if(self, stmt: ast.If) -> list[IROperation]:
+    def _parse_if(self, stmt: ast.If) -> list[Operation]:
         test = ast.unparse(stmt.test)
         true_branch = self._parse_body(stmt.body)
         false_branch = self._parse_body(stmt.orelse) if stmt.orelse else []
+        return [Conditional(lineno=stmt.lineno, test=test, true_branch=true_branch, false_branch=false_branch)]
 
-        return [Condition(lineno=stmt.lineno, test=test, true_branch=true_branch, false_branch=false_branch)]
-
-    def _parse_while(self, stmt: ast.While) -> list[IROperation]:
+    def _parse_while(self, stmt: ast.While) -> list[Operation]:
         if stmt.orelse:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'else' clause on 'while' loops is not supported")
 
-        # Determine loop condition: `while True` → None, otherwise the test expression
         test: str | None = None
         if not (isinstance(stmt.test, ast.Constant) and stmt.test.value is True):
             test = ast.unparse(stmt.test)
@@ -513,86 +492,22 @@ class FlowParser:
         finally:
             self._loop_depth -= 1
 
-        return [WhileLoop(lineno=stmt.lineno, test=test, body=body)]
+        return [Loop(lineno=stmt.lineno, test=test, body=body)]
 
-    def _parse_try(self, stmt: ast.Try) -> list[IROperation]:
-        # Reject nested try-except
-        if self._try_depth > 0:
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Nested try-except is not supported")
-
-        # Reject try-else
-        if stmt.orelse:
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'else' clause on 'try' is not supported")
-
-        # Must have at least one except handler
-        if not stmt.handlers:
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'try' must have at least one 'except' handler")
-
-        # Parse except handlers
-        handlers = []
-        for handler in stmt.handlers:
-            # Reject `except ... as e:` binding
-            if handler.name is not None:
-                raise FlowCompileError(
-                    f"{self.filename}:{handler.lineno}: 'except ... as {handler.name}' binding is not supported"
-                )
-
-            # Parse exception types
-            error_types: list[str] | None = None
-            if handler.type is not None:
-                if isinstance(handler.type, ast.Tuple):
-                    error_types = []
-                    for elt in handler.type.elts:
-                        if isinstance(elt, ast.Name):
-                            error_types.append(elt.id)
-                        else:
-                            raise FlowCompileError(
-                                f"{self.filename}:{handler.lineno}: Unsupported exception type expression"
-                            )
-                elif isinstance(handler.type, ast.Name):
-                    error_types = [handler.type.id]
-                else:
-                    raise FlowCompileError(f"{self.filename}:{handler.lineno}: Unsupported exception type expression")
-
-            # Parse handler body within except depth tracking
-            self._except_depth += 1
-            try:
-                handler_body = self._parse_body(handler.body)
-            finally:
-                self._except_depth -= 1
-
-            handlers.append(ExceptHandler(lineno=handler.lineno, error_types=error_types, body=handler_body))
-
-        # Parse try body and finally body within try depth tracking
-        self._try_depth += 1
-        try:
-            body = self._parse_body(stmt.body)
-            finally_body = self._parse_body(stmt.finalbody) if stmt.finalbody else []
-        finally:
-            self._try_depth -= 1
-
-        return [TryExcept(lineno=stmt.lineno, body=body, handlers=handlers, finally_body=finally_body)]
-
-    def _parse_with(self, stmt: ast.With | ast.AsyncWith) -> list[IROperation]:
-        is_async = isinstance(stmt, ast.AsyncWith)
-
-        # Resolve each withitem to a symbol and look up its rule
+    def _parse_with(self, stmt: ast.With | ast.AsyncWith) -> list[Operation]:
         symbols: list[str] = []
         for item in stmt.items:
             symbols.append(self._resolve_ctx_symbol(item.context_expr))
 
         rules = [self.rules.lookup(sym) for sym in symbols]
 
-        # Reject unknown context managers (no matching rule)
         for sym, rule in zip(symbols, rules, strict=True):
             if rule is None:
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Unsupported context manager: {sym!r}. "
-                    f"No compiler rule found. Add a rule for this symbol or annotate with "
-                    f"# asya: treat-as-inline to keep it as-is."
+                    f"No compiler rule found. Add a rule for this symbol in .asya/config.yaml."
                 )
 
-        # All treat-as values must agree
         treat_as_values = {r.treat_as for r in rules}  # type: ignore[union-attr]
         if len(treat_as_values) > 1:
             raise FlowCompileError(
@@ -604,31 +519,18 @@ class FlowParser:
         treat_as = next(iter(treat_as_values))
 
         if treat_as == "config":
-            # Extract args from each context manager and record them
             for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
                 if rule is None:
                     raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
                 extracted_args = self._extract_ctx_args(item.context_expr, rule)
                 self.extracted_configs.append({"symbol": sym, "args": extracted_args})
-            # Strip the with wrapper; return body ops directly
             return self._parse_body(stmt.body)
 
         elif treat_as == "inline":
-            # Build the expression string from all withitems
-            expr_parts = []
-            imports: list[str] = []
-            for item, rule in zip(stmt.items, rules, strict=True):
-                if rule is None:  # pragma: no cover — guaranteed by earlier None-check loop
-                    raise FlowCompileError(f"No compiler rule for context manager (line {stmt.lineno})")
-                part = ast.unparse(item.context_expr)
-                if item.optional_vars is not None:
-                    part += f" as {ast.unparse(item.optional_vars)}"
-                expr_parts.append(part)
-                imports.extend(rule.imports)
-            expr = ", ".join(expr_parts)
-
-            body = self._parse_body(stmt.body)
-            return [WithBlock(lineno=stmt.lineno, expr=expr, is_async=is_async, body=body, imports=imports)]
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Inline context managers are not supported in the simplified compiler. "
+                f"Restructure to use treat_as='config' rules or extract the context manager to the handler."
+            )
 
         else:
             raise FlowCompileError(
@@ -636,50 +538,30 @@ class FlowParser:
             )
 
     def _resolve_ctx_symbol(self, ctx_expr: ast.expr) -> str:
-        """Extract the qualified symbol name from a context manager expression."""
         if isinstance(ctx_expr, ast.Call):
             return ast.unparse(ctx_expr.func)
         return ast.unparse(ctx_expr)
 
     def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
-        """Extract positional and keyword args from a context manager call.
-
-        Maps argument values to their parameter names using the rule's extract config.
-        Returns a dict of {param_name: value_str}.
-        """
         if not isinstance(ctx_expr, ast.Call) or not rule.extract:
             return {}
 
         call = ctx_expr
         extracted: dict[str, str] = {}
-
-        # Get ordered param names from the rule's extract config
         param_names = list(rule.extract.keys())
 
-        # Map positional args by position
         for i, arg in enumerate(call.args):
             if i < len(param_names):
                 param = param_names[i]
                 extracted[param] = ast.unparse(arg)
 
-        # Map keyword args by name
         for kw in call.keywords:
             if kw.arg and kw.arg in rule.extract:
                 extracted[kw.arg] = ast.unparse(kw.value)
 
         return extracted
 
-    def _parse_raise(self, stmt: ast.Raise) -> list[IROperation]:
-        if self._except_depth == 0:
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'raise' outside except handler")
-        if stmt.exc is not None:
-            raise FlowCompileError(
-                f"{self.filename}:{stmt.lineno}: 'raise' with arguments is not supported (use bare 'raise' to re-raise)"
-            )
-        return [Raise(lineno=stmt.lineno)]
-
-    def _parse_expr(self, stmt: ast.Expr) -> list[IROperation]:
-        """Handle bare expression statements with descriptive errors."""
+    def _parse_expr(self, stmt: ast.Expr) -> list[Operation]:
         value = stmt.value
         if isinstance(value, ast.Yield | ast.YieldFrom):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions")
@@ -695,14 +577,9 @@ class FlowParser:
             )
         raise FlowCompileError(f"{self.filename}:{stmt.lineno}: expression statements are not supported")
 
-    # -- Fan-out parsing helpers --------------------------------------------------
+    # -- Fan-out parsing helpers --
 
     def _extract_target_key(self, target: ast.Subscript) -> str:
-        """Extract a JSON Pointer from a payload subscript chain.
-
-        ``p["results"]``         → ``"/results"``
-        ``p["output"]["results"]`` → ``"/output/results"``
-        """
         parts: list[str] = []
         node: ast.expr = target
         while isinstance(node, ast.Subscript):
@@ -714,10 +591,6 @@ class FlowParser:
         return "/" + "/".join(parts)
 
     def _extract_fanout_actor_call(self, node: ast.expr) -> tuple[str, str]:
-        """Extract (actor_name, payload_expr) from a single call node.
-
-        Unwraps ``await`` if present. Validates that the call has exactly one argument.
-        """
         if isinstance(node, ast.Await):
             node = node.value
         if not isinstance(node, ast.Call):
@@ -734,12 +607,10 @@ class FlowParser:
         if len(call.args) != 1:
             raise FlowCompileError(f"{self.filename}:{call.lineno}: Fan-out actor call must have exactly one argument")
         payload_expr = ast.unparse(call.args[0])
+        self._actors.append(actor_name)
         return (actor_name, payload_expr)
 
-    def _parse_fanout_comprehension(
-        self, stmt: ast.Assign, target: ast.Subscript, listcomp: ast.ListComp
-    ) -> FanOutCall:
-        """Parse ``p["key"] = [actor(x) for x in iterable]``."""
+    def _parse_fanout_comprehension(self, stmt: ast.Assign, target: ast.Subscript, listcomp: ast.ListComp) -> FanOut:
         if len(listcomp.generators) != 1:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Nested comprehensions are not supported in fan-out")
         gen = listcomp.generators[0]
@@ -750,7 +621,7 @@ class FlowParser:
         actor_name, payload_expr = self._extract_fanout_actor_call(listcomp.elt)
         iter_var = ast.unparse(gen.target)
         iterable = ast.unparse(gen.iter)
-        return FanOutCall(
+        return FanOut(
             lineno=stmt.lineno,
             target_key=self._extract_target_key(target),
             pattern="comprehension",
@@ -760,13 +631,6 @@ class FlowParser:
         )
 
     def _is_actor_call_node(self, node: ast.expr) -> bool:
-        """Check if an AST node looks like an actor call.
-
-        Actor calls are bare function calls (``agent(p)``) or method calls
-        on class instances (``model.predict(p)``).  Method calls on the
-        payload parameter (``p.get("k")``, ``p["k"].upper()``) are NOT
-        actor calls — they are payload operations.
-        """
         if isinstance(node, ast.Await):
             node = node.value
         if not isinstance(node, ast.Call):
@@ -775,8 +639,6 @@ class FlowParser:
         if isinstance(func, ast.Name):
             return True
         if isinstance(func, ast.Attribute):
-            # Walk to the root of the attribute chain to check
-            # whether it originates from the payload parameter.
             base: ast.expr = func.value
             while isinstance(base, ast.Subscript | ast.Attribute):
                 base = base.value
@@ -784,13 +646,11 @@ class FlowParser:
         return False
 
     def _list_contains_actor_calls(self, lst: ast.List) -> bool:
-        """Return True if the list has at least one actor-call element."""
         return any(self._is_actor_call_node(elt) for elt in lst.elts)
 
-    def _parse_fanout_literal(self, stmt: ast.Assign, target: ast.Subscript, lst: ast.List) -> FanOutCall:
-        """Parse ``p["key"] = [actor_a(x), actor_b(y), ...]``."""
+    def _parse_fanout_literal(self, stmt: ast.Assign, target: ast.Subscript, lst: ast.List) -> FanOut:
         actor_calls = [self._extract_fanout_actor_call(elt) for elt in lst.elts]
-        return FanOutCall(
+        return FanOut(
             lineno=stmt.lineno,
             target_key=self._extract_target_key(target),
             pattern="literal",
@@ -798,7 +658,6 @@ class FlowParser:
         )
 
     def _is_asyncio_gather(self, call: ast.Call) -> bool:
-        """Check if a call node is ``asyncio.gather(...)``."""
         return (
             isinstance(call.func, ast.Attribute)
             and call.func.attr == "gather"
@@ -806,11 +665,8 @@ class FlowParser:
             and call.func.value.id == "asyncio"
         )
 
-    def _parse_fanout_gather(self, stmt: ast.Assign, target: ast.Subscript, call: ast.Call) -> FanOutCall:
-        """Parse ``p["key"] = await asyncio.gather(...)``."""
+    def _parse_fanout_gather(self, stmt: ast.Assign, target: ast.Subscript, call: ast.Call) -> FanOut:
         target_key = self._extract_target_key(target)
-        # Case 1: asyncio.gather(*(actor(x) for x in iterable))
-        # Also handles asyncio.gather(*[actor(x) for x in iterable]) — starred list comprehension
         if (
             len(call.args) == 1
             and isinstance(call.args[0], ast.Starred)
@@ -829,7 +685,7 @@ class FlowParser:
             actor_name, payload_expr = self._extract_fanout_actor_call(genexp.elt)
             iter_var = ast.unparse(gen.target)
             iterable = ast.unparse(gen.iter)
-            return FanOutCall(
+            return FanOut(
                 lineno=stmt.lineno,
                 target_key=target_key,
                 pattern="gather",
@@ -837,11 +693,10 @@ class FlowParser:
                 iter_var=iter_var,
                 iterable=iterable,
             )
-        # Case 2: asyncio.gather(actor_a(x), actor_b(y), ...)
         if not call.args:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: asyncio.gather must have at least one argument")
         actor_calls = [self._extract_fanout_actor_call(arg) for arg in call.args]
-        return FanOutCall(
+        return FanOut(
             lineno=stmt.lineno,
             target_key=target_key,
             pattern="gather",
@@ -849,19 +704,16 @@ class FlowParser:
         )
 
     def _validate_class_instantiation(self, stmt: ast.Assign) -> None:
-        """Validate that class instantiation uses only default arguments."""
         call = stmt.value
         if not isinstance(call, ast.Call):
             return
 
-        # Check that call has no arguments (all must have defaults)
         if call.args:
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: Class instantiation must use only default arguments. "
                 f"Found {len(call.args)} positional arguments."
             )
 
-        # Check for keyword arguments
         if call.keywords:
             raise FlowCompileError(
                 f"{self.filename}:{stmt.lineno}: Class instantiation must use only default arguments. "
