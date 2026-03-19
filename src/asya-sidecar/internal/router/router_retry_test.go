@@ -44,7 +44,7 @@ func (m *retryMockTransport) SendWithDelay(ctx context.Context, queueName string
 
 // newRetryConfig creates a resiliency config for tests with sensible defaults.
 // Uses the "default" policy with exponential backoff.
-func newRetryConfig(maxAttempts int, thenRoute []string) *config.ResiliencyConfig {
+func newRetryConfig(maxAttempts int, onExhausted []string) *config.ResiliencyConfig {
 	policy := config.PolicyConfig{
 		MaxAttempts:  maxAttempts,
 		Backoff:      config.RetryPolicyExponential,
@@ -52,8 +52,8 @@ func newRetryConfig(maxAttempts int, thenRoute []string) *config.ResiliencyConfi
 		MaxInterval:  config.JSONDuration(300 * time.Second),
 		Jitter:       false,
 	}
-	if len(thenRoute) > 0 {
-		policy.ThenRoute = thenRoute
+	if len(onExhausted) > 0 {
+		policy.OnExhausted = onExhausted
 	}
 	return &config.ResiliencyConfig{
 		Policies: map[string]config.PolicyConfig{"default": policy},
@@ -1378,7 +1378,7 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 	}
 }
 
-func TestRouter_ProcessMessage_PolicyWithThenRoute(t *testing.T) {
+func TestRouter_ProcessMessage_PolicyWithOnExhausted(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
@@ -1399,7 +1399,7 @@ func TestRouter_ProcessMessage_PolicyWithThenRoute(t *testing.T) {
 		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
-		// Policy with thenRoute — after exhausting attempts, route to recovery-actor
+		// Policy with onExhausted — after exhausting attempts, route to recovery-actor
 		Resiliency: newRetryConfig(1, []string{"recovery-actor"}),
 	}
 
@@ -1430,7 +1430,7 @@ func TestRouter_ProcessMessage_PolicyWithThenRoute(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// With thenRoute, should go to recovery-actor queue (not x-sump)
+	// With onExhausted, should go to recovery-actor queue (not x-sump)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages, got %d", len(mt.delayedMessages))
 	}
@@ -1559,7 +1559,7 @@ func TestApplyPolicyDispatch(t *testing.T) {
 		msg := makeMsg(1, 0)
 		policy := &config.PolicyConfig{MaxAttempts: 3, Backoff: config.RetryPolicyConstant, InitialDelay: config.JSONDuration(10 * time.Millisecond)}
 
-		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		err := router.applyPolicy(ctx, msg, policy, makeResponse())
 		if err != nil {
 			t.Fatalf("applyPolicy() error = %v", err)
 		}
@@ -1568,17 +1568,17 @@ func TestApplyPolicyDispatch(t *testing.T) {
 		}
 	})
 
-	t.Run("routes to thenRoute when exhausted", func(t *testing.T) {
+	t.Run("routes to onExhausted when exhausted", func(t *testing.T) {
 		tr := &retryMockTransport{}
 		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
 			Policies: map[string]config.PolicyConfig{
-				"default": {MaxAttempts: 1, ThenRoute: []string{"recovery-actor"}},
+				"default": {MaxAttempts: 1, OnExhausted: []string{"recovery-actor"}},
 			},
 		})
 		msg := makeMsg(1, 0) // attempt 1 = exhausted for maxAttempts=1
 
-		policy := &config.PolicyConfig{MaxAttempts: 1, ThenRoute: []string{"recovery-actor"}}
-		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		policy := &config.PolicyConfig{MaxAttempts: 1, OnExhausted: []string{"recovery-actor"}}
+		err := router.applyPolicy(ctx, msg, policy, makeResponse())
 		if err != nil {
 			t.Fatalf("applyPolicy() error = %v", err)
 		}
@@ -1591,11 +1591,11 @@ func TestApplyPolicyDispatch(t *testing.T) {
 			t.Fatalf("expected 1 sent message (to recovery-actor), got %d", len(tr.sentMessages))
 		}
 		if tr.sentMessages[0].queue != "asya-default-recovery-actor" {
-			t.Errorf("expected thenRoute to recovery-actor, got queue %s", tr.sentMessages[0].queue)
+			t.Errorf("expected onExhausted route to recovery-actor, got queue %s", tr.sentMessages[0].queue)
 		}
 	})
 
-	t.Run("routes to failure path when exhausted and no thenRoute", func(t *testing.T) {
+	t.Run("routes to failure path when exhausted and no onExhausted", func(t *testing.T) {
 		tr := &retryMockTransport{}
 		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
 			Policies: map[string]config.PolicyConfig{
@@ -1605,7 +1605,7 @@ func TestApplyPolicyDispatch(t *testing.T) {
 		msg := makeMsg(1, 0)
 
 		policy := &config.PolicyConfig{MaxAttempts: 1}
-		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		err := router.applyPolicy(ctx, msg, policy, makeResponse())
 		if err != nil {
 			t.Fatalf("applyPolicy() error = %v", err)
 		}
@@ -1630,7 +1630,7 @@ func TestApplyPolicyDispatch(t *testing.T) {
 		msg := makeMsg(2, 2*time.Second)
 
 		policy := &config.PolicyConfig{MaxAttempts: 10, MaxDuration: config.JSONDuration(1 * time.Second)}
-		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		err := router.applyPolicy(ctx, msg, policy, makeResponse())
 		if err != nil {
 			t.Fatalf("applyPolicy() error = %v", err)
 		}

@@ -114,7 +114,7 @@ type PolicyConfig struct {
 	MaxInterval  JSONDuration `json:"maxInterval"`
 	MaxDuration  JSONDuration `json:"maxDuration"`
 	Jitter       bool         `json:"jitter"`
-	ThenRoute    []string     `json:"thenRoute"`
+	OnExhausted  []string     `json:"onExhausted"`
 }
 
 // RetryRule maps error type patterns to a named policy.

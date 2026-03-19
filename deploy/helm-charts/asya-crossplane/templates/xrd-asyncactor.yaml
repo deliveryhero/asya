@@ -213,7 +213,7 @@ spec:
                       description: >-
                         Named retry policies. The key is the policy name (use "default" as the
                         fallback). Each policy controls backoff strategy, attempt limits, and
-                        optional thenRoute for exhaustion routing.
+                        optional onExhausted for exhaustion routing.
                       additionalProperties:
                         type: object
                         properties:
@@ -240,7 +240,7 @@ spec:
                           jitter:
                             type: boolean
                             description: Add randomness to retry delays to prevent thundering herd
-                          thenRoute:
+                          onExhausted:
                             type: array
                             description: >-
                               Actor route to forward the envelope to when the policy is exhausted.

@@ -267,7 +267,7 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 
 // handleErrorResponse handles error responses from runtime with policy-based retry logic.
 // When resiliency is configured, it matches the error against rules to find a policy,
-// then applies that policy (retry, thenRoute, or fail permanently).
+// then applies that policy (retry, onExhausted routing, or fail permanently).
 func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, startTime time.Time) error {
 	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
 		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
@@ -393,11 +393,11 @@ func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, polic
 			"id", msg.ID, "attempt", msg.Status.Attempt, "max_attempts", maxAttempts)
 	}
 
-	if len(policy.ThenRoute) > 0 {
+	if len(policy.OnExhausted) > 0 {
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "policy_routed")
 		}
-		return r.routeToThenRoute(ctx, msg, policy.ThenRoute, response)
+		return r.routeOnExhausted(ctx, msg, policy.OnExhausted, response)
 	}
 
 	if r.metrics != nil {
@@ -406,10 +406,10 @@ func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, polic
 	return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonPolicyExhausted)
 }
 
-// routeToThenRoute sends the failed envelope to the configured thenRoute actor.
-func (r *Router) routeToThenRoute(ctx context.Context, msg *envelopes.Envelope, thenRoute []string, response runtime.RuntimeResponse) error {
+// routeOnExhausted sends the failed envelope to the actor(s) configured in onExhausted.
+func (r *Router) routeOnExhausted(ctx context.Context, msg *envelopes.Envelope, onExhausted []string, response runtime.RuntimeResponse) error {
 	now := time.Now().UTC().Format(time.RFC3339)
-	msg.Route.Next = thenRoute
+	msg.Route.Next = onExhausted
 	msg.Status.Phase = envelopes.PhaseFailed
 	msg.Status.Reason = envelopes.ReasonPolicyRouted
 	msg.Status.UpdatedAt = now
@@ -422,22 +422,22 @@ func (r *Router) routeToThenRoute(ctx context.Context, msg *envelopes.Envelope, 
 
 	body, err := json.Marshal(msg)
 	if err != nil {
-		return fmt.Errorf("failed to marshal thenRoute message: %w", err)
+		return fmt.Errorf("failed to marshal onExhausted message: %w", err)
 	}
 
-	destQueue := r.resolveQueueName(thenRoute[0])
-	slog.Info("Routing to thenRoute actor", "id", msg.ID, "queue", destQueue, "then_route", thenRoute)
+	destQueue := r.resolveQueueName(onExhausted[0])
+	slog.Info("Routing to onExhausted actor", "id", msg.ID, "queue", destQueue, "on_exhausted", onExhausted)
 
 	if r.metrics != nil {
 		r.metrics.RecordMessageSize("sent", len(body))
 	}
 
 	if err := r.transport.Send(ctx, destQueue, body); err != nil {
-		return fmt.Errorf("failed to send to thenRoute queue %q: %w", destQueue, err)
+		return fmt.Errorf("failed to send to onExhausted queue %q: %w", destQueue, err)
 	}
 
 	if r.metrics != nil {
-		r.metrics.RecordMessageSent(thenRoute[0], "then_route")
+		r.metrics.RecordMessageSent(onExhausted[0], "on_exhausted")
 	}
 	return nil
 }
