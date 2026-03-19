@@ -887,6 +887,21 @@ class TestErrorDict:
             assert err["details"]["type"] == "KeyError"
             assert err["details"]["mro"] == ["LookupError", "Exception"]
 
+    def test_error_response_emits_fqn_type(self):
+        """_error_response emits FQN module.qualname for non-builtin exceptions."""
+        import requests
+        exc = requests.exceptions.ConnectionError("test")
+        err = asya_runtime._error_response("processing_error", exc)
+        assert err["details"]["type"] == "requests.exceptions.ConnectionError"
+        mro = err["details"]["mro"]
+        assert any("requests.exceptions" in entry for entry in mro)
+
+    def test_error_response_builtin_exception_uses_short_name(self):
+        """Builtin exceptions use short name (no builtins. prefix)."""
+        exc = ValueError("oops")
+        err = asya_runtime._error_response("processing_error", exc)
+        assert err["details"]["type"] == "ValueError"
+
 
 class TestHandleRequestPayloadMode:
     """Test _handle_invoke in payload mode."""
