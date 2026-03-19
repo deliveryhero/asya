@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: test-retry-exhaustion
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "asya-test-actors.labels" . | nindent 4 }}
+spec:
+  actor: test-retry-exhaustion
+
+  resiliency:
+    actorTimeout: "30s"
+    policies:
+      default:
+        maxAttempts: 3
+        backoff: constant
+        initialDelay: "1s"
+        maxInterval: "2s"
+        jitter: false
+
+  scaling:
+    enabled: true
+    minReplicaCount: 1
+    maxReplicaCount: 5
+    pollingInterval: 5
+    cooldownPeriod: 30
+    queueLength: 5
+
+  image: {{ .Values.workload.image }}
+  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
+  handler: asya_testing.handlers.payload.error_handler
