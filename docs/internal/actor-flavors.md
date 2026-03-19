@@ -126,7 +126,7 @@ Flavors can set any non-infrastructure spec field:
 - `volumes` - Pod volumes
 - `volumeMounts` - Runtime container volume mounts
 - `stateProxy` - State proxy sidecar mounts
-- `resiliency` - Retry policies
+- `resiliency` - Retry policies (`policies` map + `rules` list). When merging, `policies` keys are merged recursively across flavors; `rules` lists are appended — the first matching rule wins at runtime, so ordering across flavors matters.
 - `sidecar` - Sidecar overrides
 - `secretRefs` - Secret references
 

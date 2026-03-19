@@ -11,6 +11,7 @@ import (
 	"math/rand/v2"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -64,17 +65,16 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 // ensureAndUpdateStatus initializes or updates the status on a envelope before processing.
 // If status is nil, creates a default with phase=processing.
 // If status exists, transitions to processing phase and updates actor/timestamps.
-// MaxAttempts is set from the resiliency config when available.
+// MaxAttempts is set to 0 (unknown until policy is matched at error time).
 func (r *Router) ensureAndUpdateStatus(msg *envelopes.Envelope) {
 	now := time.Now().UTC().Format(time.RFC3339)
-	maxAttempts := r.maxAttempts()
 
 	if msg.Status == nil {
 		msg.Status = &envelopes.Status{
 			Phase:       envelopes.PhaseProcessing,
 			Actor:       r.actorName,
 			Attempt:     1,
-			MaxAttempts: maxAttempts,
+			MaxAttempts: 0,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}
@@ -89,17 +89,9 @@ func (r *Router) ensureAndUpdateStatus(msg *envelopes.Envelope) {
 	msg.Status.Phase = envelopes.PhaseProcessing
 	msg.Status.Reason = ""
 	msg.Status.Actor = r.actorName
-	msg.Status.MaxAttempts = maxAttempts
+	msg.Status.MaxAttempts = 0
 	msg.Status.UpdatedAt = now
 	msg.Status.Error = nil
-}
-
-// maxAttempts returns the max retry attempts from resiliency config, or 1 if not configured.
-func (r *Router) maxAttempts() int {
-	if r.cfg != nil && r.cfg.Resiliency != nil {
-		return r.cfg.Resiliency.Retry.MaxAttempts
-	}
-	return 1
 }
 
 // effectiveTimeout computes the per-envelope timeout as the minimum of:
@@ -273,90 +265,211 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 	return &msg, nil
 }
 
-// handleErrorResponse handles error responses from runtime with retry logic.
-// When resiliency is configured, it checks whether the error is retryable and
-// whether retry attempts remain before deciding to retry or fail permanently.
+// handleErrorResponse handles error responses from runtime with policy-based retry logic.
+// When resiliency is configured, it matches the error against rules to find a policy,
+// then applies that policy (retry, onExhausted routing, or fail permanently).
 func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, startTime time.Time) error {
-	// Check for flow-level _on_error header — bypasses retry logic
 	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
 		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
 	}
 
-	// No resiliency configured — fail immediately (legacy behavior)
-	if r.cfg.Resiliency == nil || r.cfg.Resiliency.Retry.MaxAttempts <= 1 {
+	if r.metrics != nil {
+		r.metrics.RecordMessageProcessed(r.actorName, "error")
+		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+	}
+
+	if r.cfg.Resiliency == nil {
 		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
 			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 	}
 
-	// Check MRO-based non-retryable error classification
-	if r.isNonRetryableError(response.Details.Type, response.Details.MRO) {
-		slog.Info("Non-retryable error detected, routing to x-sink",
-			"id", msg.ID, "type", response.Details.Type,
-			"attempt", msg.Status.Attempt, "max_attempts", msg.Status.MaxAttempts)
-
+	policy := r.matchPolicy(response.Details.Type, response.Details.MRO)
+	if policy == nil {
 		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "non_retryable_error")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			r.metrics.RecordMessageFailed(r.actorName, "runtime_error")
 		}
-		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonNonRetryableFailure)
+		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 	}
 
-	// Check if max attempts or max duration exhausted (whichever comes first)
-	attemptsExhausted := msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts
-	durationExhausted := isDurationExhausted(msg, r.cfg.Resiliency.Retry.MaxDuration)
-	if attemptsExhausted || durationExhausted {
-		reason := envelopes.ReasonMaxRetriesExhausted
-		metricReason := "max_retries_exhausted"
-		if durationExhausted && !attemptsExhausted {
-			slog.Info("Max retry duration exhausted, routing to x-sink",
-				"id", msg.ID, "attempt", msg.Status.Attempt,
-				"max_duration", r.cfg.Resiliency.Retry.MaxDuration)
-			reason = envelopes.ReasonMaxDurationExhausted
-			metricReason = "max_duration_exhausted"
+	return r.applyPolicy(ctx, msg, policy, response)
+}
+
+// matchPolicy finds the first rule matching errorType or any of its MRO ancestors
+// and returns the corresponding PolicyConfig. Falls back to policies["default"] if
+// no rule matches. Returns nil if no rule matches and no default policy is defined.
+//
+// Matching rules:
+//   - FQN pattern (contains "."): exact string equality against errorType or MRO entry
+//   - Short name (no "."): matches the part after the last "." in a candidate
+func (r *Router) matchPolicy(errorType string, mro []string) *config.PolicyConfig {
+	if r.cfg.Resiliency == nil {
+		return nil
+	}
+
+	candidates := make([]string, 0, len(mro)+1)
+	candidates = append(candidates, errorType)
+	candidates = append(candidates, mro...)
+
+	for _, rule := range r.cfg.Resiliency.Rules {
+		for _, pattern := range rule.Errors {
+			if matchesErrorPattern(pattern, candidates) {
+				if p, ok := r.cfg.Resiliency.Policies[rule.Policy]; ok {
+					p := p
+					return &p
+				}
+			}
+		}
+	}
+
+	if def, ok := r.cfg.Resiliency.Policies["default"]; ok {
+		def := def
+		return &def
+	}
+	return nil
+}
+
+// matchesErrorPattern reports whether pattern matches any of the candidate type strings.
+func matchesErrorPattern(pattern string, candidates []string) bool {
+	isFQN := strings.Contains(pattern, ".")
+	for _, candidate := range candidates {
+		if isFQN {
+			if candidate == pattern {
+				return true
+			}
 		} else {
-			slog.Info("Max retry attempts exhausted, routing to x-sink",
-				"id", msg.ID, "attempt", msg.Status.Attempt,
-				"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
+			if idx := strings.LastIndex(candidate, "."); idx >= 0 {
+				if candidate[idx+1:] == pattern {
+					return true
+				}
+			} else if candidate == pattern {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// applyPolicy applies a matched policy to decide whether to retry, route, or fail.
+func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, policy *config.PolicyConfig, response runtime.RuntimeResponse) error {
+	maxAttempts := policy.MaxAttempts
+	if maxAttempts <= 0 {
+		maxAttempts = 1
+	}
+	msg.Status.MaxAttempts = maxAttempts
+
+	attemptsExhausted := msg.Status.Attempt >= maxAttempts
+	durationExhausted := isDurationExhausted(msg, policy.MaxDuration.Duration())
+
+	if !attemptsExhausted && !durationExhausted {
+		delay := computeRetryDelayForPolicy(msg.Status.Attempt, policy)
+		slog.Info("Retrying message with policy backoff",
+			"id", msg.ID,
+			"attempt", msg.Status.Attempt,
+			"max_attempts", maxAttempts,
+			"delay", delay,
+			"error_type", response.Details.Type)
+
+		if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
+			slog.Error("Failed to send retry message, routing to x-sink", "id", msg.ID, "error", err)
+			if r.metrics != nil {
+				r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
+			}
+			return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 		}
 
 		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, metricReason)
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			r.metrics.RecordMessageProcessed(r.actorName, "retried")
 		}
-		return r.sendRetryFailure(ctx, msg, response, reason)
+		return nil
 	}
 
-	// Retry: compute delay, update status, send with delay to own queue
-	delay := r.computeRetryDelay(msg.Status.Attempt)
-	slog.Info("Retrying message with backoff",
-		"id", msg.ID,
-		"attempt", msg.Status.Attempt,
-		"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts,
-		"delay", delay,
-		"error_type", response.Details.Type)
+	if durationExhausted && !attemptsExhausted {
+		slog.Info("Max retry duration exhausted",
+			"id", msg.ID, "attempt", msg.Status.Attempt, "max_duration", policy.MaxDuration.Duration())
+	} else {
+		slog.Info("Max retry attempts exhausted",
+			"id", msg.ID, "attempt", msg.Status.Attempt, "max_attempts", maxAttempts)
+	}
 
-	if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
-		slog.Error("Failed to send retry message, routing to x-sink",
-			"id", msg.ID, "error", err)
+	if len(policy.OnExhausted) > 0 {
 		if r.metrics != nil {
-			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+			r.metrics.RecordMessageProcessed(r.actorName, "policy_routed")
 		}
-		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
+		return r.routeOnExhausted(ctx, msg, policy.OnExhausted, response)
 	}
 
 	if r.metrics != nil {
-		r.metrics.RecordMessageProcessed(r.actorName, "retried")
-		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
+		r.metrics.RecordMessageFailed(r.actorName, "policy_exhausted")
+	}
+	return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonPolicyExhausted)
+}
+
+// routeOnExhausted sends the failed envelope to the actor(s) configured in onExhausted.
+func (r *Router) routeOnExhausted(ctx context.Context, msg *envelopes.Envelope, onExhausted []string, response runtime.RuntimeResponse) error {
+	now := time.Now().UTC().Format(time.RFC3339)
+	msg.Route.Next = onExhausted
+	msg.Status.Phase = envelopes.PhaseFailed
+	msg.Status.Reason = envelopes.ReasonPolicyRouted
+	msg.Status.UpdatedAt = now
+	msg.Status.Error = &envelopes.StatusError{
+		Type:      response.Details.Type,
+		MRO:       response.Details.MRO,
+		Message:   response.Details.Message,
+		Traceback: response.Details.Traceback,
+	}
+
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal onExhausted message: %w", err)
+	}
+
+	destQueue := r.resolveQueueName(onExhausted[0])
+	slog.Info("Routing to onExhausted actor", "id", msg.ID, "queue", destQueue, "on_exhausted", onExhausted)
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSize("sent", len(body))
+	}
+
+	if err := r.transport.Send(ctx, destQueue, body); err != nil {
+		return fmt.Errorf("failed to send to onExhausted queue %q: %w", destQueue, err)
+	}
+
+	if r.metrics != nil {
+		r.metrics.RecordMessageSent(onExhausted[0], "on_exhausted")
 	}
 	return nil
+}
+
+// computeRetryDelayForPolicy calculates the backoff delay for the given policy.
+func computeRetryDelayForPolicy(failedAttempt int, policy *config.PolicyConfig) time.Duration {
+	if policy.InitialDelay.Duration() <= 0 {
+		return 0
+	}
+
+	var delay time.Duration
+	switch policy.Backoff {
+	case config.RetryPolicyConstant:
+		delay = policy.InitialDelay.Duration()
+	case config.RetryPolicyLinear:
+		delay = policy.InitialDelay.Duration() * time.Duration(failedAttempt)
+	default: // exponential
+		exponent := failedAttempt - 1
+		multiplier := math.Pow(2.0, float64(exponent))
+		delay = time.Duration(float64(policy.InitialDelay.Duration()) * multiplier)
+	}
+
+	if policy.MaxInterval.Duration() > 0 && delay > policy.MaxInterval.Duration() {
+		delay = policy.MaxInterval.Duration()
+	}
+
+	if policy.Jitter {
+		jitterFactor := 0.5 + rand.Float64()
+		delay = time.Duration(float64(delay) * jitterFactor)
+	}
+
+	return delay
 }
 
 // isDurationExhausted reports whether the total wall-clock budget for retries
@@ -379,58 +492,6 @@ func isDurationExhausted(msg *envelopes.Envelope, maxDuration time.Duration) boo
 		return false
 	}
 	return time.Since(first) >= maxDuration
-}
-
-// isNonRetryableError checks if the error type or any of its MRO ancestors
-// matches the configured nonRetryableErrors blacklist.
-func (r *Router) isNonRetryableError(errorType string, mro []string) bool {
-	if r.cfg.Resiliency == nil || len(r.cfg.Resiliency.NonRetryableErrors) == 0 {
-		return false
-	}
-
-	typesToCheck := make(map[string]struct{}, len(mro)+1)
-	typesToCheck[errorType] = struct{}{}
-	for _, ancestor := range mro {
-		typesToCheck[ancestor] = struct{}{}
-	}
-
-	for _, nonRetryable := range r.cfg.Resiliency.NonRetryableErrors {
-		if _, ok := typesToCheck[nonRetryable]; ok {
-			return true
-		}
-	}
-
-	return false
-}
-
-// computeRetryDelay calculates the backoff delay for the given failed attempt.
-// Formula: delay = min(initialInterval * backoffCoefficient^(attempt-1), maxInterval)
-// If jitter is enabled: delay *= random(0.5, 1.5)
-func (r *Router) computeRetryDelay(failedAttempt int) time.Duration {
-	retryCfg := r.cfg.Resiliency.Retry
-
-	var delay time.Duration
-	switch retryCfg.Policy {
-	case config.RetryPolicyConstant:
-		delay = retryCfg.InitialInterval
-	case config.RetryPolicyExponential:
-		exponent := failedAttempt - 1
-		multiplier := math.Pow(retryCfg.BackoffCoefficient, float64(exponent))
-		delay = time.Duration(float64(retryCfg.InitialInterval) * multiplier)
-	default:
-		delay = retryCfg.InitialInterval
-	}
-
-	if delay > retryCfg.MaxInterval {
-		delay = retryCfg.MaxInterval
-	}
-
-	if retryCfg.Jitter {
-		jitterFactor := 0.5 + rand.Float64() // [0.5, 1.5)
-		delay = time.Duration(float64(delay) * jitterFactor)
-	}
-
-	return delay
 }
 
 // retryMessage sends the envelope back to the actor's own queue with a delay.
@@ -495,6 +556,11 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, 
 		attempt = msg.Status.Attempt
 	}
 
+	maxAttempts := 0
+	if msg.Status != nil {
+		maxAttempts = msg.Status.MaxAttempts
+	}
+
 	failedMsg := envelopes.Envelope{
 		ID:       msg.ID,
 		ParentID: msg.ParentID,
@@ -505,7 +571,7 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, 
 			Reason:      reason,
 			Actor:       r.actorName,
 			Attempt:     attempt,
-			MaxAttempts: r.maxAttempts(),
+			MaxAttempts: maxAttempts,
 			CreatedAt:   createdAt,
 			UpdatedAt:   now,
 			Error: &envelopes.StatusError{

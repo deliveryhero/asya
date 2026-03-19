@@ -250,6 +250,8 @@ All configuration via environment variables:
 | `ASYA_ACTOR_NAME` | _(required)_ | Queue to consume |
 | `ASYA_SOCKET_PATH` | `/tmp/sockets/app.sock` | Unix socket path |
 | `ASYA_RESILIENCY_ACTOR_TIMEOUT` | `5m` | Per-call actor timeout (from XRD `resiliency.actorTimeout`) |
+| `ASYA_RESILIENCY_POLICIES` | `""` | JSON object of named retry policies (from XRD `resiliency.policies`) |
+| `ASYA_RESILIENCY_RULES` | `""` | JSON array of error→policy rules (from XRD `resiliency.rules`) |
 | `ASYA_ACTOR_SINK` | `x-sink` | Success queue |
 | `ASYA_ACTOR_SUMP` | `x-sump` | Error queue |
 | `ASYA_IS_END_ACTOR` | `false` | End actor mode |

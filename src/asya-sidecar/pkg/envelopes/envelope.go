@@ -25,14 +25,13 @@ const (
 
 // Status reason constants
 const (
-	ReasonCompleted            = "Completed"
-	ReasonRuntimeError         = "RuntimeError"
-	ReasonTimeout              = "Timeout"
-	ReasonParseError           = "ParseError"
-	ReasonRouteMismatch        = "RouteMismatch"
-	ReasonMaxRetriesExhausted  = "MaxRetriesExhausted"
-	ReasonMaxDurationExhausted = "MaxDurationExhausted"
-	ReasonNonRetryableFailure  = "NonRetryableFailure"
+	ReasonCompleted       = "Completed"
+	ReasonRuntimeError    = "RuntimeError"
+	ReasonTimeout         = "Timeout"
+	ReasonParseError      = "ParseError"
+	ReasonRouteMismatch   = "RouteMismatch"
+	ReasonPolicyExhausted = "PolicyExhausted"
+	ReasonPolicyRouted    = "PolicyRouted"
 )
 
 // StatusError captures error details within a status
