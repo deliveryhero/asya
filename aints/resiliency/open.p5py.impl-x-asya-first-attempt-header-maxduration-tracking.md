@@ -43,9 +43,9 @@ if policy.MaxDuration > 0 {
 }
 ```
 
-**Backward compatibility:** if `x-asya-first-attempt` is absent (messages enqueued
-before this feature ships), the `maxDuration` check is skipped silently. `maxAttempts`
-still applies normally.
+**Backward compatibility:** Not needed. But for durability, if `x-asya-first-attempt` is absent (messages enqueued
+before this feature ships), the `maxDuration` check is skipped with explicit warning. 
+`maxAttempts` still applies normally.
 
 ### Edge cases
 
