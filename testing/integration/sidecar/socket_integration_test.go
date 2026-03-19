@@ -238,10 +238,10 @@ func TestSocketIntegration_Error(t *testing.T) {
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Verify message was sent to x-sump queue
-	sentMessages := mockTransport.GetMessages("x-sump")
+	// Verify message was sent to x-sink queue (full termination path)
+	sentMessages := mockTransport.GetMessages("x-sink")
 	if len(sentMessages) != 1 {
-		t.Errorf("Expected 1 message in x-sump, got %d", len(sentMessages))
+		t.Errorf("Expected 1 message in x-sink, got %d", len(sentMessages))
 	}
 
 	// Verify error message contains error details

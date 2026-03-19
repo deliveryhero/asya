@@ -156,17 +156,18 @@ def test_successful_result_persisted_to_storage(e2e_helper, results_bucket):
 
 
 @pytest.mark.fast
-def test_error_result_persisted_to_storage(e2e_helper, errors_bucket):
+def test_error_result_persisted_to_storage(e2e_helper, results_bucket):
     """
-    E2E: Test error results are persisted to object storage errors bucket.
+    E2E: Test error results are persisted to object storage by x-sink.
+
+    x-sink checkpoints all terminal envelopes (succeeded and failed) to the
+    results bucket. Failed envelopes are stored under the failed/ prefix.
 
     Scenario:
     1. Send message that will fail
     2. Wait for completion
-    3. Verify error appears in storage errors bucket
+    3. Verify error appears in results bucket under failed/ prefix
     4. Verify error details stored
-
-    Expected: Errors stored separately for debugging
     """
     logger.info("Sending message that will fail...")
     response = e2e_helper.call_mcp_tool(
@@ -183,9 +184,9 @@ def test_error_result_persisted_to_storage(e2e_helper, errors_bucket):
 
     storage_client = get_storage_client()
 
-    logger.info("Waiting for error to appear in storage...")
+    logger.info("Waiting for error to appear in results storage...")
     storage_object = storage_client.wait_for_object(
-        bucket=errors_bucket,
+        bucket=results_bucket,
         envelope_id=task_id,
         timeout=30
     )

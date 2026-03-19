@@ -1578,8 +1578,8 @@ func TestRouter_ProcessMessage_ErrorResponse(t *testing.T) {
 		t.Fatalf("Expected 1 message sent to error queue, got %d", len(mockTransport.sentMessages))
 	}
 
-	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSump {
-		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSump)
+	if mockTransport.sentMessages[0].queue != "asya-default-"+testQueueSink {
+		t.Errorf("Message sent to %q, expected %q", mockTransport.sentMessages[0].queue, "asya-default-"+testQueueSink)
 	}
 
 	var errorMsg map[string]any
