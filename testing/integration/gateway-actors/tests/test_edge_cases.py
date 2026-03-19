@@ -367,24 +367,25 @@ def test_unicode_payload_handling(gateway_helper):
 
 def test_large_payload_within_limits(gateway_helper):
     """
-    NICE-TO-HAVE: Test large payload (but within RabbitMQ limits).
+    NICE-TO-HAVE: Test large payload sized to 75% of the transport message limit.
 
-    Scenario: Send 10MB payload (well below 128MB limit)
-    Expected: Should process successfully
-
-    Note: SQS has a 256KB message size limit, so this test is skipped for SQS.
-    Pub/Sub has a 10MB message size limit; 10MB payload + envelope overhead exceeds it,
-    so this test is also skipped for pubsub. Use RabbitMQ for large payload testing.
+    Payload sizes per transport (75% of hard limit, leaving headroom for envelope overhead):
+    - RabbitMQ: 75% of 128MB = ~96MB, capped at 10MB for test practicality
+    - Pub/Sub:  75% of 10MB  = 7.5MB  = 7680KB
+    - SQS:      75% of 256KB = 192KB
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
-    if transport == "sqs":
-        pytest.skip("Large payload test not supported with SQS (256KB limit)")
-    if transport == "pubsub":
-        pytest.skip("Large payload test not supported with Pub/Sub (10MB limit; 10MB payload + envelope overhead exceeds it)")
+    # Payload size at ~75% of each transport's hard message-size limit
+    size_kb_by_transport = {
+        "rabbitmq": 10240,  # 10MB (practical cap; limit is 128MB)
+        "pubsub": 7680,     # 7.5MB = 75% of 10MB Pub/Sub limit
+        "sqs": 192,         # 192KB = 75% of 256KB SQS limit
+    }
+    size_kb = size_kb_by_transport.get(transport, 1024)
 
     response = gateway_helper.call_mcp_tool(
         tool_name="test_large_payload",
-        arguments={"size_kb": 10240},  # 10MB
+        arguments={"size_kb": size_kb},
     )
 
     task_id = response["result"]["id"]

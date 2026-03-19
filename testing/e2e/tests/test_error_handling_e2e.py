@@ -46,22 +46,22 @@ def _get_transport_client(transport: str):
 
 
 @pytest.mark.slow
-def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, errors_bucket):
+def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, namespace, results_bucket):
     """
-    E2E: Test errors are processed by x-sump when x-sump is available.
+    E2E: Test errors are processed by x-sink when x-sink is available.
 
     Scenario (Application-level error handling):
-    1. x-sump is running normally with KEDA autoscaling
+    1. x-sink is running normally with KEDA autoscaling
     2. Send message to test-error actor with should_fail=True
-    3. Actor fails → sidecar sends error to x-sump queue
-    4. x-sump consumes and processes the error
-    5. x-sump persists error to S3 errors bucket
-    6. Gateway receives final status from x-sump
+    3. Actor fails → sidecar sends failed envelope to x-sink queue
+    4. x-sink processes and checkpoints the error under failed/ prefix
+    5. x-sink reports failed status to gateway
+    6. x-sump receives the envelope after x-sink (terminal layer)
 
     Expected:
     - Task status becomes "failed" (error was handled)
-    - Error persisted to S3 errors bucket
-    - DLQ remains empty (x-sump handled it, no fallback needed)
+    - Error persisted to results bucket under failed/ prefix (by x-sink)
+    - DLQ remains empty (x-sink handled it, no fallback needed)
 
     This is the NORMAL case - application handles its own errors.
     """
@@ -74,7 +74,7 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
     dlq_name = f"{actor_queue}-dlq"
 
     logger.info(f"Transport: {transport}")
-    logger.info("Scenario: x-sump available (normal application-level handling)")
+    logger.info("Scenario: x-sink available (normal application-level handling)")
 
     # Purge DLQ before test
     logger.info("Purging DLQ before test")
@@ -91,32 +91,33 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
     logger.info(f"Task ID: {task_id}")
 
     # Wait for task to reach final status
-    logger.info("Waiting for task to complete (x-sump should process it)...")
+    logger.info("Waiting for task to complete (x-sink should process it)...")
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=30)
 
-    # Verify task failed (error was handled by x-sump)
+    # Verify task failed (error was handled by x-sink)
     assert final_task["status"] == "failed", \
-        "Task should be marked as 'failed' after x-sump processes it"
+        "Task should be marked as 'failed' after x-sink processes it"
     logger.info("[+] Task marked as failed - error was processed")
 
-    # Verify error persisted to storage
-    logger.info("Waiting for error to appear in storage errors bucket...")
+    # Verify error persisted to storage under failed/ prefix (x-sink checkpoints by phase)
+    logger.info("Waiting for error to appear in results storage under failed/ prefix...")
     storage_object = storage_client.wait_for_object(
-        bucket=errors_bucket,
+        bucket=results_bucket,
         envelope_id=task_id,
+        prefix="failed/",
         timeout=30
     )
 
     assert storage_object is not None, \
-        "Error should be persisted to storage errors bucket by x-sump"
-    logger.info("[+] Error persisted to storage by x-sump")
+        "Error should be persisted to results bucket under failed/ prefix by x-sink"
+    logger.info("[+] Error persisted to results bucket by x-sink")
 
-    # Verify DLQ is EMPTY (x-sump handled the error, no fallback needed)
+    # Verify DLQ is EMPTY (x-sink handled the error, no fallback needed)
     logger.info(f"Verifying DLQ {dlq_name} is empty")
     dlq_message = transport_client.consume(dlq_name, timeout=2)
     assert dlq_message is None, \
-        f"DLQ {dlq_name} should be empty when x-sump handles the error"
-    logger.info("[+] DLQ is empty - error was handled by x-sump")
+        f"DLQ {dlq_name} should be empty when x-sink handles the error"
+    logger.info("[+] DLQ is empty - error was handled by x-sink")
 
     logger.info("[+] Test passed - application-level error handling working")
 
@@ -125,57 +126,57 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
 @pytest.mark.skipif(
     os.getenv("ASYA_TRANSPORT") == "sqs",
     reason="SQS accepts messages even when consumers are unavailable (store-and-forward). "
-           "Message goes to x-sump queue instead of DLQ when x-sump deployment is scaled to 0. "
+           "Message goes to x-sink queue instead of DLQ when x-sink deployment is scaled to 0. "
            "This test only works for RabbitMQ where publishing can fail when consumers are unavailable."
 )
 def test_error_goes_to_dlq_when_sump_unavailable(e2e_helper, kubectl, chaos_queues, namespace):
     """
-    E2E: Test errors go to DLQ when x-sump is unavailable.
+    E2E: Test errors go to DLQ when x-sink is unavailable.
 
     Scenario (Transport-level fallback):
-    1. Scale x-sump to 0 replicas (make it unavailable)
+    1. Scale x-sink to 0 replicas (make it unavailable)
     2. Send message to test-error actor with should_fail=True
-    3. Actor fails → sidecar tries to send to x-sump
-    4. Sending to x-sump fails → sidecar NACKs message
+    3. Actor fails → sidecar tries to send to x-sink (sendRetryFailure)
+    4. Sending to x-sink fails → sidecar NACKs message
     5. Message retried 3 times (maxReceiveCount=3)
     6. Transport moves message to DLQ automatically
 
     Expected:
-    - Message appears in DLQ after retries (NOT in x-sump)
+    - Message appears in DLQ after retries (NOT in x-sink)
     - Message metadata preserved in DLQ
-    - x-sump queue remains empty
+    - x-sink queue remains empty
 
     This is the FALLBACK case - transport handles errors when app can't.
 
     NOTE: Only works with RabbitMQ. SQS is store-and-forward - messages are accepted
-    even when no consumers are available, so errors go to x-sump queue, not DLQ.
+    even when no consumers are available, so errors go to x-sink queue, not DLQ.
     """
     transport = os.getenv("ASYA_TRANSPORT", "rabbitmq")
     transport_client = _get_transport_client(transport)
 
     actor_queue = f"asya-{namespace}-test-error"
     dlq_name = f"{actor_queue}-dlq"
-    sump_queue = f"asya-{namespace}-x-sump"
+    sink_queue = f"asya-{namespace}-x-sink"
 
     logger.info(f"Transport: {transport}")
-    logger.info("Scenario: x-sump unavailable (transport-level DLQ fallback)")
+    logger.info("Scenario: x-sink unavailable (transport-level DLQ fallback)")
 
-    # Disable KEDA scaling and scale x-sump to 0
-    logger.info("Disabling KEDA scaling for x-sump")
-    kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/replicas\",\"value\":0}]'")
+    # Disable KEDA scaling and scale x-sink to 0
+    logger.info("Disabling KEDA scaling for x-sink")
+    kubectl.run("patch asyncactor x-sink -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":false},{\"op\":\"replace\",\"path\":\"/spec/replicas\",\"value\":0}]'")
 
     logger.info("Waiting for ScaledObject to be deleted")
-    kubectl.run("wait --for=delete scaledobject/x-sump -n asya-e2e --timeout=60s", check=False)
+    kubectl.run("wait --for=delete scaledobject/x-sink -n asya-e2e --timeout=60s", check=False)
 
     logger.info("Waiting for deployment to scale to 0")
-    kubectl.wait_for_replicas("x-sump", "asya-e2e", 0, timeout=60)
-    logger.info("[+] x-sump scaled to 0")
+    kubectl.wait_for_replicas("x-sink", "asya-e2e", 0, timeout=60)
+    logger.info("[+] x-sink scaled to 0")
 
     try:
         # Purge queues before test
         logger.info("Purging queues before test")
         transport_client.purge(dlq_name)
-        transport_client.purge(sump_queue)
+        transport_client.purge(sink_queue)
 
         # Send failing message
         logger.info("Sending failing message to test-error actor")
@@ -207,7 +208,7 @@ def test_error_goes_to_dlq_when_sump_unavailable(e2e_helper, kubectl, chaos_queu
             time.sleep(2)
 
         assert dlq_message is not None, \
-            f"Message should be in DLQ {dlq_name} when x-sump is unavailable"
+            f"Message should be in DLQ {dlq_name} when x-sink is unavailable"
         logger.info(f"[+] Message found in DLQ: {dlq_message.get('id')}")
 
         # Verify task ID matches
@@ -219,20 +220,20 @@ def test_error_goes_to_dlq_when_sump_unavailable(e2e_helper, kubectl, chaos_queu
         assert "payload" in dlq_message, "DLQ message should preserve payload"
         logger.info("[+] DLQ message structure preserved")
 
-        # Verify x-sump queue is EMPTY (message should NOT go there when unavailable)
-        logger.info(f"Verifying x-sump queue {sump_queue} is empty")
-        sump_message = transport_client.consume(sump_queue, timeout=2)
-        assert sump_message is None, \
-            "x-sump queue should be empty when x-sump is unavailable"
-        logger.info("[+] x-sump queue is empty - message went to DLQ instead")
+        # Verify x-sink queue is EMPTY (message should NOT go there when unavailable)
+        logger.info(f"Verifying x-sink queue {sink_queue} is empty")
+        sink_message = transport_client.consume(sink_queue, timeout=2)
+        assert sink_message is None, \
+            "x-sink queue should be empty when x-sink is unavailable"
+        logger.info("[+] x-sink queue is empty - message went to DLQ instead")
 
         logger.info("[+] Test passed - transport-level DLQ fallback working")
 
     finally:
-        # Re-enable KEDA scaling for x-sump
-        logger.info("Re-enabling KEDA scaling for x-sump")
-        kubectl.run("patch asyncactor x-sump -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
-        logger.info("[+] KEDA scaling re-enabled for x-sump")
+        # Re-enable KEDA scaling for x-sink
+        logger.info("Re-enabling KEDA scaling for x-sink")
+        kubectl.run("patch asyncactor x-sink -n asya-e2e --type=json -p '[{\"op\":\"replace\",\"path\":\"/spec/scaling/enabled\",\"value\":true}]'")
+        logger.info("[+] KEDA scaling re-enabled for x-sink")
 
 
 @pytest.mark.slow
