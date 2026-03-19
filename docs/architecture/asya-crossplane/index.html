@@ -1162,7 +1162,6 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 <span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-processor:v1</span>
 <span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
 
@@ -1183,9 +1182,8 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crossplane<span 
 <h2 id="xrd-schema-validation">XRD Schema Validation<a class="headerlink" href="#xrd-schema-validation" title="Permanent link">&para;</a></h2>
 <p>The XRD enforces constraints at admission time via OpenAPI v3 schema:</p>
 <ul>
-<li>✅ <strong>Required fields</strong>: <code>image</code>, <code>handler</code> (and <code>transport</code> by default enum)</li>
+<li>✅ <strong>Required fields</strong>: <code>image</code>, <code>handler</code></li>
 <li>✅ <strong><code>actor</code></strong>: must match <code>^[a-z0-9]([a-z0-9-]*[a-z0-9])?$</code> (DNS label format), max 63 chars</li>
-<li>✅ <strong><code>transport</code></strong>: enum — <code>sqs</code>, <code>rabbitmq</code>, <code>pubsub</code></li>
 <li>✅ <strong><code>imagePullPolicy</code></strong>: enum — <code>Always</code>, <code>IfNotPresent</code>, <code>Never</code></li>
 <li>✅ <strong><code>handler</code></strong>, <strong><code>image</code></strong>, <strong><code>pythonExecutable</code></strong>: <code>minLength: 1</code></li>
 <li>✅ <strong><code>replicas</code></strong>: <code>minimum: 1</code></li>
@@ -1257,7 +1255,6 @@ kubectl<span class="w"> </span>get<span class="w"> </span>managed<span class="w"
 - <code>Status</code>: Current phase (Creating, Ready, Napping)
 - <code>Ready</code>: Number of ready replicas
 - <code>Replicas</code>: Total desired replicas
-- <code>Transport</code>: Transport type (sqs, rabbitmq)
 - <code>Queue</code>: Queue URL (priority 1, hidden by default)
 - <code>Age</code>: Time since creation</p>
 <h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
@@ -1281,11 +1278,7 @@ kubectl<span class="w"> </span>get<span class="w"> </span>managed<span class="w"
 <span class="nt">keda</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">authProvider</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">podIdentity</span><span class="w">  </span><span class="c1"># or secret</span>
 </code></pre></div>
-<p><strong>AsyncActor references transport by name</strong>:
-<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># Just the name</span>
-</code></pre></div></p>
-<p>Composition validates referenced transport exists in available compositions.</p>
+<p>Transport is selected cluster-wide via the <code>asya-crossplane</code> chart's <code>transport</code> Helm value, which sets <code>defaultCompositionRef</code> on the AsyncActor XRD. Individual actors do not declare a transport field.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">

@@ -1146,14 +1146,12 @@ logic (e.g., a scheduled cleanup job).</p>
 <p>Enable x-pause and x-resume in the <code>asya-crew</code> chart:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">x-pause</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># must match your transport</span>
 <span class="w">  </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">ASYA_PERSISTENCE_MOUNT</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/state&quot;</span>
 <span class="w">    </span><span class="nt">ASYA_PAUSE_METADATA</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;{&quot;prompt&quot;:</span><span class="nv"> </span><span class="s">&quot;Approval</span><span class="nv"> </span><span class="s">needed&quot;,</span><span class="nv"> </span><span class="s">&quot;fields&quot;:</span><span class="nv"> </span><span class="s">[]}&#39;</span>
 
 <span class="nt">x-resume</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span>
 <span class="w">  </span><span class="nt">env</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">ASYA_PERSISTENCE_MOUNT</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/state&quot;</span>
 <span class="w">    </span><span class="nt">ASYA_RESUME_MERGE_MODE</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;shallow&quot;</span><span class="w">  </span><span class="c1"># or &quot;deep&quot;</span>

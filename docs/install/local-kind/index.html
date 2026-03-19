@@ -1080,13 +1080,11 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span cla
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>&gt;<span class="w"> </span>crew-values.yaml<span class="w"> </span><span class="s">&lt;&lt;&#39;EOF&#39;</span>
 <span class="s">x-sink:</span>
 <span class="s">  enabled: true</span>
-<span class="s">  transport: rabbitmq</span>
 <span class="s">  env:</span>
 <span class="s">    ASYA_PERSISTENCE_MOUNT: /state/checkpoints</span>
 
 <span class="s">x-sump:</span>
 <span class="s">  enabled: true</span>
-<span class="s">  transport: rabbitmq</span>
 <span class="s">  env:</span>
 <span class="s">    ASYA_PERSISTENCE_MOUNT: /state/checkpoints</span>
 <span class="s">EOF</span>
@@ -1111,7 +1109,6 @@ helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class=
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello-actor</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rabbitmq</span>
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
 <span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>

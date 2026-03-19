@@ -1256,10 +1256,6 @@ Each <code>AsyncActor</code>'s subscription must be updated individually after t
 helm<span class="w"> </span>install<span class="w"> </span>asya-crew<span class="w"> </span>deploy/helm-charts/asya-crew/<span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--namespace<span class="o">=</span><span class="nv">$NS</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span>image.tag<span class="o">=</span><span class="nv">$ASYA_VERSION</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;x-sink.transport=pubsub&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;x-sink.compositionSelector.matchLabels.asya\.sh/transport=pubsub&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;x-sump.transport=pubsub&quot;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;x-sump.compositionSelector.matchLabels.asya\.sh/transport=pubsub&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;dlq-worker.enabled=true&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;dlq-worker.config.transport=pubsub&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>--set<span class="w"> </span><span class="s2">&quot;dlq-worker.config.queueURL=</span><span class="si">${</span><span class="nv">DLQ_SUBSCRIPTION</span><span class="si">}</span><span class="s2">&quot;</span><span class="w"> </span><span class="se">\</span>
@@ -1440,11 +1436,6 @@ returns a greeting. Use it to verify the full message path: Pub/Sub → sidecar 
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;your-namespace&gt;</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">actor</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pubsub</span>
-<span class="w">  </span><span class="nt">compositionSelector</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">asya.sh/transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pubsub</span>
-
 <span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">enabled</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>

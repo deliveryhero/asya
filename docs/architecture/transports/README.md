@@ -22,15 +22,20 @@ See [KEDA scalers](https://keda.sh/docs/2.18/scalers/) for potential integration
 
 ## Transport Configuration
 
-Transport type is specified in the AsyncActor XRD claim via the `transport` field. The Crossplane composition creates the appropriate queue resources.
+Transport is a cluster-level concern configured via the `asya-crossplane` Helm chart's `transport` value. The chart sets a `defaultCompositionRef` on the AsyncActor XRD, selecting the appropriate composition (SQS, RabbitMQ, Pub/Sub) for all actors in the cluster. Individual `AsyncActor` specs do not declare a transport field.
+
+To override the cluster default for a specific actor, use Crossplane's built-in `compositionRef`:
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: my-actor
+  name: my-special-actor
+compositionRef:
+  name: asyncactor-rabbitmq  # explicit override
 spec:
-  transport: sqs  # Validated by XRD enum
+  image: my-actor:v1
+  handler: handler.process
 ```
 
 ## Transport Interface

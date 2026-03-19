@@ -993,13 +993,17 @@
 </ul>
 <p>See <a href="https://keda.sh/docs/2.18/scalers/">KEDA scalers</a> for potential integration targets.</p>
 <h2 id="transport-configuration">Transport Configuration<a class="headerlink" href="#transport-configuration" title="Permanent link">&para;</a></h2>
-<p>Transport type is specified in the AsyncActor XRD claim via the <code>transport</code> field. The Crossplane composition creates the appropriate queue resources.</p>
+<p>Transport is a cluster-level concern configured via the <code>asya-crossplane</code> Helm chart's <code>transport</code> value. The chart sets a <code>defaultCompositionRef</code> on the AsyncActor XRD, selecting the appropriate composition (SQS, RabbitMQ, Pub/Sub) for all actors in the cluster. Individual <code>AsyncActor</code> specs do not declare a transport field.</p>
+<p>To override the cluster default for a specific actor, use Crossplane's built-in <code>compositionRef</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-actor</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-special-actor</span>
+<span class="nt">compositionRef</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asyncactor-rabbitmq</span><span class="w">  </span><span class="c1"># explicit override</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">transport</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sqs</span><span class="w">  </span><span class="c1"># Validated by XRD enum</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-actor:v1</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handler.process</span>
 </code></pre></div>
 <h2 id="transport-interface">Transport Interface<a class="headerlink" href="#transport-interface" title="Permanent link">&para;</a></h2>
 <p>Sidecar implements (<code>src/asya-sidecar/internal/transport/transport.go</code>):</p>

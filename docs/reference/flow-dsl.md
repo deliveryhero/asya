@@ -460,7 +460,6 @@ metadata:
   name: start-sentiment-pipeline
 spec:
   image: my-routers:latest
-  transport: sqs
   handler: compiled.routers.start_sentiment_pipeline
   env:
     - name: ASYA_HANDLER_PREPROCESS
@@ -485,7 +484,6 @@ metadata:
   name: analyze-sentiment
 spec:
   image: sentiment-model:latest
-  transport: sqs
   handler: handlers.analyze_sentiment
   scaling:
     minReplicaCount: 0
