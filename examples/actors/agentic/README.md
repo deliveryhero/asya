@@ -30,8 +30,8 @@ metadata:
   name: my-router
 spec:
   actor: my-router
-  workload:
-    handler: dynamic_routing.dispatcher
+  image: my-agentic-actors:latest
+  handler: dynamic_routing.dispatcher
 ```
 
 ## Deployment
