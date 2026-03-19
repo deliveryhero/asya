@@ -559,35 +559,13 @@ spec:
                             value: {{`{{ .value | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.policy }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_POLICY
-                            value: {{`{{ $xrSpec.resiliency.retry.policy | quote }}`}}
+                          {{`{{- if $xrSpec.resiliency.policies }}`}}
+                          - name: ASYA_RESILIENCY_POLICIES
+                            value: {{`{{ $xrSpec.resiliency.policies | toJson | quote }}`}}
                           {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.maxAttempts }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS
-                            value: {{`{{ $xrSpec.resiliency.retry.maxAttempts | quote }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.initialInterval }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL
-                            value: {{`{{ $xrSpec.resiliency.retry.initialInterval | quote }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.maxInterval }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_MAX_INTERVAL
-                            value: {{`{{ $xrSpec.resiliency.retry.maxInterval | quote }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.backoffCoefficient }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT
-                            value: {{`{{ $xrSpec.resiliency.retry.backoffCoefficient | quote }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.retry.jitter }}`}}
-                          - name: ASYA_RESILIENCY_RETRY_JITTER
-                            value: {{`{{ $xrSpec.resiliency.retry.jitter | quote }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- end }}`}}
-                          {{`{{- if $xrSpec.resiliency.nonRetryableErrors }}`}}
-                          - name: ASYA_RESILIENCY_NON_RETRYABLE_ERRORS
-                            value: {{`{{ $xrSpec.resiliency.nonRetryableErrors | join "," | quote }}`}}
+                          {{`{{- if $xrSpec.resiliency.rules }}`}}
+                          - name: ASYA_RESILIENCY_RULES
+                            value: {{`{{ $xrSpec.resiliency.rules | toJson | quote }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency.actorTimeout }}`}}
                           - name: ASYA_RESILIENCY_ACTOR_TIMEOUT
