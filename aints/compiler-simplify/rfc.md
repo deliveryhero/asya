@@ -47,7 +47,9 @@ to an actor", which is the actual semantic of the mesh.
    code + manifests) are the representation. The "graph" is an ephemeral
    view computed on-demand by scanning handler yields — not a persisted
    data structure, not a first-class concept. If actors map 1:1 to what
-   an IR would contain, the IR is redundant.
+   an IR would contain, the IR is redundant. The transient graph dict
+   can be dumped to JSON/YAML via `--debug-graph` for debugging, but
+   this is a debug artifact, not a pipeline stage.
 
 4. **Graph is informational** — the DOT/SVG output is for users to debug
    their actor mesh. Complex conditions like `if complex_condition(payload)`
@@ -64,12 +66,12 @@ to an actor", which is the actual semantic of the mesh.
 ### Two-phase pipeline
 
 ```
-Phase 1 (compile):     flow.py  ──────────>  routers.py
-                                              (Python handlers with yield ABI)
+Phase 1 (compile):     flow.py  ──────────>  routers.py   (handler code)
+                                         └>  manifests/   (AsyncActor XR YAML)
 
 Phase 2 (analyze):     routers.py       ─┐
-                       handler_*.py      ─┤──>  DOT/SVG, manifests, validation
-                       actor configs     ─┘
+                       handler_*.py      ─┤──>  DOT/SVG, validation
+                       manifests/        ─┘
 ```
 
 **Phase 1** is the existing flow compiler, simplified. It transforms Python
@@ -84,12 +86,35 @@ validation reports. Internally it builds a transient `{nodes, edges}` dict
 to pass between analysis and rendering, but this is a local implementation
 detail — not a persisted or first-class data structure.
 
-### Phase 1: flow.py -> routers.py (simplified)
+### Phase 1: flow.py -> routers.py + manifests/ (simplified)
 
 The compiler keeps Python syntax understanding but the output is simpler:
 instead of building a tree IR and then converting it to Routers via the
 grouper, it directly generates Python handler code. The grouper and its
 convergence labels, loop counters, try counters disappear.
+
+The compiler produces two outputs:
+
+1. **routers.py** — Python handler code with yield ABI (same as today)
+2. **manifests/** — AsyncActor XR YAML for each actor in the flow
+
+Manifests capture infra-level configuration that the compiler extracts
+from the flow source:
+
+- **Env vars**: `os.environ["KEY"]` references → `spec.env[].value`
+- **Retry config**: `@retry(max_attempts=3)` or `tenacity.retry(...)` →
+  `spec.resiliency.retry.*`
+- **Timeout**: `asyncio.timeout(30)` → `spec.resiliency.actorTimeout`
+- **Actor names and labels**: handler name → `metadata.name`,
+  `asya.sh/flow` label
+- **Handler reference**: function path → `spec.handler`
+
+This is where the rules engine (aint `1fmi`) plugs in: `treat-as: config`
+rules tell the compiler which decorators/context managers to extract
+configuration from and where to place the extracted values in the manifest.
+
+The `extracted_configs` list already exists in the parser today — this
+extends it to produce actual YAML output.
 
 What the compiler still does:
 - Parse `@flow`-decorated functions
@@ -100,6 +125,7 @@ What the compiler still does:
 - Transform `try/except` into `_on_error` header setup + dispatch routing
 - Transform `return` into route-to-end
 - Apply DSL rules (treat-as: config, inline, etc.)
+- **NEW**: Extract actor configuration and emit AsyncActor manifests
 
 What the compiler no longer does:
 - Build an IR tree of 12 node types
@@ -107,9 +133,9 @@ What the compiler no longer does:
 - Manage convergence labels, loop-exit labels, loop-back labels
 - Track separate router types (is_try_enter, is_try_exit, is_except_dispatch, is_reraise, is_loop_back, is_fan_out)
 
-The output format remains the same: `routers.py` files with async generator
-functions that yield ABI commands. The generated code is identical to today's
-output — only the internal pipeline changes.
+The handler code output format remains the same: `routers.py` files with
+async generator functions that yield ABI commands. The generated code is
+identical to today's output — only the internal pipeline changes.
 
 ### Phase 2: yield analysis -> outputs
 
@@ -192,17 +218,22 @@ The transient dict lives and dies inside the function call.
 
 ### Downstream outputs
 
-The analyzer produces outputs directly:
+Phase 2 (yield analysis) produces:
 
 1. **DOT/SVG** — iterate nodes/edges, emit Graphviz DOT.
    Much simpler than today's dotgen (which interprets Router objects
    with 15+ boolean flags).
 
-2. **Manifests** — each handler becomes an AsyncActor spec with handler
-   reference, routing config, and labels.
-
-3. **Validation** — connectivity checks, reachability, cycle detection.
+2. **Validation** — connectivity checks, reachability, cycle detection.
    Reported as warnings/errors during analysis, not as a separate pass.
+
+3. **Debug graph dump** (`--debug-graph`) — JSON/YAML dump of the
+   transient `{nodes, edges}` dict for troubleshooting.
+
+Manifests are produced by Phase 1 (compiler), not Phase 2 (analyzer).
+The compiler knows actor configuration (retry, timeout, env vars) from
+parsing the flow source. The analyzer only knows routing topology from
+yields.
 
 ### Standalone actor visualization
 
@@ -245,10 +276,13 @@ representations). The grouper's complexity reduces because it no longer
 needs to produce Router objects with 15+ fields — it just needs to
 produce correct Python handler code.
 
-### Phase 4: Manifest generation
+### Phase 4: Manifest generation in compiler
 
-Add manifest generation from the same yield analysis. Each handler file
-produces AsyncActor YAML directly.
+Add manifest output to Phase 1. The compiler already extracts config
+via `treat-as: config` rules (`extracted_configs`). Extend this to
+produce AsyncActor XR YAML alongside `routers.py`. Each actor in the
+flow gets a manifest with handler reference, labels, and extracted
+configuration (retry, timeout, env vars).
 
 ## Relationship to existing work
 
