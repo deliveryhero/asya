@@ -1,7 +1,7 @@
 # Research: Handler-to-Image Mapping and Build System Integration
 
-**Date**: 2026-03-19
-**Status**: In progress (needs experimentation)
+**Date**: 2026-03-20 (updated from 2026-03-19)
+**Status**: Decided -- Skaffold-native (pending PoC)
 **Context**: How the compiler resolves handler functions to container images.
 Emerged from brainstorming session on compiler simplification (see
 `compiler-simplify/rfc.md`).
@@ -20,7 +20,7 @@ the project's Python interpreter (auto-detected from venv/uv/poetry or
 
 **Decision**: trust the local Python environment for handler identity.
 
-### 1.2 Image Binding (open)
+### 1.2 Image Binding (decided: Skaffold-native)
 
 Given a resolved handler function, determine which container image it
 lives in and what its in-container module path is. This is the hard
@@ -175,85 +175,151 @@ Inc maintains it. Needs hands-on evaluation.
 
 ---
 
-## 4. Remaining Open Questions
+## 4. Decisions (from 2026-03-20 brainstorming)
 
-### Q1: In-container module path
+### D1: Image contains package, not the other way around
 
-When the compiler resolves `from nlp_actors.handler import classify`,
-it knows the local module path. But in the container image, the module
-might be at a different path (depending on how source was COPY'd or
-pip-installed). How does asya determine the in-container import path?
+The containment relationship flows outward: image wraps package. Therefore
+the mapping metadata must live **outside Python** -- no decorators, no
+`pyproject.toml [tool.asya]`, no `__asya__.py` markers. Python packages
+should not know which images they belong to. They may belong to multiple
+(dev/prod, slim/fat, CPU/GPU).
 
-With buildpacks: source is always at `/workspace/`. Predictable.
-With Dockerfile: depends on COPY directives. Must parse or configure.
+### D2: Skaffold as single source of truth
 
-### Q2: Image repo + tag
+**Decision**: `skaffold.yaml` is the source of truth for "which source
+directories produce which images."
 
-Where does the full image reference come from? Skaffold has the image
-name but tagging is separate. Options:
-- Convention: `{registry}/{project.toml name}:{git-sha}`
-- Explicit in skaffold.yaml + tagging policy
-- `project.toml` metadata extension
+Resolution chain:
+```
+handler function (Python)
+  -> inspect.getfile()
+  -> absolute source path
+  -> find skaffold artifact whose context dir contains this path
+  -> artifact.image (registry/repo, no tag)
+  -> parse Dockerfile COPY to determine in-container module path
+  -> emit AsyncActor CRD
+```
+
+Dockerfile scanning is used as input to **generating** skaffold.yaml
+(via `asya init`), not as a parallel resolution path. The compiler
+reads only skaffold.yaml.
+
+`asya build` / `asya s build` (= `asya skaffold build`) MAY be used
+as a shortcut for building images, but is not required. The primary
+value of skaffold integration is **resolving code -> image**, not
+building.
+
+### D3: N:M disambiguation via Skaffold profiles
+
+One handler package in multiple images (dev/prod, CPU/GPU) is handled
+by Skaffold profiles. The compiler takes `--profile <name>` and filters
+artifacts accordingly. One profile = one unambiguous mapping.
+
+```bash
+asya compile my_flow.py --profile prod
+```
+
+### D4: Tags are a deployment concern, not a compiler concern
+
+Skaffold stores image **names** per artifact but tags are computed at
+build time (via `tagPolicy`: gitCommit, sha256, dateTime, etc.). The
+compiler emits CRDs with image names only (no tags).
+
+Three user scenarios, all consistent:
+
+| Scenario | Tag at compile time | Who sets real tag |
+|---|---|---|
+| Dev loop (`skaffold dev`) | Not needed -- file sync | Skaffold |
+| Experiment/PR | Throwaway (random) | CI on merge |
+| Cold start | Nothing exists | First `skaffold build` |
+
+### D5: Tag injection via kustomize overlays
+
+Compiler emits tagless image names in `base/`. Tags are injected via
+kustomize `images:` transformer in `overlays/{context}/`:
+
+```yaml
+# base/asyncactor-nlp.yaml (compiler-generated, no tag)
+spec:
+  image: ghcr.io/team/nlp
+
+# overlays/dev/kustomization.yaml (scaffolded once, preserved)
+resources:
+  - ../../common
+images:
+  - name: ghcr.io/team/nlp        # TODO: set newTag
+  - name: ghcr.io/team/gpu-model   # TODO: set newTag
+```
+
+On first compile, the compiler scaffolds `images:` entries (no tags)
+in overlay kustomization files. On recompile, it appends new images
+without touching existing entries. CI uses `kustomize edit set image`
+or `skaffold render` to inject real tags.
+
+### D6: In-container module path via Dockerfile COPY parsing
+
+Best-effort parsing of Dockerfile COPY directives to determine where
+source ends up inside the image. Falls back to convention (local path
+= container path) if parsing fails (variable expansion, multi-stage).
+Buildpacks always use `/workspace/` (predictable).
+
+### D7: Progressive complexity
+
+- **Zero-config**: single-package flows with one Dockerfile ->
+  `asya init` generates skaffold.yaml, one artifact, done
+- **Multi-image**: multiple Dockerfiles/buildpacks ->
+  `asya init` scaffolds, user adjusts
+- **N:M variants**: Skaffold profiles for dev/prod/GPU/CPU
+- **Pre-built/external images**: still open (see Q3 below)
+
+---
+
+## 5. Remaining Open Questions
 
 ### Q3: Pre-built / external images
 
 Handlers from pip-installed packages or external team images have no
-build context. The mapping must come from somewhere. A separate config
-file is bad (split configuration). Options:
-- Extend skaffold.yaml/Tiltfile with non-build artifacts
-- `project.toml` metadata for the consuming flow
+build context and no Dockerfile. They don't fit in skaffold.yaml
+(which describes things to build). Options:
+- Extend skaffold.yaml with custom metadata
+- Separate section in `.asya/config.yaml` for pre-built image bindings
 - Flow-level config (per-flow image overrides)
-
-### Q4: N:M relationship
-
-One handler package in multiple images (e.g., CPU and GPU variants).
-Disambiguation needed. Options:
-- Flow-level override ("in this flow, use the GPU image for X")
-- Most-specific-prefix wins
-- Error on ambiguity
-
-### Q5: Asya's role in the build
-
-Is asya a thin wrapper that delegates to Skaffold/Tilt, or does it
-have its own build execution? The RFC says "asya is a thin command
-runner for builds, not a build system." This aligns with delegating
-to Skaffold/Tilt.
 
 ### Q6: Dockerfile COPY parsing reliability
 
-For Dockerfile-based actors, can asya reliably parse COPY directives
-to determine which modules are baked in? Works for simple cases
-(`COPY ./src /app`), fails for variable expansion (`COPY ${DIR} /app`),
-multi-stage (`COPY --from=builder`). Is best-effort parsing acceptable,
-or must Dockerfile actors always have explicit config?
+Best-effort parsing is accepted (D6), but edge cases remain:
+variable expansion (`COPY ${DIR} /app`), multi-stage
+(`COPY --from=builder`). Need to define the fallback behavior
+and error messages clearly.
 
 ---
 
-## 5. Next Steps
+## 6. Next Steps
 
-1. **Experiment with Skaffold** -- set up a sample multi-actor project
-   with mixed buildpacks + Dockerfile builds. Evaluate DX.
-2. **Experiment with Tilt** -- same project, compare DX with Skaffold.
-3. **Prototype `asya analyze`** -- implement directory scanning that
-   detects build units and suggests the handler-to-image mapping.
-4. **Design unified config model** -- where pre-built image config
-   lives without being separated from the rest.
-5. **Test in-container module path resolution** -- verify that buildpack
-   images have predictable PYTHONPATH (`/workspace/`).
+1. **PoC: Skaffold integration** -- set up a sample multi-actor project,
+   generate skaffold.yaml from Dockerfiles, verify the resolution chain
+   works end-to-end (handler -> source path -> artifact -> image name).
+2. **PoC: `skaffold dev`** -- verify file sync works for the dev loop
+   (no-build scenario).
+3. **Prototype Dockerfile COPY parser** -- best-effort, test against
+   real-world Dockerfiles in the project.
+4. **Design pre-built image binding** -- resolve Q3.
 
 ---
 
-## 6. Design Principles (from brainstorming)
+## 7. Design Principles (from brainstorming)
 
-1. Handler functions stay clean -- no image info in decorators
-2. `@actor` decorator is the discovery marker
-3. Build tool (Skaffold/Tilt/native) is the source of truth for
-   "which dirs produce which images"
-4. Asya auto-discovers the setup and is as explicit as possible
-5. Scaling to many images should be constant effort
-6. No package requirement -- asya works with any Python file
-7. No new file formats if avoidable -- use existing standards
-   (project.toml, skaffold.yaml, Dockerfile)
+1. Image contains package, not the other way around (D1)
+2. No Python-side annotations for image binding -- it's a deployment concern
+3. `skaffold.yaml` is the single source of truth (D2)
+4. Dockerfile scanning feeds INTO skaffold.yaml generation, not a parallel path
+5. Tags are a deployment concern, not a compiler concern (D4)
+6. Kustomize overlays own tag injection (D5)
+7. Progressive complexity: zero-config for simple, profiles for complex (D7)
+8. `asya build` is a convenience wrapper, not required
+9. Handler functions stay clean -- no image info in decorators
+10. No new file formats -- use existing standards (skaffold.yaml, Dockerfile, kustomize)
 
 ---
 
@@ -262,6 +328,7 @@ or must Dockerfile actors always have explicit config?
 - [CNB project.toml spec](https://github.com/buildpacks/spec/blob/main/extensions/project-descriptor.md)
 - [Paketo Python buildpack](https://paketo.io/docs/howto/python/)
 - [Skaffold builders](https://skaffold.dev/docs/builders/)
+- [Skaffold taggers](https://skaffold.dev/docs/taggers/)
 - [Pants BUILD files](https://www.pantsbuild.org/stable/docs/using-pants/key-concepts/targets-and-build-files)
 - Asya research: `research-no-dockerfile.md`, `research-seamless-build.md`
 - Asya RFC: `compiler-simplify/rfc.md` (sections on image mapping)
