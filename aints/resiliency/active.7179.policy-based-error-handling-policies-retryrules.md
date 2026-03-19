@@ -1,9 +1,14 @@
 ---
 title: Policy-based error handling (timeout + policies + rules replaces nonRetryableErrors)
 priority: 1 # high
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/resiliency/7179.policy-based-error-handling-policies-retryrules
+  - branch:resiliency/7179.policy-based-error-handling-policies-retryrules
 dependencies:
   - p5py
 ---
+
 
 
 ## Context
