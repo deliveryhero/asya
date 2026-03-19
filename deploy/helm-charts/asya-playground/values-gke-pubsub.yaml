@@ -84,17 +84,8 @@ asya-crew:
   image:
     tag: "0.5.5"
 
-  x-sink:
-    transport: pubsub
-    compositionSelector:
-      matchLabels:
-        asya.sh/transport: pubsub
-
-  x-sump:
-    transport: pubsub
-    compositionSelector:
-      matchLabels:
-        asya.sh/transport: pubsub
+  x-sink: {}
+  x-sump: {}
 
   dlq-worker:
     enabled: false

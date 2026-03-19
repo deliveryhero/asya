@@ -379,10 +379,6 @@ export DLQ_GCS_BUCKET="asya-dlq-${PROJECT}"
 helm install asya-crew deploy/helm-charts/asya-crew/ \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
-  --set "x-sink.transport=pubsub" \
-  --set "x-sink.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
-  --set "x-sump.transport=pubsub" \
-  --set "x-sump.compositionSelector.matchLabels.asya\.sh/transport=pubsub" \
   --set "dlq-worker.enabled=true" \
   --set "dlq-worker.config.transport=pubsub" \
   --set "dlq-worker.config.queueURL=${DLQ_SUBSCRIPTION}" \
@@ -570,11 +566,6 @@ metadata:
   namespace: <your-namespace>
 spec:
   actor: hello
-  transport: pubsub
-  compositionSelector:
-    matchLabels:
-      asya.sh/transport: pubsub
-
   scaling:
     enabled: true
     minReplicaCount: 0

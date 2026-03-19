@@ -139,7 +139,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 ```yaml
 x-sink:
   enabled: true
-  transport: rabbitmq
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -155,7 +154,6 @@ x-sink:
 
 x-sump:
   enabled: true
-  transport: rabbitmq
   scaling:
     enabled: true
     minReplicaCount: 1

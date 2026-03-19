@@ -180,14 +180,12 @@ Enable x-pause and x-resume in the `asya-crew` chart:
 ```yaml
 x-pause:
   enabled: true
-  transport: sqs  # must match your transport
   env:
     ASYA_PERSISTENCE_MOUNT: "/state"
     ASYA_PAUSE_METADATA: '{"prompt": "Approval needed", "fields": []}'
 
 x-resume:
   enabled: true
-  transport: sqs
   env:
     ASYA_PERSISTENCE_MOUNT: "/state"
     ASYA_RESUME_MERGE_MODE: "shallow"  # or "deep"

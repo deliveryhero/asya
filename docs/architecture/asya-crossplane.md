@@ -208,7 +208,6 @@ metadata:
   name: text-processor
   namespace: asya
 spec:
-  transport: sqs
   image: my-processor:v1
   handler: processor.TextProcessor.process
 
@@ -232,9 +231,8 @@ spec:
 
 The XRD enforces constraints at admission time via OpenAPI v3 schema:
 
-- ✅ **Required fields**: `image`, `handler` (and `transport` by default enum)
+- ✅ **Required fields**: `image`, `handler`
 - ✅ **`actor`**: must match `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$` (DNS label format), max 63 chars
-- ✅ **`transport`**: enum — `sqs`, `rabbitmq`, `pubsub`
 - ✅ **`imagePullPolicy`**: enum — `Always`, `IfNotPresent`, `Never`
 - ✅ **`handler`**, **`image`**, **`pythonExecutable`**: `minLength: 1`
 - ✅ **`replicas`**: `minimum: 1`
@@ -274,7 +272,6 @@ kubectl get managed -l crossplane.io/claim-name=text-processor
 - `Status`: Current phase (Creating, Ready, Napping)
 - `Ready`: Number of ready replicas
 - `Replicas`: Total desired replicas
-- `Transport`: Transport type (sqs, rabbitmq)
 - `Queue`: Queue URL (priority 1, hidden by default)
 - `Age`: Time since creation
 
@@ -303,10 +300,4 @@ keda:
   authProvider: podIdentity  # or secret
 ```
 
-**AsyncActor references transport by name**:
-```yaml
-spec:
-  transport: sqs  # Just the name
-```
-
-Composition validates referenced transport exists in available compositions.
+Transport is selected cluster-wide via the `asya-crossplane` chart's `transport` Helm value, which sets `defaultCompositionRef` on the AsyncActor XRD. Individual actors do not declare a transport field.

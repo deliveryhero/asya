@@ -61,7 +61,6 @@ helm install asya-crew deploy/helm-charts/asya-crew/ --namespace asya-e2e -f val
 ```yaml
 x-sink:
   enabled: true
-  transport: rabbitmq
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -71,7 +70,6 @@ x-sink:
 
 x-sump:
   enabled: true
-  transport: rabbitmq
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -120,7 +118,6 @@ metadata:
   name: my-actor
 spec:
   actor: my-actor
-  transport: sqs
   image: my-handler:latest
   handler: my_module.process
 ```
@@ -140,7 +137,6 @@ helm install my-actors deploy/helm-charts/asya-actor/ -f values.yaml
 ```yaml
 actors:
   - name: text-processor
-    transport: sqs
     scaling:
       minReplicaCount: 0
       maxReplicaCount: 50
@@ -152,7 +148,6 @@ actors:
         value: /models/v2
 
   - name: image-processor
-    transport: sqs
     scaling:
       minReplicaCount: 0
       maxReplicaCount: 20
@@ -187,12 +182,10 @@ awsProviderConfig:
 **Crew** (`crew-values.yaml`):
 ```yaml
 x-sink:
-  transport: sqs
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
-  transport: sqs
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
@@ -202,7 +195,9 @@ x-sump:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 spec:
-  transport: sqs
+  actor: my-actor
+  image: my-actor:v1
+  handler: handler.process
 ```
 
 ### Local with RabbitMQ + MinIO
@@ -217,12 +212,10 @@ actorNamespace: asya
 **Crew** (`crew-values.yaml`):
 ```yaml
 x-sink:
-  transport: rabbitmq
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
-  transport: rabbitmq
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
@@ -232,7 +225,9 @@ x-sump:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 spec:
-  transport: rabbitmq
+  actor: my-actor
+  image: my-actor:v1
+  handler: handler.process
 ```
 
 ## Upgrading Charts

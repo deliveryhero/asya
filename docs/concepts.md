@@ -41,7 +41,6 @@ kind: AsyncActor
 metadata:
   name: infer
 spec:
-  transport: sqs
   image: my-model:latest
   handler: model.LLMHandler.process
   scaling:

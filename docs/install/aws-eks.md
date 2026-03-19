@@ -269,13 +269,11 @@ Suppose, we want to save all messages to the bucket `s3://asya-results-bucket`. 
 # crew-values.yaml
 x-sink:
   enabled: true
-  transport: sqs
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
-  transport: sqs
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 ```
@@ -298,7 +296,6 @@ metadata:
   annotations:
     eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/asya-actor-role
 spec:
-  transport: sqs
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 50

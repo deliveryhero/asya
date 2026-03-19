@@ -39,12 +39,6 @@ spec:
       maxRetryCount: 3  # Optional, defaults to 3
 ```
 
-**AsyncActor reference**:
-```yaml
-spec:
-  transport: rabbitmq
-```
-
 **Sidecar environment variables** (rendered by Crossplane composition):
 
 - `ASYA_TRANSPORT=rabbitmq`

@@ -27,12 +27,6 @@ spec:
     Team: ml-platform
 ```
 
-**AsyncActor reference**:
-```yaml
-spec:
-  transport: sqs
-```
-
 **Sidecar environment variables** (rendered by Crossplane composition):
 
 - `ASYA_TRANSPORT=sqs`

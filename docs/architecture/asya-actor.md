@@ -58,7 +58,6 @@ kind: AsyncActor
 metadata:
   name: text-processor
 spec:
-  transport: sqs
   image: my-processor:v1
   handler: processor.TextProcessor.process
   scaling:
@@ -215,7 +214,6 @@ Use `asya-actor` chart for batch deployment:
 # values.yaml
 actors:
   - name: text-processor
-    transport: sqs
     scaling:
       minReplicaCount: 0
       maxReplicaCount: 50
