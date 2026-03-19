@@ -18,8 +18,9 @@ const (
 
 // Mesh-status header constants for stealth mode control
 const (
-	HeaderMeshStatus = "x-asya-mesh-status"
-	MeshStatusOff    = "off"
+	HeaderMeshStatus   = "x-asya-mesh-status"
+	MeshStatusOff      = "off"
+	HeaderFirstAttempt = "x-asya-first-attempt"
 )
 
 // Status reason constants

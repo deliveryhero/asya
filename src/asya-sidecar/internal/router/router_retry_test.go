@@ -1046,7 +1046,7 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 func TestRouter_IsDurationExhausted_ZeroMaxDuration(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
-			"x-asya-first-attempt": time.Now().Add(-1 * time.Hour).UTC().Format(time.RFC3339),
+			envelopes.HeaderFirstAttempt: time.Now().Add(-1 * time.Hour).UTC().Format(time.RFC3339),
 		},
 	}
 	if isDurationExhausted(msg, 0) {
@@ -1071,7 +1071,7 @@ func TestRouter_IsDurationExhausted_NilHeaders(t *testing.T) {
 func TestRouter_IsDurationExhausted_HeaderUnparseable(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
-			"x-asya-first-attempt": "not-a-timestamp",
+			envelopes.HeaderFirstAttempt: "not-a-timestamp",
 		},
 	}
 	if isDurationExhausted(msg, 10*time.Minute) {
@@ -1083,7 +1083,7 @@ func TestRouter_IsDurationExhausted_NotYetExhausted(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
 			// first attempt just happened
-			"x-asya-first-attempt": time.Now().UTC().Format(time.RFC3339),
+			envelopes.HeaderFirstAttempt: time.Now().UTC().Format(time.RFC3339),
 		},
 	}
 	if isDurationExhausted(msg, 10*time.Minute) {
@@ -1095,7 +1095,7 @@ func TestRouter_IsDurationExhausted_Exhausted(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
 			// first attempt was 2 hours ago
-			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+			envelopes.HeaderFirstAttempt: time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
 		},
 	}
 	if !isDurationExhausted(msg, 30*time.Minute) {
@@ -1163,7 +1163,7 @@ func TestRouter_ProcessMessage_FirstAttemptHeaderStampedOnFirstAttempt(t *testin
 		t.Fatalf("Failed to unmarshal retry message: %v", err)
 	}
 
-	raw, ok := retryMsg.Headers["x-asya-first-attempt"].(string)
+	raw, ok := retryMsg.Headers[envelopes.HeaderFirstAttempt].(string)
 	if !ok {
 		t.Fatal("Expected x-asya-first-attempt header in retry message")
 	}
@@ -1217,7 +1217,7 @@ func TestRouter_ProcessMessage_FirstAttemptHeaderPreservedOnRetry(t *testing.T) 
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
 		Payload: json.RawMessage(`{}`),
 		Headers: map[string]interface{}{
-			"x-asya-first-attempt": originalTimestamp,
+			envelopes.HeaderFirstAttempt: originalTimestamp,
 		},
 		Status: &envelopes.Status{
 			Phase:       envelopes.PhaseRetrying,
@@ -1244,7 +1244,7 @@ func TestRouter_ProcessMessage_FirstAttemptHeaderPreservedOnRetry(t *testing.T) 
 		t.Fatalf("Failed to unmarshal retry message: %v", err)
 	}
 
-	raw, ok := retryMsg.Headers["x-asya-first-attempt"].(string)
+	raw, ok := retryMsg.Headers[envelopes.HeaderFirstAttempt].(string)
 	if !ok {
 		t.Fatal("Expected x-asya-first-attempt header preserved in retry message")
 	}
@@ -1302,7 +1302,7 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
 		Payload: json.RawMessage(`{}`),
 		Headers: map[string]interface{}{
-			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+			envelopes.HeaderFirstAttempt: time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
 		},
 		Status: &envelopes.Status{
 			Phase:       envelopes.PhaseRetrying,
@@ -1391,7 +1391,7 @@ func TestRouter_ProcessMessage_MaxAttemptsWinsWhenBothExhausted(t *testing.T) {
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{}`),
 		Headers: map[string]interface{}{
-			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+			envelopes.HeaderFirstAttempt: time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
 		},
 		Status: &envelopes.Status{
 			Phase:       envelopes.PhaseRetrying,

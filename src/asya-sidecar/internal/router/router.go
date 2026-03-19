@@ -311,11 +311,13 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 	durationExhausted := isDurationExhausted(msg, r.cfg.Resiliency.Retry.MaxDuration)
 	if attemptsExhausted || durationExhausted {
 		reason := envelopes.ReasonMaxRetriesExhausted
+		metricReason := "max_retries_exhausted"
 		if durationExhausted && !attemptsExhausted {
 			slog.Info("Max retry duration exhausted, routing to x-sump",
 				"id", msg.ID, "attempt", msg.Status.Attempt,
 				"max_duration", r.cfg.Resiliency.Retry.MaxDuration)
 			reason = envelopes.ReasonMaxDurationExhausted
+			metricReason = "max_duration_exhausted"
 		} else {
 			slog.Info("Max retry attempts exhausted, routing to x-sump",
 				"id", msg.ID, "attempt", msg.Status.Attempt,
@@ -324,7 +326,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "max_retries_exhausted")
+			r.metrics.RecordMessageFailed(r.actorName, metricReason)
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 		return r.sendRetryFailure(ctx, msg, response, reason)
@@ -368,7 +370,7 @@ func isDurationExhausted(msg *envelopes.Envelope, maxDuration time.Duration) boo
 	if msg.Headers == nil {
 		return false
 	}
-	raw, ok := msg.Headers["x-asya-first-attempt"].(string)
+	raw, ok := msg.Headers[envelopes.HeaderFirstAttempt].(string)
 	if !ok {
 		return false
 	}
@@ -800,8 +802,8 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	if msg.Headers == nil {
 		msg.Headers = make(map[string]interface{})
 	}
-	if _, exists := msg.Headers["x-asya-first-attempt"]; !exists {
-		msg.Headers["x-asya-first-attempt"] = time.Now().UTC().Format(time.RFC3339)
+	if _, exists := msg.Headers[envelopes.HeaderFirstAttempt]; !exists {
+		msg.Headers[envelopes.HeaderFirstAttempt] = time.Now().UTC().Format(time.RFC3339)
 	}
 
 	updatedBody, err := json.Marshal(msg)
