@@ -38,8 +38,7 @@ go run cmd/gateway/main.go
 | Endpoint | Description |
 |----------|-------------|
 | `POST /tools/call` | REST tool invocation (simple JSON API) |
-| `POST /mesh/expose` | Register or update a tool/skill |
-| `GET /mesh/expose` | List all registered tools/skills |
+| `POST /mesh/config-reload` | Trigger immediate reload of tool registry from ConfigMap |
 | `GET /mesh/{id}` | Envelope status |
 | `GET /mesh/{id}/stream` | SSE envelope updates |
 | `POST /mesh/{id}/progress` | Sidecar progress update |
@@ -48,12 +47,15 @@ go run cmd/gateway/main.go
 
 ## Tool Registration
 
-Tools are registered dynamically via the `/mesh/expose` REST API and stored in PostgreSQL.
+Tools are defined in YAML files mounted as a ConfigMap (set `ASYA_CONFIG_PATH` to the mount directory).
+The gateway hot-reloads the registry every `ASYA_CONFIG_POLL_INTERVAL` (default 10s) when file
+contents change. To trigger an immediate reload without waiting for the poll window:
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/mesh/expose` | `POST` | Register or update a tool/skill (upsert) |
-| `/mesh/expose` | `GET` | List all registered tools/skills |
+```bash
+POST /mesh/config-reload
+```
+
+Returns `204 No Content` on success, `501 Not Implemented` if `ASYA_CONFIG_PATH` is not set.
 
 ## Database
 

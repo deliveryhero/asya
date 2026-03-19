@@ -131,7 +131,7 @@ migration:
 #   - name: my_flow
 #     entrypoint: my-actor
 #     ...
-# By default the ConfigMap starts empty; flows are added post-deploy via /mesh/expose.
+# By default the ConfigMap starts empty; patch it post-deploy via kubectl or the asya CLI.
 exposedFlows: []
 flowsExposerGroup: "asya-flow-exposers"
 
