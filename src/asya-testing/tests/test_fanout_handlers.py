@@ -119,7 +119,7 @@ async def test_fanout_router_emits_multiple_frames(run_handler, monkeypatch, loa
 
     payload = {"text": "hello world", "other_field": "preserved"}
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_48(payload),
+        routers.router_parallel_sectioning_line_48_fanout_1(payload),
         get_responses={
             ".id": "msg-001",
             ".route.next": ["actor-aggregator"],
@@ -146,7 +146,7 @@ async def test_fanout_router_sets_fan_in_headers(run_handler, monkeypatch, load_
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_48({"text": "test"}),
+        routers.router_parallel_sectioning_line_48_fanout_1({"text": "test"}),
         get_responses={".id": "origin-42", ".route.next": []},
     )
 
@@ -171,7 +171,7 @@ async def test_fanout_router_routes_specialists_to_fan_in(run_handler, monkeypat
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     result = await run_handler(
-        routers.fanout_parallel_sectioning_line_48({"text": "data"}),
+        routers.router_parallel_sectioning_line_48_fanout_1({"text": "data"}),
         get_responses={".id": "x", ".route.next": []},
     )
 
@@ -263,7 +263,7 @@ async def test_map_reduce_fanout_emits_n_plus_one_frames(run_handler, monkeypatc
     payload = {"document": "...", "chunks": chunks}
 
     result = await run_handler(
-        routers.fanout_map_reduce_line_55(payload),
+        routers.router_map_reduce_line_55_fanout_1(payload),
         get_responses={".id": "msg-map-1", ".route.next": []},
     )
 
@@ -278,7 +278,7 @@ async def test_map_reduce_fanout_fan_in_metadata(run_handler, monkeypatch, load_
 
     chunks = [{"content": f"c{i}", "index": i} for i in range(3)]
     result = await run_handler(
-        routers.fanout_map_reduce_line_55({"chunks": chunks}),
+        routers.router_map_reduce_line_55_fanout_1({"chunks": chunks}),
         get_responses={".id": "map-orig", ".route.next": []},
     )
 

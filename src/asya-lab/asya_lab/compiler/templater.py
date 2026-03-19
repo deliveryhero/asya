@@ -19,7 +19,12 @@ import yaml
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.config.project import AsyaProject
-from asya_lab.flow.grouper import Router
+
+
+try:
+    from asya_lab.flow.grouper import Router
+except ModuleNotFoundError:
+    Router = None
 
 
 def _literal_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:

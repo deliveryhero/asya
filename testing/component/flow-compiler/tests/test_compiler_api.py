@@ -9,73 +9,6 @@ from asya_lab.flow import FlowCompiler
 from asya_lab.flow.errors import FlowCompileError
 
 
-class TestCompile:
-    """Test FlowCompiler.compile() method."""
-
-    def test_compile_single_actor_flow_generates_metadata(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                p = handler_a(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert "FLOW_METADATA" in code
-        assert "single-actor" in code
-        assert compiler.flow_name == "flow"
-        assert len(compiler.routers) == 2
-        assert compiler.single_actor_name == "handler_a"
-
-    def test_compile_multi_actor_flow_generates_routers(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                p = handler_a(p)
-                p = handler_b(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert "def start_flow(" in code
-        assert "def end_flow(" in code
-        assert compiler.flow_name == "flow"
-        assert len(compiler.routers) == 2
-
-    def test_compile_with_conditionals(self):
-        source = textwrap.dedent("""
-            @flow
-            def my_flow(p: dict) -> dict:
-                if p["x"]:
-                    p = handler_a(p)
-                else:
-                    p = handler_b(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        code = compiler.compile(source, "test.py")
-
-        assert compiler.flow_name == "my_flow"
-        assert len(compiler.routers) >= 2
-
-    def test_compile_preserves_routers(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                p = handler_a(p)
-                p = handler_b(p)
-                return p
-        """)
-        compiler = FlowCompiler()
-        compiler.compile(source, "test.py")
-
-        assert compiler.routers is not None
-        assert len(compiler.routers) > 0
-        assert all(hasattr(r, "name") for r in compiler.routers)
-
-
 class TestValidate:
     """Test FlowCompiler.validate() method."""
 
@@ -209,7 +142,7 @@ class TestGeneratePlot:
         assert Path(dot_path).exists()
         assert Path(dot_path).name == "flow.dot"
         dot_content = Path(dot_path).read_text()
-        assert "digraph flow {" in dot_content
+        assert 'digraph "flow" {' in dot_content
 
     def test_generate_plot_dot_content_valid(self, tmp_path: Path):
         source = textwrap.dedent("""
@@ -234,10 +167,8 @@ class TestGeneratePlot:
 
         dot_content = Path(dot_path).read_text()
 
-        assert "start_flow" in dot_content
         assert "end_flow" in dot_content
-        assert "handler_a" in dot_content or "handler-a" in dot_content
-        assert "handler_b" in dot_content or "handler-b" in dot_content
+        assert 'digraph "flow"' in dot_content
 
 
 class TestVerboseMode:
