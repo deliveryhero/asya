@@ -550,8 +550,28 @@ src/asya-lab/asya_lab/flow/
 **Estimated totals**: ~1410 lines (from ~3206, -56%). Deleted: ir.py (88) +
 grouper.py (715) + dotgen.py (782) = 1585 lines removed.
 
-**TODO**: Integrate with `AsyaProject` for config-driven paths (output dirs,
-image mapping, Python interpreter) instead of hard-coding.
+### AsyaProject integration
+
+`FlowCompiler` receives an `AsyaProject` instance (from
+`asya_lab.config.project`). All paths and image resolution come from
+the project config — no hard-coded paths in the compiler.
+
+| Compiler need | AsyaProject API | Config key |
+|---|---|---|
+| Compiled code output dir | `project.resolve_path("compiler.routers")` | `compiler.routers` |
+| Manifest output dir | `project.resolve_path("compiler.manifests")` | `compiler.manifests` |
+| Handler → image mapping | `project.resolve_image(handler_name)` | `build[].module` + `build[].image` |
+| Template vars (namespace, transport) | `project.build_template_context()` | `templates.*` |
+| Deployment contexts | `project.get_contexts()` | `contexts.*` |
+| Compiler rules | `project.cfg.compiler.rules` | `compiler.rules` (future: `config.compiler.yaml`) |
+
+The CLI creates `AsyaProject.from_dir(source_file.parent)` which walks
+up to find the nearest `.asya/config.yaml` and merges with parent configs.
+The SDK receives the project instance from the caller (or creates one
+from the current working directory).
+
+Config discovery follows the existing walk-up merge strategy: nearest
+`.asya/config.yaml` wins, repo-level provides base defaults (decision W11).
 
 ### Compiler pipeline
 
