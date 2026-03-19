@@ -43,9 +43,11 @@ to an actor", which is the actual semantic of the mesh.
    analysis of yield ABI events in handler code. Both flow-generated routers
    and user-written handlers produce the same yield patterns.
 
-3. **IR is a deployment graph, not a compilation intermediate** — it lives
-   _after_ code generation, not before. It's a flat directed graph of actor
-   nodes and edges, not a tree of Python AST nodes.
+3. **No IR** — there is no intermediate representation. Actors (handler
+   code + manifests) are the representation. The "graph" is an ephemeral
+   view computed on-demand by scanning handler yields — not a persisted
+   data structure, not a first-class concept. If actors map 1:1 to what
+   an IR would contain, the IR is redundant.
 
 4. **Graph is informational** — the DOT/SVG output is for users to debug
    their actor mesh. Complex conditions like `if complex_condition(payload)`
@@ -66,10 +68,8 @@ Phase 1 (compile):     flow.py  ──────────>  routers.py
                                               (Python handlers with yield ABI)
 
 Phase 2 (analyze):     routers.py       ─┐
-                       handler_*.py      ─┤──>  IR graph  ──>  manifests/
-                       actor configs     ─┘        |            DOT/SVG
-                                                   |            validation
-                                              {nodes, edges}
+                       handler_*.py      ─┤──>  DOT/SVG, manifests, validation
+                       actor configs     ─┘
 ```
 
 **Phase 1** is the existing flow compiler, simplified. It transforms Python
@@ -79,8 +79,10 @@ handler code.
 
 **Phase 2** is new. A yield analyzer scans _all_ Python handler files
 (both flow-generated routers and user-written actors), extracts yield
-patterns, and builds a flat directed graph. This graph feeds downstream
-consumers: manifest generation, DOT visualization, validation.
+patterns, and directly produces outputs: DOT/SVG visualization, manifests,
+validation reports. Internally it builds a transient `{nodes, edges}` dict
+to pass between analysis and rendering, but this is a local implementation
+detail — not a persisted or first-class data structure.
 
 ### Phase 1: flow.py -> routers.py (simplified)
 
@@ -109,10 +111,11 @@ The output format remains the same: `routers.py` files with async generator
 functions that yield ABI commands. The generated code is identical to today's
 output — only the internal pipeline changes.
 
-### Phase 2: yield analysis -> IR graph
+### Phase 2: yield analysis -> outputs
 
 The yield analyzer is a new module that statically analyzes Python handler
-files to extract routing information from yield statements.
+files to extract routing information from yield statements. It produces
+DOT/SVG and manifests directly — no separate IR layer.
 
 #### Analyzable yield patterns
 
@@ -160,64 +163,52 @@ compiler about custom functions' semantics. For example, a user-defined
 `resolve_by_type(payload)` could be annotated with a rule that maps its
 return values to specific actor names.
 
-### IR graph format
+### Internal representation (transient)
 
-The IR is a flat directed graph with two node types:
+The yield analyzer internally builds a lightweight dict to pass between
+analysis and rendering. This is NOT an IR — it's a local data structure
+inside the analyzer function, equivalent to a function's local variables:
 
 ```python
-@dataclass
-class Node:
-    name: str                    # actor/router name
-    type: str                    # "actor" | "router"
-    handler: str                 # Python handler function name
-    source_file: str             # path to .py file
-    lineno: int                  # line number in source
-    config: dict | None = None   # actor config (retry, timeout, on_error)
-
-@dataclass
-class Edge:
-    source: str                  # node name
-    target: str                  # node name
-    condition: str | None = None # edge label (if condition, "else", etc.)
-    edge_type: str = "route"     # "route" | "error" | "fanout"
-
-@dataclass
-class MeshGraph:
-    nodes: list[Node]
-    edges: list[Edge]
-    flow_name: str | None = None # set if graph came from a flow
-    unresolved: list[str] = field(default_factory=list)  # nodes with dynamic routing
+# Internal to the analyzer — not exported, not persisted
+nodes: list[dict]   # [{"name": "...", "handler": "...", "source": "...", "lineno": N}, ...]
+edges: list[dict]   # [{"source": "...", "target": "...", "condition": "...", "type": "route"}, ...]
 ```
 
-Properties:
-- Nodes map 1:1 to AsyncActor manifests
-- Edges map to `route.next` relationships
-- The graph is the single source of truth for both DOT generation and
-  manifest generation
-- Both flow-generated routers and standalone actors produce the same
-  graph format
+The analyzer function signature is simply:
 
-### Downstream consumers
+```python
+def analyze_handlers(files: list[Path]) -> str:
+    """Scan handler files, return DOT string."""
+    ...
 
-The IR graph feeds three consumers:
+def analyze_handlers_manifests(files: list[Path], config: dict) -> list[dict]:
+    """Scan handler files, return AsyncActor manifest dicts."""
+    ...
+```
 
-1. **DOT/SVG generator** — reads `MeshGraph`, produces Graphviz DOT.
+No `MeshGraph` class. No `Node`/`Edge` dataclasses exported from the module.
+The transient dict lives and dies inside the function call.
+
+### Downstream outputs
+
+The analyzer produces outputs directly:
+
+1. **DOT/SVG** — iterate nodes/edges, emit Graphviz DOT.
    Much simpler than today's dotgen (which interprets Router objects
-   with 15+ boolean flags). Just iterate nodes and edges.
+   with 15+ boolean flags).
 
-2. **Manifest generator** — reads `MeshGraph`, produces AsyncActor YAML
-   manifests. Each node becomes an AsyncActor spec with handler reference,
-   routing config, and labels.
+2. **Manifests** — each handler becomes an AsyncActor spec with handler
+   reference, routing config, and labels.
 
-3. **Validation** — checks graph properties: connectivity (no orphan nodes),
-   reachability (all nodes reachable from start), cycle detection (loops
-   must have a break/condition exit), fan-out/fan-in consistency.
+3. **Validation** — connectivity checks, reachability, cycle detection.
+   Reported as warnings/errors during analysis, not as a separate pass.
 
 ### Standalone actor visualization
 
 A key benefit: standalone actors (not part of any flow) can be visualized
 by the same pipeline. The yield analyzer reads their handler code, extracts
-routing edges, and produces a `MeshGraph`. Users don't need to write a
+routing edges, and produces DOT directly. Users don't need to write a
 flow to see their actor topology — they just run:
 
 ```bash
@@ -232,31 +223,32 @@ DOT/SVG.
 ### Phase 1: New yield analyzer alongside existing pipeline
 
 Add the yield analyzer as a new module (`analyzer.py`) that takes Python
-handler files and produces `MeshGraph`. Wire it into the existing
+handler files and produces DOT output. Wire it into the existing
 `asya flow compile` as an optional `--graph` flag. The existing
 parser -> IR -> grouper -> codegen pipeline continues to work unchanged.
 
 This validates the yield analysis approach without breaking anything.
+Run both old dotgen and new analyzer on the same compiled routers to
+verify output equivalence.
 
-### Phase 2: New DOT generator from MeshGraph
+### Phase 2: Replace dotgen with yield-analysis-based generator
 
-Write a new DOT generator that reads `MeshGraph` instead of `Router` objects.
-Run it in parallel with the existing dotgen to verify output equivalence.
-Once validated, replace the old dotgen.
+Once the analyzer produces equivalent DOT output, replace `dotgen.py`
+(~780 lines) with the analyzer's DOT output. The old dotgen (which
+reads Router objects) is deleted.
 
 ### Phase 3: Simplify the compiler internals
 
-With the yield analyzer proven, simplify the compiler's internal pipeline.
-The parser can emit code more directly (fewer intermediate representations).
-The grouper's complexity reduces because it no longer needs to produce
-Router objects with 15+ fields — it just needs to produce correct Python
-handler code.
+With DOT generation decoupled from the compiler, simplify the internal
+pipeline. The parser can emit code more directly (fewer intermediate
+representations). The grouper's complexity reduces because it no longer
+needs to produce Router objects with 15+ fields — it just needs to
+produce correct Python handler code.
 
-### Phase 4: Manifest generation from MeshGraph
+### Phase 4: Manifest generation
 
-Add manifest generation: `MeshGraph` -> AsyncActor YAML. This replaces
-the current approach where manifests are hand-crafted or generated by
-separate tooling.
+Add manifest generation from the same yield analysis. Each handler file
+produces AsyncActor YAML directly.
 
 ## Relationship to existing work
 
@@ -277,9 +269,9 @@ separate tooling.
 
 | Current component | Status |
 |---|---|
-| `ir.py` (12 node types) | Replaced by `MeshGraph` (2 types: Node, Edge) |
+| `ir.py` (12 node types) | Eliminated. No IR. Actors are the representation. |
 | `grouper.py` (~715 lines) | Eliminated. Compiler emits code directly. |
-| `dotgen.py` (~780 lines) | Replaced by graph-based DOT generator (~200 lines estimated) |
+| `dotgen.py` (~780 lines) | Replaced by yield-analysis DOT generator (~200 lines estimated) |
 | `Router` dataclass (15+ fields) | Eliminated. No intermediate Router representation. |
 | Convergence labels | Eliminated. Direct routing in generated code. |
 | Try counter / loop counter / fanout counter | Eliminated. Naming embedded in codegen. |
@@ -297,16 +289,12 @@ separate tooling.
 
 ## Open questions
 
-1. **Scope of Phase 1 simplification**: How aggressively should we simplify
-   the parser/codegen in Phase 3? Options range from "just delete the grouper
-   and have the parser emit code directly" to "keep the grouper but make
-   Router a much simpler dataclass".
+1. **Scope of Phase 3 simplification**: How aggressively should we simplify
+   the parser/codegen? Options range from "just delete the grouper and have
+   the parser emit code directly" to "keep the grouper but make Router a
+   much simpler dataclass".
 
-2. **Graph persistence format**: Should `MeshGraph` be serialized to disk
-   (JSON/YAML) alongside `routers.py`, or computed on-demand from handler
-   files? On-demand is simpler but slower for large meshes.
-
-3. **Scope of standalone actor analysis**: How much Python should the yield
+2. **Scope of standalone actor analysis**: How much Python should the yield
    analyzer understand? Just top-level yields? Yields inside if/else?
    Yields inside nested functions? Recommendation: if/else yields (for
    condition labels) but not deeper nesting.
