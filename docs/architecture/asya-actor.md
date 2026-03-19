@@ -206,23 +206,3 @@ The sidecar interprets the handler's return value to decide routing:
 
 **End actors** (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See [asya-crew.md](asya-crew.md) for details.
 
-## Deployment with Helm
-
-Use `asya-actor` chart for batch deployment:
-
-```yaml
-# values.yaml
-actors:
-  - name: text-processor
-    scaling:
-      minReplicaCount: 0
-      maxReplicaCount: 50
-    image: my-processor:v1
-    handler: processor.TextProcessor.process
-```
-
-```bash
-helm install my-actors deploy/helm-charts/asya-actor/ -f values.yaml
-```
-
-**See**: [install/helm-charts.md](../install/helm-charts.md) for details.

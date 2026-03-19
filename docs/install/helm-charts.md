@@ -122,47 +122,6 @@ spec:
   handler: my_module.process
 ```
 
-### asya-actor
-
-Deploys user actors (batch deployment).
-
-**Location**: `deploy/helm-charts/asya-actor/`
-
-**Installation**:
-```bash
-helm install my-actors deploy/helm-charts/asya-actor/ -f values.yaml
-```
-
-**Key values**:
-```yaml
-actors:
-  - name: text-processor
-    scaling:
-      minReplicaCount: 0
-      maxReplicaCount: 50
-      queueLength: 5
-    image: my-processor:v1
-    handler: processor.TextProcessor.process
-    env:
-      - name: MODEL_PATH
-        value: /models/v2
-
-  - name: image-processor
-    scaling:
-      minReplicaCount: 0
-      maxReplicaCount: 20
-    image: my-image:v1
-    handler: image.process
-    resources:
-      requests:
-        nvidia.com/gpu: 1
-
-serviceAccount:
-  create: true
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT:role/actor-role
-```
-
 ## Common Patterns
 
 ### AWS with SQS + S3

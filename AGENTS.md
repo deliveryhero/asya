@@ -39,7 +39,6 @@ asya/
 │   ├── asya-testing/
 │   └── asya-cli/
 ├── deploy/helm-charts/
-│   ├── asya-actor/         # single actor
 │   ├── asya-crew/          # pre-built generic actors (like x-sink, x-sump)
 │   ├── asya-crossplane/    # contains AsyncActor XRD
 │   └── asya-gateway/       # sync stateful HTTP gateway exposing actors and flows as MCP tools or A2A agents
