@@ -706,6 +706,18 @@ No Router dataclass. No grouper. The code generator produces Python:
 Each control flow point becomes a router function. Sequential actors
 between control flow points are grouped into a single router.
 
+**Invariant: one decision per router.** Each generated router function
+has **at most one level** of if/else. Nested control flow in the flow
+DSL produces a **chain of routers**, not nested Python blocks inside
+a single function. For example, a nested `if/else` inside another
+`if/else` generates two routers: the outer condition routes to the
+inner router (or another actor), and the inner router handles its
+own condition independently. This invariant keeps the yield analyzer
+trivial — it only needs to extract conditions from flat if/else
+blocks, never from arbitrarily nested structures. Same applies to
+nested while loops: each loop becomes its own self-referencing
+router.
+
 ### analyzer.py — yield analysis
 
 The analyzer uses Python's `ast.parse()` to statically analyze handler

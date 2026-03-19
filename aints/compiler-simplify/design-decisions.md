@@ -91,6 +91,7 @@ Each entry records the decision and the reasoning behind it.
 | P10 | **Analyzer uses `ast.parse()` on Python files** — reads pure Python code, extracts yield patterns via AST. | No custom parser needed. Python AST is the standard tool for static analysis. |
 | P11 | **Three handler categories in analyzer** — generated routers (full analysis), user handlers (best-effort via inspect), external packages (opaque if no source). | Unified mechanism, graceful degradation for unavailable source. |
 | P12 | **Deleted modules: ir.py, grouper.py, dotgen.py** — total 1585 lines removed. Replaced by analyzer.py (~200) + graphgen.py (~150). | Net reduction ~56% (3206 → ~1410 lines). |
+| P13 | **One decision per router (invariant)** — each generated router function has at most one level of if/else. Nested control flow → chain of routers, not nested blocks. | Keeps yield analyzer trivial — flat condition extraction only. Same pattern as current compiler (see `if_nested/flow.mmd`). |
 
 ## User Workflow Catalog
 
