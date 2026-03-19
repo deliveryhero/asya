@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/misc/38we.remove-mesh-expose-configmap-hot-reload-is-only
   - branch:misc/38we.remove-mesh-expose-configmap-hot-reload-is-only
+  - pr:335
 ---
+
 
 
 ## Context
