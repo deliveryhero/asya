@@ -44,10 +44,10 @@ func NewServer(taskStore envelopestore.EnvelopeStore, queueClient queue.Client, 
 				log.Fatalf("Failed to register tools from registry: %v", err)
 			}
 		} else {
-			log.Println("MCP server initialized (no MCP-enabled tools registered; use /mesh/expose API for dynamic registration)")
+			log.Println("MCP server initialized (no MCP-enabled tools registered; set ASYA_CONFIG_PATH to load tools from ConfigMap)")
 		}
 	} else {
-		log.Println("MCP server initialized (no tool registry; use /mesh/expose API for dynamic registration)")
+		log.Println("MCP server initialized (no tool registry; set ASYA_CONFIG_PATH to load tools from ConfigMap)")
 	}
 
 	return s

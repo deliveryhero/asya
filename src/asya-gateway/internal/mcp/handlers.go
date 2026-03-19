@@ -29,8 +29,9 @@ var (
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
-	taskStore envelopestore.EnvelopeStore
-	server    *Server // For direct tool calls
+	taskStore      envelopestore.EnvelopeStore
+	server         *Server      // For direct tool calls
+	configReloadFn func() error // Optional: triggers immediate ConfigMap reload
 }
 
 // NewHandler creates a new HTTP handler for task management
@@ -43,6 +44,32 @@ func NewHandler(taskStore envelopestore.EnvelopeStore) *Handler {
 // SetServer sets the MCP server for direct tool calls
 func (h *Handler) SetServer(server *Server) {
 	h.server = server
+}
+
+// SetConfigReloader sets the function called by POST /mesh/config-reload to trigger
+// an immediate tool registry reload from the ConfigMap directory.
+func (h *Handler) SetConfigReloader(fn func() error) {
+	h.configReloadFn = fn
+}
+
+// HandleMeshConfigReload handles POST /mesh/config-reload.
+// Triggers an immediate reload of the tool registry from the ConfigMap directory,
+// bypassing the background poll interval. Returns 501 if ASYA_CONFIG_PATH is not set.
+func (h *Handler) HandleMeshConfigReload(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if h.configReloadFn == nil {
+		http.Error(w, "Config reload not available (ASYA_CONFIG_PATH not set)", http.StatusNotImplemented)
+		return
+	}
+	if err := h.configReloadFn(); err != nil {
+		slog.Error("Config reload failed", "error", err)
+		http.Error(w, fmt.Sprintf("Reload failed: %v", err), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // HandleToolCall handles POST /tools/call (REST endpoint for MCP tool calls)

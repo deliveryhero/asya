@@ -108,8 +108,11 @@ func main() {
 	// Create mesh handler for /mesh/* and /tools/call endpoints
 	meshHandler := mcp.NewHandler(envelopeStore)
 	meshHandler.SetServer(mcpServer) // For REST tool calls
+	if configPath != "" {
+		meshHandler.SetConfigReloader(func() error { return registry.LoadFromDir(configPath) })
+	}
 
-	// API key for endpoint auth (shared by A2A and /mesh/expose)
+	// API key for A2A endpoint auth
 	apiKey := os.Getenv("ASYA_A2A_API_KEY")
 
 	// A2A setup using a2a-go library
@@ -277,6 +280,7 @@ func registerOAuthRoutes(mux *http.ServeMux, oauthSrv *oauth.Server) {
 
 func registerMeshRoutes(mux *http.ServeMux, meshHandler *mcp.Handler) {
 	if meshHandler != nil {
+		mux.HandleFunc("/mesh/config-reload", meshHandler.HandleMeshConfigReload)
 		mux.HandleFunc("/mesh/", func(w http.ResponseWriter, r *http.Request) {
 			if strings.HasSuffix(r.URL.Path, "/stream") {
 				meshHandler.HandleMeshStream(w, r)
