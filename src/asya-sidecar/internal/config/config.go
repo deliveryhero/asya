@@ -66,31 +66,61 @@ type RetryPolicy string
 const (
 	RetryPolicyConstant    RetryPolicy = "constant"
 	RetryPolicyExponential RetryPolicy = "exponential"
+	RetryPolicyLinear      RetryPolicy = "linear"
 )
 
 // Resiliency environment variable keys.
 const (
-	envResiliencyRetryPolicy      = "ASYA_RESILIENCY_RETRY_POLICY"
-	envResiliencyRetryMaxAttempts = "ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"
-	envResiliencyRetryInitial     = "ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL"
-	envResiliencyRetryMax         = "ASYA_RESILIENCY_RETRY_MAX_INTERVAL"
-	envResiliencyRetryMaxDuration = "ASYA_RESILIENCY_RETRY_MAX_DURATION"
-	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
-	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
-	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
+	envResiliencyPolicies = "ASYA_RESILIENCY_POLICIES"
+	envResiliencyRules    = "ASYA_RESILIENCY_RULES"
 )
 
 // resiliencyEnvKeys lists ASYA_RESILIENCY_* env var keys that activate retry logic.
 // ASYA_RESILIENCY_ACTOR_TIMEOUT is intentionally excluded: it controls Config.Timeout
 // (the per-call timeout) and does not activate retry behaviour on its own.
 var resiliencyEnvKeys = []string{
-	envResiliencyRetryPolicy,
-	envResiliencyRetryMaxAttempts,
-	envResiliencyRetryInitial,
-	envResiliencyRetryMax,
-	envResiliencyRetryCoefficient,
-	envResiliencyRetryJitter,
-	envResiliencyNonRetryable,
+	envResiliencyPolicies,
+	envResiliencyRules,
+}
+
+// JSONDuration wraps time.Duration for JSON unmarshaling from Go duration strings (e.g. "1s", "500ms").
+type JSONDuration time.Duration
+
+func (d *JSONDuration) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return fmt.Errorf("duration must be a string: %w", err)
+	}
+	if s == "" {
+		*d = 0
+		return nil
+	}
+	dur, err := time.ParseDuration(s)
+	if err != nil {
+		return fmt.Errorf("invalid duration %q: %w", s, err)
+	}
+	*d = JSONDuration(dur)
+	return nil
+}
+
+// Duration returns the underlying time.Duration.
+func (d JSONDuration) Duration() time.Duration { return time.Duration(d) }
+
+// PolicyConfig defines a named retry/routing policy.
+type PolicyConfig struct {
+	MaxAttempts  int          `json:"maxAttempts"`
+	Backoff      RetryPolicy  `json:"backoff"`
+	InitialDelay JSONDuration `json:"initialDelay"`
+	MaxInterval  JSONDuration `json:"maxInterval"`
+	MaxDuration  JSONDuration `json:"maxDuration"`
+	Jitter       bool         `json:"jitter"`
+	OnExhausted  []string     `json:"onExhausted"`
+}
+
+// RetryRule maps error type patterns to a named policy.
+type RetryRule struct {
+	Errors []string `json:"errors"`
+	Policy string   `json:"policy"`
 }
 
 // ResiliencyConfig holds optional retry configuration for an actor.
@@ -98,22 +128,8 @@ var resiliencyEnvKeys = []string{
 // The per-call timeout (ASYA_RESILIENCY_ACTOR_TIMEOUT) lives in Config.Timeout,
 // not here, because it applies independently of retry logic.
 type ResiliencyConfig struct {
-	Retry              RetryConfig
-	NonRetryableErrors []string
-}
-
-// RetryConfig holds retry-specific parameters.
-type RetryConfig struct {
-	Policy          RetryPolicy
-	MaxAttempts     int
-	InitialInterval time.Duration
-	MaxInterval     time.Duration
-	// MaxDuration is the total wall-clock budget across all retry attempts.
-	// When set, the sidecar stops retrying once time.Since(firstAttempt) >= MaxDuration,
-	// even if MaxAttempts has not been reached. Zero means no duration limit.
-	MaxDuration        time.Duration
-	BackoffCoefficient float64
-	Jitter             bool
+	Policies map[string]PolicyConfig
+	Rules    []RetryRule
 }
 
 // CustomMetricConfig defines configuration for a custom metric
@@ -203,62 +219,25 @@ func LoadFromEnv() (*Config, error) {
 // loadResiliencyConfig parses ASYA_RESILIENCY_* env vars into a ResiliencyConfig.
 // Returns nil if no resiliency env vars are set (actor does not retry).
 func loadResiliencyConfig() (*ResiliencyConfig, error) {
-	// Check if any resiliency env var is set
 	if !hasResiliencyConfig() {
 		return nil, nil
 	}
 
-	policy := RetryPolicy(getEnv(envResiliencyRetryPolicy, "exponential"))
-	if policy != RetryPolicyConstant && policy != RetryPolicyExponential {
-		return nil, fmt.Errorf("%s must be 'constant' or 'exponential', got %q", envResiliencyRetryPolicy, policy)
-	}
+	cfg := &ResiliencyConfig{}
 
-	maxAttempts := getEnvInt(envResiliencyRetryMaxAttempts, 3)
-	if maxAttempts < 0 {
-		return nil, fmt.Errorf("%s must be >= 0, got %d", envResiliencyRetryMaxAttempts, maxAttempts)
-	}
-
-	initialInterval := getEnvDuration(envResiliencyRetryInitial, time.Second)
-	if initialInterval <= 0 {
-		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryInitial, initialInterval)
-	}
-
-	maxInterval := getEnvDuration(envResiliencyRetryMax, 300*time.Second)
-	if maxInterval <= 0 {
-		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryMax, maxInterval)
-	}
-
-	// MaxDuration is optional (zero means no limit).
-	maxDuration := getEnvDuration(envResiliencyRetryMaxDuration, 0)
-
-	coefficient := getEnvFloat64(envResiliencyRetryCoefficient, 2.0)
-	if coefficient < 1.0 {
-		return nil, fmt.Errorf("%s must be >= 1.0, got %v", envResiliencyRetryCoefficient, coefficient)
-	}
-
-	jitter := getEnvBool(envResiliencyRetryJitter, true)
-
-	var nonRetryable []string
-	if raw := os.Getenv(envResiliencyNonRetryable); raw != "" {
-		for _, s := range strings.Split(raw, ",") {
-			if trimmed := strings.TrimSpace(s); trimmed != "" {
-				nonRetryable = append(nonRetryable, trimmed)
-			}
+	if raw := os.Getenv(envResiliencyPolicies); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &cfg.Policies); err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", envResiliencyPolicies, err)
 		}
 	}
 
-	return &ResiliencyConfig{
-		Retry: RetryConfig{
-			Policy:             policy,
-			MaxAttempts:        maxAttempts,
-			InitialInterval:    initialInterval,
-			MaxInterval:        maxInterval,
-			MaxDuration:        maxDuration,
-			BackoffCoefficient: coefficient,
-			Jitter:             jitter,
-		},
-		NonRetryableErrors: nonRetryable,
-	}, nil
+	if raw := os.Getenv(envResiliencyRules); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &cfg.Rules); err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %w", envResiliencyRules, err)
+		}
+	}
+
+	return cfg, nil
 }
 
 // hasResiliencyConfig checks if any ASYA_RESILIENCY_* env var is set.
@@ -300,15 +279,6 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 	if value := os.Getenv(key); value != "" {
 		if d, err := time.ParseDuration(value); err == nil {
 			return d
-		}
-	}
-	return defaultValue
-}
-
-func getEnvFloat64(key string, defaultValue float64) float64 {
-	if value := os.Getenv(key); value != "" {
-		if f, err := strconv.ParseFloat(value, 64); err == nil {
-			return f
 		}
 	}
 	return defaultValue

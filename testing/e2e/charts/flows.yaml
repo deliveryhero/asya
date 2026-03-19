@@ -151,6 +151,30 @@ flows:
         depth:
           type: number
           description: Nesting depth
+- name: test-retry-exhaustion
+  entrypoint: test-retry-exhaustion
+  description: "Test retry policy exhaustion: actor always raises ValueError, retries 3 times then fails"
+  timeout: 120
+  mcp:
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message to process (will always fail)
+      required: [message]
+- name: test-retry-nonretryable
+  entrypoint: test-retry-nonretryable
+  description: "Test nonretryable policy: ValueError matches a maxAttempts=1 rule, fails immediately"
+  timeout: 30
+  mcp:
+    inputSchema:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Message to process (will fail immediately)
+      required: [message]
 - name: test_multihop
   entrypoint: test-multihop-0
   route_next:
