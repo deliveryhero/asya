@@ -79,10 +79,18 @@ Each entry records the decision and the reasoning behind it.
 
 | # | Decision | Rationale |
 |---|---|---|
-| P1 | **Three-step pipeline: Parse → Transform → Emit** — no grouper, no IR tree. | Parse extracts operations, Transform generates yield ABI code, Emit writes all outputs + runs yield analysis. |
-| P2 | **Yield analysis runs in Emit step (Step 3)** — cross-handler analysis across generated routers + user-written actors. | Yield analysis needs all handler files written first. Runs on the combined set. |
+| P1 | **Five-step pipeline: Parse → CodeGen → Manifests → Analyze → GraphGen** — no grouper, no IR tree. | Parse extracts operations, CodeGen produces routers.py, Manifests produces XR YAML, Analyze does yield analysis, GraphGen renders DOT/MMD/JSON. |
+| P2 | **Yield analysis runs after code + manifest generation (Step 4)** — cross-handler analysis across generated routers + user-written actors + manifest error edges. | Yield analysis needs all handler files and manifests written first. Runs on the combined set. |
 | P3 | **Manifests produced by compiler (not analyzer)** — compiler knows actor config from parsing decorators/context managers. | Analyzer only knows routing topology from yields. Config extraction is a parser concern. |
 | P4 | **Always exactly one entrypoint, possibly multiple exitpoints** — entrypoint is first user actor, exitpoints are last actors before each `return`. | `asya.sh/flow-role` is single-valued: `entryexit` when both. |
+| P5 | **Path A: Yield-Analysis-First** — graph topology from yield analysis of deployment artifacts (code + manifests), not from an IR. | Source of truth = what's deployed. No IR boundary tension. Yield analysis needed for user handlers anyway. |
+| P6 | **5 operation types: ActorCall, Mutation, Conditional, Loop, FanOut** — down from 12 IR node types. | Break/Continue → codegen routing. Return → exit routing. TryExcept → manifest resiliency.rules. WithBlock → config/Mutation via rules. |
+| P7 | **Strict parser: reject unrecognized constructs** — try/except, with-block, decorators without matched compiler rules produce compile errors. | Better to fail loudly than silently ignore. Users add rules or restructure. |
+| P8 | **No built-in loop guard (max_iterations)** — loop termination is user code responsibility. | Compiler should not inject hidden guards. User writes `if count > N: break` explicitly. |
+| P9 | **`yield "SET", ".route.next", []` = abort (x-sink)** — empty route means terminal failure, not break. | Break routes to convergence point. Abort routes to x-sink. Different semantics. |
+| P10 | **Analyzer uses `ast.parse()` on Python files** — reads pure Python code, extracts yield patterns via AST. | No custom parser needed. Python AST is the standard tool for static analysis. |
+| P11 | **Three handler categories in analyzer** — generated routers (full analysis), user handlers (best-effort via inspect), external packages (opaque if no source). | Unified mechanism, graceful degradation for unavailable source. |
+| P12 | **Deleted modules: ir.py, grouper.py, dotgen.py** — total 1585 lines removed. Replaced by analyzer.py (~200) + graphgen.py (~150). | Net reduction ~56% (3206 → ~1410 lines). |
 
 ## User Workflow Catalog
 

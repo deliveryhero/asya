@@ -513,60 +513,252 @@ explicit re-run of `compile()`. VSCode extension watches on file save.
 
 ## Proposed Architecture
 
+### Architecture decision: Path A (Yield-Analysis-First)
+
+The compiler uses yield analysis as the unified mechanism for graph
+topology extraction. Source of truth = deployment artifacts (code +
+manifests), not an intermediate representation.
+
+**Rationale**: (1) Single mechanism for both flow-generated routers and
+user-written handlers. (2) Source of truth is what's actually deployed.
+(3) No IR boundary tension — actors ARE the representation. (4) Yield
+analysis is needed for user handlers (scenario E) regardless; using it
+for generated routers too is free.
+
+### Module structure
+
+```
+src/asya-lab/asya_lab/flow/
+├── __init__.py          # exports: @flow, compile(), FlowInfo
+├── compiler.py          # orchestrator: parse → codegen → manifests → analyze → graph (~150 lines)
+├── parser.py            # AST → list[Operation] (~500 lines, was 718)
+├── codegen.py           # list[Operation] → routers.py (~350 lines, was 636)
+├── analyzer.py          # routers.py + handlers → GraphData (~200 lines, NEW)
+├── graphgen.py          # GraphData → DOT + MMD + graph.json (~150 lines, was 782 dotgen)
+├── rules.py             # compiler rules, extended with treat_as: routing (~60 lines, was 55)
+├── errors.py            # exceptions (retained)
+│
+│ DELETED:
+├── ir.py                # GONE (12 types → operation types in parser.py)
+├── grouper.py           # GONE (715 lines → 0)
+└── dotgen.py            # GONE (782 lines → 0, replaced by graphgen.py)
+```
+
+**Estimated totals**: ~1410 lines (from ~3206, -56%). Deleted: ir.py (88) +
+grouper.py (715) + dotgen.py (782) = 1585 lines removed.
+
+**TODO**: Integrate with `AsyaProject` for config-driven paths (output dirs,
+image mapping, Python interpreter) instead of hard-coding.
+
 ### Compiler pipeline
 
 ```
-flow.py ──→ [1. Parse] ──→ [2. Transform] ──→ [3. Emit] ──→ FlowInfo
+flow.py ──→ [1. Parse] ──→ [2. CodeGen] ──→ [3. Manifests] ──→ [4. Analyze] ──→ [5. GraphGen] ──→ FlowInfo
 ```
 
-**Step 1: Parse** (existing parser.py, simplified)
-- Find `@flow` function via AST
-- Resolve imports via project Python interpreter
-- Identify actor calls (`p = await handler(p)`)
-- Identify control flow (if/else, while, break, try/except)
-- Identify inline flow calls (`p = await other_flow(p)` → inline expansion)
-- Extract config via rules engine (`@retry`, `asyncio.timeout`, etc.)
-- Determine `ASYA_IGNORE_DECORATORS` from extracted configs
-- **Output**: list of operations (actor calls, conditions, mutations) — flat, ordered
+```python
+class FlowCompiler:
+    def compile(self, source_file: Path) -> FlowInfo:
+        # 1. Parse
+        result = self.parser.parse(source, filename)
 
-**Step 2: Transform** (replaces grouper.py)
-- Convert operations into generator handler code with yield ABI
-- `if/else` → conditional `yield "SET", ".route.next", [resolve(...)]`
-- `while` → self-referencing router
-- `try/except` → actor config (`on_error` routing)
-- `break`/`continue` → route overwrite
-- Detect entrypoint (first user actor) and exitpoints (actors before return)
-- **Output**: list of router function source strings + list of ActorInfo
+        # 2. Generate code
+        code = self.codegen.generate(result)
+        write(compiled_dir / "routers.py", code)
 
-**Step 3: Emit** (codegen + manifest templater + yield analyzer)
-- Write `routers.py` from router function strings
-- Write manifests from ActorInfo + templates (including `ASYA_IGNORE_DECORATORS`)
-- Run yield analysis on ALL handlers (generated routers + user-written)
-- Build graph dict (nodes, edges from yield analysis — overrides flow-declared routing)
-- Write `graph.json`, `flow.dot`, `flow.mmd`, `flow.svg`
-- **Output**: FlowInfo
+        # 3. Generate manifests
+        manifests = self.templater.generate(result)
+        write(manifests_dir / "base/", manifests)
 
-The key simplification: Steps 1-2 are **per-flow** (transform Python
-syntax to yield ABI). Step 3 includes **cross-handler yield analysis**
-that discovers actual runtime routing across all handlers referenced
-by the flow, including user-written actors with custom yield patterns.
+        # 4. Analyze (yield analysis + manifest error edges)
+        graph = analyzer.analyze(
+            routers_file=compiled_dir / "routers.py",
+            handler_files=resolve_handlers(result.actors),
+            manifest_dir=manifests_dir / "base/",
+        )
 
-### Yield analysis (Step 3 detail)
+        # 5. Generate graph outputs
+        write(compiled_dir / "graph.json", graphgen.to_json(graph))
+        write(compiled_dir / "flow.dot", graphgen.to_dot(graph))
+        write(compiled_dir / "flow.mmd", graphgen.to_mermaid(graph))
 
-The yield analyzer statically analyzes Python handler files to extract
-routing information from yield statements. It produces graph.json and
-DOT/Mermaid directly.
+        return FlowInfo(...)
+```
+
+Steps 1-3 are **per-flow** (transform Python syntax to yield ABI code +
+manifests). Step 4 includes **cross-handler yield analysis** across all
+handlers referenced by the flow. Step 5 renders the graph in multiple formats.
+
+### parser.py — AST → operations
+
+The parser uses Python's `ast` module to parse the `@flow` function body
+and produces a flat list of operations. It uses the project's Python
+interpreter (via `--python` or auto-detected) to resolve imports, decorators,
+and handler metadata.
+
+#### Operation types
+
+```python
+@dataclass
+class ActorCall:
+    name: str           # handler function name (FQN)
+    lineno: int
+    source_file: str    # resolved source file path
+
+@dataclass
+class Mutation:
+    code: str           # raw Python code
+    lineno: int
+
+@dataclass
+class Conditional:
+    test: str                          # Python expression
+    true_branch: list[Operation]
+    false_branch: list[Operation]
+    lineno: int
+
+@dataclass
+class Loop:
+    test: str | None                   # None = while True (no built-in guard)
+    body: list[Operation]
+    lineno: int
+
+@dataclass
+class FanOut:
+    target_key: str
+    pattern: str                       # "comprehension" | "literal" | "gather"
+    actor_calls: list[tuple[str, str]]
+    iter_var: str | None
+    iterable: str | None
+    lineno: int
+
+Operation = ActorCall | Mutation | Conditional | Loop | FanOut
+```
+
+**Note on Loop**: `while True` loops have `test: None`. There is NO
+built-in `max_iterations` guard — loop termination is the user's
+responsibility in handler code.
+
+#### Unmatched Python constructs
+
+Try/except, with-blocks, and decorators that do NOT match any compiler
+rule still exist in user flow code. The parser handles these as follows:
+
+| Construct | With matched rule | Without matched rule |
+|---|---|---|
+| `try/except` | Extract error types → `resiliency_rules` in `ParseResult`. Sidecar handles MRO matching via aint `7179` policies. | Compile error with guidance: "Add a compiler rule or restructure as actor-level error handling" |
+| `with ctx_mgr():` | `treat_as: config` → extract to manifest. `treat_as: inline` → wrap body as Mutation. | Compile error: "Unknown context manager. Add a compiler rule." |
+| `@decorator` | `treat_as: config` → extract args to manifest + add to `ASYA_IGNORE_DECORATORS`. | Compile error: "Unknown decorator. Add a compiler rule." |
+
+This is a **strict** approach: the compiler rejects constructs it doesn't
+understand rather than silently ignoring them. Users must either add a
+compiler rule or restructure the code.
+
+#### ParseResult
+
+```python
+@dataclass
+class ParseResult:
+    flow_name: str
+    operations: list[Operation]
+    actors: list[ActorRef]          # resolved handler metadata
+    resiliency_rules: list[dict]    # from try/except → manifest resiliency.rules
+    extracted_configs: list[dict]   # from decorator/context manager extraction
+    ignore_decorators: list[str]    # FQNs for ASYA_IGNORE_DECORATORS env var
+    imports: list[str]
+    constants: list[str]
+```
+
+#### Where eliminated IR types went
+
+| Eliminated type | Where it went |
+|---|---|
+| Break | Codegen emits `yield "SET", ".route.next", [resolve(convergence)]` |
+| Continue | Codegen emits `yield "SET", ".route.next", [resolve(self)]` (skip to loop top) |
+| Return | Codegen emits routing to exit actor |
+| Raise | Manifest config — sidecar routes to error handler |
+| TryExcept | Parser extracts error types → `resiliency_rules` in ParseResult (aint `7179`) |
+| ExceptHandler | Same — folded into `resiliency_rules` |
+| WithBlock | `treat_as: config` → manifest. `treat_as: inline` → Mutation wrapping the code |
+
+**Important**: `yield "SET", ".route.next", []` means **abort this payload**
+(send directly to x-sink), NOT break. Break routes to the convergence point
+after the loop; abort routes to x-sink for terminal failure.
+
+### codegen.py — operations → Python code
+
+```python
+class CodeGenerator:
+    def generate(self, result: ParseResult) -> str:
+        """Generate routers.py source code from parsed operations."""
+        ...
+```
+
+CodeGen walks the operations list and generates router functions directly.
+No Router dataclass. No grouper. The code generator produces Python:
+
+- `ActorCall` → `_next.append(resolve("handler_name"))`
+- `Mutation` → raw code string inserted
+- `Conditional` → `if test: ... else: ...` with routing in branches
+- `Loop` → self-referencing router (condition check + body routing)
+- `FanOut` → multi-yield pattern (same as today)
+
+Each control flow point becomes a router function. Sequential actors
+between control flow points are grouped into a single router.
+
+### analyzer.py — yield analysis
+
+The analyzer uses Python's `ast.parse()` to statically analyze handler
+files and extract routing edges from yield statements. It handles three
+categories of handlers uniformly:
+
+```python
+def analyze(
+    routers_file: Path,
+    handler_files: list[Path],
+    manifest_dir: Path | None = None,
+) -> GraphData:
+    """Yield analysis: read handler code, extract routing edges."""
+    ...
+
+@dataclass
+class GraphData:
+    nodes: list[dict]   # {"id", "flow_role", "label", "sources"}
+    edges: list[dict]   # {"from", "to", "label", "type", "override"}
+    groups: list[dict]  # {"id", "nodes"}
+```
+
+#### Three handler categories
+
+1. **Generated routers** (`routers.py`): Full yield analysis — all
+   patterns analyzable since the compiler generated them.
+2. **User-written handlers** (project source): Best-effort yield
+   analysis via `inspect.getsource()` or direct file read. Captures
+   `yield "SET", ".route.next"` patterns for override edges.
+3. **External package handlers** (site-packages): Best-effort via
+   `inspect.getsource()`. Opaque node if source unavailable
+   (C extensions, bytecode-only).
+
+#### Algorithm
+
+1. **Parse generated routers** → extract `route.next` lists → build
+   routing chains
+2. **Parse user handlers** via `ast.parse(inspect.getsource(handler))`
+   → extract override edges (yield SET patterns)
+3. **Parse manifests** → `resiliency.rules[*].thenRoute` → error
+   routing edges (dashed lines in graph)
+4. **Merge**: chains + overrides + error edges. Override edges from
+   user handlers replace flow-declared edges (marked `override: true`).
 
 #### Analyzable yield patterns
 
-| Pattern | Edge type | Example |
-|---|---|---|
-| `yield "SET", ".route.next", ["actor_a", "actor_b"]` | Explicit edge(s) to named actors | Conditional routing, loop-back |
-| `yield "SET", ".route.next[:0]", [resolve("x")]` | Prepend edge to resolved handler | Sequential routing |
-| `yield "SET", ".route.next", []` | Terminal (no outgoing edges) | End router, break |
-| `yield payload` / `yield p` | Implicit edge to whatever route.next contains | Pass-through |
-| `yield "FLY", {...}` | No edge (ephemeral upstream) | Streaming tokens |
-| `yield "SET", ".headers._on_error", resolve("x")` | Error edge to dispatch router | Try-enter |
+| Pattern | Edge type |
+|---|---|
+| `yield "SET", ".route.next", ["actor_a", "actor_b"]` | Explicit edge(s) to named actors |
+| `yield "SET", ".route.next[:0]", [resolve("x")]` | Prepend edge to resolved handler |
+| `yield "SET", ".route.next", []` | Abort — terminal node (route to x-sink) |
+| `yield payload` / `yield p` | Implicit edge (pass-through to route.next) |
+| `yield "FLY", {...}` | No routing edge (ephemeral upstream) |
 
 #### Condition extraction
 
@@ -598,24 +790,31 @@ Dynamic routing where the target is a variable (not a string literal
 or `resolve("literal")` call) produces no edge in the graph. The
 node is marked with `unresolved_routing: true`.
 
-Future: the DSL rules engine (aint `1fmi`) will allow users to teach
-the compiler about custom function semantics.
+Future: compiler rules with `treat_as: routing` and `maps_to` field
+can teach the analyzer how to resolve custom routing functions (extends
+aint `1fmi`).
 
-### Internal representation (transient)
+#### Edge cases
 
-The yield analyzer internally builds a lightweight dict to pass
-between analysis and rendering. This is NOT an IR — it's a local
-data structure inside the analyzer function:
+| Case | Handling |
+|---|---|
+| Multi-yield handlers (fan-out actors) | Forbidden in flows. Standalone actors: each yield = one outgoing edge. |
+| Multiple `yield "SET", ".route.next"` | Last one wins (or all shown as conditional branches if inside if/else). |
+| External C extensions | Opaque node, no internal edges. |
+| `yield "SET", ".route.next", []` | Abort — marks node as terminal, edge to x-sink. |
+
+### graphgen.py — GraphData → output formats
+
+Three simple renderers consuming the same `GraphData`:
 
 ```python
-# Internal to the analyzer — not exported, not persisted
-nodes: list[dict]   # [{"id": "...", "flow_role": "...", ...}, ...]
-edges: list[dict]   # [{"from": "...", "to": "...", "label": "...", ...}, ...]
+def to_dot(data: GraphData, flow_name: str) -> str: ...
+def to_mermaid(data: GraphData, flow_name: str) -> str: ...
+def to_json(data: GraphData, flow_name: str) -> dict: ...
 ```
 
-No `MeshGraph` class. No `Node`/`Edge` dataclasses exported from the
-module. The transient dict lives and dies inside the function call.
-The `--debug-graph` flag dumps it to JSON for troubleshooting.
+Each renderer is ~50 lines (node iteration + edge iteration +
+formatting). Total ~150 lines replacing 782-line dotgen.py.
 
 ## User Workflow Catalog
 
