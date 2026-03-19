@@ -306,18 +306,30 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonNonRetryableFailure)
 	}
 
-	// Check if max attempts exhausted
-	if msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts {
-		slog.Info("Max retry attempts exhausted, routing to x-sump",
-			"id", msg.ID, "attempt", msg.Status.Attempt,
-			"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
+	// Check if max attempts or max duration exhausted (whichever comes first)
+	attemptsExhausted := msg.Status.Attempt >= r.cfg.Resiliency.Retry.MaxAttempts
+	durationExhausted := isDurationExhausted(msg, r.cfg.Resiliency.Retry.MaxDuration)
+	if attemptsExhausted || durationExhausted {
+		reason := envelopes.ReasonMaxRetriesExhausted
+		metricReason := "max_retries_exhausted"
+		if durationExhausted && !attemptsExhausted {
+			slog.Info("Max retry duration exhausted, routing to x-sump",
+				"id", msg.ID, "attempt", msg.Status.Attempt,
+				"max_duration", r.cfg.Resiliency.Retry.MaxDuration)
+			reason = envelopes.ReasonMaxDurationExhausted
+			metricReason = "max_duration_exhausted"
+		} else {
+			slog.Info("Max retry attempts exhausted, routing to x-sump",
+				"id", msg.ID, "attempt", msg.Status.Attempt,
+				"max_attempts", r.cfg.Resiliency.Retry.MaxAttempts)
+		}
 
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "error")
-			r.metrics.RecordMessageFailed(r.actorName, "max_retries_exhausted")
+			r.metrics.RecordMessageFailed(r.actorName, metricReason)
 			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
-		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonMaxRetriesExhausted)
+		return r.sendRetryFailure(ctx, msg, response, reason)
 	}
 
 	// Retry: compute delay, update status, send with delay to own queue
@@ -345,6 +357,28 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
 	return nil
+}
+
+// isDurationExhausted reports whether the total wall-clock budget for retries
+// has been exceeded. It reads x-asya-first-attempt from msg.Headers, which the
+// sidecar stamps on the first attempt and preserves unchanged across retries.
+// Returns false when maxDuration is zero, the header is absent, or unparseable.
+func isDurationExhausted(msg *envelopes.Envelope, maxDuration time.Duration) bool {
+	if maxDuration <= 0 {
+		return false
+	}
+	if msg.Headers == nil {
+		return false
+	}
+	raw, ok := msg.Headers[envelopes.HeaderFirstAttempt].(string)
+	if !ok {
+		return false
+	}
+	first, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		return false
+	}
+	return time.Since(first) >= maxDuration
 }
 
 // isNonRetryableError checks if the error type or any of its MRO ancestors
@@ -762,6 +796,16 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 
 	// Initialize or update status before calling runtime
 	r.ensureAndUpdateStatus(msg)
+
+	// Stamp x-asya-first-attempt on the very first attempt so maxDuration can
+	// be evaluated on each retry. Header is never overwritten once set.
+	if msg.Headers == nil {
+		msg.Headers = make(map[string]interface{})
+	}
+	if _, exists := msg.Headers[envelopes.HeaderFirstAttempt]; !exists {
+		msg.Headers[envelopes.HeaderFirstAttempt] = time.Now().UTC().Format(time.RFC3339)
+	}
+
 	updatedBody, err := json.Marshal(msg)
 	if err != nil {
 		slog.Error("Failed to marshal message with status", "id", msg.ID, "error", err)

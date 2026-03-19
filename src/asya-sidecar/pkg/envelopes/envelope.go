@@ -18,19 +18,21 @@ const (
 
 // Mesh-status header constants for stealth mode control
 const (
-	HeaderMeshStatus = "x-asya-mesh-status"
-	MeshStatusOff    = "off"
+	HeaderMeshStatus   = "x-asya-mesh-status"
+	MeshStatusOff      = "off"
+	HeaderFirstAttempt = "x-asya-first-attempt"
 )
 
 // Status reason constants
 const (
-	ReasonCompleted           = "Completed"
-	ReasonRuntimeError        = "RuntimeError"
-	ReasonTimeout             = "Timeout"
-	ReasonParseError          = "ParseError"
-	ReasonRouteMismatch       = "RouteMismatch"
-	ReasonMaxRetriesExhausted = "MaxRetriesExhausted"
-	ReasonNonRetryableFailure = "NonRetryableFailure"
+	ReasonCompleted            = "Completed"
+	ReasonRuntimeError         = "RuntimeError"
+	ReasonTimeout              = "Timeout"
+	ReasonParseError           = "ParseError"
+	ReasonRouteMismatch        = "RouteMismatch"
+	ReasonMaxRetriesExhausted  = "MaxRetriesExhausted"
+	ReasonMaxDurationExhausted = "MaxDurationExhausted"
+	ReasonNonRetryableFailure  = "NonRetryableFailure"
 )
 
 // StatusError captures error details within a status
