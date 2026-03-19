@@ -1041,6 +1041,388 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 	}
 }
 
+// --- isDurationExhausted unit tests ---
+
+func TestRouter_IsDurationExhausted_ZeroMaxDuration(t *testing.T) {
+	msg := &envelopes.Envelope{
+		Headers: map[string]interface{}{
+			"x-asya-first-attempt": time.Now().Add(-1 * time.Hour).UTC().Format(time.RFC3339),
+		},
+	}
+	if isDurationExhausted(msg, 0) {
+		t.Error("Expected false when MaxDuration=0 (no limit)")
+	}
+}
+
+func TestRouter_IsDurationExhausted_HeaderAbsent(t *testing.T) {
+	msg := &envelopes.Envelope{Headers: map[string]interface{}{}}
+	if isDurationExhausted(msg, 10*time.Minute) {
+		t.Error("Expected false when x-asya-first-attempt header is absent")
+	}
+}
+
+func TestRouter_IsDurationExhausted_NilHeaders(t *testing.T) {
+	msg := &envelopes.Envelope{}
+	if isDurationExhausted(msg, 10*time.Minute) {
+		t.Error("Expected false when msg.Headers is nil")
+	}
+}
+
+func TestRouter_IsDurationExhausted_HeaderUnparseable(t *testing.T) {
+	msg := &envelopes.Envelope{
+		Headers: map[string]interface{}{
+			"x-asya-first-attempt": "not-a-timestamp",
+		},
+	}
+	if isDurationExhausted(msg, 10*time.Minute) {
+		t.Error("Expected false when header value is unparseable")
+	}
+}
+
+func TestRouter_IsDurationExhausted_NotYetExhausted(t *testing.T) {
+	msg := &envelopes.Envelope{
+		Headers: map[string]interface{}{
+			// first attempt just happened
+			"x-asya-first-attempt": time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+	if isDurationExhausted(msg, 10*time.Minute) {
+		t.Error("Expected false when first attempt was recent and maxDuration is 10m")
+	}
+}
+
+func TestRouter_IsDurationExhausted_Exhausted(t *testing.T) {
+	msg := &envelopes.Envelope{
+		Headers: map[string]interface{}{
+			// first attempt was 2 hours ago
+			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+		},
+	}
+	if !isDurationExhausted(msg, 30*time.Minute) {
+		t.Error("Expected true when 2h have elapsed and maxDuration=30m")
+	}
+}
+
+// --- x-asya-first-attempt header lifecycle tests ---
+
+func TestRouter_ProcessMessage_FirstAttemptHeaderStampedOnFirstAttempt(t *testing.T) {
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Error: "processing_error",
+				Details: runtime.ErrorDetails{
+					Type:    "RuntimeError",
+					Message: "transient failure",
+				},
+			},
+		}, http.StatusInternalServerError
+	})
+
+	mt := &retryMockTransport{}
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "sqs",
+		Timeout:       5 * time.Second,
+		Resiliency:    newRetryConfig(3, nil),
+	}
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mt,
+		runtimeClient: runtime.NewClient(socketPath, 2*time.Second),
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	// Message arrives with no x-asya-first-attempt header
+	inputMsg := envelopes.Envelope{
+		ID:      "test-first-stamp",
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Payload: json.RawMessage(`{}`),
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	before := time.Now().UTC().Truncate(time.Second)
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{ID: "q1", Body: msgBody})
+	after := time.Now().UTC()
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mt.delayedMessages) != 1 {
+		t.Fatalf("Expected 1 retry message, got %d", len(mt.delayedMessages))
+	}
+
+	var retryMsg envelopes.Envelope
+	if err := json.Unmarshal(mt.delayedMessages[0].body, &retryMsg); err != nil {
+		t.Fatalf("Failed to unmarshal retry message: %v", err)
+	}
+
+	raw, ok := retryMsg.Headers["x-asya-first-attempt"].(string)
+	if !ok {
+		t.Fatal("Expected x-asya-first-attempt header in retry message")
+	}
+	ts, err := time.Parse(time.RFC3339, raw)
+	if err != nil {
+		t.Fatalf("x-asya-first-attempt is not valid RFC3339: %v", err)
+	}
+	if ts.Before(before) || ts.After(after) {
+		t.Errorf("x-asya-first-attempt %v outside expected range [%v, %v]", ts, before, after)
+	}
+}
+
+func TestRouter_ProcessMessage_FirstAttemptHeaderPreservedOnRetry(t *testing.T) {
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Error: "processing_error",
+				Details: runtime.ErrorDetails{
+					Type:    "RuntimeError",
+					Message: "transient failure",
+				},
+			},
+		}, http.StatusInternalServerError
+	})
+
+	mt := &retryMockTransport{}
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "sqs",
+		Timeout:       5 * time.Second,
+		Resiliency:    newRetryConfig(5, nil),
+	}
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mt,
+		runtimeClient: runtime.NewClient(socketPath, 2*time.Second),
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	// Simulate a re-enqueued retry: the header was already stamped on attempt 1
+	originalTimestamp := "2025-01-01T10:00:00Z"
+	inputMsg := envelopes.Envelope{
+		ID:      "test-header-preserved",
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Payload: json.RawMessage(`{}`),
+		Headers: map[string]interface{}{
+			"x-asya-first-attempt": originalTimestamp,
+		},
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseRetrying,
+			Actor:       "test-actor",
+			Attempt:     2,
+			MaxAttempts: 5,
+			CreatedAt:   "2025-01-01T10:00:00Z",
+			UpdatedAt:   "2025-01-01T10:00:01Z",
+		},
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{ID: "q2", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mt.delayedMessages) != 1 {
+		t.Fatalf("Expected 1 retry message, got %d", len(mt.delayedMessages))
+	}
+
+	var retryMsg envelopes.Envelope
+	if err := json.Unmarshal(mt.delayedMessages[0].body, &retryMsg); err != nil {
+		t.Fatalf("Failed to unmarshal retry message: %v", err)
+	}
+
+	raw, ok := retryMsg.Headers["x-asya-first-attempt"].(string)
+	if !ok {
+		t.Fatal("Expected x-asya-first-attempt header preserved in retry message")
+	}
+	if raw != originalTimestamp {
+		t.Errorf("x-asya-first-attempt was overwritten: expected %q, got %q", originalTimestamp, raw)
+	}
+}
+
+func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.T) {
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Error: "processing_error",
+				Details: runtime.ErrorDetails{
+					Type:    "RuntimeError",
+					Message: "transient failure",
+				},
+			},
+		}, http.StatusInternalServerError
+	})
+
+	mt := &retryMockTransport{}
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "sqs",
+		Timeout:       5 * time.Second,
+		Resiliency: &config.ResiliencyConfig{
+			Retry: config.RetryConfig{
+				Policy:             config.RetryPolicyExponential,
+				MaxAttempts:        10,            // not yet exhausted
+				MaxDuration:        1 * time.Hour, // already exceeded (header is 2h ago)
+				InitialInterval:    time.Second,
+				MaxInterval:        300 * time.Second,
+				BackoffCoefficient: 2.0,
+			},
+		},
+	}
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mt,
+		runtimeClient: runtime.NewClient(socketPath, 2*time.Second),
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	// x-asya-first-attempt set 2h ago; maxDuration=1h → duration is exhausted
+	inputMsg := envelopes.Envelope{
+		ID:      "test-max-duration",
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
+		Payload: json.RawMessage(`{}`),
+		Headers: map[string]interface{}{
+			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+		},
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseRetrying,
+			Actor:       "test-actor",
+			Attempt:     2, // well below MaxAttempts=10
+			MaxAttempts: 10,
+			CreatedAt:   time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+			UpdatedAt:   time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{ID: "q3", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	// Duration exhausted → should go to x-sump (not retry)
+	if len(mt.delayedMessages) != 0 {
+		t.Errorf("Expected no retries when maxDuration exceeded, got %d", len(mt.delayedMessages))
+	}
+	if len(mt.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
+	}
+	if mt.sentMessages[0].queue != "asya-default-x-sump" {
+		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
+	}
+
+	var failedMsg envelopes.Envelope
+	if err := json.Unmarshal(mt.sentMessages[0].body, &failedMsg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+	if failedMsg.Status.Phase != envelopes.PhaseFailed {
+		t.Errorf("Expected phase failed, got %s", failedMsg.Status.Phase)
+	}
+	if failedMsg.Status.Reason != envelopes.ReasonMaxDurationExhausted {
+		t.Errorf("Expected reason MaxDurationExhausted, got %s", failedMsg.Status.Reason)
+	}
+}
+
+func TestRouter_ProcessMessage_MaxAttemptsWinsWhenBothExhausted(t *testing.T) {
+	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
+		return []runtime.RuntimeResponse{
+			{
+				Error: "processing_error",
+				Details: runtime.ErrorDetails{
+					Type:    "RuntimeError",
+					Message: "transient failure",
+				},
+			},
+		}, http.StatusInternalServerError
+	})
+
+	mt := &retryMockTransport{}
+	cfg := &config.Config{
+		ActorName:     "test-actor",
+		Namespace:     "default",
+		SinkQueue:     "x-sink",
+		SumpQueue:     "x-sump",
+		TransportType: "sqs",
+		Timeout:       5 * time.Second,
+		Resiliency: &config.ResiliencyConfig{
+			Retry: config.RetryConfig{
+				Policy:             config.RetryPolicyExponential,
+				MaxAttempts:        3,
+				MaxDuration:        1 * time.Hour, // also exceeded
+				InitialInterval:    time.Second,
+				MaxInterval:        300 * time.Second,
+				BackoffCoefficient: 2.0,
+			},
+		},
+	}
+
+	router := &Router{
+		cfg:           cfg,
+		transport:     mt,
+		runtimeClient: runtime.NewClient(socketPath, 2*time.Second),
+		actorName:     cfg.ActorName,
+		sinkQueue:     cfg.SinkQueue,
+		sumpQueue:     cfg.SumpQueue,
+		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
+	}
+
+	inputMsg := envelopes.Envelope{
+		ID:      "test-both-exhausted",
+		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
+		Payload: json.RawMessage(`{}`),
+		Headers: map[string]interface{}{
+			"x-asya-first-attempt": time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+		},
+		Status: &envelopes.Status{
+			Phase:       envelopes.PhaseRetrying,
+			Actor:       "test-actor",
+			Attempt:     3, // MaxAttempts=3
+			MaxAttempts: 3,
+			CreatedAt:   time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
+			UpdatedAt:   time.Now().UTC().Format(time.RFC3339),
+		},
+	}
+	msgBody, _ := json.Marshal(inputMsg)
+
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{ID: "q4", Body: msgBody})
+	if err != nil {
+		t.Fatalf("ProcessMessage failed: %v", err)
+	}
+
+	if len(mt.sentMessages) != 1 {
+		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
+	}
+
+	var failedMsg envelopes.Envelope
+	if err := json.Unmarshal(mt.sentMessages[0].body, &failedMsg); err != nil {
+		t.Fatalf("Failed to unmarshal: %v", err)
+	}
+	// When both are exhausted, maxAttempts takes precedence in reason
+	if failedMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
+		t.Errorf("Expected reason MaxRetriesExhausted when both conditions met, got %s", failedMsg.Status.Reason)
+	}
+}
+
 func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{

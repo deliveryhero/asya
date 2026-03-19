@@ -74,6 +74,7 @@ const (
 	envResiliencyRetryMaxAttempts = "ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS"
 	envResiliencyRetryInitial     = "ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL"
 	envResiliencyRetryMax         = "ASYA_RESILIENCY_RETRY_MAX_INTERVAL"
+	envResiliencyRetryMaxDuration = "ASYA_RESILIENCY_RETRY_MAX_DURATION"
 	envResiliencyRetryCoefficient = "ASYA_RESILIENCY_RETRY_BACKOFF_COEFFICIENT"
 	envResiliencyRetryJitter      = "ASYA_RESILIENCY_RETRY_JITTER"
 	envResiliencyNonRetryable     = "ASYA_RESILIENCY_NON_RETRYABLE_ERRORS"
@@ -103,10 +104,14 @@ type ResiliencyConfig struct {
 
 // RetryConfig holds retry-specific parameters.
 type RetryConfig struct {
-	Policy             RetryPolicy
-	MaxAttempts        int
-	InitialInterval    time.Duration
-	MaxInterval        time.Duration
+	Policy          RetryPolicy
+	MaxAttempts     int
+	InitialInterval time.Duration
+	MaxInterval     time.Duration
+	// MaxDuration is the total wall-clock budget across all retry attempts.
+	// When set, the sidecar stops retrying once time.Since(firstAttempt) >= MaxDuration,
+	// even if MaxAttempts has not been reached. Zero means no duration limit.
+	MaxDuration        time.Duration
 	BackoffCoefficient float64
 	Jitter             bool
 }
@@ -223,6 +228,9 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 		return nil, fmt.Errorf("%s must be > 0, got %v", envResiliencyRetryMax, maxInterval)
 	}
 
+	// MaxDuration is optional (zero means no limit).
+	maxDuration := getEnvDuration(envResiliencyRetryMaxDuration, 0)
+
 	coefficient := getEnvFloat64(envResiliencyRetryCoefficient, 2.0)
 	if coefficient < 1.0 {
 		return nil, fmt.Errorf("%s must be >= 1.0, got %v", envResiliencyRetryCoefficient, coefficient)
@@ -245,6 +253,7 @@ func loadResiliencyConfig() (*ResiliencyConfig, error) {
 			MaxAttempts:        maxAttempts,
 			InitialInterval:    initialInterval,
 			MaxInterval:        maxInterval,
+			MaxDuration:        maxDuration,
 			BackoffCoefficient: coefficient,
 			Jitter:             jitter,
 		},
