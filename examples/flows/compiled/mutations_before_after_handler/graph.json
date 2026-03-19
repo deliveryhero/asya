@@ -64,10 +64,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "from": "handler_b",
       "to": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_mutations_before_after_handler_flow_line_13_seq_3",
@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "from": "handler_a",
       "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_mutations_before_after_handler_flow",

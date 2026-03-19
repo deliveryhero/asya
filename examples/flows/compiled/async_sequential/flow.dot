@@ -8,5 +8,6 @@ digraph "llm_auditor_flow" {
     start_llm_auditor_flow [label="start_llm_auditor_flow", fillcolor=palegreen];
 
     start_llm_auditor_flow -> critic;
-    start_llm_auditor_flow -> reviser;
+    critic -> reviser;
+    reviser -> end_llm_auditor_flow;
 }

@@ -7,4 +7,5 @@ flowchart TD
     start_llm_auditor_flow([start_llm_auditor_flow])
 
     start_llm_auditor_flow --> critic
-    start_llm_auditor_flow --> reviser
+    critic --> reviser
+    reviser --> end_llm_auditor_flow

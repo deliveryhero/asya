@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_routing_classifier",
+      "from": "classifier",
       "to": "router_routing_classifier_line_47_if_3",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_routing_classifier_line_51_if_1",
@@ -112,10 +112,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_47_if_3",
+      "from": "billing_agent",
       "to": "format_reply",
-      "label": "p.get('category') == 'billing'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_routing_classifier_line_47_if_3",
@@ -124,16 +124,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_47_if_3",
+      "from": "router_routing_classifier_line_49_if_2",
       "to": "format_reply",
-      "label": "not (p.get('category') == 'billing')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "end_routing_classifier",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "format_reply",
+      "to": "end_routing_classifier",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

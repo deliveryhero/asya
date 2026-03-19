@@ -9,4 +9,5 @@ flowchart TD
 
     start_decorator_definitions_flow --> router_decorator_definitions_flow_line_27_seq_1
     router_decorator_definitions_flow_line_27_seq_1 --> validate
-    router_decorator_definitions_flow_line_27_seq_1 --> enrich
+    validate --> enrich
+    enrich --> end_decorator_definitions_flow

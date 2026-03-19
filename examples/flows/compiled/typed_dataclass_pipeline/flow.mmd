@@ -9,6 +9,7 @@ flowchart TD
     start_typed_dataclass_pipeline([start_typed_dataclass_pipeline])
 
     start_typed_dataclass_pipeline --> extractor
-    start_typed_dataclass_pipeline --> classifier
-    start_typed_dataclass_pipeline --> enricher
-    start_typed_dataclass_pipeline --> formatter
+    extractor --> classifier
+    classifier --> enricher
+    enricher --> formatter
+    formatter --> end_typed_dataclass_pipeline

@@ -9,7 +9,7 @@
     },
     {
       "id": "router_voting_ensemble_line_44_fanout_1",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_voting_ensemble_line_44_fanout_1",
       "is_generated": true
     },
@@ -32,6 +32,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "end_voting_ensemble",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

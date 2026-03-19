@@ -46,16 +46,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_decorator_callsite_flow_line_29_seq_1",
+      "from": "validator",
       "to": "enricher",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_decorator_callsite_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "enricher",
+      "to": "end_decorator_callsite_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

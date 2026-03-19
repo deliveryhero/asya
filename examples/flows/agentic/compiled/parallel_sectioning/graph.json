@@ -15,7 +15,7 @@
     },
     {
       "id": "router_parallel_sectioning_line_48_fanout_1",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_parallel_sectioning_line_48_fanout_1",
       "is_generated": true
     },
@@ -34,16 +34,22 @@
       "type": "prepend"
     },
     {
-      "from": "start_parallel_sectioning",
+      "from": "preprocessor",
       "to": "router_parallel_sectioning_line_48_fanout_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_parallel_sectioning",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_parallel_sectioning_line_48_fanout_1",
+      "to": "end_parallel_sectioning",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

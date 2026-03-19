@@ -11,8 +11,9 @@ flowchart TD
     validator[validator]
 
     start_typeddict_pipeline --> parser
-    start_typeddict_pipeline --> validator
-    start_typeddict_pipeline --> router_typeddict_pipeline_line_77_if_1
+    parser --> validator
+    validator --> router_typeddict_pipeline_line_77_if_1
     router_typeddict_pipeline_line_77_if_1 -->|not (not p.get('valid', True))| transformer
-    router_typeddict_pipeline_line_77_if_1 -->|not (not p.get('valid', True))| sink_adapter
+    transformer --> sink_adapter
     router_typeddict_pipeline_line_77_if_1 -->|not p.get('valid', True)| error_handler
+    sink_adapter --> end_typeddict_pipeline

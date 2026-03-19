@@ -130,10 +130,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_65_if_5",
+      "from": "data_worker",
       "to": "router_orchestrator_workers_line_72_if_2",
-      "label": "p.get('next_action') == 'research'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_orchestrator_workers_line_65_if_5",
@@ -142,10 +142,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_65_if_5",
+      "from": "router_orchestrator_workers_line_67_if_4",
       "to": "router_orchestrator_workers_line_72_if_2",
-      "label": "not (p.get('next_action') == 'research')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_orchestrator_workers_line_62_if_6",
@@ -166,10 +166,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_58_seq_7",
+      "from": "orchestrator",
       "to": "router_orchestrator_workers_line_62_if_6",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_orchestrator_workers_line_57_while_1",
@@ -178,10 +178,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_57_while_1",
+      "from": "router_orchestrator_workers_line_58_seq_7",
       "to": "router_orchestrator_workers_line_57_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_orchestrator_workers_line_54_seq_8",
@@ -194,6 +194,24 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "analysis_worker",
+      "to": "end_orchestrator_workers",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "synthesizer",
+      "to": "end_orchestrator_workers",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "writing_worker",
+      "to": "end_orchestrator_workers",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

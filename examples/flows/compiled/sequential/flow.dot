@@ -9,6 +9,7 @@ digraph "sequential_flow" {
     start_sequential_flow [label="start_sequential_flow", fillcolor=palegreen];
 
     start_sequential_flow -> handler_a;
-    start_sequential_flow -> handler_b;
-    start_sequential_flow -> handler_c;
+    handler_a -> handler_b;
+    handler_b -> handler_c;
+    handler_c -> end_sequential_flow;
 }

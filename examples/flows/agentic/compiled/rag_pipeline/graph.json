@@ -100,10 +100,10 @@
       "type": "set"
     },
     {
-      "from": "router_rag_pipeline_line_70_if_2",
+      "from": "generator",
       "to": "fact_checker",
-      "label": "p['retrieval_attempts'] >= 3",
-      "type": "set"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_rag_pipeline_line_66_if_3",
@@ -118,10 +118,10 @@
       "type": "set"
     },
     {
-      "from": "router_rag_pipeline_line_66_if_3",
+      "from": "generator",
       "to": "fact_checker",
-      "label": "p.get('is_sufficient')",
-      "type": "set"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_rag_pipeline_line_57_seq_4",
@@ -130,16 +130,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_rag_pipeline_line_57_seq_4",
+      "from": "retriever",
       "to": "relevance_evaluator",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_rag_pipeline_line_57_seq_4",
+      "from": "relevance_evaluator",
       "to": "router_rag_pipeline_line_66_if_3",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_rag_pipeline_line_56_while_1",
@@ -148,10 +148,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_rag_pipeline_line_56_while_1",
+      "from": "router_rag_pipeline_line_57_seq_4",
       "to": "router_rag_pipeline_line_56_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_rag_pipeline_line_50_seq_5",
@@ -160,16 +160,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_rag_pipeline_line_50_seq_5",
+      "from": "query_analyzer",
       "to": "router_rag_pipeline_line_56_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_rag_pipeline",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "fact_checker",
+      "to": "end_rag_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

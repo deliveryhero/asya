@@ -13,11 +13,12 @@ digraph "if_elif_else_flow" {
     start_if_elif_else_flow [label="start_if_elif_else_flow", fillcolor=palegreen];
 
     start_if_elif_else_flow -> handler_validate;
-    start_if_elif_else_flow -> router_if_elif_else_flow_line_14_if_2;
+    handler_validate -> router_if_elif_else_flow_line_14_if_2;
     router_if_elif_else_flow_line_16_if_1 -> handler_type_b [label="p['type'] == 'B'"];
     router_if_elif_else_flow_line_16_if_1 -> handler_default [label="not (p['type'] == 'B')"];
     router_if_elif_else_flow_line_14_if_2 -> handler_type_a [label="p['type'] == 'A'"];
-    router_if_elif_else_flow_line_14_if_2 -> handler_finalize [label="p['type'] == 'A'"];
+    handler_type_a -> handler_finalize;
     router_if_elif_else_flow_line_14_if_2 -> router_if_elif_else_flow_line_16_if_1 [label="not (p['type'] == 'A')"];
-    router_if_elif_else_flow_line_14_if_2 -> handler_finalize [label="not (p['type'] == 'A')"];
+    router_if_elif_else_flow_line_16_if_1 -> handler_finalize;
+    handler_finalize -> end_if_elif_else_flow;
 }

@@ -11,5 +11,6 @@ flowchart TD
     start_react_agent --> router_react_agent_line_14_while_1
     router_react_agent_line_16_if_2 -->|p.get('tool_calls')| execute_tool
     router_react_agent_line_14_while_1 --> llm_call
-    router_react_agent_line_14_while_1 --> router_react_agent_line_16_if_2
-    router_react_agent_line_14_while_1 --> router_react_agent_line_14_while_1
+    llm_call --> router_react_agent_line_16_if_2
+    router_react_agent_line_16_if_2 --> router_react_agent_line_14_while_1
+    execute_tool --> end_react_agent

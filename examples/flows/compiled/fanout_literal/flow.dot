@@ -7,4 +7,5 @@ digraph "analysis_flow" {
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
 
     start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
+    router_analysis_flow_line_14_fanout_1 -> end_analysis_flow;
 }

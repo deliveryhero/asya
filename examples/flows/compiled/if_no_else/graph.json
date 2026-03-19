@@ -40,10 +40,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_if_no_else_flow",
+      "from": "handler_setup",
       "to": "router_if_no_else_flow_line_14_if_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_if_no_else_flow_line_14_if_1",
@@ -56,6 +56,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_true",
+      "to": "end_if_no_else_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

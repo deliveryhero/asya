@@ -7,4 +7,5 @@ flowchart TD
     start_map_reduce([start_map_reduce])
 
     start_map_reduce --> splitter
-    start_map_reduce --> router_map_reduce_line_55_fanout_1
+    splitter --> router_map_reduce_line_55_fanout_1
+    router_map_reduce_line_55_fanout_1 --> end_map_reduce

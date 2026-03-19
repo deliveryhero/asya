@@ -106,16 +106,16 @@
       "type": "prepend"
     },
     {
-      "from": "start_complex_flow",
+      "from": "handler_preprocess",
       "to": "handler_validate",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_complex_flow",
+      "from": "handler_validate",
       "to": "router_complex_flow_line_15_if_6",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_complex_flow_line_29_if_2",
@@ -142,22 +142,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
+      "from": "handler_transform_batch",
       "to": "handler_check_quality",
-      "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
+      "from": "handler_check_quality",
       "to": "router_complex_flow_line_26_if_3",
-      "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
+      "from": "router_complex_flow_line_26_if_3",
       "to": "router_complex_flow_line_22_while_1",
-      "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_complex_flow_line_22_while_1",
@@ -178,16 +178,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_19_if_5",
+      "from": "handler_enrich_data",
       "to": "router_complex_flow_line_22_while_1",
-      "label": "p.get('needs_enrichment')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_19_if_5",
+      "from": "router_complex_flow_line_22_while_1",
       "to": "handler_finalize",
-      "label": "p.get('needs_enrichment')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_complex_flow_line_19_if_5",
@@ -196,10 +196,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_19_if_5",
+      "from": "router_complex_flow_line_32_if_4",
       "to": "handler_finalize",
-      "label": "not (p.get('needs_enrichment'))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_complex_flow_line_15_if_6",
@@ -218,6 +218,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "end_complex_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

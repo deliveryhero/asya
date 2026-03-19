@@ -46,16 +46,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_decorator_definitions_flow_line_27_seq_1",
+      "from": "validate",
       "to": "enrich",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_decorator_definitions_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "enrich",
+      "to": "end_decorator_definitions_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

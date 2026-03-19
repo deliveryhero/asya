@@ -11,8 +11,9 @@ digraph "review_pipeline_flow" {
     start_review_pipeline_flow [label="start_review_pipeline_flow", fillcolor=palegreen];
 
     start_review_pipeline_flow -> initial_review;
-    start_review_pipeline_flow -> router_review_pipeline_flow_line_17_if_1;
+    initial_review -> router_review_pipeline_flow_line_17_if_1;
     router_review_pipeline_flow_line_17_if_1 -> detailed_review [label="p['score'] < 0.5"];
-    router_review_pipeline_flow_line_17_if_1 -> human_review [label="p['score'] < 0.5"];
+    detailed_review -> human_review;
     router_review_pipeline_flow_line_17_if_1 -> auto_approve [label="not (p['score'] < 0.5)"];
+    human_review -> end_review_pipeline_flow;
 }

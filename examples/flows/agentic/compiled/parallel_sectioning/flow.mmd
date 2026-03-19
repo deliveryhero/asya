@@ -7,4 +7,5 @@ flowchart TD
     start_parallel_sectioning([start_parallel_sectioning])
 
     start_parallel_sectioning --> preprocessor
-    start_parallel_sectioning --> router_parallel_sectioning_line_48_fanout_1
+    preprocessor --> router_parallel_sectioning_line_48_fanout_1
+    router_parallel_sectioning_line_48_fanout_1 --> end_parallel_sectioning

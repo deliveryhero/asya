@@ -64,22 +64,28 @@
       "type": "prepend"
     },
     {
-      "from": "router_react_agent_line_14_while_1",
+      "from": "llm_call",
       "to": "router_react_agent_line_16_if_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_react_agent_line_14_while_1",
+      "from": "router_react_agent_line_16_if_2",
       "to": "router_react_agent_line_14_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_react_agent",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "execute_tool",
+      "to": "end_react_agent",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

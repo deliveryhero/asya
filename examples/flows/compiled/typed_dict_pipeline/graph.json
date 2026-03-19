@@ -58,16 +58,16 @@
       "type": "prepend"
     },
     {
-      "from": "start_typeddict_pipeline",
+      "from": "parser",
       "to": "validator",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_typeddict_pipeline",
+      "from": "validator",
       "to": "router_typeddict_pipeline_line_77_if_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_typeddict_pipeline_line_77_if_1",
+      "from": "transformer",
       "to": "sink_adapter",
-      "label": "not (not p.get('valid', True))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
@@ -92,6 +92,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "sink_adapter",
+      "to": "end_typeddict_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

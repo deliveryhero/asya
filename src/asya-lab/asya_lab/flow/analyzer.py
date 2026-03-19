@@ -28,20 +28,25 @@ def _build_parent_map(tree: ast.AST) -> dict[int, ast.AST]:
     return parent_map
 
 
-def _collect_append_targets(
+def _collect_append_chains(
     func_node: ast.AST, parent_map: dict[int, ast.AST], var_name: str = "_next"
-) -> list[tuple[str, str | None]]:
-    """Collect resolve() args from var.append(resolve("name")) calls in a function.
+) -> list[list[tuple[str, str | None]]]:
+    """Collect resolve() args from var.append(resolve("name")) calls, grouped by branch.
 
-    The generated codegen builds routing lists via:
+    The generated codegen builds sequential route lists via:
         _next = []
         if condition:
-            _next.append(resolve("foo"))
+            _next.append(resolve("foo"))    # branch 1, step 1
+            _next.append(resolve("bar"))    # branch 1, step 2
         else:
-            _next.append(resolve("bar"))
-    Returns (target_name, condition_label) pairs preserving branch context.
+            _next.append(resolve("baz"))    # branch 2, step 1
+
+    Returns a list of chains, where each chain is the sequence of targets
+    within one branch. Each target is (name, condition_label).
+    The route list [a, b] means a sequential chain: router → a → b.
     """
-    targets: list[tuple[str, str | None]] = []
+    # Collect all (name, condition) pairs in AST order
+    all_targets: list[tuple[str, str | None]] = []
     for node in ast.walk(func_node):
         if (
             isinstance(node, ast.Call)
@@ -54,8 +59,23 @@ def _collect_append_targets(
             name = _extract_resolve_arg(node.args[0])
             if name:
                 condition = _find_enclosing_condition(parent_map, node)
-                targets.append((name, condition))
-    return targets
+                all_targets.append((name, condition))
+
+    if not all_targets:
+        return []
+
+    # Group consecutive targets with the same condition into chains
+    chains: list[list[tuple[str, str | None]]] = []
+    current_chain: list[tuple[str, str | None]] = [all_targets[0]]
+    for target in all_targets[1:]:
+        if target[1] == current_chain[0][1]:
+            current_chain.append(target)
+        else:
+            chains.append(current_chain)
+            current_chain = [target]
+    chains.append(current_chain)
+
+    return chains
 
 
 def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
@@ -73,8 +93,8 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     """
     edges: list[dict] = []
     parent_map = _build_parent_map(func_node)
-    # Pre-collect targets from _next.append(resolve(...)) with per-append conditions
-    append_targets = _collect_append_targets(func_node, parent_map)
+    # Pre-collect targets from _next.append(resolve(...)) grouped by branch
+    append_chains = _collect_append_chains(func_node, parent_map)
 
     for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
@@ -105,21 +125,12 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
         inline_targets = _extract_resolve_targets(targets_node)
 
         if inline_targets:
-            # Inline list literal: condition comes from the yield statement
+            # Inline list literal: build sequential chain
             condition = _find_enclosing_condition(parent_map, node)
-            for target in inline_targets:
-                edges.append(
-                    {
-                        "from": handler_name,
-                        "to": target,
-                        "label": condition,
-                        "type": edge_type,
-                    }
-                )
+            edges.extend(_chain_to_edges(handler_name, inline_targets, condition, edge_type))
         elif isinstance(targets_node, ast.Name) and targets_node.id == "_next":
-            # Variable reference: conditions come from individual append() calls
-            if not append_targets:
-                # yield "SET", ".route.next", _next with empty _next -> terminal
+            # Variable reference: each branch is a sequential chain
+            if not append_chains:
                 if edge_type == "set":
                     condition = _find_enclosing_condition(parent_map, node)
                     edges.append(
@@ -131,15 +142,10 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
                         }
                     )
             else:
-                for target, condition in append_targets:
-                    edges.append(
-                        {
-                            "from": handler_name,
-                            "to": target,
-                            "label": condition,
-                            "type": edge_type,
-                        }
-                    )
+                for chain in append_chains:
+                    names = [t[0] for t in chain]
+                    condition = chain[0][1]
+                    edges.extend(_chain_to_edges(handler_name, names, condition, edge_type))
         elif isinstance(targets_node, ast.List) and not targets_node.elts:
             # yield "SET", ".route.next", [] -> abort/terminal
             if edge_type == "set":
@@ -154,6 +160,21 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
                 )
 
     return edges
+
+
+def _chain_to_edges(source: str, targets: list[str], condition: str | None, edge_type: str) -> list[dict]:
+    """Convert a sequential route chain into graph edges.
+
+    Route list [a, b, c] means: source → a → b → c (sequential).
+    Only the first edge (source → a) carries the condition label.
+    Subsequent edges (a → b, b → c) are unconditional continuations.
+    """
+    if not targets:
+        return []
+    result: list[dict] = [{"from": source, "to": targets[0], "label": condition, "type": edge_type}]
+    for i in range(len(targets) - 1):
+        result.append({"from": targets[i], "to": targets[i + 1], "label": None, "type": "continuation"})
+    return result
 
 
 def _extract_resolve_targets(node: ast.expr) -> list[str]:
@@ -261,6 +282,25 @@ def analyze(
                 all_edges.extend(handler_edges)
 
     # Step 3: TODO - Parse manifests for resiliency.rules error routing
+
+    # Step 4: Connect endpoint handlers to end_ node (implicit flow continuation).
+    # The end_ router is in the initial route.next; start_ prepends before it.
+    # Endpoint handlers are leaf nodes that sit at the end of continuation chains
+    # (e.g., handler_finalize), not intermediate dispatch targets (e.g., handler_type_b).
+    end_nodes = [n for n in router_names if n.startswith("end_")]
+    if end_nodes:
+        sources = {e["from"] for e in all_edges}
+        targets = {e["to"] for e in all_edges if e["to"] != "__terminal__"}
+        leaf_handlers = targets - sources
+        # Prefer leaf handlers that are continuation targets (final chain steps)
+        continuation_targets = {e["to"] for e in all_edges if e["type"] == "continuation"}
+        endpoints = leaf_handlers & continuation_targets
+        if not endpoints:
+            # Simple flows with no continuation edges — all leaves are endpoints
+            endpoints = leaf_handlers
+        for end_node in end_nodes:
+            for ep in sorted(endpoints):
+                all_edges.append({"from": ep, "to": end_node, "label": None, "type": "continuation"})
 
     # Build nodes from all referenced names
     all_names: set[str] = set()

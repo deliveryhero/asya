@@ -76,16 +76,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_order_pipeline_line_27_seq_3",
+      "from": "validate_order",
       "to": "router_order_pipeline_line_32_if_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_order_pipeline",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "charge_payment",
+      "to": "end_order_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

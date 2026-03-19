@@ -8,5 +8,6 @@ flowchart TD
     transformation[transformation]
 
     start_class_instantiation_flow --> sequential_with_class_DataPreprocessor_clean
-    start_class_instantiation_flow --> transformation
-    start_class_instantiation_flow --> sequential_with_class_MLModel_predict
+    sequential_with_class_DataPreprocessor_clean --> transformation
+    transformation --> sequential_with_class_MLModel_predict
+    sequential_with_class_MLModel_predict --> end_class_instantiation_flow

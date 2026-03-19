@@ -18,9 +18,10 @@ digraph "evaluator_optimizer" {
     router_evaluator_optimizer_line_68_if_3 -> router_evaluator_optimizer_line_72_if_2 [label="not (p.get('score', 0) >= SCORE_THRESHOLD)"];
     router_evaluator_optimizer_line_68_if_3 -> polisher [label="p.get('score', 0) >= SCORE_THRESHOLD"];
     router_evaluator_optimizer_line_59_seq_4 -> generator;
-    router_evaluator_optimizer_line_59_seq_4 -> evaluator;
-    router_evaluator_optimizer_line_59_seq_4 -> router_evaluator_optimizer_line_68_if_3;
+    generator -> evaluator;
+    evaluator -> router_evaluator_optimizer_line_68_if_3;
     router_evaluator_optimizer_line_58_while_1 -> router_evaluator_optimizer_line_59_seq_4;
-    router_evaluator_optimizer_line_58_while_1 -> router_evaluator_optimizer_line_58_while_1;
+    router_evaluator_optimizer_line_59_seq_4 -> router_evaluator_optimizer_line_58_while_1;
     router_evaluator_optimizer_line_56_seq_5 -> router_evaluator_optimizer_line_58_while_1;
+    polisher -> end_evaluator_optimizer;
 }

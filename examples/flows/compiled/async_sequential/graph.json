@@ -34,16 +34,22 @@
       "type": "prepend"
     },
     {
-      "from": "start_llm_auditor_flow",
+      "from": "critic",
       "to": "reviser",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_llm_auditor_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "reviser",
+      "to": "end_llm_auditor_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

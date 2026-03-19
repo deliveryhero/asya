@@ -15,13 +15,14 @@ digraph "routing_classifier" {
     technical_agent [label="technical_agent", fillcolor=lightblue];
 
     start_routing_classifier -> classifier;
-    start_routing_classifier -> router_routing_classifier_line_47_if_3;
+    classifier -> router_routing_classifier_line_47_if_3;
     router_routing_classifier_line_51_if_1 -> account_agent [label="p.get('category') == 'account'"];
     router_routing_classifier_line_51_if_1 -> general_agent [label="not (p.get('category') == 'account')"];
     router_routing_classifier_line_49_if_2 -> technical_agent [label="p.get('category') == 'technical'"];
     router_routing_classifier_line_49_if_2 -> router_routing_classifier_line_51_if_1 [label="not (p.get('category') == 'technical')"];
     router_routing_classifier_line_47_if_3 -> billing_agent [label="p.get('category') == 'billing'"];
-    router_routing_classifier_line_47_if_3 -> format_reply [label="p.get('category') == 'billing'"];
+    billing_agent -> format_reply;
     router_routing_classifier_line_47_if_3 -> router_routing_classifier_line_49_if_2 [label="not (p.get('category') == 'billing')"];
-    router_routing_classifier_line_47_if_3 -> format_reply [label="not (p.get('category') == 'billing')"];
+    router_routing_classifier_line_49_if_2 -> format_reply;
+    format_reply -> end_routing_classifier;
 }

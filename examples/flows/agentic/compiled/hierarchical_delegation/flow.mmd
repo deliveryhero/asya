@@ -22,7 +22,7 @@ flowchart TD
     writer[writer]
 
     start_hierarchical_delegation --> root_agent
-    start_hierarchical_delegation --> router_hierarchical_delegation_line_61_if_6
+    root_agent --> router_hierarchical_delegation_line_61_if_6
     router_hierarchical_delegation_line_67_if_1 -->|p.get('subtask') == 'api'| api_specialist
     router_hierarchical_delegation_line_67_if_1 -->|not (p.get('subtask') == 'api')| data_generalist
     router_hierarchical_delegation_line_65_if_2 -->|p.get('subtask') == 'sql'| sql_specialist
@@ -32,10 +32,11 @@ flowchart TD
     router_hierarchical_delegation_line_76_if_4 -->|p.get('subtask') == 'write'| writer
     router_hierarchical_delegation_line_76_if_4 -->|not (p.get('subtask') == 'write')| router_hierarchical_delegation_line_78_if_3
     router_hierarchical_delegation_line_72_if_5 -->|p.get('domain') == 'content'| content_team_lead
-    router_hierarchical_delegation_line_72_if_5 -->|p.get('domain') == 'content'| router_hierarchical_delegation_line_76_if_4
+    content_team_lead --> router_hierarchical_delegation_line_76_if_4
     router_hierarchical_delegation_line_72_if_5 -->|not (p.get('domain') == 'content')| generalist
     router_hierarchical_delegation_line_61_if_6 -->|p.get('domain') == 'data'| data_team_lead
-    router_hierarchical_delegation_line_61_if_6 -->|p.get('domain') == 'data'| router_hierarchical_delegation_line_65_if_2
-    router_hierarchical_delegation_line_61_if_6 -->|p.get('domain') == 'data'| final_assembler
+    data_team_lead --> router_hierarchical_delegation_line_65_if_2
+    router_hierarchical_delegation_line_65_if_2 --> final_assembler
     router_hierarchical_delegation_line_61_if_6 -->|not (p.get('domain') == 'data')| router_hierarchical_delegation_line_72_if_5
-    router_hierarchical_delegation_line_61_if_6 -->|not (p.get('domain') == 'data')| final_assembler
+    router_hierarchical_delegation_line_72_if_5 --> final_assembler
+    final_assembler --> end_hierarchical_delegation

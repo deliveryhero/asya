@@ -8,5 +8,6 @@ flowchart TD
     start_if_no_else_flow([start_if_no_else_flow])
 
     start_if_no_else_flow --> handler_setup
-    start_if_no_else_flow --> router_if_no_else_flow_line_14_if_1
+    handler_setup --> router_if_no_else_flow_line_14_if_1
     router_if_no_else_flow_line_14_if_1 -->|p['condition']| handler_true
+    handler_true --> end_if_no_else_flow

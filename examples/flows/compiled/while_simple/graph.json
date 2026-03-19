@@ -58,10 +58,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_while_simple_flow",
+      "from": "handler_init",
       "to": "router_while_simple_flow_line_13_seq_3",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_simple_flow_line_15_seq_2",
@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_simple_flow_line_14_while_1",
+      "from": "router_while_simple_flow_line_15_seq_2",
       "to": "router_while_simple_flow_line_14_while_1",
-      "label": "p['i'] < p['max_iterations']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_while_simple_flow_line_14_while_1",
@@ -98,6 +98,18 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "end_while_simple_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_process",
+      "to": "end_while_simple_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

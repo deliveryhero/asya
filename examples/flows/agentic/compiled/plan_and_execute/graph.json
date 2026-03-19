@@ -88,16 +88,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_plan_and_execute_line_54_while_2",
+      "from": "executor",
       "to": "router_plan_and_execute_line_59_if_3",
-      "label": "p['current_step'] < len(p.get('plan', []))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_plan_and_execute_line_54_while_2",
+      "from": "router_plan_and_execute_line_59_if_3",
       "to": "router_plan_and_execute_line_54_while_2",
-      "label": "p['current_step'] < len(p.get('plan', []))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_plan_and_execute_line_54_while_2",
@@ -112,16 +112,28 @@
       "type": "prepend"
     },
     {
-      "from": "router_plan_and_execute_line_49_seq_4",
+      "from": "planner",
       "to": "router_plan_and_execute_line_54_while_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_plan_and_execute",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "re_planner",
+      "to": "end_plan_and_execute",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "synthesizer",
+      "to": "end_plan_and_execute",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

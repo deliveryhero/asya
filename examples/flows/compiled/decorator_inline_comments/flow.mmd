@@ -13,4 +13,6 @@ flowchart TD
     router_decorator_inline_comments_flow_line_18_if_1 -->|p['category'] == 'priority'| fast_handler
     router_decorator_inline_comments_flow_line_18_if_1 -->|not (p['category'] == 'priority')| standard_handler
     router_decorator_inline_comments_flow_line_16_seq_2 --> classifier
-    router_decorator_inline_comments_flow_line_16_seq_2 --> router_decorator_inline_comments_flow_line_18_if_1
+    classifier --> router_decorator_inline_comments_flow_line_18_if_1
+    fast_handler --> end_decorator_inline_comments_flow
+    standard_handler --> end_decorator_inline_comments_flow

@@ -45,7 +45,7 @@
     },
     {
       "id": "router_while_mutations_in_loop_flow_line_20_seq_2",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_while_mutations_in_loop_flow_line_20_seq_2",
       "is_generated": true
     },
@@ -64,10 +64,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_while_mutations_in_loop_flow",
+      "from": "handler_init",
       "to": "router_while_mutations_in_loop_flow_line_13_seq_4",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_16_seq_3",
@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_16_seq_3",
+      "from": "handler_process",
       "to": "router_while_mutations_in_loop_flow_line_20_seq_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
@@ -88,10 +88,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_15_while_1",
+      "from": "router_while_mutations_in_loop_flow_line_16_seq_3",
       "to": "router_while_mutations_in_loop_flow_line_15_while_1",
-      "label": "p['i'] < p['max_iterations']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
@@ -110,6 +110,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_while_mutations_in_loop_flow_line_20_seq_2",
+      "to": "end_while_mutations_in_loop_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

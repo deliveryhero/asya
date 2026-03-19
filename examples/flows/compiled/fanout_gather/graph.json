@@ -15,7 +15,7 @@
     },
     {
       "id": "router_async_research_flow_line_16_fanout_1",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_async_research_flow_line_16_fanout_1",
       "is_generated": true
     },
@@ -34,16 +34,22 @@
       "type": "prepend"
     },
     {
-      "from": "start_async_research_flow",
+      "from": "preprocessor",
       "to": "router_async_research_flow_line_16_fanout_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_async_research_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_async_research_flow_line_16_fanout_1",
+      "to": "end_async_research_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

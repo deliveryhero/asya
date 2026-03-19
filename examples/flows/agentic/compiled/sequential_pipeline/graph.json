@@ -46,28 +46,34 @@
       "type": "prepend"
     },
     {
-      "from": "start_sequential_pipeline",
+      "from": "data_analyst",
       "to": "trading_analyst",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_sequential_pipeline",
+      "from": "trading_analyst",
       "to": "execution_planner",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_sequential_pipeline",
+      "from": "execution_planner",
       "to": "risk_evaluator",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_sequential_pipeline",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "risk_evaluator",
+      "to": "end_sequential_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

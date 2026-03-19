@@ -14,12 +14,13 @@ flowchart TD
     technical_agent[technical_agent]
 
     start_routing_classifier --> classifier
-    start_routing_classifier --> router_routing_classifier_line_47_if_3
+    classifier --> router_routing_classifier_line_47_if_3
     router_routing_classifier_line_51_if_1 -->|p.get('category') == 'account'| account_agent
     router_routing_classifier_line_51_if_1 -->|not (p.get('category') == 'account')| general_agent
     router_routing_classifier_line_49_if_2 -->|p.get('category') == 'technical'| technical_agent
     router_routing_classifier_line_49_if_2 -->|not (p.get('category') == 'technical')| router_routing_classifier_line_51_if_1
     router_routing_classifier_line_47_if_3 -->|p.get('category') == 'billing'| billing_agent
-    router_routing_classifier_line_47_if_3 -->|p.get('category') == 'billing'| format_reply
+    billing_agent --> format_reply
     router_routing_classifier_line_47_if_3 -->|not (p.get('category') == 'billing')| router_routing_classifier_line_49_if_2
-    router_routing_classifier_line_47_if_3 -->|not (p.get('category') == 'billing')| format_reply
+    router_routing_classifier_line_49_if_2 --> format_reply
+    format_reply --> end_routing_classifier

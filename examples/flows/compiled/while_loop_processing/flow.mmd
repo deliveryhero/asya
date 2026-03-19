@@ -17,17 +17,18 @@ flowchart TD
     start_loop_flow([start_loop_flow])
 
     start_loop_flow --> initialize
-    start_loop_flow --> router_loop_flow_line_15_seq_7
+    initialize --> router_loop_flow_line_15_seq_7
     router_loop_flow_line_27_if_2 -->|p['threshold_met']| finalize_loop
     router_loop_flow_line_23_seq_3 --> router_loop_flow_line_16_while_1
     router_loop_flow_line_21_seq_4 --> process_abort
-    router_loop_flow_line_21_seq_4 --> router_loop_flow_line_23_seq_3
+    process_abort --> router_loop_flow_line_23_seq_3
     router_loop_flow_line_20_if_5 -->|p.get('skip_threshold_check')| router_loop_flow_line_21_seq_4
     router_loop_flow_line_20_if_5 -->|not (p.get('skip_threshold_check'))| check_threshold
-    router_loop_flow_line_20_if_5 -->|not (p.get('skip_threshold_check'))| router_loop_flow_line_27_if_2
+    check_threshold --> router_loop_flow_line_27_if_2
     router_loop_flow_line_17_seq_6 --> process_item
-    router_loop_flow_line_17_seq_6 --> router_loop_flow_line_20_if_5
+    process_item --> router_loop_flow_line_20_if_5
     router_loop_flow_line_16_while_1 -->|p['iteration'] < p['max_iterations']| router_loop_flow_line_17_seq_6
-    router_loop_flow_line_16_while_1 -->|p['iteration'] < p['max_iterations']| router_loop_flow_line_16_while_1
+    router_loop_flow_line_17_seq_6 --> router_loop_flow_line_16_while_1
     router_loop_flow_line_16_while_1 -->|not (p['iteration'] < p['max_iterations'])| finalize_loop
     router_loop_flow_line_15_seq_7 --> router_loop_flow_line_16_while_1
+    finalize_loop --> end_loop_flow

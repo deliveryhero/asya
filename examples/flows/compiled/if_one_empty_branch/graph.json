@@ -46,10 +46,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_if_empty_branches_flow",
+      "from": "handler_setup",
       "to": "router_if_empty_branches_flow_line_14_if_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_if_empty_branches_flow_line_14_if_1",
@@ -64,16 +64,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_if_empty_branches_flow_line_14_if_1",
+      "from": "handler_process",
       "to": "handler_finalize",
-      "label": "not (p['skip_processing'])",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "end_if_empty_branches_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "end_if_empty_branches_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

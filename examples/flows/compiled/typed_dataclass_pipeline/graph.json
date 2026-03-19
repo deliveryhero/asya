@@ -46,28 +46,34 @@
       "type": "prepend"
     },
     {
-      "from": "start_typed_dataclass_pipeline",
+      "from": "extractor",
       "to": "classifier",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_typed_dataclass_pipeline",
+      "from": "classifier",
       "to": "enricher",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "start_typed_dataclass_pipeline",
+      "from": "enricher",
       "to": "formatter",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_typed_dataclass_pipeline",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "formatter",
+      "to": "end_typed_dataclass_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

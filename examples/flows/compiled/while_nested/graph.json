@@ -88,10 +88,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_while_nested_flow",
+      "from": "handler_init",
       "to": "router_while_nested_flow_line_13_seq_6",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_nested_flow_line_19_seq_3",
@@ -106,10 +106,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_nested_flow_line_18_while_2",
+      "from": "router_while_nested_flow_line_19_seq_3",
       "to": "router_while_nested_flow_line_18_while_2",
-      "label": "p['j'] < p['max_j']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_while_nested_flow_line_18_while_2",
@@ -130,10 +130,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_nested_flow_line_15_seq_5",
+      "from": "handler_outer",
       "to": "router_while_nested_flow_line_17_seq_4",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_nested_flow_line_14_while_1",
@@ -142,10 +142,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_nested_flow_line_14_while_1",
+      "from": "router_while_nested_flow_line_15_seq_5",
       "to": "router_while_nested_flow_line_14_while_1",
-      "label": "p['i'] < p['max_i']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_while_nested_flow_line_14_while_1",
@@ -164,6 +164,24 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "end_while_nested_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_inner",
+      "to": "end_while_nested_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_outer_end",
+      "to": "end_while_nested_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

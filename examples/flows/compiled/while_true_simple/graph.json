@@ -52,10 +52,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_while_true_flow",
+      "from": "handler_init",
       "to": "router_while_true_flow_line_14_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_while_true_flow_line_16_if_2",
@@ -70,22 +70,28 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_true_flow_line_14_while_1",
+      "from": "handler_process",
       "to": "router_while_true_flow_line_16_if_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_while_true_flow_line_14_while_1",
+      "from": "router_while_true_flow_line_16_if_2",
       "to": "router_while_true_flow_line_14_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_while_true_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_finalize",
+      "to": "end_while_true_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

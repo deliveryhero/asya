@@ -11,9 +11,10 @@ digraph "adaptive_flow" {
     start_adaptive_flow [label="start_adaptive_flow", fillcolor=palegreen];
 
     start_adaptive_flow -> classifier;
-    start_adaptive_flow -> router_adaptive_flow_line_16_if_2;
+    classifier -> router_adaptive_flow_line_16_if_2;
     router_adaptive_flow_line_16_if_2 -> router_adaptive_flow_line_17_fanout_1 [label="p['parallel']"];
-    router_adaptive_flow_line_16_if_2 -> formatter [label="p['parallel']"];
+    router_adaptive_flow_line_17_fanout_1 -> formatter;
     router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="not (p['parallel'])"];
-    router_adaptive_flow_line_16_if_2 -> formatter [label="not (p['parallel'])"];
+    sequential_analyzer -> formatter;
+    formatter -> end_adaptive_flow;
 }

@@ -88,10 +88,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_55_if_3",
+      "from": "refine_query",
       "to": "router_research_and_refine_line_59_if_2",
-      "label": "not (not p.get('gaps') or p.get('quality_score', 0) >= 85)",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_research_and_refine_line_55_if_3",
@@ -106,16 +106,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_51_seq_4",
+      "from": "researcher",
       "to": "critic",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_research_and_refine_line_51_seq_4",
+      "from": "critic",
       "to": "router_research_and_refine_line_55_if_3",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_research_and_refine_line_50_while_1",
@@ -124,10 +124,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_50_while_1",
+      "from": "router_research_and_refine_line_51_seq_4",
       "to": "router_research_and_refine_line_50_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_research_and_refine_line_47_seq_5",
@@ -140,6 +140,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "write_report",
+      "to": "end_research_and_refine",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

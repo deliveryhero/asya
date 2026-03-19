@@ -124,10 +124,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_hierarchical_delegation",
+      "from": "root_agent",
       "to": "router_hierarchical_delegation_line_61_if_6",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_hierarchical_delegation_line_67_if_1",
@@ -184,10 +184,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_72_if_5",
+      "from": "content_team_lead",
       "to": "router_hierarchical_delegation_line_76_if_4",
-      "label": "p.get('domain') == 'content'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_hierarchical_delegation_line_72_if_5",
@@ -202,16 +202,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_61_if_6",
+      "from": "data_team_lead",
       "to": "router_hierarchical_delegation_line_65_if_2",
-      "label": "p.get('domain') == 'data'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_hierarchical_delegation_line_61_if_6",
+      "from": "router_hierarchical_delegation_line_65_if_2",
       "to": "final_assembler",
-      "label": "p.get('domain') == 'data'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
@@ -220,16 +220,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_61_if_6",
+      "from": "router_hierarchical_delegation_line_72_if_5",
       "to": "final_assembler",
-      "label": "not (p.get('domain') == 'data')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "end_hierarchical_delegation",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "final_assembler",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

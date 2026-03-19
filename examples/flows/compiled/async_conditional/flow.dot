@@ -13,11 +13,12 @@ digraph "content_pipeline_flow" {
     text_processor [label="text_processor", fillcolor=lightblue];
 
     start_content_pipeline_flow -> classifier;
-    start_content_pipeline_flow -> router_content_pipeline_flow_line_16_if_2;
+    classifier -> router_content_pipeline_flow_line_16_if_2;
     router_content_pipeline_flow_line_18_if_1 -> image_processor [label="p['content_type'] == 'image'"];
     router_content_pipeline_flow_line_18_if_1 -> generic_processor [label="not (p['content_type'] == 'image')"];
     router_content_pipeline_flow_line_16_if_2 -> text_processor [label="p['content_type'] == 'text'"];
-    router_content_pipeline_flow_line_16_if_2 -> quality_check [label="p['content_type'] == 'text'"];
+    text_processor -> quality_check;
     router_content_pipeline_flow_line_16_if_2 -> router_content_pipeline_flow_line_18_if_1 [label="not (p['content_type'] == 'text')"];
-    router_content_pipeline_flow_line_16_if_2 -> quality_check [label="not (p['content_type'] == 'text')"];
+    router_content_pipeline_flow_line_18_if_1 -> quality_check;
+    quality_check -> end_content_pipeline_flow;
 }

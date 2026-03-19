@@ -7,4 +7,5 @@ digraph "research_flow" {
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
 
     start_research_flow -> router_research_flow_line_7_fanout_1;
+    router_research_flow_line_7_fanout_1 -> end_research_flow;
 }

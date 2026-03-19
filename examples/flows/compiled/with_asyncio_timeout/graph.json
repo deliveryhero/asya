@@ -76,16 +76,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_document_pipeline_line_24_if_2",
+      "from": "translator",
       "to": "sentiment_analyzer",
-      "label": "p.get('language') != 'en'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_document_pipeline_line_24_if_2",
+      "from": "sentiment_analyzer",
       "to": "router_document_pipeline_line_28_seq_1",
-      "label": "p.get('language') != 'en'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_document_pipeline_line_24_if_2",
@@ -94,10 +94,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_document_pipeline_line_24_if_2",
+      "from": "sentiment_analyzer",
       "to": "router_document_pipeline_line_28_seq_1",
-      "label": "not (p.get('language') != 'en')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_document_pipeline_line_18_seq_3",
@@ -106,16 +106,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_document_pipeline_line_18_seq_3",
+      "from": "ocr_extractor",
       "to": "language_detector",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_document_pipeline_line_18_seq_3",
+      "from": "language_detector",
       "to": "router_document_pipeline_line_24_if_2",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "end_document_pipeline",

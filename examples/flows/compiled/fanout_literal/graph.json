@@ -9,7 +9,7 @@
     },
     {
       "id": "router_analysis_flow_line_14_fanout_1",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_analysis_flow_line_14_fanout_1",
       "is_generated": true
     },
@@ -32,6 +32,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_analysis_flow_line_14_fanout_1",
+      "to": "end_analysis_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

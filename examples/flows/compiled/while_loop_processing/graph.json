@@ -94,10 +94,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_loop_flow",
+      "from": "initialize",
       "to": "router_loop_flow_line_15_seq_7",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_loop_flow_line_27_if_2",
@@ -118,10 +118,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_loop_flow_line_21_seq_4",
+      "from": "process_abort",
       "to": "router_loop_flow_line_23_seq_3",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_loop_flow_line_20_if_5",
@@ -136,10 +136,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_loop_flow_line_20_if_5",
+      "from": "check_threshold",
       "to": "router_loop_flow_line_27_if_2",
-      "label": "not (p.get('skip_threshold_check'))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_loop_flow_line_17_seq_6",
@@ -148,10 +148,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_loop_flow_line_17_seq_6",
+      "from": "process_item",
       "to": "router_loop_flow_line_20_if_5",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_loop_flow_line_16_while_1",
@@ -160,10 +160,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_loop_flow_line_16_while_1",
+      "from": "router_loop_flow_line_17_seq_6",
       "to": "router_loop_flow_line_16_while_1",
-      "label": "p['iteration'] < p['max_iterations']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_loop_flow_line_16_while_1",
@@ -182,6 +182,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "finalize_loop",
+      "to": "end_loop_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

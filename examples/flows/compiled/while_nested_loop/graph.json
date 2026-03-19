@@ -76,10 +76,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_nested_loop_flow",
+      "from": "initialize",
       "to": "router_nested_loop_flow_line_15_seq_5",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_nested_loop_flow_line_20_seq_3",
@@ -94,10 +94,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_nested_loop_flow_line_19_while_2",
+      "from": "router_nested_loop_flow_line_20_seq_3",
       "to": "router_nested_loop_flow_line_19_while_2",
-      "label": "p['j'] < p['max_j']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_nested_loop_flow_line_19_while_2",
@@ -118,10 +118,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_nested_loop_flow_line_16_while_1",
+      "from": "router_nested_loop_flow_line_17_seq_4",
       "to": "router_nested_loop_flow_line_16_while_1",
-      "label": "p['i'] < p['max_i']",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_nested_loop_flow_line_16_while_1",
@@ -140,6 +140,24 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "finalize_loop_i",
+      "to": "end_nested_loop_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "finalize_loop_j",
+      "to": "end_nested_loop_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "process_item",
+      "to": "end_nested_loop_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

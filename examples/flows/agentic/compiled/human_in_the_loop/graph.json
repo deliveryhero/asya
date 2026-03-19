@@ -118,10 +118,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_70_if_5",
+      "from": "router_human_in_the_loop_line_75_if_4",
       "to": "router_human_in_the_loop_line_79_if_3",
-      "label": "not (p.get('approval') in ('approved', 'modified'))",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_human_in_the_loop_line_70_if_5",
@@ -130,10 +130,10 @@
       "type": "set"
     },
     {
-      "from": "router_human_in_the_loop_line_70_if_5",
+      "from": "executor",
       "to": "notifier",
-      "label": "p.get('approval') in ('approved', 'modified')",
-      "type": "set"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_human_in_the_loop_line_61_seq_6",
@@ -142,16 +142,16 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_61_seq_6",
+      "from": "proposal_generator",
       "to": "approval_gate",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_61_seq_6",
+      "from": "approval_gate",
       "to": "router_human_in_the_loop_line_70_if_5",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_human_in_the_loop_line_60_while_1",
@@ -160,10 +160,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_60_while_1",
+      "from": "router_human_in_the_loop_line_61_seq_6",
       "to": "router_human_in_the_loop_line_60_while_1",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_human_in_the_loop_line_58_seq_7",
@@ -176,6 +176,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "notifier",
+      "to": "end_human_in_the_loop",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

@@ -9,6 +9,7 @@ flowchart TD
     trading_analyst[trading_analyst]
 
     start_sequential_pipeline --> data_analyst
-    start_sequential_pipeline --> trading_analyst
-    start_sequential_pipeline --> execution_planner
-    start_sequential_pipeline --> risk_evaluator
+    data_analyst --> trading_analyst
+    trading_analyst --> execution_planner
+    execution_planner --> risk_evaluator
+    risk_evaluator --> end_sequential_pipeline

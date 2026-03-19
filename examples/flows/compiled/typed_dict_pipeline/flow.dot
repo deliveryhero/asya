@@ -12,9 +12,10 @@ digraph "typeddict_pipeline" {
     validator [label="validator", fillcolor=lightblue];
 
     start_typeddict_pipeline -> parser;
-    start_typeddict_pipeline -> validator;
-    start_typeddict_pipeline -> router_typeddict_pipeline_line_77_if_1;
+    parser -> validator;
+    validator -> router_typeddict_pipeline_line_77_if_1;
     router_typeddict_pipeline_line_77_if_1 -> transformer [label="not (not p.get('valid', True))"];
-    router_typeddict_pipeline_line_77_if_1 -> sink_adapter [label="not (not p.get('valid', True))"];
+    transformer -> sink_adapter;
     router_typeddict_pipeline_line_77_if_1 -> error_handler [label="not p.get('valid', True)"];
+    sink_adapter -> end_typeddict_pipeline;
 }

@@ -100,10 +100,10 @@
       "type": "prepend"
     },
     {
-      "from": "start_test_nested_flow",
+      "from": "validate_input",
       "to": "router_test_nested_flow_line_9_if_7",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "router_test_nested_flow_line_12_seq_1",
@@ -160,10 +160,10 @@
       "type": "prepend"
     },
     {
-      "from": "router_test_nested_flow_line_9_if_7",
+      "from": "router_test_nested_flow_line_11_if_3",
       "to": "finalize_result",
-      "label": "p['level1'] == 'A'",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_test_nested_flow_line_9_if_7",
@@ -172,16 +172,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_test_nested_flow_line_9_if_7",
+      "from": "router_test_nested_flow_line_19_if_6",
       "to": "finalize_result",
-      "label": "not (p['level1'] == 'A')",
-      "type": "prepend"
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "end_test_nested_flow",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "finalize_result",
+      "to": "end_test_nested_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []
