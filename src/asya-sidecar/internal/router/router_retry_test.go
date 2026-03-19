@@ -1320,15 +1320,15 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Duration exhausted → should go to x-sump (not retry)
+	// Duration exhausted → should go to x-sink (full termination path, not retry)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no retries when maxDuration exceeded, got %d", len(mt.delayedMessages))
 	}
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to x-sink, got %d", len(mt.sentMessages))
 	}
-	if mt.sentMessages[0].queue != "asya-default-x-sump" {
-		t.Errorf("Expected x-sump queue, got %s", mt.sentMessages[0].queue)
+	if mt.sentMessages[0].queue != "asya-default-x-sink" {
+		t.Errorf("Expected x-sink queue, got %s", mt.sentMessages[0].queue)
 	}
 
 	var failedMsg envelopes.Envelope
