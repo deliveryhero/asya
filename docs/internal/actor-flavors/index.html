@@ -1048,7 +1048,7 @@ the actor's value wins. No error is raised for actor-vs-flavor overlap.</p>
 - <code>volumes</code> - Pod volumes
 - <code>volumeMounts</code> - Runtime container volume mounts
 - <code>stateProxy</code> - State proxy sidecar mounts
-- <code>resiliency</code> - Retry policies
+- <code>resiliency</code> - Retry policies (<code>policies</code> map + <code>rules</code> list). When merging, <code>policies</code> keys are merged recursively across flavors; <code>rules</code> lists are appended — the first matching rule wins at runtime, so ordering across flavors matters.
 - <code>sidecar</code> - Sidecar overrides
 - <code>secretRefs</code> - Secret references</p>
 <h2 id="limitations">Limitations<a class="headerlink" href="#limitations" title="Permanent link">&para;</a></h2>

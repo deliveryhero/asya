@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crew termination - Asya🎭</title>
+    <title>Resiliency - Asya🎭</title>
     
 
 
-<title>Crew termination</title>
+<title>Resiliency</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/internal/crew-termination/">
+<link rel="canonical" href="https://asya.sh/docs/features/resiliency/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Crew termination">
+<meta property="og:title" content="Resiliency">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/internal/crew-termination/">
+<meta property="og:url" content="https://asya.sh/docs/features/resiliency/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Crew termination">
+<meta name="twitter:title" content="Resiliency">
 
 
 
@@ -902,12 +902,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Crew termination
+          Resiliency
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/internal/crew-termination.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/features/resiliency.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -926,55 +926,180 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>When an actor's processing fails permanently (policy exhausted, no <code>onExhausted</code>), the sidecar
-routes the envelope through a two-layer termination chain:</p>
-<ol>
-<li><strong>x-sink</strong> — receives the failed envelope, persists it, and marks the task as <code>failed</code>.</li>
-<li><strong>x-sump</strong> — receives the envelope from x-sink (DLQ handling); logs, alerts, or discards.</li>
-</ol>
-<p>x-sump is never reached directly from the sidecar. All failure paths go through x-sink first.
-This invariant is enforced by <code>sendRetryFailure</code>.</p>
-<h2 id="policy-exhaustion-behavior">Policy exhaustion behavior<a class="headerlink" href="#policy-exhaustion-behavior" title="Permanent link">&para;</a></h2>
+    <p>Configure per-actor retry behavior via named policies and error-matching rules.
+When a handler raises an exception, the sidecar matches it against the configured
+rules to select a policy, then applies that policy to decide whether to retry,
+route to a fallback actor, or fail permanently.</p>
+<h2 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<p>Set two environment variables on the actor's sidecar container:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Named retry policies (JSON object)</span>
+<span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:3,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;1s&quot;,&quot;maxInterval&quot;:&quot;30s&quot;,&quot;jitter&quot;:true}}&#39;</span>
+
+<span class="c1"># Error-matching rules (JSON array, optional)</span>
+<span class="nv">ASYA_RESILIENCY_RULES</span><span class="o">=</span><span class="s1">&#39;[]&#39;</span>
+</code></pre></div>
+<p>With no rules, all errors use the <code>default</code> policy.</p>
+<h2 id="policy-fields">Policy Fields<a class="headerlink" href="#policy-fields" title="Permanent link">&para;</a></h2>
+<p>Each entry in <code>ASYA_RESILIENCY_POLICIES</code> is a named <code>PolicyConfig</code> object:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Policy state</th>
-<th><code>onExhausted</code></th>
-<th>Outcome</th>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Attempts or maxDuration exhausted</td>
-<td>empty</td>
-<td><code>sendRetryFailure</code> → x-sink → x-sump</td>
+<td><code>maxAttempts</code></td>
+<td>int</td>
+<td>Maximum attempts including the first. Default: 1 (no retry).</td>
 </tr>
 <tr>
-<td>Attempts or maxDuration exhausted</td>
-<td><code>["recovery-actor"]</code></td>
-<td><code>routeOnExhausted</code> → recovery-actor queue</td>
+<td><code>backoff</code></td>
+<td>string</td>
+<td>Backoff strategy: <code>constant</code>, <code>linear</code>, or <code>exponential</code>.</td>
 </tr>
 <tr>
-<td>No resiliency config</td>
-<td>—</td>
-<td><code>sendRetryFailure</code> immediately → x-sink → x-sump</td>
+<td><code>initialDelay</code></td>
+<td>duration</td>
+<td>Delay before the first retry (e.g. <code>"1s"</code>, <code>"500ms"</code>).</td>
 </tr>
 <tr>
-<td>No matching rule AND no <code>default</code> policy</td>
-<td>—</td>
-<td><code>sendRetryFailure</code> immediately → x-sink → x-sump</td>
+<td><code>maxInterval</code></td>
+<td>duration</td>
+<td>Cap on per-attempt delay (e.g. <code>"30s"</code>, <code>"5m"</code>).</td>
+</tr>
+<tr>
+<td><code>maxDuration</code></td>
+<td>duration</td>
+<td>Maximum total time across all retry attempts (e.g. <code>"10m"</code>). When exceeded, the policy is considered exhausted regardless of <code>maxAttempts</code>.</td>
+</tr>
+<tr>
+<td><code>jitter</code></td>
+<td>bool</td>
+<td>Add random jitter to delays to prevent thundering-herd bursts.</td>
+</tr>
+<tr>
+<td><code>onExhausted</code></td>
+<td>string[]</td>
+<td>Actor list to route the envelope to when the policy is exhausted. If omitted, the envelope goes to <code>x-sink</code> with <code>reason=PolicyExhausted</code>.</td>
 </tr>
 </tbody>
 </table></div>
-<h2 id="envelope-status-at-termination">Envelope status at termination<a class="headerlink" href="#envelope-status-at-termination" title="Permanent link">&para;</a></h2>
-<p>When routed to x-sink via <code>sendRetryFailure</code>:
-- <code>status.phase = failed</code>
-- <code>status.reason = PolicyExhausted</code> (or <code>RuntimeError</code> for infrastructure failures)
-- <code>status.error</code> contains the last exception type, MRO, message, and traceback</p>
-<p>When routed to a custom <code>onExhausted</code> actor:
-- <code>status.phase = failed</code>
-- <code>status.reason = PolicyRouted</code>
-- <code>route.next = onExhausted</code> (set by sidecar before dispatch)</p>
+<h2 id="backoff-strategies">Backoff Strategies<a class="headerlink" href="#backoff-strategies" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Strategy</th>
+<th>Delay formula</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>constant</code></td>
+<td>Every attempt waits <code>initialDelay</code>.</td>
+</tr>
+<tr>
+<td><code>linear</code></td>
+<td>Attempt N waits <code>N * initialDelay</code>, capped at <code>maxInterval</code>.</td>
+</tr>
+<tr>
+<td><code>exponential</code></td>
+<td>Attempt N waits <code>initialDelay * 2^(N-1)</code>, capped at <code>maxInterval</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<p>All strategies respect <code>maxDuration</code> — once the total elapsed time since the first
+attempt exceeds <code>maxDuration</code>, the policy is exhausted.</p>
+<h2 id="rules">Rules<a class="headerlink" href="#rules" title="Permanent link">&para;</a></h2>
+<p><code>ASYA_RESILIENCY_RULES</code> is an ordered JSON array. Each rule maps a set of error
+type patterns to a named policy:</p>
+<div class="highlight"><pre><span></span><code><span class="p">[</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ValueError&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;KeyError&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;policy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;nonretryable&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="p">{</span><span class="nt">&quot;errors&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;requests.exceptions.Timeout&quot;</span><span class="p">],</span><span class="w"> </span><span class="nt">&quot;policy&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;slow-retry&quot;</span><span class="p">}</span>
+<span class="p">]</span>
+</code></pre></div>
+<p>The sidecar checks rules in order and selects the first rule whose <code>errors</code> list
+matches the exception. If no rule matches, the <code>"default"</code> policy is used.</p>
+<h3 id="pattern-matching">Pattern Matching<a class="headerlink" href="#pattern-matching" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Short name</strong> (no <code>.</code>): matches the part after the last <code>.</code> in any MRO entry.
+  <code>"ValueError"</code> matches <code>builtins.ValueError</code>, <code>mylib.ValueError</code>, etc.</li>
+<li><strong>Fully-qualified name</strong> (contains <code>.</code>): exact string equality against the
+  exception type or any MRO ancestor.</li>
+</ul>
+<p>MRO (Method Resolution Order) is the full inheritance chain of the exception,
+as reported by the Python runtime. This means <code>"Exception"</code> matches any subclass
+of <code>Exception</code>, making it a catch-all wildcard.</p>
+<h2 id="recipes">Recipes<a class="headerlink" href="#recipes" title="Permanent link">&para;</a></h2>
+<h3 id="retry-with-exponential-backoff">Retry with exponential backoff<a class="headerlink" href="#retry-with-exponential-backoff" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:5,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;2s&quot;,&quot;maxInterval&quot;:&quot;60s&quot;,&quot;jitter&quot;:true}}&#39;</span>
+</code></pre></div>
+<h3 id="non-retryable-errors-go-directly-to-x-sink">Non-retryable errors go directly to x-sink<a class="headerlink" href="#non-retryable-errors-go-directly-to-x-sink" title="Permanent link">&para;</a></h3>
+<p>Configure a policy with <code>maxAttempts=1</code> and a rule that routes specific error
+types to it. On the first failure, the policy is exhausted immediately.</p>
+<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{</span>
+<span class="s1">  &quot;default&quot;:    {&quot;maxAttempts&quot;:3,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;1s&quot;},</span>
+<span class="s1">  &quot;hard-fail&quot;:  {&quot;maxAttempts&quot;:1}</span>
+<span class="s1">}&#39;</span>
+<span class="nv">ASYA_RESILIENCY_RULES</span><span class="o">=</span><span class="s1">&#39;[</span>
+<span class="s1">  {&quot;errors&quot;:[&quot;ValueError&quot;,&quot;TypeError&quot;],&quot;policy&quot;:&quot;hard-fail&quot;}</span>
+<span class="s1">]&#39;</span>
+</code></pre></div>
+<h3 id="route-exhausted-envelopes-to-a-recovery-actor">Route exhausted envelopes to a recovery actor<a class="headerlink" href="#route-exhausted-envelopes-to-a-recovery-actor" title="Permanent link">&para;</a></h3>
+<p>When the policy exhausts, instead of going to <code>x-sink</code>, the envelope is forwarded
+to a recovery actor that can inspect or reprocess it:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:3,&quot;backoff&quot;:&quot;constant&quot;,&quot;initialDelay&quot;:&quot;5s&quot;,&quot;onExhausted&quot;:[&quot;recovery-actor&quot;]}}&#39;</span>
+</code></pre></div>
+<p>The recovery actor receives the envelope with <code>status.phase=failed</code> and
+<code>status.reason=PolicyRouted</code>.</p>
+<h3 id="cap-total-retry-time">Cap total retry time<a class="headerlink" href="#cap-total-retry-time" title="Permanent link">&para;</a></h3>
+<p>Stop retrying after 10 minutes regardless of attempt count:</p>
+<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:100,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;1s&quot;,&quot;maxInterval&quot;:&quot;30s&quot;,&quot;maxDuration&quot;:&quot;10m&quot;}}&#39;</span>
+</code></pre></div>
+<h2 id="envelope-status-at-failure">Envelope Status at Failure<a class="headerlink" href="#envelope-status-at-failure" title="Permanent link">&para;</a></h2>
+<p>When an envelope reaches <code>x-sink</code> after policy exhaustion, its <code>status</code> block
+contains:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;phase&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;failed&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;reason&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;PolicyExhausted&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actor&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my-actor&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;attempt&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;max_attempts&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T00:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2026-01-01T00:00:05Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;error&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ValueError&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;mro&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;ValueError&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;Exception&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;BaseException&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;object&quot;</span><span class="p">],</span>
+<span class="w">    </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;traceback&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
+<span class="w">  </span><span class="p">}</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>When routed to an <code>onExhausted</code> actor instead, <code>reason</code> is <code>PolicyRouted</code>.</p>
+<h2 id="transport-constraints">Transport Constraints<a class="headerlink" href="#transport-constraints" title="Permanent link">&para;</a></h2>
+<p>Retry with delay requires the transport to support <code>SendWithDelay</code>. Currently:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Transport</th>
+<th>Retry with delay</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SQS</td>
+<td>✅ Supported</td>
+</tr>
+<tr>
+<td>RabbitMQ</td>
+<td>❌ Not supported — policy exhausts on first retry attempt, envelope goes to x-sink</td>
+</tr>
+</tbody>
+</table></div>
+<p>Non-retryable patterns (policies with <code>maxAttempts=1</code>) and <code>onExhausted</code> routing
+work on all transports since they do not require delayed sends.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1262,18 +1387,92 @@ This invariant is enforced by <code>sendRetryFailure</code>.</p>
         
         
         
-        <a href="#policy-exhaustion-behavior"
+        <a href="#quick-start"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Policy exhaustion behavior
+            Quick Start
         </a>
         
 
         
-        <a href="#envelope-status-at-termination"
+        <a href="#policy-fields"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Envelope status at termination
+            Policy Fields
+        </a>
+        
+
+        
+        <a href="#backoff-strategies"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Backoff Strategies
+        </a>
+        
+
+        
+        <a href="#rules"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Rules
+        </a>
+        
+        
+        <a href="#pattern-matching"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Pattern Matching
+        </a>
+        
+        
+
+        
+        <a href="#recipes"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Recipes
+        </a>
+        
+        
+        <a href="#retry-with-exponential-backoff"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Retry with exponential backoff
+        </a>
+        
+        <a href="#non-retryable-errors-go-directly-to-x-sink"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Non-retryable errors go directly to x-sink
+        </a>
+        
+        <a href="#route-exhausted-envelopes-to-a-recovery-actor"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Route exhausted envelopes to a recovery actor
+        </a>
+        
+        <a href="#cap-total-retry-time"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Cap total retry time
+        </a>
+        
+        
+
+        
+        <a href="#envelope-status-at-failure"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Envelope Status at Failure
+        </a>
+        
+
+        
+        <a href="#transport-constraints"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Transport Constraints
         </a>
         
 

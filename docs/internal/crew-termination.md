@@ -1,101 +1,31 @@
-# Crew Termination: x-sink and x-sump
+# Crew Termination Flow
 
-## Overview
+When an actor's processing fails permanently (policy exhausted, no `onExhausted`), the sidecar
+routes the envelope through a two-layer termination chain:
 
-All terminal envelopes — whether succeeded or failed — are processed by a
-two-layer termination pipeline built from two crew actors:
+1. **x-sink** — receives the failed envelope, persists it, and marks the task as `failed`.
+2. **x-sump** — receives the envelope from x-sink (DLQ handling); logs, alerts, or discards.
 
-```
-Any terminal envelope
-    → x-sink  [role=sink]     checkpoint + hooks
-    → x-sump  [role=sump]     log + ACK (terminal)
-```
+x-sump is never reached directly from the sidecar. All failure paths go through x-sink first.
+This invariant is enforced by `sendRetryFailure`.
 
-**Invariant: x-sump must never receive an envelope that has not passed through
-x-sink first.** x-sump is the second layer only. It has no checkpointing or
-hook logic of its own beyond logging.
+## Policy exhaustion behavior
 
----
-
-## x-sink
-
-**Source**: `src/asya-crew/asya_crew/sink.py`
-
-Receives every terminal envelope — both route-exhausted and failure paths.
-Runs regardless of `status.phase`; both `succeeded` and `failed` envelopes pass through.
-
-Responsibilities:
-- Inline checkpoint via state proxy (if `ASYA_PERSISTENCE_MOUNT` is set)
-- Route to configurable post-hooks (`ASYA_SINK_HOOKS`: comma-separated actor names)
-- Pass through to x-sump when hooks are done (or immediately if none configured)
-
-Special cases that **skip hooks** (silently pass to x-sump):
-- Fan-in partials (`x-asya-fan-in` header present) — accumulating slices, not final results
-- Fan-out children with a `parent_id` — unless `ASYA_SINK_FANOUT_HOOKS=true`
-
-## x-sump
-
-**Source**: `src/asya-crew/asya_crew/sump.py`
-
-Terminal actor. Receives every envelope after x-sink and all hooks have run.
-
-Responsibilities:
-- Log at `ERROR` level if `status.phase == "failed"`
-- Log at `DEBUG` level if `status.phase == "succeeded"`
-- Optional final checkpoint via state proxy
-- Yield payload and ACK — no further routing
-
-x-sump has no configurable hooks. It is the absolute end of every message path.
-
----
-
-## Routing paths
-
-| Situation | Sidecar action | Path |
+| Policy state | `onExhausted` | Outcome |
 |---|---|---|
-| Route exhausted / handler returns `None` | Send to `SinkQueue` | x-sink → hooks → x-sump |
-| Handler returns payload, route has actors | Send to next actor | normal mesh routing |
-| `_on_error` header set (flow try-except) | Send to named handler | custom actor (bypasses both) |
-| Non-retryable error (`nonRetryableErrors`) | `sendRetryFailure` | x-sink → hooks → x-sump |
-| Max retries exhausted | `sendRetryFailure` | x-sink → hooks → x-sump |
-| No resiliency configured (legacy) | `sendRetryFailure` | x-sink → hooks → x-sump |
+| Attempts or maxDuration exhausted | empty | `sendRetryFailure` → x-sink → x-sump |
+| Attempts or maxDuration exhausted | `["recovery-actor"]` | `routeOnExhausted` → recovery-actor queue |
+| No resiliency config | — | `sendRetryFailure` immediately → x-sink → x-sump |
+| No matching rule AND no `default` policy | — | `sendRetryFailure` immediately → x-sink → x-sump |
 
----
+## Envelope status at termination
 
-## Design rationale
+When routed to x-sink via `sendRetryFailure`:
+- `status.phase = failed`
+- `status.reason = PolicyExhausted` (or `RuntimeError` for infrastructure failures)
+- `status.error` contains the last exception type, MRO, message, and traceback
 
-x-sink and x-sump are deliberately split rather than merged into one actor:
-
-- **x-sink** is configurable per deployment (hooks, persistence mount) and must
-  handle both success and failure identically — it does not branch on phase.
-- **x-sump** is fixed and unconditional — it is the one place in the system
-  where you can assert "this message is done, no matter what".
-
-Keeping them separate means hook failures in x-sink (e.g., checkpoint-s3 throws)
-do not prevent x-sump from logging and ACKing the envelope. The sidecar routes
-x-sink's output to x-sump via the normal route mechanism, so x-sink errors
-would themselves be caught and eventually reach x-sump via `sendRetryFailure`.
-
----
-
-## Error phase vs. success phase
-
-x-sink does **not** fork on `status.phase`. Both `succeeded` and `failed`
-envelopes get the same hooks. If you need phase-specific behavior (e.g.,
-only checkpoint failures), implement it inside a custom hook actor that reads
-`status.phase` via the ABI:
-
-```python
-status = yield "GET", ".status"
-if status.get("phase") != "failed":
-    return  # skip for succeeded
-# ... custom failure handling
-yield payload
-```
-
----
-
-## Related docs
-
-- [crew-checkpointer.md](crew-checkpointer.md) — checkpointer implementation
-  called from x-sink and x-sump
+When routed to a custom `onExhausted` actor:
+- `status.phase = failed`
+- `status.reason = PolicyRouted`
+- `route.next = onExhausted` (set by sidecar before dispatch)

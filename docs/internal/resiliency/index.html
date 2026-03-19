@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Crew termination - Asya🎭</title>
+    <title>Resiliency - Asya🎭</title>
     
 
 
-<title>Crew termination</title>
+<title>Resiliency</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/internal/crew-termination/">
+<link rel="canonical" href="https://asya.sh/docs/internal/resiliency/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Crew termination">
+<meta property="og:title" content="Resiliency">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/internal/crew-termination/">
+<meta property="og:url" content="https://asya.sh/docs/internal/resiliency/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Crew termination">
+<meta name="twitter:title" content="Resiliency">
 
 
 
@@ -902,12 +902,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Crew termination
+          Resiliency
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/internal/crew-termination.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/internal/resiliency.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -926,55 +926,166 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>When an actor's processing fails permanently (policy exhausted, no <code>onExhausted</code>), the sidecar
-routes the envelope through a two-layer termination chain:</p>
+    <p>Technical reference for the policy-based retry and error-routing system in
+<code>asya-sidecar</code>. See <code>docs/features/resiliency.md</code> for the user-facing guide.</p>
+<h2 id="configuration-loading">Configuration Loading<a class="headerlink" href="#configuration-loading" title="Permanent link">&para;</a></h2>
+<p>Two env vars are parsed at startup by <code>internal/config</code>:</p>
+<ul>
+<li><code>ASYA_RESILIENCY_POLICIES</code> — JSON object decoded into <code>map[string]PolicyConfig</code></li>
+<li><code>ASYA_RESILIENCY_RULES</code> — JSON array decoded into <code>[]RetryRule</code></li>
+</ul>
+<p>Both live on <code>ResiliencyConfig</code>, which is <code>nil</code> when neither var is set (no
+resiliency configured; single attempt, legacy behaviour).</p>
+<p><code>PolicyConfig</code> fields:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">PolicyConfig</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">MaxAttempts</span><span class="w">  </span><span class="kt">int</span><span class="w">          </span><span class="s">`json:&quot;maxAttempts&quot;`</span>
+<span class="w">    </span><span class="nx">Backoff</span><span class="w">      </span><span class="nx">RetryPolicy</span><span class="w">  </span><span class="s">`json:&quot;backoff&quot;`</span>
+<span class="w">    </span><span class="nx">InitialDelay</span><span class="w"> </span><span class="nx">JSONDuration</span><span class="w"> </span><span class="s">`json:&quot;initialDelay&quot;`</span>
+<span class="w">    </span><span class="nx">MaxInterval</span><span class="w">  </span><span class="nx">JSONDuration</span><span class="w"> </span><span class="s">`json:&quot;maxInterval&quot;`</span>
+<span class="w">    </span><span class="nx">MaxDuration</span><span class="w">  </span><span class="nx">JSONDuration</span><span class="w"> </span><span class="s">`json:&quot;maxDuration&quot;`</span>
+<span class="w">    </span><span class="nx">Jitter</span><span class="w">       </span><span class="kt">bool</span><span class="w">         </span><span class="s">`json:&quot;jitter&quot;`</span>
+<span class="w">    </span><span class="nx">OnExhausted</span><span class="w">  </span><span class="p">[]</span><span class="kt">string</span><span class="w">     </span><span class="s">`json:&quot;onExhausted&quot;`</span>
+<span class="p">}</span>
+</code></pre></div>
+<p><code>JSONDuration</code> parses Go duration strings (<code>"1s"</code>, <code>"500ms"</code>, <code>"5m"</code>) via
+<code>time.ParseDuration</code>.</p>
+<h2 id="error-handling-flow">Error Handling Flow<a class="headerlink" href="#error-handling-flow" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>handleErrorResponse
+  ├── _on_error header? → routeToFlowErrorHandler (flow error path)
+  ├── Record metrics (error count, processing duration)
+  ├── Resiliency nil? → sendRetryFailure(RuntimeError)
+  ├── matchPolicy(errorType, mro)
+  │     nil? → sendRetryFailure(RuntimeError)
+  └── applyPolicy(policy)
+        ├── attempts not exhausted AND duration not exceeded
+        │     → retryMessage (SendWithDelay)
+        │         SendWithDelay fails → sendRetryFailure(RuntimeError)
+        ├── exhausted + OnExhausted configured
+        │     → routeOnExhausted
+        └── exhausted + no OnExhausted
+              → sendRetryFailure(PolicyExhausted)
+</code></pre></div>
+<h2 id="policy-matching-matchpolicy">Policy Matching (<code>matchPolicy</code>)<a class="headerlink" href="#policy-matching-matchpolicy" title="Permanent link">&para;</a></h2>
+<p>Builds a candidate list: <code>[errorType] + mro</code>. Iterates rules in order; for each
+rule, checks every pattern against every candidate:</p>
+<ul>
+<li><strong>FQN pattern</strong> (contains <code>.</code>): exact equality — <code>candidate == pattern</code></li>
+<li><strong>Short name</strong> (no <code>.</code>): matches <code>candidate[lastDot+1:]</code></li>
+</ul>
+<p>First matching rule wins; its <code>policy</code> key is looked up in <code>Policies</code>. If no
+rule matches, <code>Policies["default"]</code> is returned. If no default exists, returns
+<code>nil</code> → <code>sendRetryFailure(RuntimeError)</code>.</p>
+<h2 id="policy-application-applypolicy">Policy Application (<code>applyPolicy</code>)<a class="headerlink" href="#policy-application-applypolicy" title="Permanent link">&para;</a></h2>
 <ol>
-<li><strong>x-sink</strong> — receives the failed envelope, persists it, and marks the task as <code>failed</code>.</li>
-<li><strong>x-sump</strong> — receives the envelope from x-sink (DLQ handling); logs, alerts, or discards.</li>
+<li><code>maxAttempts = max(policy.MaxAttempts, 1)</code> — zero is treated as 1</li>
+<li><code>msg.Status.MaxAttempts = maxAttempts</code> — propagated to the final x-sink envelope</li>
+<li><code>attemptsExhausted = msg.Status.Attempt &gt;= maxAttempts</code></li>
+<li><code>durationExhausted = createdAt + maxDuration &lt; now</code> (only when <code>MaxDuration &gt; 0</code>)</li>
+<li>If neither exhausted: <code>retryMessage</code> → <code>SendWithDelay(delay)</code></li>
+<li>If exhausted and <code>OnExhausted</code> non-empty: <code>routeOnExhausted</code></li>
+<li>If exhausted and <code>OnExhausted</code> empty: <code>sendRetryFailure(PolicyExhausted)</code></li>
 </ol>
-<p>x-sump is never reached directly from the sidecar. All failure paths go through x-sink first.
-This invariant is enforced by <code>sendRetryFailure</code>.</p>
-<h2 id="policy-exhaustion-behavior">Policy exhaustion behavior<a class="headerlink" href="#policy-exhaustion-behavior" title="Permanent link">&para;</a></h2>
+<h2 id="delay-computation-computeretrydelayforpolicy">Delay Computation (<code>computeRetryDelayForPolicy</code>)<a class="headerlink" href="#delay-computation-computeretrydelayforpolicy" title="Permanent link">&para;</a></h2>
+<p>Delay for attempt N (1-indexed current attempt):</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Policy state</th>
-<th><code>onExhausted</code></th>
-<th>Outcome</th>
+<th>Backoff</th>
+<th>Formula</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>Attempts or maxDuration exhausted</td>
-<td>empty</td>
-<td><code>sendRetryFailure</code> → x-sink → x-sump</td>
+<td><code>constant</code></td>
+<td><code>initialDelay</code></td>
 </tr>
 <tr>
-<td>Attempts or maxDuration exhausted</td>
-<td><code>["recovery-actor"]</code></td>
-<td><code>routeOnExhausted</code> → recovery-actor queue</td>
+<td><code>linear</code></td>
+<td><code>N * initialDelay</code></td>
 </tr>
 <tr>
-<td>No resiliency config</td>
-<td>—</td>
-<td><code>sendRetryFailure</code> immediately → x-sink → x-sump</td>
-</tr>
-<tr>
-<td>No matching rule AND no <code>default</code> policy</td>
-<td>—</td>
-<td><code>sendRetryFailure</code> immediately → x-sink → x-sump</td>
+<td><code>exponential</code></td>
+<td><code>initialDelay * 2^(N-1)</code></td>
 </tr>
 </tbody>
 </table></div>
-<h2 id="envelope-status-at-termination">Envelope status at termination<a class="headerlink" href="#envelope-status-at-termination" title="Permanent link">&para;</a></h2>
-<p>When routed to x-sink via <code>sendRetryFailure</code>:
-- <code>status.phase = failed</code>
-- <code>status.reason = PolicyExhausted</code> (or <code>RuntimeError</code> for infrastructure failures)
-- <code>status.error</code> contains the last exception type, MRO, message, and traceback</p>
-<p>When routed to a custom <code>onExhausted</code> actor:
-- <code>status.phase = failed</code>
-- <code>status.reason = PolicyRouted</code>
-- <code>route.next = onExhausted</code> (set by sidecar before dispatch)</p>
+<p>All capped at <code>maxInterval</code> (when set). Jitter adds <code>rand * 0.1 * delay</code>.
+Minimum returned delay is 0.</p>
+<h2 id="envelope-status-lifecycle">Envelope Status Lifecycle<a class="headerlink" href="#envelope-status-lifecycle" title="Permanent link">&para;</a></h2>
+<p><code>ensureAndUpdateStatus</code> is called at the start of every <code>ProcessMessage</code> to
+initialise or advance <code>msg.Status</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status == nil</code></td>
+<td>Create with <code>phase=pending</code>, <code>attempt=1</code>, <code>created_at=now</code></td>
+</tr>
+<tr>
+<td><code>status.actor != currentActor</code></td>
+<td>Reset <code>attempt=1</code>, <code>created_at=now</code>, <code>error=nil</code> (actor transition)</td>
+</tr>
+<tr>
+<td>Same actor, retry</td>
+<td>Increment <code>attempt</code>, update <code>updated_at</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The <code>created_at</code> reset on actor transition ensures <code>maxDuration</code> is scoped to
+the current actor, not the entire pipeline lifetime.</p>
+<p>On retry: <code>status.phase = retrying</code>, <code>status.actor = currentActor</code>.
+On success: <code>status.phase = succeeded</code>, <code>status.error = nil</code>.
+On failure: <code>status.phase = failed</code>, <code>status.reason = &lt;reason&gt;</code>, <code>status.error = &lt;details&gt;</code>.</p>
+<h2 id="retry-transport-requirement">Retry Transport Requirement<a class="headerlink" href="#retry-transport-requirement" title="Permanent link">&para;</a></h2>
+<p><code>retryMessage</code> calls <code>transport.SendWithDelay(queue, body, delay)</code>. If the
+transport returns <code>ErrDelayNotSupported</code> (e.g. RabbitMQ), the sidecar falls back
+to <code>sendRetryFailure(RuntimeError)</code> immediately — the envelope goes to <code>x-sink</code>
+on the first retry attempt.</p>
+<h2 id="metrics-emitted">Metrics Emitted<a class="headerlink" href="#metrics-emitted" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Metric call</th>
+<th>When</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RecordMessageProcessed("error")</code></td>
+<td>Every error response</td>
+</tr>
+<tr>
+<td><code>RecordProcessingDuration</code></td>
+<td>Every error response (once, in <code>handleErrorResponse</code>)</td>
+</tr>
+<tr>
+<td><code>RecordMessageProcessed("retried")</code></td>
+<td>Successful <code>SendWithDelay</code></td>
+</tr>
+<tr>
+<td><code>RecordMessageFailed("retry_send_failed")</code></td>
+<td><code>SendWithDelay</code> fails</td>
+</tr>
+<tr>
+<td><code>RecordMessageProcessed("policy_routed")</code></td>
+<td>Routed to <code>onExhausted</code> actor</td>
+</tr>
+<tr>
+<td><code>RecordMessageFailed("policy_exhausted")</code></td>
+<td>Sent to x-sink as exhausted</td>
+</tr>
+</tbody>
+</table></div>
+<p>Note: <code>RecordProcessingDuration</code> is called <strong>only</strong> in <code>handleErrorResponse</code>,
+not inside <code>applyPolicy</code> terminal branches, to avoid double-counting.</p>
+<h2 id="termination-paths">Termination Paths<a class="headerlink" href="#termination-paths" title="Permanent link">&para;</a></h2>
+<p>See <code>docs/internal/crew-termination.md</code> for the x-sink → x-sump chain and
+the envelope status fields set by <code>sendRetryFailure</code> and <code>routeOnExhausted</code>.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1262,18 +1373,74 @@ This invariant is enforced by <code>sendRetryFailure</code>.</p>
         
         
         
-        <a href="#policy-exhaustion-behavior"
+        <a href="#configuration-loading"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Policy exhaustion behavior
+            Configuration Loading
         </a>
         
 
         
-        <a href="#envelope-status-at-termination"
+        <a href="#error-handling-flow"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Envelope status at termination
+            Error Handling Flow
+        </a>
+        
+
+        
+        <a href="#policy-matching-matchpolicy"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Policy Matching (matchPolicy)
+        </a>
+        
+
+        
+        <a href="#policy-application-applypolicy"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Policy Application (applyPolicy)
+        </a>
+        
+
+        
+        <a href="#delay-computation-computeretrydelayforpolicy"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Delay Computation (computeRetryDelayForPolicy)
+        </a>
+        
+
+        
+        <a href="#envelope-status-lifecycle"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Envelope Status Lifecycle
+        </a>
+        
+
+        
+        <a href="#retry-transport-requirement"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Retry Transport Requirement
+        </a>
+        
+
+        
+        <a href="#metrics-emitted"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Metrics Emitted
+        </a>
+        
+
+        
+        <a href="#termination-paths"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Termination Paths
         </a>
         
 
