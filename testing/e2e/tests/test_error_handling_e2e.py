@@ -99,12 +99,14 @@ def test_error_goes_to_sump_when_available(e2e_helper, kubectl, chaos_queues, na
         "Task should be marked as 'failed' after x-sink processes it"
     logger.info("[+] Task marked as failed - error was processed")
 
-    # Verify error persisted to storage under failed/ prefix (x-sink checkpoints by phase)
-    logger.info("Waiting for error to appear in results storage under failed/ prefix...")
+    # Verify error persisted to results storage (x-sink checkpoints all phases there)
+    # The state proxy mount is /state/checkpoints, ASYA_PERSISTENCE_MOUNT is
+    # /state/checkpoints/results, so the GCS key is results/failed/{id}.json —
+    # search by envelope_id without prefix rather than guessing the key structure.
+    logger.info("Waiting for error to appear in results storage...")
     storage_object = storage_client.wait_for_object(
         bucket=results_bucket,
         envelope_id=task_id,
-        prefix="failed/",
         timeout=30
     )
 

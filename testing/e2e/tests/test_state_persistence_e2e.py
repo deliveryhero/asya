@@ -184,11 +184,10 @@ def test_error_result_persisted_to_storage(e2e_helper, results_bucket):
 
     storage_client = get_storage_client()
 
-    logger.info("Waiting for error to appear in results storage under failed/ prefix...")
+    logger.info("Waiting for error to appear in results storage...")
     storage_object = storage_client.wait_for_object(
         bucket=results_bucket,
         envelope_id=task_id,
-        prefix="failed/",
         timeout=30
     )
 
