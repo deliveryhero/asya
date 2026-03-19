@@ -42,18 +42,21 @@ func (m *retryMockTransport) SendWithDelay(ctx context.Context, queueName string
 	return nil
 }
 
-// newRetryConfig creates a resiliency config for tests with sensible defaults
-func newRetryConfig(maxAttempts int, nonRetryable []string) *config.ResiliencyConfig {
+// newRetryConfig creates a resiliency config for tests with sensible defaults.
+// Uses the "default" policy with exponential backoff.
+func newRetryConfig(maxAttempts int, thenRoute []string) *config.ResiliencyConfig {
+	policy := config.PolicyConfig{
+		MaxAttempts:  maxAttempts,
+		Backoff:      config.RetryPolicyExponential,
+		InitialDelay: config.JSONDuration(time.Second),
+		MaxInterval:  config.JSONDuration(300 * time.Second),
+		Jitter:       false,
+	}
+	if len(thenRoute) > 0 {
+		policy.ThenRoute = thenRoute
+	}
 	return &config.ResiliencyConfig{
-		Retry: config.RetryConfig{
-			Policy:             config.RetryPolicyExponential,
-			MaxAttempts:        maxAttempts,
-			InitialInterval:    time.Second,
-			MaxInterval:        300 * time.Second,
-			BackoffCoefficient: 2.0,
-			Jitter:             false,
-		},
-		NonRetryableErrors: nonRetryable,
+		Policies: map[string]config.PolicyConfig{"default": policy},
 	}
 }
 
@@ -88,68 +91,127 @@ func newTestRouterWithRetry(t *testing.T, transport transport.Transport, resilie
 	return r, socketPath
 }
 
-// --- isNonRetryableError tests ---
+// --- TestMatchPolicy tests ---
 
-func TestRouter_IsNonRetryableError_DirectTypeMatch(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(3, []string{"ValueError", "KeyError"}))
-
-	if !r.isNonRetryableError("ValueError", nil) {
-		t.Error("Expected ValueError to match nonRetryableErrors directly")
+func TestMatchPolicy(t *testing.T) {
+	makePolicies := func(names ...string) map[string]config.PolicyConfig {
+		m := make(map[string]config.PolicyConfig)
+		for _, n := range names {
+			m[n] = config.PolicyConfig{MaxAttempts: 3}
+		}
+		return m
 	}
-}
 
-func TestRouter_IsNonRetryableError_MROMatch(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(3, []string{"ValueError"}))
-
-	// json.decoder.JSONDecodeError inherits from ValueError via MRO
-	if !r.isNonRetryableError("json.decoder.JSONDecodeError", []string{"ValueError", "Exception"}) {
-		t.Error("Expected json.decoder.JSONDecodeError to match via MRO ancestor ValueError")
-	}
-}
-
-func TestRouter_IsNonRetryableError_NoMatch(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(3, []string{"ValueError"}))
-
-	if r.isNonRetryableError("TimeoutError", []string{"OSError", "Exception"}) {
-		t.Error("TimeoutError should not match nonRetryableErrors=[ValueError]")
-	}
-}
-
-func TestRouter_IsNonRetryableError_NoConfig(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, nil)
-
-	if r.isNonRetryableError("ValueError", []string{"Exception"}) {
-		t.Error("Should return false when no resiliency config")
-	}
-}
-
-func TestRouter_IsNonRetryableError_EmptyBlacklist(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, newRetryConfig(3, nil))
-
-	if r.isNonRetryableError("ValueError", []string{"Exception"}) {
-		t.Error("Should return false with empty nonRetryableErrors list")
-	}
-}
-
-// --- computeRetryDelay tests ---
-
-func TestRouter_ComputeRetryDelay_Exponential(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, &config.ResiliencyConfig{
-		Retry: config.RetryConfig{
-			Policy:             config.RetryPolicyExponential,
-			MaxAttempts:        5,
-			InitialInterval:    time.Second,
-			MaxInterval:        300 * time.Second,
-			BackoffCoefficient: 2.0,
-			Jitter:             false,
+	tests := []struct {
+		name      string
+		errorType string
+		mro       []string
+		rules     []config.RetryRule
+		policies  map[string]config.PolicyConfig
+		wantNil   bool
+		wantName  string
+	}{
+		{
+			name:      "FQN exact match on errorType",
+			errorType: "openai.RateLimitError",
+			mro:       []string{"openai.OpenAIError", "builtins.Exception"},
+			rules:     []config.RetryRule{{Errors: []string{"openai.RateLimitError"}, Policy: "retryFast"}},
+			policies:  makePolicies("retryFast"),
+			wantName:  "retryFast",
 		},
-	})
+		{
+			name:      "short name match on errorType",
+			errorType: "requests.exceptions.ConnectionError",
+			mro:       []string{"builtins.OSError", "builtins.Exception"},
+			rules:     []config.RetryRule{{Errors: []string{"ConnectionError"}, Policy: "retryFast"}},
+			policies:  makePolicies("retryFast"),
+			wantName:  "retryFast",
+		},
+		{
+			name:      "FQN match on MRO ancestor",
+			errorType: "openai.AuthenticationError",
+			mro:       []string{"openai.OpenAIError", "builtins.Exception"},
+			rules:     []config.RetryRule{{Errors: []string{"openai.OpenAIError"}, Policy: "retryBase"}},
+			policies:  makePolicies("retryBase"),
+			wantName:  "retryBase",
+		},
+		{
+			name:      "first rule wins",
+			errorType: "openai.RateLimitError",
+			mro:       []string{"openai.OpenAIError"},
+			rules: []config.RetryRule{
+				{Errors: []string{"openai.RateLimitError"}, Policy: "specific"},
+				{Errors: []string{"openai.OpenAIError"}, Policy: "general"},
+			},
+			policies: makePolicies("specific", "general"),
+			wantName: "specific",
+		},
+		{
+			name:      "no match returns default",
+			errorType: "mylib.UnknownError",
+			mro:       []string{"builtins.Exception"},
+			rules:     []config.RetryRule{{Errors: []string{"openai.RateLimitError"}, Policy: "retryFast"}},
+			policies:  map[string]config.PolicyConfig{"retryFast": {MaxAttempts: 5}, "default": {MaxAttempts: 1}},
+			wantName:  "default",
+		},
+		{
+			name:      "no match and no default returns nil",
+			errorType: "mylib.UnknownError",
+			mro:       []string{"builtins.Exception"},
+			rules:     []config.RetryRule{{Errors: []string{"openai.RateLimitError"}, Policy: "retryFast"}},
+			policies:  makePolicies("retryFast"),
+			wantNil:   true,
+		},
+		{
+			name:      "empty rules returns default",
+			errorType: "anything.Error",
+			mro:       nil,
+			rules:     nil,
+			policies:  map[string]config.PolicyConfig{"default": {MaxAttempts: 3}},
+			wantName:  "default",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			socketPath := filepath.Join(t.TempDir(), "runtime.sock")
+			r := &Router{cfg: &config.Config{
+				ActorName:  "test-actor",
+				SocketPath: socketPath,
+				SinkQueue:  "x-sink",
+				SumpQueue:  "x-sump",
+				Resiliency: &config.ResiliencyConfig{
+					Policies: tc.policies,
+					Rules:    tc.rules,
+				},
+			}}
+			got := r.matchPolicy(tc.errorType, tc.mro)
+			if tc.wantNil {
+				if got != nil {
+					t.Errorf("matchPolicy() = %v, want nil", got)
+				}
+				return
+			}
+			if got == nil {
+				t.Fatalf("matchPolicy() = nil, want policy %q", tc.wantName)
+			}
+			expected := tc.policies[tc.wantName]
+			if got.MaxAttempts != expected.MaxAttempts {
+				t.Errorf("matchPolicy().MaxAttempts = %d, want %d", got.MaxAttempts, expected.MaxAttempts)
+			}
+		})
+	}
+}
+
+// --- computeRetryDelayForPolicy tests ---
+
+func TestComputeRetryDelayForPolicy_Exponential(t *testing.T) {
+	policy := &config.PolicyConfig{
+		Backoff:      config.RetryPolicyExponential,
+		InitialDelay: config.JSONDuration(time.Second),
+		MaxInterval:  config.JSONDuration(300 * time.Second),
+		Jitter:       false,
+	}
 
 	tests := []struct {
 		attempt       int
@@ -165,7 +227,7 @@ func TestRouter_ComputeRetryDelay_Exponential(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(fmt.Sprintf("attempt_%d", tc.attempt), func(t *testing.T) {
-			delay := r.computeRetryDelay(tc.attempt)
+			delay := computeRetryDelayForPolicy(tc.attempt, policy)
 			if delay != tc.expectedDelay {
 				t.Errorf("attempt %d: expected %v, got %v", tc.attempt, tc.expectedDelay, delay)
 			}
@@ -173,49 +235,67 @@ func TestRouter_ComputeRetryDelay_Exponential(t *testing.T) {
 	}
 }
 
-func TestRouter_ComputeRetryDelay_Constant(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, &config.ResiliencyConfig{
-		Retry: config.RetryConfig{
-			Policy:             config.RetryPolicyConstant,
-			MaxAttempts:        5,
-			InitialInterval:    3 * time.Second,
-			MaxInterval:        300 * time.Second,
-			BackoffCoefficient: 2.0,
-			Jitter:             false,
-		},
-	})
+func TestComputeRetryDelayForPolicy_Constant(t *testing.T) {
+	policy := &config.PolicyConfig{
+		Backoff:      config.RetryPolicyConstant,
+		InitialDelay: config.JSONDuration(3 * time.Second),
+		MaxInterval:  config.JSONDuration(300 * time.Second),
+		Jitter:       false,
+	}
 
 	for attempt := 1; attempt <= 5; attempt++ {
-		delay := r.computeRetryDelay(attempt)
+		delay := computeRetryDelayForPolicy(attempt, policy)
 		if delay != 3*time.Second {
 			t.Errorf("attempt %d: expected constant 3s, got %v", attempt, delay)
 		}
 	}
 }
 
-func TestRouter_ComputeRetryDelay_WithJitter(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, &config.ResiliencyConfig{
-		Retry: config.RetryConfig{
-			Policy:             config.RetryPolicyExponential,
-			MaxAttempts:        5,
-			InitialInterval:    time.Second,
-			MaxInterval:        300 * time.Second,
-			BackoffCoefficient: 2.0,
-			Jitter:             true,
-		},
-	})
+func TestComputeRetryDelayForPolicy_Linear(t *testing.T) {
+	policy := &config.PolicyConfig{
+		Backoff:      config.RetryPolicyLinear,
+		InitialDelay: config.JSONDuration(2 * time.Second),
+		MaxInterval:  config.JSONDuration(300 * time.Second),
+		Jitter:       false,
+	}
 
-	baseDelay := time.Second // attempt 1 base delay
+	tests := []struct {
+		attempt       int
+		expectedDelay time.Duration
+	}{
+		{1, 2 * time.Second},  // 2s * 1
+		{2, 4 * time.Second},  // 2s * 2
+		{3, 6 * time.Second},  // 2s * 3
+		{4, 8 * time.Second},  // 2s * 4
+		{5, 10 * time.Second}, // 2s * 5
+	}
+
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("attempt_%d", tc.attempt), func(t *testing.T) {
+			delay := computeRetryDelayForPolicy(tc.attempt, policy)
+			if delay != tc.expectedDelay {
+				t.Errorf("attempt %d: expected %v, got %v", tc.attempt, tc.expectedDelay, delay)
+			}
+		})
+	}
+}
+
+func TestComputeRetryDelayForPolicy_WithJitter(t *testing.T) {
+	policy := &config.PolicyConfig{
+		Backoff:      config.RetryPolicyExponential,
+		InitialDelay: config.JSONDuration(time.Second),
+		MaxInterval:  config.JSONDuration(300 * time.Second),
+		Jitter:       true,
+	}
+
+	baseDelay := time.Second
 	minDelay := time.Duration(float64(baseDelay) * 0.5)
 	maxDelay := time.Duration(float64(baseDelay) * 1.5)
 
-	// Run multiple times to verify jitter produces varied results
 	seenDifferent := false
 	var first time.Duration
 	for i := 0; i < 20; i++ {
-		delay := r.computeRetryDelay(1)
+		delay := computeRetryDelayForPolicy(1, policy)
 		if delay < minDelay || delay >= maxDelay {
 			t.Errorf("jitter delay %v outside expected range [%v, %v)", delay, minDelay, maxDelay)
 		}
@@ -231,50 +311,24 @@ func TestRouter_ComputeRetryDelay_WithJitter(t *testing.T) {
 	}
 }
 
-func TestRouter_ComputeRetryDelay_MaxIntervalCap(t *testing.T) {
-	mt := &retryMockTransport{}
-	r, _ := newTestRouterWithRetry(t, mt, &config.ResiliencyConfig{
-		Retry: config.RetryConfig{
-			Policy:             config.RetryPolicyExponential,
-			MaxAttempts:        20,
-			InitialInterval:    time.Second,
-			MaxInterval:        10 * time.Second,
-			BackoffCoefficient: 3.0,
-			Jitter:             false,
-		},
-	})
+func TestComputeRetryDelayForPolicy_MaxIntervalCap(t *testing.T) {
+	policy := &config.PolicyConfig{
+		Backoff:      config.RetryPolicyExponential,
+		InitialDelay: config.JSONDuration(time.Second),
+		MaxInterval:  config.JSONDuration(10 * time.Second),
+		Jitter:       false,
+	}
 
-	// attempt 5: 1 * 3^4 = 81s, capped at 10s
-	delay := r.computeRetryDelay(5)
+	// attempt 5: 1 * 2^4 = 16s, capped at 10s
+	delay := computeRetryDelayForPolicy(5, policy)
 	if delay != 10*time.Second {
 		t.Errorf("Expected delay capped at 10s, got %v", delay)
 	}
 }
 
-// --- ensureAndUpdateStatus with resiliency tests ---
+// --- ensureAndUpdateStatus tests ---
 
-func TestRouter_EnsureAndUpdateStatus_SetsMaxAttemptsFromResiliency(t *testing.T) {
-	r := &Router{
-		actorName: "actor-a",
-		cfg: &config.Config{
-			Resiliency: newRetryConfig(5, nil),
-		},
-	}
-
-	msg := &envelopes.Envelope{
-		ID:      "msg-1",
-		Route:   envelopes.Route{Prev: []string{}, Curr: "actor-a", Next: []string{}},
-		Payload: json.RawMessage(`{}`),
-	}
-
-	r.ensureAndUpdateStatus(msg)
-
-	if msg.Status.MaxAttempts != 5 {
-		t.Errorf("Expected MaxAttempts=5 from resiliency config, got %d", msg.Status.MaxAttempts)
-	}
-}
-
-func TestRouter_EnsureAndUpdateStatus_DefaultMaxAttemptsWithoutResiliency(t *testing.T) {
+func TestRouter_EnsureAndUpdateStatus_DefaultMaxAttemptsZeroWithoutResiliency(t *testing.T) {
 	r := &Router{
 		actorName: "actor-a",
 		cfg:       &config.Config{},
@@ -288,12 +342,12 @@ func TestRouter_EnsureAndUpdateStatus_DefaultMaxAttemptsWithoutResiliency(t *tes
 
 	r.ensureAndUpdateStatus(msg)
 
-	if msg.Status.MaxAttempts != 1 {
-		t.Errorf("Expected default MaxAttempts=1, got %d", msg.Status.MaxAttempts)
+	if msg.Status.MaxAttempts != 0 {
+		t.Errorf("Expected default MaxAttempts=0 (unknown until policy matched), got %d", msg.Status.MaxAttempts)
 	}
 }
 
-func TestRouter_EnsureAndUpdateStatus_UpdatesMaxAttemptsOnTransition(t *testing.T) {
+func TestRouter_EnsureAndUpdateStatus_ResetsAttemptOnActorTransition(t *testing.T) {
 	r := &Router{
 		actorName: "actor-b",
 		cfg: &config.Config{
@@ -315,9 +369,6 @@ func TestRouter_EnsureAndUpdateStatus_UpdatesMaxAttemptsOnTransition(t *testing.
 
 	r.ensureAndUpdateStatus(msg)
 
-	if msg.Status.MaxAttempts != 7 {
-		t.Errorf("Expected MaxAttempts=7 after actor transition, got %d", msg.Status.MaxAttempts)
-	}
 	if msg.Status.Attempt != 1 {
 		t.Errorf("Expected Attempt reset to 1 on actor transition, got %d", msg.Status.Attempt)
 	}
@@ -361,17 +412,14 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 
 	dm := mt.delayedMessages[0]
 
-	// Verify queue name
 	if dm.queue != "asya-default-test-actor" {
 		t.Errorf("Expected queue asya-default-test-actor, got %s", dm.queue)
 	}
 
-	// Verify delay
 	if dm.delay != 2*time.Second {
 		t.Errorf("Expected delay 2s, got %v", dm.delay)
 	}
 
-	// Verify message content
 	var retryMsg envelopes.Envelope
 	if err := json.Unmarshal(dm.body, &retryMsg); err != nil {
 		t.Fatalf("Failed to unmarshal retry message: %v", err)
@@ -397,7 +445,6 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 		t.Errorf("Expected 4 MRO entries, got %d", len(retryMsg.Status.Error.MRO))
 	}
 
-	// Verify payload is preserved unchanged (compare parsed to avoid whitespace differences)
 	var originalPayload, retryPayload any
 	_ = json.Unmarshal([]byte(`{"data": "test"}`), &originalPayload)
 	_ = json.Unmarshal(retryMsg.Payload, &retryPayload)
@@ -407,7 +454,6 @@ func TestRouter_RetryMessage_SendsToOwnQueue(t *testing.T) {
 		t.Errorf("Payload should be preserved, got %s", string(retryMsg.Payload))
 	}
 
-	// Verify route is preserved unchanged (curr remains test-actor, not yet shifted)
 	if retryMsg.Route.Curr != "test-actor" {
 		t.Errorf("Route.Curr should be preserved as test-actor, got %q", retryMsg.Route.Curr)
 	}
@@ -468,7 +514,6 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil on retry: %v", err)
 	}
 
-	// Should have sent via SendWithDelay, NOT to x-sump
 	if len(mt.sentMessages) != 0 {
 		t.Errorf("Expected no regular sends (to x-sump), got %d", len(mt.sentMessages))
 	}
@@ -492,9 +537,6 @@ func TestRouter_ProcessMessage_RetryOnRetriableError(t *testing.T) {
 	}
 	if retryMsg.Status.Attempt != 2 {
 		t.Errorf("Expected attempt 2, got %d", retryMsg.Status.Attempt)
-	}
-	if retryMsg.Status.MaxAttempts != 3 {
-		t.Errorf("Expected max_attempts 3, got %d", retryMsg.Status.MaxAttempts)
 	}
 }
 
@@ -552,7 +594,6 @@ func TestRouter_ProcessMessage_SSEErrorTriggersRetry(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil on retry: %v", err)
 	}
 
-	// Should retry via SendWithDelay, NOT send to x-sump
 	if len(mt.sentMessages) != 0 {
 		t.Errorf("Expected no regular sends (to x-sump), got %d", len(mt.sentMessages))
 	}
@@ -579,7 +620,9 @@ func TestRouter_ProcessMessage_SSEErrorTriggersRetry(t *testing.T) {
 	}
 }
 
-func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
+// TestRouter_ProcessMessage_NoMatchingRuleNoDefault verifies that when no rule matches
+// and there is no "default" policy, the error goes directly to x-sump without retry.
+func TestRouter_ProcessMessage_NoMatchingRuleNoDefault(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
@@ -601,7 +644,15 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
-		Resiliency:    newRetryConfig(5, []string{"ValueError"}),
+		// Policy "retryFast" exists but no rule matches JSONDecodeError, and no "default"
+		Resiliency: &config.ResiliencyConfig{
+			Policies: map[string]config.PolicyConfig{
+				"retryFast": {MaxAttempts: 5, Backoff: config.RetryPolicyExponential, InitialDelay: config.JSONDuration(time.Second), MaxInterval: config.JSONDuration(300 * time.Second)},
+			},
+			Rules: []config.RetryRule{
+				{Errors: []string{"ConnectionError"}, Policy: "retryFast"},
+			},
+		},
 	}
 
 	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
@@ -617,7 +668,7 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 	}
 
 	inputMsg := envelopes.Envelope{
-		ID:      "test-nonretryable",
+		ID:      "test-nomatch",
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
 		Payload: json.RawMessage(`{"input": "bad"}`),
 	}
@@ -631,7 +682,7 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// Should NOT retry — should send directly to x-sink (full termination path)
+	// Should NOT retry — routes to x-sink (full termination path)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages (no retry), got %d", len(mt.delayedMessages))
 	}
@@ -652,14 +703,8 @@ func TestRouter_ProcessMessage_NonRetryableError(t *testing.T) {
 	if errorMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", errorMsg.Status.Phase)
 	}
-	if errorMsg.Status.Reason != envelopes.ReasonNonRetryableFailure {
-		t.Errorf("Expected reason NonRetryableFailure, got %s", errorMsg.Status.Reason)
-	}
-	if errorMsg.Status.Error == nil {
-		t.Fatal("Expected error details in status")
-	}
-	if errorMsg.Status.Error.Type != "json.decoder.JSONDecodeError" {
-		t.Errorf("Expected error type json.decoder.JSONDecodeError, got %s", errorMsg.Status.Error.Type)
+	if errorMsg.Status.Reason != envelopes.ReasonRuntimeError {
+		t.Errorf("Expected reason RuntimeError (no matching policy), got %s", errorMsg.Status.Reason)
 	}
 }
 
@@ -724,7 +769,7 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// Should NOT retry — should send to x-sink (full termination path)
+	// Should NOT retry — routes to x-sink (full termination path)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages, got %d", len(mt.delayedMessages))
 	}
@@ -741,18 +786,15 @@ func TestRouter_ProcessMessage_MaxRetriesExhausted(t *testing.T) {
 	if errorMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", errorMsg.Status.Phase)
 	}
-	if errorMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
-		t.Errorf("Expected reason MaxRetriesExhausted, got %s", errorMsg.Status.Reason)
+	if errorMsg.Status.Reason != envelopes.ReasonPolicyExhausted {
+		t.Errorf("Expected reason PolicyExhausted, got %s", errorMsg.Status.Reason)
 	}
 	if errorMsg.Status.Attempt != 3 {
 		t.Errorf("Expected attempt 3, got %d", errorMsg.Status.Attempt)
 	}
-	if errorMsg.Status.MaxAttempts != 3 {
-		t.Errorf("Expected max_attempts 3, got %d", errorMsg.Status.MaxAttempts)
-	}
 }
 
-func TestRouter_ProcessMessage_NoResiliency_LegacyBehavior(t *testing.T) {
+func TestRouter_ProcessMessage_NoResiliency_FailsImmediately(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
@@ -944,7 +986,6 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	// Route must be preserved exactly (curr=test-actor, prev=[], next=[next-actor, final])
 	if retryMsg.Route.Curr != "test-actor" {
 		t.Errorf("Expected route.curr=test-actor, got %q", retryMsg.Route.Curr)
 	}
@@ -955,7 +996,6 @@ func TestRouter_ProcessMessage_RetryPreservesPayloadAndRoute(t *testing.T) {
 		t.Errorf("Expected 2 next actors, got %d: %v", len(retryMsg.Route.Next), retryMsg.Route.Next)
 	}
 
-	// Payload must be preserved exactly
 	var originalParsed, retryParsed any
 	_ = json.Unmarshal([]byte(originalPayload), &originalParsed)
 	_ = json.Unmarshal(retryMsg.Payload, &retryParsed)
@@ -994,7 +1034,7 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		},
 	}
 
-	err := r.sendRetryFailure(context.Background(), msg, response, envelopes.ReasonMaxRetriesExhausted)
+	err := r.sendRetryFailure(context.Background(), msg, response, envelopes.ReasonPolicyExhausted)
 	if err != nil {
 		t.Fatalf("sendRetryFailure failed: %v", err)
 	}
@@ -1008,12 +1048,11 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
 
-	// Verify status fields
 	if failedMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", failedMsg.Status.Phase)
 	}
-	if failedMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
-		t.Errorf("Expected reason MaxRetriesExhausted, got %s", failedMsg.Status.Reason)
+	if failedMsg.Status.Reason != envelopes.ReasonPolicyExhausted {
+		t.Errorf("Expected reason PolicyExhausted, got %s", failedMsg.Status.Reason)
 	}
 	if failedMsg.Status.Attempt != 3 {
 		t.Errorf("Expected attempt 3, got %d", failedMsg.Status.Attempt)
@@ -1028,7 +1067,6 @@ func TestRouter_SendRetryFailure_PreservesErrorDetailsInPayload(t *testing.T) {
 		t.Errorf("Expected MRO [Exception], got %v", failedMsg.Status.Error.MRO)
 	}
 
-	// Verify payload has error details (backward compat with x-sump actor)
 	var payload map[string]any
 	if err := json.Unmarshal(failedMsg.Payload, &payload); err != nil {
 		t.Fatalf("Failed to unmarshal payload: %v", err)
@@ -1082,7 +1120,6 @@ func TestRouter_IsDurationExhausted_HeaderUnparseable(t *testing.T) {
 func TestRouter_IsDurationExhausted_NotYetExhausted(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
-			// first attempt just happened
 			envelopes.HeaderFirstAttempt: time.Now().UTC().Format(time.RFC3339),
 		},
 	}
@@ -1094,7 +1131,6 @@ func TestRouter_IsDurationExhausted_NotYetExhausted(t *testing.T) {
 func TestRouter_IsDurationExhausted_Exhausted(t *testing.T) {
 	msg := &envelopes.Envelope{
 		Headers: map[string]interface{}{
-			// first attempt was 2 hours ago
 			envelopes.HeaderFirstAttempt: time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
 		},
 	}
@@ -1139,7 +1175,6 @@ func TestRouter_ProcessMessage_FirstAttemptHeaderStampedOnFirstAttempt(t *testin
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	// Message arrives with no x-asya-first-attempt header
 	inputMsg := envelopes.Envelope{
 		ID:      "test-first-stamp",
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{"next"}},
@@ -1210,7 +1245,6 @@ func TestRouter_ProcessMessage_FirstAttemptHeaderPreservedOnRetry(t *testing.T) 
 		metrics:       metrics.NewMetrics("test", []config.CustomMetricConfig{}),
 	}
 
-	// Simulate a re-enqueued retry: the header was already stamped on attempt 1
 	originalTimestamp := "2025-01-01T10:00:00Z"
 	inputMsg := envelopes.Envelope{
 		ID:      "test-header-preserved",
@@ -1275,13 +1309,14 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
 		Resiliency: &config.ResiliencyConfig{
-			Retry: config.RetryConfig{
-				Policy:             config.RetryPolicyExponential,
-				MaxAttempts:        10,            // not yet exhausted
-				MaxDuration:        1 * time.Hour, // already exceeded (header is 2h ago)
-				InitialInterval:    time.Second,
-				MaxInterval:        300 * time.Second,
-				BackoffCoefficient: 2.0,
+			Policies: map[string]config.PolicyConfig{
+				"default": {
+					MaxAttempts:  10,
+					Backoff:      config.RetryPolicyExponential,
+					InitialDelay: config.JSONDuration(time.Second),
+					MaxInterval:  config.JSONDuration(300 * time.Second),
+					MaxDuration:  config.JSONDuration(1 * time.Hour), // already exceeded (header is 2h ago)
+				},
 			},
 		},
 	}
@@ -1320,7 +1355,7 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 		t.Fatalf("ProcessMessage failed: %v", err)
 	}
 
-	// Duration exhausted → should go to x-sink (full termination path, not retry)
+	// Duration exhausted — routes to x-sink (full termination path, not retry)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no retries when maxDuration exceeded, got %d", len(mt.delayedMessages))
 	}
@@ -1338,19 +1373,19 @@ func TestRouter_ProcessMessage_MaxDurationExhaustedBeforeMaxAttempts(t *testing.
 	if failedMsg.Status.Phase != envelopes.PhaseFailed {
 		t.Errorf("Expected phase failed, got %s", failedMsg.Status.Phase)
 	}
-	if failedMsg.Status.Reason != envelopes.ReasonMaxDurationExhausted {
-		t.Errorf("Expected reason MaxDurationExhausted, got %s", failedMsg.Status.Reason)
+	if failedMsg.Status.Reason != envelopes.ReasonPolicyExhausted {
+		t.Errorf("Expected reason PolicyExhausted, got %s", failedMsg.Status.Reason)
 	}
 }
 
-func TestRouter_ProcessMessage_MaxAttemptsWinsWhenBothExhausted(t *testing.T) {
+func TestRouter_ProcessMessage_PolicyWithThenRoute(t *testing.T) {
 	socketPath := startMockRuntime(t, func(body []byte) ([]runtime.RuntimeResponse, int) {
 		return []runtime.RuntimeResponse{
 			{
 				Error: "processing_error",
 				Details: runtime.ErrorDetails{
 					Type:    "RuntimeError",
-					Message: "transient failure",
+					Message: "permanent failure",
 				},
 			},
 		}, http.StatusInternalServerError
@@ -1364,22 +1399,16 @@ func TestRouter_ProcessMessage_MaxAttemptsWinsWhenBothExhausted(t *testing.T) {
 		SumpQueue:     "x-sump",
 		TransportType: "sqs",
 		Timeout:       5 * time.Second,
-		Resiliency: &config.ResiliencyConfig{
-			Retry: config.RetryConfig{
-				Policy:             config.RetryPolicyExponential,
-				MaxAttempts:        3,
-				MaxDuration:        1 * time.Hour, // also exceeded
-				InitialInterval:    time.Second,
-				MaxInterval:        300 * time.Second,
-				BackoffCoefficient: 2.0,
-			},
-		},
+		// Policy with thenRoute — after exhausting attempts, route to recovery-actor
+		Resiliency: newRetryConfig(1, []string{"recovery-actor"}),
 	}
+
+	runtimeClient := runtime.NewClient(socketPath, 2*time.Second)
 
 	router := &Router{
 		cfg:           cfg,
 		transport:     mt,
-		runtimeClient: runtime.NewClient(socketPath, 2*time.Second),
+		runtimeClient: runtimeClient,
 		actorName:     cfg.ActorName,
 		sinkQueue:     cfg.SinkQueue,
 		sumpQueue:     cfg.SumpQueue,
@@ -1387,39 +1416,39 @@ func TestRouter_ProcessMessage_MaxAttemptsWinsWhenBothExhausted(t *testing.T) {
 	}
 
 	inputMsg := envelopes.Envelope{
-		ID:      "test-both-exhausted",
+		ID:      "test-thenroute",
 		Route:   envelopes.Route{Prev: []string{}, Curr: "test-actor", Next: []string{}},
-		Payload: json.RawMessage(`{}`),
-		Headers: map[string]interface{}{
-			envelopes.HeaderFirstAttempt: time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
-		},
-		Status: &envelopes.Status{
-			Phase:       envelopes.PhaseRetrying,
-			Actor:       "test-actor",
-			Attempt:     3, // MaxAttempts=3
-			MaxAttempts: 3,
-			CreatedAt:   time.Now().Add(-2 * time.Hour).UTC().Format(time.RFC3339),
-			UpdatedAt:   time.Now().UTC().Format(time.RFC3339),
-		},
+		Payload: json.RawMessage(`{"input": "data"}`),
 	}
 	msgBody, _ := json.Marshal(inputMsg)
 
-	err := router.ProcessMessage(context.Background(), transport.QueueMessage{ID: "q4", Body: msgBody})
+	err := router.ProcessMessage(context.Background(), transport.QueueMessage{
+		ID:   "queue-msg-1",
+		Body: msgBody,
+	})
 	if err != nil {
-		t.Fatalf("ProcessMessage failed: %v", err)
+		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
+	// With thenRoute, should go to recovery-actor queue (not x-sump)
+	if len(mt.delayedMessages) != 0 {
+		t.Errorf("Expected no delayed messages, got %d", len(mt.delayedMessages))
+	}
 	if len(mt.sentMessages) != 1 {
-		t.Fatalf("Expected 1 message to x-sump, got %d", len(mt.sentMessages))
+		t.Fatalf("Expected 1 message to recovery-actor, got %d", len(mt.sentMessages))
 	}
 
-	var failedMsg envelopes.Envelope
-	if err := json.Unmarshal(mt.sentMessages[0].body, &failedMsg); err != nil {
+	expectedQueue := "asya-default-recovery-actor"
+	if mt.sentMessages[0].queue != expectedQueue {
+		t.Errorf("Expected queue %s, got %s", expectedQueue, mt.sentMessages[0].queue)
+	}
+
+	var routedMsg envelopes.Envelope
+	if err := json.Unmarshal(mt.sentMessages[0].body, &routedMsg); err != nil {
 		t.Fatalf("Failed to unmarshal: %v", err)
 	}
-	// When both are exhausted, maxAttempts takes precedence in reason
-	if failedMsg.Status.Reason != envelopes.ReasonMaxRetriesExhausted {
-		t.Errorf("Expected reason MaxRetriesExhausted when both conditions met, got %s", failedMsg.Status.Reason)
+	if routedMsg.Status.Reason != envelopes.ReasonPolicyRouted {
+		t.Errorf("Expected reason PolicyRouted, got %s", routedMsg.Status.Reason)
 	}
 }
 
@@ -1474,7 +1503,7 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 		t.Fatalf("ProcessMessage should return nil: %v", err)
 	}
 
-	// MaxAttempts=1 should behave like no retry
+	// MaxAttempts=1 should exhaust immediately (policy_exhausted)
 	if len(mt.delayedMessages) != 0 {
 		t.Errorf("Expected no delayed messages with MaxAttempts=1, got %d", len(mt.delayedMessages))
 	}
