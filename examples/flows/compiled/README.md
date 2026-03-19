@@ -329,7 +329,7 @@ kind: AsyncActor
 metadata:
   name: start-if-else-simple-flow
 spec:
-  transport: sqs
+
   image: if-else-routers:v1
   handler: routers.start_if_else_simple_flow
   env:
@@ -351,7 +351,7 @@ kind: AsyncActor
 metadata:
   name: router-if-else-simple-flow-line-10-if
 spec:
-  transport: sqs
+
   image: if-else-routers:v1
   handler: routers.router_if_else_simple_flow_line_10_if
   env:
@@ -373,7 +373,7 @@ kind: AsyncActor
 metadata:
   name: end-if-else-simple-flow
 spec:
-  transport: sqs
+
   image: if-else-routers:v1
   handler: routers.end_if_else_simple_flow
 ```
@@ -388,7 +388,7 @@ kind: AsyncActor
 metadata:
   name: handler-setup
 spec:
-  transport: sqs
+
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 10
@@ -400,7 +400,7 @@ kind: AsyncActor
 metadata:
   name: handler-type-a
 spec:
-  transport: sqs
+
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 50

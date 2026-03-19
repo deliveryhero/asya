@@ -211,7 +211,6 @@ metadata:
   namespace: ml-platform
 spec:
   actor: embedding-service
-  transport: sqs
   flavors: [gpu-standard]
 
   image: my-org/embedding-service:latest

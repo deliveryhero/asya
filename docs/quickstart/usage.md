@@ -151,7 +151,6 @@ kind: AsyncActor
 metadata:
   name: text-processor
 spec:
-  transport: sqs       # Ask platform team which transport is supported
   image: my-processor:v1
   handler: src.text_processor.process  # module.function
   # For class handlers: src.text_processor.TextProcessor.process
@@ -546,7 +545,6 @@ kind: AsyncActor
 metadata:
   name: start-text-analysis-flow
 spec:
-  transport: sqs
   image: my-flow-routers:v1
   handler: routers.start_text_analysis_flow
   env:
@@ -577,7 +575,6 @@ kind: AsyncActor
 metadata:
   name: router-text-analysis-flow-line-10-if
 spec:
-  transport: sqs
   image: my-flow-routers:v1
   handler: routers.router_text_analysis_flow_line_10_if
   env:
@@ -601,7 +598,6 @@ kind: AsyncActor
 metadata:
   name: english-sentiment
 spec:
-  transport: sqs
   image: my-sentiment-model:latest
   handler: sentiment.EnglishSentiment.process
   scaling:

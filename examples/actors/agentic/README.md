@@ -30,7 +30,6 @@ metadata:
   name: my-router
 spec:
   actor: my-router
-  transport: sqs
   workload:
     handler: dynamic_routing.dispatcher
 ```

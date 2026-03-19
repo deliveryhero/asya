@@ -137,13 +137,11 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ \
 cat > crew-values.yaml <<'EOF'
 x-sink:
   enabled: true
-  transport: rabbitmq
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 
 x-sump:
   enabled: true
-  transport: rabbitmq
   env:
     ASYA_PERSISTENCE_MOUNT: /state/checkpoints
 EOF
@@ -171,7 +169,6 @@ kind: AsyncActor
 metadata:
   name: hello-actor
 spec:
-  transport: rabbitmq
   scaling:
     minReplicaCount: 0
     maxReplicaCount: 5

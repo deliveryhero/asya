@@ -66,7 +66,6 @@ metadata:
   namespace: prod
 spec:
   actor: model-inference
-  transport: sqs
 
   stateProxy:
     - name: weights          # DNS label, becomes socket name: weights.sock
