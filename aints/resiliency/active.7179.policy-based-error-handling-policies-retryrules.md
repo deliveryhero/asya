@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/resiliency/7179.policy-based-error-handling-policies-retryrules
   - branch:resiliency/7179.policy-based-error-handling-policies-retryrules
+  - pr:334
 dependencies:
   - p5py
 ---
+
 
 
 
@@ -211,7 +213,7 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
 - Add `Policies map[string]PolicyConfig`
 - Add `Rules []RetryRule`
 - Add `PolicyConfig` struct: `MaxAttempts`, `Backoff`, `InitialDelay`,
-  `MaxInterval`, `Jitter`, `MaxDuration time.Duration`, `ThenRoute []string`
+  `MaxInterval`, `Jitter`, `MaxDuration time.Duration`, `thenRoute []string`
 - Add `RetryRule` struct: `Errors []string`, `Policy string`
 
 ### 3. Sidecar: error matching and policy dispatch
@@ -222,7 +224,7 @@ Actor usage: `spec.flavors: ["openai-resiliency"]`
   - Short-name match: `type.__name__` suffix; FQN match: exact string
 - `applyPolicy(ctx, msg, policy)` — dispatches based on policy:
   - attempts remaining AND within `policy.Timeout` wall-clock budget: `retryMessage` (existing)
-  - Exhausted (attempts OR timeout) + `thenRoute` set: `msg.Route.Next = policy.ThenRoute; send to SinkQueue`
+  - Exhausted (attempts OR timeout) + `thenRoute` set: `msg.Route.Next = policy.thenRoute; send to SinkQueue`
   - Exhausted + no `thenRoute`: `sendRetryFailure` → SinkQueue (after `[nqf5]` fix)
   - Wall-clock tracking: first-attempt timestamp stored in `msg.Headers["x-asya-first-attempt"]`
 - Remove `isNonRetryableError`
