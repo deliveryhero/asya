@@ -205,4 +205,3 @@ The sidecar interprets the handler's return value to decide routing:
 - `{}` → runtime treats as valid output → sidecar routes `{}` as payload to next actor or x-sink
 
 **End actors** (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See [asya-crew.md](asya-crew.md) for details.
-
