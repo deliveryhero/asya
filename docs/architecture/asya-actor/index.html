@@ -1166,20 +1166,6 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
 - <code>None</code> → runtime signals end-of-route (<code>route.curr</code> becomes <code>""</code>) → sidecar routes to x-sink with <strong>original</strong> payload
 - <code>{}</code> → runtime treats as valid output → sidecar routes <code>{}</code> as payload to next actor or x-sink</p>
 <p><strong>End actors</strong> (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See <a href="../asya-crew/">asya-crew.md</a> for details.</p>
-<h2 id="deployment-with-helm">Deployment with Helm<a class="headerlink" href="#deployment-with-helm" title="Permanent link">&para;</a></h2>
-<p>Use <code>asya-actor</code> chart for batch deployment:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># values.yaml</span>
-<span class="nt">actors</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">text-processor</span>
-<span class="w">    </span><span class="nt">scaling</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
-<span class="w">      </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">50</span>
-<span class="w">    </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-processor:v1</span>
-<span class="w">    </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">processor.TextProcessor.process</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code>helm<span class="w"> </span>install<span class="w"> </span>my-actors<span class="w"> </span>deploy/helm-charts/asya-actor/<span class="w"> </span>-f<span class="w"> </span>values.yaml
-</code></pre></div>
-<p><strong>See</strong>: <a href="../../install/helm-charts/">install/helm-charts.md</a> for details.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
@@ -1561,14 +1547,6 @@ kubectl<span class="w"> </span>logs<span class="w"> </span>-f<span class="w"> </
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Handler Return Values and Sidecar Behavior
-        </a>
-        
-
-        
-        <a href="#deployment-with-helm"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Deployment with Helm
         </a>
         
 
