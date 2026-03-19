@@ -306,8 +306,11 @@ result.routers_path      # Path to generated routers.py
 result.manifests_dir     # Path to generated base/ directory
 result.graph             # dict (same as graph.json content)
 result.dot               # str (DOT source)
+result.dot_path          # str (DOT file path)
 result.mermaid           # str (Mermaid source)
+result.mermaid_path      # str (Mermaid file path)
 result.svg               # str (SVG content) or None if plot=False
+result.svg_path          # str (SVG file path) or None if plot=False
 result.actors            # list[ActorInfo] — resolved actor metadata
 result.warnings          # list[str]
 
@@ -720,9 +723,15 @@ router.
 
 ### analyzer.py — yield analysis
 
-The analyzer uses Python's `ast.parse()` to statically analyze handler
-files and extract routing edges from yield statements. It handles three
-categories of handlers uniformly:
+The analyzer has two concerns: (1) a **yield pattern parser** that
+extracts routing edges from Python source using `ast.parse()`, and
+(2) a **merge algorithm** that combines edges from all sources
+(routers, user handlers, manifests) into a unified `GraphData`.
+
+Note: `parser.py` parses **flow DSL** (`@flow` function body → operations).
+`analyzer.py` parses **handler code** (routers + actors → yield ABI
+patterns → graph edges). These are two distinct AST parsing steps on
+different inputs.
 
 ```python
 def analyze(
@@ -733,12 +742,36 @@ def analyze(
     """Yield analysis: read handler code, extract routing edges."""
     ...
 
+def _extract_yield_edges(source: str, handler_name: str) -> list[dict]:
+    """Parse a single handler's Python source via ast.parse().
+    Walk the AST to find yield statements matching ABI patterns.
+    For each yield inside an if/else, capture the enclosing condition
+    as the edge label. Returns list of edge dicts."""
+    ...
+
 @dataclass
 class GraphData:
     nodes: list[dict]   # {"id", "flow_role", "label", "sources"}
     edges: list[dict]   # {"from", "to", "label", "type", "override"}
     groups: list[dict]  # {"id", "nodes"}
 ```
+
+#### Yield pattern parser (`_extract_yield_edges`)
+
+The internal yield parser walks a handler function's AST looking for
+`yield` expressions that match the ABI protocol. For each match:
+
+1. Classify the yield (SET route.next, SET headers, FLY, plain yield)
+2. Extract target actor(s) from string literals or `resolve()` calls
+3. Walk up the AST to find the enclosing `if` node (if any) and
+   capture the condition as the edge label
+4. Return edge dicts with `{from, to, label, type}`
+
+Because generated routers follow the one-decision-per-router invariant
+(P13), the yield parser only ever encounters flat if/else — no need
+to handle arbitrary nesting. For user-written handlers, deeper nesting
+is possible but best-effort: the parser captures the immediate
+enclosing condition only.
 
 #### Three handler categories
 
@@ -751,12 +784,12 @@ class GraphData:
    `inspect.getsource()`. Opaque node if source unavailable
    (C extensions, bytecode-only).
 
-#### Algorithm
+#### Merge algorithm
 
-1. **Parse generated routers** → extract `route.next` lists → build
-   routing chains
-2. **Parse user handlers** via `ast.parse(inspect.getsource(handler))`
-   → extract override edges (yield SET patterns)
+1. **Parse generated routers** → `_extract_yield_edges()` on each
+   router function → build routing chains
+2. **Parse user handlers** → `_extract_yield_edges()` on each handler
+   → extract override edges
 3. **Parse manifests** → `resiliency.rules[*].thenRoute` → error
    routing edges (dashed lines in graph)
 4. **Merge**: chains + overrides + error edges. Override edges from
