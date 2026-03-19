@@ -619,7 +619,7 @@ services:
     environment:
       ASYA_ACTOR_NAME: test-retry-fail
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
-      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false}}'
+      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false}}' # yamllint disable-line rule:line-length
     volumes:
     - asya-retry-fail-sockets:/var/run/asya
 
@@ -658,7 +658,7 @@ services:
     environment:
       ASYA_ACTOR_NAME: test-retry-nonretryable
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
-      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false},"nonretryable":{"maxAttempts":1}}'
+      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false},"nonretryable":{"maxAttempts":1}}' # yamllint disable-line rule:line-length
       ASYA_RESILIENCY_RULES: '[{"errors":["ValueError"],"policy":"nonretryable"}]'
     volumes:
     - asya-retry-nonretryable-sockets:/var/run/asya
@@ -699,7 +699,7 @@ services:
       ASYA_ACTOR_NAME: test-retry-succeed
       ASYA_ACTOR_ROLE: regular
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
-      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false}}'
+      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false}}' # yamllint disable-line rule:line-length
     volumes:
     - asya-retry-succeed-sockets:/var/run/asya
 
@@ -738,7 +738,7 @@ services:
     environment:
       ASYA_ACTOR_NAME: test-retry-mro
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
-      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false},"nonretryable":{"maxAttempts":1}}'
+      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":3,"backoff":"constant","initialDelay":"1s","maxInterval":"2s","jitter":false},"nonretryable":{"maxAttempts":1}}' # yamllint disable-line rule:line-length
       ASYA_RESILIENCY_RULES: '[{"errors":["Exception"],"policy":"nonretryable"}]'
     volumes:
     - asya-retry-mro-sockets:/var/run/asya
@@ -822,11 +822,7 @@ services:
     environment:
       ASYA_ACTOR_NAME: test-sla-retry
       ASYA_RESILIENCY_ACTOR_TIMEOUT: 30s
-      ASYA_RESILIENCY_RETRY_POLICY: constant
-      ASYA_RESILIENCY_RETRY_MAX_ATTEMPTS: 10
-      ASYA_RESILIENCY_RETRY_INITIAL_INTERVAL: 2s
-      ASYA_RESILIENCY_RETRY_MAX_INTERVAL: 2s
-      ASYA_RESILIENCY_RETRY_JITTER: "false"
+      ASYA_RESILIENCY_POLICIES: '{"default":{"maxAttempts":10,"backoff":"constant","initialDelay":"2s","maxInterval":"2s","jitter":false}}' # yamllint disable-line rule:line-length
     volumes:
     - asya-sla-retry-sockets:/var/run/asya
 
