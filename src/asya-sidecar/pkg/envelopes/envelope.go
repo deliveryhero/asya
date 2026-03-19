@@ -30,9 +30,7 @@ const (
 	ReasonTimeout              = "Timeout"
 	ReasonParseError           = "ParseError"
 	ReasonRouteMismatch        = "RouteMismatch"
-	ReasonMaxRetriesExhausted  = "MaxRetriesExhausted"
-	ReasonMaxDurationExhausted = "MaxDurationExhausted"
-	ReasonPolicyExhausted      = "PolicyExhausted"
+	ReasonPolicyExhausted = "PolicyExhausted"
 	ReasonPolicyRouted         = "PolicyRouted"
 )
 

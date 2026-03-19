@@ -293,7 +293,7 @@ func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelop
 		return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonRuntimeError)
 	}
 
-	return r.applyPolicy(ctx, msg, policy, response, startTime)
+	return r.applyPolicy(ctx, msg, policy, response)
 }
 
 // matchPolicy finds the first rule matching errorType or any of its MRO ancestors
@@ -352,11 +352,12 @@ func matchesErrorPattern(pattern string, candidates []string) bool {
 }
 
 // applyPolicy applies a matched policy to decide whether to retry, route, or fail.
-func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, policy *config.PolicyConfig, response runtime.RuntimeResponse, startTime time.Time) error {
+func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, policy *config.PolicyConfig, response runtime.RuntimeResponse) error {
 	maxAttempts := policy.MaxAttempts
 	if maxAttempts <= 0 {
 		maxAttempts = 1
 	}
+	msg.Status.MaxAttempts = maxAttempts
 
 	attemptsExhausted := msg.Status.Attempt >= maxAttempts
 	durationExhausted := isDurationExhausted(msg, policy.MaxDuration.Duration())
@@ -395,14 +396,12 @@ func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, polic
 	if len(policy.ThenRoute) > 0 {
 		if r.metrics != nil {
 			r.metrics.RecordMessageProcessed(r.actorName, "policy_routed")
-			r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 		}
 		return r.routeToThenRoute(ctx, msg, policy.ThenRoute, response)
 	}
 
 	if r.metrics != nil {
 		r.metrics.RecordMessageFailed(r.actorName, "policy_exhausted")
-		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
 	}
 	return r.sendRetryFailure(ctx, msg, response, envelopes.ReasonPolicyExhausted)
 }

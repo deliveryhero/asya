@@ -40,11 +40,11 @@ SINK_QUEUE = "asya-default-x-sink"
 
 
 def test_retry_max_attempts_exhausted(transport_helper):
-    """Test that after max retry attempts, message goes to x-sink with MaxRetriesExhausted.
+    """Test that after max retry attempts, message goes to x-sink with PolicyExhausted.
 
     The actor is configured with max_attempts=3 and constant 1s delay.
     The handler always raises ValueError, so the sidecar retries 3 times
-    then sends to x-sink with reason=MaxRetriesExhausted.
+    then sends to x-sink with reason=PolicyExhausted.
     """
     transport = get_env("ASYA_TRANSPORT", "rabbitmq")
     if transport != "sqs":
@@ -68,7 +68,7 @@ def test_retry_max_attempts_exhausted(transport_helper):
     # Verify status fields
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
-    assert status.get("reason") == "MaxRetriesExhausted", f"Expected reason=MaxRetriesExhausted, got {status.get('reason')}"
+    assert status.get("reason") == "PolicyExhausted", f"Expected reason=PolicyExhausted, got {status.get('reason')}"
     assert status.get("attempt") == 3, f"Expected attempt=3, got {status.get('attempt')}"
     assert status.get("max_attempts") == 3, f"Expected max_attempts=3, got {status.get('max_attempts')}"
     assert status.get("actor") == "test-retry-fail", f"Expected actor=test-retry-fail, got {status.get('actor')}"
@@ -123,9 +123,9 @@ def test_retry_status_timestamps(transport_helper):
 def test_retry_non_retryable_error(transport_helper):
     """Test that non-retryable errors go to x-sink immediately without retry.
 
-    The actor has non_retryable_errors=ValueError configured, so ValueError
-    from error_handler is classified as non-retryable and sent directly
-    to x-sink with reason=NonRetryableFailure.
+    The actor has a "nonretryable" policy with maxAttempts=1 and a rule matching
+    ValueError. On first failure, the policy is exhausted immediately and the
+    envelope goes to x-sink with reason=PolicyExhausted.
     """
     transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
@@ -143,9 +143,9 @@ def test_retry_non_retryable_error(transport_helper):
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
-    assert status.get("reason") == "NonRetryableFailure", f"Expected reason=NonRetryableFailure, got {status.get('reason')}"
+    assert status.get("reason") == "PolicyExhausted", f"Expected reason=PolicyExhausted, got {status.get('reason')}"
     assert status.get("attempt") == 1, f"Expected attempt=1 (no retries), got {status.get('attempt')}"
-    assert status.get("max_attempts") == 3, f"Expected max_attempts=3 (from config), got {status.get('max_attempts')}"
+    assert status.get("max_attempts") == 1, f"Expected max_attempts=1 (nonretryable policy), got {status.get('max_attempts')}"
 
     # Verify error type matches configured non-retryable error
     error_info = status.get("error", {})
@@ -156,9 +156,9 @@ def test_retry_non_retryable_error(transport_helper):
 def test_retry_non_retryable_via_mro(transport_helper):
     """Test MRO-based non-retryable error classification.
 
-    The actor has non_retryable_errors=Exception configured and the handler
-    raises MemoryError. MemoryError's MRO includes Exception, so the sidecar
-    classifies it as non-retryable via ancestor match and sends directly to x-sink.
+    The actor has a "nonretryable" policy with maxAttempts=1 and a rule matching
+    Exception. The handler raises MemoryError whose MRO includes Exception, so the
+    sidecar matches via ancestor and routes directly to x-sink with reason=PolicyExhausted.
     """
     transport_helper.purge_queue(SINK_QUEUE)
     envelope = {
@@ -176,7 +176,7 @@ def test_retry_non_retryable_via_mro(transport_helper):
 
     status = result.get("status", {})
     assert status.get("phase") == "failed", f"Expected phase=failed, got {status.get('phase')}"
-    assert status.get("reason") == "NonRetryableFailure", f"Expected reason=NonRetryableFailure, got {status.get('reason')}"
+    assert status.get("reason") == "PolicyExhausted", f"Expected reason=PolicyExhausted, got {status.get('reason')}"
     assert status.get("attempt") == 1, f"Expected attempt=1 (no retries), got {status.get('attempt')}"
 
     # Error type is MemoryError, matched via MRO ancestor "Exception"
