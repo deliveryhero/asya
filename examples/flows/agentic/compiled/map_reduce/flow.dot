@@ -4,5 +4,9 @@ digraph "map_reduce" {
 
     end_map_reduce [label="end_map_reduce", fillcolor=palegreen];
     router_map_reduce_line_55_fanout_1 [label="router_map_reduce_line_55_fanout_1", fillcolor=wheat];
+    splitter [label="splitter", fillcolor=lightblue];
+    start_map_reduce [label="start_map_reduce", fillcolor=palegreen];
 
+    start_map_reduce -> splitter;
+    start_map_reduce -> router_map_reduce_line_55_fanout_1;
 }

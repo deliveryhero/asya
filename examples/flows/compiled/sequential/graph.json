@@ -6,9 +6,51 @@
       "flow_role": "exit",
       "label": "end_sequential_flow",
       "is_generated": true
+    },
+    {
+      "id": "handler_a",
+      "flow_role": "actor",
+      "label": "handler_a",
+      "is_generated": false
+    },
+    {
+      "id": "handler_b",
+      "flow_role": "actor",
+      "label": "handler_b",
+      "is_generated": false
+    },
+    {
+      "id": "handler_c",
+      "flow_role": "actor",
+      "label": "handler_c",
+      "is_generated": false
+    },
+    {
+      "id": "start_sequential_flow",
+      "flow_role": "entry",
+      "label": "start_sequential_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_sequential_flow",
+      "to": "handler_a",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_sequential_flow",
+      "to": "handler_b",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_sequential_flow",
+      "to": "handler_c",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_sequential_flow",
       "to": "__terminal__",

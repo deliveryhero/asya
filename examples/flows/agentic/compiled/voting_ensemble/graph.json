@@ -12,9 +12,21 @@
       "flow_role": "router",
       "label": "router_voting_ensemble_line_44_fanout_1",
       "is_generated": true
+    },
+    {
+      "id": "start_voting_ensemble",
+      "flow_role": "entry",
+      "label": "start_voting_ensemble",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_voting_ensemble",
+      "to": "router_voting_ensemble_line_44_fanout_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_voting_ensemble_line_44_fanout_1",
       "to": "__terminal__",

@@ -2,15 +2,33 @@ digraph "human_in_the_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    approval_gate [label="approval_gate", fillcolor=lightblue];
     end_human_in_the_loop [label="end_human_in_the_loop", fillcolor=palegreen];
     executor [label="executor", fillcolor=lightblue];
     notifier [label="notifier", fillcolor=lightblue];
+    proposal_generator [label="proposal_generator", fillcolor=lightblue];
+    revision_agent [label="revision_agent", fillcolor=lightblue];
+    router_human_in_the_loop_line_58_seq_7 [label="router_human_in_the_loop_line_58_seq_7", fillcolor=wheat];
+    router_human_in_the_loop_line_60_while_1 [label="router_human_in_the_loop_line_60_while_1", fillcolor=wheat];
+    router_human_in_the_loop_line_61_seq_6 [label="router_human_in_the_loop_line_61_seq_6", fillcolor=wheat];
     router_human_in_the_loop_line_70_if_5 [label="router_human_in_the_loop_line_70_if_5", fillcolor=wheat];
+    router_human_in_the_loop_line_75_if_4 [label="router_human_in_the_loop_line_75_if_4", fillcolor=wheat];
     router_human_in_the_loop_line_79_if_3 [label="router_human_in_the_loop_line_79_if_3", fillcolor=wheat];
     router_human_in_the_loop_line_80_seq_2 [label="router_human_in_the_loop_line_80_seq_2", fillcolor=wheat];
+    start_human_in_the_loop [label="start_human_in_the_loop", fillcolor=palegreen];
 
+    start_human_in_the_loop -> router_human_in_the_loop_line_58_seq_7;
     router_human_in_the_loop_line_80_seq_2 -> notifier;
     router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_80_seq_2 [label="p['attempt'] >= 3"];
+    router_human_in_the_loop_line_75_if_4 -> revision_agent;
+    router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_75_if_4;
+    router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_79_if_3;
     router_human_in_the_loop_line_70_if_5 -> executor [label="p.get('approval') in ('approved', 'modified')"];
     router_human_in_the_loop_line_70_if_5 -> notifier [label="p.get('approval') in ('approved', 'modified')"];
+    router_human_in_the_loop_line_61_seq_6 -> proposal_generator;
+    router_human_in_the_loop_line_61_seq_6 -> approval_gate;
+    router_human_in_the_loop_line_61_seq_6 -> router_human_in_the_loop_line_70_if_5;
+    router_human_in_the_loop_line_60_while_1 -> router_human_in_the_loop_line_61_seq_6;
+    router_human_in_the_loop_line_60_while_1 -> router_human_in_the_loop_line_60_while_1;
+    router_human_in_the_loop_line_58_seq_7 -> router_human_in_the_loop_line_60_while_1;
 }

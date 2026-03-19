@@ -4,5 +4,7 @@ digraph "voting_ensemble" {
 
     end_voting_ensemble [label="end_voting_ensemble", fillcolor=palegreen];
     router_voting_ensemble_line_44_fanout_1 [label="router_voting_ensemble_line_44_fanout_1", fillcolor=wheat];
+    start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
 
+    start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
 }

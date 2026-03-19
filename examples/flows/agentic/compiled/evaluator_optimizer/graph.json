@@ -8,10 +8,40 @@
       "is_generated": true
     },
     {
+      "id": "evaluator",
+      "flow_role": "actor",
+      "label": "evaluator",
+      "is_generated": false
+    },
+    {
+      "id": "generator",
+      "flow_role": "actor",
+      "label": "generator",
+      "is_generated": false
+    },
+    {
       "id": "polisher",
       "flow_role": "actor",
       "label": "polisher",
       "is_generated": false
+    },
+    {
+      "id": "router_evaluator_optimizer_line_56_seq_5",
+      "flow_role": "router",
+      "label": "router_evaluator_optimizer_line_56_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_evaluator_optimizer_line_58_while_1",
+      "flow_role": "router",
+      "label": "router_evaluator_optimizer_line_58_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_evaluator_optimizer_line_59_seq_4",
+      "flow_role": "router",
+      "label": "router_evaluator_optimizer_line_59_seq_4",
+      "is_generated": true
     },
     {
       "id": "router_evaluator_optimizer_line_68_if_3",
@@ -24,9 +54,21 @@
       "flow_role": "router",
       "label": "router_evaluator_optimizer_line_72_if_2",
       "is_generated": true
+    },
+    {
+      "id": "start_evaluator_optimizer",
+      "flow_role": "entry",
+      "label": "start_evaluator_optimizer",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_evaluator_optimizer",
+      "to": "router_evaluator_optimizer_line_56_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_evaluator_optimizer_line_72_if_2",
       "to": "polisher",
@@ -35,9 +77,51 @@
     },
     {
       "from": "router_evaluator_optimizer_line_68_if_3",
+      "to": "router_evaluator_optimizer_line_72_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_68_if_3",
       "to": "polisher",
       "label": "p.get('score', 0) >= SCORE_THRESHOLD",
       "type": "set"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_59_seq_4",
+      "to": "generator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_59_seq_4",
+      "to": "evaluator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_59_seq_4",
+      "to": "router_evaluator_optimizer_line_68_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_58_while_1",
+      "to": "router_evaluator_optimizer_line_59_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_58_while_1",
+      "to": "router_evaluator_optimizer_line_58_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_56_seq_5",
+      "to": "router_evaluator_optimizer_line_58_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_evaluator_optimizer",

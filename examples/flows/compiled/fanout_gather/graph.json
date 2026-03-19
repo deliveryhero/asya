@@ -8,13 +8,37 @@
       "is_generated": true
     },
     {
+      "id": "preprocessor",
+      "flow_role": "actor",
+      "label": "preprocessor",
+      "is_generated": false
+    },
+    {
       "id": "router_async_research_flow_line_16_fanout_1",
       "flow_role": "router",
       "label": "router_async_research_flow_line_16_fanout_1",
       "is_generated": true
+    },
+    {
+      "id": "start_async_research_flow",
+      "flow_role": "entry",
+      "label": "start_async_research_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_async_research_flow",
+      "to": "preprocessor",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_async_research_flow",
+      "to": "router_async_research_flow_line_16_fanout_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_async_research_flow_line_16_fanout_1",
       "to": "__terminal__",

@@ -8,24 +8,102 @@
       "is_generated": true
     },
     {
+      "id": "handler_even",
+      "flow_role": "actor",
+      "label": "handler_even",
+      "is_generated": false
+    },
+    {
       "id": "handler_finalize",
       "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
+      "id": "handler_init",
+      "flow_role": "actor",
+      "label": "handler_init",
+      "is_generated": false
+    },
+    {
+      "id": "handler_odd",
+      "flow_role": "actor",
+      "label": "handler_odd",
+      "is_generated": false
+    },
+    {
+      "id": "router_if_inside_while_flow_line_13_seq_3",
+      "flow_role": "router",
+      "label": "router_if_inside_while_flow_line_13_seq_3",
+      "is_generated": true
+    },
+    {
       "id": "router_if_inside_while_flow_line_14_while_1",
       "flow_role": "router",
       "label": "router_if_inside_while_flow_line_14_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_if_inside_while_flow_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_if_inside_while_flow_line_16_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "start_if_inside_while_flow",
+      "flow_role": "entry",
+      "label": "start_if_inside_while_flow",
       "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_if_inside_while_flow",
+      "to": "handler_init",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_if_inside_while_flow",
+      "to": "router_if_inside_while_flow_line_13_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_inside_while_flow_line_16_if_2",
+      "to": "handler_even",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_inside_while_flow_line_16_if_2",
+      "to": "handler_odd",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_inside_while_flow_line_14_while_1",
+      "to": "router_if_inside_while_flow_line_16_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_inside_while_flow_line_14_while_1",
+      "to": "router_if_inside_while_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_if_inside_while_flow_line_14_while_1",
       "to": "handler_finalize",
       "label": "p['i'] < p['max_iterations']",
       "type": "set"
+    },
+    {
+      "from": "router_if_inside_while_flow_line_13_seq_3",
+      "to": "router_if_inside_while_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_if_inside_while_flow",

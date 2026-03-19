@@ -3,10 +3,37 @@ digraph "complex_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_complex_flow [label="end_complex_flow", fillcolor=palegreen];
+    handler_check_quality [label="handler_check_quality", fillcolor=lightblue];
+    handler_enrich_data [label="handler_enrich_data", fillcolor=lightblue];
     handler_error [label="handler_error", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_preprocess [label="handler_preprocess", fillcolor=lightblue];
+    handler_retry_handler [label="handler_retry_handler", fillcolor=lightblue];
+    handler_transform_batch [label="handler_transform_batch", fillcolor=lightblue];
+    handler_validate [label="handler_validate", fillcolor=lightblue];
     router_complex_flow_line_15_if_6 [label="router_complex_flow_line_15_if_6", fillcolor=wheat];
+    router_complex_flow_line_19_if_5 [label="router_complex_flow_line_19_if_5", fillcolor=wheat];
     router_complex_flow_line_22_while_1 [label="router_complex_flow_line_22_while_1", fillcolor=wheat];
+    router_complex_flow_line_26_if_3 [label="router_complex_flow_line_26_if_3", fillcolor=wheat];
     router_complex_flow_line_29_if_2 [label="router_complex_flow_line_29_if_2", fillcolor=wheat];
+    router_complex_flow_line_32_if_4 [label="router_complex_flow_line_32_if_4", fillcolor=wheat];
+    start_complex_flow [label="start_complex_flow", fillcolor=palegreen];
 
+    start_complex_flow -> handler_preprocess;
+    start_complex_flow -> handler_validate;
+    start_complex_flow -> router_complex_flow_line_15_if_6;
+    router_complex_flow_line_26_if_3 -> router_complex_flow_line_22_while_1;
+    router_complex_flow_line_26_if_3 -> router_complex_flow_line_29_if_2;
+    router_complex_flow_line_22_while_1 -> handler_transform_batch;
+    router_complex_flow_line_22_while_1 -> handler_check_quality;
+    router_complex_flow_line_22_while_1 -> router_complex_flow_line_26_if_3;
+    router_complex_flow_line_22_while_1 -> router_complex_flow_line_22_while_1;
+    router_complex_flow_line_32_if_4 -> handler_retry_handler;
+    router_complex_flow_line_19_if_5 -> handler_enrich_data;
+    router_complex_flow_line_19_if_5 -> router_complex_flow_line_22_while_1;
+    router_complex_flow_line_19_if_5 -> handler_finalize;
+    router_complex_flow_line_19_if_5 -> router_complex_flow_line_32_if_4;
+    router_complex_flow_line_19_if_5 -> handler_finalize;
+    router_complex_flow_line_15_if_6 -> router_complex_flow_line_19_if_5;
     router_complex_flow_line_15_if_6 -> handler_error [label="not p['valid']"];
 }

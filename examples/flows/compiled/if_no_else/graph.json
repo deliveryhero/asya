@@ -6,9 +6,51 @@
       "flow_role": "exit",
       "label": "end_if_no_else_flow",
       "is_generated": true
+    },
+    {
+      "id": "handler_setup",
+      "flow_role": "actor",
+      "label": "handler_setup",
+      "is_generated": false
+    },
+    {
+      "id": "handler_true",
+      "flow_role": "actor",
+      "label": "handler_true",
+      "is_generated": false
+    },
+    {
+      "id": "router_if_no_else_flow_line_14_if_1",
+      "flow_role": "router",
+      "label": "router_if_no_else_flow_line_14_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_if_no_else_flow",
+      "flow_role": "entry",
+      "label": "start_if_no_else_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_if_no_else_flow",
+      "to": "handler_setup",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_if_no_else_flow",
+      "to": "router_if_no_else_flow_line_14_if_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_no_else_flow_line_14_if_1",
+      "to": "handler_true",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_if_no_else_flow",
       "to": "__terminal__",

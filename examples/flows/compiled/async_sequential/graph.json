@@ -2,13 +2,43 @@
   "flow_name": "llm_auditor_flow",
   "nodes": [
     {
+      "id": "critic",
+      "flow_role": "actor",
+      "label": "critic",
+      "is_generated": false
+    },
+    {
       "id": "end_llm_auditor_flow",
       "flow_role": "exit",
       "label": "end_llm_auditor_flow",
       "is_generated": true
+    },
+    {
+      "id": "reviser",
+      "flow_role": "actor",
+      "label": "reviser",
+      "is_generated": false
+    },
+    {
+      "id": "start_llm_auditor_flow",
+      "flow_role": "entry",
+      "label": "start_llm_auditor_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_llm_auditor_flow",
+      "to": "critic",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_llm_auditor_flow",
+      "to": "reviser",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_llm_auditor_flow",
       "to": "__terminal__",

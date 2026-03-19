@@ -2,6 +2,17 @@ digraph "decorator_inline_comments_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    classifier [label="classifier", fillcolor=lightblue];
     end_decorator_inline_comments_flow [label="end_decorator_inline_comments_flow", fillcolor=palegreen];
+    fast_handler [label="fast_handler", fillcolor=lightblue];
+    router_decorator_inline_comments_flow_line_16_seq_2 [label="router_decorator_inline_comments_flow_line_16_seq_2", fillcolor=wheat];
+    router_decorator_inline_comments_flow_line_18_if_1 [label="router_decorator_inline_comments_flow_line_18_if_1", fillcolor=wheat];
+    standard_handler [label="standard_handler", fillcolor=lightblue];
+    start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
 
+    start_decorator_inline_comments_flow -> router_decorator_inline_comments_flow_line_16_seq_2;
+    router_decorator_inline_comments_flow_line_18_if_1 -> fast_handler;
+    router_decorator_inline_comments_flow_line_18_if_1 -> standard_handler;
+    router_decorator_inline_comments_flow_line_16_seq_2 -> classifier;
+    router_decorator_inline_comments_flow_line_16_seq_2 -> router_decorator_inline_comments_flow_line_18_if_1;
 }

@@ -12,9 +12,33 @@
       "flow_role": "router",
       "label": "router_map_reduce_line_55_fanout_1",
       "is_generated": true
+    },
+    {
+      "id": "splitter",
+      "flow_role": "actor",
+      "label": "splitter",
+      "is_generated": false
+    },
+    {
+      "id": "start_map_reduce",
+      "flow_role": "entry",
+      "label": "start_map_reduce",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_map_reduce",
+      "to": "splitter",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_map_reduce",
+      "to": "router_map_reduce_line_55_fanout_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_map_reduce_line_55_fanout_1",
       "to": "__terminal__",

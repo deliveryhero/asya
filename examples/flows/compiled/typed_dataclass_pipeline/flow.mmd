@@ -1,4 +1,14 @@
 flowchart TD
     %% Flow: typed_dataclass_pipeline
 
+    classifier[classifier]
     end_typed_dataclass_pipeline([end_typed_dataclass_pipeline])
+    enricher[enricher]
+    extractor[extractor]
+    formatter[formatter]
+    start_typed_dataclass_pipeline([start_typed_dataclass_pipeline])
+
+    start_typed_dataclass_pipeline --> extractor
+    start_typed_dataclass_pipeline --> classifier
+    start_typed_dataclass_pipeline --> enricher
+    start_typed_dataclass_pipeline --> formatter

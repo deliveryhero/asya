@@ -28,12 +28,38 @@ def _build_parent_map(tree: ast.AST) -> dict[int, ast.AST]:
     return parent_map
 
 
+def _collect_append_targets(func_node: ast.AST, var_name: str = "_next") -> list[str]:
+    """Collect resolve() args from var.append(resolve("name")) calls in a function.
+
+    The generated codegen builds routing lists via:
+        _next = []
+        _next.append(resolve("foo"))
+        _next.append(resolve("bar"))
+    This collects all such targets for a given variable name.
+    """
+    targets: list[str] = []
+    for node in ast.walk(func_node):
+        if (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and node.func.attr == "append"
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == var_name
+            and len(node.args) == 1
+        ):
+            name = _extract_resolve_arg(node.args[0])
+            if name:
+                targets.append(name)
+    return targets
+
+
 def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     """Extract yield ABI patterns from an AST function node.
 
     Walks the AST to find yield expressions matching the ABI protocol:
     - yield "SET", ".route.next", [...]  -> explicit routing edge
     - yield "SET", ".route.next[:0]", [...]  -> prepend routing edge
+    - yield "SET", ".route.next[:0]", _next  -> prepend via variable (codegen pattern)
     - yield "SET", ".route.next", []  -> abort / terminal
     - yield payload  -> implicit pass-through
     - yield "FLY", {...}  -> no routing edge (streaming only)
@@ -42,6 +68,8 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     """
     edges: list[dict] = []
     parent_map = _build_parent_map(func_node)
+    # Pre-collect targets from _next.append(resolve(...)) for variable reference resolution
+    append_targets = _collect_append_targets(func_node)
 
     for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
@@ -51,7 +79,7 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
 
         value = node.value
 
-        # Match: yield "SET", ".route.next...", [targets]
+        # Match: yield "SET", ".route.next...", [targets] or _next
         if not isinstance(value, ast.Tuple) or len(value.elts) < 3:
             continue
 
@@ -68,8 +96,11 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
 
         edge_type = "prepend" if "[:0]" in path_str else "set"
 
-        # Extract target names from resolve() calls in the list
+        # Extract target names from resolve() calls in the list literal,
+        # or fall back to _next.append() targets if the yield uses a variable
         targets = _extract_resolve_targets(targets_node)
+        if not targets and isinstance(targets_node, ast.Name) and targets_node.id == "_next":
+            targets = append_targets
 
         # Walk up AST to find enclosing if condition
         condition = _find_enclosing_condition(parent_map, node)

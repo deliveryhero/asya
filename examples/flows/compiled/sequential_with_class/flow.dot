@@ -3,5 +3,12 @@ digraph "class_instantiation_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_class_instantiation_flow [label="end_class_instantiation_flow", fillcolor=palegreen];
+    sequential_with_class_DataPreprocessor_clean [label="DataPreprocessor.clean", fillcolor=lightblue];
+    sequential_with_class_MLModel_predict [label="MLModel.predict", fillcolor=lightblue];
+    start_class_instantiation_flow [label="start_class_instantiation_flow", fillcolor=palegreen];
+    transformation [label="transformation", fillcolor=lightblue];
 
+    start_class_instantiation_flow -> sequential_with_class_DataPreprocessor_clean;
+    start_class_instantiation_flow -> transformation;
+    start_class_instantiation_flow -> sequential_with_class_MLModel_predict;
 }

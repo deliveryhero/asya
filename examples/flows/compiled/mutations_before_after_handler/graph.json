@@ -8,18 +8,78 @@
       "is_generated": true
     },
     {
+      "id": "handler_a",
+      "flow_role": "actor",
+      "label": "handler_a",
+      "is_generated": false
+    },
+    {
+      "id": "handler_b",
+      "flow_role": "actor",
+      "label": "handler_b",
+      "is_generated": false
+    },
+    {
+      "id": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "flow_role": "router",
+      "label": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "flow_role": "router",
+      "label": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "is_generated": true
+    },
+    {
       "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "flow_role": "router",
       "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_mutations_before_after_handler_flow",
+      "flow_role": "entry",
+      "label": "start_mutations_before_after_handler_flow",
       "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_mutations_before_after_handler_flow",
+      "to": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "to": "handler_b",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "to": "router_mutations_before_after_handler_flow_line_17_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "to": "handler_a",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_mutations_before_after_handler_flow",

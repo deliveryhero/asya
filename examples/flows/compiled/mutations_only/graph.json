@@ -12,9 +12,21 @@
       "flow_role": "router",
       "label": "router_mutations_only_flow_line_14_seq_1",
       "is_generated": true
+    },
+    {
+      "id": "start_mutations_only_flow",
+      "flow_role": "entry",
+      "label": "start_mutations_only_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_mutations_only_flow",
+      "to": "router_mutations_only_flow_line_14_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_mutations_only_flow_line_14_seq_1",
       "to": "__terminal__",

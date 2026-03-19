@@ -4,7 +4,17 @@ digraph "typeddict_pipeline" {
 
     end_typeddict_pipeline [label="end_typeddict_pipeline", fillcolor=palegreen];
     error_handler [label="error_handler", fillcolor=lightblue];
+    parser [label="parser", fillcolor=lightblue];
     router_typeddict_pipeline_line_77_if_1 [label="router_typeddict_pipeline_line_77_if_1", fillcolor=wheat];
+    sink_adapter [label="sink_adapter", fillcolor=lightblue];
+    start_typeddict_pipeline [label="start_typeddict_pipeline", fillcolor=palegreen];
+    transformer [label="transformer", fillcolor=lightblue];
+    validator [label="validator", fillcolor=lightblue];
 
+    start_typeddict_pipeline -> parser;
+    start_typeddict_pipeline -> validator;
+    start_typeddict_pipeline -> router_typeddict_pipeline_line_77_if_1;
+    router_typeddict_pipeline_line_77_if_1 -> transformer;
+    router_typeddict_pipeline_line_77_if_1 -> sink_adapter;
     router_typeddict_pipeline_line_77_if_1 -> error_handler [label="not p.get('valid', True)"];
 }

@@ -8,18 +8,234 @@
       "is_generated": true
     },
     {
+      "id": "handler_a",
+      "flow_role": "actor",
+      "label": "handler_a",
+      "is_generated": false
+    },
+    {
+      "id": "handler_b",
+      "flow_role": "actor",
+      "label": "handler_b",
+      "is_generated": false
+    },
+    {
+      "id": "handler_c",
+      "flow_role": "actor",
+      "label": "handler_c",
+      "is_generated": false
+    },
+    {
+      "id": "handler_d",
+      "flow_role": "actor",
+      "label": "handler_d",
+      "is_generated": false
+    },
+    {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handler_validate_input",
+      "flow_role": "actor",
+      "label": "handler_validate_input",
+      "is_generated": false
+    },
+    {
+      "id": "router_conditional_nested_flow_line_10_seq_10",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_10_seq_10",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_12_if_9",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_12_if_9",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_15_if_6",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_15_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_16_seq_4",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_16_seq_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_18_seq_3",
+      "flow_role": "actor",
+      "label": "router_conditional_nested_flow_line_18_seq_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_20_seq_5",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_20_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_23_seq_8",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_23_seq_8",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_25_seq_7",
+      "flow_role": "actor",
+      "label": "router_conditional_nested_flow_line_25_seq_7",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_27_seq_2",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_27_seq_2",
+      "is_generated": true
+    },
+    {
       "id": "router_conditional_nested_flow_line_29_seq_1",
       "flow_role": "router",
       "label": "router_conditional_nested_flow_line_29_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_9_if_11",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_9_if_11",
+      "is_generated": true
+    },
+    {
+      "id": "start_conditional_nested_flow",
+      "flow_role": "entry",
+      "label": "start_conditional_nested_flow",
       "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_conditional_nested_flow",
+      "to": "handler_validate_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_conditional_nested_flow",
+      "to": "router_conditional_nested_flow_line_9_if_11",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_conditional_nested_flow_line_29_seq_1",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_27_seq_2",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_27_seq_2",
+      "to": "router_conditional_nested_flow_line_29_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_16_seq_4",
+      "to": "handler_b",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_16_seq_4",
+      "to": "router_conditional_nested_flow_line_18_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_20_seq_5",
+      "to": "handler_c",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_15_if_6",
+      "to": "router_conditional_nested_flow_line_16_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_15_if_6",
+      "to": "router_conditional_nested_flow_line_20_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_23_seq_8",
+      "to": "handler_d",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_23_seq_8",
+      "to": "router_conditional_nested_flow_line_25_seq_7",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_12_if_9",
+      "to": "handler_b",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_12_if_9",
+      "to": "router_conditional_nested_flow_line_15_if_6",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_12_if_9",
+      "to": "router_conditional_nested_flow_line_23_seq_8",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_10_seq_10",
+      "to": "handler_a",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_10_seq_10",
+      "to": "router_conditional_nested_flow_line_12_if_9",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_9_if_11",
+      "to": "router_conditional_nested_flow_line_10_seq_10",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_9_if_11",
+      "to": "router_conditional_nested_flow_line_27_seq_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_9_if_11",
+      "to": "router_conditional_nested_flow_line_27_seq_2",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_conditional_nested_flow",

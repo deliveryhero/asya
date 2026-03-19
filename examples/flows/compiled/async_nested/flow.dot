@@ -2,6 +2,17 @@ digraph "review_pipeline_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    auto_approve [label="auto_approve", fillcolor=lightblue];
+    detailed_review [label="detailed_review", fillcolor=lightblue];
     end_review_pipeline_flow [label="end_review_pipeline_flow", fillcolor=palegreen];
+    human_review [label="human_review", fillcolor=lightblue];
+    initial_review [label="initial_review", fillcolor=lightblue];
+    router_review_pipeline_flow_line_17_if_1 [label="router_review_pipeline_flow_line_17_if_1", fillcolor=wheat];
+    start_review_pipeline_flow [label="start_review_pipeline_flow", fillcolor=palegreen];
 
+    start_review_pipeline_flow -> initial_review;
+    start_review_pipeline_flow -> router_review_pipeline_flow_line_17_if_1;
+    router_review_pipeline_flow_line_17_if_1 -> detailed_review;
+    router_review_pipeline_flow_line_17_if_1 -> human_review;
+    router_review_pipeline_flow_line_17_if_1 -> auto_approve;
 }

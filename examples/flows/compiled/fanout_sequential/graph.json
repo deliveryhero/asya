@@ -18,9 +18,21 @@
       "flow_role": "router",
       "label": "router_multi_stage_flow_line_16_fanout_1",
       "is_generated": true
+    },
+    {
+      "id": "start_multi_stage_flow",
+      "flow_role": "entry",
+      "label": "start_multi_stage_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_multi_stage_flow",
+      "to": "router_multi_stage_flow_line_15_fanout_2",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_multi_stage_flow_line_16_fanout_1",
       "to": "__terminal__",

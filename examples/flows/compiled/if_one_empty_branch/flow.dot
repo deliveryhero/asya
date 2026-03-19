@@ -3,5 +3,15 @@ digraph "if_empty_branches_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_if_empty_branches_flow [label="end_if_empty_branches_flow", fillcolor=palegreen];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_process [label="handler_process", fillcolor=lightblue];
+    handler_setup [label="handler_setup", fillcolor=lightblue];
+    router_if_empty_branches_flow_line_14_if_1 [label="router_if_empty_branches_flow_line_14_if_1", fillcolor=wheat];
+    start_if_empty_branches_flow [label="start_if_empty_branches_flow", fillcolor=palegreen];
 
+    start_if_empty_branches_flow -> handler_setup;
+    start_if_empty_branches_flow -> router_if_empty_branches_flow_line_14_if_1;
+    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize;
+    router_if_empty_branches_flow_line_14_if_1 -> handler_process;
+    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize;
 }

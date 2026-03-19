@@ -2,6 +2,12 @@
   "flow_name": "human_in_the_loop",
   "nodes": [
     {
+      "id": "approval_gate",
+      "flow_role": "actor",
+      "label": "approval_gate",
+      "is_generated": false
+    },
+    {
       "id": "end_human_in_the_loop",
       "flow_role": "exit",
       "label": "end_human_in_the_loop",
@@ -20,9 +26,45 @@
       "is_generated": false
     },
     {
+      "id": "proposal_generator",
+      "flow_role": "actor",
+      "label": "proposal_generator",
+      "is_generated": false
+    },
+    {
+      "id": "revision_agent",
+      "flow_role": "actor",
+      "label": "revision_agent",
+      "is_generated": false
+    },
+    {
+      "id": "router_human_in_the_loop_line_58_seq_7",
+      "flow_role": "router",
+      "label": "router_human_in_the_loop_line_58_seq_7",
+      "is_generated": true
+    },
+    {
+      "id": "router_human_in_the_loop_line_60_while_1",
+      "flow_role": "router",
+      "label": "router_human_in_the_loop_line_60_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_human_in_the_loop_line_61_seq_6",
+      "flow_role": "router",
+      "label": "router_human_in_the_loop_line_61_seq_6",
+      "is_generated": true
+    },
+    {
       "id": "router_human_in_the_loop_line_70_if_5",
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_70_if_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_human_in_the_loop_line_75_if_4",
+      "flow_role": "router",
+      "label": "router_human_in_the_loop_line_75_if_4",
       "is_generated": true
     },
     {
@@ -36,9 +78,21 @@
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_80_seq_2",
       "is_generated": true
+    },
+    {
+      "id": "start_human_in_the_loop",
+      "flow_role": "entry",
+      "label": "start_human_in_the_loop",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_human_in_the_loop",
+      "to": "router_human_in_the_loop_line_58_seq_7",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_human_in_the_loop_line_80_seq_2",
       "to": "notifier",
@@ -52,6 +106,24 @@
       "type": "set"
     },
     {
+      "from": "router_human_in_the_loop_line_75_if_4",
+      "to": "revision_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_70_if_5",
+      "to": "router_human_in_the_loop_line_75_if_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_70_if_5",
+      "to": "router_human_in_the_loop_line_79_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_human_in_the_loop_line_70_if_5",
       "to": "executor",
       "label": "p.get('approval') in ('approved', 'modified')",
@@ -62,6 +134,42 @@
       "to": "notifier",
       "label": "p.get('approval') in ('approved', 'modified')",
       "type": "set"
+    },
+    {
+      "from": "router_human_in_the_loop_line_61_seq_6",
+      "to": "proposal_generator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_61_seq_6",
+      "to": "approval_gate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_61_seq_6",
+      "to": "router_human_in_the_loop_line_70_if_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_60_while_1",
+      "to": "router_human_in_the_loop_line_61_seq_6",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_60_while_1",
+      "to": "router_human_in_the_loop_line_60_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_human_in_the_loop_line_58_seq_7",
+      "to": "router_human_in_the_loop_line_60_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_human_in_the_loop",

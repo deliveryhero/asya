@@ -2,9 +2,45 @@
   "flow_name": "research_and_refine",
   "nodes": [
     {
+      "id": "critic",
+      "flow_role": "actor",
+      "label": "critic",
+      "is_generated": false
+    },
+    {
       "id": "end_research_and_refine",
       "flow_role": "exit",
       "label": "end_research_and_refine",
+      "is_generated": true
+    },
+    {
+      "id": "refine_query",
+      "flow_role": "actor",
+      "label": "refine_query",
+      "is_generated": false
+    },
+    {
+      "id": "researcher",
+      "flow_role": "actor",
+      "label": "researcher",
+      "is_generated": false
+    },
+    {
+      "id": "router_research_and_refine_line_47_seq_5",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_47_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_50_while_1",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_50_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_51_seq_4",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_51_seq_4",
       "is_generated": true
     },
     {
@@ -20,6 +56,12 @@
       "is_generated": true
     },
     {
+      "id": "start_research_and_refine",
+      "flow_role": "entry",
+      "label": "start_research_and_refine",
+      "is_generated": true
+    },
+    {
       "id": "write_report",
       "flow_role": "actor",
       "label": "write_report",
@@ -28,6 +70,12 @@
   ],
   "edges": [
     {
+      "from": "start_research_and_refine",
+      "to": "router_research_and_refine_line_47_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_research_and_refine_line_59_if_2",
       "to": "write_report",
       "label": "p['iteration'] >= 5",
@@ -35,9 +83,57 @@
     },
     {
       "from": "router_research_and_refine_line_55_if_3",
+      "to": "refine_query",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
+      "to": "router_research_and_refine_line_59_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
       "to": "write_report",
       "label": "not p.get('gaps') or p.get('quality_score', 0) >= 85",
       "type": "set"
+    },
+    {
+      "from": "router_research_and_refine_line_51_seq_4",
+      "to": "researcher",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_51_seq_4",
+      "to": "critic",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_51_seq_4",
+      "to": "router_research_and_refine_line_55_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_50_while_1",
+      "to": "router_research_and_refine_line_51_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_50_while_1",
+      "to": "router_research_and_refine_line_50_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_47_seq_5",
+      "to": "router_research_and_refine_line_50_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_research_and_refine",

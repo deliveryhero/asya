@@ -2,4 +2,15 @@ flowchart TD
     %% Flow: mutations_before_after_handler_flow
 
     end_mutations_before_after_handler_flow([end_mutations_before_after_handler_flow])
+    handler_a[handler_a]
+    handler_b[handler_b]
+    router_mutations_before_after_handler_flow_line_13_seq_3{{router_mutations_before_after_handler_flow_line_13_seq_3}}
+    router_mutations_before_after_handler_flow_line_15_seq_2{{router_mutations_before_after_handler_flow_line_15_seq_2}}
     router_mutations_before_after_handler_flow_line_17_seq_1{{router_mutations_before_after_handler_flow_line_17_seq_1}}
+    start_mutations_before_after_handler_flow([start_mutations_before_after_handler_flow])
+
+    start_mutations_before_after_handler_flow --> router_mutations_before_after_handler_flow_line_13_seq_3
+    router_mutations_before_after_handler_flow_line_15_seq_2 --> handler_b
+    router_mutations_before_after_handler_flow_line_15_seq_2 --> router_mutations_before_after_handler_flow_line_17_seq_1
+    router_mutations_before_after_handler_flow_line_13_seq_3 --> handler_a
+    router_mutations_before_after_handler_flow_line_13_seq_3 --> router_mutations_before_after_handler_flow_line_15_seq_2

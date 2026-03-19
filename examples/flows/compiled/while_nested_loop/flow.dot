@@ -5,9 +5,24 @@ digraph "nested_loop_flow" {
     end_nested_loop_flow [label="end_nested_loop_flow", fillcolor=palegreen];
     finalize_loop_i [label="finalize_loop_i", fillcolor=lightblue];
     finalize_loop_j [label="finalize_loop_j", fillcolor=lightblue];
+    initialize [label="initialize", fillcolor=lightblue];
+    process_item [label="process_item", fillcolor=lightblue];
+    router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5", fillcolor=wheat];
     router_nested_loop_flow_line_16_while_1 [label="router_nested_loop_flow_line_16_while_1", fillcolor=wheat];
+    router_nested_loop_flow_line_17_seq_4 [label="router_nested_loop_flow_line_17_seq_4", fillcolor=wheat];
     router_nested_loop_flow_line_19_while_2 [label="router_nested_loop_flow_line_19_while_2", fillcolor=wheat];
+    router_nested_loop_flow_line_20_seq_3 [label="router_nested_loop_flow_line_20_seq_3", fillcolor=wheat];
+    start_nested_loop_flow [label="start_nested_loop_flow", fillcolor=palegreen];
 
+    start_nested_loop_flow -> initialize;
+    start_nested_loop_flow -> router_nested_loop_flow_line_15_seq_5;
+    router_nested_loop_flow_line_20_seq_3 -> process_item;
+    router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_20_seq_3;
+    router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_19_while_2;
     router_nested_loop_flow_line_19_while_2 -> finalize_loop_j [label="p['j'] < p['max_j']"];
+    router_nested_loop_flow_line_17_seq_4 -> router_nested_loop_flow_line_19_while_2;
+    router_nested_loop_flow_line_16_while_1 -> router_nested_loop_flow_line_17_seq_4;
+    router_nested_loop_flow_line_16_while_1 -> router_nested_loop_flow_line_16_while_1;
     router_nested_loop_flow_line_16_while_1 -> finalize_loop_i [label="p['i'] < p['max_i']"];
+    router_nested_loop_flow_line_15_seq_5 -> router_nested_loop_flow_line_16_while_1;
 }

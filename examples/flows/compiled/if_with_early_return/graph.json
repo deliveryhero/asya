@@ -14,13 +14,61 @@
       "is_generated": false
     },
     {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handler_process",
+      "flow_role": "actor",
+      "label": "handler_process",
+      "is_generated": false
+    },
+    {
+      "id": "handler_validate",
+      "flow_role": "actor",
+      "label": "handler_validate",
+      "is_generated": false
+    },
+    {
       "id": "router_early_return_flow_line_14_if_1",
       "flow_role": "router",
       "label": "router_early_return_flow_line_14_if_1",
       "is_generated": true
+    },
+    {
+      "id": "start_early_return_flow",
+      "flow_role": "entry",
+      "label": "start_early_return_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_early_return_flow",
+      "to": "handler_validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_early_return_flow",
+      "to": "router_early_return_flow_line_14_if_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_early_return_flow_line_14_if_1",
+      "to": "handler_process",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_early_return_flow_line_14_if_1",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_early_return_flow_line_14_if_1",
       "to": "handler_error",

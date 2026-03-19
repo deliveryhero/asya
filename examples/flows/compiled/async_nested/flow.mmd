@@ -1,4 +1,16 @@
 flowchart TD
     %% Flow: review_pipeline_flow
 
+    auto_approve[auto_approve]
+    detailed_review[detailed_review]
     end_review_pipeline_flow([end_review_pipeline_flow])
+    human_review[human_review]
+    initial_review[initial_review]
+    router_review_pipeline_flow_line_17_if_1{{router_review_pipeline_flow_line_17_if_1}}
+    start_review_pipeline_flow([start_review_pipeline_flow])
+
+    start_review_pipeline_flow --> initial_review
+    start_review_pipeline_flow --> router_review_pipeline_flow_line_17_if_1
+    router_review_pipeline_flow_line_17_if_1 --> detailed_review
+    router_review_pipeline_flow_line_17_if_1 --> human_review
+    router_review_pipeline_flow_line_17_if_1 --> auto_approve

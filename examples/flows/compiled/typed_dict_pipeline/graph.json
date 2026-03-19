@@ -14,13 +14,73 @@
       "is_generated": false
     },
     {
+      "id": "parser",
+      "flow_role": "actor",
+      "label": "parser",
+      "is_generated": false
+    },
+    {
       "id": "router_typeddict_pipeline_line_77_if_1",
       "flow_role": "router",
       "label": "router_typeddict_pipeline_line_77_if_1",
       "is_generated": true
+    },
+    {
+      "id": "sink_adapter",
+      "flow_role": "actor",
+      "label": "sink_adapter",
+      "is_generated": false
+    },
+    {
+      "id": "start_typeddict_pipeline",
+      "flow_role": "entry",
+      "label": "start_typeddict_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "transformer",
+      "flow_role": "actor",
+      "label": "transformer",
+      "is_generated": false
+    },
+    {
+      "id": "validator",
+      "flow_role": "actor",
+      "label": "validator",
+      "is_generated": false
     }
   ],
   "edges": [
+    {
+      "from": "start_typeddict_pipeline",
+      "to": "parser",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_typeddict_pipeline",
+      "to": "validator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_typeddict_pipeline",
+      "to": "router_typeddict_pipeline_line_77_if_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_typeddict_pipeline_line_77_if_1",
+      "to": "transformer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_typeddict_pipeline_line_77_if_1",
+      "to": "sink_adapter",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
       "to": "error_handler",

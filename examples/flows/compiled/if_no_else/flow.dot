@@ -3,5 +3,12 @@ digraph "if_no_else_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_if_no_else_flow [label="end_if_no_else_flow", fillcolor=palegreen];
+    handler_setup [label="handler_setup", fillcolor=lightblue];
+    handler_true [label="handler_true", fillcolor=lightblue];
+    router_if_no_else_flow_line_14_if_1 [label="router_if_no_else_flow_line_14_if_1", fillcolor=wheat];
+    start_if_no_else_flow [label="start_if_no_else_flow", fillcolor=palegreen];
 
+    start_if_no_else_flow -> handler_setup;
+    start_if_no_else_flow -> router_if_no_else_flow_line_14_if_1;
+    router_if_no_else_flow_line_14_if_1 -> handler_true;
 }

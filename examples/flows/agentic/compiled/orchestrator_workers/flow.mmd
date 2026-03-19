@@ -1,10 +1,35 @@
 flowchart TD
     %% Flow: orchestrator_workers
 
+    analysis_worker[analysis_worker]
+    data_worker[data_worker]
     end_orchestrator_workers([end_orchestrator_workers])
+    orchestrator[orchestrator]
+    router_orchestrator_workers_line_54_seq_8{{router_orchestrator_workers_line_54_seq_8}}
+    router_orchestrator_workers_line_57_while_1{{router_orchestrator_workers_line_57_while_1}}
+    router_orchestrator_workers_line_58_seq_7{{router_orchestrator_workers_line_58_seq_7}}
     router_orchestrator_workers_line_62_if_6{{router_orchestrator_workers_line_62_if_6}}
+    router_orchestrator_workers_line_65_if_5{{router_orchestrator_workers_line_65_if_5}}
+    router_orchestrator_workers_line_67_if_4{{router_orchestrator_workers_line_67_if_4}}
+    router_orchestrator_workers_line_69_if_3{{router_orchestrator_workers_line_69_if_3}}
     router_orchestrator_workers_line_72_if_2{{router_orchestrator_workers_line_72_if_2}}
+    start_orchestrator_workers([start_orchestrator_workers])
     synthesizer[synthesizer]
+    writing_worker[writing_worker]
 
+    start_orchestrator_workers --> router_orchestrator_workers_line_54_seq_8
     router_orchestrator_workers_line_72_if_2 -->|p['iteration'] >= 10| synthesizer
+    router_orchestrator_workers_line_69_if_3 --> writing_worker
+    router_orchestrator_workers_line_67_if_4 --> analysis_worker
+    router_orchestrator_workers_line_67_if_4 --> router_orchestrator_workers_line_69_if_3
+    router_orchestrator_workers_line_65_if_5 --> data_worker
+    router_orchestrator_workers_line_65_if_5 --> router_orchestrator_workers_line_72_if_2
+    router_orchestrator_workers_line_65_if_5 --> router_orchestrator_workers_line_67_if_4
+    router_orchestrator_workers_line_65_if_5 --> router_orchestrator_workers_line_72_if_2
+    router_orchestrator_workers_line_62_if_6 --> router_orchestrator_workers_line_65_if_5
     router_orchestrator_workers_line_62_if_6 -->|p.get('is_complete')| synthesizer
+    router_orchestrator_workers_line_58_seq_7 --> orchestrator
+    router_orchestrator_workers_line_58_seq_7 --> router_orchestrator_workers_line_62_if_6
+    router_orchestrator_workers_line_57_while_1 --> router_orchestrator_workers_line_58_seq_7
+    router_orchestrator_workers_line_57_while_1 --> router_orchestrator_workers_line_57_while_1
+    router_orchestrator_workers_line_54_seq_8 --> router_orchestrator_workers_line_57_while_1

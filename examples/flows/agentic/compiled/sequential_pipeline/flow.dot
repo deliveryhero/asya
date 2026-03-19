@@ -2,6 +2,15 @@ digraph "sequential_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    data_analyst [label="data_analyst", fillcolor=lightblue];
     end_sequential_pipeline [label="end_sequential_pipeline", fillcolor=palegreen];
+    execution_planner [label="execution_planner", fillcolor=lightblue];
+    risk_evaluator [label="risk_evaluator", fillcolor=lightblue];
+    start_sequential_pipeline [label="start_sequential_pipeline", fillcolor=palegreen];
+    trading_analyst [label="trading_analyst", fillcolor=lightblue];
 
+    start_sequential_pipeline -> data_analyst;
+    start_sequential_pipeline -> trading_analyst;
+    start_sequential_pipeline -> execution_planner;
+    start_sequential_pipeline -> risk_evaluator;
 }

@@ -1,5 +1,17 @@
 flowchart TD
     %% Flow: adaptive_flow
 
+    classifier[classifier]
     end_adaptive_flow([end_adaptive_flow])
+    formatter[formatter]
+    router_adaptive_flow_line_16_if_2{{router_adaptive_flow_line_16_if_2}}
     router_adaptive_flow_line_17_fanout_1{{router_adaptive_flow_line_17_fanout_1}}
+    sequential_analyzer[sequential_analyzer]
+    start_adaptive_flow([start_adaptive_flow])
+
+    start_adaptive_flow --> classifier
+    start_adaptive_flow --> router_adaptive_flow_line_16_if_2
+    router_adaptive_flow_line_16_if_2 --> router_adaptive_flow_line_17_fanout_1
+    router_adaptive_flow_line_16_if_2 --> formatter
+    router_adaptive_flow_line_16_if_2 --> sequential_analyzer
+    router_adaptive_flow_line_16_if_2 --> formatter

@@ -3,6 +3,22 @@ digraph "document_pipeline" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_document_pipeline [label="end_document_pipeline", fillcolor=palegreen];
+    language_detector [label="language_detector", fillcolor=lightblue];
+    ocr_extractor [label="ocr_extractor", fillcolor=lightblue];
+    router_document_pipeline_line_18_seq_3 [label="router_document_pipeline_line_18_seq_3", fillcolor=wheat];
+    router_document_pipeline_line_24_if_2 [label="router_document_pipeline_line_24_if_2", fillcolor=wheat];
     router_document_pipeline_line_28_seq_1 [label="router_document_pipeline_line_28_seq_1", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
+    start_document_pipeline [label="start_document_pipeline", fillcolor=palegreen];
+    translator [label="translator", fillcolor=lightblue];
 
+    start_document_pipeline -> router_document_pipeline_line_18_seq_3;
+    router_document_pipeline_line_24_if_2 -> translator;
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer;
+    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1;
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer;
+    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1;
+    router_document_pipeline_line_18_seq_3 -> ocr_extractor;
+    router_document_pipeline_line_18_seq_3 -> language_detector;
+    router_document_pipeline_line_18_seq_3 -> router_document_pipeline_line_24_if_2;
 }

@@ -2,6 +2,12 @@
   "flow_name": "loop_flow",
   "nodes": [
     {
+      "id": "check_threshold",
+      "flow_role": "actor",
+      "label": "check_threshold",
+      "is_generated": false
+    },
+    {
       "id": "end_loop_flow",
       "flow_role": "exit",
       "label": "end_loop_flow",
@@ -14,9 +20,57 @@
       "is_generated": false
     },
     {
+      "id": "initialize",
+      "flow_role": "actor",
+      "label": "initialize",
+      "is_generated": false
+    },
+    {
+      "id": "process_abort",
+      "flow_role": "actor",
+      "label": "process_abort",
+      "is_generated": false
+    },
+    {
+      "id": "process_item",
+      "flow_role": "actor",
+      "label": "process_item",
+      "is_generated": false
+    },
+    {
+      "id": "router_loop_flow_line_15_seq_7",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_15_seq_7",
+      "is_generated": true
+    },
+    {
       "id": "router_loop_flow_line_16_while_1",
       "flow_role": "router",
       "label": "router_loop_flow_line_16_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_loop_flow_line_17_seq_6",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_17_seq_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_loop_flow_line_20_if_5",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_20_if_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_loop_flow_line_21_seq_4",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_21_seq_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_loop_flow_line_23_seq_3",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_23_seq_3",
       "is_generated": true
     },
     {
@@ -24,9 +78,27 @@
       "flow_role": "router",
       "label": "router_loop_flow_line_27_if_2",
       "is_generated": true
+    },
+    {
+      "id": "start_loop_flow",
+      "flow_role": "entry",
+      "label": "start_loop_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_loop_flow",
+      "to": "initialize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_loop_flow",
+      "to": "router_loop_flow_line_15_seq_7",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_loop_flow_line_27_if_2",
       "to": "finalize_loop",
@@ -34,10 +106,76 @@
       "type": "set"
     },
     {
+      "from": "router_loop_flow_line_23_seq_3",
+      "to": "router_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_21_seq_4",
+      "to": "process_abort",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_21_seq_4",
+      "to": "router_loop_flow_line_23_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_20_if_5",
+      "to": "router_loop_flow_line_21_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_20_if_5",
+      "to": "check_threshold",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_20_if_5",
+      "to": "router_loop_flow_line_27_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_17_seq_6",
+      "to": "process_item",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_17_seq_6",
+      "to": "router_loop_flow_line_20_if_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_16_while_1",
+      "to": "router_loop_flow_line_17_seq_6",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_loop_flow_line_16_while_1",
+      "to": "router_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_loop_flow_line_16_while_1",
       "to": "finalize_loop",
       "label": "p['iteration'] < p['max_iterations']",
       "type": "set"
+    },
+    {
+      "from": "router_loop_flow_line_15_seq_7",
+      "to": "router_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_loop_flow",

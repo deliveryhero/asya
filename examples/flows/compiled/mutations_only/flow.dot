@@ -4,5 +4,7 @@ digraph "mutations_only_flow" {
 
     end_mutations_only_flow [label="end_mutations_only_flow", fillcolor=palegreen];
     router_mutations_only_flow_line_14_seq_1 [label="router_mutations_only_flow_line_14_seq_1", fillcolor=wheat];
+    start_mutations_only_flow [label="start_mutations_only_flow", fillcolor=palegreen];
 
+    start_mutations_only_flow -> router_mutations_only_flow_line_14_seq_1;
 }

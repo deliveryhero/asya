@@ -2,6 +2,22 @@ digraph "content_pipeline_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    classifier [label="classifier", fillcolor=lightblue];
     end_content_pipeline_flow [label="end_content_pipeline_flow", fillcolor=palegreen];
+    generic_processor [label="generic_processor", fillcolor=lightblue];
+    image_processor [label="image_processor", fillcolor=lightblue];
+    quality_check [label="quality_check", fillcolor=lightblue];
+    router_content_pipeline_flow_line_16_if_2 [label="router_content_pipeline_flow_line_16_if_2", fillcolor=wheat];
+    router_content_pipeline_flow_line_18_if_1 [label="router_content_pipeline_flow_line_18_if_1", fillcolor=wheat];
+    start_content_pipeline_flow [label="start_content_pipeline_flow", fillcolor=palegreen];
+    text_processor [label="text_processor", fillcolor=lightblue];
 
+    start_content_pipeline_flow -> classifier;
+    start_content_pipeline_flow -> router_content_pipeline_flow_line_16_if_2;
+    router_content_pipeline_flow_line_18_if_1 -> image_processor;
+    router_content_pipeline_flow_line_18_if_1 -> generic_processor;
+    router_content_pipeline_flow_line_16_if_2 -> text_processor;
+    router_content_pipeline_flow_line_16_if_2 -> quality_check;
+    router_content_pipeline_flow_line_16_if_2 -> router_content_pipeline_flow_line_18_if_1;
+    router_content_pipeline_flow_line_16_if_2 -> quality_check;
 }

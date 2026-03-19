@@ -2,13 +2,133 @@
   "flow_name": "routing_classifier",
   "nodes": [
     {
+      "id": "account_agent",
+      "flow_role": "actor",
+      "label": "account_agent",
+      "is_generated": false
+    },
+    {
+      "id": "billing_agent",
+      "flow_role": "actor",
+      "label": "billing_agent",
+      "is_generated": false
+    },
+    {
+      "id": "classifier",
+      "flow_role": "actor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
       "id": "end_routing_classifier",
       "flow_role": "exit",
       "label": "end_routing_classifier",
       "is_generated": true
+    },
+    {
+      "id": "format_reply",
+      "flow_role": "actor",
+      "label": "format_reply",
+      "is_generated": false
+    },
+    {
+      "id": "general_agent",
+      "flow_role": "actor",
+      "label": "general_agent",
+      "is_generated": false
+    },
+    {
+      "id": "router_routing_classifier_line_47_if_3",
+      "flow_role": "router",
+      "label": "router_routing_classifier_line_47_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_routing_classifier_line_49_if_2",
+      "flow_role": "router",
+      "label": "router_routing_classifier_line_49_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_routing_classifier_line_51_if_1",
+      "flow_role": "router",
+      "label": "router_routing_classifier_line_51_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_routing_classifier",
+      "flow_role": "entry",
+      "label": "start_routing_classifier",
+      "is_generated": true
+    },
+    {
+      "id": "technical_agent",
+      "flow_role": "actor",
+      "label": "technical_agent",
+      "is_generated": false
     }
   ],
   "edges": [
+    {
+      "from": "start_routing_classifier",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_routing_classifier",
+      "to": "router_routing_classifier_line_47_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_51_if_1",
+      "to": "account_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_51_if_1",
+      "to": "general_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_49_if_2",
+      "to": "technical_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_49_if_2",
+      "to": "router_routing_classifier_line_51_if_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_47_if_3",
+      "to": "billing_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_47_if_3",
+      "to": "format_reply",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_47_if_3",
+      "to": "router_routing_classifier_line_49_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_routing_classifier_line_47_if_3",
+      "to": "format_reply",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_routing_classifier",
       "to": "__terminal__",

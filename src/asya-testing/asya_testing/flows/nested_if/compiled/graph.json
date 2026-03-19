@@ -1,0 +1,188 @@
+{
+  "flow_name": "test_nested_flow",
+  "nodes": [
+    {
+      "id": "end_test_nested_flow",
+      "flow_role": "exit",
+      "label": "end_test_nested_flow",
+      "is_generated": true
+    },
+    {
+      "id": "finalize_result",
+      "flow_role": "actor",
+      "label": "finalize_result",
+      "is_generated": false
+    },
+    {
+      "id": "route_a_x",
+      "flow_role": "actor",
+      "label": "route_a_x",
+      "is_generated": false
+    },
+    {
+      "id": "route_a_y",
+      "flow_role": "actor",
+      "label": "route_a_y",
+      "is_generated": false
+    },
+    {
+      "id": "route_b_x",
+      "flow_role": "actor",
+      "label": "route_b_x",
+      "is_generated": false
+    },
+    {
+      "id": "route_b_y",
+      "flow_role": "actor",
+      "label": "route_b_y",
+      "is_generated": false
+    },
+    {
+      "id": "router_test_nested_flow_line_11_if_3",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_11_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_12_seq_1",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_12_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_15_seq_2",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_15_seq_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_19_if_6",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_19_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_20_seq_4",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_20_seq_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_23_seq_5",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_23_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_test_nested_flow_line_9_if_7",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_9_if_7",
+      "is_generated": true
+    },
+    {
+      "id": "start_test_nested_flow",
+      "flow_role": "entry",
+      "label": "start_test_nested_flow",
+      "is_generated": true
+    },
+    {
+      "id": "validate_input",
+      "flow_role": "actor",
+      "label": "validate_input",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_test_nested_flow",
+      "to": "validate_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_test_nested_flow",
+      "to": "router_test_nested_flow_line_9_if_7",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_12_seq_1",
+      "to": "route_a_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_15_seq_2",
+      "to": "route_a_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_11_if_3",
+      "to": "router_test_nested_flow_line_12_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_11_if_3",
+      "to": "router_test_nested_flow_line_15_seq_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_20_seq_4",
+      "to": "route_b_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_23_seq_5",
+      "to": "route_b_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_19_if_6",
+      "to": "router_test_nested_flow_line_20_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_19_if_6",
+      "to": "router_test_nested_flow_line_23_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "router_test_nested_flow_line_11_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "finalize_result",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "router_test_nested_flow_line_19_if_6",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "finalize_result",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "end_test_nested_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

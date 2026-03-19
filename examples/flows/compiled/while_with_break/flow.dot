@@ -4,9 +4,21 @@ digraph "while_with_break_flow" {
 
     end_while_with_break_flow [label="end_while_with_break_flow", fillcolor=palegreen];
     handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_init [label="handler_init", fillcolor=lightblue];
+    handler_process [label="handler_process", fillcolor=lightblue];
+    router_while_with_break_flow_line_13_seq_4 [label="router_while_with_break_flow_line_13_seq_4", fillcolor=wheat];
     router_while_with_break_flow_line_14_while_1 [label="router_while_with_break_flow_line_14_while_1", fillcolor=wheat];
+    router_while_with_break_flow_line_15_seq_3 [label="router_while_with_break_flow_line_15_seq_3", fillcolor=wheat];
     router_while_with_break_flow_line_17_if_2 [label="router_while_with_break_flow_line_17_if_2", fillcolor=wheat];
+    start_while_with_break_flow [label="start_while_with_break_flow", fillcolor=palegreen];
 
+    start_while_with_break_flow -> handler_init;
+    start_while_with_break_flow -> router_while_with_break_flow_line_13_seq_4;
     router_while_with_break_flow_line_17_if_2 -> handler_finalize [label="p['stop_condition']"];
+    router_while_with_break_flow_line_15_seq_3 -> handler_process;
+    router_while_with_break_flow_line_15_seq_3 -> router_while_with_break_flow_line_17_if_2;
+    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3;
+    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_14_while_1;
     router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="p['i'] < p['max_iterations']"];
+    router_while_with_break_flow_line_13_seq_4 -> router_while_with_break_flow_line_14_while_1;
 }

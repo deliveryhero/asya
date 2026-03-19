@@ -8,18 +8,114 @@
       "is_generated": true
     },
     {
+      "id": "language_detector",
+      "flow_role": "actor",
+      "label": "language_detector",
+      "is_generated": false
+    },
+    {
+      "id": "ocr_extractor",
+      "flow_role": "actor",
+      "label": "ocr_extractor",
+      "is_generated": false
+    },
+    {
+      "id": "router_document_pipeline_line_18_seq_3",
+      "flow_role": "router",
+      "label": "router_document_pipeline_line_18_seq_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_document_pipeline_line_24_if_2",
+      "flow_role": "router",
+      "label": "router_document_pipeline_line_24_if_2",
+      "is_generated": true
+    },
+    {
       "id": "router_document_pipeline_line_28_seq_1",
       "flow_role": "router",
       "label": "router_document_pipeline_line_28_seq_1",
       "is_generated": true
+    },
+    {
+      "id": "sentiment_analyzer",
+      "flow_role": "actor",
+      "label": "sentiment_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "start_document_pipeline",
+      "flow_role": "entry",
+      "label": "start_document_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "translator",
+      "flow_role": "actor",
+      "label": "translator",
+      "is_generated": false
     }
   ],
   "edges": [
+    {
+      "from": "start_document_pipeline",
+      "to": "router_document_pipeline_line_18_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_document_pipeline_line_28_seq_1",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "translator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "sentiment_analyzer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "router_document_pipeline_line_28_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "sentiment_analyzer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "router_document_pipeline_line_28_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_18_seq_3",
+      "to": "ocr_extractor",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_18_seq_3",
+      "to": "language_detector",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_document_pipeline_line_18_seq_3",
+      "to": "router_document_pipeline_line_24_if_2",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_document_pipeline",

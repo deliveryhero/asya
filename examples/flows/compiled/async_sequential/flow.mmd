@@ -1,4 +1,10 @@
 flowchart TD
     %% Flow: llm_auditor_flow
 
+    critic[critic]
     end_llm_auditor_flow([end_llm_auditor_flow])
+    reviser[reviser]
+    start_llm_auditor_flow([start_llm_auditor_flow])
+
+    start_llm_auditor_flow --> critic
+    start_llm_auditor_flow --> reviser

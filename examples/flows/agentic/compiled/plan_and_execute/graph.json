@@ -8,24 +8,114 @@
       "is_generated": true
     },
     {
+      "id": "executor",
+      "flow_role": "actor",
+      "label": "executor",
+      "is_generated": false
+    },
+    {
+      "id": "planner",
+      "flow_role": "actor",
+      "label": "planner",
+      "is_generated": false
+    },
+    {
+      "id": "re_planner",
+      "flow_role": "actor",
+      "label": "re_planner",
+      "is_generated": false
+    },
+    {
+      "id": "router_plan_and_execute_line_49_seq_4",
+      "flow_role": "router",
+      "label": "router_plan_and_execute_line_49_seq_4",
+      "is_generated": true
+    },
+    {
       "id": "router_plan_and_execute_line_54_while_2",
       "flow_role": "router",
       "label": "router_plan_and_execute_line_54_while_2",
       "is_generated": true
     },
     {
+      "id": "router_plan_and_execute_line_59_if_3",
+      "flow_role": "router",
+      "label": "router_plan_and_execute_line_59_if_3",
+      "is_generated": true
+    },
+    {
       "id": "router_plan_and_execute_line_62_seq_1",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_plan_and_execute_line_62_seq_1",
       "is_generated": true
+    },
+    {
+      "id": "start_plan_and_execute",
+      "flow_role": "entry",
+      "label": "start_plan_and_execute",
+      "is_generated": true
+    },
+    {
+      "id": "synthesizer",
+      "flow_role": "actor",
+      "label": "synthesizer",
+      "is_generated": false
     }
   ],
   "edges": [
+    {
+      "from": "start_plan_and_execute",
+      "to": "router_plan_and_execute_line_49_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_62_seq_1",
+      "to": "synthesizer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_59_if_3",
+      "to": "re_planner",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_54_while_2",
+      "to": "executor",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_54_while_2",
+      "to": "router_plan_and_execute_line_59_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_54_while_2",
+      "to": "router_plan_and_execute_line_54_while_2",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "router_plan_and_execute_line_62_seq_1",
       "label": "p['current_step'] < len(p.get('plan', []))",
       "type": "set"
+    },
+    {
+      "from": "router_plan_and_execute_line_49_seq_4",
+      "to": "planner",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_plan_and_execute_line_49_seq_4",
+      "to": "router_plan_and_execute_line_54_while_2",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_plan_and_execute",

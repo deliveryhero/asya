@@ -3,5 +3,12 @@ digraph "decorator_definitions_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_decorator_definitions_flow [label="end_decorator_definitions_flow", fillcolor=palegreen];
+    enrich [label="enrich", fillcolor=lightblue];
+    router_decorator_definitions_flow_line_27_seq_1 [label="router_decorator_definitions_flow_line_27_seq_1", fillcolor=wheat];
+    start_decorator_definitions_flow [label="start_decorator_definitions_flow", fillcolor=palegreen];
+    validate [label="validate", fillcolor=lightblue];
 
+    start_decorator_definitions_flow -> router_decorator_definitions_flow_line_27_seq_1;
+    router_decorator_definitions_flow_line_27_seq_1 -> validate;
+    router_decorator_definitions_flow_line_27_seq_1 -> enrich;
 }

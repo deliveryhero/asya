@@ -2,13 +2,79 @@
   "flow_name": "decorator_inline_comments_flow",
   "nodes": [
     {
+      "id": "classifier",
+      "flow_role": "actor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
       "id": "end_decorator_inline_comments_flow",
       "flow_role": "exit",
       "label": "end_decorator_inline_comments_flow",
       "is_generated": true
+    },
+    {
+      "id": "fast_handler",
+      "flow_role": "actor",
+      "label": "fast_handler",
+      "is_generated": false
+    },
+    {
+      "id": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "flow_role": "router",
+      "label": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_decorator_inline_comments_flow_line_18_if_1",
+      "flow_role": "router",
+      "label": "router_decorator_inline_comments_flow_line_18_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "standard_handler",
+      "flow_role": "actor",
+      "label": "standard_handler",
+      "is_generated": false
+    },
+    {
+      "id": "start_decorator_inline_comments_flow",
+      "flow_role": "entry",
+      "label": "start_decorator_inline_comments_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_decorator_inline_comments_flow",
+      "to": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "to": "fast_handler",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "to": "standard_handler",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "to": "router_decorator_inline_comments_flow_line_18_if_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_decorator_inline_comments_flow",
       "to": "__terminal__",

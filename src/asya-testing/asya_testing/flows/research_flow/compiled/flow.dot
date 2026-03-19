@@ -1,0 +1,10 @@
+digraph "research_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    end_research_flow [label="end_research_flow", fillcolor=palegreen];
+    router_research_flow_line_7_fanout_1 [label="router_research_flow_line_7_fanout_1", fillcolor=wheat];
+    start_research_flow [label="start_research_flow", fillcolor=palegreen];
+
+    start_research_flow -> router_research_flow_line_7_fanout_1;
+}

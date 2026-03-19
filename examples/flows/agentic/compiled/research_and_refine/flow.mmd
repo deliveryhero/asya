@@ -1,10 +1,26 @@
 flowchart TD
     %% Flow: research_and_refine
 
+    critic[critic]
     end_research_and_refine([end_research_and_refine])
+    refine_query[refine_query]
+    researcher[researcher]
+    router_research_and_refine_line_47_seq_5{{router_research_and_refine_line_47_seq_5}}
+    router_research_and_refine_line_50_while_1{{router_research_and_refine_line_50_while_1}}
+    router_research_and_refine_line_51_seq_4{{router_research_and_refine_line_51_seq_4}}
     router_research_and_refine_line_55_if_3{{router_research_and_refine_line_55_if_3}}
     router_research_and_refine_line_59_if_2{{router_research_and_refine_line_59_if_2}}
+    start_research_and_refine([start_research_and_refine])
     write_report[write_report]
 
+    start_research_and_refine --> router_research_and_refine_line_47_seq_5
     router_research_and_refine_line_59_if_2 -->|p['iteration'] >= 5| write_report
+    router_research_and_refine_line_55_if_3 --> refine_query
+    router_research_and_refine_line_55_if_3 --> router_research_and_refine_line_59_if_2
     router_research_and_refine_line_55_if_3 -->|not p.get('gaps') or p.get('quality_score', 0) >= 85| write_report
+    router_research_and_refine_line_51_seq_4 --> researcher
+    router_research_and_refine_line_51_seq_4 --> critic
+    router_research_and_refine_line_51_seq_4 --> router_research_and_refine_line_55_if_3
+    router_research_and_refine_line_50_while_1 --> router_research_and_refine_line_51_seq_4
+    router_research_and_refine_line_50_while_1 --> router_research_and_refine_line_50_while_1
+    router_research_and_refine_line_47_seq_5 --> router_research_and_refine_line_50_while_1

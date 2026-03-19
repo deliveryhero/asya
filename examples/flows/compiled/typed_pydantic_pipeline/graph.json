@@ -12,9 +12,21 @@
       "flow_role": "router",
       "label": "router_ingester_line_181_seq_1",
       "is_generated": true
+    },
+    {
+      "id": "start_ingester",
+      "flow_role": "entry",
+      "label": "start_ingester",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_ingester",
+      "to": "router_ingester_line_181_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_ingester_line_181_seq_1",
       "to": "__terminal__",

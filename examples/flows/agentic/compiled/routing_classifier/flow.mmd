@@ -1,4 +1,25 @@
 flowchart TD
     %% Flow: routing_classifier
 
+    account_agent[account_agent]
+    billing_agent[billing_agent]
+    classifier[classifier]
     end_routing_classifier([end_routing_classifier])
+    format_reply[format_reply]
+    general_agent[general_agent]
+    router_routing_classifier_line_47_if_3{{router_routing_classifier_line_47_if_3}}
+    router_routing_classifier_line_49_if_2{{router_routing_classifier_line_49_if_2}}
+    router_routing_classifier_line_51_if_1{{router_routing_classifier_line_51_if_1}}
+    start_routing_classifier([start_routing_classifier])
+    technical_agent[technical_agent]
+
+    start_routing_classifier --> classifier
+    start_routing_classifier --> router_routing_classifier_line_47_if_3
+    router_routing_classifier_line_51_if_1 --> account_agent
+    router_routing_classifier_line_51_if_1 --> general_agent
+    router_routing_classifier_line_49_if_2 --> technical_agent
+    router_routing_classifier_line_49_if_2 --> router_routing_classifier_line_51_if_1
+    router_routing_classifier_line_47_if_3 --> billing_agent
+    router_routing_classifier_line_47_if_3 --> format_reply
+    router_routing_classifier_line_47_if_3 --> router_routing_classifier_line_49_if_2
+    router_routing_classifier_line_47_if_3 --> format_reply

@@ -2,3 +2,11 @@ flowchart TD
     %% Flow: class_instantiation_flow
 
     end_class_instantiation_flow([end_class_instantiation_flow])
+    sequential_with_class_DataPreprocessor_clean[DataPreprocessor.clean]
+    sequential_with_class_MLModel_predict[MLModel.predict]
+    start_class_instantiation_flow([start_class_instantiation_flow])
+    transformation[transformation]
+
+    start_class_instantiation_flow --> sequential_with_class_DataPreprocessor_clean
+    start_class_instantiation_flow --> transformation
+    start_class_instantiation_flow --> sequential_with_class_MLModel_predict

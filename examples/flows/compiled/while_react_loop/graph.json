@@ -8,18 +8,72 @@
       "is_generated": true
     },
     {
+      "id": "execute_tool",
+      "flow_role": "actor",
+      "label": "execute_tool",
+      "is_generated": false
+    },
+    {
+      "id": "llm_call",
+      "flow_role": "actor",
+      "label": "llm_call",
+      "is_generated": false
+    },
+    {
+      "id": "router_react_agent_line_14_while_1",
+      "flow_role": "router",
+      "label": "router_react_agent_line_14_while_1",
+      "is_generated": true
+    },
+    {
       "id": "router_react_agent_line_16_if_2",
       "flow_role": "router",
       "label": "router_react_agent_line_16_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "start_react_agent",
+      "flow_role": "entry",
+      "label": "start_react_agent",
       "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_react_agent",
+      "to": "router_react_agent_line_14_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_agent_line_16_if_2",
+      "to": "execute_tool",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_react_agent_line_16_if_2",
       "to": "__terminal__",
       "label": "p.get('tool_calls')",
       "type": "abort"
+    },
+    {
+      "from": "router_react_agent_line_14_while_1",
+      "to": "llm_call",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_agent_line_14_while_1",
+      "to": "router_react_agent_line_16_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_agent_line_14_while_1",
+      "to": "router_react_agent_line_14_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_react_agent",

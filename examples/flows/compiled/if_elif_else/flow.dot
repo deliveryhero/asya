@@ -3,5 +3,21 @@ digraph "if_elif_else_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_if_elif_else_flow [label="end_if_elif_else_flow", fillcolor=palegreen];
+    handler_default [label="handler_default", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_type_a [label="handler_type_a", fillcolor=lightblue];
+    handler_type_b [label="handler_type_b", fillcolor=lightblue];
+    handler_validate [label="handler_validate", fillcolor=lightblue];
+    router_if_elif_else_flow_line_14_if_2 [label="router_if_elif_else_flow_line_14_if_2", fillcolor=wheat];
+    router_if_elif_else_flow_line_16_if_1 [label="router_if_elif_else_flow_line_16_if_1", fillcolor=wheat];
+    start_if_elif_else_flow [label="start_if_elif_else_flow", fillcolor=palegreen];
 
+    start_if_elif_else_flow -> handler_validate;
+    start_if_elif_else_flow -> router_if_elif_else_flow_line_14_if_2;
+    router_if_elif_else_flow_line_16_if_1 -> handler_type_b;
+    router_if_elif_else_flow_line_16_if_1 -> handler_default;
+    router_if_elif_else_flow_line_14_if_2 -> handler_type_a;
+    router_if_elif_else_flow_line_14_if_2 -> handler_finalize;
+    router_if_elif_else_flow_line_14_if_2 -> router_if_elif_else_flow_line_16_if_1;
+    router_if_elif_else_flow_line_14_if_2 -> handler_finalize;
 }

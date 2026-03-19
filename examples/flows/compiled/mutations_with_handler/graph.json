@@ -8,18 +8,54 @@
       "is_generated": true
     },
     {
+      "id": "handler_process",
+      "flow_role": "actor",
+      "label": "handler_process",
+      "is_generated": false
+    },
+    {
+      "id": "router_mutations_with_handler_flow_line_13_seq_2",
+      "flow_role": "router",
+      "label": "router_mutations_with_handler_flow_line_13_seq_2",
+      "is_generated": true
+    },
+    {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
       "flow_role": "router",
       "label": "router_mutations_with_handler_flow_line_17_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_mutations_with_handler_flow",
+      "flow_role": "entry",
+      "label": "start_mutations_with_handler_flow",
       "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_mutations_with_handler_flow",
+      "to": "router_mutations_with_handler_flow_line_13_seq_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_mutations_with_handler_flow_line_17_seq_1",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_mutations_with_handler_flow_line_13_seq_2",
+      "to": "handler_process",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_mutations_with_handler_flow_line_13_seq_2",
+      "to": "router_mutations_with_handler_flow_line_17_seq_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_mutations_with_handler_flow",

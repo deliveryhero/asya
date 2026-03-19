@@ -2,6 +2,15 @@ digraph "typed_dataclass_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    classifier [label="classifier", fillcolor=lightblue];
     end_typed_dataclass_pipeline [label="end_typed_dataclass_pipeline", fillcolor=palegreen];
+    enricher [label="enricher", fillcolor=lightblue];
+    extractor [label="extractor", fillcolor=lightblue];
+    formatter [label="formatter", fillcolor=lightblue];
+    start_typed_dataclass_pipeline [label="start_typed_dataclass_pipeline", fillcolor=palegreen];
 
+    start_typed_dataclass_pipeline -> extractor;
+    start_typed_dataclass_pipeline -> classifier;
+    start_typed_dataclass_pipeline -> enricher;
+    start_typed_dataclass_pipeline -> formatter;
 }

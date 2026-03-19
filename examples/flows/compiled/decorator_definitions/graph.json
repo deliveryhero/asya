@@ -6,9 +6,51 @@
       "flow_role": "exit",
       "label": "end_decorator_definitions_flow",
       "is_generated": true
+    },
+    {
+      "id": "enrich",
+      "flow_role": "actor",
+      "label": "enrich",
+      "is_generated": false
+    },
+    {
+      "id": "router_decorator_definitions_flow_line_27_seq_1",
+      "flow_role": "router",
+      "label": "router_decorator_definitions_flow_line_27_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_decorator_definitions_flow",
+      "flow_role": "entry",
+      "label": "start_decorator_definitions_flow",
+      "is_generated": true
+    },
+    {
+      "id": "validate",
+      "flow_role": "actor",
+      "label": "validate",
+      "is_generated": false
     }
   ],
   "edges": [
+    {
+      "from": "start_decorator_definitions_flow",
+      "to": "router_decorator_definitions_flow_line_27_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_definitions_flow_line_27_seq_1",
+      "to": "validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_definitions_flow_line_27_seq_1",
+      "to": "enrich",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_decorator_definitions_flow",
       "to": "__terminal__",

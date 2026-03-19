@@ -3,6 +3,10 @@ digraph "parallel_sectioning" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     end_parallel_sectioning [label="end_parallel_sectioning", fillcolor=palegreen];
+    preprocessor [label="preprocessor", fillcolor=lightblue];
     router_parallel_sectioning_line_48_fanout_1 [label="router_parallel_sectioning_line_48_fanout_1", fillcolor=wheat];
+    start_parallel_sectioning [label="start_parallel_sectioning", fillcolor=palegreen];
 
+    start_parallel_sectioning -> preprocessor;
+    start_parallel_sectioning -> router_parallel_sectioning_line_48_fanout_1;
 }

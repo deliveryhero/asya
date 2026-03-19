@@ -2,9 +2,27 @@
   "flow_name": "adaptive_flow",
   "nodes": [
     {
+      "id": "classifier",
+      "flow_role": "actor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
       "id": "end_adaptive_flow",
       "flow_role": "exit",
       "label": "end_adaptive_flow",
+      "is_generated": true
+    },
+    {
+      "id": "formatter",
+      "flow_role": "actor",
+      "label": "formatter",
+      "is_generated": false
+    },
+    {
+      "id": "router_adaptive_flow_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_adaptive_flow_line_16_if_2",
       "is_generated": true
     },
     {
@@ -12,9 +30,33 @@
       "flow_role": "router",
       "label": "router_adaptive_flow_line_17_fanout_1",
       "is_generated": true
+    },
+    {
+      "id": "sequential_analyzer",
+      "flow_role": "actor",
+      "label": "sequential_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "start_adaptive_flow",
+      "flow_role": "entry",
+      "label": "start_adaptive_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_adaptive_flow",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_adaptive_flow",
+      "to": "router_adaptive_flow_line_16_if_2",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_adaptive_flow_line_17_fanout_1",
       "to": "__terminal__",
@@ -26,6 +68,30 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "router_adaptive_flow_line_17_fanout_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "formatter",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "sequential_analyzer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "formatter",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_adaptive_flow",

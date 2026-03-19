@@ -20,9 +20,33 @@
       "is_generated": false
     },
     {
+      "id": "initialize",
+      "flow_role": "actor",
+      "label": "initialize",
+      "is_generated": false
+    },
+    {
+      "id": "process_item",
+      "flow_role": "actor",
+      "label": "process_item",
+      "is_generated": false
+    },
+    {
+      "id": "router_nested_loop_flow_line_15_seq_5",
+      "flow_role": "router",
+      "label": "router_nested_loop_flow_line_15_seq_5",
+      "is_generated": true
+    },
+    {
       "id": "router_nested_loop_flow_line_16_while_1",
       "flow_role": "router",
       "label": "router_nested_loop_flow_line_16_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_loop_flow_line_17_seq_4",
+      "flow_role": "router",
+      "label": "router_nested_loop_flow_line_17_seq_4",
       "is_generated": true
     },
     {
@@ -30,9 +54,51 @@
       "flow_role": "router",
       "label": "router_nested_loop_flow_line_19_while_2",
       "is_generated": true
+    },
+    {
+      "id": "router_nested_loop_flow_line_20_seq_3",
+      "flow_role": "router",
+      "label": "router_nested_loop_flow_line_20_seq_3",
+      "is_generated": true
+    },
+    {
+      "id": "start_nested_loop_flow",
+      "flow_role": "entry",
+      "label": "start_nested_loop_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_nested_loop_flow",
+      "to": "initialize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_nested_loop_flow",
+      "to": "router_nested_loop_flow_line_15_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_loop_flow_line_20_seq_3",
+      "to": "process_item",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_loop_flow_line_19_while_2",
+      "to": "router_nested_loop_flow_line_20_seq_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_loop_flow_line_19_while_2",
+      "to": "router_nested_loop_flow_line_19_while_2",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_nested_loop_flow_line_19_while_2",
       "to": "finalize_loop_j",
@@ -40,10 +106,34 @@
       "type": "set"
     },
     {
+      "from": "router_nested_loop_flow_line_17_seq_4",
+      "to": "router_nested_loop_flow_line_19_while_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_loop_flow_line_16_while_1",
+      "to": "router_nested_loop_flow_line_17_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_loop_flow_line_16_while_1",
+      "to": "router_nested_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_nested_loop_flow_line_16_while_1",
       "to": "finalize_loop_i",
       "label": "p['i'] < p['max_i']",
       "type": "set"
+    },
+    {
+      "from": "router_nested_loop_flow_line_15_seq_5",
+      "to": "router_nested_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_nested_loop_flow",

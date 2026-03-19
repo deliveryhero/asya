@@ -8,9 +8,51 @@
       "is_generated": true
     },
     {
+      "id": "handler_check_quality",
+      "flow_role": "actor",
+      "label": "handler_check_quality",
+      "is_generated": false
+    },
+    {
+      "id": "handler_enrich_data",
+      "flow_role": "actor",
+      "label": "handler_enrich_data",
+      "is_generated": false
+    },
+    {
       "id": "handler_error",
       "flow_role": "actor",
       "label": "handler_error",
+      "is_generated": false
+    },
+    {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handler_preprocess",
+      "flow_role": "actor",
+      "label": "handler_preprocess",
+      "is_generated": false
+    },
+    {
+      "id": "handler_retry_handler",
+      "flow_role": "actor",
+      "label": "handler_retry_handler",
+      "is_generated": false
+    },
+    {
+      "id": "handler_transform_batch",
+      "flow_role": "actor",
+      "label": "handler_transform_batch",
+      "is_generated": false
+    },
+    {
+      "id": "handler_validate",
+      "flow_role": "actor",
+      "label": "handler_validate",
       "is_generated": false
     },
     {
@@ -20,9 +62,21 @@
       "is_generated": true
     },
     {
+      "id": "router_complex_flow_line_19_if_5",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_19_if_5",
+      "is_generated": true
+    },
+    {
       "id": "router_complex_flow_line_22_while_1",
       "flow_role": "router",
       "label": "router_complex_flow_line_22_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_complex_flow_line_26_if_3",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_26_if_3",
       "is_generated": true
     },
     {
@@ -30,9 +84,39 @@
       "flow_role": "router",
       "label": "router_complex_flow_line_29_if_2",
       "is_generated": true
+    },
+    {
+      "id": "router_complex_flow_line_32_if_4",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_32_if_4",
+      "is_generated": true
+    },
+    {
+      "id": "start_complex_flow",
+      "flow_role": "entry",
+      "label": "start_complex_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_complex_flow",
+      "to": "handler_preprocess",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_complex_flow",
+      "to": "handler_validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_complex_flow",
+      "to": "router_complex_flow_line_15_if_6",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_complex_flow_line_29_if_2",
       "to": "__terminal__",
@@ -40,10 +124,88 @@
       "type": "abort"
     },
     {
+      "from": "router_complex_flow_line_26_if_3",
+      "to": "router_complex_flow_line_22_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_26_if_3",
+      "to": "router_complex_flow_line_29_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_22_while_1",
+      "to": "handler_transform_batch",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_22_while_1",
+      "to": "handler_check_quality",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_22_while_1",
+      "to": "router_complex_flow_line_26_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_22_while_1",
+      "to": "router_complex_flow_line_22_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_complex_flow_line_22_while_1",
       "to": "__terminal__",
       "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
       "type": "abort"
+    },
+    {
+      "from": "router_complex_flow_line_32_if_4",
+      "to": "handler_retry_handler",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_19_if_5",
+      "to": "handler_enrich_data",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_19_if_5",
+      "to": "router_complex_flow_line_22_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_19_if_5",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_19_if_5",
+      "to": "router_complex_flow_line_32_if_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_19_if_5",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_complex_flow_line_15_if_6",
+      "to": "router_complex_flow_line_19_if_5",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "router_complex_flow_line_15_if_6",

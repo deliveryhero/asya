@@ -20,6 +20,48 @@
       "is_generated": false
     },
     {
+      "id": "query_analyzer",
+      "flow_role": "actor",
+      "label": "query_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "query_refiner",
+      "flow_role": "actor",
+      "label": "query_refiner",
+      "is_generated": false
+    },
+    {
+      "id": "relevance_evaluator",
+      "flow_role": "actor",
+      "label": "relevance_evaluator",
+      "is_generated": false
+    },
+    {
+      "id": "retriever",
+      "flow_role": "actor",
+      "label": "retriever",
+      "is_generated": false
+    },
+    {
+      "id": "router_rag_pipeline_line_50_seq_5",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_50_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_rag_pipeline_line_56_while_1",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_56_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_rag_pipeline_line_57_seq_4",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_57_seq_4",
+      "is_generated": true
+    },
+    {
       "id": "router_rag_pipeline_line_66_if_3",
       "flow_role": "router",
       "label": "router_rag_pipeline_line_66_if_3",
@@ -30,10 +72,28 @@
       "flow_role": "router",
       "label": "router_rag_pipeline_line_70_if_2",
       "is_generated": true
+    },
+    {
+      "id": "start_rag_pipeline",
+      "flow_role": "entry",
+      "label": "start_rag_pipeline",
+      "is_generated": true
     }
   ],
   "edges": [
     {
+      "from": "start_rag_pipeline",
+      "to": "router_rag_pipeline_line_50_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_70_if_2",
+      "to": "query_refiner",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_rag_pipeline_line_70_if_2",
       "to": "generator",
       "label": "p['retrieval_attempts'] >= 3",
@@ -47,6 +107,12 @@
     },
     {
       "from": "router_rag_pipeline_line_66_if_3",
+      "to": "router_rag_pipeline_line_70_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_66_if_3",
       "to": "generator",
       "label": "p.get('is_sufficient')",
       "type": "set"
@@ -56,6 +122,48 @@
       "to": "fact_checker",
       "label": "p.get('is_sufficient')",
       "type": "set"
+    },
+    {
+      "from": "router_rag_pipeline_line_57_seq_4",
+      "to": "retriever",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_57_seq_4",
+      "to": "relevance_evaluator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_57_seq_4",
+      "to": "router_rag_pipeline_line_66_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_56_while_1",
+      "to": "router_rag_pipeline_line_57_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_56_while_1",
+      "to": "router_rag_pipeline_line_56_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_50_seq_5",
+      "to": "query_analyzer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_50_seq_5",
+      "to": "router_rag_pipeline_line_56_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_rag_pipeline",

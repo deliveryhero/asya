@@ -1,4 +1,16 @@
 flowchart TD
     %% Flow: decorator_inline_comments_flow
 
+    classifier[classifier]
     end_decorator_inline_comments_flow([end_decorator_inline_comments_flow])
+    fast_handler[fast_handler]
+    router_decorator_inline_comments_flow_line_16_seq_2{{router_decorator_inline_comments_flow_line_16_seq_2}}
+    router_decorator_inline_comments_flow_line_18_if_1{{router_decorator_inline_comments_flow_line_18_if_1}}
+    standard_handler[standard_handler]
+    start_decorator_inline_comments_flow([start_decorator_inline_comments_flow])
+
+    start_decorator_inline_comments_flow --> router_decorator_inline_comments_flow_line_16_seq_2
+    router_decorator_inline_comments_flow_line_18_if_1 --> fast_handler
+    router_decorator_inline_comments_flow_line_18_if_1 --> standard_handler
+    router_decorator_inline_comments_flow_line_16_seq_2 --> classifier
+    router_decorator_inline_comments_flow_line_16_seq_2 --> router_decorator_inline_comments_flow_line_18_if_1

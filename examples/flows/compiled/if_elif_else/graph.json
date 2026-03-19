@@ -6,9 +6,105 @@
       "flow_role": "exit",
       "label": "end_if_elif_else_flow",
       "is_generated": true
+    },
+    {
+      "id": "handler_default",
+      "flow_role": "actor",
+      "label": "handler_default",
+      "is_generated": false
+    },
+    {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handler_type_a",
+      "flow_role": "actor",
+      "label": "handler_type_a",
+      "is_generated": false
+    },
+    {
+      "id": "handler_type_b",
+      "flow_role": "actor",
+      "label": "handler_type_b",
+      "is_generated": false
+    },
+    {
+      "id": "handler_validate",
+      "flow_role": "actor",
+      "label": "handler_validate",
+      "is_generated": false
+    },
+    {
+      "id": "router_if_elif_else_flow_line_14_if_2",
+      "flow_role": "router",
+      "label": "router_if_elif_else_flow_line_14_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_if_elif_else_flow_line_16_if_1",
+      "flow_role": "router",
+      "label": "router_if_elif_else_flow_line_16_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_if_elif_else_flow",
+      "flow_role": "entry",
+      "label": "start_if_elif_else_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_if_elif_else_flow",
+      "to": "handler_validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_if_elif_else_flow",
+      "to": "router_if_elif_else_flow_line_14_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_16_if_1",
+      "to": "handler_type_b",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_16_if_1",
+      "to": "handler_default",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_14_if_2",
+      "to": "handler_type_a",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_14_if_2",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_14_if_2",
+      "to": "router_if_elif_else_flow_line_16_if_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_elif_else_flow_line_14_if_2",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_if_elif_else_flow",
       "to": "__terminal__",

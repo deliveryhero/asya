@@ -8,10 +8,34 @@
       "is_generated": true
     },
     {
+      "id": "handler_check",
+      "flow_role": "actor",
+      "label": "handler_check",
+      "is_generated": false
+    },
+    {
       "id": "handler_finalize",
       "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
+    },
+    {
+      "id": "handler_init",
+      "flow_role": "actor",
+      "label": "handler_init",
+      "is_generated": false
+    },
+    {
+      "id": "handler_process",
+      "flow_role": "actor",
+      "label": "handler_process",
+      "is_generated": false
+    },
+    {
+      "id": "router_while_break_continue_flow_line_13_seq_5",
+      "flow_role": "router",
+      "label": "router_while_break_continue_flow_line_13_seq_5",
+      "is_generated": true
     },
     {
       "id": "router_while_break_continue_flow_line_14_while_1",
@@ -20,13 +44,43 @@
       "is_generated": true
     },
     {
+      "id": "router_while_break_continue_flow_line_15_seq_4",
+      "flow_role": "router",
+      "label": "router_while_break_continue_flow_line_15_seq_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_while_break_continue_flow_line_17_if_3",
+      "flow_role": "router",
+      "label": "router_while_break_continue_flow_line_17_if_3",
+      "is_generated": true
+    },
+    {
       "id": "router_while_break_continue_flow_line_20_if_2",
       "flow_role": "router",
       "label": "router_while_break_continue_flow_line_20_if_2",
       "is_generated": true
+    },
+    {
+      "id": "start_while_break_continue_flow",
+      "flow_role": "entry",
+      "label": "start_while_break_continue_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_while_break_continue_flow",
+      "to": "handler_init",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_while_break_continue_flow",
+      "to": "router_while_break_continue_flow_line_13_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "router_while_break_continue_flow_line_20_if_2",
       "to": "handler_finalize",
@@ -34,10 +88,58 @@
       "type": "set"
     },
     {
+      "from": "router_while_break_continue_flow_line_17_if_3",
+      "to": "router_while_break_continue_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_17_if_3",
+      "to": "handler_process",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_17_if_3",
+      "to": "router_while_break_continue_flow_line_20_if_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_15_seq_4",
+      "to": "handler_check",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_15_seq_4",
+      "to": "router_while_break_continue_flow_line_17_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_14_while_1",
+      "to": "router_while_break_continue_flow_line_15_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_14_while_1",
+      "to": "router_while_break_continue_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
       "from": "router_while_break_continue_flow_line_14_while_1",
       "to": "handler_finalize",
       "label": "p['i'] < p['max_iterations']",
       "type": "set"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_13_seq_5",
+      "to": "router_while_break_continue_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
     },
     {
       "from": "end_while_break_continue_flow",

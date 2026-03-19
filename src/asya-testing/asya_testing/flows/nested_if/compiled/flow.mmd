@@ -1,0 +1,33 @@
+flowchart TD
+    %% Flow: test_nested_flow
+
+    end_test_nested_flow([end_test_nested_flow])
+    finalize_result[finalize_result]
+    route_a_x[route_a_x]
+    route_a_y[route_a_y]
+    route_b_x[route_b_x]
+    route_b_y[route_b_y]
+    router_test_nested_flow_line_11_if_3{{router_test_nested_flow_line_11_if_3}}
+    router_test_nested_flow_line_12_seq_1{{router_test_nested_flow_line_12_seq_1}}
+    router_test_nested_flow_line_15_seq_2{{router_test_nested_flow_line_15_seq_2}}
+    router_test_nested_flow_line_19_if_6{{router_test_nested_flow_line_19_if_6}}
+    router_test_nested_flow_line_20_seq_4{{router_test_nested_flow_line_20_seq_4}}
+    router_test_nested_flow_line_23_seq_5{{router_test_nested_flow_line_23_seq_5}}
+    router_test_nested_flow_line_9_if_7{{router_test_nested_flow_line_9_if_7}}
+    start_test_nested_flow([start_test_nested_flow])
+    validate_input[validate_input]
+
+    start_test_nested_flow --> validate_input
+    start_test_nested_flow --> router_test_nested_flow_line_9_if_7
+    router_test_nested_flow_line_12_seq_1 --> route_a_x
+    router_test_nested_flow_line_15_seq_2 --> route_a_y
+    router_test_nested_flow_line_11_if_3 --> router_test_nested_flow_line_12_seq_1
+    router_test_nested_flow_line_11_if_3 --> router_test_nested_flow_line_15_seq_2
+    router_test_nested_flow_line_20_seq_4 --> route_b_x
+    router_test_nested_flow_line_23_seq_5 --> route_b_y
+    router_test_nested_flow_line_19_if_6 --> router_test_nested_flow_line_20_seq_4
+    router_test_nested_flow_line_19_if_6 --> router_test_nested_flow_line_23_seq_5
+    router_test_nested_flow_line_9_if_7 --> router_test_nested_flow_line_11_if_3
+    router_test_nested_flow_line_9_if_7 --> finalize_result
+    router_test_nested_flow_line_9_if_7 --> router_test_nested_flow_line_19_if_6
+    router_test_nested_flow_line_9_if_7 --> finalize_result

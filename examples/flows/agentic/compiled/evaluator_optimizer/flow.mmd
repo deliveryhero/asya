@@ -2,9 +2,23 @@ flowchart TD
     %% Flow: evaluator_optimizer
 
     end_evaluator_optimizer([end_evaluator_optimizer])
+    evaluator[evaluator]
+    generator[generator]
     polisher[polisher]
+    router_evaluator_optimizer_line_56_seq_5{{router_evaluator_optimizer_line_56_seq_5}}
+    router_evaluator_optimizer_line_58_while_1{{router_evaluator_optimizer_line_58_while_1}}
+    router_evaluator_optimizer_line_59_seq_4{{router_evaluator_optimizer_line_59_seq_4}}
     router_evaluator_optimizer_line_68_if_3{{router_evaluator_optimizer_line_68_if_3}}
     router_evaluator_optimizer_line_72_if_2{{router_evaluator_optimizer_line_72_if_2}}
+    start_evaluator_optimizer([start_evaluator_optimizer])
 
+    start_evaluator_optimizer --> router_evaluator_optimizer_line_56_seq_5
     router_evaluator_optimizer_line_72_if_2 -->|p['iteration'] >= MAX_ITERATIONS| polisher
+    router_evaluator_optimizer_line_68_if_3 --> router_evaluator_optimizer_line_72_if_2
     router_evaluator_optimizer_line_68_if_3 -->|p.get('score', 0) >= SCORE_THRESHOLD| polisher
+    router_evaluator_optimizer_line_59_seq_4 --> generator
+    router_evaluator_optimizer_line_59_seq_4 --> evaluator
+    router_evaluator_optimizer_line_59_seq_4 --> router_evaluator_optimizer_line_68_if_3
+    router_evaluator_optimizer_line_58_while_1 --> router_evaluator_optimizer_line_59_seq_4
+    router_evaluator_optimizer_line_58_while_1 --> router_evaluator_optimizer_line_58_while_1
+    router_evaluator_optimizer_line_56_seq_5 --> router_evaluator_optimizer_line_58_while_1

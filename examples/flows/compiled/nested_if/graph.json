@@ -6,9 +6,177 @@
       "flow_role": "exit",
       "label": "end_nested_if_flow",
       "is_generated": true
+    },
+    {
+      "id": "handler_a_x",
+      "flow_role": "actor",
+      "label": "handler_a_x",
+      "is_generated": false
+    },
+    {
+      "id": "handler_a_y",
+      "flow_role": "actor",
+      "label": "handler_a_y",
+      "is_generated": false
+    },
+    {
+      "id": "handler_b_x",
+      "flow_role": "actor",
+      "label": "handler_b_x",
+      "is_generated": false
+    },
+    {
+      "id": "handler_b_y",
+      "flow_role": "actor",
+      "label": "handler_b_y",
+      "is_generated": false
+    },
+    {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handler_validate",
+      "flow_role": "actor",
+      "label": "handler_validate",
+      "is_generated": false
+    },
+    {
+      "id": "router_nested_if_flow_line_14_if_7",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_14_if_7",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_16_if_3",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_16_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_17_seq_1",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_17_seq_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_20_seq_2",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_20_seq_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_24_if_6",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_24_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_25_seq_4",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_25_seq_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_if_flow_line_28_seq_5",
+      "flow_role": "router",
+      "label": "router_nested_if_flow_line_28_seq_5",
+      "is_generated": true
+    },
+    {
+      "id": "start_nested_if_flow",
+      "flow_role": "entry",
+      "label": "start_nested_if_flow",
+      "is_generated": true
     }
   ],
   "edges": [
+    {
+      "from": "start_nested_if_flow",
+      "to": "handler_validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "start_nested_if_flow",
+      "to": "router_nested_if_flow_line_14_if_7",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_17_seq_1",
+      "to": "handler_a_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_20_seq_2",
+      "to": "handler_a_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_16_if_3",
+      "to": "router_nested_if_flow_line_17_seq_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_16_if_3",
+      "to": "router_nested_if_flow_line_20_seq_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_25_seq_4",
+      "to": "handler_b_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_28_seq_5",
+      "to": "handler_b_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_24_if_6",
+      "to": "router_nested_if_flow_line_25_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_24_if_6",
+      "to": "router_nested_if_flow_line_28_seq_5",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_14_if_7",
+      "to": "router_nested_if_flow_line_16_if_3",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_14_if_7",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_14_if_7",
+      "to": "router_nested_if_flow_line_24_if_6",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_if_flow_line_14_if_7",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "prepend"
+    },
     {
       "from": "end_nested_if_flow",
       "to": "__terminal__",

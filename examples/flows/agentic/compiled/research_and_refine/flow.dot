@@ -2,11 +2,27 @@ digraph "research_and_refine" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    critic [label="critic", fillcolor=lightblue];
     end_research_and_refine [label="end_research_and_refine", fillcolor=palegreen];
+    refine_query [label="refine_query", fillcolor=lightblue];
+    researcher [label="researcher", fillcolor=lightblue];
+    router_research_and_refine_line_47_seq_5 [label="router_research_and_refine_line_47_seq_5", fillcolor=wheat];
+    router_research_and_refine_line_50_while_1 [label="router_research_and_refine_line_50_while_1", fillcolor=wheat];
+    router_research_and_refine_line_51_seq_4 [label="router_research_and_refine_line_51_seq_4", fillcolor=wheat];
     router_research_and_refine_line_55_if_3 [label="router_research_and_refine_line_55_if_3", fillcolor=wheat];
     router_research_and_refine_line_59_if_2 [label="router_research_and_refine_line_59_if_2", fillcolor=wheat];
+    start_research_and_refine [label="start_research_and_refine", fillcolor=palegreen];
     write_report [label="write_report", fillcolor=lightblue];
 
+    start_research_and_refine -> router_research_and_refine_line_47_seq_5;
     router_research_and_refine_line_59_if_2 -> write_report [label="p['iteration'] >= 5"];
+    router_research_and_refine_line_55_if_3 -> refine_query;
+    router_research_and_refine_line_55_if_3 -> router_research_and_refine_line_59_if_2;
     router_research_and_refine_line_55_if_3 -> write_report [label="not p.get('gaps') or p.get('quality_score', 0) >= 85"];
+    router_research_and_refine_line_51_seq_4 -> researcher;
+    router_research_and_refine_line_51_seq_4 -> critic;
+    router_research_and_refine_line_51_seq_4 -> router_research_and_refine_line_55_if_3;
+    router_research_and_refine_line_50_while_1 -> router_research_and_refine_line_51_seq_4;
+    router_research_and_refine_line_50_while_1 -> router_research_and_refine_line_50_while_1;
+    router_research_and_refine_line_47_seq_5 -> router_research_and_refine_line_50_while_1;
 }

@@ -2,3 +2,11 @@ flowchart TD
     %% Flow: sequential_flow
 
     end_sequential_flow([end_sequential_flow])
+    handler_a[handler_a]
+    handler_b[handler_b]
+    handler_c[handler_c]
+    start_sequential_flow([start_sequential_flow])
+
+    start_sequential_flow --> handler_a
+    start_sequential_flow --> handler_b
+    start_sequential_flow --> handler_c
