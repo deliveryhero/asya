@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Problem
 
 Every AsyncActor manifest declares `spec.transport: sqs|rabbitmq|pubsub`. This is redundant — transport is a cluster-level concern (all actors share the same message bus), not a per-actor one. Every actor and every crew member repeats the same value.
