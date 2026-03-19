@@ -72,37 +72,37 @@
     {
       "from": "router_content_pipeline_flow_line_18_if_1",
       "to": "image_processor",
-      "label": null,
+      "label": "p['content_type'] == 'image'",
       "type": "prepend"
     },
     {
       "from": "router_content_pipeline_flow_line_18_if_1",
       "to": "generic_processor",
-      "label": null,
+      "label": "not (p['content_type'] == 'image')",
       "type": "prepend"
     },
     {
       "from": "router_content_pipeline_flow_line_16_if_2",
       "to": "text_processor",
-      "label": null,
+      "label": "p['content_type'] == 'text'",
       "type": "prepend"
     },
     {
       "from": "router_content_pipeline_flow_line_16_if_2",
       "to": "quality_check",
-      "label": null,
+      "label": "p['content_type'] == 'text'",
       "type": "prepend"
     },
     {
       "from": "router_content_pipeline_flow_line_16_if_2",
       "to": "router_content_pipeline_flow_line_18_if_1",
-      "label": null,
+      "label": "not (p['content_type'] == 'text')",
       "type": "prepend"
     },
     {
       "from": "router_content_pipeline_flow_line_16_if_2",
       "to": "quality_check",
-      "label": null,
+      "label": "not (p['content_type'] == 'text')",
       "type": "prepend"
     },
     {

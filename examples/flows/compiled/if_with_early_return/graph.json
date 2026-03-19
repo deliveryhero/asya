@@ -60,13 +60,13 @@
     {
       "from": "router_early_return_flow_line_14_if_1",
       "to": "handler_process",
-      "label": null,
+      "label": "not (not p['valid'])",
       "type": "prepend"
     },
     {
       "from": "router_early_return_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": null,
+      "label": "not (not p['valid'])",
       "type": "prepend"
     },
     {

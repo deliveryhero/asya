@@ -66,31 +66,31 @@
     {
       "from": "router_while_with_continue_flow_line_16_if_2",
       "to": "router_while_with_continue_flow_line_14_while_1",
-      "label": null,
+      "label": "p['skip_iteration']",
       "type": "prepend"
     },
     {
       "from": "router_while_with_continue_flow_line_16_if_2",
       "to": "handler_process",
-      "label": null,
+      "label": "not (p['skip_iteration'])",
       "type": "prepend"
     },
     {
       "from": "router_while_with_continue_flow_line_14_while_1",
       "to": "router_while_with_continue_flow_line_16_if_2",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_while_with_continue_flow_line_14_while_1",
       "to": "router_while_with_continue_flow_line_14_while_1",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_while_with_continue_flow_line_14_while_1",
       "to": "handler_finalize",
-      "label": "p['i'] < p['max_iterations']",
+      "label": "not (p['i'] < p['max_iterations'])",
       "type": "set"
     },
     {

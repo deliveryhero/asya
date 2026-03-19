@@ -24,20 +24,20 @@ digraph "hierarchical_delegation" {
 
     start_hierarchical_delegation -> root_agent;
     start_hierarchical_delegation -> router_hierarchical_delegation_line_61_if_6;
-    router_hierarchical_delegation_line_67_if_1 -> api_specialist;
-    router_hierarchical_delegation_line_67_if_1 -> data_generalist;
-    router_hierarchical_delegation_line_65_if_2 -> sql_specialist;
-    router_hierarchical_delegation_line_65_if_2 -> router_hierarchical_delegation_line_67_if_1;
-    router_hierarchical_delegation_line_78_if_3 -> editor;
-    router_hierarchical_delegation_line_78_if_3 -> content_generalist;
-    router_hierarchical_delegation_line_76_if_4 -> writer;
-    router_hierarchical_delegation_line_76_if_4 -> router_hierarchical_delegation_line_78_if_3;
-    router_hierarchical_delegation_line_72_if_5 -> content_team_lead;
-    router_hierarchical_delegation_line_72_if_5 -> router_hierarchical_delegation_line_76_if_4;
-    router_hierarchical_delegation_line_72_if_5 -> generalist;
-    router_hierarchical_delegation_line_61_if_6 -> data_team_lead;
-    router_hierarchical_delegation_line_61_if_6 -> router_hierarchical_delegation_line_65_if_2;
-    router_hierarchical_delegation_line_61_if_6 -> final_assembler;
-    router_hierarchical_delegation_line_61_if_6 -> router_hierarchical_delegation_line_72_if_5;
-    router_hierarchical_delegation_line_61_if_6 -> final_assembler;
+    router_hierarchical_delegation_line_67_if_1 -> api_specialist [label="p.get('subtask') == 'api'"];
+    router_hierarchical_delegation_line_67_if_1 -> data_generalist [label="not (p.get('subtask') == 'api')"];
+    router_hierarchical_delegation_line_65_if_2 -> sql_specialist [label="p.get('subtask') == 'sql'"];
+    router_hierarchical_delegation_line_65_if_2 -> router_hierarchical_delegation_line_67_if_1 [label="not (p.get('subtask') == 'sql')"];
+    router_hierarchical_delegation_line_78_if_3 -> editor [label="p.get('subtask') == 'edit'"];
+    router_hierarchical_delegation_line_78_if_3 -> content_generalist [label="not (p.get('subtask') == 'edit')"];
+    router_hierarchical_delegation_line_76_if_4 -> writer [label="p.get('subtask') == 'write'"];
+    router_hierarchical_delegation_line_76_if_4 -> router_hierarchical_delegation_line_78_if_3 [label="not (p.get('subtask') == 'write')"];
+    router_hierarchical_delegation_line_72_if_5 -> content_team_lead [label="p.get('domain') == 'content'"];
+    router_hierarchical_delegation_line_72_if_5 -> router_hierarchical_delegation_line_76_if_4 [label="p.get('domain') == 'content'"];
+    router_hierarchical_delegation_line_72_if_5 -> generalist [label="not (p.get('domain') == 'content')"];
+    router_hierarchical_delegation_line_61_if_6 -> data_team_lead [label="p.get('domain') == 'data'"];
+    router_hierarchical_delegation_line_61_if_6 -> router_hierarchical_delegation_line_65_if_2 [label="p.get('domain') == 'data'"];
+    router_hierarchical_delegation_line_61_if_6 -> final_assembler [label="p.get('domain') == 'data'"];
+    router_hierarchical_delegation_line_61_if_6 -> router_hierarchical_delegation_line_72_if_5 [label="not (p.get('domain') == 'data')"];
+    router_hierarchical_delegation_line_61_if_6 -> final_assembler [label="not (p.get('domain') == 'data')"];
 }

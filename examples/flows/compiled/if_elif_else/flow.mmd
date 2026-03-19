@@ -13,9 +13,9 @@ flowchart TD
 
     start_if_elif_else_flow --> handler_validate
     start_if_elif_else_flow --> router_if_elif_else_flow_line_14_if_2
-    router_if_elif_else_flow_line_16_if_1 --> handler_type_b
-    router_if_elif_else_flow_line_16_if_1 --> handler_default
-    router_if_elif_else_flow_line_14_if_2 --> handler_type_a
-    router_if_elif_else_flow_line_14_if_2 --> handler_finalize
-    router_if_elif_else_flow_line_14_if_2 --> router_if_elif_else_flow_line_16_if_1
-    router_if_elif_else_flow_line_14_if_2 --> handler_finalize
+    router_if_elif_else_flow_line_16_if_1 -->|p['type'] == 'B'| handler_type_b
+    router_if_elif_else_flow_line_16_if_1 -->|not (p['type'] == 'B')| handler_default
+    router_if_elif_else_flow_line_14_if_2 -->|p['type'] == 'A'| handler_type_a
+    router_if_elif_else_flow_line_14_if_2 -->|p['type'] == 'A'| handler_finalize
+    router_if_elif_else_flow_line_14_if_2 -->|not (p['type'] == 'A')| router_if_elif_else_flow_line_16_if_1
+    router_if_elif_else_flow_line_14_if_2 -->|not (p['type'] == 'A')| handler_finalize

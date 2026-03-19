@@ -11,7 +11,7 @@ digraph "if_empty_branches_flow" {
 
     start_if_empty_branches_flow -> handler_setup;
     start_if_empty_branches_flow -> router_if_empty_branches_flow_line_14_if_1;
-    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize;
-    router_if_empty_branches_flow_line_14_if_1 -> handler_process;
-    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize;
+    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="p['skip_processing']"];
+    router_if_empty_branches_flow_line_14_if_1 -> handler_process [label="not (p['skip_processing'])"];
+    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="not (p['skip_processing'])"];
 }

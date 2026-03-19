@@ -16,8 +16,8 @@ digraph "research_and_refine" {
 
     start_research_and_refine -> router_research_and_refine_line_47_seq_5;
     router_research_and_refine_line_59_if_2 -> write_report [label="p['iteration'] >= 5"];
-    router_research_and_refine_line_55_if_3 -> refine_query;
-    router_research_and_refine_line_55_if_3 -> router_research_and_refine_line_59_if_2;
+    router_research_and_refine_line_55_if_3 -> refine_query [label="not (not p.get('gaps') or p.get('quality_score', 0) >= 85)"];
+    router_research_and_refine_line_55_if_3 -> router_research_and_refine_line_59_if_2 [label="not (not p.get('gaps') or p.get('quality_score', 0) >= 85)"];
     router_research_and_refine_line_55_if_3 -> write_report [label="not p.get('gaps') or p.get('quality_score', 0) >= 85"];
     router_research_and_refine_line_51_seq_4 -> researcher;
     router_research_and_refine_line_51_seq_4 -> critic;

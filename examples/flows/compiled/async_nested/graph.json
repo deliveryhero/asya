@@ -60,19 +60,19 @@
     {
       "from": "router_review_pipeline_flow_line_17_if_1",
       "to": "detailed_review",
-      "label": null,
+      "label": "p['score'] < 0.5",
       "type": "prepend"
     },
     {
       "from": "router_review_pipeline_flow_line_17_if_1",
       "to": "human_review",
-      "label": null,
+      "label": "p['score'] < 0.5",
       "type": "prepend"
     },
     {
       "from": "router_review_pipeline_flow_line_17_if_1",
       "to": "auto_approve",
-      "label": null,
+      "label": "not (p['score'] < 0.5)",
       "type": "prepend"
     },
     {

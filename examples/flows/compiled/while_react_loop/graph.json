@@ -48,13 +48,13 @@
     {
       "from": "router_react_agent_line_16_if_2",
       "to": "execute_tool",
-      "label": null,
+      "label": "p.get('tool_calls')",
       "type": "prepend"
     },
     {
       "from": "router_react_agent_line_16_if_2",
       "to": "__terminal__",
-      "label": "p.get('tool_calls')",
+      "label": "not (p.get('tool_calls'))",
       "type": "abort"
     },
     {

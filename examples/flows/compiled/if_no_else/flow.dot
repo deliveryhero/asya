@@ -10,5 +10,5 @@ digraph "if_no_else_flow" {
 
     start_if_no_else_flow -> handler_setup;
     start_if_no_else_flow -> router_if_no_else_flow_line_14_if_1;
-    router_if_no_else_flow_line_14_if_1 -> handler_true;
+    router_if_no_else_flow_line_14_if_1 -> handler_true [label="p['condition']"];
 }

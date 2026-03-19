@@ -108,19 +108,19 @@
     {
       "from": "router_human_in_the_loop_line_75_if_4",
       "to": "revision_agent",
-      "label": null,
+      "label": "p.get('approval') == 'rejected'",
       "type": "prepend"
     },
     {
       "from": "router_human_in_the_loop_line_70_if_5",
       "to": "router_human_in_the_loop_line_75_if_4",
-      "label": null,
+      "label": "not (p.get('approval') in ('approved', 'modified'))",
       "type": "prepend"
     },
     {
       "from": "router_human_in_the_loop_line_70_if_5",
       "to": "router_human_in_the_loop_line_79_if_3",
-      "label": null,
+      "label": "not (p.get('approval') in ('approved', 'modified'))",
       "type": "prepend"
     },
     {

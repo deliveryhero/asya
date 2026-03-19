@@ -132,97 +132,97 @@
     {
       "from": "router_hierarchical_delegation_line_67_if_1",
       "to": "api_specialist",
-      "label": null,
+      "label": "p.get('subtask') == 'api'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_67_if_1",
       "to": "data_generalist",
-      "label": null,
+      "label": "not (p.get('subtask') == 'api')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_65_if_2",
       "to": "sql_specialist",
-      "label": null,
+      "label": "p.get('subtask') == 'sql'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_65_if_2",
       "to": "router_hierarchical_delegation_line_67_if_1",
-      "label": null,
+      "label": "not (p.get('subtask') == 'sql')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_78_if_3",
       "to": "editor",
-      "label": null,
+      "label": "p.get('subtask') == 'edit'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_78_if_3",
       "to": "content_generalist",
-      "label": null,
+      "label": "not (p.get('subtask') == 'edit')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_76_if_4",
       "to": "writer",
-      "label": null,
+      "label": "p.get('subtask') == 'write'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_76_if_4",
       "to": "router_hierarchical_delegation_line_78_if_3",
-      "label": null,
+      "label": "not (p.get('subtask') == 'write')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_72_if_5",
       "to": "content_team_lead",
-      "label": null,
+      "label": "p.get('domain') == 'content'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_72_if_5",
       "to": "router_hierarchical_delegation_line_76_if_4",
-      "label": null,
+      "label": "p.get('domain') == 'content'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_72_if_5",
       "to": "generalist",
-      "label": null,
+      "label": "not (p.get('domain') == 'content')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
       "to": "data_team_lead",
-      "label": null,
+      "label": "p.get('domain') == 'data'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
       "to": "router_hierarchical_delegation_line_65_if_2",
-      "label": null,
+      "label": "p.get('domain') == 'data'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
       "to": "final_assembler",
-      "label": null,
+      "label": "p.get('domain') == 'data'",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
       "to": "router_hierarchical_delegation_line_72_if_5",
-      "label": null,
+      "label": "not (p.get('domain') == 'data')",
       "type": "prepend"
     },
     {
       "from": "router_hierarchical_delegation_line_61_if_6",
       "to": "final_assembler",
-      "label": null,
+      "label": "not (p.get('domain') == 'data')",
       "type": "prepend"
     },
     {

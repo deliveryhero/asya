@@ -54,19 +54,19 @@
     {
       "from": "router_if_empty_branches_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": null,
+      "label": "p['skip_processing']",
       "type": "prepend"
     },
     {
       "from": "router_if_empty_branches_flow_line_14_if_1",
       "to": "handler_process",
-      "label": null,
+      "label": "not (p['skip_processing'])",
       "type": "prepend"
     },
     {
       "from": "router_if_empty_branches_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": null,
+      "label": "not (p['skip_processing'])",
       "type": "prepend"
     },
     {

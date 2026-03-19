@@ -23,13 +23,13 @@ digraph "loop_flow" {
     router_loop_flow_line_23_seq_3 -> router_loop_flow_line_16_while_1;
     router_loop_flow_line_21_seq_4 -> process_abort;
     router_loop_flow_line_21_seq_4 -> router_loop_flow_line_23_seq_3;
-    router_loop_flow_line_20_if_5 -> router_loop_flow_line_21_seq_4;
-    router_loop_flow_line_20_if_5 -> check_threshold;
-    router_loop_flow_line_20_if_5 -> router_loop_flow_line_27_if_2;
+    router_loop_flow_line_20_if_5 -> router_loop_flow_line_21_seq_4 [label="p.get('skip_threshold_check')"];
+    router_loop_flow_line_20_if_5 -> check_threshold [label="not (p.get('skip_threshold_check'))"];
+    router_loop_flow_line_20_if_5 -> router_loop_flow_line_27_if_2 [label="not (p.get('skip_threshold_check'))"];
     router_loop_flow_line_17_seq_6 -> process_item;
     router_loop_flow_line_17_seq_6 -> router_loop_flow_line_20_if_5;
-    router_loop_flow_line_16_while_1 -> router_loop_flow_line_17_seq_6;
-    router_loop_flow_line_16_while_1 -> router_loop_flow_line_16_while_1;
-    router_loop_flow_line_16_while_1 -> finalize_loop [label="p['iteration'] < p['max_iterations']"];
+    router_loop_flow_line_16_while_1 -> router_loop_flow_line_17_seq_6 [label="p['iteration'] < p['max_iterations']"];
+    router_loop_flow_line_16_while_1 -> router_loop_flow_line_16_while_1 [label="p['iteration'] < p['max_iterations']"];
+    router_loop_flow_line_16_while_1 -> finalize_loop [label="not (p['iteration'] < p['max_iterations'])"];
     router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
 }

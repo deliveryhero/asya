@@ -84,49 +84,49 @@
     {
       "from": "router_routing_classifier_line_51_if_1",
       "to": "account_agent",
-      "label": null,
+      "label": "p.get('category') == 'account'",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_51_if_1",
       "to": "general_agent",
-      "label": null,
+      "label": "not (p.get('category') == 'account')",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_49_if_2",
       "to": "technical_agent",
-      "label": null,
+      "label": "p.get('category') == 'technical'",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_49_if_2",
       "to": "router_routing_classifier_line_51_if_1",
-      "label": null,
+      "label": "not (p.get('category') == 'technical')",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_47_if_3",
       "to": "billing_agent",
-      "label": null,
+      "label": "p.get('category') == 'billing'",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_47_if_3",
       "to": "format_reply",
-      "label": null,
+      "label": "p.get('category') == 'billing'",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_47_if_3",
       "to": "router_routing_classifier_line_49_if_2",
-      "label": null,
+      "label": "not (p.get('category') == 'billing')",
       "type": "prepend"
     },
     {
       "from": "router_routing_classifier_line_47_if_3",
       "to": "format_reply",
-      "label": null,
+      "label": "not (p.get('category') == 'billing')",
       "type": "prepend"
     },
     {

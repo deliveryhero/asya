@@ -84,19 +84,19 @@
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
       "to": "router_while_mutations_in_loop_flow_line_16_seq_3",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
       "to": "router_while_mutations_in_loop_flow_line_15_while_1",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
       "to": "handler_finalize",
-      "label": "p['i'] < p['max_iterations']",
+      "label": "not (p['i'] < p['max_iterations'])",
       "type": "set"
     },
     {

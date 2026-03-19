@@ -78,31 +78,31 @@
     {
       "from": "router_plan_and_execute_line_59_if_3",
       "to": "re_planner",
-      "label": null,
+      "label": "p['current_step'] < len(p.get('plan', []))",
       "type": "prepend"
     },
     {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "executor",
-      "label": null,
+      "label": "p['current_step'] < len(p.get('plan', []))",
       "type": "prepend"
     },
     {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "router_plan_and_execute_line_59_if_3",
-      "label": null,
+      "label": "p['current_step'] < len(p.get('plan', []))",
       "type": "prepend"
     },
     {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "router_plan_and_execute_line_54_while_2",
-      "label": null,
+      "label": "p['current_step'] < len(p.get('plan', []))",
       "type": "prepend"
     },
     {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "router_plan_and_execute_line_62_seq_1",
-      "label": "p['current_step'] < len(p.get('plan', []))",
+      "label": "not (p['current_step'] < len(p.get('plan', [])))",
       "type": "set"
     },
     {

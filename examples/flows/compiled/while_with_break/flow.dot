@@ -17,8 +17,8 @@ digraph "while_with_break_flow" {
     router_while_with_break_flow_line_17_if_2 -> handler_finalize [label="p['stop_condition']"];
     router_while_with_break_flow_line_15_seq_3 -> handler_process;
     router_while_with_break_flow_line_15_seq_3 -> router_while_with_break_flow_line_17_if_2;
-    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3;
-    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_14_while_1;
-    router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="p['i'] < p['max_iterations']"];
+    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3 [label="p['i'] < p['max_iterations']"];
+    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_14_while_1 [label="p['i'] < p['max_iterations']"];
+    router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
     router_while_with_break_flow_line_13_seq_4 -> router_while_with_break_flow_line_14_while_1;
 }

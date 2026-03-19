@@ -9,5 +9,5 @@ flowchart TD
 
     start_if_empty_branches_flow --> handler_setup
     start_if_empty_branches_flow --> router_if_empty_branches_flow_line_14_if_1
-    router_if_empty_branches_flow_line_14_if_1 --> handler_finalize
-    router_if_empty_branches_flow_line_14_if_1 --> handler_finalize
+    router_if_empty_branches_flow_line_14_if_1 -->|p['skip_processing']| handler_finalize
+    router_if_empty_branches_flow_line_14_if_1 -->|not (p['skip_processing'])| handler_finalize

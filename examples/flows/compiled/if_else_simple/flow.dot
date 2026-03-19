@@ -12,8 +12,8 @@ digraph "if_else_simple_flow" {
 
     start_if_else_simple_flow -> handler_setup;
     start_if_else_simple_flow -> router_if_else_simple_flow_line_14_if_1;
-    router_if_else_simple_flow_line_14_if_1 -> handler_type_a;
-    router_if_else_simple_flow_line_14_if_1 -> handler_finalize;
-    router_if_else_simple_flow_line_14_if_1 -> handler_type_b;
-    router_if_else_simple_flow_line_14_if_1 -> handler_finalize;
+    router_if_else_simple_flow_line_14_if_1 -> handler_type_a [label="p['type'] == 'A'"];
+    router_if_else_simple_flow_line_14_if_1 -> handler_finalize [label="p['type'] == 'A'"];
+    router_if_else_simple_flow_line_14_if_1 -> handler_type_b [label="not (p['type'] == 'A')"];
+    router_if_else_simple_flow_line_14_if_1 -> handler_finalize [label="not (p['type'] == 'A')"];
 }

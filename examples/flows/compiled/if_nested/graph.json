@@ -168,13 +168,13 @@
     {
       "from": "router_conditional_nested_flow_line_15_if_6",
       "to": "router_conditional_nested_flow_line_16_seq_4",
-      "label": null,
+      "label": "p['x'] > 2",
       "type": "prepend"
     },
     {
       "from": "router_conditional_nested_flow_line_15_if_6",
       "to": "router_conditional_nested_flow_line_20_seq_5",
-      "label": null,
+      "label": "not (p['x'] > 2)",
       "type": "prepend"
     },
     {
@@ -192,19 +192,19 @@
     {
       "from": "router_conditional_nested_flow_line_12_if_9",
       "to": "handler_b",
-      "label": null,
+      "label": "p['x'] > 2",
       "type": "prepend"
     },
     {
       "from": "router_conditional_nested_flow_line_12_if_9",
       "to": "router_conditional_nested_flow_line_15_if_6",
-      "label": null,
+      "label": "p['x'] > 2",
       "type": "prepend"
     },
     {
       "from": "router_conditional_nested_flow_line_12_if_9",
       "to": "router_conditional_nested_flow_line_23_seq_8",
-      "label": null,
+      "label": "not (p['x'] > 2)",
       "type": "prepend"
     },
     {
@@ -222,19 +222,19 @@
     {
       "from": "router_conditional_nested_flow_line_9_if_11",
       "to": "router_conditional_nested_flow_line_10_seq_10",
-      "label": null,
+      "label": "p['a'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_conditional_nested_flow_line_9_if_11",
       "to": "router_conditional_nested_flow_line_27_seq_2",
-      "label": null,
+      "label": "p['a'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_conditional_nested_flow_line_9_if_11",
       "to": "router_conditional_nested_flow_line_27_seq_2",
-      "label": null,
+      "label": "not (p['a'] == 'A')",
       "type": "prepend"
     },
     {

@@ -108,49 +108,49 @@
     {
       "from": "router_orchestrator_workers_line_69_if_3",
       "to": "writing_worker",
-      "label": null,
+      "label": "p.get('next_action') == 'write'",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_67_if_4",
       "to": "analysis_worker",
-      "label": null,
+      "label": "p.get('next_action') == 'analyze'",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_67_if_4",
       "to": "router_orchestrator_workers_line_69_if_3",
-      "label": null,
+      "label": "not (p.get('next_action') == 'analyze')",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_65_if_5",
       "to": "data_worker",
-      "label": null,
+      "label": "p.get('next_action') == 'research'",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_65_if_5",
       "to": "router_orchestrator_workers_line_72_if_2",
-      "label": null,
+      "label": "p.get('next_action') == 'research'",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_65_if_5",
       "to": "router_orchestrator_workers_line_67_if_4",
-      "label": null,
+      "label": "not (p.get('next_action') == 'research')",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_65_if_5",
       "to": "router_orchestrator_workers_line_72_if_2",
-      "label": null,
+      "label": "not (p.get('next_action') == 'research')",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_62_if_6",
       "to": "router_orchestrator_workers_line_65_if_5",
-      "label": null,
+      "label": "not (p.get('is_complete'))",
       "type": "prepend"
     },
     {

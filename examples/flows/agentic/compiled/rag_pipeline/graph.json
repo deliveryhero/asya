@@ -90,7 +90,7 @@
     {
       "from": "router_rag_pipeline_line_70_if_2",
       "to": "query_refiner",
-      "label": null,
+      "label": "not (p['retrieval_attempts'] >= 3)",
       "type": "prepend"
     },
     {
@@ -108,7 +108,7 @@
     {
       "from": "router_rag_pipeline_line_66_if_3",
       "to": "router_rag_pipeline_line_70_if_2",
-      "label": null,
+      "label": "not (p.get('is_sufficient'))",
       "type": "prepend"
     },
     {

@@ -29,16 +29,16 @@ digraph "conditional_nested_flow" {
     router_conditional_nested_flow_line_16_seq_4 -> handler_b;
     router_conditional_nested_flow_line_16_seq_4 -> router_conditional_nested_flow_line_18_seq_3;
     router_conditional_nested_flow_line_20_seq_5 -> handler_c;
-    router_conditional_nested_flow_line_15_if_6 -> router_conditional_nested_flow_line_16_seq_4;
-    router_conditional_nested_flow_line_15_if_6 -> router_conditional_nested_flow_line_20_seq_5;
+    router_conditional_nested_flow_line_15_if_6 -> router_conditional_nested_flow_line_16_seq_4 [label="p['x'] > 2"];
+    router_conditional_nested_flow_line_15_if_6 -> router_conditional_nested_flow_line_20_seq_5 [label="not (p['x'] > 2)"];
     router_conditional_nested_flow_line_23_seq_8 -> handler_d;
     router_conditional_nested_flow_line_23_seq_8 -> router_conditional_nested_flow_line_25_seq_7;
-    router_conditional_nested_flow_line_12_if_9 -> handler_b;
-    router_conditional_nested_flow_line_12_if_9 -> router_conditional_nested_flow_line_15_if_6;
-    router_conditional_nested_flow_line_12_if_9 -> router_conditional_nested_flow_line_23_seq_8;
+    router_conditional_nested_flow_line_12_if_9 -> handler_b [label="p['x'] > 2"];
+    router_conditional_nested_flow_line_12_if_9 -> router_conditional_nested_flow_line_15_if_6 [label="p['x'] > 2"];
+    router_conditional_nested_flow_line_12_if_9 -> router_conditional_nested_flow_line_23_seq_8 [label="not (p['x'] > 2)"];
     router_conditional_nested_flow_line_10_seq_10 -> handler_a;
     router_conditional_nested_flow_line_10_seq_10 -> router_conditional_nested_flow_line_12_if_9;
-    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_10_seq_10;
-    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_27_seq_2;
-    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_27_seq_2;
+    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_10_seq_10 [label="p['a'] == 'A'"];
+    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_27_seq_2 [label="p['a'] == 'A'"];
+    router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_27_seq_2 [label="not (p['a'] == 'A')"];
 }

@@ -60,7 +60,7 @@
     {
       "from": "router_order_pipeline_line_32_if_2",
       "to": "charge_payment",
-      "label": null,
+      "label": "not (p.get('fraud_score', 0) > 0.8)",
       "type": "prepend"
     },
     {

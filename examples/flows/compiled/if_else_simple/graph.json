@@ -60,25 +60,25 @@
     {
       "from": "router_if_else_simple_flow_line_14_if_1",
       "to": "handler_type_a",
-      "label": null,
+      "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_if_else_simple_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": null,
+      "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_if_else_simple_flow_line_14_if_1",
       "to": "handler_type_b",
-      "label": null,
+      "label": "not (p['type'] == 'A')",
       "type": "prepend"
     },
     {
       "from": "router_if_else_simple_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": null,
+      "label": "not (p['type'] == 'A')",
       "type": "prepend"
     },
     {

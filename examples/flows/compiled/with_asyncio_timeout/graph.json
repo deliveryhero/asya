@@ -72,31 +72,31 @@
     {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "translator",
-      "label": null,
+      "label": "p.get('language') != 'en'",
       "type": "prepend"
     },
     {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "sentiment_analyzer",
-      "label": null,
+      "label": "p.get('language') != 'en'",
       "type": "prepend"
     },
     {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "router_document_pipeline_line_28_seq_1",
-      "label": null,
+      "label": "p.get('language') != 'en'",
       "type": "prepend"
     },
     {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "sentiment_analyzer",
-      "label": null,
+      "label": "not (p.get('language') != 'en')",
       "type": "prepend"
     },
     {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "router_document_pipeline_line_28_seq_1",
-      "label": null,
+      "label": "not (p.get('language') != 'en')",
       "type": "prepend"
     },
     {

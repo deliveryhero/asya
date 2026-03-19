@@ -11,7 +11,7 @@ flowchart TD
 
     start_if_else_simple_flow --> handler_setup
     start_if_else_simple_flow --> router_if_else_simple_flow_line_14_if_1
-    router_if_else_simple_flow_line_14_if_1 --> handler_type_a
-    router_if_else_simple_flow_line_14_if_1 --> handler_finalize
-    router_if_else_simple_flow_line_14_if_1 --> handler_type_b
-    router_if_else_simple_flow_line_14_if_1 --> handler_finalize
+    router_if_else_simple_flow_line_14_if_1 -->|p['type'] == 'A'| handler_type_a
+    router_if_else_simple_flow_line_14_if_1 -->|p['type'] == 'A'| handler_finalize
+    router_if_else_simple_flow_line_14_if_1 -->|not (p['type'] == 'A')| handler_type_b
+    router_if_else_simple_flow_line_14_if_1 -->|not (p['type'] == 'A')| handler_finalize

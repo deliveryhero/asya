@@ -78,31 +78,31 @@
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "router_if_mutations_in_branches_flow_line_15_seq_1",
-      "label": null,
+      "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "handler_finalize",
-      "label": null,
+      "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "handler_type_b",
-      "label": null,
+      "label": "not (p['type'] == 'A')",
       "type": "prepend"
     },
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "router_if_mutations_in_branches_flow_line_20_seq_2",
-      "label": null,
+      "label": "not (p['type'] == 'A')",
       "type": "prepend"
     },
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "handler_finalize",
-      "label": null,
+      "label": "not (p['type'] == 'A')",
       "type": "prepend"
     },
     {

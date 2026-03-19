@@ -28,16 +28,20 @@ def _build_parent_map(tree: ast.AST) -> dict[int, ast.AST]:
     return parent_map
 
 
-def _collect_append_targets(func_node: ast.AST, var_name: str = "_next") -> list[str]:
+def _collect_append_targets(
+    func_node: ast.AST, parent_map: dict[int, ast.AST], var_name: str = "_next"
+) -> list[tuple[str, str | None]]:
     """Collect resolve() args from var.append(resolve("name")) calls in a function.
 
     The generated codegen builds routing lists via:
         _next = []
-        _next.append(resolve("foo"))
-        _next.append(resolve("bar"))
-    This collects all such targets for a given variable name.
+        if condition:
+            _next.append(resolve("foo"))
+        else:
+            _next.append(resolve("bar"))
+    Returns (target_name, condition_label) pairs preserving branch context.
     """
-    targets: list[str] = []
+    targets: list[tuple[str, str | None]] = []
     for node in ast.walk(func_node):
         if (
             isinstance(node, ast.Call)
@@ -49,7 +53,8 @@ def _collect_append_targets(func_node: ast.AST, var_name: str = "_next") -> list
         ):
             name = _extract_resolve_arg(node.args[0])
             if name:
-                targets.append(name)
+                condition = _find_enclosing_condition(parent_map, node)
+                targets.append((name, condition))
     return targets
 
 
@@ -68,8 +73,8 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     """
     edges: list[dict] = []
     parent_map = _build_parent_map(func_node)
-    # Pre-collect targets from _next.append(resolve(...)) for variable reference resolution
-    append_targets = _collect_append_targets(func_node)
+    # Pre-collect targets from _next.append(resolve(...)) with per-append conditions
+    append_targets = _collect_append_targets(func_node, parent_map)
 
     for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
@@ -96,33 +101,55 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
 
         edge_type = "prepend" if "[:0]" in path_str else "set"
 
-        # Extract target names from resolve() calls in the list literal,
-        # or fall back to _next.append() targets if the yield uses a variable
-        targets = _extract_resolve_targets(targets_node)
-        if not targets and isinstance(targets_node, ast.Name) and targets_node.id == "_next":
-            targets = append_targets
+        # Extract target names from resolve() calls in the list literal
+        inline_targets = _extract_resolve_targets(targets_node)
 
-        # Walk up AST to find enclosing if condition
-        condition = _find_enclosing_condition(parent_map, node)
-
-        if not targets and edge_type == "set":
-            # yield "SET", ".route.next", [] -> abort/terminal
-            edges.append(
-                {
-                    "from": handler_name,
-                    "to": "__terminal__",
-                    "label": condition,
-                    "type": "abort",
-                }
-            )
-        else:
-            for target in targets:
+        if inline_targets:
+            # Inline list literal: condition comes from the yield statement
+            condition = _find_enclosing_condition(parent_map, node)
+            for target in inline_targets:
                 edges.append(
                     {
                         "from": handler_name,
                         "to": target,
                         "label": condition,
                         "type": edge_type,
+                    }
+                )
+        elif isinstance(targets_node, ast.Name) and targets_node.id == "_next":
+            # Variable reference: conditions come from individual append() calls
+            if not append_targets:
+                # yield "SET", ".route.next", _next with empty _next -> terminal
+                if edge_type == "set":
+                    condition = _find_enclosing_condition(parent_map, node)
+                    edges.append(
+                        {
+                            "from": handler_name,
+                            "to": "__terminal__",
+                            "label": condition,
+                            "type": "abort",
+                        }
+                    )
+            else:
+                for target, condition in append_targets:
+                    edges.append(
+                        {
+                            "from": handler_name,
+                            "to": target,
+                            "label": condition,
+                            "type": edge_type,
+                        }
+                    )
+        elif isinstance(targets_node, ast.List) and not targets_node.elts:
+            # yield "SET", ".route.next", [] -> abort/terminal
+            if edge_type == "set":
+                condition = _find_enclosing_condition(parent_map, node)
+                edges.append(
+                    {
+                        "from": handler_name,
+                        "to": "__terminal__",
+                        "label": condition,
+                        "type": "abort",
                     }
                 )
 
@@ -157,14 +184,32 @@ def _extract_resolve_arg(node: ast.expr) -> str | None:
 
 
 def _find_enclosing_condition(parent_map: dict[int, ast.AST], target_node: ast.AST) -> str | None:
-    """Walk up the AST to find the nearest enclosing if condition for a node."""
+    """Walk up the AST to find the nearest enclosing if condition for a node.
+
+    Distinguishes between if-body and else-body: nodes in the else branch
+    get a "not (...)" label to show they take the false path.
+    """
     current = target_node
     while id(current) in parent_map:
         parent = parent_map[id(current)]
         if isinstance(parent, ast.If):
-            return ast.unparse(parent.test)
+            test_str = ast.unparse(parent.test)
+            # Determine if current is in the if-body or else-body
+            if _node_in_else_branch(parent, current):
+                return f"not ({test_str})"
+            return test_str
         current = parent
     return None
+
+
+def _node_in_else_branch(if_node: ast.If, child: ast.AST) -> bool:
+    """Check if child is contained in the else branch of an if statement."""
+    return any(stmt is child or _ast_contains(stmt, child) for stmt in if_node.orelse)
+
+
+def _ast_contains(tree: ast.AST, target: ast.AST) -> bool:
+    """Check if target node is anywhere inside tree."""
+    return any(node is target for node in ast.walk(tree))
 
 
 def analyze(

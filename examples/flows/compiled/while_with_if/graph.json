@@ -72,31 +72,31 @@
     {
       "from": "router_if_inside_while_flow_line_16_if_2",
       "to": "handler_even",
-      "label": null,
+      "label": "p['i'] % 2 == 0",
       "type": "prepend"
     },
     {
       "from": "router_if_inside_while_flow_line_16_if_2",
       "to": "handler_odd",
-      "label": null,
+      "label": "not (p['i'] % 2 == 0)",
       "type": "prepend"
     },
     {
       "from": "router_if_inside_while_flow_line_14_while_1",
       "to": "router_if_inside_while_flow_line_16_if_2",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_if_inside_while_flow_line_14_while_1",
       "to": "router_if_inside_while_flow_line_14_while_1",
-      "label": null,
+      "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_if_inside_while_flow_line_14_while_1",
       "to": "handler_finalize",
-      "label": "p['i'] < p['max_iterations']",
+      "label": "not (p['i'] < p['max_iterations'])",
       "type": "set"
     },
     {

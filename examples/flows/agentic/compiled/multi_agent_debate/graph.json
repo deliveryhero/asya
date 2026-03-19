@@ -27,7 +27,7 @@
     },
     {
       "id": "router_multi_agent_debate_line_57_fanout_6",
-      "flow_role": "router",
+      "flow_role": "actor",
       "label": "router_multi_agent_debate_line_57_fanout_6",
       "is_generated": true
     },
@@ -57,7 +57,7 @@
     },
     {
       "id": "router_multi_agent_debate_line_74_fanout_2",
-      "flow_role": "router",
+      "flow_role": "actor",
       "label": "router_multi_agent_debate_line_74_fanout_2",
       "is_generated": true
     },
@@ -76,21 +76,9 @@
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_74_fanout_2",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "router_multi_agent_debate_line_74_fanout_2",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_multi_agent_debate_line_71_if_3",
       "to": "router_multi_agent_debate_line_74_fanout_2",
-      "label": null,
+      "label": "not (p['round'] >= 3)",
       "type": "prepend"
     },
     {
@@ -102,7 +90,7 @@
     {
       "from": "router_multi_agent_debate_line_68_if_4",
       "to": "router_multi_agent_debate_line_71_if_3",
-      "label": null,
+      "label": "not (p.get('converged'))",
       "type": "prepend"
     },
     {
@@ -134,18 +122,6 @@
       "to": "router_multi_agent_debate_line_63_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "router_multi_agent_debate_line_57_fanout_6",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "router_multi_agent_debate_line_57_fanout_6",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "router_multi_agent_debate_line_55_seq_7",

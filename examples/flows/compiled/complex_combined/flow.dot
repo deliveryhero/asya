@@ -22,20 +22,20 @@ digraph "complex_combined_flow" {
 
     start_complex_combined_flow -> handler_init;
     start_complex_combined_flow -> router_complex_combined_flow_line_15_if_8;
-    router_complex_combined_flow_line_24_if_3 -> router_complex_combined_flow_line_21_while_1;
-    router_complex_combined_flow_line_24_if_3 -> handler_process;
-    router_complex_combined_flow_line_24_if_3 -> router_complex_combined_flow_line_29_if_2;
-    router_complex_combined_flow_line_21_while_1 -> router_complex_combined_flow_line_24_if_3;
-    router_complex_combined_flow_line_21_while_1 -> router_complex_combined_flow_line_21_while_1;
+    router_complex_combined_flow_line_24_if_3 -> router_complex_combined_flow_line_21_while_1 [label="p['skip_even'] and p['i'] % 2 == 0"];
+    router_complex_combined_flow_line_24_if_3 -> handler_process [label="not (p['skip_even'] and p['i'] % 2 == 0)"];
+    router_complex_combined_flow_line_24_if_3 -> router_complex_combined_flow_line_29_if_2 [label="not (p['skip_even'] and p['i'] % 2 == 0)"];
+    router_complex_combined_flow_line_21_while_1 -> router_complex_combined_flow_line_24_if_3 [label="p['i'] < p['max_iterations']"];
+    router_complex_combined_flow_line_21_while_1 -> router_complex_combined_flow_line_21_while_1 [label="p['i'] < p['max_iterations']"];
     router_complex_combined_flow_line_20_seq_4 -> router_complex_combined_flow_line_21_while_1;
-    router_complex_combined_flow_line_34_if_5 -> handler_type_b;
-    router_complex_combined_flow_line_34_if_5 -> handler_default;
-    router_complex_combined_flow_line_32_if_6 -> handler_type_a;
-    router_complex_combined_flow_line_32_if_6 -> router_complex_combined_flow_line_34_if_5;
-    router_complex_combined_flow_line_19_if_7 -> router_complex_combined_flow_line_20_seq_4;
-    router_complex_combined_flow_line_19_if_7 -> handler_finalize;
-    router_complex_combined_flow_line_19_if_7 -> router_complex_combined_flow_line_32_if_6;
-    router_complex_combined_flow_line_19_if_7 -> handler_finalize;
-    router_complex_combined_flow_line_15_if_8 -> router_complex_combined_flow_line_19_if_7;
+    router_complex_combined_flow_line_34_if_5 -> handler_type_b [label="p['type'] == 'B'"];
+    router_complex_combined_flow_line_34_if_5 -> handler_default [label="not (p['type'] == 'B')"];
+    router_complex_combined_flow_line_32_if_6 -> handler_type_a [label="p['type'] == 'A'"];
+    router_complex_combined_flow_line_32_if_6 -> router_complex_combined_flow_line_34_if_5 [label="not (p['type'] == 'A')"];
+    router_complex_combined_flow_line_19_if_7 -> router_complex_combined_flow_line_20_seq_4 [label="p['needs_loop']"];
+    router_complex_combined_flow_line_19_if_7 -> handler_finalize [label="p['needs_loop']"];
+    router_complex_combined_flow_line_19_if_7 -> router_complex_combined_flow_line_32_if_6 [label="not (p['needs_loop'])"];
+    router_complex_combined_flow_line_19_if_7 -> handler_finalize [label="not (p['needs_loop'])"];
+    router_complex_combined_flow_line_15_if_8 -> router_complex_combined_flow_line_19_if_7 [label="not (not p['valid'])"];
     router_complex_combined_flow_line_15_if_8 -> handler_error [label="not p['valid']"];
 }

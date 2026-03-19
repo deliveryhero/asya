@@ -11,7 +11,7 @@ flowchart TD
 
     start_adaptive_flow --> classifier
     start_adaptive_flow --> router_adaptive_flow_line_16_if_2
-    router_adaptive_flow_line_16_if_2 --> router_adaptive_flow_line_17_fanout_1
-    router_adaptive_flow_line_16_if_2 --> formatter
-    router_adaptive_flow_line_16_if_2 --> sequential_analyzer
-    router_adaptive_flow_line_16_if_2 --> formatter
+    router_adaptive_flow_line_16_if_2 -->|p['parallel']| router_adaptive_flow_line_17_fanout_1
+    router_adaptive_flow_line_16_if_2 -->|p['parallel']| formatter
+    router_adaptive_flow_line_16_if_2 -->|not (p['parallel'])| sequential_analyzer
+    router_adaptive_flow_line_16_if_2 -->|not (p['parallel'])| formatter

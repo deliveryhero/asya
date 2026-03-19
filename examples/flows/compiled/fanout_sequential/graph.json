@@ -9,14 +9,8 @@
     },
     {
       "id": "router_multi_stage_flow_line_15_fanout_2",
-      "flow_role": "router",
+      "flow_role": "actor",
       "label": "router_multi_stage_flow_line_15_fanout_2",
-      "is_generated": true
-    },
-    {
-      "id": "router_multi_stage_flow_line_16_fanout_1",
-      "flow_role": "router",
-      "label": "router_multi_stage_flow_line_16_fanout_1",
       "is_generated": true
     },
     {
@@ -32,30 +26,6 @@
       "to": "router_multi_stage_flow_line_15_fanout_2",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "router_multi_stage_flow_line_16_fanout_1",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "router_multi_stage_flow_line_16_fanout_1",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "router_multi_stage_flow_line_15_fanout_2",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "router_multi_stage_flow_line_15_fanout_2",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "end_multi_stage_flow",

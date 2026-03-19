@@ -120,13 +120,13 @@
     {
       "from": "router_test_nested_flow_line_11_if_3",
       "to": "router_test_nested_flow_line_12_seq_1",
-      "label": null,
+      "label": "p['level2'] == 'X'",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_11_if_3",
       "to": "router_test_nested_flow_line_15_seq_2",
-      "label": null,
+      "label": "not (p['level2'] == 'X')",
       "type": "prepend"
     },
     {
@@ -144,37 +144,37 @@
     {
       "from": "router_test_nested_flow_line_19_if_6",
       "to": "router_test_nested_flow_line_20_seq_4",
-      "label": null,
+      "label": "p['level2'] == 'X'",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_19_if_6",
       "to": "router_test_nested_flow_line_23_seq_5",
-      "label": null,
+      "label": "not (p['level2'] == 'X')",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_9_if_7",
       "to": "router_test_nested_flow_line_11_if_3",
-      "label": null,
+      "label": "p['level1'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_9_if_7",
       "to": "finalize_result",
-      "label": null,
+      "label": "p['level1'] == 'A'",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_9_if_7",
       "to": "router_test_nested_flow_line_19_if_6",
-      "label": null,
+      "label": "not (p['level1'] == 'A')",
       "type": "prepend"
     },
     {
       "from": "router_test_nested_flow_line_9_if_7",
       "to": "finalize_result",
-      "label": null,
+      "label": "not (p['level1'] == 'A')",
       "type": "prepend"
     },
     {

@@ -13,11 +13,11 @@ digraph "document_pipeline" {
     translator [label="translator", fillcolor=lightblue];
 
     start_document_pipeline -> router_document_pipeline_line_18_seq_3;
-    router_document_pipeline_line_24_if_2 -> translator;
-    router_document_pipeline_line_24_if_2 -> sentiment_analyzer;
-    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1;
-    router_document_pipeline_line_24_if_2 -> sentiment_analyzer;
-    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1;
+    router_document_pipeline_line_24_if_2 -> translator [label="p.get('language') != 'en'"];
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="p.get('language') != 'en'"];
+    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1 [label="p.get('language') != 'en'"];
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="not (p.get('language') != 'en')"];
+    router_document_pipeline_line_24_if_2 -> router_document_pipeline_line_28_seq_1 [label="not (p.get('language') != 'en')"];
     router_document_pipeline_line_18_seq_3 -> ocr_extractor;
     router_document_pipeline_line_18_seq_3 -> language_detector;
     router_document_pipeline_line_18_seq_3 -> router_document_pipeline_line_24_if_2;

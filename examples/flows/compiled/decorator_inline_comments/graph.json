@@ -54,13 +54,13 @@
     {
       "from": "router_decorator_inline_comments_flow_line_18_if_1",
       "to": "fast_handler",
-      "label": null,
+      "label": "p['category'] == 'priority'",
       "type": "prepend"
     },
     {
       "from": "router_decorator_inline_comments_flow_line_18_if_1",
       "to": "standard_handler",
-      "label": null,
+      "label": "not (p['category'] == 'priority')",
       "type": "prepend"
     },
     {

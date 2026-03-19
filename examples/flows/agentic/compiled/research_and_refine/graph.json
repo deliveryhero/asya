@@ -84,13 +84,13 @@
     {
       "from": "router_research_and_refine_line_55_if_3",
       "to": "refine_query",
-      "label": null,
+      "label": "not (not p.get('gaps') or p.get('quality_score', 0) >= 85)",
       "type": "prepend"
     },
     {
       "from": "router_research_and_refine_line_55_if_3",
       "to": "router_research_and_refine_line_59_if_2",
-      "label": null,
+      "label": "not (not p.get('gaps') or p.get('quality_score', 0) >= 85)",
       "type": "prepend"
     },
     {

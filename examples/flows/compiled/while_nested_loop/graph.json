@@ -90,19 +90,19 @@
     {
       "from": "router_nested_loop_flow_line_19_while_2",
       "to": "router_nested_loop_flow_line_20_seq_3",
-      "label": null,
+      "label": "p['j'] < p['max_j']",
       "type": "prepend"
     },
     {
       "from": "router_nested_loop_flow_line_19_while_2",
       "to": "router_nested_loop_flow_line_19_while_2",
-      "label": null,
+      "label": "p['j'] < p['max_j']",
       "type": "prepend"
     },
     {
       "from": "router_nested_loop_flow_line_19_while_2",
       "to": "finalize_loop_j",
-      "label": "p['j'] < p['max_j']",
+      "label": "not (p['j'] < p['max_j'])",
       "type": "set"
     },
     {
@@ -114,19 +114,19 @@
     {
       "from": "router_nested_loop_flow_line_16_while_1",
       "to": "router_nested_loop_flow_line_17_seq_4",
-      "label": null,
+      "label": "p['i'] < p['max_i']",
       "type": "prepend"
     },
     {
       "from": "router_nested_loop_flow_line_16_while_1",
       "to": "router_nested_loop_flow_line_16_while_1",
-      "label": null,
+      "label": "p['i'] < p['max_i']",
       "type": "prepend"
     },
     {
       "from": "router_nested_loop_flow_line_16_while_1",
       "to": "finalize_loop_i",
-      "label": "p['i'] < p['max_i']",
+      "label": "not (p['i'] < p['max_i'])",
       "type": "set"
     },
     {

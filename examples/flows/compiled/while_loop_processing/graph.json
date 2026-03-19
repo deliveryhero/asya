@@ -126,19 +126,19 @@
     {
       "from": "router_loop_flow_line_20_if_5",
       "to": "router_loop_flow_line_21_seq_4",
-      "label": null,
+      "label": "p.get('skip_threshold_check')",
       "type": "prepend"
     },
     {
       "from": "router_loop_flow_line_20_if_5",
       "to": "check_threshold",
-      "label": null,
+      "label": "not (p.get('skip_threshold_check'))",
       "type": "prepend"
     },
     {
       "from": "router_loop_flow_line_20_if_5",
       "to": "router_loop_flow_line_27_if_2",
-      "label": null,
+      "label": "not (p.get('skip_threshold_check'))",
       "type": "prepend"
     },
     {
@@ -156,19 +156,19 @@
     {
       "from": "router_loop_flow_line_16_while_1",
       "to": "router_loop_flow_line_17_seq_6",
-      "label": null,
+      "label": "p['iteration'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_loop_flow_line_16_while_1",
       "to": "router_loop_flow_line_16_while_1",
-      "label": null,
+      "label": "p['iteration'] < p['max_iterations']",
       "type": "prepend"
     },
     {
       "from": "router_loop_flow_line_16_while_1",
       "to": "finalize_loop",
-      "label": "p['iteration'] < p['max_iterations']",
+      "label": "not (p['iteration'] < p['max_iterations'])",
       "type": "set"
     },
     {

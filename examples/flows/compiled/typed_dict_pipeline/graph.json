@@ -72,13 +72,13 @@
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
       "to": "transformer",
-      "label": null,
+      "label": "not (not p.get('valid', True))",
       "type": "prepend"
     },
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
       "to": "sink_adapter",
-      "label": null,
+      "label": "not (not p.get('valid', True))",
       "type": "prepend"
     },
     {
