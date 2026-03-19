@@ -1,7 +1,0 @@
-digraph "test_nested_flow" {
-    rankdir=TB;
-    node [shape=box, style=filled, fontname="Helvetica"];
-
-    end_test_nested_flow [label="end_test_nested_flow", fillcolor=palegreen];
-
-}

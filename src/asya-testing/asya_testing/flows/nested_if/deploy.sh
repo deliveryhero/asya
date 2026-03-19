@@ -22,13 +22,13 @@ kubectl wait --for=condition=Ready \
   --timeout=300s \
   -n "$NAMESPACE" \
   asyncactor/start-test-nested-flow \
-  asyncactor/router-test-nested-flow-line-4-if \
-  asyncactor/router-test-nested-flow-line-6-if \
-  asyncactor/router-test-nested-flow-line-14-if \
-  asyncactor/router-test-nested-flow-line-7-seq \
-  asyncactor/router-test-nested-flow-line-10-seq \
-  asyncactor/router-test-nested-flow-line-15-seq \
-  asyncactor/router-test-nested-flow-line-18-seq \
+  asyncactor/router-test-nested-flow-line-9-if-7 \
+  asyncactor/router-test-nested-flow-line-11-if-3 \
+  asyncactor/router-test-nested-flow-line-12-seq-1 \
+  asyncactor/router-test-nested-flow-line-15-seq-2 \
+  asyncactor/router-test-nested-flow-line-19-if-6 \
+  asyncactor/router-test-nested-flow-line-20-seq-4 \
+  asyncactor/router-test-nested-flow-line-23-seq-5 \
   asyncactor/validate-input \
   asyncactor/route-a-x \
   asyncactor/route-a-y \
