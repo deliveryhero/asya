@@ -249,8 +249,8 @@ func TestLoadFromEnv(t *testing.T) {
 		{
 			name: "policies and rules from JSON env vars",
 			env: map[string]string{
-				"ASYA_ACTOR_NAME": "test-actor",
-				"ASYA_NAMESPACE":  "default",
+				"ASYA_ACTOR_NAME":          "test-actor",
+				"ASYA_NAMESPACE":           "default",
 				"ASYA_RESILIENCY_POLICIES": `{"default":{"maxAttempts":3,"backoff":"exponential","initialDelay":"1s","maxInterval":"300s","jitter":true},"retryFast":{"maxAttempts":5,"backoff":"exponential","initialDelay":"500ms","maxInterval":"60s"}}`,
 				"ASYA_RESILIENCY_RULES":    `[{"errors":["ConnectionError","NetworkError"],"policy":"retryFast"}]`,
 			},
