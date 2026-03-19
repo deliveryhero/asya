@@ -19,11 +19,11 @@ async def start_parallel_sectioning(payload: dict):
     """Entrypoint for flow 'parallel_sectioning'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("fanout_parallel_sectioning_line_48"))
+    _next.append(resolve("router_parallel_sectioning_line_48_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_parallel_sectioning_line_48(payload: dict):
+async def router_parallel_sectioning_line_48_fanout_1(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 48)"""
     p = payload
 

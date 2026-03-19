@@ -1,0 +1,38 @@
+{
+  "flow_name": "voting_ensemble",
+  "nodes": [
+    {
+      "id": "end_voting_ensemble",
+      "flow_role": "exit",
+      "label": "end_voting_ensemble",
+      "is_generated": true
+    },
+    {
+      "id": "router_voting_ensemble_line_44_fanout_1",
+      "flow_role": "router",
+      "label": "router_voting_ensemble_line_44_fanout_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_voting_ensemble",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

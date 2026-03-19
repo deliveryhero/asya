@@ -19,8 +19,17 @@ class GraphData:
     groups: list[dict] = field(default_factory=list)  # {"id", "nodes"}
 
 
-def _extract_yield_edges(source: str, handler_name: str) -> list[dict]:
-    """Parse yield ABI patterns from a Python handler source.
+def _build_parent_map(tree: ast.AST) -> dict[int, ast.AST]:
+    """Build a child-id → parent mapping for an AST tree."""
+    parent_map: dict[int, ast.AST] = {}
+    for node in ast.walk(tree):
+        for child in ast.iter_child_nodes(node):
+            parent_map[id(child)] = node
+    return parent_map
+
+
+def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
+    """Extract yield ABI patterns from an AST function node.
 
     Walks the AST to find yield expressions matching the ABI protocol:
     - yield "SET", ".route.next", [...]  -> explicit routing edge
@@ -31,14 +40,10 @@ def _extract_yield_edges(source: str, handler_name: str) -> list[dict]:
 
     Returns list of edge dicts: {"from": handler_name, "to": target, "label": condition, "type": edge_type}
     """
-    try:
-        tree = ast.parse(source)
-    except SyntaxError:
-        return []
-
     edges: list[dict] = []
+    parent_map = _build_parent_map(func_node)
 
-    for node in ast.walk(tree):
+    for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
             continue
         if not isinstance(node, ast.Yield) or node.value is None:
@@ -67,7 +72,7 @@ def _extract_yield_edges(source: str, handler_name: str) -> list[dict]:
         targets = _extract_resolve_targets(targets_node)
 
         # Walk up AST to find enclosing if condition
-        condition = _find_enclosing_condition(tree, node)
+        condition = _find_enclosing_condition(parent_map, node)
 
         if not targets and edge_type == "set":
             # yield "SET", ".route.next", [] -> abort/terminal
@@ -120,14 +125,8 @@ def _extract_resolve_arg(node: ast.expr) -> str | None:
     return None
 
 
-def _find_enclosing_condition(tree: ast.Module, target_node: ast.AST) -> str | None:
+def _find_enclosing_condition(parent_map: dict[int, ast.AST], target_node: ast.AST) -> str | None:
     """Walk up the AST to find the nearest enclosing if condition for a node."""
-    # Build parent map
-    parent_map: dict[int, ast.AST] = {}
-    for node in ast.walk(tree):
-        for child in ast.iter_child_nodes(node):
-            parent_map[id(child)] = node
-
     current = target_node
     while id(current) in parent_map:
         parent = parent_map[id(current)]
@@ -168,17 +167,22 @@ def analyze(
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
-            func_source = ast.unparse(node)
-            func_edges = _extract_yield_edges(func_source, node.name)
+            func_edges = _extract_yield_edges(node, node.name)
             all_edges.extend(func_edges)
             router_names.add(node.name)
 
     # Step 2: Extract edges from user handlers (best-effort)
     for handler_name, source in handler_sources.items():
-        handler_edges = _extract_yield_edges(source, handler_name)
-        for edge in handler_edges:
-            edge["override"] = True
-        all_edges.extend(handler_edges)
+        try:
+            handler_tree = ast.parse(source)
+        except SyntaxError:
+            continue
+        for func_node in ast.walk(handler_tree):
+            if isinstance(func_node, ast.FunctionDef | ast.AsyncFunctionDef):
+                handler_edges = _extract_yield_edges(func_node, handler_name)
+                for edge in handler_edges:
+                    edge["override"] = True
+                all_edges.extend(handler_edges)
 
     # Step 3: TODO - Parse manifests for resiliency.rules error routing
 

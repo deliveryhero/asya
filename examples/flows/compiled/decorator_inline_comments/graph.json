@@ -1,0 +1,20 @@
+{
+  "flow_name": "decorator_inline_comments_flow",
+  "nodes": [
+    {
+      "id": "end_decorator_inline_comments_flow",
+      "flow_role": "exit",
+      "label": "end_decorator_inline_comments_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_decorator_inline_comments_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

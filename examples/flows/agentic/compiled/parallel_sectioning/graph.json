@@ -1,0 +1,38 @@
+{
+  "flow_name": "parallel_sectioning",
+  "nodes": [
+    {
+      "id": "end_parallel_sectioning",
+      "flow_role": "exit",
+      "label": "end_parallel_sectioning",
+      "is_generated": true
+    },
+    {
+      "id": "router_parallel_sectioning_line_48_fanout_1",
+      "flow_role": "router",
+      "label": "router_parallel_sectioning_line_48_fanout_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_parallel_sectioning_line_48_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_parallel_sectioning_line_48_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_parallel_sectioning",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

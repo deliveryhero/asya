@@ -7,7 +7,6 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from asya_lab.compiler.rules import TreatAs
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.rules import CompilerRule, CompilerRules
 
@@ -423,6 +422,10 @@ class FlowParser:
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
 
+        # Handle call-site wrappers: actor(handler)(p), inline(fn)(p)
+        if isinstance(call.func, ast.Call):
+            return self._parse_wrapper_call(stmt, call)
+
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
         elif isinstance(call.func, ast.Attribute):
@@ -453,6 +456,9 @@ class FlowParser:
                 )
             if directive.treat_as == "inline":
                 return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+            elif directive.treat_as == "actor":
+                self._actors.append(actor_name)
+                return ActorCall(lineno=stmt.lineno, name=actor_name)
             elif directive.treat_as in ("flow", "unfold", "config"):
                 raise FlowCompileError(
                     f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
@@ -464,11 +470,58 @@ class FlowParser:
 
         # Rule engine classification (lowest priority)
         if self._rule_engine is not None:
+            from asya_lab.compiler.rules import TreatAs
+
             qualified_name = self.import_map.get(actor_name, actor_name)
             treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
-            if treat_as is not None and treat_as == TreatAs.INLINE:
+            if treat_as is not None and treat_as in (TreatAs.INLINE, TreatAs.CONFIG):
                 return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
 
+        self._actors.append(actor_name)
+        return ActorCall(lineno=stmt.lineno, name=actor_name)
+
+    def _parse_wrapper_call(self, stmt: ast.Assign, outer_call: ast.Call) -> ActorCall | Mutation:
+        """Parse call-site wrapper patterns: actor(handler)(p), inline(fn)(p)."""
+        inner_call = outer_call.func
+        if not isinstance(inner_call, ast.Call):
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call type")
+
+        # Extract wrapper name
+        if not isinstance(inner_call.func, ast.Name):
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call type")
+        wrapper_name = inner_call.func.id
+
+        if wrapper_name not in self._known_wrappers:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Unknown call-site wrapper '{wrapper_name}'. "
+                f"Supported: {', '.join(sorted(self._known_wrappers))}"
+            )
+
+        # Extract inner argument (the actual function name)
+        if len(inner_call.args) != 1:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Call-site wrapper must have exactly one argument")
+        inner_arg = inner_call.args[0]
+        if isinstance(inner_arg, ast.Name):
+            actor_name = inner_arg.id
+        elif isinstance(inner_arg, ast.Attribute):
+            actor_name = ast.unparse(inner_arg)
+        else:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: Call-site wrapper argument must be a name or attribute"
+            )
+
+        # Inline comment directive overrides call-site wrapper
+        directive = self._directives.get(stmt.lineno)
+        if directive is not None and directive.treat_as == "inline":
+            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+
+        # Determine wrapper type from name suffix
+        if wrapper_name.endswith("inline"):
+            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+        elif wrapper_name.endswith("flow") or wrapper_name.endswith("unfold"):
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Wrapper '{wrapper_name}' is not yet implemented")
+
+        # Default: actor wrapper
         self._actors.append(actor_name)
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 

@@ -1,0 +1,20 @@
+{
+  "flow_name": "llm_auditor_flow",
+  "nodes": [
+    {
+      "id": "end_llm_auditor_flow",
+      "flow_role": "exit",
+      "label": "end_llm_auditor_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_llm_auditor_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

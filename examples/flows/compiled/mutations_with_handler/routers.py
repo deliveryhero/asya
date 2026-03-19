@@ -16,20 +16,26 @@ Regenerate by running: asya flow compile mutations_with_handler.py
 async def start_mutations_with_handler_flow(payload: dict):
     """Entrypoint for flow 'mutations_with_handler_flow'"""
     _next = []
+    _next.append(resolve("router_mutations_with_handler_flow_line_13_seq_2"))
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_mutations_with_handler_flow_line_17_seq_1(payload: dict):
+    """Router for control flow and payload mutations"""
     p = payload
+    p['finalized'] = True
+    yield "SET", ".route.next", []
+    yield p
+
+async def router_mutations_with_handler_flow_line_13_seq_2(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
     p['initialized'] = True
     p['step'] = 1
     p['count'] = 0
     _next.append(resolve("handler_process"))
-    _next.append(resolve("router_mutations_with_handler_flow_line_17_seq"))
-    yield "SET", ".route.next[:0]", _next
-    yield p
-
-async def router_mutations_with_handler_flow_line_17_seq(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['finalized'] = True
+    _next.append(resolve("router_mutations_with_handler_flow_line_17_seq_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

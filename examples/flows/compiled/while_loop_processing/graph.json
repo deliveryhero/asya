@@ -1,0 +1,50 @@
+{
+  "flow_name": "loop_flow",
+  "nodes": [
+    {
+      "id": "end_loop_flow",
+      "flow_role": "exit",
+      "label": "end_loop_flow",
+      "is_generated": true
+    },
+    {
+      "id": "finalize_loop",
+      "flow_role": "actor",
+      "label": "finalize_loop",
+      "is_generated": false
+    },
+    {
+      "id": "router_loop_flow_line_16_while_1",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_16_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_loop_flow_line_27_if_2",
+      "flow_role": "router",
+      "label": "router_loop_flow_line_27_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_loop_flow_line_27_if_2",
+      "to": "finalize_loop",
+      "label": "p['threshold_met']",
+      "type": "set"
+    },
+    {
+      "from": "router_loop_flow_line_16_while_1",
+      "to": "finalize_loop",
+      "label": "p['iteration'] < p['max_iterations']",
+      "type": "set"
+    },
+    {
+      "from": "end_loop_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

@@ -1,0 +1,20 @@
+{
+  "flow_name": "hierarchical_delegation",
+  "nodes": [
+    {
+      "id": "end_hierarchical_delegation",
+      "flow_role": "exit",
+      "label": "end_hierarchical_delegation",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_hierarchical_delegation",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

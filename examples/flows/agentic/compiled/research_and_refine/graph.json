@@ -1,0 +1,50 @@
+{
+  "flow_name": "research_and_refine",
+  "nodes": [
+    {
+      "id": "end_research_and_refine",
+      "flow_role": "exit",
+      "label": "end_research_and_refine",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_55_if_3",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_55_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_59_if_2",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_59_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "write_report",
+      "flow_role": "actor",
+      "label": "write_report",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_research_and_refine_line_59_if_2",
+      "to": "write_report",
+      "label": "p['iteration'] >= 5",
+      "type": "set"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
+      "to": "write_report",
+      "label": "not p.get('gaps') or p.get('quality_score', 0) >= 85",
+      "type": "set"
+    },
+    {
+      "from": "end_research_and_refine",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

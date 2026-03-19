@@ -16,12 +16,20 @@ Regenerate by running: asya flow compile decorator_callsite.py
 async def start_decorator_callsite_flow(payload: dict):
     """Entrypoint for flow 'decorator_callsite_flow'"""
     _next = []
+    _next.append(resolve("router_decorator_callsite_flow_line_29_seq_1"))
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_decorator_callsite_flow_line_29_seq_1(payload: dict):
+    """Router for control flow and payload mutations"""
     p = payload
-    p = stamp_timestamp(p)
+    _next = []
+    p = inline(stamp_timestamp)(p)
     _next.append(resolve("validator"))
     _next.append(resolve("enricher"))
+
     yield "SET", ".route.next[:0]", _next
-    yield p
+    yield payload
 
 async def end_decorator_callsite_flow(payload: dict):
     """Exitpoint for flow 'decorator_callsite_flow'"""

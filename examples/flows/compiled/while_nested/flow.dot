@@ -1,35 +1,13 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "while_nested_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_while_nested_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_while_nested_flow(p)</i></td></tr></table>>];
-  router_while_nested_flow_line_19_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_19_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['j'] += 1</td></tr></table>>];
-  router_while_nested_flow_line_18_while_1 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_18_while_1(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['j'] &lt; p['max_j']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_while_nested_flow_line_17_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_17_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['j'] = 0</td></tr></table>>];
-  router_while_nested_flow_line_15_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_15_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr></table>>];
-  router_while_nested_flow_line_14_while_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_14_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_i']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_while_nested_flow_line_13_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_while_nested_flow_line_13_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr></table>>];
-  end_while_nested_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_while_nested_flow(p)</i></td></tr></table>>];
-  handler_finalize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_finalize(p)</i></td></tr></table>>];
-  handler_init [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_init(p)</i></td></tr></table>>];
-  handler_inner [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_inner(p)</i></td></tr></table>>];
-  handler_outer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_outer(p)</i></td></tr></table>>];
-  handler_outer_end [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handler_outer_end(p)</i></td></tr></table>>];
+    end_while_nested_flow [label="end_while_nested_flow", fillcolor=palegreen];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_outer_end [label="handler_outer_end", fillcolor=lightblue];
+    router_while_nested_flow_line_14_while_1 [label="router_while_nested_flow_line_14_while_1", fillcolor=wheat];
+    router_while_nested_flow_line_18_while_2 [label="router_while_nested_flow_line_18_while_2", fillcolor=wheat];
 
-  handler_finalize -> end_while_nested_flow;
-  handler_init -> router_while_nested_flow_line_13_seq;
-  handler_inner -> router_while_nested_flow_line_18_while_1 [constraint=false];
-  handler_outer -> router_while_nested_flow_line_17_seq;
-  handler_outer_end -> router_while_nested_flow_line_14_while_0 [constraint=false];
-  router_while_nested_flow_line_13_seq -> router_while_nested_flow_line_14_while_0;
-  router_while_nested_flow_line_14_while_0 -> handler_finalize [label="F", color=indianred4];
-  router_while_nested_flow_line_14_while_0 -> router_while_nested_flow_line_15_seq [label="T", color=darkseagreen4];
-  router_while_nested_flow_line_15_seq -> handler_outer;
-  router_while_nested_flow_line_17_seq -> router_while_nested_flow_line_18_while_1;
-  router_while_nested_flow_line_18_while_1 -> handler_outer_end [label="F", color=indianred4];
-  router_while_nested_flow_line_18_while_1 -> router_while_nested_flow_line_19_seq [label="T", color=darkseagreen4];
-  router_while_nested_flow_line_19_seq -> handler_inner;
-  start_while_nested_flow -> handler_init;
+    router_while_nested_flow_line_18_while_2 -> handler_outer_end [label="p['j'] < p['max_j']"];
+    router_while_nested_flow_line_14_while_1 -> handler_finalize [label="p['i'] < p['max_i']"];
 }

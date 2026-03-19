@@ -1,0 +1,62 @@
+{
+  "flow_name": "complex_flow",
+  "nodes": [
+    {
+      "id": "end_complex_flow",
+      "flow_role": "exit",
+      "label": "end_complex_flow",
+      "is_generated": true
+    },
+    {
+      "id": "handler_error",
+      "flow_role": "actor",
+      "label": "handler_error",
+      "is_generated": false
+    },
+    {
+      "id": "router_complex_flow_line_15_if_6",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_15_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_complex_flow_line_22_while_1",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_22_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_complex_flow_line_29_if_2",
+      "flow_role": "router",
+      "label": "router_complex_flow_line_29_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_complex_flow_line_29_if_2",
+      "to": "__terminal__",
+      "label": "p['quality_score'] >= 50",
+      "type": "abort"
+    },
+    {
+      "from": "router_complex_flow_line_22_while_1",
+      "to": "__terminal__",
+      "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
+      "type": "abort"
+    },
+    {
+      "from": "router_complex_flow_line_15_if_6",
+      "to": "handler_error",
+      "label": "not p['valid']",
+      "type": "set"
+    },
+    {
+      "from": "end_complex_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

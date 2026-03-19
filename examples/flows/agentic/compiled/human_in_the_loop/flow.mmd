@@ -1,0 +1,14 @@
+flowchart TD
+    %% Flow: human_in_the_loop
+
+    end_human_in_the_loop([end_human_in_the_loop])
+    executor[executor]
+    notifier[notifier]
+    router_human_in_the_loop_line_70_if_5{{router_human_in_the_loop_line_70_if_5}}
+    router_human_in_the_loop_line_79_if_3{{router_human_in_the_loop_line_79_if_3}}
+    router_human_in_the_loop_line_80_seq_2{{router_human_in_the_loop_line_80_seq_2}}
+
+    router_human_in_the_loop_line_80_seq_2 --> notifier
+    router_human_in_the_loop_line_79_if_3 -->|p['attempt'] >= 3| router_human_in_the_loop_line_80_seq_2
+    router_human_in_the_loop_line_70_if_5 -->|p.get('approval') in ('approved', 'modified')| executor
+    router_human_in_the_loop_line_70_if_5 -->|p.get('approval') in ('approved', 'modified')| notifier

@@ -1,51 +1,7 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "hierarchical_delegation" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_hierarchical_delegation [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_hierarchical_delegation(p)</i></td></tr></table>>];
-  router_hierarchical_delegation_line_67_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('subtask') == 'api'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_hierarchical_delegation_line_65_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('subtask') == 'sql'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_hierarchical_delegation_line_78_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('subtask') == 'edit'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_hierarchical_delegation_line_76_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('subtask') == 'write'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_hierarchical_delegation_line_72_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('domain') == 'content'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_hierarchical_delegation_line_61_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_hierarchical_delegation_line_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('domain') == 'data'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_hierarchical_delegation [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_hierarchical_delegation(p)</i></td></tr></table>>];
-  api_specialist [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await api_specialist(p)</i></td></tr></table>>];
-  content_generalist [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await content_generalist(p)</i></td></tr></table>>];
-  content_team_lead [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await content_team_lead(p)</i></td></tr></table>>];
-  data_generalist [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await data_generalist(p)</i></td></tr></table>>];
-  data_team_lead [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await data_team_lead(p)</i></td></tr></table>>];
-  editor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await editor(p)</i></td></tr></table>>];
-  final_assembler [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await final_assembler(p)</i></td></tr></table>>];
-  generalist [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await generalist(p)</i></td></tr></table>>];
-  root_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await root_agent(p)</i></td></tr></table>>];
-  sql_specialist [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await sql_specialist(p)</i></td></tr></table>>];
-  writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await writer(p)</i></td></tr></table>>];
+    end_hierarchical_delegation [label="end_hierarchical_delegation", fillcolor=palegreen];
 
-  api_specialist -> final_assembler;
-  content_generalist -> final_assembler;
-  content_team_lead -> router_hierarchical_delegation_line_76_if;
-  data_generalist -> final_assembler;
-  data_team_lead -> router_hierarchical_delegation_line_65_if;
-  editor -> final_assembler;
-  final_assembler -> end_hierarchical_delegation;
-  generalist -> final_assembler;
-  root_agent -> router_hierarchical_delegation_line_61_if;
-  router_hierarchical_delegation_line_61_if -> data_team_lead [label="T", color=darkseagreen4];
-  router_hierarchical_delegation_line_61_if -> router_hierarchical_delegation_line_72_if [label="F", color=indianred4];
-  router_hierarchical_delegation_line_65_if -> router_hierarchical_delegation_line_67_if [label="F", color=indianred4];
-  router_hierarchical_delegation_line_65_if -> sql_specialist [label="T", color=darkseagreen4];
-  router_hierarchical_delegation_line_67_if -> api_specialist [label="T", color=darkseagreen4];
-  router_hierarchical_delegation_line_67_if -> data_generalist [label="F", color=indianred4];
-  router_hierarchical_delegation_line_72_if -> content_team_lead [label="T", color=darkseagreen4];
-  router_hierarchical_delegation_line_72_if -> generalist [label="F", color=indianred4];
-  router_hierarchical_delegation_line_76_if -> router_hierarchical_delegation_line_78_if [label="F", color=indianred4];
-  router_hierarchical_delegation_line_76_if -> writer [label="T", color=darkseagreen4];
-  router_hierarchical_delegation_line_78_if -> content_generalist [label="F", color=indianred4];
-  router_hierarchical_delegation_line_78_if -> editor [label="T", color=darkseagreen4];
-  sql_specialist -> final_assembler;
-  start_hierarchical_delegation -> root_agent;
-  writer -> final_assembler;
 }

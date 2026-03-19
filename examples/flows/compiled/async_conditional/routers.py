@@ -17,36 +17,32 @@ async def start_content_pipeline_flow(payload: dict):
     """Entrypoint for flow 'content_pipeline_flow'"""
     _next = []
     _next.append(resolve("classifier"))
-    _next.append(resolve("router_content_pipeline_flow_line_16_if"))
+    _next.append(resolve("router_content_pipeline_flow_line_16_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_content_pipeline_flow_line_18_if(payload: dict):
+async def router_content_pipeline_flow_line_18_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['content_type'] == 'image':
-        yield "SET", ".route.next", [resolve("image_processor"), resolve("quality_check")]
-        yield p
-        return
+        _next.append(resolve("image_processor"))
     else:
-        yield "SET", ".route.next", [resolve("generic_processor"), resolve("quality_check")]
-        yield p
-        return
+        _next.append(resolve("generic_processor"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_content_pipeline_flow_line_16_if(payload: dict):
+async def router_content_pipeline_flow_line_16_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['content_type'] == 'text':
-        yield "SET", ".route.next", [resolve("text_processor"), resolve("quality_check")]
-        yield p
-        return
+        _next.append(resolve("text_processor"))
+        _next.append(resolve("quality_check"))
     else:
-        _next.append(resolve("router_content_pipeline_flow_line_18_if"))
+        _next.append(resolve("router_content_pipeline_flow_line_18_if_1"))
+        _next.append(resolve("quality_check"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

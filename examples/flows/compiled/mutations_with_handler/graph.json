@@ -1,0 +1,32 @@
+{
+  "flow_name": "mutations_with_handler_flow",
+  "nodes": [
+    {
+      "id": "end_mutations_with_handler_flow",
+      "flow_role": "exit",
+      "label": "end_mutations_with_handler_flow",
+      "is_generated": true
+    },
+    {
+      "id": "router_mutations_with_handler_flow_line_17_seq_1",
+      "flow_role": "router",
+      "label": "router_mutations_with_handler_flow_line_17_seq_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_mutations_with_handler_flow_line_17_seq_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_mutations_with_handler_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

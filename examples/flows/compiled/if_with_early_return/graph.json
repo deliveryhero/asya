@@ -1,0 +1,38 @@
+{
+  "flow_name": "early_return_flow",
+  "nodes": [
+    {
+      "id": "end_early_return_flow",
+      "flow_role": "exit",
+      "label": "end_early_return_flow",
+      "is_generated": true
+    },
+    {
+      "id": "handler_error",
+      "flow_role": "actor",
+      "label": "handler_error",
+      "is_generated": false
+    },
+    {
+      "id": "router_early_return_flow_line_14_if_1",
+      "flow_role": "router",
+      "label": "router_early_return_flow_line_14_if_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_early_return_flow_line_14_if_1",
+      "to": "handler_error",
+      "label": "not p['valid']",
+      "type": "set"
+    },
+    {
+      "from": "end_early_return_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

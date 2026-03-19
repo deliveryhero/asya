@@ -1,0 +1,20 @@
+{
+  "flow_name": "sequential_flow",
+  "nodes": [
+    {
+      "id": "end_sequential_flow",
+      "flow_role": "exit",
+      "label": "end_sequential_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_sequential_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

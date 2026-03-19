@@ -16,25 +16,29 @@ Regenerate by running: asya flow compile decorator_inline_comments.py
 async def start_decorator_inline_comments_flow(payload: dict):
     """Entrypoint for flow 'decorator_inline_comments_flow'"""
     _next = []
-    p = payload
-    p = inject_id(p)
-    _next.append(resolve("classifier"))
-    _next.append(resolve("router_decorator_inline_comments_flow_line_18_if"))
+    _next.append(resolve("router_decorator_inline_comments_flow_line_16_seq_2"))
     yield "SET", ".route.next[:0]", _next
-    yield p
+    yield payload
 
-async def router_decorator_inline_comments_flow_line_18_if(payload: dict):
+async def router_decorator_inline_comments_flow_line_18_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['category'] == 'priority':
-        yield "SET", ".route.next", [resolve("fast_handler")]
-        yield p
-        return
+        _next.append(resolve("fast_handler"))
     else:
-        yield "SET", ".route.next", [resolve("standard_handler")]
-        yield p
-        return
+        _next.append(resolve("standard_handler"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_decorator_inline_comments_flow_line_16_seq_2(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p = inject_id(p)
+    _next.append(resolve("classifier"))
+    _next.append(resolve("router_decorator_inline_comments_flow_line_18_if_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

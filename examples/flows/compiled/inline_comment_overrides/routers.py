@@ -16,32 +16,38 @@ Regenerate by running: asya flow compile inline_comment_overrides.py
 async def start_order_pipeline(payload: dict):
     """Entrypoint for flow 'order_pipeline'"""
     _next = []
-    p = payload
-    p = normalize_keys(p)
-    _next.append(resolve("validate_order"))
-    _next.append(resolve("router_order_pipeline_line_32_if"))
-    yield "SET", ".route.next[:0]", _next
-    yield p
-
-async def router_order_pipeline_line_33_seq(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['status'] = 'rejected'
-
+    _next.append(resolve("router_order_pipeline_line_27_seq_3"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_pipeline_line_32_if(payload: dict):
+async def router_order_pipeline_line_33_seq_1(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    p['status'] = 'rejected'
+    yield "SET", ".route.next", []
+    yield p
+
+async def router_order_pipeline_line_32_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('fraud_score', 0) > 0.8:
-        _next.append(resolve("router_order_pipeline_line_33_seq"))
-    else:
-        yield "SET", ".route.next", [resolve("charge_payment")]
+        yield "SET", ".route.next", [resolve("router_order_pipeline_line_33_seq_1")]
         yield p
         return
+    else:
+        _next.append(resolve("charge_payment"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_order_pipeline_line_27_seq_3(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p = normalize_keys(p)
+    _next.append(resolve("validate_order"))
+    _next.append(resolve("router_order_pipeline_line_32_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

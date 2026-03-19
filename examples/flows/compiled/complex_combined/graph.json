@@ -1,0 +1,62 @@
+{
+  "flow_name": "complex_combined_flow",
+  "nodes": [
+    {
+      "id": "end_complex_combined_flow",
+      "flow_role": "exit",
+      "label": "end_complex_combined_flow",
+      "is_generated": true
+    },
+    {
+      "id": "handler_error",
+      "flow_role": "actor",
+      "label": "handler_error",
+      "is_generated": false
+    },
+    {
+      "id": "router_complex_combined_flow_line_15_if_8",
+      "flow_role": "router",
+      "label": "router_complex_combined_flow_line_15_if_8",
+      "is_generated": true
+    },
+    {
+      "id": "router_complex_combined_flow_line_21_while_1",
+      "flow_role": "router",
+      "label": "router_complex_combined_flow_line_21_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_complex_combined_flow_line_29_if_2",
+      "flow_role": "router",
+      "label": "router_complex_combined_flow_line_29_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_complex_combined_flow_line_29_if_2",
+      "to": "__terminal__",
+      "label": "p['stop_early']",
+      "type": "abort"
+    },
+    {
+      "from": "router_complex_combined_flow_line_21_while_1",
+      "to": "__terminal__",
+      "label": "p['i'] < p['max_iterations']",
+      "type": "abort"
+    },
+    {
+      "from": "router_complex_combined_flow_line_15_if_8",
+      "to": "handler_error",
+      "label": "not p['valid']",
+      "type": "set"
+    },
+    {
+      "from": "end_complex_combined_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

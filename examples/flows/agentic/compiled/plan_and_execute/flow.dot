@@ -1,27 +1,10 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "plan_and_execute" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_plan_and_execute [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_plan_and_execute(p)</i></td></tr><tr><td bgcolor="white" align="left">p['current_step'] = 0</td></tr><tr><td bgcolor="white" align="left">p['step_results'] = []</td></tr></table>>];
-  router_plan_and_execute_line_62_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_plan_and_execute_line_62_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['completed'] = True</td></tr></table>>];
-  router_plan_and_execute_line_59_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_plan_and_execute_line_59_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['current_step'] += 1</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['current_step'] &lt; len(p.get('plan', []))</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_plan_and_execute_line_54_while_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_plan_and_execute_line_54_whil…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['current_step'] &lt; len(p.get('plan', []))</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_plan_and_execute [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_plan_and_execute(p)</i></td></tr></table>>];
-  executor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await executor(p)</i></td></tr></table>>];
-  planner [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await planner(p)</i></td></tr></table>>];
-  re_planner [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await re_planner(p)</i></td></tr></table>>];
-  synthesizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await synthesizer(p)</i></td></tr></table>>];
+    end_plan_and_execute [label="end_plan_and_execute", fillcolor=palegreen];
+    router_plan_and_execute_line_54_while_2 [label="router_plan_and_execute_line_54_while_2", fillcolor=wheat];
+    router_plan_and_execute_line_62_seq_1 [label="router_plan_and_execute_line_62_seq_1", fillcolor=wheat];
 
-  executor -> router_plan_and_execute_line_59_if;
-  planner -> router_plan_and_execute_line_54_while_0;
-  re_planner -> router_plan_and_execute_line_54_while_0 [constraint=false];
-  router_plan_and_execute_line_54_while_0 -> executor [label="T", color=darkseagreen4];
-  router_plan_and_execute_line_54_while_0 -> router_plan_and_execute_line_62_seq [label="F", color=indianred4];
-  router_plan_and_execute_line_59_if -> re_planner [label="T", color=darkseagreen4];
-  router_plan_and_execute_line_59_if -> router_plan_and_execute_line_54_while_0 [label="F", color=indianred4, constraint=false];
-  router_plan_and_execute_line_62_seq -> synthesizer;
-  start_plan_and_execute -> planner;
-  synthesizer -> end_plan_and_execute;
+    router_plan_and_execute_line_54_while_2 -> router_plan_and_execute_line_62_seq_1 [label="p['current_step'] < len(p.get('plan', []))"];
 }

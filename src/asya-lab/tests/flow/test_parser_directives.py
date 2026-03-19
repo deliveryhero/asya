@@ -4,8 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import ActorCall, InlineCode
-from asya_lab.flow.parser import FlowParser
+from asya_lab.flow.parser import ActorCall, FlowParser, Mutation
 
 
 class TestInlineCommentDirectives:
@@ -18,7 +17,7 @@ class TestInlineCommentDirectives:
                 p = handler(p)  # asya: actor
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
@@ -30,9 +29,9 @@ class TestInlineCommentDirectives:
                 p = uuid_inject(p)  # asya: inline
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert len(ops) == 2
-        assert isinstance(ops[0], InlineCode)
+        assert isinstance(ops[0], Mutation)
         assert "uuid_inject" in ops[0].code
 
     def test_treat_as_inline_with_await(self):
@@ -42,8 +41,8 @@ class TestInlineCommentDirectives:
                 p = await enrich(p)  # asya: inline
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "enrich" in ops[0].code
 
     def test_comment_without_asya_prefix_is_ignored(self):
@@ -53,7 +52,7 @@ class TestInlineCommentDirectives:
                 p = handler(p)  # treat-as-inline (no asya: prefix)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
 
     def test_unknown_treat_as_value_raises_error(self):
@@ -97,7 +96,7 @@ class TestCallSiteDecoration:
                 p = actor(handler)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
 
@@ -108,8 +107,8 @@ class TestCallSiteDecoration:
                 p = inline(uuid_inject)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "uuid_inject" in ops[0].code
 
     def test_actor_wrapper_with_module_attribute(self):
@@ -119,7 +118,7 @@ class TestCallSiteDecoration:
                 p = actor(handlers.process)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handlers.process"
 
@@ -130,7 +129,7 @@ class TestCallSiteDecoration:
                 p = await actor(handler)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
 
@@ -161,8 +160,8 @@ class TestCallSiteDecoration:
                 p = inline(utils.inject)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "utils.inject" in ops[0].code
 
     def test_wrapper_with_multiple_inner_args_raises_error(self):
@@ -183,8 +182,8 @@ class TestCallSiteDecoration:
                 p = actor(stamp_timestamp)(p)  # asya: inline
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "stamp_timestamp" in ops[0].code
 
     def test_await_preserved_for_inline_call_site_wrapper(self):
@@ -194,8 +193,8 @@ class TestCallSiteDecoration:
                 p = await inline(enrich)(p)
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "await" in ops[0].code
         assert "enrich" in ops[0].code
 
@@ -207,7 +206,7 @@ class TestCallSiteDecoration:
                 return p
         """)
         custom = frozenset({"asya_actor", "asya_flow", "asya_inline", "asya_unfold"})
-        _, ops = FlowParser(source, "test.py", known_wrappers=custom).parse()
+        ops = FlowParser(source, "test.py", known_wrappers=custom).parse().operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
 
@@ -237,7 +236,7 @@ class TestDefinitionSiteDecorators:
             def handler(p: dict) -> dict:
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
 
@@ -252,8 +251,8 @@ class TestDefinitionSiteDecorators:
             def uuid_inject(p: dict) -> dict:
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)
         assert "uuid_inject" in ops[0].code
 
     def test_unknown_decorator_is_ignored(self):
@@ -267,7 +266,7 @@ class TestDefinitionSiteDecorators:
             def handler(p: dict) -> dict:
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
 
     def test_multiple_decorators_first_known_wins(self):
@@ -282,7 +281,7 @@ class TestDefinitionSiteDecorators:
             def handler(p: dict) -> dict:
                 return p
         """)
-        _, ops = FlowParser(source, "test.py").parse()
+        ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], ActorCall)
 
     def test_inline_comment_overrides_actor_decorator(self):
@@ -297,5 +296,5 @@ class TestDefinitionSiteDecorators:
                 return p
         """)
         # Inline comment (highest priority) wins over @actor
-        _, ops = FlowParser(source, "test.py").parse()
-        assert isinstance(ops[0], InlineCode)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], Mutation)

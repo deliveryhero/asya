@@ -1,0 +1,32 @@
+{
+  "flow_name": "document_pipeline",
+  "nodes": [
+    {
+      "id": "end_document_pipeline",
+      "flow_role": "exit",
+      "label": "end_document_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "router_document_pipeline_line_28_seq_1",
+      "flow_role": "router",
+      "label": "router_document_pipeline_line_28_seq_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_document_pipeline_line_28_seq_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_document_pipeline",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

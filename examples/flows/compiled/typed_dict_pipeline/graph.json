@@ -1,0 +1,38 @@
+{
+  "flow_name": "typeddict_pipeline",
+  "nodes": [
+    {
+      "id": "end_typeddict_pipeline",
+      "flow_role": "exit",
+      "label": "end_typeddict_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "error_handler",
+      "flow_role": "actor",
+      "label": "error_handler",
+      "is_generated": false
+    },
+    {
+      "id": "router_typeddict_pipeline_line_77_if_1",
+      "flow_role": "router",
+      "label": "router_typeddict_pipeline_line_77_if_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_typeddict_pipeline_line_77_if_1",
+      "to": "error_handler",
+      "label": "not p.get('valid', True)",
+      "type": "set"
+    },
+    {
+      "from": "end_typeddict_pipeline",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

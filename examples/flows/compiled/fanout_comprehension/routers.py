@@ -19,11 +19,11 @@ async def start_research_flow(payload: dict):
     """Entrypoint for flow 'research_flow'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("fanout_research_flow_line_15"))
+    _next.append(resolve("router_research_flow_line_15_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_research_flow_line_15(payload: dict):
+async def router_research_flow_line_15_fanout_1(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 15)"""
     p = payload
 

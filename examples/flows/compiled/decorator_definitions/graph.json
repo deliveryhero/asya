@@ -1,0 +1,20 @@
+{
+  "flow_name": "decorator_definitions_flow",
+  "nodes": [
+    {
+      "id": "end_decorator_definitions_flow",
+      "flow_role": "exit",
+      "label": "end_decorator_definitions_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_decorator_definitions_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

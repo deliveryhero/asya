@@ -1,0 +1,13 @@
+flowchart TD
+    %% Flow: rag_pipeline
+
+    end_rag_pipeline([end_rag_pipeline])
+    fact_checker[fact_checker]
+    generator[generator]
+    router_rag_pipeline_line_66_if_3{{router_rag_pipeline_line_66_if_3}}
+    router_rag_pipeline_line_70_if_2{{router_rag_pipeline_line_70_if_2}}
+
+    router_rag_pipeline_line_70_if_2 -->|p['retrieval_attempts'] >= 3| generator
+    router_rag_pipeline_line_70_if_2 -->|p['retrieval_attempts'] >= 3| fact_checker
+    router_rag_pipeline_line_66_if_3 -->|p.get('is_sufficient')| generator
+    router_rag_pipeline_line_66_if_3 -->|p.get('is_sufficient')| fact_checker

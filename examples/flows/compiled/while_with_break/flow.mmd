@@ -1,0 +1,10 @@
+flowchart TD
+    %% Flow: while_with_break_flow
+
+    end_while_with_break_flow([end_while_with_break_flow])
+    handler_finalize[handler_finalize]
+    router_while_with_break_flow_line_14_while_1{{router_while_with_break_flow_line_14_while_1}}
+    router_while_with_break_flow_line_17_if_2{{router_while_with_break_flow_line_17_if_2}}
+
+    router_while_with_break_flow_line_17_if_2 -->|p['stop_condition']| handler_finalize
+    router_while_with_break_flow_line_14_while_1 -->|p['i'] < p['max_iterations']| handler_finalize

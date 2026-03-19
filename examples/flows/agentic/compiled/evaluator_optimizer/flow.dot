@@ -1,27 +1,12 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "evaluator_optimizer" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_evaluator_optimizer [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_evaluator_optimizer(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr></table>>];
-  router_evaluator_optimizer_line_72_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_evaluator_optimizer_line_72_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &gt;= MAX_ITERATIONS</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_evaluator_optimizer_line_68_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_evaluator_optimizer_line_68_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('score', 0) &gt;= SCORE_THRESHOLD</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_evaluator_optimizer_line_59_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_evaluator_optimizer_line_59_s…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
-  router_evaluator_optimizer_line_58_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_evaluator_optimizer_line_58_l…(p)</i></td></tr></table>>];
-  end_evaluator_optimizer [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_evaluator_optimizer(p)</i></td></tr></table>>];
-  evaluator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await evaluator(p)</i></td></tr></table>>];
-  generator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await generator(p)</i></td></tr></table>>];
-  polisher [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await polisher(p)</i></td></tr></table>>];
+    end_evaluator_optimizer [label="end_evaluator_optimizer", fillcolor=palegreen];
+    polisher [label="polisher", fillcolor=lightblue];
+    router_evaluator_optimizer_line_68_if_3 [label="router_evaluator_optimizer_line_68_if_3", fillcolor=wheat];
+    router_evaluator_optimizer_line_72_if_2 [label="router_evaluator_optimizer_line_72_if_2", fillcolor=wheat];
 
-  evaluator -> router_evaluator_optimizer_line_68_if;
-  generator -> evaluator;
-  polisher -> end_evaluator_optimizer;
-  router_evaluator_optimizer_line_58_loop_back_0 -> router_evaluator_optimizer_line_59_seq [constraint=false];
-  router_evaluator_optimizer_line_59_seq -> generator;
-  router_evaluator_optimizer_line_68_if -> polisher [label="T", color=darkseagreen4];
-  router_evaluator_optimizer_line_68_if -> router_evaluator_optimizer_line_72_if [label="F", color=indianred4];
-  router_evaluator_optimizer_line_72_if -> polisher [label="T", color=darkseagreen4];
-  router_evaluator_optimizer_line_72_if -> router_evaluator_optimizer_line_58_loop_back_0 [label="F", color=indianred4];
-  start_evaluator_optimizer -> router_evaluator_optimizer_line_58_loop_back_0;
+    router_evaluator_optimizer_line_72_if_2 -> polisher [label="p['iteration'] >= MAX_ITERATIONS"];
+    router_evaluator_optimizer_line_68_if_3 -> polisher [label="p.get('score', 0) >= SCORE_THRESHOLD"];
 }

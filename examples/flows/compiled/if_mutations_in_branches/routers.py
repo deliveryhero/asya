@@ -17,42 +17,42 @@ async def start_if_mutations_in_branches_flow(payload: dict):
     """Entrypoint for flow 'if_mutations_in_branches_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_mutations_in_branches_flow_line_14_if"))
+    _next.append(resolve("router_if_mutations_in_branches_flow_line_14_if_3"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_15_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_15_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['branch'] = 'A'
     p['value'] = 100
     _next.append(resolve("handler_type_a"))
-    _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_20_seq(payload: dict):
+async def router_if_mutations_in_branches_flow_line_20_seq_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['branch'] = 'B'
     p['value'] = 200
-    _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_mutations_in_branches_flow_line_14_if(payload: dict):
+async def router_if_mutations_in_branches_flow_line_14_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'A':
-        _next.append(resolve("router_if_mutations_in_branches_flow_line_15_seq"))
+        _next.append(resolve("router_if_mutations_in_branches_flow_line_15_seq_1"))
+        _next.append(resolve("handler_finalize"))
     else:
         _next.append(resolve("handler_type_b"))
-        _next.append(resolve("router_if_mutations_in_branches_flow_line_20_seq"))
+        _next.append(resolve("router_if_mutations_in_branches_flow_line_20_seq_2"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -17,22 +17,18 @@ async def start_if_no_else_flow(payload: dict):
     """Entrypoint for flow 'if_no_else_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_no_else_flow_line_14_if"))
+    _next.append(resolve("router_if_no_else_flow_line_14_if_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_no_else_flow_line_14_if(payload: dict):
+async def router_if_no_else_flow_line_14_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['condition']:
-        yield "SET", ".route.next", [resolve("handler_true")]
-        yield p
-        return
+        _next.append(resolve("handler_true"))
     else:
-        yield "SET", ".route.next", []
-        yield p
-        return
+        pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload

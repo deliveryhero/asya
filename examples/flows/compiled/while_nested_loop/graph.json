@@ -1,0 +1,56 @@
+{
+  "flow_name": "nested_loop_flow",
+  "nodes": [
+    {
+      "id": "end_nested_loop_flow",
+      "flow_role": "exit",
+      "label": "end_nested_loop_flow",
+      "is_generated": true
+    },
+    {
+      "id": "finalize_loop_i",
+      "flow_role": "actor",
+      "label": "finalize_loop_i",
+      "is_generated": false
+    },
+    {
+      "id": "finalize_loop_j",
+      "flow_role": "actor",
+      "label": "finalize_loop_j",
+      "is_generated": false
+    },
+    {
+      "id": "router_nested_loop_flow_line_16_while_1",
+      "flow_role": "router",
+      "label": "router_nested_loop_flow_line_16_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_nested_loop_flow_line_19_while_2",
+      "flow_role": "router",
+      "label": "router_nested_loop_flow_line_19_while_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_nested_loop_flow_line_19_while_2",
+      "to": "finalize_loop_j",
+      "label": "p['j'] < p['max_j']",
+      "type": "set"
+    },
+    {
+      "from": "router_nested_loop_flow_line_16_while_1",
+      "to": "finalize_loop_i",
+      "label": "p['i'] < p['max_i']",
+      "type": "set"
+    },
+    {
+      "from": "end_nested_loop_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

@@ -1,0 +1,20 @@
+{
+  "flow_name": "nested_if_flow",
+  "nodes": [
+    {
+      "id": "end_nested_if_flow",
+      "flow_role": "exit",
+      "label": "end_nested_if_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_nested_if_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

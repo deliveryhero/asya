@@ -1,0 +1,38 @@
+{
+  "flow_name": "research_flow",
+  "nodes": [
+    {
+      "id": "end_research_flow",
+      "flow_role": "exit",
+      "label": "end_research_flow",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_flow_line_15_fanout_1",
+      "flow_role": "router",
+      "label": "router_research_flow_line_15_fanout_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_research_flow_line_15_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_research_flow_line_15_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_research_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

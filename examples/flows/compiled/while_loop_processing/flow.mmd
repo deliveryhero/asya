@@ -1,0 +1,10 @@
+flowchart TD
+    %% Flow: loop_flow
+
+    end_loop_flow([end_loop_flow])
+    finalize_loop[finalize_loop]
+    router_loop_flow_line_16_while_1{{router_loop_flow_line_16_while_1}}
+    router_loop_flow_line_27_if_2{{router_loop_flow_line_27_if_2}}
+
+    router_loop_flow_line_27_if_2 -->|p['threshold_met']| finalize_loop
+    router_loop_flow_line_16_while_1 -->|p['iteration'] < p['max_iterations']| finalize_loop

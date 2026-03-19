@@ -16,34 +16,40 @@ Regenerate by running: asya flow compile with_asyncio_timeout.py
 async def start_document_pipeline(payload: dict):
     """Entrypoint for flow 'document_pipeline'"""
     _next = []
-    p = payload
-    p['status'] = 'processing'
-    _next.append(resolve("ocr_extractor"))
-    _next.append(resolve("language_detector"))
-    _next.append(resolve("router_document_pipeline_line_24_if"))
-    yield "SET", ".route.next[:0]", _next
-    yield p
-
-async def router_document_pipeline_line_28_seq(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['status'] = 'done'
-
+    _next.append(resolve("router_document_pipeline_line_18_seq_3"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_document_pipeline_line_24_if(payload: dict):
+async def router_document_pipeline_line_28_seq_1(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    p['status'] = 'done'
+    yield "SET", ".route.next", []
+    yield p
+
+async def router_document_pipeline_line_24_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('language') != 'en':
         _next.append(resolve("translator"))
         _next.append(resolve("sentiment_analyzer"))
-        _next.append(resolve("router_document_pipeline_line_28_seq"))
+        _next.append(resolve("router_document_pipeline_line_28_seq_1"))
     else:
         _next.append(resolve("sentiment_analyzer"))
-        _next.append(resolve("router_document_pipeline_line_28_seq"))
+        _next.append(resolve("router_document_pipeline_line_28_seq_1"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_document_pipeline_line_18_seq_3(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['status'] = 'processing'
+    _next.append(resolve("ocr_extractor"))
+    _next.append(resolve("language_detector"))
+    _next.append(resolve("router_document_pipeline_line_24_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

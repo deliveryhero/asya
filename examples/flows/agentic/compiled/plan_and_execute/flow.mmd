@@ -1,0 +1,8 @@
+flowchart TD
+    %% Flow: plan_and_execute
+
+    end_plan_and_execute([end_plan_and_execute])
+    router_plan_and_execute_line_54_while_2{{router_plan_and_execute_line_54_while_2}}
+    router_plan_and_execute_line_62_seq_1{{router_plan_and_execute_line_62_seq_1}}
+
+    router_plan_and_execute_line_54_while_2 -->|p['current_step'] < len(p.get('plan', []))| router_plan_and_execute_line_62_seq_1

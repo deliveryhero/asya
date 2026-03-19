@@ -1,0 +1,20 @@
+{
+  "flow_name": "routing_classifier",
+  "nodes": [
+    {
+      "id": "end_routing_classifier",
+      "flow_role": "exit",
+      "label": "end_routing_classifier",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_routing_classifier",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

@@ -1,0 +1,20 @@
+{
+  "flow_name": "review_pipeline_flow",
+  "nodes": [
+    {
+      "id": "end_review_pipeline_flow",
+      "flow_role": "exit",
+      "label": "end_review_pipeline_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_review_pipeline_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

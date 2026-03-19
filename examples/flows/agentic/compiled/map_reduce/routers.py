@@ -19,11 +19,11 @@ async def start_map_reduce(payload: dict):
     """Entrypoint for flow 'map_reduce'"""
     _next = []
     _next.append(resolve("splitter"))
-    _next.append(resolve("fanout_map_reduce_line_55"))
+    _next.append(resolve("router_map_reduce_line_55_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_map_reduce_line_55(payload: dict):
+async def router_map_reduce_line_55_fanout_1(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 55)"""
     p = payload
 

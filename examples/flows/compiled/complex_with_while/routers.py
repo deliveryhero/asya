@@ -18,16 +18,16 @@ async def start_complex_flow(payload: dict):
     _next = []
     _next.append(resolve("handler_preprocess"))
     _next.append(resolve("handler_validate"))
-    _next.append(resolve("router_complex_flow_line_15_if"))
+    _next.append(resolve("router_complex_flow_line_15_if_6"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_29_if(payload: dict):
+async def router_complex_flow_line_29_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['quality_score'] >= 50:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield "SET", ".route.next", []
         yield p
         return
     else:
@@ -36,65 +36,63 @@ async def router_complex_flow_line_29_if(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_26_if(payload: dict):
+async def router_complex_flow_line_26_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['quality_score'] < 20:
-        _next.append(resolve("router_complex_flow_line_22_while_0"))
+        _next.append(resolve("router_complex_flow_line_22_while_1"))
     else:
-        _next.append(resolve("router_complex_flow_line_29_if"))
+        _next.append(resolve("router_complex_flow_line_29_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_22_while_0(payload: dict):
+async def router_complex_flow_line_22_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('batch_count', 0) < p.get('max_batches', 3):
         _next.append(resolve("handler_transform_batch"))
         _next.append(resolve("handler_check_quality"))
-        _next.append(resolve("router_complex_flow_line_26_if"))
-        _next.append(resolve("router_complex_flow_line_22_while_0"))
+        _next.append(resolve("router_complex_flow_line_26_if_3"))
+        _next.append(resolve("router_complex_flow_line_22_while_1"))
     else:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield "SET", ".route.next", []
         yield p
         return
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_32_if(payload: dict):
+async def router_complex_flow_line_32_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('requires_retry'):
-        yield "SET", ".route.next", [resolve("handler_retry_handler"), resolve("handler_finalize")]
-        yield p
-        return
+        _next.append(resolve("handler_retry_handler"))
     else:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
-        yield p
-        return
+        pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_19_if(payload: dict):
+async def router_complex_flow_line_19_if_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('needs_enrichment'):
         _next.append(resolve("handler_enrich_data"))
-        _next.append(resolve("router_complex_flow_line_22_while_0"))
+        _next.append(resolve("router_complex_flow_line_22_while_1"))
+        _next.append(resolve("handler_finalize"))
     else:
-        _next.append(resolve("router_complex_flow_line_32_if"))
+        _next.append(resolve("router_complex_flow_line_32_if_4"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_15_if(payload: dict):
+async def router_complex_flow_line_15_if_6(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -103,7 +101,7 @@ async def router_complex_flow_line_15_if(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_complex_flow_line_19_if"))
+        _next.append(resolve("router_complex_flow_line_19_if_5"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

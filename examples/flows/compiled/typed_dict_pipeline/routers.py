@@ -18,11 +18,11 @@ async def start_typeddict_pipeline(payload: dict):
     _next = []
     _next.append(resolve("parser"))
     _next.append(resolve("validator"))
-    _next.append(resolve("router_typeddict_pipeline_line_77_if"))
+    _next.append(resolve("router_typeddict_pipeline_line_77_if_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_typeddict_pipeline_line_77_if(payload: dict):
+async def router_typeddict_pipeline_line_77_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,9 +31,8 @@ async def router_typeddict_pipeline_line_77_if(payload: dict):
         yield p
         return
     else:
-        yield "SET", ".route.next", [resolve("transformer"), resolve("sink_adapter")]
-        yield p
-        return
+        _next.append(resolve("transformer"))
+        _next.append(resolve("sink_adapter"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

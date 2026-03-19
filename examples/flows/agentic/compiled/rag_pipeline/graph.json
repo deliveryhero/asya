@@ -1,0 +1,68 @@
+{
+  "flow_name": "rag_pipeline",
+  "nodes": [
+    {
+      "id": "end_rag_pipeline",
+      "flow_role": "exit",
+      "label": "end_rag_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "fact_checker",
+      "flow_role": "actor",
+      "label": "fact_checker",
+      "is_generated": false
+    },
+    {
+      "id": "generator",
+      "flow_role": "actor",
+      "label": "generator",
+      "is_generated": false
+    },
+    {
+      "id": "router_rag_pipeline_line_66_if_3",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_66_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_rag_pipeline_line_70_if_2",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_70_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_rag_pipeline_line_70_if_2",
+      "to": "generator",
+      "label": "p['retrieval_attempts'] >= 3",
+      "type": "set"
+    },
+    {
+      "from": "router_rag_pipeline_line_70_if_2",
+      "to": "fact_checker",
+      "label": "p['retrieval_attempts'] >= 3",
+      "type": "set"
+    },
+    {
+      "from": "router_rag_pipeline_line_66_if_3",
+      "to": "generator",
+      "label": "p.get('is_sufficient')",
+      "type": "set"
+    },
+    {
+      "from": "router_rag_pipeline_line_66_if_3",
+      "to": "fact_checker",
+      "label": "p.get('is_sufficient')",
+      "type": "set"
+    },
+    {
+      "from": "end_rag_pipeline",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

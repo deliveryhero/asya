@@ -1,0 +1,38 @@
+{
+  "flow_name": "while_true_flow",
+  "nodes": [
+    {
+      "id": "end_while_true_flow",
+      "flow_role": "exit",
+      "label": "end_while_true_flow",
+      "is_generated": true
+    },
+    {
+      "id": "handler_finalize",
+      "flow_role": "actor",
+      "label": "handler_finalize",
+      "is_generated": false
+    },
+    {
+      "id": "router_while_true_flow_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_while_true_flow_line_16_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_while_true_flow_line_16_if_2",
+      "to": "handler_finalize",
+      "label": "p.get('done', False)",
+      "type": "set"
+    },
+    {
+      "from": "end_while_true_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

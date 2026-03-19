@@ -1,0 +1,38 @@
+{
+  "flow_name": "map_reduce",
+  "nodes": [
+    {
+      "id": "end_map_reduce",
+      "flow_role": "exit",
+      "label": "end_map_reduce",
+      "is_generated": true
+    },
+    {
+      "id": "router_map_reduce_line_55_fanout_1",
+      "flow_role": "router",
+      "label": "router_map_reduce_line_55_fanout_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_map_reduce_line_55_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_map_reduce_line_55_fanout_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_map_reduce",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

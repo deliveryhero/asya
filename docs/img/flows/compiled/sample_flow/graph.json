@@ -1,0 +1,20 @@
+{
+  "flow_name": "sample_flow",
+  "nodes": [
+    {
+      "id": "end_sample_flow",
+      "flow_role": "exit",
+      "label": "end_sample_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "end_sample_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

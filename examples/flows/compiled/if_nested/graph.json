@@ -1,0 +1,32 @@
+{
+  "flow_name": "conditional_nested_flow",
+  "nodes": [
+    {
+      "id": "end_conditional_nested_flow",
+      "flow_role": "exit",
+      "label": "end_conditional_nested_flow",
+      "is_generated": true
+    },
+    {
+      "id": "router_conditional_nested_flow_line_29_seq_1",
+      "flow_role": "router",
+      "label": "router_conditional_nested_flow_line_29_seq_1",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_conditional_nested_flow_line_29_seq_1",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_conditional_nested_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

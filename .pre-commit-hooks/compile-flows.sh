@@ -59,6 +59,12 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
 
     # react_* flows require yield/async-generator compiler support (debt/1k38vs)
     [[ "$flow_name" == react_* ]] && continue
+    # try_except_*, with_*, adk_llm_auditor, guardrails_sandwich require try/except or with
+    # support not yet in Phase 1 compiler (compiler-simplify epic)
+    [[ "$flow_name" == try_except_* ]] && continue
+    [[ "$flow_name" == with_* ]] && continue
+    [[ "$flow_name" == adk_llm_auditor ]] && continue
+    [[ "$flow_name" == guardrails_sandwich ]] && continue
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 

@@ -1,0 +1,8 @@
+flowchart TD
+    %% Flow: typeddict_pipeline
+
+    end_typeddict_pipeline([end_typeddict_pipeline])
+    error_handler[error_handler]
+    router_typeddict_pipeline_line_77_if_1{{router_typeddict_pipeline_line_77_if_1}}
+
+    router_typeddict_pipeline_line_77_if_1 -->|not p.get('valid', True)| error_handler

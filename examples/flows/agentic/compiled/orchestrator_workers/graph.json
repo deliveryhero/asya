@@ -1,0 +1,50 @@
+{
+  "flow_name": "orchestrator_workers",
+  "nodes": [
+    {
+      "id": "end_orchestrator_workers",
+      "flow_role": "exit",
+      "label": "end_orchestrator_workers",
+      "is_generated": true
+    },
+    {
+      "id": "router_orchestrator_workers_line_62_if_6",
+      "flow_role": "router",
+      "label": "router_orchestrator_workers_line_62_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_orchestrator_workers_line_72_if_2",
+      "flow_role": "router",
+      "label": "router_orchestrator_workers_line_72_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "synthesizer",
+      "flow_role": "actor",
+      "label": "synthesizer",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_orchestrator_workers_line_72_if_2",
+      "to": "synthesizer",
+      "label": "p['iteration'] >= 10",
+      "type": "set"
+    },
+    {
+      "from": "router_orchestrator_workers_line_62_if_6",
+      "to": "synthesizer",
+      "label": "p.get('is_complete')",
+      "type": "set"
+    },
+    {
+      "from": "end_orchestrator_workers",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

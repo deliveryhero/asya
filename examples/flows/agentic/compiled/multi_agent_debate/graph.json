@@ -1,0 +1,86 @@
+{
+  "flow_name": "multi_agent_debate",
+  "nodes": [
+    {
+      "id": "end_multi_agent_debate",
+      "flow_role": "exit",
+      "label": "end_multi_agent_debate",
+      "is_generated": true
+    },
+    {
+      "id": "final_judge",
+      "flow_role": "actor",
+      "label": "final_judge",
+      "is_generated": false
+    },
+    {
+      "id": "router_multi_agent_debate_line_57_fanout_6",
+      "flow_role": "router",
+      "label": "router_multi_agent_debate_line_57_fanout_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_multi_agent_debate_line_68_if_4",
+      "flow_role": "router",
+      "label": "router_multi_agent_debate_line_68_if_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_multi_agent_debate_line_71_if_3",
+      "flow_role": "router",
+      "label": "router_multi_agent_debate_line_71_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_multi_agent_debate_line_74_fanout_2",
+      "flow_role": "router",
+      "label": "router_multi_agent_debate_line_74_fanout_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_multi_agent_debate_line_74_fanout_2",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_multi_agent_debate_line_71_if_3",
+      "to": "final_judge",
+      "label": "p['round'] >= 3",
+      "type": "set"
+    },
+    {
+      "from": "router_multi_agent_debate_line_68_if_4",
+      "to": "final_judge",
+      "label": "p.get('converged')",
+      "type": "set"
+    },
+    {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_multi_agent_debate_line_57_fanout_6",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "end_multi_agent_debate",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

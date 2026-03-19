@@ -110,7 +110,7 @@ def to_json(data: GraphData, flow_name: str) -> dict:
 
 def to_json_string(data: GraphData, flow_name: str) -> str:
     """Render GraphData as a formatted JSON string."""
-    return json.dumps(to_json(data, flow_name), indent=2)
+    return json.dumps(to_json(data, flow_name), indent=2) + "\n"
 
 
 # -- Helpers --

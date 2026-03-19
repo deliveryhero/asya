@@ -1,0 +1,32 @@
+{
+  "flow_name": "react_agent",
+  "nodes": [
+    {
+      "id": "end_react_agent",
+      "flow_role": "exit",
+      "label": "end_react_agent",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_agent_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_react_agent_line_16_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_react_agent_line_16_if_2",
+      "to": "__terminal__",
+      "label": "p.get('tool_calls')",
+      "type": "abort"
+    },
+    {
+      "from": "end_react_agent",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

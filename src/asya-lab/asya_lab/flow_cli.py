@@ -14,7 +14,11 @@ def _stamp_manifests(
     compiler: FlowCompiler, flow_file: str, output_dir: str, manifests_dir: str | None, verbose: bool
 ) -> None:
     """Stamp kustomize-structured manifests after flow compilation."""
-    from asya_lab.compiler.templater import ManifestTemplater
+    try:
+        from asya_lab.compiler.templater import ManifestTemplater
+    except (ImportError, ModuleNotFoundError):
+        click.echo("[!] Manifest stamping unavailable (grouper module removed in Phase 1)", err=True)
+        return
     from asya_lab.config.discovery import find_asya_dir
     from asya_lab.config.project import AsyaProject
 
@@ -63,7 +67,7 @@ def _stamp_manifests(
     templater = ManifestTemplater(
         flow_name=flow_name,
         flow_function=flow_function,
-        routers=compiler.routers,
+        routers=compiler.routers,  # type: ignore[attr-defined]
         router_code=router_code,
         project=project,
         actor_template_path=template_path,

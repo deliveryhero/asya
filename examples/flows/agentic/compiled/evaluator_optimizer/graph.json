@@ -1,0 +1,50 @@
+{
+  "flow_name": "evaluator_optimizer",
+  "nodes": [
+    {
+      "id": "end_evaluator_optimizer",
+      "flow_role": "exit",
+      "label": "end_evaluator_optimizer",
+      "is_generated": true
+    },
+    {
+      "id": "polisher",
+      "flow_role": "actor",
+      "label": "polisher",
+      "is_generated": false
+    },
+    {
+      "id": "router_evaluator_optimizer_line_68_if_3",
+      "flow_role": "router",
+      "label": "router_evaluator_optimizer_line_68_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_evaluator_optimizer_line_72_if_2",
+      "flow_role": "router",
+      "label": "router_evaluator_optimizer_line_72_if_2",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "router_evaluator_optimizer_line_72_if_2",
+      "to": "polisher",
+      "label": "p['iteration'] >= MAX_ITERATIONS",
+      "type": "set"
+    },
+    {
+      "from": "router_evaluator_optimizer_line_68_if_3",
+      "to": "polisher",
+      "label": "p.get('score', 0) >= SCORE_THRESHOLD",
+      "type": "set"
+    },
+    {
+      "from": "end_evaluator_optimizer",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    }
+  ],
+  "groups": []
+}

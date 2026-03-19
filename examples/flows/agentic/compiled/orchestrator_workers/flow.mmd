@@ -1,0 +1,10 @@
+flowchart TD
+    %% Flow: orchestrator_workers
+
+    end_orchestrator_workers([end_orchestrator_workers])
+    router_orchestrator_workers_line_62_if_6{{router_orchestrator_workers_line_62_if_6}}
+    router_orchestrator_workers_line_72_if_2{{router_orchestrator_workers_line_72_if_2}}
+    synthesizer[synthesizer]
+
+    router_orchestrator_workers_line_72_if_2 -->|p['iteration'] >= 10| synthesizer
+    router_orchestrator_workers_line_62_if_6 -->|p.get('is_complete')| synthesizer
