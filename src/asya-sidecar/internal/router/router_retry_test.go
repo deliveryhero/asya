@@ -1511,3 +1511,132 @@ func TestRouter_ProcessMessage_MaxAttemptsOne_NoRetry(t *testing.T) {
 		t.Fatalf("Expected 1 message to x-sink, got %d", len(mt.sentMessages))
 	}
 }
+
+// --- TestApplyPolicyDispatch ---
+
+func TestApplyPolicyDispatch(t *testing.T) {
+	ctx := context.Background()
+
+	makeMsg := func(attempt int, firstAttemptAgo time.Duration) *envelopes.Envelope {
+		headers := map[string]interface{}{}
+		if firstAttemptAgo > 0 {
+			ts := time.Now().Add(-firstAttemptAgo).UTC().Format(time.RFC3339)
+			headers[envelopes.HeaderFirstAttempt] = ts
+		} else {
+			headers[envelopes.HeaderFirstAttempt] = time.Now().UTC().Format(time.RFC3339)
+		}
+		return &envelopes.Envelope{
+			ID:      "test-id",
+			Payload: json.RawMessage(`{}`),
+			Route:   envelopes.Route{Curr: "test-actor", Next: []string{}},
+			Status: &envelopes.Status{
+				Attempt:     attempt,
+				MaxAttempts: 0,
+				Actor:       "test-actor",
+			},
+			Headers: headers,
+		}
+	}
+
+	makeResponse := func() runtime.RuntimeResponse {
+		return runtime.RuntimeResponse{
+			Error: "processing_error",
+			Details: runtime.ErrorDetails{
+				Type:    "requests.exceptions.ConnectionError",
+				MRO:     []string{"builtins.OSError", "builtins.Exception"},
+				Message: "connection refused",
+			},
+		}
+	}
+
+	t.Run("retries when attempts remain", func(t *testing.T) {
+		tr := &retryMockTransport{}
+		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
+			Policies: map[string]config.PolicyConfig{
+				"default": {MaxAttempts: 3, Backoff: config.RetryPolicyConstant, InitialDelay: config.JSONDuration(10 * time.Millisecond)},
+			},
+		})
+		msg := makeMsg(1, 0)
+		policy := &config.PolicyConfig{MaxAttempts: 3, Backoff: config.RetryPolicyConstant, InitialDelay: config.JSONDuration(10 * time.Millisecond)}
+
+		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		if err != nil {
+			t.Fatalf("applyPolicy() error = %v", err)
+		}
+		if len(tr.delayedMessages) != 1 {
+			t.Errorf("expected 1 delayed (retry) message, got %d", len(tr.delayedMessages))
+		}
+	})
+
+	t.Run("routes to thenRoute when exhausted", func(t *testing.T) {
+		tr := &retryMockTransport{}
+		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
+			Policies: map[string]config.PolicyConfig{
+				"default": {MaxAttempts: 1, ThenRoute: []string{"recovery-actor"}},
+			},
+		})
+		msg := makeMsg(1, 0) // attempt 1 = exhausted for maxAttempts=1
+
+		policy := &config.PolicyConfig{MaxAttempts: 1, ThenRoute: []string{"recovery-actor"}}
+		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		if err != nil {
+			t.Fatalf("applyPolicy() error = %v", err)
+		}
+		// Should have sent to recovery-actor, not via delayed retry
+		if len(tr.delayedMessages) > 0 {
+			t.Error("should NOT retry when exhausted")
+		}
+		// Check a Send (not SendWithDelay) was made to recovery-actor
+		if len(tr.sentMessages) != 1 {
+			t.Fatalf("expected 1 sent message (to recovery-actor), got %d", len(tr.sentMessages))
+		}
+		if tr.sentMessages[0].queue != "asya-default-recovery-actor" {
+			t.Errorf("expected thenRoute to recovery-actor, got queue %s", tr.sentMessages[0].queue)
+		}
+	})
+
+	t.Run("routes to failure path when exhausted and no thenRoute", func(t *testing.T) {
+		tr := &retryMockTransport{}
+		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
+			Policies: map[string]config.PolicyConfig{
+				"default": {MaxAttempts: 1},
+			},
+		})
+		msg := makeMsg(1, 0)
+
+		policy := &config.PolicyConfig{MaxAttempts: 1}
+		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		if err != nil {
+			t.Fatalf("applyPolicy() error = %v", err)
+		}
+		// Should NOT retry
+		if len(tr.delayedMessages) > 0 {
+			t.Error("should NOT retry when exhausted")
+		}
+		// Should have sent to failure queue (x-sink or x-sump based on logic)
+		if len(tr.sentMessages) != 1 {
+			t.Errorf("expected 1 sent message (failure path), got %d", len(tr.sentMessages))
+		}
+	})
+
+	t.Run("stops retrying when maxDuration exceeded", func(t *testing.T) {
+		tr := &retryMockTransport{}
+		router, _ := newTestRouterWithRetry(t, tr, &config.ResiliencyConfig{
+			Policies: map[string]config.PolicyConfig{
+				"default": {MaxAttempts: 10, MaxDuration: config.JSONDuration(1 * time.Second)},
+			},
+		})
+		// Simulate first attempt was 2 seconds ago
+		msg := makeMsg(2, 2*time.Second)
+
+		policy := &config.PolicyConfig{MaxAttempts: 10, MaxDuration: config.JSONDuration(1 * time.Second)}
+		err := router.applyPolicy(ctx, msg, policy, makeResponse(), time.Now())
+		if err != nil {
+			t.Fatalf("applyPolicy() error = %v", err)
+		}
+		// Duration exceeded — should NOT retry
+		if len(tr.delayedMessages) > 0 {
+			t.Error("should NOT retry when maxDuration exhausted")
+		}
+	})
+}
