@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "3a8eb66559612ce23af80b53507e57aec401a37b",
+  "commit": "fcab93e16debc1a80032bd460629bb84518b6350",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -24851,7 +24851,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 34520,
+    "code": 35416,
     "test": 19500,
     "code_files": [
       {
@@ -25261,6 +25261,27 @@
         "language": "Python"
       },
       {
+        "code": 42,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/decorator_callsite/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 42,
+        "comment": 42,
+        "blank": 23,
+        "path": "examples/flows/compiled/decorator_definitions/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 55,
+        "comment": 43,
+        "blank": 25,
+        "path": "examples/flows/compiled/decorator_inline_comments/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 63,
         "comment": 44,
         "blank": 31,
@@ -25349,6 +25370,13 @@
         "comment": 43,
         "blank": 25,
         "path": "examples/flows/compiled/if_with_early_return/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 59,
+        "comment": 44,
+        "blank": 27,
+        "path": "examples/flows/compiled/inline_comment_overrides/routers.py",
         "language": "Python"
       },
       {
@@ -25569,6 +25597,27 @@
         "language": "Python"
       },
       {
+        "code": 22,
+        "comment": 14,
+        "blank": 15,
+        "path": "examples/flows/decorator_callsite.py",
+        "language": "Python"
+      },
+      {
+        "code": 25,
+        "comment": 12,
+        "blank": 15,
+        "path": "examples/flows/decorator_definitions.py",
+        "language": "Python"
+      },
+      {
+        "code": 23,
+        "comment": 10,
+        "blank": 13,
+        "path": "examples/flows/decorator_inline_comments.py",
+        "language": "Python"
+      },
+      {
         "code": 13,
         "comment": 8,
         "blank": 11,
@@ -25657,6 +25706,13 @@
         "comment": 8,
         "blank": 13,
         "path": "examples/flows/if_with_early_return.py",
+        "language": "Python"
+      },
+      {
+        "code": 16,
+        "comment": 21,
+        "blank": 17,
+        "path": "examples/flows/inline_comment_overrides.py",
         "language": "Python"
       },
       {
@@ -26248,9 +26304,9 @@
         "language": "Python"
       },
       {
-        "code": 112,
-        "comment": 19,
-        "blank": 31,
+        "code": 118,
+        "comment": 20,
+        "blank": 32,
         "path": "src/asya-lab/asya_lab/compile_cli.py",
         "language": "Python"
       },
@@ -26259,6 +26315,20 @@
         "comment": 1,
         "blank": 3,
         "path": "src/asya-lab/asya_lab/compiler/__init__.py",
+        "language": "Python"
+      },
+      {
+        "code": 156,
+        "comment": 62,
+        "blank": 43,
+        "path": "src/asya-lab/asya_lab/compiler/extractor.py",
+        "language": "Python"
+      },
+      {
+        "code": 125,
+        "comment": 35,
+        "blank": 44,
+        "path": "src/asya-lab/asya_lab/compiler/rules.py",
         "language": "Python"
       },
       {
@@ -26283,9 +26353,9 @@
         "language": "Python"
       },
       {
-        "code": 60,
-        "comment": 38,
-        "blank": 29,
+        "code": 71,
+        "comment": 42,
+        "blank": 35,
         "path": "src/asya-lab/asya_lab/config/project.py",
         "language": "Python"
       },
@@ -26325,9 +26395,9 @@
         "language": "Python"
       },
       {
-        "code": 121,
+        "code": 130,
         "comment": 15,
-        "blank": 37,
+        "blank": 39,
         "path": "src/asya-lab/asya_lab/flow/compiler.py",
         "language": "Python"
       },
@@ -26346,23 +26416,23 @@
         "language": "Python"
       },
       {
-        "code": 536,
-        "comment": 63,
-        "blank": 116,
+        "code": 540,
+        "comment": 64,
+        "blank": 117,
         "path": "src/asya-lab/asya_lab/flow/grouper.py",
         "language": "Python"
       },
       {
-        "code": 57,
-        "comment": 1,
-        "blank": 30,
+        "code": 66,
+        "comment": 3,
+        "blank": 36,
         "path": "src/asya-lab/asya_lab/flow/ir.py",
         "language": "Python"
       },
       {
-        "code": 535,
-        "comment": 89,
-        "blank": 94,
+        "code": 655,
+        "comment": 102,
+        "blank": 112,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
         "language": "Python"
       },
@@ -26382,8 +26452,8 @@
       },
       {
         "code": 36,
-        "comment": 82,
-        "blank": 24,
+        "comment": 91,
+        "blank": 27,
         "path": "src/asya-lab/asya_lab/init.py",
         "language": "Python"
       },
@@ -26507,10 +26577,24 @@
         "language": "Python"
       },
       {
+        "code": 122,
+        "comment": 142,
+        "blank": 37,
+        "path": "src/asya-lab/tests/flow/test_parser_directives.py",
+        "language": "Python"
+      },
+      {
         "code": 365,
         "comment": 255,
         "blank": 90,
         "path": "src/asya-lab/tests/flow/test_parser_fanout.py",
+        "language": "Python"
+      },
+      {
+        "code": 50,
+        "comment": 2,
+        "blank": 10,
+        "path": "src/asya-lab/tests/flow/test_parser_rules.py",
         "language": "Python"
       },
       {
@@ -27609,6 +27693,6 @@
       }
     ]
   },
-  "test_execution_time": 407000000000,
-  "timestamp": "2026-03-18T23:07:10.204821683Z"
+  "test_execution_time": 390000000000,
+  "timestamp": "2026-03-19T00:03:58.110323523Z"
 }
