@@ -28,7 +28,6 @@ def template_dir(tmp_path):
             "namespace": "{{ namespace }}",
             "labels": {
                 "asya.sh/flow": "{{ flow_name }}",
-                "asya.sh/role": "{{ role }}",
             },
         },
         "spec": {

@@ -175,7 +175,6 @@ class ManifestTemplater:
         #   asya.sh/generated: "true" (only for generated routers)
         labels = manifest.get("metadata", {}).get("labels", {})
         labels.pop("asya.sh/flow-role", None)
-        labels.pop("asya.sh/role", None)
         if actor.role in ("start", "end"):
             labels["asya.sh/role"] = actor.role
         if actor.generated:
