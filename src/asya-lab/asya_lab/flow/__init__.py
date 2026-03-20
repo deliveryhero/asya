@@ -28,8 +28,6 @@ def compile(  # noqa: A001
     source: str,
     *,
     output_dir: str | None = None,
-    flow_name: str | None = None,
-    plot: bool = True,
     verbose: bool = False,
 ) -> FlowInfo:
     """Compile a flow source file into routers + manifests + graph.
@@ -37,14 +35,11 @@ def compile(  # noqa: A001
     Args:
         source: Path to the flow .py file.
         output_dir: Override output directory. Defaults to config-resolved path.
-        flow_name: Override inferred flow name.
-        plot: Generate SVG rendering (requires graphviz).
         verbose: Print progress messages.
 
     Returns:
         FlowInfo with all compilation artifacts.
     """
-    _ = plot  # accepted by API, not yet wired to compile_file
     source_path = Path(source).resolve()
 
     project = None
