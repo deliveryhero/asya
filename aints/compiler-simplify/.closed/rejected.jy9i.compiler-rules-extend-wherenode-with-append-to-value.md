@@ -3,7 +3,9 @@ title: "Compiler rules: extend WhereNode with append-to and value for policies+r
 priority: 2 # medium
 tags:
   - integrate-into:gml9
+  - absorbed-into:gml9
 ---
+
 
 
 ## Context
