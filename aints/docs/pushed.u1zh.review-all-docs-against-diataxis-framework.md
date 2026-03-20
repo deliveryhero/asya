@@ -474,7 +474,7 @@ Deploy Asya on your cluster, configure transports, monitor and scale.
 | `docs/reference/cli.md` | `docs/reference/components/lab-cli.md` |
 | `docs/reference/agentic-cheatsheet.md` | Merge into `docs/usage/guide-agentic-patterns.md` |
 | `docs/tutorials/first-actor.md` | `docs/usage/start-first-actor.md` |
-| `docs/tutorials/first-pipeline.md` | `docs/usage/start-chaining-actors.md` |
+| `docs/tutorials/first-pipeline.md` | `docs/usage/start-first-actor-mesh.md` |
 | `docs/tutorials/first-flow.md` | `docs/usage/start-first-flow.md` |
 | `docs/tutorials/pause-resume.md` | `docs/usage/guide-pause-resume.md` (merge) |
 | `docs/tutorials/agentic-patterns.md` | `docs/usage/guide-agentic-patterns.md` |
@@ -585,6 +585,16 @@ These should use explicit section-by-section mapping during implementation, not 
 2. **Prototype docs-website/ first** — verify mkdocs build works with the new directory layout before moving files
 3. **Fix broken references** — `docs/explanation/agentic-design.md` references non-existent `docs/architecture/gateway-security-model.md`; fix during migration
 4. **Internal-to-public editorial pass** — `internal/gateway-api-spec.md` and `internal/gateway-security.md` need light editing when promoted to `reference/` (remove "internal" framing, add audience-appropriate context)
+
+### Navigation convention
+
+**README as hub, not book-style links.** Each section's README provides the reading order
+and groups files into "Getting Started → Guides → Operations." Readers return to the README
+to pick their next topic.
+
+Inter-doc links are **contextual only** — "for more on flavors, see [guide-actor-flavors.md]" —
+not sequential "next/previous" navigation. This avoids the maintenance chain where inserting
+or reordering one doc requires updating multiple files.
 
 ### AGENTS.md updates
 
