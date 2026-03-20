@@ -6,7 +6,7 @@ the compiler skips generating a start router entirely. The actor itself
 becomes the flow entrypoint and should carry these Kubernetes labels:
 
     asya.sh/flow: single_actor_flow
-    asya.sh/flow-role: entrypoint
+    asya.sh/role: start
 
 This eliminates a redundant actor hop compared to wrapping the actor
 in a start router that only prepends it to the route.

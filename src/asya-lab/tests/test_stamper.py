@@ -179,7 +179,6 @@ class TestBaseLayer:
         assert actor["metadata"]["namespace"] == "test-ns"
         assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
         # Middle handler: no asya.sh/role, no asya.sh/generated
-        assert "asya.sh/flow-role" not in actor["metadata"]["labels"]
         assert "asya.sh/role" not in actor["metadata"]["labels"]
         assert "asya.sh/generated" not in actor["metadata"]["labels"]
 
@@ -201,7 +200,6 @@ class TestBaseLayer:
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
         # Start router: has both asya.sh/role and asya.sh/generated
-        assert "asya.sh/flow-role" not in actor["metadata"]["labels"]
         assert actor["metadata"]["labels"]["asya.sh/role"] == "start"
         assert actor["metadata"]["labels"]["asya.sh/generated"] == "true"
 
@@ -335,8 +333,7 @@ class TestReturnedFiles:
 class TestTwoLabelSystem:
     """Test the asya.sh/role + asya.sh/generated label system.
 
-    The legacy asya.sh/flow-role label is removed from manifests.
-    Two orthogonal labels replace it:
+    Two orthogonal labels:
       asya.sh/role: start|end — only on start/end actors
       asya.sh/generated: "true" — only on generated routers
     """
@@ -365,7 +362,6 @@ class TestTwoLabelSystem:
         labels = actor["metadata"]["labels"]
         assert labels["asya.sh/role"] == "start"
         assert labels["asya.sh/generated"] == "true"
-        assert "asya.sh/flow-role" not in labels
 
     def test_middle_handler_has_no_role_no_generated(
         self, tmp_path, sequential_meta, router_code, project, template_dir
@@ -377,7 +373,6 @@ class TestTwoLabelSystem:
         labels = actor["metadata"]["labels"]
         assert "asya.sh/role" not in labels
         assert "asya.sh/generated" not in labels
-        assert "asya.sh/flow-role" not in labels
 
     def test_middle_router_has_generated_no_role(self, tmp_path, conditional_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
@@ -387,7 +382,6 @@ class TestTwoLabelSystem:
         labels = actor["metadata"]["labels"]
         assert "asya.sh/role" not in labels
         assert labels["asya.sh/generated"] == "true"
-        assert "asya.sh/flow-role" not in labels
 
     def test_end_handler_has_role_no_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
         """When flow_roles marks an actor as 'end', manifests get asya.sh/role: end."""
@@ -400,7 +394,6 @@ class TestTwoLabelSystem:
         labels = actor["metadata"]["labels"]
         assert labels["asya.sh/role"] == "end"
         assert "asya.sh/generated" not in labels
-        assert "asya.sh/flow-role" not in labels
 
     def test_all_actors_have_flow_label(self, tmp_path, conditional_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)

@@ -170,11 +170,10 @@ class ManifestTemplater:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
 
-        # Replace legacy asya.sh/flow-role with two orthogonal labels:
+        # Add two orthogonal labels:
         #   asya.sh/role: start|end (only for start/end actors)
         #   asya.sh/generated: "true" (only for generated routers)
         labels = manifest.get("metadata", {}).get("labels", {})
-        labels.pop("asya.sh/flow-role", None)
         if actor.role in ("start", "end"):
             labels["asya.sh/role"] = actor.role
         if actor.generated:
