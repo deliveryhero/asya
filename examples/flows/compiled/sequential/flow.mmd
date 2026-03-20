@@ -1,11 +1,13 @@
 flowchart TD
-    %% Flow: sequential_flow
+    %% Flow: sequential
 
     handler_a[handler_a]
     handler_b[handler_b]
-    handler_c([handler_c])
+    handler_c[handler_c]
     start_sequential_flow([start_sequential_flow])
+    __end__((( )))
 
     start_sequential_flow --> handler_a
     handler_a --> handler_b
     handler_b --> handler_c
+    handler_c --> __end__

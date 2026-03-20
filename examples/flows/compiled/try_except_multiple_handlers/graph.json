@@ -1,5 +1,5 @@
 {
-  "flow_name": "data_pipeline",
+  "flow_name": "try_except_multiple_handlers",
   "nodes": [
     {
       "id": "handle_runtime_error",
@@ -29,13 +29,15 @@
       "id": "router_data_pipeline_line_11_seq",
       "flow_role": "router",
       "label": "router_data_pipeline_line_11_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['error_type'] = 'type_mismatch'"]
     },
     {
       "id": "router_data_pipeline_line_14_seq",
       "flow_role": "router",
       "label": "router_data_pipeline_line_14_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['error_type'] = 'runtime'"]
     },
     {
       "id": "router_data_pipeline_line_4_except_dispatch_0",
@@ -65,7 +67,8 @@
       "id": "router_data_pipeline_line_8_seq",
       "flow_role": "router",
       "label": "router_data_pipeline_line_8_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['error_type'] = 'validation'"]
     },
     {
       "id": "start_data_pipeline",
@@ -148,5 +151,16 @@
       "type": "prepend"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'handle_runtime_error' is not reachable from entrypoint",
+    "node 'handle_type_error' is not reachable from entrypoint",
+    "node 'handle_validation_error' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_11_seq' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_14_seq' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_4_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_4_reraise_0' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_8_seq' is not reachable from entrypoint",
+    "node 'router_data_pipeline_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
 }

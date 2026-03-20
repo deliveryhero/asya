@@ -1,5 +1,5 @@
 {
-  "flow_name": "order_processing",
+  "flow_name": "with_inline_ctx",
   "nodes": [
     {
       "id": "fulfillment_handler",
@@ -29,19 +29,22 @@
       "id": "router_order_processing_line_33_seq",
       "flow_role": "exitpoint",
       "label": "router_order_processing_line_33_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'rejected'"]
     },
     {
       "id": "router_order_processing_line_36_seq",
       "flow_role": "router",
       "label": "router_order_processing_line_36_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['stage'] = 'fulfillment'"]
     },
     {
       "id": "start_order_processing",
       "flow_role": "entrypoint",
       "label": "start_order_processing",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['stage'] = 'validation'"]
     },
     {
       "id": "validate_order",

@@ -1,9 +1,11 @@
 flowchart TD
-    %% Flow: llm_auditor_flow
+    %% Flow: async_sequential
 
     critic[critic]
-    reviser([reviser])
+    reviser[reviser]
     start_llm_auditor_flow([start_llm_auditor_flow])
+    __end__((( )))
 
     start_llm_auditor_flow --> critic
     critic --> reviser
+    reviser --> __end__

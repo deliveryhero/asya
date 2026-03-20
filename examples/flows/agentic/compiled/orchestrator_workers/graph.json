@@ -23,7 +23,8 @@
       "id": "router_orchestrator_workers_line_54_seq_8",
       "flow_role": "router",
       "label": "router_orchestrator_workers_line_54_seq_8",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['worker_results'] = []"]
     },
     {
       "id": "router_orchestrator_workers_line_57_while_1",
@@ -35,7 +36,8 @@
       "id": "router_orchestrator_workers_line_58_seq_7",
       "flow_role": "router",
       "label": "router_orchestrator_workers_line_58_seq_7",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
     },
     {
       "id": "router_orchestrator_workers_line_62_if_6",

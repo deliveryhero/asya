@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_mutations_in_branches_flow",
+  "flow_name": "if_mutations_in_branches",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -35,13 +35,15 @@
       "id": "router_if_mutations_in_branches_flow_line_15_seq_1",
       "flow_role": "router",
       "label": "router_if_mutations_in_branches_flow_line_15_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['branch'] = 'A'", "p['value'] = 100"]
     },
     {
       "id": "router_if_mutations_in_branches_flow_line_20_seq_2",
       "flow_role": "router",
       "label": "router_if_mutations_in_branches_flow_line_20_seq_2",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['branch'] = 'B'", "p['value'] = 200"]
     },
     {
       "id": "start_if_mutations_in_branches_flow",

@@ -1,5 +1,5 @@
 {
-  "flow_name": "complex_combined_flow",
+  "flow_name": "complex_combined",
   "nodes": [
     {
       "id": "handler_default",
@@ -59,7 +59,8 @@
       "id": "router_complex_combined_flow_line_20_seq_4",
       "flow_role": "router",
       "label": "router_complex_combined_flow_line_20_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] = 0"]
     },
     {
       "id": "router_complex_combined_flow_line_21_while_1",
@@ -71,7 +72,8 @@
       "id": "router_complex_combined_flow_line_24_if_3",
       "flow_role": "router",
       "label": "router_complex_combined_flow_line_24_if_3",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] += 1"]
     },
     {
       "id": "router_complex_combined_flow_line_29_if_2",

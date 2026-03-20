@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_research_flow",
+  "flow_name": "fanout_gather",
   "nodes": [
     {
       "id": "fanin_async_research_flow_line_16",

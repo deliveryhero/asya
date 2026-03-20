@@ -2,15 +2,19 @@ digraph "guardrails_sandwich" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_guardrails_sandwich; }
+
     core_agent [label="core_agent", fillcolor=lightblue];
     input_validator [label="input_validator", fillcolor=lightblue];
     output_validator [label="output_validator", fillcolor=lightblue];
     router_guardrails_sandwich_line_47_except_dispatch_0 [label="router_guardrails_sandwich_line_47_except_dispatch_0", fillcolor=wheat];
-    router_guardrails_sandwich_line_47_reraise_0 [label="router_guardrails_sandwich_line_47_reraise_0", fillcolor=palegreen];
+    router_guardrails_sandwich_line_47_reraise_0 [label="router_guardrails_sandwich_line_47_reraise_0", fillcolor=wheat];
     router_guardrails_sandwich_line_47_try_enter_0 [label="router_guardrails_sandwich_line_47_try_enter_0", fillcolor=wheat];
-    router_guardrails_sandwich_line_47_try_exit_0 [label="router_guardrails_sandwich_line_47_try_exit_0", fillcolor=palegreen];
-    safe_fallback [label="safe_fallback", fillcolor=palegreen];
+    router_guardrails_sandwich_line_47_try_exit_0 [label="router_guardrails_sandwich_line_47_try_exit_0", fillcolor=wheat];
+    safe_fallback [label="safe_fallback", fillcolor=lightblue];
     start_guardrails_sandwich [label="start_guardrails_sandwich", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_guardrails_sandwich -> router_guardrails_sandwich_line_47_try_enter_0;
     router_guardrails_sandwich_line_47_try_enter_0 -> input_validator;
@@ -19,4 +23,7 @@ digraph "guardrails_sandwich" {
     output_validator -> router_guardrails_sandwich_line_47_try_exit_0;
     router_guardrails_sandwich_line_47_except_dispatch_0 -> safe_fallback [label="'Exception' in _all_types"];
     router_guardrails_sandwich_line_47_except_dispatch_0 -> router_guardrails_sandwich_line_47_reraise_0 [label="not ('Exception' in _all_types)"];
+    router_guardrails_sandwich_line_47_reraise_0 -> __end__;
+    router_guardrails_sandwich_line_47_try_exit_0 -> __end__;
+    safe_fallback -> __end__;
 }

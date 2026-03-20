@@ -1,13 +1,18 @@
-digraph "mutations_with_handler_flow" {
+digraph "mutations_with_handler" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_mutations_with_handler_flow; }
+
     handler_process [label="handler_process", fillcolor=lightblue];
-    router_mutations_with_handler_flow_line_13_seq_2 [label="router_mutations_with_handler_flow_line_13_seq_2", fillcolor=wheat];
-    router_mutations_with_handler_flow_line_17_seq_1 [label="router_mutations_with_handler_flow_line_17_seq_1", fillcolor=palegreen];
+    router_mutations_with_handler_flow_line_13_seq_2 [label="router_mutations_with_handler_flow_line_13_seq_2\n\np['initialized'] = True\np['step'] = 1\np['count'] = 0", fillcolor=wheat];
+    router_mutations_with_handler_flow_line_17_seq_1 [label="router_mutations_with_handler_flow_line_17_seq_1\n\np['finalized'] = True", fillcolor=wheat];
     start_mutations_with_handler_flow [label="start_mutations_with_handler_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_mutations_with_handler_flow -> router_mutations_with_handler_flow_line_13_seq_2;
     router_mutations_with_handler_flow_line_13_seq_2 -> handler_process;
     handler_process -> router_mutations_with_handler_flow_line_17_seq_1;
+    router_mutations_with_handler_flow_line_17_seq_1 -> __end__;
 }

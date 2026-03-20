@@ -1,13 +1,18 @@
-digraph "if_no_else_flow" {
+digraph "if_no_else" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_if_no_else_flow; }
+
     handler_setup [label="handler_setup", fillcolor=lightblue];
-    handler_true [label="handler_true", fillcolor=palegreen];
+    handler_true [label="handler_true", fillcolor=lightblue];
     router_if_no_else_flow_line_14_if_1 [label="router_if_no_else_flow_line_14_if_1", fillcolor=wheat];
     start_if_no_else_flow [label="start_if_no_else_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_no_else_flow -> handler_setup;
     handler_setup -> router_if_no_else_flow_line_14_if_1;
     router_if_no_else_flow_line_14_if_1 -> handler_true [label="p['condition']"];
+    handler_true -> __end__;
 }

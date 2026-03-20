@@ -1,15 +1,16 @@
 flowchart TD
-    %% Flow: adaptive_flow
+    %% Flow: fanout_conditional
 
     classifier[classifier]
     deep_analyzer[deep_analyzer]
     fanin_adaptive_flow_line_17[fanin_adaptive_flow_line_17]
     fast_analyzer[fast_analyzer]
-    formatter([formatter])
+    formatter[formatter]
     router_adaptive_flow_line_16_if_2{{router_adaptive_flow_line_16_if_2}}
     router_adaptive_flow_line_17_fanout_1{{router_adaptive_flow_line_17_fanout_1}}
     sequential_analyzer[sequential_analyzer]
     start_adaptive_flow([start_adaptive_flow])
+    __end__((( )))
 
     start_adaptive_flow --> classifier
     classifier --> router_adaptive_flow_line_16_if_2
@@ -22,3 +23,5 @@ flowchart TD
     router_adaptive_flow_line_17_fanout_1 --> formatter
     router_adaptive_flow_line_16_if_2 -->|not (p['parallel'])| sequential_analyzer
     sequential_analyzer --> formatter
+    fanin_adaptive_flow_line_17 --> formatter
+    formatter --> __end__

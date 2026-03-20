@@ -1,6 +1,8 @@
-digraph "multi_stage_flow" {
+digraph "fanout_sequential" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_multi_stage_flow; }
 
     fanin_multi_stage_flow_line_15 [label="fanin_multi_stage_flow_line_15", fillcolor=lightblue];
     fanin_multi_stage_flow_line_16 [label="fanin_multi_stage_flow_line_16", fillcolor=lightblue];
@@ -9,7 +11,9 @@ digraph "multi_stage_flow" {
     router_multi_stage_flow_line_15_fanout_2 [label="router_multi_stage_flow_line_15_fanout_2", fillcolor=wheat];
     router_multi_stage_flow_line_16_fanout_1 [label="router_multi_stage_flow_line_16_fanout_1", fillcolor=wheat];
     start_multi_stage_flow [label="start_multi_stage_flow", fillcolor=palegreen];
-    summarizer [label="summarizer", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_multi_stage_flow -> router_multi_stage_flow_line_15_fanout_2;
     router_multi_stage_flow_line_16_fanout_1 -> fanin_multi_stage_flow_line_16 [label="fanout: p['research']"];
@@ -20,4 +24,5 @@ digraph "multi_stage_flow" {
     fanin_multi_stage_flow_line_15 -> router_multi_stage_flow_line_16_fanout_1;
     router_multi_stage_flow_line_15_fanout_2 -> research_agent;
     research_agent -> fanin_multi_stage_flow_line_15;
+    summarizer -> __end__;
 }

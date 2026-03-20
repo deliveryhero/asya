@@ -35,7 +35,8 @@
       "id": "router_react_tool_loop_line_47_seq",
       "flow_role": "router",
       "label": "router_react_tool_loop_line_47_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
     },
     {
       "id": "router_react_tool_loop_line_53_if",
@@ -47,7 +48,8 @@
       "id": "router_react_tool_loop_line_59_if",
       "flow_role": "router",
       "label": "router_react_tool_loop_line_59_if",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['tool_name'] = p['tool_calls'][0]['name']"]
     },
     {
       "id": "router_react_tool_loop_line_61_if",
@@ -65,19 +67,22 @@
       "id": "router_react_tool_loop_line_66_seq",
       "flow_role": "router",
       "label": "router_react_tool_loop_line_66_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['observation'] = 'Unknown tool'"]
     },
     {
       "id": "router_react_tool_loop_line_72_if",
       "flow_role": "router",
       "label": "router_react_tool_loop_line_72_if",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['messages'] = p.get('messages', [])"]
     },
     {
       "id": "start_react_tool_loop",
       "flow_role": "entrypoint",
       "label": "start_react_tool_loop",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['messages'] = p.get('messages', [])", "p['iteration'] = 0"]
     },
     {
       "id": "web_search",

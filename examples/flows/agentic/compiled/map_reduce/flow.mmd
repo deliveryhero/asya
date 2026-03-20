@@ -3,10 +3,11 @@ flowchart TD
 
     chunk_processor[chunk_processor]
     fanin_map_reduce_line_55[fanin_map_reduce_line_55]
-    reducer([reducer])
+    reducer[reducer]
     router_map_reduce_line_55_fanout_1{{router_map_reduce_line_55_fanout_1}}
     splitter[splitter]
     start_map_reduce([start_map_reduce])
+    __end__((( )))
 
     start_map_reduce --> splitter
     splitter --> router_map_reduce_line_55_fanout_1
@@ -14,3 +15,4 @@ flowchart TD
     fanin_map_reduce_line_55 --> reducer
     router_map_reduce_line_55_fanout_1 --> chunk_processor
     chunk_processor --> fanin_map_reduce_line_55
+    reducer --> __end__

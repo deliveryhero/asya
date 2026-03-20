@@ -1,18 +1,19 @@
 flowchart TD
     %% Flow: rag_pipeline
 
-    fact_checker([fact_checker])
+    fact_checker[fact_checker]
     generator[generator]
     query_analyzer[query_analyzer]
-    query_refiner([query_refiner])
+    query_refiner[query_refiner]
     relevance_evaluator[relevance_evaluator]
     retriever[retriever]
-    router_rag_pipeline_line_50_seq_5{{router_rag_pipeline_line_50_seq_5}}
+    router_rag_pipeline_line_50_seq_5{{"router_rag_pipeline_line_50_seq_5<br/><br/>p['retrieval_attempts'] = 0"}}
     router_rag_pipeline_line_56_while_1{{router_rag_pipeline_line_56_while_1}}
-    router_rag_pipeline_line_57_seq_4{{router_rag_pipeline_line_57_seq_4}}
+    router_rag_pipeline_line_57_seq_4{{"router_rag_pipeline_line_57_seq_4<br/><br/>p['retrieval_attempts'] += 1"}}
     router_rag_pipeline_line_66_if_3{{router_rag_pipeline_line_66_if_3}}
     router_rag_pipeline_line_70_if_2{{router_rag_pipeline_line_70_if_2}}
     start_rag_pipeline([start_rag_pipeline])
+    __end__((( )))
 
     start_rag_pipeline --> router_rag_pipeline_line_50_seq_5
     router_rag_pipeline_line_70_if_2 -->|not (p['retrieval_attempts'] >= 3)| query_refiner
@@ -27,3 +28,5 @@ flowchart TD
     router_rag_pipeline_line_50_seq_5 --> query_analyzer
     query_analyzer --> router_rag_pipeline_line_56_while_1
     router_rag_pipeline_line_66_if_3 --> router_rag_pipeline_line_56_while_1
+    fact_checker --> __end__
+    query_refiner --> __end__

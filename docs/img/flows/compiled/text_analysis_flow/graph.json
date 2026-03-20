@@ -35,13 +35,15 @@
       "id": "router_text_analysis_flow_line_16_seq_2",
       "flow_role": "router",
       "label": "router_text_analysis_flow_line_16_seq_2",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['sentiment'] = 'neutral'"]
     },
     {
       "id": "router_text_analysis_flow_line_20_seq_1",
       "flow_role": "exitpoint",
       "label": "router_text_analysis_flow_line_20_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['extracted'] = True"]
     },
     {
       "id": "spanish_sentiment",

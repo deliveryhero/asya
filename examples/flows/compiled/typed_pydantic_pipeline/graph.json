@@ -1,11 +1,12 @@
 {
-  "flow_name": "ingester",
+  "flow_name": "typed_pydantic_pipeline",
   "nodes": [
     {
       "id": "router_ingester_line_181_seq_1",
       "flow_role": "exitpoint",
       "label": "router_ingester_line_181_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"]
     },
     {
       "id": "start_ingester",

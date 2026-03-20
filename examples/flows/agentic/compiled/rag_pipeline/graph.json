@@ -41,7 +41,8 @@
       "id": "router_rag_pipeline_line_50_seq_5",
       "flow_role": "router",
       "label": "router_rag_pipeline_line_50_seq_5",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['retrieval_attempts'] = 0"]
     },
     {
       "id": "router_rag_pipeline_line_56_while_1",
@@ -53,7 +54,8 @@
       "id": "router_rag_pipeline_line_57_seq_4",
       "flow_role": "router",
       "label": "router_rag_pipeline_line_57_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['retrieval_attempts'] += 1"]
     },
     {
       "id": "router_rag_pipeline_line_66_if_3",

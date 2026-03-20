@@ -2,15 +2,19 @@ digraph "plan_and_execute" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_plan_and_execute; }
+
     executor [label="executor", fillcolor=lightblue];
     planner [label="planner", fillcolor=lightblue];
     re_planner [label="re_planner", fillcolor=lightblue];
-    router_plan_and_execute_line_49_seq_4 [label="router_plan_and_execute_line_49_seq_4", fillcolor=wheat];
+    router_plan_and_execute_line_49_seq_4 [label="router_plan_and_execute_line_49_seq_4\n\np['current_step'] = 0\np['step_results'] = []", fillcolor=wheat];
     router_plan_and_execute_line_54_while_2 [label="router_plan_and_execute_line_54_while_2", fillcolor=wheat];
-    router_plan_and_execute_line_59_if_3 [label="router_plan_and_execute_line_59_if_3", fillcolor=wheat];
-    router_plan_and_execute_line_62_seq_1 [label="router_plan_and_execute_line_62_seq_1", fillcolor=wheat];
+    router_plan_and_execute_line_59_if_3 [label="router_plan_and_execute_line_59_if_3\n\np['current_step'] += 1", fillcolor=wheat];
+    router_plan_and_execute_line_62_seq_1 [label="router_plan_and_execute_line_62_seq_1\n\np['completed'] = True", fillcolor=wheat];
     start_plan_and_execute [label="start_plan_and_execute", fillcolor=palegreen];
-    synthesizer [label="synthesizer", fillcolor=palegreen];
+    synthesizer [label="synthesizer", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_plan_and_execute -> router_plan_and_execute_line_49_seq_4;
     router_plan_and_execute_line_62_seq_1 -> synthesizer;
@@ -21,4 +25,5 @@ digraph "plan_and_execute" {
     router_plan_and_execute_line_49_seq_4 -> planner;
     planner -> router_plan_and_execute_line_54_while_2;
     re_planner -> router_plan_and_execute_line_54_while_2;
+    synthesizer -> __end__;
 }

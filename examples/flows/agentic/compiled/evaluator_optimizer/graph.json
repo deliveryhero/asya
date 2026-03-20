@@ -23,7 +23,8 @@
       "id": "router_evaluator_optimizer_line_56_seq_5",
       "flow_role": "router",
       "label": "router_evaluator_optimizer_line_56_seq_5",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0"]
     },
     {
       "id": "router_evaluator_optimizer_line_58_while_1",
@@ -35,7 +36,8 @@
       "id": "router_evaluator_optimizer_line_59_seq_4",
       "flow_role": "router",
       "label": "router_evaluator_optimizer_line_59_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
     },
     {
       "id": "router_evaluator_optimizer_line_68_if_3",

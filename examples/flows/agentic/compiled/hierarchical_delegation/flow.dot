@@ -2,13 +2,15 @@ digraph "hierarchical_delegation" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    api_specialist [label="api_specialist", fillcolor=palegreen];
-    content_generalist [label="content_generalist", fillcolor=palegreen];
+    { rank=source; start_hierarchical_delegation; }
+
+    api_specialist [label="api_specialist", fillcolor=lightblue];
+    content_generalist [label="content_generalist", fillcolor=lightblue];
     content_team_lead [label="content_team_lead", fillcolor=lightblue];
-    data_generalist [label="data_generalist", fillcolor=palegreen];
+    data_generalist [label="data_generalist", fillcolor=lightblue];
     data_team_lead [label="data_team_lead", fillcolor=lightblue];
-    editor [label="editor", fillcolor=palegreen];
-    final_assembler [label="final_assembler", fillcolor=palegreen];
+    editor [label="editor", fillcolor=lightblue];
+    final_assembler [label="final_assembler", fillcolor=lightblue];
     generalist [label="generalist", fillcolor=lightblue];
     root_agent [label="root_agent", fillcolor=lightblue];
     router_hierarchical_delegation_line_61_if_6 [label="router_hierarchical_delegation_line_61_if_6", fillcolor=wheat];
@@ -19,7 +21,9 @@ digraph "hierarchical_delegation" {
     router_hierarchical_delegation_line_78_if_3 [label="router_hierarchical_delegation_line_78_if_3", fillcolor=wheat];
     sql_specialist [label="sql_specialist", fillcolor=lightblue];
     start_hierarchical_delegation [label="start_hierarchical_delegation", fillcolor=palegreen];
-    writer [label="writer", fillcolor=palegreen];
+    writer [label="writer", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_hierarchical_delegation -> root_agent;
     root_agent -> router_hierarchical_delegation_line_61_if_6;
@@ -41,4 +45,10 @@ digraph "hierarchical_delegation" {
     router_hierarchical_delegation_line_67_if_1 -> final_assembler;
     router_hierarchical_delegation_line_76_if_4 -> final_assembler;
     generalist -> final_assembler;
+    api_specialist -> __end__;
+    content_generalist -> __end__;
+    data_generalist -> __end__;
+    editor -> __end__;
+    final_assembler -> __end__;
+    writer -> __end__;
 }

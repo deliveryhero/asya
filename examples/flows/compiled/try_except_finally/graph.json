@@ -1,5 +1,5 @@
 {
-  "flow_name": "resource_pipeline",
+  "flow_name": "try_except_finally",
   "nodes": [
     {
       "id": "acquire_resource",
@@ -59,13 +59,15 @@
       "id": "router_resource_pipeline_line_9_seq",
       "flow_role": "router",
       "label": "router_resource_pipeline_line_9_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'failed'"]
     },
     {
       "id": "start_resource_pipeline",
       "flow_role": "entrypoint",
       "label": "start_resource_pipeline",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'started'"]
     }
   ],
   "edges": [
@@ -130,5 +132,12 @@
       "type": "prepend"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'handle_failure' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_reraise_0' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_9_seq' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
 }

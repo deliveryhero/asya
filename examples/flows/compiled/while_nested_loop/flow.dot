@@ -1,17 +1,21 @@
-digraph "nested_loop_flow" {
+digraph "while_nested_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    finalize_loop_i [label="finalize_loop_i", fillcolor=palegreen];
-    finalize_loop_j [label="finalize_loop_j", fillcolor=palegreen];
+    { rank=source; start_nested_loop_flow; }
+
+    finalize_loop_i [label="finalize_loop_i", fillcolor=lightblue];
+    finalize_loop_j [label="finalize_loop_j", fillcolor=lightblue];
     initialize [label="initialize", fillcolor=lightblue];
     process_item [label="process_item", fillcolor=lightblue];
-    router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5", fillcolor=wheat];
+    router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5\n\np['i'] = 0", fillcolor=wheat];
     router_nested_loop_flow_line_16_while_1 [label="router_nested_loop_flow_line_16_while_1", fillcolor=wheat];
-    router_nested_loop_flow_line_17_seq_4 [label="router_nested_loop_flow_line_17_seq_4", fillcolor=wheat];
+    router_nested_loop_flow_line_17_seq_4 [label="router_nested_loop_flow_line_17_seq_4\n\np['i'] += 1\np['j'] = 0", fillcolor=wheat];
     router_nested_loop_flow_line_19_while_2 [label="router_nested_loop_flow_line_19_while_2", fillcolor=wheat];
-    router_nested_loop_flow_line_20_seq_3 [label="router_nested_loop_flow_line_20_seq_3", fillcolor=wheat];
+    router_nested_loop_flow_line_20_seq_3 [label="router_nested_loop_flow_line_20_seq_3\n\np['j'] += 1", fillcolor=wheat];
     start_nested_loop_flow [label="start_nested_loop_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_loop_flow -> initialize;
     initialize -> router_nested_loop_flow_line_15_seq_5;
@@ -24,4 +28,6 @@ digraph "nested_loop_flow" {
     router_nested_loop_flow_line_15_seq_5 -> router_nested_loop_flow_line_16_while_1;
     process_item -> router_nested_loop_flow_line_19_while_2;
     router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_16_while_1;
+    finalize_loop_i -> __end__;
+    finalize_loop_j -> __end__;
 }

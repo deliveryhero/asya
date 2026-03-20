@@ -1,21 +1,25 @@
-digraph "nested_if_flow" {
+digraph "nested_if" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    handler_a_x [label="handler_a_x", fillcolor=palegreen];
-    handler_a_y [label="handler_a_y", fillcolor=palegreen];
-    handler_b_x [label="handler_b_x", fillcolor=palegreen];
-    handler_b_y [label="handler_b_y", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=palegreen];
+    { rank=source; start_nested_if_flow; }
+
+    handler_a_x [label="handler_a_x", fillcolor=lightblue];
+    handler_a_y [label="handler_a_y", fillcolor=lightblue];
+    handler_b_x [label="handler_b_x", fillcolor=lightblue];
+    handler_b_y [label="handler_b_y", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_validate [label="handler_validate", fillcolor=lightblue];
     router_nested_if_flow_line_14_if_7 [label="router_nested_if_flow_line_14_if_7", fillcolor=wheat];
-    router_nested_if_flow_line_16_if_3 [label="router_nested_if_flow_line_16_if_3", fillcolor=wheat];
-    router_nested_if_flow_line_17_seq_1 [label="router_nested_if_flow_line_17_seq_1", fillcolor=wheat];
-    router_nested_if_flow_line_20_seq_2 [label="router_nested_if_flow_line_20_seq_2", fillcolor=wheat];
-    router_nested_if_flow_line_24_if_6 [label="router_nested_if_flow_line_24_if_6", fillcolor=wheat];
-    router_nested_if_flow_line_25_seq_4 [label="router_nested_if_flow_line_25_seq_4", fillcolor=wheat];
-    router_nested_if_flow_line_28_seq_5 [label="router_nested_if_flow_line_28_seq_5", fillcolor=wheat];
+    router_nested_if_flow_line_16_if_3 [label="router_nested_if_flow_line_16_if_3\n\np['l1'] = 'A'", fillcolor=wheat];
+    router_nested_if_flow_line_17_seq_1 [label="router_nested_if_flow_line_17_seq_1\n\np['l2'] = 'X'", fillcolor=wheat];
+    router_nested_if_flow_line_20_seq_2 [label="router_nested_if_flow_line_20_seq_2\n\np['l2'] = 'Y'", fillcolor=wheat];
+    router_nested_if_flow_line_24_if_6 [label="router_nested_if_flow_line_24_if_6\n\np['l1'] = 'B'", fillcolor=wheat];
+    router_nested_if_flow_line_25_seq_4 [label="router_nested_if_flow_line_25_seq_4\n\np['l2'] = 'X'", fillcolor=wheat];
+    router_nested_if_flow_line_28_seq_5 [label="router_nested_if_flow_line_28_seq_5\n\np['l2'] = 'Y'", fillcolor=wheat];
     start_nested_if_flow [label="start_nested_if_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_if_flow -> handler_validate;
     handler_validate -> router_nested_if_flow_line_14_if_7;
@@ -33,4 +37,9 @@ digraph "nested_if_flow" {
     router_nested_if_flow_line_20_seq_2 -> handler_finalize;
     router_nested_if_flow_line_25_seq_4 -> handler_finalize;
     router_nested_if_flow_line_28_seq_5 -> handler_finalize;
+    handler_a_x -> __end__;
+    handler_a_y -> __end__;
+    handler_b_x -> __end__;
+    handler_b_y -> __end__;
+    handler_finalize -> __end__;
 }

@@ -1,6 +1,8 @@
-digraph "llm_auditor" {
+digraph "adk_llm_auditor" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_llm_auditor; }
 
     accuracy_scorer [label="accuracy_scorer", fillcolor=lightblue];
     adk_llm_auditor_QualityScorer_aggregate [label="QualityScorer.aggregate", fillcolor=lightblue];
@@ -8,29 +10,31 @@ digraph "llm_auditor" {
     critique [label="critique", fillcolor=lightblue];
     deep_reviser [label="deep_reviser", fillcolor=lightblue];
     extract_claims [label="extract_claims", fillcolor=lightblue];
-    fallback_generate [label="fallback_generate", fillcolor=palegreen];
+    fallback_generate [label="fallback_generate", fillcolor=lightblue];
     fanin_llm_auditor_line_56 [label="fanin_llm_auditor_line_56", fillcolor=lightblue];
     fanout_llm_auditor_line_56 [label="fanout_llm_auditor_line_56", fillcolor=wheat];
-    finalize [label="finalize", fillcolor=palegreen];
+    finalize [label="finalize", fillcolor=lightblue];
     llm_generate [label="llm_generate", fillcolor=lightblue];
     reviser [label="reviser", fillcolor=lightblue];
     router_llm_auditor_line_41_if [label="router_llm_auditor_line_41_if", fillcolor=wheat];
-    router_llm_auditor_line_42_seq [label="router_llm_auditor_line_42_seq", fillcolor=palegreen];
+    router_llm_auditor_line_42_seq [label="router_llm_auditor_line_42_seq\n\np['status'] = 'no_claims'", fillcolor=wheat];
     router_llm_auditor_line_46_loop_back_0 [label="router_llm_auditor_line_46_loop_back_0", fillcolor=wheat];
-    router_llm_auditor_line_47_seq [label="router_llm_auditor_line_47_seq", fillcolor=wheat];
+    router_llm_auditor_line_47_seq [label="router_llm_auditor_line_47_seq\n\np['iteration'] += 1", fillcolor=wheat];
     router_llm_auditor_line_50_except_dispatch_0 [label="router_llm_auditor_line_50_except_dispatch_0", fillcolor=wheat];
     router_llm_auditor_line_50_try_enter_0 [label="router_llm_auditor_line_50_try_enter_0", fillcolor=wheat];
     router_llm_auditor_line_50_try_exit_0 [label="router_llm_auditor_line_50_try_exit_0", fillcolor=wheat];
     router_llm_auditor_line_65_if [label="router_llm_auditor_line_65_if", fillcolor=wheat];
-    router_llm_auditor_line_66_seq [label="router_llm_auditor_line_66_seq", fillcolor=wheat];
+    router_llm_auditor_line_66_seq [label="router_llm_auditor_line_66_seq\n\np['prev_score'] = p['aggregate_score']", fillcolor=wheat];
     router_llm_auditor_line_70_if [label="router_llm_auditor_line_70_if", fillcolor=wheat];
-    router_llm_auditor_line_71_seq [label="router_llm_auditor_line_71_seq", fillcolor=palegreen];
+    router_llm_auditor_line_71_seq [label="router_llm_auditor_line_71_seq\n\np['status'] = 'approved'", fillcolor=wheat];
     router_llm_auditor_line_73_if [label="router_llm_auditor_line_73_if", fillcolor=wheat];
     router_llm_auditor_line_83_if [label="router_llm_auditor_line_83_if", fillcolor=wheat];
-    router_llm_auditor_line_84_seq [label="router_llm_auditor_line_84_seq", fillcolor=wheat];
-    router_llm_auditor_line_87_seq [label="router_llm_auditor_line_87_seq", fillcolor=palegreen];
-    router_llm_auditor_line_90_seq [label="router_llm_auditor_line_90_seq", fillcolor=wheat];
-    start_llm_auditor [label="start_llm_auditor", fillcolor=palegreen];
+    router_llm_auditor_line_84_seq [label="router_llm_auditor_line_84_seq\n\np['status'] = 'max_iterations'", fillcolor=wheat];
+    router_llm_auditor_line_87_seq [label="router_llm_auditor_line_87_seq\n\np['prev_score'] = p['aggregate_score']", fillcolor=wheat];
+    router_llm_auditor_line_90_seq [label="router_llm_auditor_line_90_seq\n\np['partial'] = False", fillcolor=wheat];
+    start_llm_auditor [label="start_llm_auditor\n\np['iteration'] = 0\np['status'] = 'started'\np['partial'] = True", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_llm_auditor -> extract_claims;
     extract_claims -> router_llm_auditor_line_41_if;
@@ -66,4 +70,9 @@ digraph "llm_auditor" {
     router_llm_auditor_line_41_if -> router_llm_auditor_line_42_seq [label="not p.get('claims')"];
     router_llm_auditor_line_41_if -> router_llm_auditor_line_46_loop_back_0 [label="not (not p.get('claims'))"];
     router_llm_auditor_line_50_try_enter_0 -> router_llm_auditor_line_46_loop_back_0;
+    fallback_generate -> __end__;
+    finalize -> __end__;
+    router_llm_auditor_line_42_seq -> __end__;
+    router_llm_auditor_line_71_seq -> __end__;
+    router_llm_auditor_line_87_seq -> __end__;
 }

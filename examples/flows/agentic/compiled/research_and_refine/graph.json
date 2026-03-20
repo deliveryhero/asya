@@ -23,7 +23,8 @@
       "id": "router_research_and_refine_line_47_seq_5",
       "flow_role": "router",
       "label": "router_research_and_refine_line_47_seq_5",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['search_query'] = p.get('question', '')"]
     },
     {
       "id": "router_research_and_refine_line_50_while_1",
@@ -35,7 +36,8 @@
       "id": "router_research_and_refine_line_51_seq_4",
       "flow_role": "router",
       "label": "router_research_and_refine_line_51_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
     },
     {
       "id": "router_research_and_refine_line_55_if_3",

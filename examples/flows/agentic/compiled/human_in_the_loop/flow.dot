@@ -2,19 +2,23 @@ digraph "human_in_the_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_human_in_the_loop; }
+
     approval_gate [label="approval_gate", fillcolor=lightblue];
     executor [label="executor", fillcolor=lightblue];
-    notifier [label="notifier", fillcolor=palegreen];
+    notifier [label="notifier", fillcolor=lightblue];
     proposal_generator [label="proposal_generator", fillcolor=lightblue];
     revision_agent [label="revision_agent", fillcolor=lightblue];
-    router_human_in_the_loop_line_58_seq_7 [label="router_human_in_the_loop_line_58_seq_7", fillcolor=wheat];
+    router_human_in_the_loop_line_58_seq_7 [label="router_human_in_the_loop_line_58_seq_7\n\np['attempt'] = 0", fillcolor=wheat];
     router_human_in_the_loop_line_60_while_1 [label="router_human_in_the_loop_line_60_while_1", fillcolor=wheat];
-    router_human_in_the_loop_line_61_seq_6 [label="router_human_in_the_loop_line_61_seq_6", fillcolor=wheat];
+    router_human_in_the_loop_line_61_seq_6 [label="router_human_in_the_loop_line_61_seq_6\n\np['attempt'] += 1", fillcolor=wheat];
     router_human_in_the_loop_line_70_if_5 [label="router_human_in_the_loop_line_70_if_5", fillcolor=wheat];
     router_human_in_the_loop_line_75_if_4 [label="router_human_in_the_loop_line_75_if_4", fillcolor=wheat];
     router_human_in_the_loop_line_79_if_3 [label="router_human_in_the_loop_line_79_if_3", fillcolor=wheat];
-    router_human_in_the_loop_line_80_seq_2 [label="router_human_in_the_loop_line_80_seq_2", fillcolor=wheat];
+    router_human_in_the_loop_line_80_seq_2 [label="router_human_in_the_loop_line_80_seq_2\n\np['result'] = 'Max revision attempts reached'", fillcolor=wheat];
     start_human_in_the_loop [label="start_human_in_the_loop", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_human_in_the_loop -> router_human_in_the_loop_line_58_seq_7;
     router_human_in_the_loop_line_80_seq_2 -> notifier;
@@ -30,4 +34,5 @@ digraph "human_in_the_loop" {
     router_human_in_the_loop_line_58_seq_7 -> router_human_in_the_loop_line_60_while_1;
     revision_agent -> router_human_in_the_loop_line_79_if_3;
     router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_60_while_1;
+    notifier -> __end__;
 }

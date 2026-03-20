@@ -1,5 +1,5 @@
 {
-  "flow_name": "content_pipeline_flow",
+  "flow_name": "async_conditional",
   "nodes": [
     {
       "id": "classifier",

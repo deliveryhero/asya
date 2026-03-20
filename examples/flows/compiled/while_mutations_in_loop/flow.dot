@@ -1,15 +1,19 @@
-digraph "while_mutations_in_loop_flow" {
+digraph "while_mutations_in_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    handler_finalize [label="handler_finalize", fillcolor=palegreen];
+    { rank=source; start_while_mutations_in_loop_flow; }
+
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
-    router_while_mutations_in_loop_flow_line_13_seq_4 [label="router_while_mutations_in_loop_flow_line_13_seq_4", fillcolor=wheat];
+    router_while_mutations_in_loop_flow_line_13_seq_4 [label="router_while_mutations_in_loop_flow_line_13_seq_4\n\np['i'] = 0\np['sum'] = 0", fillcolor=wheat];
     router_while_mutations_in_loop_flow_line_15_while_1 [label="router_while_mutations_in_loop_flow_line_15_while_1", fillcolor=wheat];
-    router_while_mutations_in_loop_flow_line_16_seq_3 [label="router_while_mutations_in_loop_flow_line_16_seq_3", fillcolor=wheat];
-    router_while_mutations_in_loop_flow_line_20_seq_2 [label="router_while_mutations_in_loop_flow_line_20_seq_2", fillcolor=wheat];
+    router_while_mutations_in_loop_flow_line_16_seq_3 [label="router_while_mutations_in_loop_flow_line_16_seq_3\n\np['i'] += 1\np['sum'] += p['i']\np['step'] = p['i']", fillcolor=wheat];
+    router_while_mutations_in_loop_flow_line_20_seq_2 [label="router_while_mutations_in_loop_flow_line_20_seq_2\n\np['processed'] = True", fillcolor=wheat];
     start_while_mutations_in_loop_flow [label="start_while_mutations_in_loop_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_while_mutations_in_loop_flow -> handler_init;
     handler_init -> router_while_mutations_in_loop_flow_line_13_seq_4;
@@ -19,4 +23,5 @@ digraph "while_mutations_in_loop_flow" {
     router_while_mutations_in_loop_flow_line_15_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
     router_while_mutations_in_loop_flow_line_13_seq_4 -> router_while_mutations_in_loop_flow_line_15_while_1;
     router_while_mutations_in_loop_flow_line_20_seq_2 -> router_while_mutations_in_loop_flow_line_15_while_1;
+    handler_finalize -> __end__;
 }

@@ -1,5 +1,5 @@
 {
-  "flow_name": "retry_pipeline",
+  "flow_name": "try_except_retry_loop",
   "nodes": [
     {
       "id": "call_another_api",
@@ -35,7 +35,8 @@
       "id": "router_retry_pipeline_line_17_seq",
       "flow_role": "router",
       "label": "router_retry_pipeline_line_17_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['attempt'] += 1"]
     },
     {
       "id": "router_retry_pipeline_line_18_except_dispatch_0",
@@ -65,7 +66,8 @@
       "id": "start_retry_pipeline",
       "flow_role": "entrypoint",
       "label": "start_retry_pipeline",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['attempt'] = 0"]
     }
   ],
   "edges": [
@@ -130,5 +132,11 @@
       "type": "continuation"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'log_retry' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_reraise_0' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
 }

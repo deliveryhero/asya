@@ -1,14 +1,15 @@
 flowchart TD
-    %% Flow: content_pipeline_flow
+    %% Flow: async_conditional
 
     classifier[classifier]
     generic_processor[generic_processor]
     image_processor[image_processor]
-    quality_check([quality_check])
+    quality_check[quality_check]
     router_content_pipeline_flow_line_16_if_2{{router_content_pipeline_flow_line_16_if_2}}
     router_content_pipeline_flow_line_18_if_1{{router_content_pipeline_flow_line_18_if_1}}
     start_content_pipeline_flow([start_content_pipeline_flow])
     text_processor[text_processor]
+    __end__((( )))
 
     start_content_pipeline_flow --> classifier
     classifier --> router_content_pipeline_flow_line_16_if_2
@@ -19,3 +20,4 @@ flowchart TD
     router_content_pipeline_flow_line_16_if_2 -->|not (p['content_type'] == 'text')| router_content_pipeline_flow_line_18_if_1
     image_processor --> quality_check
     generic_processor --> quality_check
+    quality_check --> __end__

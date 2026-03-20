@@ -1,5 +1,5 @@
 {
-  "flow_name": "resilient_pipeline",
+  "flow_name": "try_except_catch_all",
   "nodes": [
     {
       "id": "handle_known_error",
@@ -23,7 +23,8 @@
       "id": "router_resilient_pipeline_line_10_seq",
       "flow_role": "router",
       "label": "router_resilient_pipeline_line_10_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['error_type'] = 'unknown'"]
     },
     {
       "id": "router_resilient_pipeline_line_4_except_dispatch_0",
@@ -47,7 +48,8 @@
       "id": "router_resilient_pipeline_line_7_seq",
       "flow_role": "router",
       "label": "router_resilient_pipeline_line_7_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['error_type'] = 'known'"]
     },
     {
       "id": "start_resilient_pipeline",
@@ -100,5 +102,13 @@
       "type": "prepend"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'handle_known_error' is not reachable from entrypoint",
+    "node 'handle_unknown_error' is not reachable from entrypoint",
+    "node 'router_resilient_pipeline_line_10_seq' is not reachable from entrypoint",
+    "node 'router_resilient_pipeline_line_4_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_resilient_pipeline_line_7_seq' is not reachable from entrypoint",
+    "node 'router_resilient_pipeline_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
 }

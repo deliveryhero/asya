@@ -1,0 +1,38 @@
+flowchart TD
+    %% Flow: react_tool_loop
+
+    calculator[calculator]
+    code_exec[code_exec]
+    format_response[format_response]
+    llm_reason[llm_reason]
+    router_react_tool_loop_line_46_loop_back_0{{router_react_tool_loop_line_46_loop_back_0}}
+    router_react_tool_loop_line_47_seq{{"router_react_tool_loop_line_47_seq<br/><br/>p['iteration'] += 1"}}
+    router_react_tool_loop_line_53_if{{router_react_tool_loop_line_53_if}}
+    router_react_tool_loop_line_59_if{{"router_react_tool_loop_line_59_if<br/><br/>p['tool_name'] = p['tool_calls'][0]['name']"}}
+    router_react_tool_loop_line_61_if{{router_react_tool_loop_line_61_if}}
+    router_react_tool_loop_line_63_if{{router_react_tool_loop_line_63_if}}
+    router_react_tool_loop_line_66_seq{{"router_react_tool_loop_line_66_seq<br/><br/>p['observation'] = 'Unknown tool'"}}
+    router_react_tool_loop_line_72_if{{"router_react_tool_loop_line_72_if<br/><br/>p['messages'] = p.get('messages', [])"}}
+    start_react_tool_loop(["start_react_tool_loop<br/><br/>p['messages'] = p.get('messages', [])<br/>p['iteration'] = 0"])
+    web_search[web_search]
+    __end__((( )))
+
+    start_react_tool_loop --> router_react_tool_loop_line_46_loop_back_0
+    router_react_tool_loop_line_66_seq --> router_react_tool_loop_line_72_if
+    router_react_tool_loop_line_63_if -->|p['tool_name'] == 'calculator'| calculator
+    calculator --> router_react_tool_loop_line_72_if
+    router_react_tool_loop_line_63_if -->|not (p['tool_name'] == 'calculator')| router_react_tool_loop_line_66_seq
+    router_react_tool_loop_line_61_if -->|p['tool_name'] == 'code_exec'| code_exec
+    code_exec --> router_react_tool_loop_line_72_if
+    router_react_tool_loop_line_61_if -->|not (p['tool_name'] == 'code_exec')| router_react_tool_loop_line_63_if
+    router_react_tool_loop_line_72_if -->|p['iteration'] >= 10| format_response
+    router_react_tool_loop_line_59_if -->|p['tool_name'] == 'web_search'| web_search
+    web_search --> router_react_tool_loop_line_72_if
+    router_react_tool_loop_line_59_if -->|not (p['tool_name'] == 'web_search')| router_react_tool_loop_line_61_if
+    router_react_tool_loop_line_53_if -->|not p.get('tool_calls')| format_response
+    router_react_tool_loop_line_53_if -->|not (not p.get('tool_calls'))| router_react_tool_loop_line_59_if
+    router_react_tool_loop_line_47_seq --> llm_reason
+    llm_reason --> router_react_tool_loop_line_53_if
+    router_react_tool_loop_line_46_loop_back_0 --> router_react_tool_loop_line_47_seq
+    router_react_tool_loop_line_53_if --> router_react_tool_loop_line_46_loop_back_0
+    format_response --> __end__

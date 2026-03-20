@@ -1,5 +1,5 @@
 {
-  "flow_name": "order_processing",
+  "flow_name": "try_except_simple",
   "nodes": [
     {
       "id": "notify_rejection",
@@ -35,7 +35,8 @@
       "id": "router_order_processing_line_7_seq",
       "flow_role": "router",
       "label": "router_order_processing_line_7_seq",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'invalid'"]
     },
     {
       "id": "start_order_processing",
@@ -88,5 +89,12 @@
       "type": "prepend"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'notify_rejection' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_reraise_0' is not reachable from entrypoint",
+    "node 'router_order_processing_line_7_seq' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
 }

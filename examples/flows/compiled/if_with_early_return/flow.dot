@@ -1,17 +1,23 @@
-digraph "early_return_flow" {
+digraph "if_with_early_return" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    handler_error [label="handler_error", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=palegreen];
+    { rank=source; start_early_return_flow; }
+
+    handler_error [label="handler_error", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     handler_validate [label="handler_validate", fillcolor=lightblue];
     router_early_return_flow_line_14_if_1 [label="router_early_return_flow_line_14_if_1", fillcolor=wheat];
     start_early_return_flow [label="start_early_return_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_early_return_flow -> handler_validate;
     handler_validate -> router_early_return_flow_line_14_if_1;
     router_early_return_flow_line_14_if_1 -> handler_process [label="not (not p['valid'])"];
     handler_process -> handler_finalize;
     router_early_return_flow_line_14_if_1 -> handler_error [label="not p['valid']"];
+    handler_error -> __end__;
+    handler_finalize -> __end__;
 }

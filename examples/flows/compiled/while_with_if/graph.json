@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_inside_while_flow",
+  "flow_name": "while_with_if",
   "nodes": [
     {
       "id": "handler_even",
@@ -29,7 +29,8 @@
       "id": "router_if_inside_while_flow_line_13_seq_3",
       "flow_role": "router",
       "label": "router_if_inside_while_flow_line_13_seq_3",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] = 0"]
     },
     {
       "id": "router_if_inside_while_flow_line_14_while_1",
@@ -41,7 +42,8 @@
       "id": "router_if_inside_while_flow_line_16_if_2",
       "flow_role": "router",
       "label": "router_if_inside_while_flow_line_16_if_2",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] += 1"]
     },
     {
       "id": "start_if_inside_while_flow",

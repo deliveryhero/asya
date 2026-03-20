@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_break_continue_flow",
+  "flow_name": "while_break_continue",
   "nodes": [
     {
       "id": "handler_check",
@@ -29,7 +29,8 @@
       "id": "router_while_break_continue_flow_line_13_seq_5",
       "flow_role": "router",
       "label": "router_while_break_continue_flow_line_13_seq_5",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] = 0"]
     },
     {
       "id": "router_while_break_continue_flow_line_14_while_1",
@@ -41,7 +42,8 @@
       "id": "router_while_break_continue_flow_line_15_seq_4",
       "flow_role": "router",
       "label": "router_while_break_continue_flow_line_15_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['i'] += 1"]
     },
     {
       "id": "router_while_break_continue_flow_line_17_if_3",

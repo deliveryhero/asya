@@ -65,7 +65,8 @@
       "id": "router_multi_agent_debate_line_55_seq_7",
       "flow_role": "router",
       "label": "router_multi_agent_debate_line_55_seq_7",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['round'] = 0"]
     },
     {
       "id": "router_multi_agent_debate_line_57_fanout_6",
@@ -83,7 +84,8 @@
       "id": "router_multi_agent_debate_line_64_seq_5",
       "flow_role": "router",
       "label": "router_multi_agent_debate_line_64_seq_5",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['round'] += 1"]
     },
     {
       "id": "router_multi_agent_debate_line_68_if_4",
@@ -257,6 +259,12 @@
     },
     {
       "from": "router_multi_agent_debate_line_68_if_4",
+      "to": "router_multi_agent_debate_line_63_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanin_multi_agent_debate_line_74",
       "to": "router_multi_agent_debate_line_63_while_1",
       "label": null,
       "type": "continuation"

@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_definitions_flow",
+  "flow_name": "decorator_definitions",
   "nodes": [
     {
       "id": "enrich",

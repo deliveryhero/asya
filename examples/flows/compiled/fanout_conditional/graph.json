@@ -1,5 +1,5 @@
 {
-  "flow_name": "adaptive_flow",
+  "flow_name": "fanout_conditional",
   "nodes": [
     {
       "id": "classifier",
@@ -119,6 +119,12 @@
     },
     {
       "from": "sequential_analyzer",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanin_adaptive_flow_line_17",
       "to": "formatter",
       "label": null,
       "type": "continuation"

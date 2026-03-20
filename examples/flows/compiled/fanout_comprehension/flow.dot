@@ -1,13 +1,17 @@
-digraph "research_flow" {
+digraph "fanout_comprehension" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_research_flow; }
+
     fanin_research_flow_line_15 [label="fanin_research_flow_line_15", fillcolor=lightblue];
-    post_processor [label="post_processor", fillcolor=palegreen];
+    post_processor [label="post_processor", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
     research_agent [label="research_agent", fillcolor=lightblue];
     router_research_flow_line_15_fanout_1 [label="router_research_flow_line_15_fanout_1", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_research_flow -> preprocessor;
     preprocessor -> router_research_flow_line_15_fanout_1;
@@ -15,4 +19,5 @@ digraph "research_flow" {
     fanin_research_flow_line_15 -> post_processor;
     router_research_flow_line_15_fanout_1 -> research_agent;
     research_agent -> fanin_research_flow_line_15;
+    post_processor -> __end__;
 }

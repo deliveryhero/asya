@@ -1,12 +1,13 @@
 flowchart TD
-    %% Flow: async_research_flow
+    %% Flow: fanout_gather
 
     fanin_async_research_flow_line_16[fanin_async_research_flow_line_16]
-    postprocessor([postprocessor])
+    postprocessor[postprocessor]
     preprocessor[preprocessor]
     research_agent[research_agent]
     router_async_research_flow_line_16_fanout_1{{router_async_research_flow_line_16_fanout_1}}
     start_async_research_flow([start_async_research_flow])
+    __end__((( )))
 
     start_async_research_flow --> preprocessor
     preprocessor --> router_async_research_flow_line_16_fanout_1
@@ -14,3 +15,4 @@ flowchart TD
     fanin_async_research_flow_line_16 --> postprocessor
     router_async_research_flow_line_16_fanout_1 --> research_agent
     research_agent --> fanin_async_research_flow_line_16
+    postprocessor --> __end__

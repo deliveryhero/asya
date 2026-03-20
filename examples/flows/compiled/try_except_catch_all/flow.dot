@@ -1,16 +1,20 @@
-digraph "resilient_pipeline" {
+digraph "try_except_catch_all" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    handle_known_error [label="handle_known_error", fillcolor=palegreen];
-    handle_unknown_error [label="handle_unknown_error", fillcolor=palegreen];
+    { rank=source; start_resilient_pipeline; }
+
+    handle_known_error [label="handle_known_error", fillcolor=lightblue];
+    handle_unknown_error [label="handle_unknown_error", fillcolor=lightblue];
     risky_operation [label="risky_operation", fillcolor=lightblue];
-    router_resilient_pipeline_line_10_seq [label="router_resilient_pipeline_line_10_seq", fillcolor=wheat];
+    router_resilient_pipeline_line_10_seq [label="router_resilient_pipeline_line_10_seq\n\np['error_type'] = 'unknown'", fillcolor=wheat];
     router_resilient_pipeline_line_4_except_dispatch_0 [label="router_resilient_pipeline_line_4_except_dispatch_0", fillcolor=wheat];
     router_resilient_pipeline_line_4_try_enter_0 [label="router_resilient_pipeline_line_4_try_enter_0", fillcolor=wheat];
-    router_resilient_pipeline_line_4_try_exit_0 [label="router_resilient_pipeline_line_4_try_exit_0", fillcolor=palegreen];
-    router_resilient_pipeline_line_7_seq [label="router_resilient_pipeline_line_7_seq", fillcolor=wheat];
+    router_resilient_pipeline_line_4_try_exit_0 [label="router_resilient_pipeline_line_4_try_exit_0", fillcolor=wheat];
+    router_resilient_pipeline_line_7_seq [label="router_resilient_pipeline_line_7_seq\n\np['error_type'] = 'known'", fillcolor=wheat];
     start_resilient_pipeline [label="start_resilient_pipeline", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_resilient_pipeline -> router_resilient_pipeline_line_4_try_enter_0;
     router_resilient_pipeline_line_7_seq -> handle_known_error;
@@ -19,4 +23,7 @@ digraph "resilient_pipeline" {
     risky_operation -> router_resilient_pipeline_line_4_try_exit_0;
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_7_seq [label="'ValueError' in _all_types"];
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_10_seq [label="not ('ValueError' in _all_types)"];
+    handle_known_error -> __end__;
+    handle_unknown_error -> __end__;
+    router_resilient_pipeline_line_4_try_exit_0 -> __end__;
 }

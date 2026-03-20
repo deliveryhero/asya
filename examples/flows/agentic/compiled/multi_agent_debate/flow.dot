@@ -2,24 +2,28 @@ digraph "multi_agent_debate" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_multi_agent_debate; }
+
     convergence_checker [label="convergence_checker", fillcolor=lightblue];
     debater_a [label="debater_a", fillcolor=lightblue];
     debater_b [label="debater_b", fillcolor=lightblue];
     debater_c [label="debater_c", fillcolor=lightblue];
     fanin_multi_agent_debate_line_57 [label="fanin_multi_agent_debate_line_57", fillcolor=lightblue];
     fanin_multi_agent_debate_line_74 [label="fanin_multi_agent_debate_line_74", fillcolor=lightblue];
-    final_judge [label="final_judge", fillcolor=palegreen];
+    final_judge [label="final_judge", fillcolor=lightblue];
     revise_a [label="revise_a", fillcolor=lightblue];
     revise_b [label="revise_b", fillcolor=lightblue];
     revise_c [label="revise_c", fillcolor=lightblue];
-    router_multi_agent_debate_line_55_seq_7 [label="router_multi_agent_debate_line_55_seq_7", fillcolor=wheat];
+    router_multi_agent_debate_line_55_seq_7 [label="router_multi_agent_debate_line_55_seq_7\n\np['round'] = 0", fillcolor=wheat];
     router_multi_agent_debate_line_57_fanout_6 [label="router_multi_agent_debate_line_57_fanout_6", fillcolor=wheat];
     router_multi_agent_debate_line_63_while_1 [label="router_multi_agent_debate_line_63_while_1", fillcolor=wheat];
-    router_multi_agent_debate_line_64_seq_5 [label="router_multi_agent_debate_line_64_seq_5", fillcolor=wheat];
+    router_multi_agent_debate_line_64_seq_5 [label="router_multi_agent_debate_line_64_seq_5\n\np['round'] += 1", fillcolor=wheat];
     router_multi_agent_debate_line_68_if_4 [label="router_multi_agent_debate_line_68_if_4", fillcolor=wheat];
     router_multi_agent_debate_line_71_if_3 [label="router_multi_agent_debate_line_71_if_3", fillcolor=wheat];
     router_multi_agent_debate_line_74_fanout_2 [label="router_multi_agent_debate_line_74_fanout_2", fillcolor=wheat];
     start_multi_agent_debate [label="start_multi_agent_debate", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_multi_agent_debate -> router_multi_agent_debate_line_55_seq_7;
     router_multi_agent_debate_line_74_fanout_2 -> fanin_multi_agent_debate_line_74 [label="fanout"];
@@ -46,4 +50,6 @@ digraph "multi_agent_debate" {
     debater_c -> fanin_multi_agent_debate_line_57;
     router_multi_agent_debate_line_55_seq_7 -> router_multi_agent_debate_line_57_fanout_6;
     router_multi_agent_debate_line_68_if_4 -> router_multi_agent_debate_line_63_while_1;
+    fanin_multi_agent_debate_line_74 -> router_multi_agent_debate_line_63_while_1;
+    final_judge -> __end__;
 }

@@ -2,20 +2,24 @@ digraph "react_tool_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_react_tool_loop; }
+
     calculator [label="calculator", fillcolor=lightblue];
     code_exec [label="code_exec", fillcolor=lightblue];
-    format_response [label="format_response", fillcolor=palegreen];
+    format_response [label="format_response", fillcolor=lightblue];
     llm_reason [label="llm_reason", fillcolor=lightblue];
     router_react_tool_loop_line_46_loop_back_0 [label="router_react_tool_loop_line_46_loop_back_0", fillcolor=wheat];
-    router_react_tool_loop_line_47_seq [label="router_react_tool_loop_line_47_seq", fillcolor=wheat];
+    router_react_tool_loop_line_47_seq [label="router_react_tool_loop_line_47_seq\n\np['iteration'] += 1", fillcolor=wheat];
     router_react_tool_loop_line_53_if [label="router_react_tool_loop_line_53_if", fillcolor=wheat];
-    router_react_tool_loop_line_59_if [label="router_react_tool_loop_line_59_if", fillcolor=wheat];
+    router_react_tool_loop_line_59_if [label="router_react_tool_loop_line_59_if\n\np['tool_name'] = p['tool_calls'][0]['name']", fillcolor=wheat];
     router_react_tool_loop_line_61_if [label="router_react_tool_loop_line_61_if", fillcolor=wheat];
     router_react_tool_loop_line_63_if [label="router_react_tool_loop_line_63_if", fillcolor=wheat];
-    router_react_tool_loop_line_66_seq [label="router_react_tool_loop_line_66_seq", fillcolor=wheat];
-    router_react_tool_loop_line_72_if [label="router_react_tool_loop_line_72_if", fillcolor=wheat];
-    start_react_tool_loop [label="start_react_tool_loop", fillcolor=palegreen];
+    router_react_tool_loop_line_66_seq [label="router_react_tool_loop_line_66_seq\n\np['observation'] = 'Unknown tool'", fillcolor=wheat];
+    router_react_tool_loop_line_72_if [label="router_react_tool_loop_line_72_if\n\np['messages'] = p.get('messages', [])", fillcolor=wheat];
+    start_react_tool_loop [label="start_react_tool_loop\n\np['messages'] = p.get('messages', [])\np['iteration'] = 0", fillcolor=palegreen];
     web_search [label="web_search", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_react_tool_loop -> router_react_tool_loop_line_46_loop_back_0;
     router_react_tool_loop_line_66_seq -> router_react_tool_loop_line_72_if;
@@ -35,4 +39,5 @@ digraph "react_tool_loop" {
     llm_reason -> router_react_tool_loop_line_53_if;
     router_react_tool_loop_line_46_loop_back_0 -> router_react_tool_loop_line_47_seq;
     router_react_tool_loop_line_53_if -> router_react_tool_loop_line_46_loop_back_0;
+    format_response -> __end__;
 }

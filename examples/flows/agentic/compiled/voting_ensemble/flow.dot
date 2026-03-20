@@ -2,13 +2,17 @@ digraph "voting_ensemble" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_voting_ensemble; }
+
     analytical_writer [label="analytical_writer", fillcolor=lightblue];
     concise_writer [label="concise_writer", fillcolor=lightblue];
     creative_writer [label="creative_writer", fillcolor=lightblue];
     fanin_voting_ensemble_line_44 [label="fanin_voting_ensemble_line_44", fillcolor=lightblue];
-    judge [label="judge", fillcolor=palegreen];
+    judge [label="judge", fillcolor=lightblue];
     router_voting_ensemble_line_44_fanout_1 [label="router_voting_ensemble_line_44_fanout_1", fillcolor=wheat];
     start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
     router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44 [label="fanout"];
@@ -19,4 +23,5 @@ digraph "voting_ensemble" {
     analytical_writer -> fanin_voting_ensemble_line_44;
     router_voting_ensemble_line_44_fanout_1 -> concise_writer;
     concise_writer -> fanin_voting_ensemble_line_44;
+    judge -> __end__;
 }

@@ -1,0 +1,22 @@
+flowchart TD
+    %% Flow: try_except_simple
+
+    notify_rejection[notify_rejection]
+    router_order_processing_line_4_except_dispatch_0{{router_order_processing_line_4_except_dispatch_0}}
+    router_order_processing_line_4_reraise_0{{router_order_processing_line_4_reraise_0}}
+    router_order_processing_line_4_try_enter_0{{router_order_processing_line_4_try_enter_0}}
+    router_order_processing_line_4_try_exit_0{{router_order_processing_line_4_try_exit_0}}
+    router_order_processing_line_7_seq{{"router_order_processing_line_7_seq<br/><br/>p['status'] = 'invalid'"}}
+    start_order_processing([start_order_processing])
+    validate_order[validate_order]
+    __end__((( )))
+
+    start_order_processing --> router_order_processing_line_4_try_enter_0
+    router_order_processing_line_7_seq --> notify_rejection
+    router_order_processing_line_4_try_enter_0 --> validate_order
+    validate_order --> router_order_processing_line_4_try_exit_0
+    router_order_processing_line_4_except_dispatch_0 -->|'ValueError' in _all_types| router_order_processing_line_7_seq
+    router_order_processing_line_4_except_dispatch_0 -->|not ('ValueError' in _all_types)| router_order_processing_line_4_reraise_0
+    notify_rejection --> __end__
+    router_order_processing_line_4_reraise_0 --> __end__
+    router_order_processing_line_4_try_exit_0 --> __end__

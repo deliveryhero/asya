@@ -1,5 +1,5 @@
 {
-  "flow_name": "document_pipeline",
+  "flow_name": "with_asyncio_timeout",
   "nodes": [
     {
       "id": "language_detector",
@@ -17,7 +17,8 @@
       "id": "router_document_pipeline_line_18_seq_3",
       "flow_role": "router",
       "label": "router_document_pipeline_line_18_seq_3",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'processing'"]
     },
     {
       "id": "router_document_pipeline_line_24_if_2",
@@ -29,7 +30,8 @@
       "id": "router_document_pipeline_line_28_seq_1",
       "flow_role": "exitpoint",
       "label": "router_document_pipeline_line_28_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'done'"]
     },
     {
       "id": "sentiment_analyzer",

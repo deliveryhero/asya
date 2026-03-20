@@ -1,5 +1,5 @@
 {
-  "flow_name": "loop_flow",
+  "flow_name": "while_loop_processing",
   "nodes": [
     {
       "id": "check_threshold",
@@ -35,7 +35,8 @@
       "id": "router_loop_flow_line_15_seq_7",
       "flow_role": "router",
       "label": "router_loop_flow_line_15_seq_7",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0"]
     },
     {
       "id": "router_loop_flow_line_16_while_1",
@@ -47,7 +48,8 @@
       "id": "router_loop_flow_line_17_seq_6",
       "flow_role": "router",
       "label": "router_loop_flow_line_17_seq_6",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
     },
     {
       "id": "router_loop_flow_line_20_if_5",
@@ -59,13 +61,15 @@
       "id": "router_loop_flow_line_21_seq_4",
       "flow_role": "router",
       "label": "router_loop_flow_line_21_seq_4",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['abort'] = 1"]
     },
     {
       "id": "router_loop_flow_line_23_seq_3",
       "flow_role": "router",
       "label": "router_loop_flow_line_23_seq_3",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['abort'] = 2"]
     },
     {
       "id": "router_loop_flow_line_27_if_2",

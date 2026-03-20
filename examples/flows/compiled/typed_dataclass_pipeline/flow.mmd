@@ -4,10 +4,12 @@ flowchart TD
     classifier[classifier]
     enricher[enricher]
     extractor[extractor]
-    formatter([formatter])
+    formatter[formatter]
     start_typed_dataclass_pipeline([start_typed_dataclass_pipeline])
+    __end__((( )))
 
     start_typed_dataclass_pipeline --> extractor
     extractor --> classifier
     classifier --> enricher
     enricher --> formatter
+    formatter --> __end__

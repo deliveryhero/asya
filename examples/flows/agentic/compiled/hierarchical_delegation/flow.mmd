@@ -1,13 +1,13 @@
 flowchart TD
     %% Flow: hierarchical_delegation
 
-    api_specialist([api_specialist])
-    content_generalist([content_generalist])
+    api_specialist[api_specialist]
+    content_generalist[content_generalist]
     content_team_lead[content_team_lead]
-    data_generalist([data_generalist])
+    data_generalist[data_generalist]
     data_team_lead[data_team_lead]
-    editor([editor])
-    final_assembler([final_assembler])
+    editor[editor]
+    final_assembler[final_assembler]
     generalist[generalist]
     root_agent[root_agent]
     router_hierarchical_delegation_line_61_if_6{{router_hierarchical_delegation_line_61_if_6}}
@@ -18,7 +18,8 @@ flowchart TD
     router_hierarchical_delegation_line_78_if_3{{router_hierarchical_delegation_line_78_if_3}}
     sql_specialist[sql_specialist]
     start_hierarchical_delegation([start_hierarchical_delegation])
-    writer([writer])
+    writer[writer]
+    __end__((( )))
 
     start_hierarchical_delegation --> root_agent
     root_agent --> router_hierarchical_delegation_line_61_if_6
@@ -40,3 +41,9 @@ flowchart TD
     router_hierarchical_delegation_line_67_if_1 --> final_assembler
     router_hierarchical_delegation_line_76_if_4 --> final_assembler
     generalist --> final_assembler
+    api_specialist --> __end__
+    content_generalist --> __end__
+    data_generalist --> __end__
+    editor --> __end__
+    final_assembler --> __end__
+    writer --> __end__

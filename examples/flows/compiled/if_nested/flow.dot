@@ -1,25 +1,29 @@
-digraph "conditional_nested_flow" {
+digraph "if_nested" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_conditional_nested_flow; }
+
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
-    handler_c [label="handler_c", fillcolor=palegreen];
+    handler_c [label="handler_c", fillcolor=lightblue];
     handler_d [label="handler_d", fillcolor=lightblue];
     handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_validate_input [label="handler_validate_input", fillcolor=lightblue];
-    router_conditional_nested_flow_line_10_seq_10 [label="router_conditional_nested_flow_line_10_seq_10", fillcolor=wheat];
+    router_conditional_nested_flow_line_10_seq_10 [label="router_conditional_nested_flow_line_10_seq_10\n\np['x'] += 1", fillcolor=wheat];
     router_conditional_nested_flow_line_12_if_9 [label="router_conditional_nested_flow_line_12_if_9", fillcolor=wheat];
-    router_conditional_nested_flow_line_15_if_6 [label="router_conditional_nested_flow_line_15_if_6", fillcolor=wheat];
-    router_conditional_nested_flow_line_16_seq_4 [label="router_conditional_nested_flow_line_16_seq_4", fillcolor=wheat];
-    router_conditional_nested_flow_line_18_seq_3 [label="router_conditional_nested_flow_line_18_seq_3", fillcolor=palegreen];
-    router_conditional_nested_flow_line_20_seq_5 [label="router_conditional_nested_flow_line_20_seq_5", fillcolor=wheat];
-    router_conditional_nested_flow_line_23_seq_8 [label="router_conditional_nested_flow_line_23_seq_8", fillcolor=wheat];
-    router_conditional_nested_flow_line_25_seq_7 [label="router_conditional_nested_flow_line_25_seq_7", fillcolor=palegreen];
-    router_conditional_nested_flow_line_27_seq_2 [label="router_conditional_nested_flow_line_27_seq_2", fillcolor=wheat];
-    router_conditional_nested_flow_line_29_seq_1 [label="router_conditional_nested_flow_line_29_seq_1", fillcolor=palegreen];
-    router_conditional_nested_flow_line_9_if_11 [label="router_conditional_nested_flow_line_9_if_11", fillcolor=wheat];
+    router_conditional_nested_flow_line_15_if_6 [label="router_conditional_nested_flow_line_15_if_6\n\np['x'] += 2", fillcolor=wheat];
+    router_conditional_nested_flow_line_16_seq_4 [label="router_conditional_nested_flow_line_16_seq_4\n\np['x'] += 3", fillcolor=wheat];
+    router_conditional_nested_flow_line_18_seq_3 [label="router_conditional_nested_flow_line_18_seq_3\n\np['x'] += 4", fillcolor=wheat];
+    router_conditional_nested_flow_line_20_seq_5 [label="router_conditional_nested_flow_line_20_seq_5\n\np['x'] += 5", fillcolor=wheat];
+    router_conditional_nested_flow_line_23_seq_8 [label="router_conditional_nested_flow_line_23_seq_8\n\np['x'] += 6", fillcolor=wheat];
+    router_conditional_nested_flow_line_25_seq_7 [label="router_conditional_nested_flow_line_25_seq_7\n\np['x'] += 7", fillcolor=wheat];
+    router_conditional_nested_flow_line_27_seq_2 [label="router_conditional_nested_flow_line_27_seq_2\n\np['x'] += 8", fillcolor=wheat];
+    router_conditional_nested_flow_line_29_seq_1 [label="router_conditional_nested_flow_line_29_seq_1\n\np['x'] += 9\np['x'] *= 10", fillcolor=wheat];
+    router_conditional_nested_flow_line_9_if_11 [label="router_conditional_nested_flow_line_9_if_11\n\np['x'] = 1", fillcolor=wheat];
     start_conditional_nested_flow [label="start_conditional_nested_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_conditional_nested_flow -> handler_validate_input;
     handler_validate_input -> router_conditional_nested_flow_line_9_if_11;
@@ -40,4 +44,8 @@ digraph "conditional_nested_flow" {
     router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_10_seq_10 [label="p['a'] == 'A'"];
     router_conditional_nested_flow_line_9_if_11 -> router_conditional_nested_flow_line_27_seq_2 [label="not (p['a'] == 'A')"];
     router_conditional_nested_flow_line_12_if_9 -> router_conditional_nested_flow_line_27_seq_2;
+    handler_c -> __end__;
+    router_conditional_nested_flow_line_18_seq_3 -> __end__;
+    router_conditional_nested_flow_line_25_seq_7 -> __end__;
+    router_conditional_nested_flow_line_29_seq_1 -> __end__;
 }

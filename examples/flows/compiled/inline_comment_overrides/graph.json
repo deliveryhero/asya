@@ -1,5 +1,5 @@
 {
-  "flow_name": "order_pipeline",
+  "flow_name": "inline_comment_overrides",
   "nodes": [
     {
       "id": "charge_payment",
@@ -23,7 +23,8 @@
       "id": "router_order_pipeline_line_33_seq_1",
       "flow_role": "exitpoint",
       "label": "router_order_pipeline_line_33_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['status'] = 'rejected'"]
     },
     {
       "id": "start_order_pipeline",

@@ -1,0 +1,24 @@
+flowchart TD
+    %% Flow: try_except_catch_all
+
+    handle_known_error[handle_known_error]
+    handle_unknown_error[handle_unknown_error]
+    risky_operation[risky_operation]
+    router_resilient_pipeline_line_10_seq{{"router_resilient_pipeline_line_10_seq<br/><br/>p['error_type'] = 'unknown'"}}
+    router_resilient_pipeline_line_4_except_dispatch_0{{router_resilient_pipeline_line_4_except_dispatch_0}}
+    router_resilient_pipeline_line_4_try_enter_0{{router_resilient_pipeline_line_4_try_enter_0}}
+    router_resilient_pipeline_line_4_try_exit_0{{router_resilient_pipeline_line_4_try_exit_0}}
+    router_resilient_pipeline_line_7_seq{{"router_resilient_pipeline_line_7_seq<br/><br/>p['error_type'] = 'known'"}}
+    start_resilient_pipeline([start_resilient_pipeline])
+    __end__((( )))
+
+    start_resilient_pipeline --> router_resilient_pipeline_line_4_try_enter_0
+    router_resilient_pipeline_line_7_seq --> handle_known_error
+    router_resilient_pipeline_line_10_seq --> handle_unknown_error
+    router_resilient_pipeline_line_4_try_enter_0 --> risky_operation
+    risky_operation --> router_resilient_pipeline_line_4_try_exit_0
+    router_resilient_pipeline_line_4_except_dispatch_0 -->|'ValueError' in _all_types| router_resilient_pipeline_line_7_seq
+    router_resilient_pipeline_line_4_except_dispatch_0 -->|not ('ValueError' in _all_types)| router_resilient_pipeline_line_10_seq
+    handle_known_error --> __end__
+    handle_unknown_error --> __end__
+    router_resilient_pipeline_line_4_try_exit_0 --> __end__

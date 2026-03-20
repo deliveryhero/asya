@@ -1,15 +1,18 @@
 flowchart TD
-    %% Flow: review_pipeline_flow
+    %% Flow: async_nested
 
-    auto_approve([auto_approve])
+    auto_approve[auto_approve]
     detailed_review[detailed_review]
-    human_review([human_review])
+    human_review[human_review]
     initial_review[initial_review]
     router_review_pipeline_flow_line_17_if_1{{router_review_pipeline_flow_line_17_if_1}}
     start_review_pipeline_flow([start_review_pipeline_flow])
+    __end__((( )))
 
     start_review_pipeline_flow --> initial_review
     initial_review --> router_review_pipeline_flow_line_17_if_1
     router_review_pipeline_flow_line_17_if_1 -->|p['score'] < 0.5| detailed_review
     detailed_review --> human_review
     router_review_pipeline_flow_line_17_if_1 -->|not (p['score'] < 0.5)| auto_approve
+    auto_approve --> __end__
+    human_review --> __end__

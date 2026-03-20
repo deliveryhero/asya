@@ -1,15 +1,19 @@
-digraph "if_inside_while_flow" {
+digraph "while_with_if" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_if_inside_while_flow; }
+
     handler_even [label="handler_even", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=palegreen];
+    handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_odd [label="handler_odd", fillcolor=lightblue];
-    router_if_inside_while_flow_line_13_seq_3 [label="router_if_inside_while_flow_line_13_seq_3", fillcolor=wheat];
+    router_if_inside_while_flow_line_13_seq_3 [label="router_if_inside_while_flow_line_13_seq_3\n\np['i'] = 0", fillcolor=wheat];
     router_if_inside_while_flow_line_14_while_1 [label="router_if_inside_while_flow_line_14_while_1", fillcolor=wheat];
-    router_if_inside_while_flow_line_16_if_2 [label="router_if_inside_while_flow_line_16_if_2", fillcolor=wheat];
+    router_if_inside_while_flow_line_16_if_2 [label="router_if_inside_while_flow_line_16_if_2\n\np['i'] += 1", fillcolor=wheat];
     start_if_inside_while_flow [label="start_if_inside_while_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_inside_while_flow -> handler_init;
     handler_init -> router_if_inside_while_flow_line_13_seq_3;
@@ -20,4 +24,5 @@ digraph "if_inside_while_flow" {
     router_if_inside_while_flow_line_13_seq_3 -> router_if_inside_while_flow_line_14_while_1;
     handler_even -> router_if_inside_while_flow_line_14_while_1;
     handler_odd -> router_if_inside_while_flow_line_14_while_1;
+    handler_finalize -> __end__;
 }

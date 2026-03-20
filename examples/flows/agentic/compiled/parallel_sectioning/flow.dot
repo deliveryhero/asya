@@ -2,7 +2,9 @@ digraph "parallel_sectioning" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    aggregator [label="aggregator", fillcolor=palegreen];
+    { rank=source; start_parallel_sectioning; }
+
+    aggregator [label="aggregator", fillcolor=lightblue];
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
     fanin_parallel_sectioning_line_48 [label="fanin_parallel_sectioning_line_48", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
@@ -10,6 +12,8 @@ digraph "parallel_sectioning" {
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_parallel_sectioning [label="start_parallel_sectioning", fillcolor=palegreen];
     topic_extractor [label="topic_extractor", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_parallel_sectioning -> preprocessor;
     preprocessor -> router_parallel_sectioning_line_48_fanout_1;
@@ -21,4 +25,5 @@ digraph "parallel_sectioning" {
     topic_extractor -> fanin_parallel_sectioning_line_48;
     router_parallel_sectioning_line_48_fanout_1 -> entity_recognizer;
     entity_recognizer -> fanin_parallel_sectioning_line_48;
+    aggregator -> __end__;
 }

@@ -35,7 +35,8 @@
       "id": "router_human_in_the_loop_line_58_seq_7",
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_58_seq_7",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['attempt'] = 0"]
     },
     {
       "id": "router_human_in_the_loop_line_60_while_1",
@@ -47,7 +48,8 @@
       "id": "router_human_in_the_loop_line_61_seq_6",
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_61_seq_6",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['attempt'] += 1"]
     },
     {
       "id": "router_human_in_the_loop_line_70_if_5",
@@ -71,7 +73,8 @@
       "id": "router_human_in_the_loop_line_80_seq_2",
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_80_seq_2",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['result'] = 'Max revision attempts reached'"]
     },
     {
       "id": "start_human_in_the_loop",

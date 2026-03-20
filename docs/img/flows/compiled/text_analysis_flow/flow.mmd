@@ -6,11 +6,12 @@ flowchart TD
     extract_entities[extract_entities]
     router_text_analysis_flow_line_11_if_4{{router_text_analysis_flow_line_11_if_4}}
     router_text_analysis_flow_line_13_if_3{{router_text_analysis_flow_line_13_if_3}}
-    router_text_analysis_flow_line_16_seq_2{{router_text_analysis_flow_line_16_seq_2}}
-    router_text_analysis_flow_line_20_seq_1([router_text_analysis_flow_line_20_seq_1])
+    router_text_analysis_flow_line_16_seq_2{{"router_text_analysis_flow_line_16_seq_2<br/><br/>p['sentiment'] = 'neutral'"}}
+    router_text_analysis_flow_line_20_seq_1{{"router_text_analysis_flow_line_20_seq_1<br/><br/>p['extracted'] = True"}}
     spanish_sentiment[spanish_sentiment]
     start_text_analysis_flow([start_text_analysis_flow])
     tokenize[tokenize]
+    __end__((( )))
 
     start_text_analysis_flow --> clean_text
     clean_text --> tokenize
@@ -23,3 +24,4 @@ flowchart TD
     router_text_analysis_flow_line_11_if_4 -->|not (p['language'] == 'en')| router_text_analysis_flow_line_13_if_3
     spanish_sentiment --> extract_entities
     router_text_analysis_flow_line_16_seq_2 --> extract_entities
+    router_text_analysis_flow_line_20_seq_1 --> __end__

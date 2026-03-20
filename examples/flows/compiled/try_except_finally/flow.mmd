@@ -1,0 +1,29 @@
+flowchart TD
+    %% Flow: try_except_finally
+
+    acquire_resource[acquire_resource]
+    finalize[finalize]
+    handle_failure[handle_failure]
+    process_with_resource[process_with_resource]
+    release_resource[release_resource]
+    router_resource_pipeline_line_5_except_dispatch_0{{router_resource_pipeline_line_5_except_dispatch_0}}
+    router_resource_pipeline_line_5_reraise_0{{router_resource_pipeline_line_5_reraise_0}}
+    router_resource_pipeline_line_5_try_enter_0{{router_resource_pipeline_line_5_try_enter_0}}
+    router_resource_pipeline_line_5_try_exit_0{{router_resource_pipeline_line_5_try_exit_0}}
+    router_resource_pipeline_line_9_seq{{"router_resource_pipeline_line_9_seq<br/><br/>p['status'] = 'failed'"}}
+    start_resource_pipeline(["start_resource_pipeline<br/><br/>p['status'] = 'started'"])
+    __end__((( )))
+
+    start_resource_pipeline --> router_resource_pipeline_line_5_try_enter_0
+    router_resource_pipeline_line_9_seq --> handle_failure
+    router_resource_pipeline_line_5_try_enter_0 --> acquire_resource
+    acquire_resource --> process_with_resource
+    process_with_resource --> router_resource_pipeline_line_5_try_exit_0
+    router_resource_pipeline_line_5_try_exit_0 --> release_resource
+    release_resource --> finalize
+    router_resource_pipeline_line_5_except_dispatch_0 --> release_resource
+    router_resource_pipeline_line_5_except_dispatch_0 -->|'RuntimeError' in _all_types| router_resource_pipeline_line_9_seq
+    router_resource_pipeline_line_5_except_dispatch_0 -->|not ('RuntimeError' in _all_types)| router_resource_pipeline_line_5_reraise_0
+    finalize --> __end__
+    handle_failure --> __end__
+    router_resource_pipeline_line_5_reraise_0 --> __end__

@@ -1,7 +1,9 @@
 flowchart TD
-    %% Flow: ingester
+    %% Flow: typed_pydantic_pipeline
 
-    router_ingester_line_181_seq_1([router_ingester_line_181_seq_1])
+    router_ingester_line_181_seq_1{{"router_ingester_line_181_seq_1<br/><br/>p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"}}
     start_ingester([start_ingester])
+    __end__((( )))
 
     start_ingester --> router_ingester_line_181_seq_1
+    router_ingester_line_181_seq_1 --> __end__

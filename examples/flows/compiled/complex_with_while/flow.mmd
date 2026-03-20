@@ -1,9 +1,9 @@
 flowchart TD
-    %% Flow: complex_flow
+    %% Flow: complex_with_while
 
     handler_check_quality[handler_check_quality]
     handler_enrich_data[handler_enrich_data]
-    handler_error([handler_error])
+    handler_error[handler_error]
     handler_finalize[handler_finalize]
     handler_preprocess[handler_preprocess]
     handler_retry_handler[handler_retry_handler]
@@ -16,6 +16,7 @@ flowchart TD
     router_complex_flow_line_29_if_2{{router_complex_flow_line_29_if_2}}
     router_complex_flow_line_32_if_4{{router_complex_flow_line_32_if_4}}
     start_complex_flow([start_complex_flow])
+    __end__((( )))
 
     start_complex_flow --> handler_preprocess
     handler_preprocess --> handler_validate
@@ -34,3 +35,4 @@ flowchart TD
     handler_finalize --> router_complex_flow_line_22_while_1
     router_complex_flow_line_29_if_2 --> router_complex_flow_line_22_while_1
     handler_retry_handler --> handler_finalize
+    handler_error --> __end__

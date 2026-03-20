@@ -1,12 +1,13 @@
 flowchart TD
-    %% Flow: while_true_flow
+    %% Flow: while_true_simple
 
-    handler_finalize([handler_finalize])
+    handler_finalize[handler_finalize]
     handler_init[handler_init]
     handler_process[handler_process]
     router_while_true_flow_line_14_while_1{{router_while_true_flow_line_14_while_1}}
     router_while_true_flow_line_16_if_2{{router_while_true_flow_line_16_if_2}}
     start_while_true_flow([start_while_true_flow])
+    __end__((( )))
 
     start_while_true_flow --> handler_init
     handler_init --> router_while_true_flow_line_14_while_1
@@ -14,3 +15,4 @@ flowchart TD
     router_while_true_flow_line_14_while_1 --> handler_process
     handler_process --> router_while_true_flow_line_16_if_2
     router_while_true_flow_line_16_if_2 --> router_while_true_flow_line_14_while_1
+    handler_finalize --> __end__

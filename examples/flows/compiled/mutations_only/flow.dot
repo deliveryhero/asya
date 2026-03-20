@@ -1,9 +1,14 @@
-digraph "mutations_only_flow" {
+digraph "mutations_only" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    router_mutations_only_flow_line_14_seq_1 [label="router_mutations_only_flow_line_14_seq_1", fillcolor=palegreen];
+    { rank=source; start_mutations_only_flow; }
+
+    router_mutations_only_flow_line_14_seq_1 [label="router_mutations_only_flow_line_14_seq_1\n\np['step'] = 1\np['x'] = 10\np['y'] = 20\np['x'] += p['y']\np['z'] = p['x'] + 30", fillcolor=wheat];
     start_mutations_only_flow [label="start_mutations_only_flow", fillcolor=palegreen];
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
     start_mutations_only_flow -> router_mutations_only_flow_line_14_seq_1;
+    router_mutations_only_flow_line_14_seq_1 -> __end__;
 }

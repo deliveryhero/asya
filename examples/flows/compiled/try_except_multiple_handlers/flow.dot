@@ -1,20 +1,24 @@
-digraph "data_pipeline" {
+digraph "try_except_multiple_handlers" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    handle_runtime_error [label="handle_runtime_error", fillcolor=palegreen];
-    handle_type_error [label="handle_type_error", fillcolor=palegreen];
-    handle_validation_error [label="handle_validation_error", fillcolor=palegreen];
+    { rank=source; start_data_pipeline; }
+
+    handle_runtime_error [label="handle_runtime_error", fillcolor=lightblue];
+    handle_type_error [label="handle_type_error", fillcolor=lightblue];
+    handle_validation_error [label="handle_validation_error", fillcolor=lightblue];
     parse_input [label="parse_input", fillcolor=lightblue];
-    router_data_pipeline_line_11_seq [label="router_data_pipeline_line_11_seq", fillcolor=wheat];
-    router_data_pipeline_line_14_seq [label="router_data_pipeline_line_14_seq", fillcolor=wheat];
+    router_data_pipeline_line_11_seq [label="router_data_pipeline_line_11_seq\n\np['error_type'] = 'type_mismatch'", fillcolor=wheat];
+    router_data_pipeline_line_14_seq [label="router_data_pipeline_line_14_seq\n\np['error_type'] = 'runtime'", fillcolor=wheat];
     router_data_pipeline_line_4_except_dispatch_0 [label="router_data_pipeline_line_4_except_dispatch_0", fillcolor=wheat];
-    router_data_pipeline_line_4_reraise_0 [label="router_data_pipeline_line_4_reraise_0", fillcolor=palegreen];
+    router_data_pipeline_line_4_reraise_0 [label="router_data_pipeline_line_4_reraise_0", fillcolor=wheat];
     router_data_pipeline_line_4_try_enter_0 [label="router_data_pipeline_line_4_try_enter_0", fillcolor=wheat];
-    router_data_pipeline_line_4_try_exit_0 [label="router_data_pipeline_line_4_try_exit_0", fillcolor=palegreen];
-    router_data_pipeline_line_8_seq [label="router_data_pipeline_line_8_seq", fillcolor=wheat];
+    router_data_pipeline_line_4_try_exit_0 [label="router_data_pipeline_line_4_try_exit_0", fillcolor=wheat];
+    router_data_pipeline_line_8_seq [label="router_data_pipeline_line_8_seq\n\np['error_type'] = 'validation'", fillcolor=wheat];
     start_data_pipeline [label="start_data_pipeline", fillcolor=palegreen];
     transform_data [label="transform_data", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_data_pipeline -> router_data_pipeline_line_4_try_enter_0;
     router_data_pipeline_line_8_seq -> handle_validation_error;
@@ -27,4 +31,9 @@ digraph "data_pipeline" {
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_11_seq [label="'TypeError' in _all_types"];
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_14_seq [label="'RuntimeError' in _all_types"];
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_4_reraise_0 [label="not ('RuntimeError' in _all_types)"];
+    handle_runtime_error -> __end__;
+    handle_type_error -> __end__;
+    handle_validation_error -> __end__;
+    router_data_pipeline_line_4_reraise_0 -> __end__;
+    router_data_pipeline_line_4_try_exit_0 -> __end__;
 }

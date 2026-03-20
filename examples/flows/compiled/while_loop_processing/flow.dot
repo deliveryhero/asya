@@ -1,20 +1,24 @@
-digraph "loop_flow" {
+digraph "while_loop_processing" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_loop_flow; }
+
     check_threshold [label="check_threshold", fillcolor=lightblue];
-    finalize_loop [label="finalize_loop", fillcolor=palegreen];
+    finalize_loop [label="finalize_loop", fillcolor=lightblue];
     initialize [label="initialize", fillcolor=lightblue];
     process_abort [label="process_abort", fillcolor=lightblue];
     process_item [label="process_item", fillcolor=lightblue];
-    router_loop_flow_line_15_seq_7 [label="router_loop_flow_line_15_seq_7", fillcolor=wheat];
+    router_loop_flow_line_15_seq_7 [label="router_loop_flow_line_15_seq_7\n\np['iteration'] = 0", fillcolor=wheat];
     router_loop_flow_line_16_while_1 [label="router_loop_flow_line_16_while_1", fillcolor=wheat];
-    router_loop_flow_line_17_seq_6 [label="router_loop_flow_line_17_seq_6", fillcolor=wheat];
+    router_loop_flow_line_17_seq_6 [label="router_loop_flow_line_17_seq_6\n\np['iteration'] += 1", fillcolor=wheat];
     router_loop_flow_line_20_if_5 [label="router_loop_flow_line_20_if_5", fillcolor=wheat];
-    router_loop_flow_line_21_seq_4 [label="router_loop_flow_line_21_seq_4", fillcolor=wheat];
-    router_loop_flow_line_23_seq_3 [label="router_loop_flow_line_23_seq_3", fillcolor=wheat];
+    router_loop_flow_line_21_seq_4 [label="router_loop_flow_line_21_seq_4\n\np['abort'] = 1", fillcolor=wheat];
+    router_loop_flow_line_23_seq_3 [label="router_loop_flow_line_23_seq_3\n\np['abort'] = 2", fillcolor=wheat];
     router_loop_flow_line_27_if_2 [label="router_loop_flow_line_27_if_2", fillcolor=wheat];
     start_loop_flow [label="start_loop_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_loop_flow -> initialize;
     initialize -> router_loop_flow_line_15_seq_7;
@@ -31,4 +35,5 @@ digraph "loop_flow" {
     router_loop_flow_line_16_while_1 -> finalize_loop [label="not (p['iteration'] < p['max_iterations'])"];
     router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
     router_loop_flow_line_20_if_5 -> router_loop_flow_line_16_while_1;
+    finalize_loop -> __end__;
 }

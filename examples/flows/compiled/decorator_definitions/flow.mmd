@@ -1,11 +1,13 @@
 flowchart TD
-    %% Flow: decorator_definitions_flow
+    %% Flow: decorator_definitions
 
-    enrich([enrich])
+    enrich[enrich]
     router_decorator_definitions_flow_line_27_seq_1{{router_decorator_definitions_flow_line_27_seq_1}}
     start_decorator_definitions_flow([start_decorator_definitions_flow])
     validate[validate]
+    __end__((( )))
 
     start_decorator_definitions_flow --> router_decorator_definitions_flow_line_27_seq_1
     router_decorator_definitions_flow_line_27_seq_1 --> validate
     validate --> enrich
+    enrich --> __end__

@@ -2,16 +2,20 @@ digraph "text_analysis_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_text_analysis_flow; }
+
     clean_text [label="clean_text", fillcolor=lightblue];
     english_sentiment [label="english_sentiment", fillcolor=lightblue];
     extract_entities [label="extract_entities", fillcolor=lightblue];
     router_text_analysis_flow_line_11_if_4 [label="router_text_analysis_flow_line_11_if_4", fillcolor=wheat];
     router_text_analysis_flow_line_13_if_3 [label="router_text_analysis_flow_line_13_if_3", fillcolor=wheat];
-    router_text_analysis_flow_line_16_seq_2 [label="router_text_analysis_flow_line_16_seq_2", fillcolor=wheat];
-    router_text_analysis_flow_line_20_seq_1 [label="router_text_analysis_flow_line_20_seq_1", fillcolor=palegreen];
+    router_text_analysis_flow_line_16_seq_2 [label="router_text_analysis_flow_line_16_seq_2\n\np['sentiment'] = 'neutral'", fillcolor=wheat];
+    router_text_analysis_flow_line_20_seq_1 [label="router_text_analysis_flow_line_20_seq_1\n\np['extracted'] = True", fillcolor=wheat];
     spanish_sentiment [label="spanish_sentiment", fillcolor=lightblue];
     start_text_analysis_flow [label="start_text_analysis_flow", fillcolor=palegreen];
     tokenize [label="tokenize", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_text_analysis_flow -> clean_text;
     clean_text -> tokenize;
@@ -24,4 +28,5 @@ digraph "text_analysis_flow" {
     router_text_analysis_flow_line_11_if_4 -> router_text_analysis_flow_line_13_if_3 [label="not (p['language'] == 'en')"];
     spanish_sentiment -> extract_entities;
     router_text_analysis_flow_line_16_seq_2 -> extract_entities;
+    router_text_analysis_flow_line_20_seq_1 -> __end__;
 }

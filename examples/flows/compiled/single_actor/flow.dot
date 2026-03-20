@@ -1,4 +1,4 @@
-digraph "single_actor_flow" {
+digraph "single_actor" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

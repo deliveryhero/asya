@@ -2,15 +2,20 @@ digraph "research_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    { rank=source; start_research_flow; }
+
     fanin_research_flow_line_7 [label="fanin_research_flow_line_7", fillcolor=lightblue];
     research_agent [label="research_agent", fillcolor=lightblue];
     router_research_flow_line_7_fanout_1 [label="router_research_flow_line_7_fanout_1", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
-    summarizer [label="summarizer", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_research_flow -> router_research_flow_line_7_fanout_1;
     router_research_flow_line_7_fanout_1 -> fanin_research_flow_line_7 [label="fanout: p['topics']"];
     fanin_research_flow_line_7 -> summarizer;
     router_research_flow_line_7_fanout_1 -> research_agent;
     research_agent -> fanin_research_flow_line_7;
+    summarizer -> __end__;
 }

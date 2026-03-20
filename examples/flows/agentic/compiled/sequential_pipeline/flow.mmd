@@ -3,11 +3,13 @@ flowchart TD
 
     data_analyst[data_analyst]
     execution_planner[execution_planner]
-    risk_evaluator([risk_evaluator])
+    risk_evaluator[risk_evaluator]
     start_sequential_pipeline([start_sequential_pipeline])
     trading_analyst[trading_analyst]
+    __end__((( )))
 
     start_sequential_pipeline --> data_analyst
     data_analyst --> trading_analyst
     trading_analyst --> execution_planner
     execution_planner --> risk_evaluator
+    risk_evaluator --> __end__

@@ -1,19 +1,20 @@
 flowchart TD
-    %% Flow: loop_flow
+    %% Flow: while_loop_processing
 
     check_threshold[check_threshold]
-    finalize_loop([finalize_loop])
+    finalize_loop[finalize_loop]
     initialize[initialize]
     process_abort[process_abort]
     process_item[process_item]
-    router_loop_flow_line_15_seq_7{{router_loop_flow_line_15_seq_7}}
+    router_loop_flow_line_15_seq_7{{"router_loop_flow_line_15_seq_7<br/><br/>p['iteration'] = 0"}}
     router_loop_flow_line_16_while_1{{router_loop_flow_line_16_while_1}}
-    router_loop_flow_line_17_seq_6{{router_loop_flow_line_17_seq_6}}
+    router_loop_flow_line_17_seq_6{{"router_loop_flow_line_17_seq_6<br/><br/>p['iteration'] += 1"}}
     router_loop_flow_line_20_if_5{{router_loop_flow_line_20_if_5}}
-    router_loop_flow_line_21_seq_4{{router_loop_flow_line_21_seq_4}}
-    router_loop_flow_line_23_seq_3{{router_loop_flow_line_23_seq_3}}
+    router_loop_flow_line_21_seq_4{{"router_loop_flow_line_21_seq_4<br/><br/>p['abort'] = 1"}}
+    router_loop_flow_line_23_seq_3{{"router_loop_flow_line_23_seq_3<br/><br/>p['abort'] = 2"}}
     router_loop_flow_line_27_if_2{{router_loop_flow_line_27_if_2}}
     start_loop_flow([start_loop_flow])
+    __end__((( )))
 
     start_loop_flow --> initialize
     initialize --> router_loop_flow_line_15_seq_7
@@ -30,3 +31,4 @@ flowchart TD
     router_loop_flow_line_16_while_1 -->|not (p['iteration'] < p['max_iterations'])| finalize_loop
     router_loop_flow_line_15_seq_7 --> router_loop_flow_line_16_while_1
     router_loop_flow_line_20_if_5 --> router_loop_flow_line_16_while_1
+    finalize_loop --> __end__

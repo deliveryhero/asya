@@ -1,13 +1,18 @@
-digraph "decorator_callsite_flow" {
+digraph "decorator_callsite" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    enricher [label="enricher", fillcolor=palegreen];
+    { rank=source; start_decorator_callsite_flow; }
+
+    enricher [label="enricher", fillcolor=lightblue];
     router_decorator_callsite_flow_line_29_seq_1 [label="router_decorator_callsite_flow_line_29_seq_1", fillcolor=wheat];
     start_decorator_callsite_flow [label="start_decorator_callsite_flow", fillcolor=palegreen];
     validator [label="validator", fillcolor=lightblue];
 
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
     start_decorator_callsite_flow -> router_decorator_callsite_flow_line_29_seq_1;
     router_decorator_callsite_flow_line_29_seq_1 -> validator;
     validator -> enricher;
+    enricher -> __end__;
 }

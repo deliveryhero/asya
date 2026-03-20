@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_with_handler_flow",
+  "flow_name": "mutations_with_handler",
   "nodes": [
     {
       "id": "handler_process",
@@ -11,13 +11,15 @@
       "id": "router_mutations_with_handler_flow_line_13_seq_2",
       "flow_role": "router",
       "label": "router_mutations_with_handler_flow_line_13_seq_2",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['initialized'] = True", "p['step'] = 1", "p['count'] = 0"]
     },
     {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
       "flow_role": "exitpoint",
       "label": "router_mutations_with_handler_flow_line_17_seq_1",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['finalized'] = True"]
     },
     {
       "id": "start_mutations_with_handler_flow",
