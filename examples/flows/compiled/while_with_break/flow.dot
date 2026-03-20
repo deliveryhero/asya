@@ -1,4 +1,4 @@
-digraph "while_with_break" {
+digraph "while_with_break_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -17,11 +17,11 @@ digraph "while_with_break" {
 
     start_while_with_break_flow -> handler_init;
     handler_init -> router_while_with_break_flow_line_13_seq_4;
-    router_while_with_break_flow_line_17_if_2 -> handler_finalize [label="p['stop_condition']"];
+    router_while_with_break_flow_line_17_if_2 -> handler_finalize [label="p['stop_condition']", color="#2E8B57", fontcolor="#2E8B57"];
     router_while_with_break_flow_line_15_seq_3 -> handler_process;
     handler_process -> router_while_with_break_flow_line_17_if_2;
-    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3 [label="p['i'] < p['max_iterations']"];
-    router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
+    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3 [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="else", color="#E07040", fontcolor="#E07040"];
     router_while_with_break_flow_line_13_seq_4 -> router_while_with_break_flow_line_14_while_1;
     router_while_with_break_flow_line_17_if_2 -> router_while_with_break_flow_line_14_while_1;
     handler_finalize -> __end__;

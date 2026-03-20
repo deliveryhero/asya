@@ -1,4 +1,4 @@
-digraph "while_with_if" {
+digraph "if_inside_while_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -17,10 +17,10 @@ digraph "while_with_if" {
 
     start_if_inside_while_flow -> handler_init;
     handler_init -> router_if_inside_while_flow_line_13_seq_3;
-    router_if_inside_while_flow_line_16_if_2 -> handler_even [label="p['i'] % 2 == 0"];
-    router_if_inside_while_flow_line_16_if_2 -> handler_odd [label="not (p['i'] % 2 == 0)"];
-    router_if_inside_while_flow_line_14_while_1 -> router_if_inside_while_flow_line_16_if_2 [label="p['i'] < p['max_iterations']"];
-    router_if_inside_while_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
+    router_if_inside_while_flow_line_16_if_2 -> handler_even [label="p['i'] % 2 == 0", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_inside_while_flow_line_16_if_2 -> handler_odd [label="else", color="#E07040", fontcolor="#E07040"];
+    router_if_inside_while_flow_line_14_while_1 -> router_if_inside_while_flow_line_16_if_2 [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_inside_while_flow_line_14_while_1 -> handler_finalize [label="else", color="#E07040", fontcolor="#E07040"];
     router_if_inside_while_flow_line_13_seq_3 -> router_if_inside_while_flow_line_14_while_1;
     handler_even -> router_if_inside_while_flow_line_14_while_1;
     handler_odd -> router_if_inside_while_flow_line_14_while_1;

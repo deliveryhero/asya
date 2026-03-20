@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_loop_processing",
+  "flow_name": "loop_flow",
   "nodes": [
     {
       "id": "check_threshold",
@@ -130,7 +130,7 @@
     {
       "from": "router_loop_flow_line_20_if_5",
       "to": "check_threshold",
-      "label": "not (p.get('skip_threshold_check'))",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -160,7 +160,7 @@
     {
       "from": "router_loop_flow_line_16_while_1",
       "to": "finalize_loop",
-      "label": "not (p['iteration'] < p['max_iterations'])",
+      "label": "else",
       "type": "set"
     },
     {
@@ -170,7 +170,7 @@
       "type": "prepend"
     },
     {
-      "from": "router_loop_flow_line_20_if_5",
+      "from": "router_loop_flow_line_27_if_2",
       "to": "router_loop_flow_line_16_while_1",
       "label": null,
       "type": "continuation"

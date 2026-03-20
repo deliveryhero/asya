@@ -20,13 +20,6 @@
       "is_generated": false
     },
     {
-      "id": "router_orchestrator_workers_line_54_seq_8",
-      "flow_role": "router",
-      "label": "router_orchestrator_workers_line_54_seq_8",
-      "is_generated": true,
-      "mutations": ["p['iteration'] = 0", "p['worker_results'] = []"]
-    },
-    {
       "id": "router_orchestrator_workers_line_57_while_1",
       "flow_role": "router",
       "label": "router_orchestrator_workers_line_57_while_1",
@@ -73,7 +66,8 @@
       "id": "start_orchestrator_workers",
       "flow_role": "entrypoint",
       "label": "start_orchestrator_workers",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['worker_results'] = []"]
     },
     {
       "id": "synthesizer",
@@ -83,7 +77,7 @@
     },
     {
       "id": "writing_worker",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "writing_worker",
       "is_generated": false
     }
@@ -91,7 +85,7 @@
   "edges": [
     {
       "from": "start_orchestrator_workers",
-      "to": "router_orchestrator_workers_line_54_seq_8",
+      "to": "router_orchestrator_workers_line_57_while_1",
       "label": null,
       "type": "prepend"
     },
@@ -116,7 +110,7 @@
     {
       "from": "router_orchestrator_workers_line_67_if_4",
       "to": "router_orchestrator_workers_line_69_if_3",
-      "label": "not (p.get('next_action') == 'analyze')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -134,13 +128,13 @@
     {
       "from": "router_orchestrator_workers_line_65_if_5",
       "to": "router_orchestrator_workers_line_67_if_4",
-      "label": "not (p.get('next_action') == 'research')",
+      "label": "else",
       "type": "prepend"
     },
     {
       "from": "router_orchestrator_workers_line_62_if_6",
       "to": "router_orchestrator_workers_line_65_if_5",
-      "label": "not (p.get('is_complete'))",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -168,25 +162,19 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_54_seq_8",
-      "to": "router_orchestrator_workers_line_57_while_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
       "from": "analysis_worker",
       "to": "router_orchestrator_workers_line_72_if_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_69_if_3",
+      "from": "writing_worker",
       "to": "router_orchestrator_workers_line_72_if_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_62_if_6",
+      "from": "router_orchestrator_workers_line_72_if_2",
       "to": "router_orchestrator_workers_line_57_while_1",
       "label": null,
       "type": "continuation"

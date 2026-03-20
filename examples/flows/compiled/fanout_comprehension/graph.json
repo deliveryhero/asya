@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_comprehension",
+  "flow_name": "research_flow",
   "nodes": [
     {
       "id": "fanin_research_flow_line_15",

@@ -1,4 +1,4 @@
-digraph "while_react_loop" {
+digraph "react_agent" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -11,7 +11,7 @@ digraph "while_react_loop" {
     start_react_agent [label="start_react_agent", fillcolor=palegreen];
 
     start_react_agent -> router_react_agent_line_14_while_1;
-    router_react_agent_line_16_if_2 -> execute_tool [label="p.get('tool_calls')"];
+    router_react_agent_line_16_if_2 -> execute_tool [label="p.get('tool_calls')", color="#2E8B57", fontcolor="#2E8B57"];
     router_react_agent_line_14_while_1 -> llm_call;
     llm_call -> router_react_agent_line_16_if_2;
     execute_tool -> router_react_agent_line_14_while_1;

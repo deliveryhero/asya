@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_all_empty_branches",
+  "flow_name": "if_empty_branches_flow",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -48,7 +48,7 @@
     {
       "from": "router_if_empty_branches_flow_line_14_if_1",
       "to": "handler_finalize",
-      "label": "not (p['skip_processing'])",
+      "label": "else",
       "type": "prepend"
     }
   ],

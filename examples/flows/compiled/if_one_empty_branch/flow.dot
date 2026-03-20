@@ -1,4 +1,4 @@
-digraph "if_one_empty_branch" {
+digraph "if_empty_branches_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -14,8 +14,8 @@ digraph "if_one_empty_branch" {
 
     start_if_empty_branches_flow -> handler_setup;
     handler_setup -> router_if_empty_branches_flow_line_14_if_1;
-    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="p['skip_processing']"];
-    router_if_empty_branches_flow_line_14_if_1 -> handler_process [label="not (p['skip_processing'])"];
+    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="p['skip_processing']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_empty_branches_flow_line_14_if_1 -> handler_process [label="else", color="#E07040", fontcolor="#E07040"];
     handler_process -> handler_finalize;
     handler_finalize -> __end__;
 }

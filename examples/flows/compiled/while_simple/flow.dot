@@ -1,4 +1,4 @@
-digraph "while_simple" {
+digraph "while_simple_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -17,8 +17,8 @@ digraph "while_simple" {
     start_while_simple_flow -> handler_init;
     handler_init -> router_while_simple_flow_line_13_seq_3;
     router_while_simple_flow_line_15_seq_2 -> handler_process;
-    router_while_simple_flow_line_14_while_1 -> router_while_simple_flow_line_15_seq_2 [label="p['i'] < p['max_iterations']"];
-    router_while_simple_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
+    router_while_simple_flow_line_14_while_1 -> router_while_simple_flow_line_15_seq_2 [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_simple_flow_line_14_while_1 -> handler_finalize [label="else", color="#E07040", fontcolor="#E07040"];
     router_while_simple_flow_line_13_seq_3 -> router_while_simple_flow_line_14_while_1;
     handler_process -> router_while_simple_flow_line_14_while_1;
     handler_finalize -> __end__;

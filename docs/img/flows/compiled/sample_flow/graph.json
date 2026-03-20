@@ -80,7 +80,7 @@
     {
       "from": "router_sample_flow_line_5_if_3",
       "to": "handler_type_b",
-      "label": "not (p['type'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {

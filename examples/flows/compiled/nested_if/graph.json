@@ -1,27 +1,27 @@
 {
-  "flow_name": "nested_if",
+  "flow_name": "nested_if_flow",
   "nodes": [
     {
       "id": "handler_a_x",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "handler_a_x",
       "is_generated": false
     },
     {
       "id": "handler_a_y",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "handler_a_y",
       "is_generated": false
     },
     {
       "id": "handler_b_x",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "handler_b_x",
       "is_generated": false
     },
     {
       "id": "handler_b_y",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "handler_b_y",
       "is_generated": false
     },
@@ -126,7 +126,7 @@
     {
       "from": "router_nested_if_flow_line_16_if_3",
       "to": "router_nested_if_flow_line_20_seq_2",
-      "label": "not (p['level2'] == 'X')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -150,7 +150,7 @@
     {
       "from": "router_nested_if_flow_line_24_if_6",
       "to": "router_nested_if_flow_line_28_seq_5",
-      "label": "not (p['level2'] == 'X')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -162,29 +162,29 @@
     {
       "from": "router_nested_if_flow_line_14_if_7",
       "to": "router_nested_if_flow_line_24_if_6",
-      "label": "not (p['level1'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_17_seq_1",
+      "from": "handler_a_x",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_nested_if_flow_line_20_seq_2",
+      "from": "handler_a_y",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_nested_if_flow_line_25_seq_4",
+      "from": "handler_b_x",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_nested_if_flow_line_28_seq_5",
+      "from": "handler_b_y",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"

@@ -13,7 +13,7 @@ digraph "research_flow" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_research_flow -> router_research_flow_line_7_fanout_1;
-    router_research_flow_line_7_fanout_1 -> fanin_research_flow_line_7 [label="fanout: p['topics']"];
+    router_research_flow_line_7_fanout_1 -> fanin_research_flow_line_7 [label="fanout: p['topics']", color="#2E8B57", fontcolor="#2E8B57"];
     fanin_research_flow_line_7 -> summarizer;
     router_research_flow_line_7_fanout_1 -> research_agent;
     research_agent -> fanin_research_flow_line_7;

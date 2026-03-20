@@ -1,18 +1,16 @@
-digraph "decorator_definitions" {
+digraph "decorator_definitions_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
     { rank=source; start_decorator_definitions_flow; }
 
     enrich [label="enrich", fillcolor=lightblue];
-    router_decorator_definitions_flow_line_27_seq_1 [label="router_decorator_definitions_flow_line_27_seq_1", fillcolor=wheat];
     start_decorator_definitions_flow [label="start_decorator_definitions_flow", fillcolor=palegreen];
     validate [label="validate", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_decorator_definitions_flow -> router_decorator_definitions_flow_line_27_seq_1;
-    router_decorator_definitions_flow_line_27_seq_1 -> validate;
+    start_decorator_definitions_flow -> validate;
     validate -> enrich;
     enrich -> __end__;
 }

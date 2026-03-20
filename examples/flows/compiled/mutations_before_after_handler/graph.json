@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_before_after_handler",
+  "flow_name": "mutations_before_after_handler_flow",
   "nodes": [
     {
       "id": "handler_a",
@@ -12,13 +12,6 @@
       "flow_role": "processor",
       "label": "handler_b",
       "is_generated": false
-    },
-    {
-      "id": "router_mutations_before_after_handler_flow_line_13_seq_3",
-      "flow_role": "router",
-      "label": "router_mutations_before_after_handler_flow_line_13_seq_3",
-      "is_generated": true,
-      "mutations": ["p['step'] = 1"]
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_15_seq_2",
@@ -38,15 +31,22 @@
       "id": "start_mutations_before_after_handler_flow",
       "flow_role": "entrypoint",
       "label": "start_mutations_before_after_handler_flow",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['step'] = 1"]
     }
   ],
   "edges": [
     {
       "from": "start_mutations_before_after_handler_flow",
-      "to": "router_mutations_before_after_handler_flow_line_13_seq_3",
+      "to": "handler_a",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "handler_a",
+      "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_mutations_before_after_handler_flow_line_15_seq_2",
@@ -57,18 +57,6 @@
     {
       "from": "handler_b",
       "to": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_mutations_before_after_handler_flow_line_13_seq_3",
-      "to": "handler_a",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "handler_a",
-      "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
       "label": null,
       "type": "continuation"
     }

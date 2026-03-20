@@ -1,11 +1,10 @@
-digraph "inline_comment_overrides" {
+digraph "order_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
     { rank=source; start_order_pipeline; }
 
     charge_payment [label="charge_payment", fillcolor=lightblue];
-    router_order_pipeline_line_27_seq_3 [label="router_order_pipeline_line_27_seq_3", fillcolor=wheat];
     router_order_pipeline_line_32_if_2 [label="router_order_pipeline_line_32_if_2", fillcolor=wheat];
     router_order_pipeline_line_33_seq_1 [label="router_order_pipeline_line_33_seq_1\n\np['status'] = 'rejected'", fillcolor=wheat];
     start_order_pipeline [label="start_order_pipeline", fillcolor=palegreen];
@@ -13,11 +12,10 @@ digraph "inline_comment_overrides" {
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_order_pipeline -> router_order_pipeline_line_27_seq_3;
-    router_order_pipeline_line_32_if_2 -> charge_payment [label="not (p.get('fraud_score', 0) > 0.8)"];
-    router_order_pipeline_line_32_if_2 -> router_order_pipeline_line_33_seq_1 [label="p.get('fraud_score', 0) > 0.8"];
-    router_order_pipeline_line_27_seq_3 -> validate_order;
+    start_order_pipeline -> validate_order;
     validate_order -> router_order_pipeline_line_32_if_2;
+    router_order_pipeline_line_32_if_2 -> charge_payment [label="else", color="#E07040", fontcolor="#E07040"];
+    router_order_pipeline_line_32_if_2 -> router_order_pipeline_line_33_seq_1 [label="p.get('fraud_score', 0) > 0.8", color="#2E8B57", fontcolor="#2E8B57"];
     charge_payment -> __end__;
     router_order_pipeline_line_33_seq_1 -> __end__;
 }

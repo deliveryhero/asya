@@ -1,4 +1,4 @@
-digraph "while_true_simple" {
+digraph "while_true_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -15,7 +15,7 @@ digraph "while_true_simple" {
 
     start_while_true_flow -> handler_init;
     handler_init -> router_while_true_flow_line_14_while_1;
-    router_while_true_flow_line_16_if_2 -> handler_finalize [label="p.get('done', False)"];
+    router_while_true_flow_line_16_if_2 -> handler_finalize [label="p.get('done', False)", color="#2E8B57", fontcolor="#2E8B57"];
     router_while_true_flow_line_14_while_1 -> handler_process;
     handler_process -> router_while_true_flow_line_16_if_2;
     router_while_true_flow_line_16_if_2 -> router_while_true_flow_line_14_while_1;

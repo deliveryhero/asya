@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_conditional",
+  "flow_name": "adaptive_flow",
   "nodes": [
     {
       "id": "classifier",
@@ -114,7 +114,7 @@
     {
       "from": "router_adaptive_flow_line_16_if_2",
       "to": "sequential_analyzer",
-      "label": "not (p['parallel'])",
+      "label": "else",
       "type": "prepend"
     },
     {

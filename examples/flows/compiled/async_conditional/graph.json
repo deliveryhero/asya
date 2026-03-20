@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_conditional",
+  "flow_name": "content_pipeline_flow",
   "nodes": [
     {
       "id": "classifier",
@@ -72,7 +72,7 @@
     {
       "from": "router_content_pipeline_flow_line_18_if_1",
       "to": "generic_processor",
-      "label": "not (p['content_type'] == 'image')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -90,7 +90,7 @@
     {
       "from": "router_content_pipeline_flow_line_16_if_2",
       "to": "router_content_pipeline_flow_line_18_if_1",
-      "label": "not (p['content_type'] == 'text')",
+      "label": "else",
       "type": "prepend"
     },
     {

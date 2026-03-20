@@ -1,18 +1,11 @@
 {
-  "flow_name": "mutations_with_handler",
+  "flow_name": "mutations_with_handler_flow",
   "nodes": [
     {
       "id": "handler_process",
       "flow_role": "processor",
       "label": "handler_process",
       "is_generated": false
-    },
-    {
-      "id": "router_mutations_with_handler_flow_line_13_seq_2",
-      "flow_role": "router",
-      "label": "router_mutations_with_handler_flow_line_13_seq_2",
-      "is_generated": true,
-      "mutations": ["p['initialized'] = True", "p['step'] = 1", "p['count'] = 0"]
     },
     {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
@@ -25,18 +18,13 @@
       "id": "start_mutations_with_handler_flow",
       "flow_role": "entrypoint",
       "label": "start_mutations_with_handler_flow",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['initialized'] = True", "p['step'] = 1", "p['count'] = 0"]
     }
   ],
   "edges": [
     {
       "from": "start_mutations_with_handler_flow",
-      "to": "router_mutations_with_handler_flow_line_13_seq_2",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_mutations_with_handler_flow_line_13_seq_2",
       "to": "handler_process",
       "label": null,
       "type": "prepend"

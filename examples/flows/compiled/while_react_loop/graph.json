@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_react_loop",
+  "flow_name": "react_agent",
   "nodes": [
     {
       "id": "execute_tool",

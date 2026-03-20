@@ -32,13 +32,6 @@
       "is_generated": false
     },
     {
-      "id": "router_human_in_the_loop_line_58_seq_7",
-      "flow_role": "router",
-      "label": "router_human_in_the_loop_line_58_seq_7",
-      "is_generated": true,
-      "mutations": ["p['attempt'] = 0"]
-    },
-    {
       "id": "router_human_in_the_loop_line_60_while_1",
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_60_while_1",
@@ -80,13 +73,14 @@
       "id": "start_human_in_the_loop",
       "flow_role": "entrypoint",
       "label": "start_human_in_the_loop",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['attempt'] = 0"]
     }
   ],
   "edges": [
     {
       "from": "start_human_in_the_loop",
-      "to": "router_human_in_the_loop_line_58_seq_7",
+      "to": "router_human_in_the_loop_line_60_while_1",
       "label": null,
       "type": "prepend"
     },
@@ -111,7 +105,7 @@
     {
       "from": "router_human_in_the_loop_line_70_if_5",
       "to": "router_human_in_the_loop_line_75_if_4",
-      "label": "not (p.get('approval') in ('approved', 'modified'))",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -151,19 +145,13 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_58_seq_7",
-      "to": "router_human_in_the_loop_line_60_while_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
       "from": "revision_agent",
       "to": "router_human_in_the_loop_line_79_if_3",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_70_if_5",
+      "from": "router_human_in_the_loop_line_79_if_3",
       "to": "router_human_in_the_loop_line_60_while_1",
       "label": null,
       "type": "continuation"

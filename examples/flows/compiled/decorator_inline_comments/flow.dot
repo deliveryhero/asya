@@ -1,4 +1,4 @@
-digraph "decorator_inline_comments" {
+digraph "decorator_inline_comments_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -6,18 +6,16 @@ digraph "decorator_inline_comments" {
 
     classifier [label="classifier", fillcolor=lightblue];
     fast_handler [label="fast_handler", fillcolor=lightblue];
-    router_decorator_inline_comments_flow_line_16_seq_2 [label="router_decorator_inline_comments_flow_line_16_seq_2", fillcolor=wheat];
     router_decorator_inline_comments_flow_line_18_if_1 [label="router_decorator_inline_comments_flow_line_18_if_1", fillcolor=wheat];
     standard_handler [label="standard_handler", fillcolor=lightblue];
     start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_decorator_inline_comments_flow -> router_decorator_inline_comments_flow_line_16_seq_2;
-    router_decorator_inline_comments_flow_line_18_if_1 -> fast_handler [label="p['category'] == 'priority'"];
-    router_decorator_inline_comments_flow_line_18_if_1 -> standard_handler [label="not (p['category'] == 'priority')"];
-    router_decorator_inline_comments_flow_line_16_seq_2 -> classifier;
+    start_decorator_inline_comments_flow -> classifier;
     classifier -> router_decorator_inline_comments_flow_line_18_if_1;
+    router_decorator_inline_comments_flow_line_18_if_1 -> fast_handler [label="p['category'] == 'priority'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_decorator_inline_comments_flow_line_18_if_1 -> standard_handler [label="else", color="#E07040", fontcolor="#E07040"];
     fast_handler -> __end__;
     standard_handler -> __end__;
 }

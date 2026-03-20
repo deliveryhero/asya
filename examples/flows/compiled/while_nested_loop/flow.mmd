@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: while_nested_loop
+    %% Flow: nested_loop_flow
 
     finalize_loop_i[finalize_loop_i]
     finalize_loop_j[finalize_loop_j]
@@ -16,13 +16,13 @@ flowchart TD
     start_nested_loop_flow --> initialize
     initialize --> router_nested_loop_flow_line_15_seq_5
     router_nested_loop_flow_line_20_seq_3 --> process_item
-    router_nested_loop_flow_line_19_while_2 -->|p['j'] < p['max_j']| router_nested_loop_flow_line_20_seq_3
-    router_nested_loop_flow_line_19_while_2 -->|not (p['j'] < p['max_j'])| finalize_loop_j
+    router_nested_loop_flow_line_19_while_2 -->|"p['j'] < p['max_j']"| router_nested_loop_flow_line_20_seq_3
+    router_nested_loop_flow_line_19_while_2 -->|"else"| finalize_loop_j
     router_nested_loop_flow_line_17_seq_4 --> router_nested_loop_flow_line_19_while_2
-    router_nested_loop_flow_line_16_while_1 -->|p['i'] < p['max_i']| router_nested_loop_flow_line_17_seq_4
-    router_nested_loop_flow_line_16_while_1 -->|not (p['i'] < p['max_i'])| finalize_loop_i
+    router_nested_loop_flow_line_16_while_1 -->|"p['i'] < p['max_i']"| router_nested_loop_flow_line_17_seq_4
+    router_nested_loop_flow_line_16_while_1 -->|"else"| finalize_loop_i
     router_nested_loop_flow_line_15_seq_5 --> router_nested_loop_flow_line_16_while_1
     process_item --> router_nested_loop_flow_line_19_while_2
-    router_nested_loop_flow_line_19_while_2 --> router_nested_loop_flow_line_16_while_1
+    router_nested_loop_flow_line_20_seq_3 --> router_nested_loop_flow_line_16_while_1
     finalize_loop_i --> __end__
     finalize_loop_j --> __end__

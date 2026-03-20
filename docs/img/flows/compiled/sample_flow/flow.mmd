@@ -14,8 +14,8 @@ flowchart TD
     start_sample_flow --> handler_setup
     handler_setup --> router_sample_flow_line_5_if_3
     router_sample_flow_line_6_seq_1 --> handler_type_a
-    router_sample_flow_line_5_if_3 -->|p['type'] == 'A'| router_sample_flow_line_6_seq_1
-    router_sample_flow_line_5_if_3 -->|not (p['type'] == 'A')| handler_type_b
+    router_sample_flow_line_5_if_3 -->|"p['type'] == 'A'"| router_sample_flow_line_6_seq_1
+    router_sample_flow_line_5_if_3 -->|"else"| handler_type_b
     handler_type_b --> router_sample_flow_line_10_seq_2
     router_sample_flow_line_10_seq_2 --> handler_finalize
     handler_type_a --> handler_finalize

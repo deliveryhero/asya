@@ -1,4 +1,4 @@
-digraph "typed_dict_pipeline" {
+digraph "typeddict_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -17,9 +17,9 @@ digraph "typed_dict_pipeline" {
     start_typeddict_pipeline -> parser;
     parser -> validator;
     validator -> router_typeddict_pipeline_line_77_if_1;
-    router_typeddict_pipeline_line_77_if_1 -> transformer [label="not (not p.get('valid', True))"];
+    router_typeddict_pipeline_line_77_if_1 -> transformer [label="else", color="#E07040", fontcolor="#E07040"];
     transformer -> sink_adapter;
-    router_typeddict_pipeline_line_77_if_1 -> error_handler [label="not p.get('valid', True)"];
+    router_typeddict_pipeline_line_77_if_1 -> error_handler [label="not p.get('valid', True)", color="#2E8B57", fontcolor="#2E8B57"];
     error_handler -> __end__;
     sink_adapter -> __end__;
 }

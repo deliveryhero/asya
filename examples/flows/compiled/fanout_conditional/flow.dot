@@ -1,4 +1,4 @@
-digraph "fanout_conditional" {
+digraph "adaptive_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -18,14 +18,14 @@ digraph "fanout_conditional" {
 
     start_adaptive_flow -> classifier;
     classifier -> router_adaptive_flow_line_16_if_2;
-    router_adaptive_flow_line_17_fanout_1 -> fanin_adaptive_flow_line_17 [label="fanout"];
+    router_adaptive_flow_line_17_fanout_1 -> fanin_adaptive_flow_line_17 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
     router_adaptive_flow_line_17_fanout_1 -> fast_analyzer;
     fast_analyzer -> fanin_adaptive_flow_line_17;
     router_adaptive_flow_line_17_fanout_1 -> deep_analyzer;
     deep_analyzer -> fanin_adaptive_flow_line_17;
-    router_adaptive_flow_line_16_if_2 -> router_adaptive_flow_line_17_fanout_1 [label="p['parallel']"];
+    router_adaptive_flow_line_16_if_2 -> router_adaptive_flow_line_17_fanout_1 [label="p['parallel']", color="#2E8B57", fontcolor="#2E8B57"];
     router_adaptive_flow_line_17_fanout_1 -> formatter;
-    router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="not (p['parallel'])"];
+    router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="else", color="#E07040", fontcolor="#E07040"];
     sequential_analyzer -> formatter;
     fanin_adaptive_flow_line_17 -> formatter;
     formatter -> __end__;

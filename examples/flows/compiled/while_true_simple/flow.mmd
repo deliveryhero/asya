@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: while_true_simple
+    %% Flow: while_true_flow
 
     handler_finalize[handler_finalize]
     handler_init[handler_init]
@@ -11,7 +11,7 @@ flowchart TD
 
     start_while_true_flow --> handler_init
     handler_init --> router_while_true_flow_line_14_while_1
-    router_while_true_flow_line_16_if_2 -->|p.get('done', False)| handler_finalize
+    router_while_true_flow_line_16_if_2 -->|"p.get('done', False)"| handler_finalize
     router_while_true_flow_line_14_while_1 --> handler_process
     handler_process --> router_while_true_flow_line_16_if_2
     router_while_true_flow_line_16_if_2 --> router_while_true_flow_line_14_while_1

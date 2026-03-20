@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "account_agent",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "account_agent",
       "is_generated": false
     },
@@ -27,7 +27,7 @@
     },
     {
       "id": "general_agent",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "general_agent",
       "is_generated": false
     },
@@ -84,7 +84,7 @@
     {
       "from": "router_routing_classifier_line_51_if_1",
       "to": "general_agent",
-      "label": "not (p.get('category') == 'account')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -96,7 +96,7 @@
     {
       "from": "router_routing_classifier_line_49_if_2",
       "to": "router_routing_classifier_line_51_if_1",
-      "label": "not (p.get('category') == 'technical')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -114,7 +114,7 @@
     {
       "from": "router_routing_classifier_line_47_if_3",
       "to": "router_routing_classifier_line_49_if_2",
-      "label": "not (p.get('category') == 'billing')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -124,7 +124,13 @@
       "type": "continuation"
     },
     {
-      "from": "router_routing_classifier_line_51_if_1",
+      "from": "account_agent",
+      "to": "format_reply",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "general_agent",
       "to": "format_reply",
       "label": null,
       "type": "continuation"

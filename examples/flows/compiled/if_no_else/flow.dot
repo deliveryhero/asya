@@ -1,4 +1,4 @@
-digraph "if_no_else" {
+digraph "if_no_else_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -13,6 +13,6 @@ digraph "if_no_else" {
 
     start_if_no_else_flow -> handler_setup;
     handler_setup -> router_if_no_else_flow_line_14_if_1;
-    router_if_no_else_flow_line_14_if_1 -> handler_true [label="p['condition']"];
+    router_if_no_else_flow_line_14_if_1 -> handler_true [label="p['condition']", color="#2E8B57", fontcolor="#2E8B57"];
     handler_true -> __end__;
 }

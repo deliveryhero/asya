@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: typed_dict_pipeline
+    %% Flow: typeddict_pipeline
 
     error_handler[error_handler]
     parser[parser]
@@ -13,8 +13,8 @@ flowchart TD
     start_typeddict_pipeline --> parser
     parser --> validator
     validator --> router_typeddict_pipeline_line_77_if_1
-    router_typeddict_pipeline_line_77_if_1 -->|not (not p.get('valid', True))| transformer
+    router_typeddict_pipeline_line_77_if_1 -->|"else"| transformer
     transformer --> sink_adapter
-    router_typeddict_pipeline_line_77_if_1 -->|not p.get('valid', True)| error_handler
+    router_typeddict_pipeline_line_77_if_1 -->|"not p.get('valid', True)"| error_handler
     error_handler --> __end__
     sink_adapter --> __end__

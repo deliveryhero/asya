@@ -20,13 +20,6 @@
       "is_generated": false
     },
     {
-      "id": "router_research_and_refine_line_47_seq_5",
-      "flow_role": "router",
-      "label": "router_research_and_refine_line_47_seq_5",
-      "is_generated": true,
-      "mutations": ["p['iteration'] = 0", "p['search_query'] = p.get('question', '')"]
-    },
-    {
       "id": "router_research_and_refine_line_50_while_1",
       "flow_role": "router",
       "label": "router_research_and_refine_line_50_while_1",
@@ -55,7 +48,8 @@
       "id": "start_research_and_refine",
       "flow_role": "entrypoint",
       "label": "start_research_and_refine",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['search_query'] = p.get('question', '')"]
     },
     {
       "id": "write_report",
@@ -67,7 +61,7 @@
   "edges": [
     {
       "from": "start_research_and_refine",
-      "to": "router_research_and_refine_line_47_seq_5",
+      "to": "router_research_and_refine_line_50_while_1",
       "label": null,
       "type": "prepend"
     },
@@ -80,7 +74,7 @@
     {
       "from": "router_research_and_refine_line_55_if_3",
       "to": "refine_query",
-      "label": "not (not p.get('gaps') or p.get('quality_score', 0) >= 85)",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -120,13 +114,7 @@
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_47_seq_5",
-      "to": "router_research_and_refine_line_50_while_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_research_and_refine_line_55_if_3",
+      "from": "router_research_and_refine_line_59_if_2",
       "to": "router_research_and_refine_line_50_while_1",
       "label": null,
       "type": "continuation"

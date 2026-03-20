@@ -1,4 +1,4 @@
-digraph "with_asyncio_timeout" {
+digraph "document_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -6,22 +6,20 @@ digraph "with_asyncio_timeout" {
 
     language_detector [label="language_detector", fillcolor=lightblue];
     ocr_extractor [label="ocr_extractor", fillcolor=lightblue];
-    router_document_pipeline_line_18_seq_3 [label="router_document_pipeline_line_18_seq_3\n\np['status'] = 'processing'", fillcolor=wheat];
     router_document_pipeline_line_24_if_2 [label="router_document_pipeline_line_24_if_2", fillcolor=wheat];
     router_document_pipeline_line_28_seq_1 [label="router_document_pipeline_line_28_seq_1\n\np['status'] = 'done'", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
-    start_document_pipeline [label="start_document_pipeline", fillcolor=palegreen];
+    start_document_pipeline [label="start_document_pipeline\n\np['status'] = 'processing'", fillcolor=palegreen];
     translator [label="translator", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_document_pipeline -> router_document_pipeline_line_18_seq_3;
-    router_document_pipeline_line_24_if_2 -> translator [label="p.get('language') != 'en'"];
-    translator -> sentiment_analyzer;
-    sentiment_analyzer -> router_document_pipeline_line_28_seq_1;
-    router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="not (p.get('language') != 'en')"];
-    router_document_pipeline_line_18_seq_3 -> ocr_extractor;
+    start_document_pipeline -> ocr_extractor;
     ocr_extractor -> language_detector;
     language_detector -> router_document_pipeline_line_24_if_2;
+    router_document_pipeline_line_24_if_2 -> translator [label="p.get('language') != 'en'", color="#2E8B57", fontcolor="#2E8B57"];
+    translator -> sentiment_analyzer;
+    sentiment_analyzer -> router_document_pipeline_line_28_seq_1;
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="else", color="#E07040", fontcolor="#E07040"];
     router_document_pipeline_line_28_seq_1 -> __end__;
 }

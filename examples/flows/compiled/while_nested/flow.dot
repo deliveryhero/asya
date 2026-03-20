@@ -1,4 +1,4 @@
-digraph "while_nested" {
+digraph "while_nested_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -22,16 +22,16 @@ digraph "while_nested" {
     start_while_nested_flow -> handler_init;
     handler_init -> router_while_nested_flow_line_13_seq_6;
     router_while_nested_flow_line_19_seq_3 -> handler_inner;
-    router_while_nested_flow_line_18_while_2 -> router_while_nested_flow_line_19_seq_3 [label="p['j'] < p['max_j']"];
-    router_while_nested_flow_line_18_while_2 -> handler_outer_end [label="not (p['j'] < p['max_j'])"];
+    router_while_nested_flow_line_18_while_2 -> router_while_nested_flow_line_19_seq_3 [label="p['j'] < p['max_j']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_nested_flow_line_18_while_2 -> handler_outer_end [label="else", color="#E07040", fontcolor="#E07040"];
     router_while_nested_flow_line_17_seq_4 -> router_while_nested_flow_line_18_while_2;
     router_while_nested_flow_line_15_seq_5 -> handler_outer;
     handler_outer -> router_while_nested_flow_line_17_seq_4;
-    router_while_nested_flow_line_14_while_1 -> router_while_nested_flow_line_15_seq_5 [label="p['i'] < p['max_i']"];
-    router_while_nested_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_i'])"];
+    router_while_nested_flow_line_14_while_1 -> router_while_nested_flow_line_15_seq_5 [label="p['i'] < p['max_i']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_nested_flow_line_14_while_1 -> handler_finalize [label="else", color="#E07040", fontcolor="#E07040"];
     router_while_nested_flow_line_13_seq_6 -> router_while_nested_flow_line_14_while_1;
     handler_inner -> router_while_nested_flow_line_18_while_2;
-    router_while_nested_flow_line_17_seq_4 -> router_while_nested_flow_line_14_while_1;
+    router_while_nested_flow_line_18_while_2 -> router_while_nested_flow_line_14_while_1;
     handler_finalize -> __end__;
     handler_outer_end -> __end__;
 }

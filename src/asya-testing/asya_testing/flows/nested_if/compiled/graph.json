@@ -9,25 +9,25 @@
     },
     {
       "id": "route_a_x",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "route_a_x",
       "is_generated": false
     },
     {
       "id": "route_a_y",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "route_a_y",
       "is_generated": false
     },
     {
       "id": "route_b_x",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "route_b_x",
       "is_generated": false
     },
     {
       "id": "route_b_y",
-      "flow_role": "exitpoint",
+      "flow_role": "processor",
       "label": "route_b_y",
       "is_generated": false
     },
@@ -126,7 +126,7 @@
     {
       "from": "router_test_nested_flow_line_11_if_3",
       "to": "router_test_nested_flow_line_15_seq_2",
-      "label": "not (p['level2'] == 'X')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -150,7 +150,7 @@
     {
       "from": "router_test_nested_flow_line_19_if_6",
       "to": "router_test_nested_flow_line_23_seq_5",
-      "label": "not (p['level2'] == 'X')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -162,29 +162,29 @@
     {
       "from": "router_test_nested_flow_line_9_if_7",
       "to": "router_test_nested_flow_line_19_if_6",
-      "label": "not (p['level1'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_test_nested_flow_line_12_seq_1",
+      "from": "route_a_x",
       "to": "finalize_result",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_test_nested_flow_line_15_seq_2",
+      "from": "route_a_y",
       "to": "finalize_result",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_test_nested_flow_line_20_seq_4",
+      "from": "route_b_x",
       "to": "finalize_result",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_test_nested_flow_line_23_seq_5",
+      "from": "route_b_y",
       "to": "finalize_result",
       "label": null,
       "type": "continuation"

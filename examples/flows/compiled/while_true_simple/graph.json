@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_true_simple",
+  "flow_name": "while_true_flow",
   "nodes": [
     {
       "id": "handler_finalize",

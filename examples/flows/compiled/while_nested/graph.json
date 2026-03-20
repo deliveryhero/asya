@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_nested",
+  "flow_name": "while_nested_flow",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -106,7 +106,7 @@
     {
       "from": "router_while_nested_flow_line_18_while_2",
       "to": "handler_outer_end",
-      "label": "not (p['j'] < p['max_j'])",
+      "label": "else",
       "type": "set"
     },
     {
@@ -136,7 +136,7 @@
     {
       "from": "router_while_nested_flow_line_14_while_1",
       "to": "handler_finalize",
-      "label": "not (p['i'] < p['max_i'])",
+      "label": "else",
       "type": "set"
     },
     {
@@ -152,7 +152,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_while_nested_flow_line_17_seq_4",
+      "from": "router_while_nested_flow_line_18_while_2",
       "to": "router_while_nested_flow_line_14_while_1",
       "label": null,
       "type": "continuation"

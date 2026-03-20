@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_with_continue",
+  "flow_name": "while_with_continue_flow",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -68,7 +68,7 @@
     {
       "from": "router_while_with_continue_flow_line_16_if_2",
       "to": "handler_process",
-      "label": "not (p['skip_iteration'])",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -80,7 +80,7 @@
     {
       "from": "router_while_with_continue_flow_line_14_while_1",
       "to": "handler_finalize",
-      "label": "not (p['i'] < p['max_iterations'])",
+      "label": "else",
       "type": "set"
     },
     {

@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_with_early_return",
+  "flow_name": "early_return_flow",
   "nodes": [
     {
       "id": "handler_error",
@@ -54,7 +54,7 @@
     {
       "from": "router_early_return_flow_line_14_if_1",
       "to": "handler_process",
-      "label": "not (not p['valid'])",
+      "label": "else",
       "type": "prepend"
     },
     {

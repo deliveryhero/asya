@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_mutations_in_loop",
+  "flow_name": "while_mutations_in_loop_flow",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -87,7 +87,7 @@
     {
       "from": "router_while_mutations_in_loop_flow_line_15_while_1",
       "to": "handler_finalize",
-      "label": "not (p['i'] < p['max_iterations'])",
+      "label": "else",
       "type": "set"
     },
     {

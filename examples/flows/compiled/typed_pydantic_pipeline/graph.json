@@ -1,5 +1,5 @@
 {
-  "flow_name": "typed_pydantic_pipeline",
+  "flow_name": "ingester",
   "nodes": [
     {
       "id": "router_ingester_line_181_seq_1",

@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_inline_comments",
+  "flow_name": "decorator_inline_comments_flow",
   "nodes": [
     {
       "id": "classifier",
@@ -12,12 +12,6 @@
       "flow_role": "exitpoint",
       "label": "fast_handler",
       "is_generated": false
-    },
-    {
-      "id": "router_decorator_inline_comments_flow_line_16_seq_2",
-      "flow_role": "router",
-      "label": "router_decorator_inline_comments_flow_line_16_seq_2",
-      "is_generated": true
     },
     {
       "id": "router_decorator_inline_comments_flow_line_18_if_1",
@@ -41,9 +35,15 @@
   "edges": [
     {
       "from": "start_decorator_inline_comments_flow",
-      "to": "router_decorator_inline_comments_flow_line_16_seq_2",
+      "to": "classifier",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_decorator_inline_comments_flow_line_18_if_1",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_decorator_inline_comments_flow_line_18_if_1",
@@ -54,20 +54,8 @@
     {
       "from": "router_decorator_inline_comments_flow_line_18_if_1",
       "to": "standard_handler",
-      "label": "not (p['category'] == 'priority')",
+      "label": "else",
       "type": "prepend"
-    },
-    {
-      "from": "router_decorator_inline_comments_flow_line_16_seq_2",
-      "to": "classifier",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "classifier",
-      "to": "router_decorator_inline_comments_flow_line_18_if_1",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

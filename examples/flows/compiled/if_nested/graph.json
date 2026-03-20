@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_nested",
+  "flow_name": "conditional_nested_flow",
   "nodes": [
     {
       "id": "handler_a",
@@ -66,7 +66,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_18_seq_3",
-      "flow_role": "exitpoint",
+      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_18_seq_3",
       "is_generated": true,
       "mutations": ["p['x'] += 4"]
@@ -87,7 +87,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_25_seq_7",
-      "flow_role": "exitpoint",
+      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_25_seq_7",
       "is_generated": true,
       "mutations": ["p['x'] += 7"]
@@ -172,7 +172,7 @@
     {
       "from": "router_conditional_nested_flow_line_15_if_6",
       "to": "router_conditional_nested_flow_line_20_seq_5",
-      "label": "not (p['x'] > 2)",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -202,7 +202,7 @@
     {
       "from": "router_conditional_nested_flow_line_12_if_9",
       "to": "router_conditional_nested_flow_line_23_seq_8",
-      "label": "not (p['x'] > 2)",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -226,11 +226,17 @@
     {
       "from": "router_conditional_nested_flow_line_9_if_11",
       "to": "router_conditional_nested_flow_line_27_seq_2",
-      "label": "not (p['a'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_conditional_nested_flow_line_12_if_9",
+      "from": "router_conditional_nested_flow_line_18_seq_3",
+      "to": "router_conditional_nested_flow_line_27_seq_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_25_seq_7",
       "to": "router_conditional_nested_flow_line_27_seq_2",
       "label": null,
       "type": "continuation"

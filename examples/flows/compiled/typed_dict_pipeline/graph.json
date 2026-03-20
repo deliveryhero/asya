@@ -1,5 +1,5 @@
 {
-  "flow_name": "typed_dict_pipeline",
+  "flow_name": "typeddict_pipeline",
   "nodes": [
     {
       "id": "error_handler",
@@ -66,7 +66,7 @@
     {
       "from": "router_typeddict_pipeline_line_77_if_1",
       "to": "transformer",
-      "label": "not (not p.get('valid', True))",
+      "label": "else",
       "type": "prepend"
     },
     {

@@ -11,7 +11,7 @@ flowchart TD
 
     start_map_reduce --> splitter
     splitter --> router_map_reduce_line_55_fanout_1
-    router_map_reduce_line_55_fanout_1 -->|fanout: p['chunks']| fanin_map_reduce_line_55
+    router_map_reduce_line_55_fanout_1 -->|"fanout: p['chunks']"| fanin_map_reduce_line_55
     fanin_map_reduce_line_55 --> reducer
     router_map_reduce_line_55_fanout_1 --> chunk_processor
     chunk_processor --> fanin_map_reduce_line_55

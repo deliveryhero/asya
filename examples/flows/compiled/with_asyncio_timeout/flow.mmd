@@ -1,22 +1,20 @@
 flowchart TD
-    %% Flow: with_asyncio_timeout
+    %% Flow: document_pipeline
 
     language_detector[language_detector]
     ocr_extractor[ocr_extractor]
-    router_document_pipeline_line_18_seq_3{{"router_document_pipeline_line_18_seq_3<br/><br/>p['status'] = 'processing'"}}
     router_document_pipeline_line_24_if_2{{router_document_pipeline_line_24_if_2}}
     router_document_pipeline_line_28_seq_1{{"router_document_pipeline_line_28_seq_1<br/><br/>p['status'] = 'done'"}}
     sentiment_analyzer[sentiment_analyzer]
-    start_document_pipeline([start_document_pipeline])
+    start_document_pipeline(["start_document_pipeline<br/><br/>p['status'] = 'processing'"])
     translator[translator]
     __end__((( )))
 
-    start_document_pipeline --> router_document_pipeline_line_18_seq_3
-    router_document_pipeline_line_24_if_2 -->|p.get('language') != 'en'| translator
-    translator --> sentiment_analyzer
-    sentiment_analyzer --> router_document_pipeline_line_28_seq_1
-    router_document_pipeline_line_24_if_2 -->|not (p.get('language') != 'en')| sentiment_analyzer
-    router_document_pipeline_line_18_seq_3 --> ocr_extractor
+    start_document_pipeline --> ocr_extractor
     ocr_extractor --> language_detector
     language_detector --> router_document_pipeline_line_24_if_2
+    router_document_pipeline_line_24_if_2 -->|"p.get('language') != 'en'"| translator
+    translator --> sentiment_analyzer
+    sentiment_analyzer --> router_document_pipeline_line_28_seq_1
+    router_document_pipeline_line_24_if_2 -->|"else"| sentiment_analyzer
     router_document_pipeline_line_28_seq_1 --> __end__

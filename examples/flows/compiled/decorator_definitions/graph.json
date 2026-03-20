@@ -1,17 +1,11 @@
 {
-  "flow_name": "decorator_definitions",
+  "flow_name": "decorator_definitions_flow",
   "nodes": [
     {
       "id": "enrich",
       "flow_role": "exitpoint",
       "label": "enrich",
       "is_generated": false
-    },
-    {
-      "id": "router_decorator_definitions_flow_line_27_seq_1",
-      "flow_role": "router",
-      "label": "router_decorator_definitions_flow_line_27_seq_1",
-      "is_generated": true
     },
     {
       "id": "start_decorator_definitions_flow",
@@ -29,12 +23,6 @@
   "edges": [
     {
       "from": "start_decorator_definitions_flow",
-      "to": "router_decorator_definitions_flow_line_27_seq_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_decorator_definitions_flow_line_27_seq_1",
       "to": "validate",
       "label": null,
       "type": "prepend"

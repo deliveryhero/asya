@@ -4,24 +4,22 @@ flowchart TD
     critic[critic]
     refine_query[refine_query]
     researcher[researcher]
-    router_research_and_refine_line_47_seq_5{{"router_research_and_refine_line_47_seq_5<br/><br/>p['iteration'] = 0<br/>p['search_query'] = p.get('question', '')"}}
     router_research_and_refine_line_50_while_1{{router_research_and_refine_line_50_while_1}}
     router_research_and_refine_line_51_seq_4{{"router_research_and_refine_line_51_seq_4<br/><br/>p['iteration'] += 1"}}
     router_research_and_refine_line_55_if_3{{router_research_and_refine_line_55_if_3}}
     router_research_and_refine_line_59_if_2{{router_research_and_refine_line_59_if_2}}
-    start_research_and_refine([start_research_and_refine])
+    start_research_and_refine(["start_research_and_refine<br/><br/>p['iteration'] = 0<br/>p['search_query'] = p.get('question', '')"])
     write_report[write_report]
     __end__((( )))
 
-    start_research_and_refine --> router_research_and_refine_line_47_seq_5
-    router_research_and_refine_line_59_if_2 -->|p['iteration'] >= 5| write_report
-    router_research_and_refine_line_55_if_3 -->|not (not p.get('gaps') or p.get('quality_score', 0) >= 85)| refine_query
+    start_research_and_refine --> router_research_and_refine_line_50_while_1
+    router_research_and_refine_line_59_if_2 -->|"p['iteration'] >= 5"| write_report
+    router_research_and_refine_line_55_if_3 -->|"else"| refine_query
     refine_query --> router_research_and_refine_line_59_if_2
-    router_research_and_refine_line_55_if_3 -->|not p.get('gaps') or p.get('quality_score', 0) >= 85| write_report
+    router_research_and_refine_line_55_if_3 -->|"not p.get('gaps') or p.get('quality_score', 0) >= 85"| write_report
     router_research_and_refine_line_51_seq_4 --> researcher
     researcher --> critic
     critic --> router_research_and_refine_line_55_if_3
     router_research_and_refine_line_50_while_1 --> router_research_and_refine_line_51_seq_4
-    router_research_and_refine_line_47_seq_5 --> router_research_and_refine_line_50_while_1
-    router_research_and_refine_line_55_if_3 --> router_research_and_refine_line_50_while_1
+    router_research_and_refine_line_59_if_2 --> router_research_and_refine_line_50_while_1
     write_report --> __end__

@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_mutations_in_branches",
+  "flow_name": "if_mutations_in_branches_flow",
   "nodes": [
     {
       "id": "handler_finalize",
@@ -80,7 +80,7 @@
     {
       "from": "router_if_mutations_in_branches_flow_line_14_if_3",
       "to": "handler_type_b",
-      "label": "not (p['type'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {

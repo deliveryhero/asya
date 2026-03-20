@@ -1,5 +1,5 @@
 {
-  "flow_name": "sequential_with_class",
+  "flow_name": "class_instantiation_flow",
   "nodes": [
     {
       "id": "sequential_with_class.DataPreprocessor.clean",

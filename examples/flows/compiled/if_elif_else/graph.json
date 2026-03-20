@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_elif_else",
+  "flow_name": "if_elif_else_flow",
   "nodes": [
     {
       "id": "handler_default",
@@ -72,7 +72,7 @@
     {
       "from": "router_if_elif_else_flow_line_16_if_1",
       "to": "handler_default",
-      "label": "not (p['type'] == 'B')",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -90,7 +90,7 @@
     {
       "from": "router_if_elif_else_flow_line_14_if_2",
       "to": "router_if_elif_else_flow_line_16_if_1",
-      "label": "not (p['type'] == 'A')",
+      "label": "else",
       "type": "prepend"
     },
     {

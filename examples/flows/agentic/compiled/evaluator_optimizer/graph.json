@@ -20,13 +20,6 @@
       "is_generated": false
     },
     {
-      "id": "router_evaluator_optimizer_line_56_seq_5",
-      "flow_role": "router",
-      "label": "router_evaluator_optimizer_line_56_seq_5",
-      "is_generated": true,
-      "mutations": ["p['iteration'] = 0"]
-    },
-    {
       "id": "router_evaluator_optimizer_line_58_while_1",
       "flow_role": "router",
       "label": "router_evaluator_optimizer_line_58_while_1",
@@ -55,13 +48,14 @@
       "id": "start_evaluator_optimizer",
       "flow_role": "entrypoint",
       "label": "start_evaluator_optimizer",
-      "is_generated": true
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0"]
     }
   ],
   "edges": [
     {
       "from": "start_evaluator_optimizer",
-      "to": "router_evaluator_optimizer_line_56_seq_5",
+      "to": "router_evaluator_optimizer_line_58_while_1",
       "label": null,
       "type": "prepend"
     },
@@ -74,7 +68,7 @@
     {
       "from": "router_evaluator_optimizer_line_68_if_3",
       "to": "router_evaluator_optimizer_line_72_if_2",
-      "label": "not (p.get('score', 0) >= SCORE_THRESHOLD)",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -108,13 +102,7 @@
       "type": "prepend"
     },
     {
-      "from": "router_evaluator_optimizer_line_56_seq_5",
-      "to": "router_evaluator_optimizer_line_58_while_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_evaluator_optimizer_line_68_if_3",
+      "from": "router_evaluator_optimizer_line_72_if_2",
       "to": "router_evaluator_optimizer_line_58_while_1",
       "label": null,
       "type": "continuation"

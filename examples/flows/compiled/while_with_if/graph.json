@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_with_if",
+  "flow_name": "if_inside_while_flow",
   "nodes": [
     {
       "id": "handler_even",
@@ -74,7 +74,7 @@
     {
       "from": "router_if_inside_while_flow_line_16_if_2",
       "to": "handler_odd",
-      "label": "not (p['i'] % 2 == 0)",
+      "label": "else",
       "type": "prepend"
     },
     {
@@ -86,7 +86,7 @@
     {
       "from": "router_if_inside_while_flow_line_14_while_1",
       "to": "handler_finalize",
-      "label": "not (p['i'] < p['max_iterations'])",
+      "label": "else",
       "type": "set"
     },
     {

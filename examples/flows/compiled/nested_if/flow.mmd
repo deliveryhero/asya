@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: nested_if
+    %% Flow: nested_if_flow
 
     handler_a_x[handler_a_x]
     handler_a_y[handler_a_y]
@@ -21,20 +21,16 @@ flowchart TD
     handler_validate --> router_nested_if_flow_line_14_if_7
     router_nested_if_flow_line_17_seq_1 --> handler_a_x
     router_nested_if_flow_line_20_seq_2 --> handler_a_y
-    router_nested_if_flow_line_16_if_3 -->|p['level2'] == 'X'| router_nested_if_flow_line_17_seq_1
-    router_nested_if_flow_line_16_if_3 -->|not (p['level2'] == 'X')| router_nested_if_flow_line_20_seq_2
+    router_nested_if_flow_line_16_if_3 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_17_seq_1
+    router_nested_if_flow_line_16_if_3 -->|"else"| router_nested_if_flow_line_20_seq_2
     router_nested_if_flow_line_25_seq_4 --> handler_b_x
     router_nested_if_flow_line_28_seq_5 --> handler_b_y
-    router_nested_if_flow_line_24_if_6 -->|p['level2'] == 'X'| router_nested_if_flow_line_25_seq_4
-    router_nested_if_flow_line_24_if_6 -->|not (p['level2'] == 'X')| router_nested_if_flow_line_28_seq_5
-    router_nested_if_flow_line_14_if_7 -->|p['level1'] == 'A'| router_nested_if_flow_line_16_if_3
-    router_nested_if_flow_line_14_if_7 -->|not (p['level1'] == 'A')| router_nested_if_flow_line_24_if_6
-    router_nested_if_flow_line_17_seq_1 --> handler_finalize
-    router_nested_if_flow_line_20_seq_2 --> handler_finalize
-    router_nested_if_flow_line_25_seq_4 --> handler_finalize
-    router_nested_if_flow_line_28_seq_5 --> handler_finalize
-    handler_a_x --> __end__
-    handler_a_y --> __end__
-    handler_b_x --> __end__
-    handler_b_y --> __end__
+    router_nested_if_flow_line_24_if_6 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_25_seq_4
+    router_nested_if_flow_line_24_if_6 -->|"else"| router_nested_if_flow_line_28_seq_5
+    router_nested_if_flow_line_14_if_7 -->|"p['level1'] == 'A'"| router_nested_if_flow_line_16_if_3
+    router_nested_if_flow_line_14_if_7 -->|"else"| router_nested_if_flow_line_24_if_6
+    handler_a_x --> handler_finalize
+    handler_a_y --> handler_finalize
+    handler_b_x --> handler_finalize
+    handler_b_y --> handler_finalize
     handler_finalize --> __end__

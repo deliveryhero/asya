@@ -1,4 +1,4 @@
-digraph "fanout_literal" {
+digraph "analysis_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -15,7 +15,7 @@ digraph "fanout_literal" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
-    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout"];
+    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
     fanin_analysis_flow_line_14 -> merge_analysis;
     router_analysis_flow_line_14_fanout_1 -> sentiment_analyzer;
     sentiment_analyzer -> fanin_analysis_flow_line_14;

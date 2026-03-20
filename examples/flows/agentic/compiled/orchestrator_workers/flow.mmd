@@ -4,7 +4,6 @@ flowchart TD
     analysis_worker[analysis_worker]
     data_worker[data_worker]
     orchestrator[orchestrator]
-    router_orchestrator_workers_line_54_seq_8{{"router_orchestrator_workers_line_54_seq_8<br/><br/>p['iteration'] = 0<br/>p['worker_results'] = []"}}
     router_orchestrator_workers_line_57_while_1{{router_orchestrator_workers_line_57_while_1}}
     router_orchestrator_workers_line_58_seq_7{{"router_orchestrator_workers_line_58_seq_7<br/><br/>p['iteration'] += 1"}}
     router_orchestrator_workers_line_62_if_6{{router_orchestrator_workers_line_62_if_6}}
@@ -12,27 +11,25 @@ flowchart TD
     router_orchestrator_workers_line_67_if_4{{router_orchestrator_workers_line_67_if_4}}
     router_orchestrator_workers_line_69_if_3{{router_orchestrator_workers_line_69_if_3}}
     router_orchestrator_workers_line_72_if_2{{router_orchestrator_workers_line_72_if_2}}
-    start_orchestrator_workers([start_orchestrator_workers])
+    start_orchestrator_workers(["start_orchestrator_workers<br/><br/>p['iteration'] = 0<br/>p['worker_results'] = []"])
     synthesizer[synthesizer]
     writing_worker[writing_worker]
     __end__((( )))
 
-    start_orchestrator_workers --> router_orchestrator_workers_line_54_seq_8
-    router_orchestrator_workers_line_72_if_2 -->|p['iteration'] >= 10| synthesizer
-    router_orchestrator_workers_line_69_if_3 -->|p.get('next_action') == 'write'| writing_worker
-    router_orchestrator_workers_line_67_if_4 -->|p.get('next_action') == 'analyze'| analysis_worker
-    router_orchestrator_workers_line_67_if_4 -->|not (p.get('next_action') == 'analyze')| router_orchestrator_workers_line_69_if_3
-    router_orchestrator_workers_line_65_if_5 -->|p.get('next_action') == 'research'| data_worker
+    start_orchestrator_workers --> router_orchestrator_workers_line_57_while_1
+    router_orchestrator_workers_line_72_if_2 -->|"p['iteration'] >= 10"| synthesizer
+    router_orchestrator_workers_line_69_if_3 -->|"p.get('next_action') == 'write'"| writing_worker
+    router_orchestrator_workers_line_67_if_4 -->|"p.get('next_action') == 'analyze'"| analysis_worker
+    router_orchestrator_workers_line_67_if_4 -->|"else"| router_orchestrator_workers_line_69_if_3
+    router_orchestrator_workers_line_65_if_5 -->|"p.get('next_action') == 'research'"| data_worker
     data_worker --> router_orchestrator_workers_line_72_if_2
-    router_orchestrator_workers_line_65_if_5 -->|not (p.get('next_action') == 'research')| router_orchestrator_workers_line_67_if_4
-    router_orchestrator_workers_line_62_if_6 -->|not (p.get('is_complete'))| router_orchestrator_workers_line_65_if_5
-    router_orchestrator_workers_line_62_if_6 -->|p.get('is_complete')| synthesizer
+    router_orchestrator_workers_line_65_if_5 -->|"else"| router_orchestrator_workers_line_67_if_4
+    router_orchestrator_workers_line_62_if_6 -->|"else"| router_orchestrator_workers_line_65_if_5
+    router_orchestrator_workers_line_62_if_6 -->|"p.get('is_complete')"| synthesizer
     router_orchestrator_workers_line_58_seq_7 --> orchestrator
     orchestrator --> router_orchestrator_workers_line_62_if_6
     router_orchestrator_workers_line_57_while_1 --> router_orchestrator_workers_line_58_seq_7
-    router_orchestrator_workers_line_54_seq_8 --> router_orchestrator_workers_line_57_while_1
     analysis_worker --> router_orchestrator_workers_line_72_if_2
-    router_orchestrator_workers_line_69_if_3 --> router_orchestrator_workers_line_72_if_2
-    router_orchestrator_workers_line_62_if_6 --> router_orchestrator_workers_line_57_while_1
+    writing_worker --> router_orchestrator_workers_line_72_if_2
+    router_orchestrator_workers_line_72_if_2 --> router_orchestrator_workers_line_57_while_1
     synthesizer --> __end__
-    writing_worker --> __end__

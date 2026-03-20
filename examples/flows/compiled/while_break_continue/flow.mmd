@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: while_break_continue
+    %% Flow: while_break_continue_flow
 
     handler_check[handler_check]
     handler_finalize[handler_finalize]
@@ -15,14 +15,14 @@ flowchart TD
 
     start_while_break_continue_flow --> handler_init
     handler_init --> router_while_break_continue_flow_line_13_seq_5
-    router_while_break_continue_flow_line_20_if_2 -->|p['stop']| handler_finalize
-    router_while_break_continue_flow_line_17_if_3 -->|p['skip']| router_while_break_continue_flow_line_14_while_1
-    router_while_break_continue_flow_line_17_if_3 -->|not (p['skip'])| handler_process
+    router_while_break_continue_flow_line_20_if_2 -->|"p['stop']"| handler_finalize
+    router_while_break_continue_flow_line_17_if_3 -->|"p['skip']"| router_while_break_continue_flow_line_14_while_1
+    router_while_break_continue_flow_line_17_if_3 -->|"else"| handler_process
     handler_process --> router_while_break_continue_flow_line_20_if_2
     router_while_break_continue_flow_line_15_seq_4 --> handler_check
     handler_check --> router_while_break_continue_flow_line_17_if_3
-    router_while_break_continue_flow_line_14_while_1 -->|p['i'] < p['max_iterations']| router_while_break_continue_flow_line_15_seq_4
-    router_while_break_continue_flow_line_14_while_1 -->|not (p['i'] < p['max_iterations'])| handler_finalize
+    router_while_break_continue_flow_line_14_while_1 -->|"p['i'] < p['max_iterations']"| router_while_break_continue_flow_line_15_seq_4
+    router_while_break_continue_flow_line_14_while_1 -->|"else"| handler_finalize
     router_while_break_continue_flow_line_13_seq_5 --> router_while_break_continue_flow_line_14_while_1
-    router_while_break_continue_flow_line_17_if_3 --> router_while_break_continue_flow_line_14_while_1
+    router_while_break_continue_flow_line_20_if_2 --> router_while_break_continue_flow_line_14_while_1
     handler_finalize --> __end__

@@ -15,8 +15,12 @@ Regenerate by running: asya flow compile ../../with_asyncio_timeout.py
 
 async def start_document_pipeline(payload: dict):
     """Entrypoint for flow 'document_pipeline'"""
+    p = payload
     _next = []
-    _next.append(resolve("router_document_pipeline_line_18_seq_3"))
+    p['status'] = 'processing'
+    _next.append(resolve("ocr_extractor"))
+    _next.append(resolve("language_detector"))
+    _next.append(resolve("router_document_pipeline_line_24_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -37,18 +41,6 @@ async def router_document_pipeline_line_24_if_2(payload: dict):
     else:
         _next.append(resolve("sentiment_analyzer"))
         _next.append(resolve("router_document_pipeline_line_28_seq_1"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_document_pipeline_line_18_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['status'] = 'processing'
-    _next.append(resolve("ocr_extractor"))
-    _next.append(resolve("language_detector"))
-    _next.append(resolve("router_document_pipeline_line_24_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

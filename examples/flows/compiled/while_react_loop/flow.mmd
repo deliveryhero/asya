@@ -1,5 +1,5 @@
 flowchart TD
-    %% Flow: while_react_loop
+    %% Flow: react_agent
 
     execute_tool[execute_tool]
     llm_call[llm_call]
@@ -8,7 +8,7 @@ flowchart TD
     start_react_agent([start_react_agent])
 
     start_react_agent --> router_react_agent_line_14_while_1
-    router_react_agent_line_16_if_2 -->|p.get('tool_calls')| execute_tool
+    router_react_agent_line_16_if_2 -->|"p.get('tool_calls')"| execute_tool
     router_react_agent_line_14_while_1 --> llm_call
     llm_call --> router_react_agent_line_16_if_2
     execute_tool --> router_react_agent_line_14_while_1

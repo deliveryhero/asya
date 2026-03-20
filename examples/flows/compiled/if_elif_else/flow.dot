@@ -1,4 +1,4 @@
-digraph "if_elif_else" {
+digraph "if_elif_else_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -17,11 +17,11 @@ digraph "if_elif_else" {
 
     start_if_elif_else_flow -> handler_validate;
     handler_validate -> router_if_elif_else_flow_line_14_if_2;
-    router_if_elif_else_flow_line_16_if_1 -> handler_type_b [label="p['type'] == 'B'"];
-    router_if_elif_else_flow_line_16_if_1 -> handler_default [label="not (p['type'] == 'B')"];
-    router_if_elif_else_flow_line_14_if_2 -> handler_type_a [label="p['type'] == 'A'"];
+    router_if_elif_else_flow_line_16_if_1 -> handler_type_b [label="p['type'] == 'B'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_elif_else_flow_line_16_if_1 -> handler_default [label="else", color="#E07040", fontcolor="#E07040"];
+    router_if_elif_else_flow_line_14_if_2 -> handler_type_a [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
     handler_type_a -> handler_finalize;
-    router_if_elif_else_flow_line_14_if_2 -> router_if_elif_else_flow_line_16_if_1 [label="not (p['type'] == 'A')"];
+    router_if_elif_else_flow_line_14_if_2 -> router_if_elif_else_flow_line_16_if_1 [label="else", color="#E07040", fontcolor="#E07040"];
     handler_type_b -> handler_finalize;
     handler_default -> handler_finalize;
     handler_finalize -> __end__;
