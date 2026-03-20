@@ -648,6 +648,10 @@
                     <span class="step-number">1</span>
                     <h3>Create cluster</h3>
                     <div class="code-block">kind create cluster --name asya
+
+helm repo add crossplane-stable \
+  https://charts.crossplane.io/stable
+helm repo update crossplane-stable
 helm repo add asya https://asya.sh/charts
 helm repo update asya</div>
                 </div>
@@ -659,18 +663,39 @@ helm repo update asya</div>
   -n crossplane-system \
   --create-namespace --wait
 
+# Phase 1: infrastructure
 helm install asya asya/asya-playground \
   -n asya-demo --create-namespace \
   --set global.transport=sqs \
-  --timeout 600s --wait</div>
+  --timeout 600s --wait
+
+# Phase 2: wait for providers, enable actors
+kubectl wait --for=condition=Healthy \
+  providers/provider-aws-sqs \
+  providers/provider-kubernetes \
+  --timeout=300s
+kubectl wait --for=condition=Established \
+  xrd/xasyncactors.asya.sh --timeout=120s
+
+helm upgrade asya asya/asya-playground \
+  -n asya-demo --reuse-values \
+  --set asya-crossplane.providerConfigs.install=true \
+  --set enableAsyaCrew=true \
+  --set helloActor.enabled=true \
+  --timeout 300s --wait</div>
                 </div>
                 <div class="quickstart-step">
                     <span class="step-number">3</span>
                     <h3>Send a message</h3>
                     <div class="code-block">aws sqs send-message \
-  --endpoint-url http://localstack:4566 \
-  --queue-url .../asya-asya-demo-hello \
-  --message-body '{"id":"1", ...}'
+  --endpoint-url \
+    http://localstack-sqs.asya-demo:4566 \
+  --queue-url \
+    http://localstack-sqs.asya-demo:4566\
+/000000000000/asya-asya-demo-hello \
+  --message-body '{"id":"test-1", \
+    "route":{"prev":[],"curr":"hello",\
+    "next":[]}, "payload":{"name":"Asya"}}'
 
 # KEDA scales hello from 0 to 1
 # Actor processes, routes to x-sink
