@@ -1,19 +1,19 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "f8f1ad31c278d168607cb11ebea0708e50471560",
+  "commit": "48676e7b8b5f25b090e9170910a9bdd60cfdd0b2",
   "coverage": {
     "type": "merged",
     "format": "Merged",
     "total": 7750,
-    "covered": 4000,
+    "covered": 4002,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "normalized_path": "src/asya-sidecar/cmd/sidecar/main.go",
         "total": 246,
-        "covered": 47,
+        "covered": 49,
         "blocks": [
           {
             "type": "statement",
@@ -175,7 +175,7 @@
             "end_line": 98,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -238,7 +238,7 @@
             "end_line": 119,
             "end_col": 26,
             "num_stmt": 2,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -247,7 +247,7 @@
             "end_line": 121,
             "end_col": 5,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -25436,7 +25436,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 31216,
+    "code": 31941,
     "test": 19909,
     "code_files": [
       {
@@ -25444,34 +25444,6 @@
         "comment": 176,
         "blank": 237,
         "path": "deploy/helm-charts/asya-crossplane/files/asya_runtime.py",
-        "language": "Python"
-      },
-      {
-        "code": 62,
-        "comment": 44,
-        "blank": 28,
-        "path": "docs/img/flows/compiled/sample_flow/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 70,
-        "comment": 45,
-        "blank": 29,
-        "path": "docs/img/flows/compiled/text_analysis_flow/routers.py",
-        "language": "Python"
-      },
-      {
-        "code": 12,
-        "comment": 0,
-        "blank": 0,
-        "path": "docs/img/flows/sample_flow.py",
-        "language": "Python"
-      },
-      {
-        "code": 29,
-        "comment": 5,
-        "blank": 9,
-        "path": "docs/img/flows/text_analysis_flow.py",
         "language": "Python"
       },
       {
@@ -25916,6 +25888,20 @@
         "language": "Python"
       },
       {
+        "code": 40,
+        "comment": 41,
+        "blank": 22,
+        "path": "examples/flows/compiled/flow_composition_nested/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 39,
+        "comment": 41,
+        "blank": 22,
+        "path": "examples/flows/compiled/flow_composition_simple/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 46,
         "comment": 42,
         "blank": 24,
@@ -26028,6 +26014,13 @@
         "language": "Python"
       },
       {
+        "code": 62,
+        "comment": 44,
+        "blank": 28,
+        "path": "examples/flows/compiled/sample_flow/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 38,
         "comment": 41,
         "blank": 22,
@@ -26046,6 +26039,13 @@
         "comment": 14,
         "blank": 4,
         "path": "examples/flows/compiled/single_actor/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 70,
+        "comment": 45,
+        "blank": 29,
+        "path": "examples/flows/compiled/text_analysis_flow/routers.py",
         "language": "Python"
       },
       {
@@ -26196,6 +26196,20 @@
         "language": "Python"
       },
       {
+        "code": 62,
+        "comment": 44,
+        "blank": 28,
+        "path": "examples/flows/compiled_docs/sample_flow/routers.py",
+        "language": "Python"
+      },
+      {
+        "code": 77,
+        "comment": 46,
+        "blank": 31,
+        "path": "examples/flows/compiled_docs/text_analysis_flow/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 39,
         "comment": 11,
         "blank": 25,
@@ -26263,6 +26277,20 @@
         "comment": 9,
         "blank": 11,
         "path": "examples/flows/fanout_sequential.py",
+        "language": "Python"
+      },
+      {
+        "code": 27,
+        "comment": 4,
+        "blank": 18,
+        "path": "examples/flows/flow_composition_nested.py",
+        "language": "Python"
+      },
+      {
+        "code": 20,
+        "comment": 4,
+        "blank": 14,
+        "path": "examples/flows/flow_composition_simple.py",
         "language": "Python"
       },
       {
@@ -26378,6 +26406,13 @@
         "language": "Python"
       },
       {
+        "code": 12,
+        "comment": 0,
+        "blank": 0,
+        "path": "examples/flows/sample_flow.py",
+        "language": "Python"
+      },
+      {
         "code": 13,
         "comment": 7,
         "blank": 11,
@@ -26396,6 +26431,13 @@
         "comment": 11,
         "blank": 9,
         "path": "examples/flows/single_actor.py",
+        "language": "Python"
+      },
+      {
+        "code": 29,
+        "comment": 5,
+        "blank": 9,
+        "path": "examples/flows/text_analysis_flow.py",
         "language": "Python"
       },
       {
@@ -26917,9 +26959,9 @@
         "language": "Python"
       },
       {
-        "code": 107,
-        "comment": 20,
-        "blank": 32,
+        "code": 133,
+        "comment": 22,
+        "blank": 37,
         "path": "src/asya-lab/asya_lab/compile_cli.py",
         "language": "Python"
       },
@@ -26994,9 +27036,9 @@
         "language": "Python"
       },
       {
-        "code": 53,
-        "comment": 15,
-        "blank": 22,
+        "code": 55,
+        "comment": 18,
+        "blank": 23,
         "path": "src/asya-lab/asya_lab/flow/__init__.py",
         "language": "Python"
       },
@@ -27015,8 +27057,8 @@
         "language": "Python"
       },
       {
-        "code": 265,
-        "comment": 15,
+        "code": 267,
+        "comment": 16,
         "blank": 64,
         "path": "src/asya-lab/asya_lab/flow/compiler.py",
         "language": "Python"
@@ -27036,9 +27078,9 @@
         "language": "Python"
       },
       {
-        "code": 682,
-        "comment": 35,
-        "blank": 134,
+        "code": 745,
+        "comment": 49,
+        "blank": 146,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
         "language": "Python"
       },
@@ -27141,6 +27183,13 @@
         "language": "Python"
       },
       {
+        "code": 84,
+        "comment": 80,
+        "blank": 17,
+        "path": "src/asya-lab/tests/flow/test_analyzer.py",
+        "language": "Python"
+      },
+      {
         "code": 143,
         "comment": 226,
         "blank": 58,
@@ -27148,10 +27197,31 @@
         "language": "Python"
       },
       {
+        "code": 66,
+        "comment": 79,
+        "blank": 30,
+        "path": "src/asya-lab/tests/flow/test_edge_cases.py",
+        "language": "Python"
+      },
+      {
         "code": 202,
         "comment": 105,
         "blank": 56,
         "path": "src/asya-lab/tests/flow/test_fanout_codegen.py",
+        "language": "Python"
+      },
+      {
+        "code": 117,
+        "comment": 182,
+        "blank": 49,
+        "path": "src/asya-lab/tests/flow/test_flow_composition.py",
+        "language": "Python"
+      },
+      {
+        "code": 79,
+        "comment": 1,
+        "blank": 19,
+        "path": "src/asya-lab/tests/flow/test_graphgen.py",
         "language": "Python"
       },
       {
@@ -27169,9 +27239,9 @@
         "language": "Python"
       },
       {
-        "code": 121,
-        "comment": 142,
-        "blank": 37,
+        "code": 127,
+        "comment": 154,
+        "blank": 40,
         "path": "src/asya-lab/tests/flow/test_parser_directives.py",
         "language": "Python"
       },
@@ -27183,9 +27253,9 @@
         "language": "Python"
       },
       {
-        "code": 47,
-        "comment": 2,
-        "blank": 10,
+        "code": 62,
+        "comment": 8,
+        "blank": 11,
         "path": "src/asya-lab/tests/flow/test_parser_rules.py",
         "language": "Python"
       },
@@ -28257,6 +28327,6 @@
       }
     ]
   },
-  "test_execution_time": 376000000000,
-  "timestamp": "2026-03-20T19:04:58.068436595Z"
+  "test_execution_time": 382000000000,
+  "timestamp": "2026-03-20T21:46:56.942506036Z"
 }
