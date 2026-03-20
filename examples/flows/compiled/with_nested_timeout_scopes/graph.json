@@ -1,0 +1,55 @@
+{
+  "flow_name": "ingestion_pipeline",
+  "nodes": [
+    {
+      "id": "data_fetcher",
+      "label": "data_fetcher"
+    },
+    {
+      "id": "data_parser",
+      "label": "data_parser"
+    },
+    {
+      "id": "data_validator",
+      "label": "data_validator"
+    },
+    {
+      "id": "data_writer",
+      "label": "data_writer",
+      "role": "end"
+    },
+    {
+      "id": "start_ingestion_pipeline",
+      "label": "start_ingestion_pipeline",
+      "role": "start",
+      "generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_ingestion_pipeline",
+      "to": "data_fetcher",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "data_fetcher",
+      "to": "data_parser",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "data_parser",
+      "to": "data_validator",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "data_validator",
+      "to": "data_writer",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

@@ -1,9 +1,9 @@
 """Flow example: asyncio.timeout context manager (treat-as: config).
 
 The compiler strips the `async with asyncio.timeout(...)` wrapper and records
-the timeout value as `ASYA_RESILIENCY_ACTOR_TIMEOUT` metadata.  The generated
-router code contains no `async with` block -- actors in the scope run under the
-timeout configured at the actor level, not inside a Python context manager.
+the timeout value as extracted config with per-scope semantics.  The 30s timeout
+applies to the entire scope (ocr_extractor + language_detector combined), not
+30s per actor individually.
 
 Compile with:
     asya flow compile with_asyncio_timeout.py --output-dir compiled/

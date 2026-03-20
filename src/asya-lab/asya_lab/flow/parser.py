@@ -738,12 +738,21 @@ class FlowParser:
         treat_as = next(iter(treat_as_values))
 
         if treat_as == "config":
+            body_ops = self._parse_body(stmt.body)
+            scope_actors = self._collect_scope_actors(body_ops)
             for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
                 if rule is None:
                     raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
                 extracted_args = self._extract_ctx_args(item.context_expr, rule)
-                self.extracted_configs.append({"symbol": sym, "args": extracted_args})
-            return self._parse_body(stmt.body)
+                self.extracted_configs.append(
+                    {
+                        "symbol": sym,
+                        "args": extracted_args,
+                        "scope_type": "context_manager",
+                        "scope_actors": list(scope_actors),
+                    }
+                )
+            return body_ops
 
         elif treat_as == "inline":
             raise FlowCompileError(
@@ -779,6 +788,22 @@ class FlowParser:
                 extracted[kw.arg] = ast.unparse(kw.value)
 
         return extracted
+
+    @staticmethod
+    def _collect_scope_actors(ops: list[Operation]) -> list[str]:
+        """Collect actor names from operations, recursing into nested structures."""
+        actors: list[str] = []
+        for op in ops:
+            if isinstance(op, ActorCall):
+                actors.append(op.name)
+            elif isinstance(op, Conditional):
+                actors.extend(FlowParser._collect_scope_actors(op.true_branch))
+                actors.extend(FlowParser._collect_scope_actors(op.false_branch))
+            elif isinstance(op, Loop):
+                actors.extend(FlowParser._collect_scope_actors(op.body))
+            elif isinstance(op, FanOut):
+                actors.extend(name for name, _ in op.actor_calls)
+        return actors
 
     def _parse_expr(self, stmt: ast.Expr) -> list[Operation]:
         value = stmt.value

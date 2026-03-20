@@ -142,6 +142,129 @@ class TestConfigRuleWith:
         assert config["symbol"] == "asyncio.timeout"
         assert config["args"]["delay"] == "30"
 
+
+class TestPerScopeSemantics:
+    """Extracted configs carry scope information: scope_type and scope_actors."""
+
+    def test_context_manager_scope_tracks_single_actor(self):
+        """Config from context manager records the actor in its scope."""
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(30):
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+
+        assert len(parser.extracted_configs) == 1
+        config = parser.extracted_configs[0]
+        assert config["scope_type"] == "context_manager"
+        assert config["scope_actors"] == ["handler"]
+
+    def test_context_manager_scope_tracks_multiple_actors(self):
+        """Config from context manager wrapping multiple actors lists all."""
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(30):
+                    p = slow_handler(p)
+                    p = another_handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+
+        assert len(parser.extracted_configs) == 1
+        config = parser.extracted_configs[0]
+        assert config["scope_type"] == "context_manager"
+        assert config["scope_actors"] == ["slow_handler", "another_handler"]
+
+    def test_context_manager_scope_ignores_mutations(self):
+        """Mutations in a context manager body are not counted as scope actors."""
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(30):
+                    p["status"] = "running"
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+
+        config = parser.extracted_configs[0]
+        assert config["scope_actors"] == ["handler"]
+
+    def test_nested_context_managers_have_separate_scopes(self):
+        """Nested context managers each get their own scope_actors."""
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(60):
+                    p = outer_handler(p)
+                    async with asyncio.timeout(10):
+                        p = inner_handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        parser.parse()
+
+        assert len(parser.extracted_configs) == 2
+        # Inner config is appended first (recursion processes it during outer body parsing)
+        inner = parser.extracted_configs[0]
+        outer = parser.extracted_configs[1]
+        assert inner["scope_type"] == "context_manager"
+        assert inner["scope_actors"] == ["inner_handler"]
+        assert inner["args"]["delay"] == "10"
+        assert outer["scope_type"] == "context_manager"
+        assert outer["scope_actors"] == ["outer_handler", "inner_handler"]
+        assert outer["args"]["delay"] == "60"
+
+    def test_multiple_with_items_share_scope(self):
+        """Multiple context managers in one `with` share the same scope_actors."""
+        rules = CompilerRules(
+            {
+                "asyncio.timeout": CompilerRule(
+                    treat_as="config",
+                    extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+                ),
+                "another_config": CompilerRule(treat_as="config", extract={}),
+            }
+        )
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(30), another_config():
+                    p = handler(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py", rules=rules)
+        parser.parse()
+
+        assert len(parser.extracted_configs) == 2
+        for config in parser.extracted_configs:
+            assert config["scope_type"] == "context_manager"
+            assert config["scope_actors"] == ["handler"]
+
+    def test_scope_type_present_in_parse_result(self):
+        """extracted_configs in ParseResult also carry scope info."""
+        source = textwrap.dedent("""
+            @flow
+            async def flow(p: dict) -> dict:
+                async with asyncio.timeout(30):
+                    p = handler_a(p)
+                    p = handler_b(p)
+                return p
+        """)
+        parser = FlowParser(source, "test.py")
+        result = parser.parse()
+
+        config = result.extracted_configs[0]
+        assert config["scope_type"] == "context_manager"
+        assert config["scope_actors"] == ["handler_a", "handler_b"]
+
     def test_sync_with_config_rule(self):
         """Sync `with` also works when rules match."""
         rules = _make_rules(
