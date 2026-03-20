@@ -5,7 +5,8 @@
 **Context**: How the compiler resolves handler functions to container images.
 Emerged from brainstorming session on compiler simplification (see
 `compiler-simplify/rfc.md`).
-
+**Insight summary**: This research doc sits at the intersection of three concerns: **Python import resolution** (how to find the handler's source file), **build system mapping** (which image contains it), and **in-container path translation** (what the import path will be inside the container). The key architectural bet is outsourcing the middle concern to Skaffold rather than maintaining a custom mapping.
+ 
 ---
 
 ## 1. The Two Problems
