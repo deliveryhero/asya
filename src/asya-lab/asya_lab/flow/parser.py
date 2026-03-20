@@ -100,6 +100,7 @@ class ParseResult:
     ignore_decorators: list[str] = field(default_factory=list)
     imports: list[str] = field(default_factory=list)
     constants: list[str] = field(default_factory=list)
+    inline_defs: list[str] = field(default_factory=list)
     is_async: bool = False
     class_methods: set[str] = field(default_factory=set)
     import_map: dict[str, str] = field(default_factory=dict)
@@ -113,6 +114,17 @@ class ParseResult:
 VALID_PARAM_NAMES = ("p", "payload", "state")
 
 _FUNC_DEF_TYPES = (ast.FunctionDef, ast.AsyncFunctionDef)
+
+
+def _strip_decorator(
+    node: ast.FunctionDef | ast.AsyncFunctionDef, decorator_name: str
+) -> ast.FunctionDef | ast.AsyncFunctionDef:
+    """Return a copy of a function node with the named decorator removed."""
+    import copy
+
+    node = copy.deepcopy(node)
+    node.decorator_list = [d for d in node.decorator_list if not (isinstance(d, ast.Name) and d.id == decorator_name)]
+    return node
 
 
 class _ParamNormalizer(ast.NodeTransformer):
@@ -154,6 +166,7 @@ class FlowParser:
         self._source_lines: list[str] = source_code.splitlines()
         self._directives: dict[int, AsyaDirective] = self._extract_directives()
         self._decorator_index: dict[str, str] = {}
+        self._inline_funcs: set[str] = set()
         self._rule_engine: RuleEngine | None = rule_engine
 
     def parse(self) -> ParseResult:
@@ -186,6 +199,7 @@ class FlowParser:
             ast.fix_missing_locations(flow_func)
 
         operations = self._parse_body(flow_func.body)
+        inline_defs = self._collect_inline_defs(tree)
 
         return ParseResult(
             flow_name=self.flow_name,
@@ -194,6 +208,7 @@ class FlowParser:
             extracted_configs=self.extracted_configs,
             imports=list(self.import_map.values()),
             constants=self.module_constants,
+            inline_defs=inline_defs,
             is_async=self.is_async,
             class_methods=self.class_methods.copy(),
             import_map=dict(self.import_map),
@@ -252,6 +267,54 @@ class FlowParser:
                 and isinstance(node.value, ast.Constant)
             ):
                 self.module_constants.append(ast.unparse(node))
+
+    def _collect_inline_defs(self, tree: ast.Module) -> list[str]:
+        """Collect @inline function definitions to include in generated routers.
+
+        Also collects module-level imports used by inline functions so the
+        generated routers.py has all necessary dependencies.
+        """
+        inline_names = set(self._inline_funcs)
+
+        inline_nodes: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
+        for node in tree.body:
+            if isinstance(node, _FUNC_DEF_TYPES) and node.name in inline_names:
+                inline_nodes.append(node)
+
+        if not inline_nodes:
+            return []
+
+        # Collect names referenced by inline functions
+        referenced: set[str] = set()
+        for node in inline_nodes:
+            for child in ast.walk(node):
+                if isinstance(child, ast.Name):
+                    referenced.add(child.id)
+                elif isinstance(child, ast.Attribute) and isinstance(child.value, ast.Name):
+                    referenced.add(child.value.id)
+
+        # Collect matching imports from the source module
+        defs: list[str] = []
+        for node in tree.body:
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    local = alias.asname or alias.name.split(".")[0]
+                    if local in referenced:
+                        defs.append(ast.unparse(node))
+                        break
+            elif isinstance(node, ast.ImportFrom):
+                for alias in node.names:
+                    local = alias.asname or alias.name
+                    if local in referenced:
+                        defs.append(ast.unparse(node))
+                        break
+
+        # Emit stripped inline function definitions
+        for node in inline_nodes:
+            stripped = _strip_decorator(node, "inline")
+            defs.append(ast.unparse(stripped))
+
+        return defs
 
     # -- Flow function detection --
 
@@ -417,14 +480,16 @@ class FlowParser:
 
     def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
         call = stmt.value
-        if isinstance(call, ast.Await):
+        is_await = isinstance(call, ast.Await)
+        if is_await:
+            assert isinstance(call, ast.Await)
             call = call.value
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
 
         # Handle call-site wrappers: actor(handler)(p), inline(fn)(p)
         if isinstance(call.func, ast.Call):
-            return self._parse_wrapper_call(stmt, call)
+            return self._parse_wrapper_call(stmt, call, is_await=is_await)
 
         if isinstance(call.func, ast.Name):
             actor_name = call.func.id
@@ -455,6 +520,7 @@ class FlowParser:
                     f"Supported: {', '.join(sorted(_VALID_DIRECTIVES))}"
                 )
             if directive.treat_as == "inline":
+                self._inline_funcs.add(actor_name)
                 return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
             elif directive.treat_as == "actor":
                 self._actors.append(actor_name)
@@ -466,6 +532,7 @@ class FlowParser:
 
         # Definition-site decorator (lower priority)
         if actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
+            self._inline_funcs.add(actor_name)
             return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
 
         # Rule engine classification (lowest priority)
@@ -475,12 +542,15 @@ class FlowParser:
             qualified_name = self.import_map.get(actor_name, actor_name)
             treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
             if treat_as is not None and treat_as in (TreatAs.INLINE, TreatAs.CONFIG):
+                self._inline_funcs.add(actor_name)
                 return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
 
         self._actors.append(actor_name)
         return ActorCall(lineno=stmt.lineno, name=actor_name)
 
-    def _parse_wrapper_call(self, stmt: ast.Assign, outer_call: ast.Call) -> ActorCall | Mutation:
+    def _parse_wrapper_call(
+        self, stmt: ast.Assign, outer_call: ast.Call, *, is_await: bool = False
+    ) -> ActorCall | Mutation:
         """Parse call-site wrapper patterns: actor(handler)(p), inline(fn)(p)."""
         inner_call = outer_call.func
         if not isinstance(inner_call, ast.Call):
@@ -517,7 +587,13 @@ class FlowParser:
 
         # Determine wrapper type from name suffix
         if wrapper_name.endswith("inline"):
-            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+            # Unwrap: inline(fn)(p) → fn(p). The wrapper is a no-op identity.
+            call_node: ast.expr = ast.Call(func=inner_arg, args=outer_call.args, keywords=outer_call.keywords)
+            if is_await:
+                call_node = ast.Await(value=call_node)
+            unwrapped = ast.unparse(ast.Assign(targets=stmt.targets, value=call_node, lineno=stmt.lineno))
+            self._inline_funcs.add(actor_name)
+            return Mutation(lineno=stmt.lineno, code=unwrapped)
         elif wrapper_name.endswith("flow") or wrapper_name.endswith("unfold"):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Wrapper '{wrapper_name}' is not yet implemented")
 

@@ -312,16 +312,15 @@ def _find_enclosing_condition(parent_map: dict[int, ast.AST], target_node: ast.A
     """Walk up the AST to find the nearest enclosing if condition for a node.
 
     Distinguishes between if-body and else-body: nodes in the else branch
-    get a "not (...)" label to show they take the false path.
+    get an "else" label to show they take the false path.
     """
     current = target_node
     while id(current) in parent_map:
         parent = parent_map[id(current)]
         if isinstance(parent, ast.If):
             test_str = ast.unparse(parent.test)
-            # Determine if current is in the if-body or else-body
             if _node_in_else_branch(parent, current):
-                return f"not ({test_str})"
+                return "else"
             return test_str
         current = parent
     return None
@@ -346,7 +345,17 @@ def _splice_prepend_continuations(edges: list[dict]) -> None:
     - Find the end of each prepend chain (follow continuations from prepend target)
     - Connect chain end → C (continuation)
     - Remove R → C (now routed through the prepend chain)
+
+    Runs iteratively because splicing can create new continuation edges that
+    enable further splicing at deeper nesting levels.
     """
+    for _ in range(20):
+        if not _splice_one_pass(edges):
+            break
+
+
+def _splice_one_pass(edges: list[dict]) -> bool:
+    """Single pass of prepend-continuation splicing. Returns True if changes made."""
     from collections import defaultdict
 
     outgoing: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
@@ -367,16 +376,24 @@ def _splice_prepend_continuations(edges: list[dict]) -> None:
             cont_target = cont_edge["to"]
 
             for prep_edge in prepend_edges:
+                # Skip when prepend goes directly to the continuation target
+                # (e.g., loop-back: if_3 prepends while_1 AND has continuation to while_1)
+                if prep_edge["to"] == cont_target:
+                    continue
                 chain_end = _find_chain_end(prep_edge["to"], edges)
                 if chain_end != cont_target and chain_end != node:
                     edges_to_add.append({"from": chain_end, "to": cont_target, "label": None, "type": "continuation"})
 
             edges_to_remove.append(cont_edge)
 
+    if not edges_to_add and not edges_to_remove:
+        return False
+
     for edge in edges_to_remove:
         if edge in edges:
             edges.remove(edge)
     edges.extend(edges_to_add)
+    return True
 
 
 def _find_chain_end(node: str, edges: list[dict]) -> str:

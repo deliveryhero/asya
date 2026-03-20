@@ -39,6 +39,9 @@ class _RouterFunc:
 
     name: str
     code: str
+    # For seq routers only — enables merging into start_
+    seq_mutations: list[Mutation] | None = None
+    seq_chain: list[str] | None = None
 
 
 class CodeGenerator:
@@ -51,6 +54,7 @@ class CodeGenerator:
         self.flow_name = result.flow_name
         self.result = result
         self.module_constants = result.constants
+        self.inline_defs = result.inline_defs
 
         if output_file:
             try:
@@ -80,6 +84,8 @@ class CodeGenerator:
             parts.append("import copy\n")
         if self.module_constants:
             parts.append("\n".join(self.module_constants) + "\n")
+        if self.inline_defs:
+            parts.append("\n\n".join(self.inline_defs) + "\n")
 
         parts.append(self._generate_routers_section(entry_chain))
         parts.append(self._generate_resolve_function())
@@ -125,11 +131,25 @@ class CodeGenerator:
 
     # -- Core operation processing --
 
-    def _process_ops(self, ops: list[Operation], loop_ctx: _LoopCtx | None = None) -> list[str]:
+    def _process_ops(
+        self,
+        ops: list[Operation],
+        loop_ctx: _LoopCtx | None = None,
+        continuation: list[str] | None = None,
+    ) -> list[str]:
         """Walk operations and return the entry chain (names to prepend).
+
+        Args:
+            ops: Operations to process.
+            loop_ctx: Enclosing loop context (for break/continue).
+            continuation: Actors that execute after all ops complete. Used by
+                Loop to compute exit_chain for break, and propagated through
+                Conditional branches so nested Loops can access it.
 
         Side effect: generates router functions appended to self._functions.
         """
+        cont = continuation or []
+
         if not ops:
             return []
 
@@ -150,7 +170,7 @@ class CodeGenerator:
         rest = ops[i + 1 :]
 
         if isinstance(op, ActorCall):
-            rest_chain = self._process_ops(rest, loop_ctx)
+            rest_chain = self._process_ops(rest, loop_ctx, continuation)
             chain = [op.name, *rest_chain]
             self._all_handlers.add(op.name)
             if mutations:
@@ -160,13 +180,15 @@ class CodeGenerator:
             return chain
 
         elif isinstance(op, Conditional):
-            rest_chain = self._process_ops(rest, loop_ctx)
+            rest_chain = self._process_ops(rest, loop_ctx, continuation)
 
             true_terminal = self._is_terminal(op.true_branch)
             false_terminal = self._is_terminal(op.false_branch)
 
-            true_inner = self._process_ops(op.true_branch, loop_ctx)
-            false_inner = self._process_ops(op.false_branch, loop_ctx)
+            # Pass full continuation to branches so nested Loops know the exit path
+            branch_cont = rest_chain + cont
+            true_inner = self._process_ops(op.true_branch, loop_ctx, branch_cont)
+            false_inner = self._process_ops(op.false_branch, loop_ctx, branch_cont)
 
             true_chain = true_inner if true_terminal else true_inner + rest_chain
             false_chain = false_inner if false_terminal else false_inner + rest_chain
@@ -187,13 +209,14 @@ class CodeGenerator:
             return [name]
 
         elif isinstance(op, Loop):
-            rest_chain = self._process_ops(rest, loop_ctx)
+            rest_chain = self._process_ops(rest, loop_ctx, continuation)
+            exit_chain = rest_chain + cont
             loop_name = self._router_name("while", op.lineno)
-            lctx = _LoopCtx(loop_name=loop_name, exit_chain=rest_chain)
+            lctx = _LoopCtx(loop_name=loop_name, exit_chain=exit_chain)
             body_chain = self._process_ops(op.body, lctx)
 
             # Mutations before a loop run once (in seq router), NOT on every iteration
-            self._emit_loop_router(loop_name, op.test, [], body_chain, rest_chain)
+            self._emit_loop_router(loop_name, op.test, [], body_chain, exit_chain)
 
             if mutations:
                 seq_name = self._router_name("seq", mutations[0].lineno)
@@ -203,7 +226,7 @@ class CodeGenerator:
 
         elif isinstance(op, FanOut):
             self._has_fan_out = True
-            rest_chain = self._process_ops(rest, loop_ctx)
+            rest_chain = self._process_ops(rest, loop_ctx, continuation)
             name = self._router_name("fanout", op.lineno)
             self._emit_fanout_router(name, op, rest_chain)
             if mutations:
@@ -297,7 +320,7 @@ class CodeGenerator:
         lines.append("    yield payload")
         lines.append("")
 
-        return _RouterFunc(name=name, code="\n".join(lines))
+        return _RouterFunc(name=name, code="\n".join(lines), seq_mutations=mutations, seq_chain=chain)
 
     def _emit_exit_seq_router(self, name: str, mutations: list[Mutation], chain: list[str]) -> None:
         """Seq router that uses SET (overwrite) for exit paths (break/return)."""
@@ -489,21 +512,39 @@ class CodeGenerator:
         lines.append("# " + "=" * 70)
         lines.append("")
 
-        # Start router
-        lines.append(self._generate_start_router(entry_chain))
+        # Try to merge start_ with the first seq router if it's the only entry
+        merged_seq = None
+        if len(entry_chain) == 1:
+            for rf in self._functions:
+                if rf.name == entry_chain[0] and rf.seq_mutations is not None:
+                    merged_seq = rf
+                    break
 
-        # All generated routers
-        for rf in self._functions:
-            lines.append(rf.code)
+        if merged_seq:
+            lines.append(self._generate_start_router(merged_seq.seq_chain or [], merged_seq.seq_mutations))
+            for rf in self._functions:
+                if rf is not merged_seq:
+                    lines.append(rf.code)
+        else:
+            lines.append(self._generate_start_router(entry_chain))
+            for rf in self._functions:
+                lines.append(rf.code)
 
         return "\n".join(lines)
 
-    def _generate_start_router(self, entry_chain: list[str]) -> str:
+    def _generate_start_router(self, entry_chain: list[str], mutations: list[Mutation] | None = None) -> str:
         name = f"start_{self.flow_name}"
         lines = []
         lines.append(f"async def {name}(payload: dict):")
         lines.append(f'    """Entrypoint for flow \'{self.flow_name}\'"""')
+
+        if mutations:
+            lines.append("    p = payload")
         lines.append("    _next = []")
+
+        if mutations:
+            for m in mutations:
+                lines.append(f"    {m.code}")
 
         for actor in entry_chain:
             self._all_handlers.add(actor)

@@ -116,7 +116,7 @@ class TestStartRouter:
 class TestSequentialRouters:
     """Mutations create sequence routers."""
 
-    def test_mutations_before_actors_create_seq_router(self):
+    def test_mutations_before_actors_merged_into_start(self):
         code = _compile("""
             @flow
             def my_flow(p: dict) -> dict:
@@ -125,8 +125,11 @@ class TestSequentialRouters:
                 return p
         """)
         funcs = _func_names(code)
+        # seq router should be merged into start_ router
         seq_routers = [f for f in funcs if "seq" in f]
-        assert len(seq_routers) >= 1
+        assert len(seq_routers) == 0
+        # mutation should appear in start_ router
+        assert "p['status'] = 'started'" in code
 
     def test_mutations_only_flow_creates_router(self):
         code = _compile("""

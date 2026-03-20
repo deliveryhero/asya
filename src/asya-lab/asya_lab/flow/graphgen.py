@@ -50,7 +50,14 @@ def to_dot(data: GraphData, flow_name: str) -> str:
         dst = _sanitize_id(edge["to"])
         attrs = []
         if edge.get("label"):
-            attrs.append(f'label="{_escape_dot(edge["label"])}"')
+            label = edge["label"]
+            attrs.append(f'label="{_escape_dot(label)}"')
+            if label == "else":
+                attrs.append('color="#E07040"')
+                attrs.append('fontcolor="#E07040"')
+            else:
+                attrs.append('color="#2E8B57"')
+                attrs.append('fontcolor="#2E8B57"')
         if edge.get("override"):
             attrs.append("color=red")
         attr_str = f" [{', '.join(attrs)}]" if attrs else ""
@@ -105,7 +112,8 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         dst = _sanitize_id(edge["to"])
         label = edge.get("label", "")
         if label:
-            lines.append(f"    {src} -->|{label}| {dst}")
+            label = str(label).replace('"', "'")
+            lines.append(f'    {src} -->|"{label}"| {dst}')
         else:
             lines.append(f"    {src} --> {dst}")
 
