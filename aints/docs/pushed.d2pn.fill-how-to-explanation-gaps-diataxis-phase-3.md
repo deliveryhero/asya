@@ -1,9 +1,12 @@
 ---
 title: Fill how-to and explanation gaps (Diataxis Phase 3)
 priority: 3 # low
+tags:
+  - pr:338
 dependencies:
   - zb3d
 ---
+
 
 Fill remaining Diataxis gaps in how-to guides and explanation docs.
 
