@@ -3,7 +3,9 @@ title: "Compiler rules: per-scope semantics for context managers, decorators, an
 priority: 2 # medium
 tags:
   - integrate-into:gml9
+  - absorbed-into:gml9
 ---
+
 
 
 ## Problem
