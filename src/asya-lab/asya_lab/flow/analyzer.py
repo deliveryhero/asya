@@ -408,6 +408,55 @@ def _find_chain_end(node: str, edges: list[dict]) -> str:
         visited.add(current)
 
 
+def _ensure_else_edges(edges: list[dict]) -> None:
+    """Ensure every if router has both a conditional and an else edge.
+
+    After splice, some if routers may have:
+    1. A conditional edge + unlabeled continuation → label the continuation "else"
+    2. A conditional edge + no else edge → add "else" edge to the merge point
+
+    The merge point is found by following the true branch's prepend chain to its
+    end — that's where both paths converge at runtime.
+    """
+    # Find if routers
+    if_routers: set[str] = set()
+    for e in edges:
+        if "_if_" in e["from"] and e["from"].startswith("router_"):
+            if_routers.add(e["from"])
+
+    for router in if_routers:
+        outgoing = [e for e in edges if e["from"] == router]
+
+        # Conditional edges: labeled with a condition (not "else", not None)
+        conditional = [e for e in outgoing if e.get("label") and e["label"] != "else"]
+        if not conditional:
+            continue
+
+        # Already has an else edge
+        if any(e.get("label") == "else" for e in outgoing):
+            continue
+
+        # Case 1: unlabeled continuation → label it "else"
+        unlabeled_cont = [e for e in outgoing if e.get("label") is None and e["type"] == "continuation"]
+        if unlabeled_cont:
+            for ue in unlabeled_cont:
+                ue["label"] = "else"
+            continue
+
+        # Case 2: no else edge at all → find merge point via chain end
+        for cond_edge in conditional:
+            if cond_edge["type"] == "prepend":
+                chain_end = _find_chain_end(cond_edge["to"], edges)
+                if chain_end != router:
+                    edges.append({"from": router, "to": chain_end, "label": "else", "type": "continuation"})
+                    break
+            elif cond_edge["type"] == "set":
+                # SET edges point to the break/return target; the else path
+                # continues from the route tail — check for continuations
+                # from other edges that share the same merge point
+                pass
+
+
 def _deduplicate_edges(edges: list[dict]) -> None:
     """Remove truly duplicate edges (same from/to/type/label)."""
     seen: set[tuple[str, str, str, str | None]] = set()
@@ -487,6 +536,12 @@ def analyze(
     # At runtime, fanin passes to whatever follows in _next_tail. Connect fanin → continuation.
     _propagate_fanin_continuations(all_edges)
 
+    # Step 4c: Ensure every if router has an else edge.
+    # Splice may remove continuation edges that represent the else path (when the
+    # codegen emits `else: pass`). Restore them as labeled "else" edges, and label
+    # any unlabeled continuations from if routers as "else".
+    _ensure_else_edges(all_edges)
+
     # Step 5: Deduplicate edges (same from/to/type can appear from multiple branches).
     _deduplicate_edges(all_edges)
 
@@ -520,9 +575,10 @@ def _validate_graph(graph: GraphData) -> list[str]:
 
     Checks:
     1. Fully connected: every node is reachable from the entrypoint
-    2. Single exit cluster: all exitpoints converge (no disconnected exits)
-    3. No dangling non-exit leaves: nodes with incoming edges but no outgoing
+    2. No dangling non-exit leaves: nodes with incoming edges but no outgoing
        edges must have flow_role=exitpoint
+    3. Disconnected sources: nodes with outgoing but no incoming edges must be entrypoints
+    4. If routers must have both conditional and else edges
     """
     warnings: list[str] = []
     node_ids = {n["id"] for n in graph.nodes}
@@ -561,6 +617,16 @@ def _validate_graph(graph: GraphData) -> list[str]:
         node = next((n for n in graph.nodes if n["id"] == node_id), None)
         if node and node["flow_role"] != "entrypoint":
             warnings.append(f"node '{node_id}' has no incoming edges but is not an entrypoint")
+
+    # Check 4: Every if router must have both a conditional and an else edge
+    for node_id in sorted(node_ids):
+        if "_if_" not in node_id or not node_id.startswith("router_"):
+            continue
+        outgoing = [e for e in graph.edges if e["from"] == node_id]
+        has_conditional = any(e.get("label") and e["label"] != "else" for e in outgoing)
+        has_else = any(e.get("label") == "else" for e in outgoing)
+        if has_conditional and not has_else:
+            warnings.append(f"if router '{node_id}' has conditional edge but no else edge")
 
     return warnings
 
