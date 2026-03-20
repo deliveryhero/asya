@@ -541,7 +541,7 @@ class FlowParser:
                 self._inline_funcs.add(actor_name)
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             elif dec_type in ("flow", "unfold"):
-                return self._expand_flow_call(actor_name, stmt.lineno)
+                return self._expand_flow_call(actor_name, stmt.lineno, required=False)
 
         # Rule engine classification (lowest priority)
         if self._rule_engine is not None:
@@ -553,7 +553,7 @@ class FlowParser:
                 self._inline_funcs.add(actor_name)
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             if treat_as is not None and treat_as in (TreatAs.FLOW, TreatAs.UNFOLD):
-                return self._expand_flow_call(actor_name, stmt.lineno)
+                return self._expand_flow_call(actor_name, stmt.lineno, required=False)
 
         self._actors.append(actor_name)
         return [ActorCall(lineno=stmt.lineno, name=actor_name)]
@@ -609,8 +609,13 @@ class FlowParser:
         self._actors.append(actor_name)
         return [ActorCall(lineno=stmt.lineno, name=actor_name)]
 
-    def _expand_flow_call(self, func_name: str, lineno: int) -> list[Operation]:
-        """Expand a @flow or unfold call by inlining the function body."""
+    def _expand_flow_call(self, func_name: str, lineno: int, *, required: bool = True) -> list[Operation]:
+        """Expand a @flow or unfold call by inlining the function body.
+
+        Args:
+            required: If True, raise error when function not found (explicit directives).
+                      If False, fall back to ActorCall (rule engine / decorator inference).
+        """
         if self._expansion_depth > 10:
             raise FlowCompileError(
                 f"{self.filename}:{lineno}: Maximum flow composition depth exceeded (circular reference?)"
@@ -618,10 +623,14 @@ class FlowParser:
 
         func_node = self._find_function_def(func_name)
         if func_node is None:
-            raise FlowCompileError(
-                f"{self.filename}:{lineno}: Function '{func_name}' not found in module. "
-                f"Flow composition requires the function to be defined in the same file."
-            )
+            if required:
+                raise FlowCompileError(
+                    f"{self.filename}:{lineno}: Function '{func_name}' not found in module. "
+                    f"Flow composition requires the function to be defined in the same file."
+                )
+            # Graceful fallback: treat as regular actor call
+            self._actors.append(func_name)
+            return [ActorCall(lineno=lineno, name=func_name)]
 
         # Validate signature
         if len(func_node.args.args) != 1:
