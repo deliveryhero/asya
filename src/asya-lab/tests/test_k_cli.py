@@ -359,16 +359,34 @@ def test_context_list_help():
     assert result.exit_code == 0
 
 
-def test_context_list_no_contexts(tmp_path):
+@patch("asya_lab.k_cli.subprocess.run")
+def test_context_list_no_contexts_falls_through_to_kubectl(mock_run, tmp_path):
     asya_dir = tmp_path / ".asya"
     asya_dir.mkdir()
     (asya_dir / "config.yaml").write_text("templates:\n  namespace: default\n")
+
+    mock_run.return_value = MagicMock(returncode=0)
 
     runner = CliRunner()
     with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
         result = runner.invoke(context_group, ["list"])
     assert result.exit_code == 0
-    assert "No contexts" in result.output
+    mock_run.assert_called_once()
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "config", "get-contexts"]
+
+
+@patch("asya_lab.k_cli.subprocess.run")
+def test_context_list_no_asya_dir_falls_through_to_kubectl(mock_run):
+    mock_run.return_value = MagicMock(returncode=0)
+
+    runner = CliRunner()
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
+        result = runner.invoke(context_group, ["list"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "config", "get-contexts"]
 
 
 def test_context_list_with_contexts(tmp_path):
@@ -430,6 +448,36 @@ def test_context_use_nonexistent(tmp_path):
         result = runner.invoke(context_group, ["use", "nonexistent"])
     assert result.exit_code != 0
     assert "not found" in result.output.lower()
+
+
+@patch("asya_lab.k_cli.subprocess.run")
+def test_context_use_no_contexts_falls_through_to_kubectl(mock_run, tmp_path):
+    asya_dir = tmp_path / ".asya"
+    asya_dir.mkdir()
+    (asya_dir / "config.yaml").write_text("templates:\n  namespace: default\n")
+
+    mock_run.return_value = MagicMock(returncode=0)
+
+    runner = CliRunner()
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=asya_dir):
+        result = runner.invoke(context_group, ["use", "kind-asya-e2e"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "config", "use-context", "kind-asya-e2e"]
+
+
+@patch("asya_lab.k_cli.subprocess.run")
+def test_context_use_no_asya_dir_falls_through_to_kubectl(mock_run):
+    mock_run.return_value = MagicMock(returncode=0)
+
+    runner = CliRunner()
+    with patch("asya_lab.k_cli.find_asya_dir", return_value=None):
+        result = runner.invoke(context_group, ["use", "my-cluster"])
+    assert result.exit_code == 0
+    mock_run.assert_called_once()
+    cmd = mock_run.call_args[0][0]
+    assert cmd == ["kubectl", "config", "use-context", "my-cluster"]
 
 
 # ---------------------------------------------------------------------------
