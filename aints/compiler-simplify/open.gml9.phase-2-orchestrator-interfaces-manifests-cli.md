@@ -1,5 +1,5 @@
 ---
-title: "Phase 2: Orchestrator, interfaces, manifests, and CLI"
+title: "Phase 2: Manifests, error handling, rules, and CLI"
 priority: 1 # high
 dependencies:
   - dlad
@@ -152,7 +152,41 @@ SDK mirrors CLI exactly. Same pipeline, same outputs.
 - `src/asya-lab/asya_lab/flow_cli.py` (update/deprecate `asya flow compile`)
 - `src/asya-lab/asya_lab/config/project.py` (existing AsyaProject, no changes expected)
 
+## Absorbed tasks
+
+### [3dp2] Compiler error handling (try/except → retryRules)
+
+Replace 4-router try/except pattern (try_enter, try_exit, except_dispatch, reraise)
+with N except_routers (one per except clause) + manifest retryRules.
+
+- Each except clause → one except_router that overwrites route.next with handler + finally + continuation
+- Actor manifests get `resiliency.policies` + `resiliency.retryRules` stamped by compiler
+- Sidecar dispatches to except_router via retryRules (no Python-level type dispatch)
+- `finally` actors: appended to success route naturally + included in all except_router routes
+- `raise` in except body → route to `["x-sink"]`
+- bare `except:` → `policies.default.thenRoute`
+- No `_on_error` header side-channel
+
+See full design in `open.3dp2.compiler-error-handling.md`.
+Dependency: [7179] policy-based error handling (already merged).
+
+### [ch0h] Adapter generation from decorated handler call sites
+
+Auto-generate dict→dict adapter wrappers for decorated handlers (e.g., @tool
+from Claude Agent SDK). Call-site driven inference for adapter shape.
+
+### [ia37] Per-scope semantics for context managers and decorators
+
+Change config extraction from per-actor to per-scope. E.g., `asyncio.timeout(30)`
+should apply to the entire pipeline segment, not each actor individually.
+
+### [jy9i] WhereNode extensions for policies+rules XR fields
+
+Add `value:` (literal constants) and `append-to:` (list append) to WhereNode
+for rules extraction. Needed for resiliency schema (policies+rules).
+
 ## References
 
 - RFC: `.aint/aints/compiler-simplify/rfc.md` (sections: Compiler pipeline, AsyaProject integration, CLI interface, SDK interface, flow_role vocabulary, Config extraction)
 - Design decisions: `.aint/aints/compiler-simplify/design-decisions.md`
+- Error handling design: `.aint/aints/compiler-simplify/open.3dp2.compiler-error-handling.md`
