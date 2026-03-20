@@ -167,10 +167,11 @@ The entire design is label-based:
 ## Remaining Work
 
 - [ ] Fix Crossplane Composition to declare sidecar `containerPort: 8080 name: metrics`
-- [ ] Fix playground PodMonitor template to use `targetPort` instead of `port`
+- [x] Fix playground PodMonitor template to use `targetPort` instead of `port`
 - [ ] Test asya-playground chart deployment end-to-end
-- [ ] Update Prometheus scrape config with flow/role/generated relabel rules
-- [ ] Create "Asya - Flows Overview" dashboard JSON
-- [ ] Enhance "Asya - Actors Overview" dashboard with flow/generated filters
-- [ ] Deploy updated dashboards to GKE cluster
-- [ ] Verify end-to-end with text-improver flow
+- [x] Update Prometheus scrape config with flow/role/generated relabel rules
+- [x] Create "Asya - Flows Overview" dashboard JSON
+- [x] Enhance "Asya - Actors Overview" dashboard with flow/generated filters
+- [x] Wire new dashboard into playground chart (symlink, ConfigMap, pre-commit hook)
+- [x] Deploy updated dashboards to GKE cluster (14 targets scraped, labels verified)
+- [ ] Verify end-to-end with text-improver flow (invoke flow, check completion rate)
