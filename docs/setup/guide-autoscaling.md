@@ -230,4 +230,4 @@ kubectl get scaledobject text-processor -o yaml
 kubectl get --raw /apis/external.metrics.k8s.io/v1beta1
 ```
 
-**See**: [observability.md](../architecture/observability.md) for autoscaling metrics.
+**See**: [Observability](ops-observability.md) for autoscaling metrics.

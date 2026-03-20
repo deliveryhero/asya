@@ -10,13 +10,13 @@
 
 ## Prerequisites
 
-- A running Asya playground cluster (follow the [Getting Started guide](../quickstart/README.md) through step 4)
-- Familiarity with actor pipelines (see [Build Your First Pipeline](first-pipeline.md))
+- A running Asya playground cluster (follow the [Getting Started guide](../setup/start-quickstart.md) through step 4)
+- Familiarity with actor pipelines (see [Build Your First Pipeline](start-first-actor-mesh.md))
 - `asya-lab` installed: `pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab`
 
 ## Why flows?
 
-In the [pipeline tutorial](first-pipeline.md), you set the route manually in the envelope:
+In the [pipeline tutorial](start-first-actor-mesh.md), you set the route manually in the envelope:
 
 ```json
 {"route": {"prev": [], "curr": "uppercaser", "next": ["word-counter"]}}
@@ -245,7 +245,7 @@ Here is the message flow:
 4. `normalize` processes the payload, sidecar forwards to `analyze`
 5. `analyze` processes the payload, `route.next` is empty, sidecar forwards to x-sink
 
-The Flow DSL compiler automated the routing setup. Without it, you would need to manually specify `route.next` in every envelope you send, as you did in the [pipeline tutorial](first-pipeline.md).
+The Flow DSL compiler automated the routing setup. Without it, you would need to manually specify `route.next` in every envelope you send, as you did in the [pipeline tutorial](start-first-actor-mesh.md).
 
 ## Clean up
 
@@ -262,10 +262,10 @@ You used the Flow DSL to:
 3. Deploy the routers alongside your handler actors
 4. Run the pipeline by sending a message to the entry point
 
-The flow compiler transforms Python control flow into message-passing chains. For simple sequences, this saves a few lines of YAML. The real payoff comes with branching and loops -- see the [Flow DSL Reference](../reference/flow-dsl.md) for the full syntax.
+The flow compiler transforms Python control flow into message-passing chains. For simple sequences, this saves a few lines of YAML. The real payoff comes with branching and loops -- see the [Flow DSL Reference](../reference/specs/flow-dsl.md) for the full syntax.
 
 ## Next steps
 
-- [Add Human-in-the-Loop](pause-resume.md) -- pause a pipeline for human approval
-- [Flow DSL Reference](../reference/flow-dsl.md) -- conditionals, loops, fan-out, error handling
-- [ABI Protocol Reference](../reference/abi-protocol.md) -- the yield protocol used by generated routers
+- [Add Human-in-the-Loop](../setup/guide-pause-resume.md) -- pause a pipeline for human approval
+- [Flow DSL Reference](../reference/specs/flow-dsl.md) -- conditionals, loops, fan-out, error handling
+- [ABI Protocol Reference](../reference/specs/abi-protocol.md) -- the yield protocol used by generated routers

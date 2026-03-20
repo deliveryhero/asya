@@ -570,5 +570,5 @@ async for cmd in helper():   # async generators
 
 - [Flow DSL Reference](flow-dsl.md) — compile Python control flow into
   router actor networks (routers use the ABI internally)
-- [Architecture: Actor Envelope Protocol](../architecture/protocols/actor-actor.md) —
-  envelope envelope format and routing semantics
+- [Envelope Protocol](envelope.md) —
+  envelope format and routing semantics

@@ -6,7 +6,7 @@ for the Flow DSL.
 
 For background on why the Flow DSL exists, the router problem it solves,
 and how CPS compilation works, see
-[Flow Compilation](../explanation/flow-compilation.md).
+[Flow Compiler Architecture](../components/lab-flow-compiler.md).
 
 ---
 
@@ -747,7 +747,7 @@ adapter — it never touches AST nodes directly.
 
 ## See also
 
-- [Flow Compilation](../explanation/flow-compilation.md) — why the Flow DSL
+- [Flow Compiler Architecture](../components/lab-flow-compiler.md) — why the Flow DSL
   exists, the router problem, CPS model, and design principles
 - [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers

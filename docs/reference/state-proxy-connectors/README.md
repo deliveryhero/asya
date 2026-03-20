@@ -127,4 +127,4 @@ Handler code can catch these exceptions directly — no SDK imports needed.
 ## Related Documentation
 
 - [State Proxy Architecture](../components/core-state-proxy.md) — runtime hooks, pod layout, HTTP protocol
-- [AsyncActor XRD](../../install/crossplane.md) — Crossplane resource definition
+- [Crossplane](../components/core-crossplane.md) — Crossplane resource definition

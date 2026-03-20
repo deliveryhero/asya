@@ -78,7 +78,7 @@ kubectl exec -n my-project deployment/inference -c asya-runtime -- \
   curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 ```
 
-**Reference**: [Sidecar-Runtime Protocol](../architecture/protocols/sidecar-runtime.md)
+**Reference**: [Sidecar-Runtime Protocol](../reference/specs/sidecar-runtime.md)
 for the full endpoint specification.
 
 ## Check x-sink and x-sump
@@ -159,7 +159,7 @@ keda_scaler_metrics_value{scaledObject="inference"}
 A high queue depth with max replicas running suggests the actor is
 under-provisioned.
 
-**Reference**: [Monitoring](../operate/monitoring.md) for the full metrics
+**Reference**: [Monitoring](../setup/ops-observability.md) for the full metrics
 catalog, ServiceMonitor configuration, and alerting rules.
 
 ## Common failure patterns
@@ -196,6 +196,6 @@ the timeout or optimize the handler.
 
 ## Next steps
 
-- [Monitoring](../operate/monitoring.md) -- Prometheus alerting and Grafana dashboards
-- [Sidecar-Runtime Protocol](../architecture/protocols/sidecar-runtime.md) -- protocol details
-- [Troubleshooting](../operate/troubleshooting.md) -- common operational issues
+- [Monitoring](../setup/ops-observability.md) -- Prometheus alerting and Grafana dashboards
+- [Sidecar-Runtime Protocol](../reference/specs/sidecar-runtime.md) -- protocol details
+- [Troubleshooting](../setup/ops-troubleshooting.md) -- common operational issues

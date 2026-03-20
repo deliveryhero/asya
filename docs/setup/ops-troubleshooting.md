@@ -98,6 +98,10 @@ kubectl logs deploy/<actor> -c asya-runtime
 - Reduce batch size
 - Profile memory usage
 
+## Further Reading
+
+- [Debugging Envelopes](../usage/ops-debugging.md) — trace envelopes through the mesh
+
 ## Timeout Errors
 
 **Symptoms**: `timeout_error` in logs

@@ -253,6 +253,6 @@ When using `kubectl get asyncactors`, the following columns are displayed:
 
 ## Further reading
 
-- [How to Add a New Actor](../howto/add-new-actor.md) -- step-by-step deployment guide
-- [Actor Architecture](../architecture/asya-actor.md) -- how Crossplane renders the pod spec
+- [Build Your First Actor](../../usage/start-first-actor.md) -- step-by-step deployment guide
+- [Actor Architecture](../components/core-actor.md) -- how Crossplane renders the pod spec
 - [Example manifests](https://github.com/deliveryhero/asya/tree/main/examples/asyas) -- real-world AsyncActor configurations

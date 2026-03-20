@@ -5,7 +5,7 @@ source is parsed, code-generated into routers, analyzed for routing
 edges, and rendered as graphs.
 
 For the user-facing syntax, concepts, and deployment guide, see
-[Flow DSL Reference](../reference/flow-dsl.md).
+[Flow DSL Reference](../specs/flow-dsl.md).
 
 ## Overview
 
@@ -329,7 +329,7 @@ async def router_flow_line_5_if(payload: dict):
 
 Routers are **generators** — they use ABI yield commands (GET/SET/DEL) to
 interact with message metadata. See the
-[ABI protocol specification](../reference/abi-protocol.md)
+[ABI protocol specification](../specs/abi-protocol.md)
 for details.
 
 ### Handler resolution
@@ -455,7 +455,7 @@ more.
 
 ## Related documents
 
-- [Flow DSL Reference](../reference/flow-dsl.md) — user-facing syntax,
+- [Flow DSL Reference](../specs/flow-dsl.md) — user-facing syntax,
   CPS execution model, deployment guide
-- [ABI Protocol Reference](../reference/abi-protocol.md) —
+- [ABI Protocol Reference](../specs/abi-protocol.md) —
   yield-based metadata access used by generated routers

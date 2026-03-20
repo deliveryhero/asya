@@ -19,5 +19,5 @@ Technical notes for contributors working on the Asya framework. These documents 
 
 ## See Also
 
-- [CONTRIBUTING.md](../../CONTRIBUTING.md) — contributor guidelines, test structure, Makefile patterns
-- [AGENTS.md](../../AGENTS.md) — AI developer guidance
+- [CONTRIBUTING.md](https://github.com/deliveryhero/asya/blob/main/CONTRIBUTING.md) — contributor guidelines, test structure, Makefile patterns
+- [AGENTS.md](https://github.com/deliveryhero/asya/blob/main/AGENTS.md) — AI developer guidance

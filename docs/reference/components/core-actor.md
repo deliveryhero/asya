@@ -204,4 +204,4 @@ The sidecar interprets the handler's return value to decide routing:
 - `None` → runtime signals end-of-route (`route.curr` becomes `""`) → sidecar routes to x-sink with **original** payload
 - `{}` → runtime treats as valid output → sidecar routes `{}` as payload to next actor or x-sink
 
-**End actors** (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See [asya-crew.md](asya-crew.md) for details.
+**End actors** (x-sink, x-sump) are terminal — the sidecar never routes their responses. Instead, it reports final status to gateway. See [core-crew.md](core-crew.md) for details.

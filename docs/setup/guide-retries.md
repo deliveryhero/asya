@@ -4,9 +4,6 @@
 Practical recipes for configuring retry behavior on Asya actors using
 resiliency policies and error-matching rules.
 
-For the full policy schema, rule matching semantics, and envelope status
-fields, see [Resiliency Reference](../features/resiliency.md).
-
 ---
 
 ## Retry with exponential backoff
@@ -54,5 +51,4 @@ ASYA_RESILIENCY_POLICIES='{"default":{"maxAttempts":100,"backoff":"exponential",
 
 ## See also
 
-- [Resiliency Reference](../features/resiliency.md) — policy schema, rule
-  matching, backoff strategies, envelope status fields, transport constraints
+- [AsyncActor CRD Reference](../reference/specs/asyncactor-crd.md) — policy schema and rule configuration

@@ -10,7 +10,7 @@
 
 ## Prerequisites
 
-- A running Asya playground cluster (follow the [Getting Started guide](../quickstart/README.md) through step 4)
+- A running Asya playground cluster (follow the [Getting Started guide](../setup/start-quickstart.md) through step 4)
 - `kubectl` configured to access your cluster
 
 ## Step 1: Write a handler
@@ -30,7 +30,7 @@ async def process(payload: dict) -> dict:
     }
 ```
 
-This handler reads a `message` field from the payload, echoes it back, and adds the message length. The `**payload` spread preserves any fields that upstream actors may have added -- this is the [payload enrichment pattern](../architecture/protocols/actor-actor.md#payload-enrichment-pattern).
+This handler reads a `message` field from the payload, echoes it back, and adds the message length. The `**payload` spread preserves any fields that upstream actors may have added -- this is the payload enrichment pattern.
 
 ## Step 2: Test your handler locally
 
@@ -124,7 +124,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-The message body is an [envelope](../concepts.md#envelope) -- it carries both the payload and the route. Since `route.next` is empty, the result will be routed to `x-sink` after processing.
+The message body is an envelope -- it carries both the payload and the route. Since `route.next` is empty, the result will be routed to `x-sink` after processing.
 
 ## Step 6: Watch the actor process the message
 
@@ -186,6 +186,6 @@ The handler saw only `payload: dict -> dict`. Queue polling, routing, autoscalin
 
 ## Next steps
 
-- [Build Your First Pipeline](first-pipeline.md) -- chain multiple actors together
-- [Core Concepts](../concepts.md) -- understand envelopes, routing, crew actors
-- [Usage Guide](../quickstart/usage.md) -- class handlers, error handling, advanced patterns
+- [Build Your First Pipeline](start-first-actor-mesh.md) -- chain multiple actors together
+- [Handler Patterns](guide-handler-patterns.md) -- class handlers, error handling, advanced patterns
+- [ABI Protocol Reference](../reference/specs/abi-protocol.md) -- understand envelopes, routing, metadata access

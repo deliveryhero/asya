@@ -209,7 +209,7 @@ Response (MCP CallToolResult):
 }
 ```
 
-See [Actor-Actor Protocol](protocols/actor-actor.md#task-status-tracking) for more details on task statuses.
+See [Envelope Protocol](../specs/envelope.md) for more details on task statuses.
 
 #### Get Task Status
 
@@ -576,8 +576,8 @@ All auth-related environment variables:
 | `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | `""` | No | Bearer token protecting `/oauth/register`; empty = open |
 
 ## Using MCP tools
-**See**: [Usage](../quickstart/usage.md#using-mcp-tools) for instructions how to test MCP locally.
+**See**: [Quickstart](../../setup/start-quickstart.md) for instructions how to test MCP locally.
 
 ## Deployment Helm Charts
 
-**See**: [../install/helm-charts.md](../install/helm-charts.md) for gateway chart details.
+**See**: [Gateway Setup Guide](../../setup/guide-gateway.md) for gateway chart details.

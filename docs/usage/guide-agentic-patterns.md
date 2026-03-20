@@ -120,8 +120,8 @@ explained in detail.
 | 2 | [Evaluator-optimizer](#evaluator-optimizer) | Flow: `while` + generate + evaluate | Anthropic evaluator-optimizer, ADK LoopAgent |
 | 3 | [Orchestrator-workers](#orchestrator-workers) | Flow: `while True` + dynamic dispatch | Anthropic orchestrator-workers, LangGraph supervisor |
 | 4 | [Guardrails sandwich](#guardrails-sandwich) | Flow: `try/except` wrapping | OpenAI Agents SDK guardrails, ADK safety plugins |
-| 5 | [Fan-out / Fan-in](#fan-out--fan-in) | Flow: `asyncio.gather(...)` | ADK ParallelAgent |
-| 6 | [Map-reduce](#fan-out--fan-in) | Flow: list comprehension fan-out | LangGraph map-reduce |
+| 5 | [Fan-out / Fan-in](#fan-out-fan-in) | Flow: `asyncio.gather(...)` | ADK ParallelAgent |
+| 6 | [Map-reduce](#fan-out-fan-in) | Flow: list comprehension fan-out | LangGraph map-reduce |
 | 7 | [Dynamic routing](#dynamic-routing) | Actor: `yield "SET", ".route.next"` | ADK `transfer_to_agent` |
 | 8 | [Live streaming](#live-streaming) | Actor: `yield "FLY", {...}` | ADK `Event(partial=True)` |
 | 9 | [Pause for human input](#pause-for-human-input) | Actor: route to `x-pause` | ADK long-running tools, Mastra suspend/resume |
