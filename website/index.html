@@ -183,6 +183,7 @@
             line-height: 1.6;
             overflow-x: auto;
             color: var(--text-code);
+            white-space: pre;
         }
 
         .code-example .comment { color: #6a9955; }
@@ -505,37 +506,37 @@
             </div>
             <div class="feature-grid">
                 <div class="feature-card">
-                    <h3>Decentralized Routing</h3>
+                    <h3>🔀 Decentralized Routing</h3>
                     <p>Envelopes carry <code>prev/curr/next</code> queues.
                        No coordinator can fail. Actors rewrite routing at runtime
                        for agentic patterns, LLM judges, and branching flows.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Scale to Zero</h3>
+                    <h3>📉 Scale to Zero</h3>
                     <p>KEDA autoscales each actor independently from 0 to N based on
                        its own queue depth. GPU pods cost nothing when idle.
                        Bursty traffic scales up in seconds.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Pure Python Handlers</h3>
+                    <h3>🐍 Pure Python Handlers</h3>
                     <p>No SDK imports, no decorators, no framework coupling.
                        A handler is <code>dict &rarr; dict</code>. Test with pytest,
                        deploy on Kubernetes. That's it.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Dynamic Pipelines</h3>
+                    <h3>🔄 Dynamic Pipelines</h3>
                     <p>Routes are data embedded in each message, not code.
                        Write flows as plain Python with <code>if/else</code> and <code>while</code>.
                        The compiler generates router actors automatically.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>Multi-Transport</h3>
+                    <h3>🔌 Multi-Transport</h3>
                     <p>Pluggable message transports: SQS, RabbitMQ, GCP Pub/Sub.
                        Switch transports without changing handler code.
                        Same actor, different infrastructure.</p>
                 </div>
                 <div class="feature-card">
-                    <h3>A2A + MCP Gateway</h3>
+                    <h3>🤝 A2A + MCP Gateway</h3>
                     <p>Optional HTTP gateway exposes actor pipelines as
                        A2A agents and MCP tools. Sync-to-async bridge with
                        SSE streaming, pause/resume, and task tracking.</p>
