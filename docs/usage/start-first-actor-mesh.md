@@ -1,4 +1,3 @@
-<!-- Type: Tutorial -->
 
 # Build Your First Pipeline
 

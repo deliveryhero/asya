@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # Asya Gateway
 
 ## Responsibilities
@@ -144,7 +143,7 @@ or `kubectl patch`). No Helm upgrade is needed.
 
 ## API Endpoints
 
-**See**: `docs/internal/gateway-api-spec.md` for the full API reference with complete request/response schemas for all routes.
+**See**: [Gateway API spec](../specs/gateway-api.md) for the full API reference with complete request/response schemas for all routes.
 
 
 

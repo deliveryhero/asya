@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # Asya Runtime
 
 ## Responsibilities

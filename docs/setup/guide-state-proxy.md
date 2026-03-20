@@ -1,4 +1,3 @@
-<!-- Type: Setup -->
 # Configuring State Proxy
 
 This guide covers state proxy configuration at the infrastructure level — how to enable persistent state for actors, configure storage backends, and manage credentials.

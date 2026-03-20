@@ -1,4 +1,3 @@
-<!-- Type: Tutorial -->
 
 # Write Your First Flow
 

@@ -1,4 +1,3 @@
-<!-- Type: Explanation -->
 # Why Asya: REST in Peace, AI Needs to Be Async
 
 ## The Nightmare at Scale
