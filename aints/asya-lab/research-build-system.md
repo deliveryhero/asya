@@ -286,28 +286,59 @@ images:
 
 ### D5a: `asya tag` command
 
-**New command** for injecting tags into kustomize overlays:
+**Image-centric** command for injecting tags into kustomize overlays.
+Tags belong to images, not flows — a flow may use multiple images with
+different tags.
+
+**Primary interface** (explicit image:tag pairs):
 
 ```bash
-asya tag <flow-or-actor> --context <ctx> --arg tag=<value>
+# Single image
+asya tag ghcr.io/team/nlp:v2.1 --context staging
+
+# Multiple images (different tags)
+asya tag ghcr.io/team/nlp:v2.1 ghcr.io/team/embedder:v1.0 --context staging
 ```
 
-Under the hood:
-1. Read `base/*.yaml` -> collect unique image names from artifacts
+**Flow convenience** (same tag for all images in a compiled flow):
+
+```bash
+asya tag --flow my-flow --context staging --arg tag=v2.1
+```
+
+Resolves the flow's `resolution.yaml` to find all referenced images,
+applies the same tag to each. Future: `ASYA_LAB_FLOW` env var provides
+a default for `--flow`, so `asya tag --context staging --arg tag=v2.1`
+works when the sticky flow is set.
+
+**Skaffold integration** (read tags from `skaffold build` output):
+
+```bash
+skaffold build --file-output=build.json
+asya tag --from-build build.json --context staging
+```
+
+Reads `build.json` (Skaffold's standard build output format), extracts
+image:tag pairs, applies each to the overlay.
+
+**Under the hood**:
+1. Resolve image:tag pairs from args, `--flow`, or `--from-build`
 2. For each image: run `kustomize edit set image <name>=<name>:<tag>`
    in `overlays/<ctx>/kustomization.yaml`
 3. Print what was set
 
-This is:
-- Separate from `asya compile` (tags are deployment concern)
-- Separate from `asya k apply` (tag without deploying -- useful for
-  GitOps where you commit tags, then ArgoCD applies)
-- Compatible with skaffold (`skaffold build` produces a tag, user
-  passes it to `asya tag`)
-- Compatible with CI (CI computes tag from git SHA, runs `asya tag`)
+**Validation**:
+- Unknown image (not in any compiled manifest) → warning
+- Missing overlay directory → error with hint to run `asya compile`
+- Router image tag override → warning (routers use `router_image`
+  from config, tagging them is unusual)
 
-Power-user alternative: `skaffold render` produces fully tagged
-manifests (but renders from its own templates, not kustomize overlays).
+**Design principles**:
+- Separate from `asya compile` (tags are deployment concern)
+- Separate from `asya k apply` (tag without deploying — useful for
+  GitOps where you commit tags, then ArgoCD applies)
+- Compatible with skaffold (`skaffold build` → `asya tag --from-build`)
+- Compatible with CI (CI computes tag from git SHA, runs `asya tag`)
 
 ### D6: In-container module path via Griffe static analysis
 
