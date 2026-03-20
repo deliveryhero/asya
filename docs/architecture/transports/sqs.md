@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # SQS Transport
 
 AWS-managed message queue service.

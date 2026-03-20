@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Monitoring
 
 Observability and monitoring for 🎭 deployments.

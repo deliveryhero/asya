@@ -1,3 +1,4 @@
+<!-- Type: Explanation -->
 # Core Concepts
 
 ## Envelope

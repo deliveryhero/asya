@@ -1,3 +1,4 @@
+<!-- Type: Tutorial -->
 # The Adapter Pattern
 
 Asya actors speak one protocol: `dict → dict`. Your domain code speaks something

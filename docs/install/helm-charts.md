@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Helm Charts
 
 Asya🎭 provides Helm charts for deploying framework components.

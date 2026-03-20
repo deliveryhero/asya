@@ -1,3 +1,4 @@
+<!-- Type: Tutorial -->
 # Getting Started with Asya🎭
 
 Asya is an Actor Mesh framework for running AI/ML workloads on Kubernetes. Actors communicate

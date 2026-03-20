@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Asya Gateway
 
 ## Responsibilities
