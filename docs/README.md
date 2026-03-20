@@ -9,8 +9,8 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 ## Build AI Actors
 
 ```python
-def handler(payload):
-    result = my_model.predict(payload["input"])
+async def handler(payload):
+    result = await my_model.predict(payload["input"])
     return {"prediction": result}
 ```
 

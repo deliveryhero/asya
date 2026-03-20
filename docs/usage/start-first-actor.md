@@ -21,7 +21,7 @@ Create a file called `echo_handler.py`:
 
 ```python
 # echo_handler.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     message = payload.get("message", "")
     return {
         **payload,
@@ -39,7 +39,7 @@ Before deploying, verify the handler works as a plain function:
 ```python
 from echo_handler import process
 
-result = process({"message": "hello world"})
+result = await process({"message": "hello world"})
 assert result == {"message": "hello world", "echo": "hello world", "length": 11}
 print("Handler works:", result)
 ```

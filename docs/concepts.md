@@ -134,13 +134,13 @@ Crew actors are built-in system actors that handle framework-level concerns:
 The Flow DSL lets you describe multi-actor pipelines in familiar Python control flow and compiles them into a set of router actors:
 
 ```python
-def analysis_flow(p: dict) -> dict:
-    p = clean_text(p)
+async def analysis_flow(p: dict) -> dict:
+    p = await clean_text(p)
     if p["language"] == "en":
-        p = english_model(p)
+        p = await english_model(p)
     else:
-        p = multilingual_model(p)
-    p = store_result(p)
+        p = await multilingual_model(p)
+    p = await store_result(p)
     return p
 ```
 

@@ -544,7 +544,7 @@ mkdir hello-actor && cd hello-actor
 **`handler.py`** — the actor handler:
 
 ```python
-def handle(payload: dict) -> dict:
+async def handle(payload: dict) -> dict:
     name = payload.get("name", "world")
     return {"greeting": f"Hello, {name}!"}
 ```

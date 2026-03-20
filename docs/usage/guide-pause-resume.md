@@ -25,7 +25,7 @@ The simplest approach is to include `x-pause` in your route configuration.
 
 ```python
 # draft_handler.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     topic = payload.get("topic", "unknown")
     return {
         **payload,
@@ -36,7 +36,7 @@ def process(payload: dict) -> dict:
 
 ```python
 # publish_handler.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     draft = payload.get("draft", "")
     reviewer_notes = payload.get("reviewer_notes", "")
     approved = payload.get("approved", False)
@@ -91,7 +91,7 @@ If you need conditional pausing based on runtime logic, use a generator handler 
 
 ```python
 # draft_handler.py (generator version)
-def process(payload: dict):
+async def process(payload: dict):
     topic = payload.get("topic", "unknown")
     confidence = calculate_confidence(topic)
 
@@ -179,7 +179,7 @@ When writing an actor that follows `x-pause`, structure your handler to handle b
 Use `.get()` with defaults to handle optional fields gracefully:
 
 ```python
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     # Core data from the previous actor
     draft = payload.get("draft", "")
 
@@ -243,7 +243,7 @@ Cancel is terminal — canceled tasks cannot be resumed.
 
 ```python
 # approval_check.py (generator)
-def process(payload: dict):
+async def process(payload: dict):
     if needs_approval(payload):
         yield "SET", ".route.next", ["x-pause", "finalize"]
         yield {**payload, "status": "awaiting_approval"}
@@ -256,7 +256,7 @@ def process(payload: dict):
 
 ```python
 # initial_draft.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     return {
         **payload,
         "draft": generate_draft(payload),
@@ -264,7 +264,7 @@ def process(payload: dict) -> dict:
     }
 
 # finalize_with_user_data.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     customer_id = payload.get("customer_id")
     due_date = payload.get("due_date")
 
@@ -286,7 +286,7 @@ The human provides `customer_id` and `due_date` during resume.
 
 ```python
 # agent_step.py (generator)
-def process(payload: dict):
+async def process(payload: dict):
     conversation = payload.get("conversation", [])
 
     # Agent generates next response
