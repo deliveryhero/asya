@@ -17,47 +17,42 @@ async def start_sample_flow(payload: dict):
     """Entrypoint for flow 'sample_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_sample_flow_line_5_if"))
+    _next.append(resolve("router_sample_flow_line_5_if_3"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_sample_flow_line_6_seq(payload: dict):
+async def router_sample_flow_line_6_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['branch'] = 'A'
     _next.append(resolve("handler_type_a"))
-    _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_sample_flow_line_10_seq(payload: dict):
+async def router_sample_flow_line_10_seq_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['branch'] = 'B'
-    _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_sample_flow_line_5_if(payload: dict):
+async def router_sample_flow_line_5_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'A':
-        _next.append(resolve("router_sample_flow_line_6_seq"))
+        _next.append(resolve("router_sample_flow_line_6_seq_1"))
+        _next.append(resolve("handler_finalize"))
     else:
         _next.append(resolve("handler_type_b"))
-        _next.append(resolve("router_sample_flow_line_10_seq"))
+        _next.append(resolve("router_sample_flow_line_10_seq_2"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def end_sample_flow(payload: dict):
-    """Exitpoint for flow 'sample_flow'"""
-    yield "SET", ".route.next", []
     yield payload
 
 
