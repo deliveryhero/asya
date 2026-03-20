@@ -7,10 +7,10 @@ digraph "text_analysis_flow" {
     clean_text [label="clean_text", fillcolor=lightblue];
     english_sentiment [label="english_sentiment", fillcolor=lightblue];
     extract_entities [label="extract_entities", fillcolor=lightblue];
-    router_text_analysis_flow_line_11_if_4 [label="router_text_analysis_flow_line_11_if_4", fillcolor=wheat];
-    router_text_analysis_flow_line_13_if_3 [label="router_text_analysis_flow_line_13_if_3", fillcolor=wheat];
-    router_text_analysis_flow_line_16_seq_2 [label="router_text_analysis_flow_line_16_seq_2\n\np['sentiment'] = 'neutral'", fillcolor=wheat];
-    router_text_analysis_flow_line_20_seq_1 [label="router_text_analysis_flow_line_20_seq_1\n\np['extracted'] = True", fillcolor=wheat];
+    router_text_analysis_flow_line_12_if_4 [label="router_text_analysis_flow_line_12_if_4", fillcolor=wheat];
+    router_text_analysis_flow_line_14_if_3 [label="router_text_analysis_flow_line_14_if_3", fillcolor=wheat];
+    router_text_analysis_flow_line_17_seq_2 [label="router_text_analysis_flow_line_17_seq_2\n\np['sentiment'] = 'neutral'", fillcolor=wheat];
+    router_text_analysis_flow_line_21_seq_1 [label="router_text_analysis_flow_line_21_seq_1\n\np['extracted'] = True", fillcolor=wheat];
     spanish_sentiment [label="spanish_sentiment", fillcolor=lightblue];
     start_text_analysis_flow [label="start_text_analysis_flow", fillcolor=palegreen];
     tokenize [label="tokenize", fillcolor=lightblue];
@@ -19,14 +19,14 @@ digraph "text_analysis_flow" {
 
     start_text_analysis_flow -> clean_text;
     clean_text -> tokenize;
-    tokenize -> router_text_analysis_flow_line_11_if_4;
-    router_text_analysis_flow_line_13_if_3 -> spanish_sentiment [label="p['language'] == 'es'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_text_analysis_flow_line_13_if_3 -> router_text_analysis_flow_line_16_seq_2 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_text_analysis_flow_line_11_if_4 -> english_sentiment [label="p['language'] == 'en'", color="#2E8B57", fontcolor="#2E8B57"];
+    tokenize -> router_text_analysis_flow_line_12_if_4;
+    router_text_analysis_flow_line_14_if_3 -> spanish_sentiment [label="p['language'] == 'es'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_text_analysis_flow_line_14_if_3 -> router_text_analysis_flow_line_17_seq_2 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_text_analysis_flow_line_12_if_4 -> english_sentiment [label="p['language'] == 'en'", color="#2E8B57", fontcolor="#2E8B57"];
     english_sentiment -> extract_entities;
-    extract_entities -> router_text_analysis_flow_line_20_seq_1;
-    router_text_analysis_flow_line_11_if_4 -> router_text_analysis_flow_line_13_if_3 [label="else", color="#D35400", fontcolor="#D35400"];
+    extract_entities -> router_text_analysis_flow_line_21_seq_1;
+    router_text_analysis_flow_line_12_if_4 -> router_text_analysis_flow_line_14_if_3 [label="else", color="#D35400", fontcolor="#D35400"];
     spanish_sentiment -> extract_entities;
-    router_text_analysis_flow_line_16_seq_2 -> extract_entities;
-    router_text_analysis_flow_line_20_seq_1 -> __end__;
+    router_text_analysis_flow_line_17_seq_2 -> extract_entities;
+    router_text_analysis_flow_line_21_seq_1 -> __end__;
 }
