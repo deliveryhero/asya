@@ -60,6 +60,7 @@
               "options": {
                 "match": "null",
                 "result": {
+                  "color": "text",
                   "text": "No data"
                 }
               },
