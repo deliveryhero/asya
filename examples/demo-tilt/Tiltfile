@@ -1,0 +1,14 @@
+# Root Tiltfile: aggregates team configs
+# include() evaluates each sub-Tiltfile in its own directory context,
+# so paths in team-a/Tiltfile are relative to team-a/.
+# This is the Tilt equivalent of skaffold.yaml requires: [team-a, team-b]
+
+# Registry prefix for image names (equivalent to skaffold --default-repo)
+# Set REGISTRY env var before running tilt up:
+#   export REGISTRY=europe-west1-docker.pkg.dev/my-project/my-repo
+registry = os.getenv('REGISTRY', '')
+if registry:
+    default_registry(registry)
+
+include('./team-a/Tiltfile')
+include('./team-b/Tiltfile')

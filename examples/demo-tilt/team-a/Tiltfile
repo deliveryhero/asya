@@ -1,0 +1,32 @@
+# Team A: sentiment + summarizer actors
+# Paths here are relative to team-a/ (because root uses include())
+
+# Sentiment: needs shared libs, so context is the project root (..)
+docker_build(
+    'tilt-sentiment-actors',
+    context='..',
+    dockerfile='team-a/actors/sentiment/Dockerfile',
+    only=[
+        'libs/common/',
+        'team-a/actors/sentiment/',
+    ],
+    live_update=[
+        sync('./actors/sentiment/sentiment_actors/', '/app/sentiment_actors/'),
+    ],
+)
+
+# Summarizer: self-contained, context is the actor dir
+docker_build(
+    'tilt-summarizer',
+    context='./actors/summarizer',
+    dockerfile='./actors/summarizer/Dockerfile',
+    live_update=[
+        sync('./actors/summarizer/summarizer/', '/app/summarizer/'),
+    ],
+)
+
+k8s_yaml('./k8s/sentiment-deployment.yaml')
+k8s_yaml('./k8s/summarizer-deployment.yaml')
+
+k8s_resource('sentiment', labels=['team-a'])
+k8s_resource('summarizer', labels=['team-a'])

@@ -1,0 +1,15 @@
+# Team B: translator actor
+# Paths here are relative to team-b/ (because root uses include())
+
+docker_build(
+    'tilt-translator',
+    context='./actors/translator',
+    dockerfile='./actors/translator/Dockerfile',
+    live_update=[
+        sync('./actors/translator/translator/', '/app/translator/'),
+    ],
+)
+
+k8s_yaml('./k8s/translator-deployment.yaml')
+
+k8s_resource('translator', labels=['team-b'])

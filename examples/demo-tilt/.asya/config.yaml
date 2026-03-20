@@ -1,0 +1,16 @@
+templates:
+  namespace: demo-tilt
+  router_image: "python:3.13-slim"
+  max_replicas: 5
+
+build:
+- module: "sentiment_actors"
+  image: "tilt-sentiment-actors"
+- module: "summarizer"
+  image: "tilt-summarizer"
+- module: "translator"
+  image: "tilt-translator"
+
+compiler:
+  routers: "./compiled"
+  manifests: ".asya/manifests"

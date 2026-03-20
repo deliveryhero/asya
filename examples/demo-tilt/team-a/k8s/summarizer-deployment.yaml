@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: summarizer
+  labels:
+    app: summarizer
+    team: team-a
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: summarizer
+  template:
+    metadata:
+      labels:
+        app: summarizer
+        team: team-a
+    spec:
+      containers:
+      - name: summarizer
+        image: tilt-summarizer
+        ports:
+        - containerPort: 8080

@@ -1,0 +1,16 @@
+templates:
+  namespace: demo-skaffold
+  router_image: "python:3.13-slim"
+  max_replicas: 5
+
+build:
+- module: "sentiment_actors"
+  image: "skaffold-sentiment-actors"
+- module: "summarizer"
+  image: "skaffold-summarizer"
+- module: "translator"
+  image: "skaffold-translator"
+
+compiler:
+  routers: "./compiled"
+  manifests: ".asya/manifests"
