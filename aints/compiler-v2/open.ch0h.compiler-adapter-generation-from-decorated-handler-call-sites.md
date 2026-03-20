@@ -1,8 +1,13 @@
 ---
 title: Compiler adapter generation from decorated handler call sites
 priority: 2 # medium
-dependencies: [srn2, 1fmi]
+tags:
+  - integrate-into:gml9
+dependencies:
+  - srn2
+  - 1fmi
 ---
+
 
 ## Problem
 
