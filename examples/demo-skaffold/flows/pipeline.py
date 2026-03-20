@@ -12,7 +12,7 @@ from .asya_utils import flow, actor
 
 @flow
 def pipeline(payload: dict) -> dict:
-    payload = analyze(payload)
-    payload = summarize(payload)
-    payload = translate(payload)
+    payload = analyze(payload)  # asya: actor
+    payload = summarize(payload)  # asya: actor
+    payload = translate(payload)  # asya: actor
     return payload
