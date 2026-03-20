@@ -1,7 +1,12 @@
 ---
 title: "Hands-on demo: Skaffold vs Tilt for multi-team actor repos"
 priority: 1 # high
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/asya-lab/vppe.hands-on-demo-skaffold-vs-tilt-multi-team
+  - branch:asya-lab/vppe.hands-on-demo-skaffold-vs-tilt-multi-team
 ---
+
 
 ## Context
 
