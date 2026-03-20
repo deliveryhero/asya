@@ -3,25 +3,25 @@
   "nodes": [
     {
       "id": "convergence_checker",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "convergence_checker",
       "is_generated": false
     },
     {
       "id": "debater_a",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "debater_a",
       "is_generated": false
     },
     {
       "id": "debater_b",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "debater_b",
       "is_generated": false
     },
     {
       "id": "debater_c",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "debater_c",
       "is_generated": false
     },
@@ -39,25 +39,25 @@
     },
     {
       "id": "final_judge",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "final_judge",
       "is_generated": false
     },
     {
       "id": "revise_a",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "revise_a",
       "is_generated": false
     },
     {
       "id": "revise_b",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "revise_b",
       "is_generated": false
     },
     {
       "id": "revise_c",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "revise_c",
       "is_generated": false
     },
@@ -102,7 +102,7 @@
     },
     {
       "id": "start_multi_agent_debate",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_multi_agent_debate",
       "is_generated": true,
       "mutations": [

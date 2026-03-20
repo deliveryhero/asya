@@ -3,37 +3,37 @@
   "nodes": [
     {
       "id": "handler_a",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_a",
       "is_generated": false
     },
     {
       "id": "handler_b",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_b",
       "is_generated": false
     },
     {
       "id": "handler_c",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_c",
       "is_generated": false
     },
     {
       "id": "handler_d",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_d",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_validate_input",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_validate_input",
       "is_generated": false
     },
@@ -117,7 +117,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_29_seq_1",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "router_conditional_nested_flow_line_29_seq_1",
       "is_generated": true,
       "mutations": [
@@ -136,7 +136,7 @@
     },
     {
       "id": "start_conditional_nested_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_conditional_nested_flow",
       "is_generated": true
     }

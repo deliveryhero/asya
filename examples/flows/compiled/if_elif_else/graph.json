@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "handler_default",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_default",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_type_a",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_type_a",
       "is_generated": false
     },
     {
       "id": "handler_type_b",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_type_b",
       "is_generated": false
     },
     {
       "id": "handler_validate",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_validate",
       "is_generated": false
     },
@@ -45,7 +45,7 @@
     },
     {
       "id": "start_if_elif_else_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_if_elif_else_flow",
       "is_generated": true
     }

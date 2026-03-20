@@ -3,25 +3,25 @@
   "nodes": [
     {
       "id": "calculator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "calculator",
       "is_generated": false
     },
     {
       "id": "code_exec",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "code_exec",
       "is_generated": false
     },
     {
       "id": "format_response",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "format_response",
       "is_generated": false
     },
     {
       "id": "llm_reason",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "llm_reason",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_react_tool_loop",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_react_tool_loop",
       "is_generated": true,
       "mutations": [
@@ -97,7 +97,7 @@
     },
     {
       "id": "web_search",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "web_search",
       "is_generated": false
     }

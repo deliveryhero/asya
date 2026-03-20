@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "critic",
       "is_generated": false
     },
     {
       "id": "refine_query",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "refine_query",
       "is_generated": false
     },
     {
       "id": "researcher",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "researcher",
       "is_generated": false
     },
@@ -48,7 +48,7 @@
     },
     {
       "id": "start_research_and_refine",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_research_and_refine",
       "is_generated": true,
       "mutations": [
@@ -58,7 +58,7 @@
     },
     {
       "id": "write_report",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "write_report",
       "is_generated": false
     }

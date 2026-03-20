@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "executor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "executor",
       "is_generated": false
     },
     {
       "id": "planner",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "planner",
       "is_generated": false
     },
     {
       "id": "re_planner",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "re_planner",
       "is_generated": false
     },
@@ -45,7 +45,7 @@
     },
     {
       "id": "start_plan_and_execute",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_plan_and_execute",
       "is_generated": true,
       "mutations": [
@@ -55,7 +55,7 @@
     },
     {
       "id": "synthesizer",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "synthesizer",
       "is_generated": false
     }

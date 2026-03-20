@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "chunk_processor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "chunk_processor",
       "is_generated": false
     },
@@ -15,7 +15,7 @@
     },
     {
       "id": "reducer",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "reducer",
       "is_generated": false
     },
@@ -27,13 +27,13 @@
     },
     {
       "id": "splitter",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "splitter",
       "is_generated": false
     },
     {
       "id": "start_map_reduce",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_map_reduce",
       "is_generated": true
     }

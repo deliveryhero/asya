@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "classifier",
       "is_generated": false
     },
     {
       "id": "enricher",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "enricher",
       "is_generated": false
     },
     {
       "id": "extractor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "extractor",
       "is_generated": false
     },
     {
       "id": "formatter",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "formatter",
       "is_generated": false
     },
     {
       "id": "start_typed_dataclass_pipeline",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_typed_dataclass_pipeline",
       "is_generated": true
     }

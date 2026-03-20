@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "critic",
       "is_generated": false
     },
     {
       "id": "reviser",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "reviser",
       "is_generated": false
     },
     {
       "id": "start_llm_auditor_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_llm_auditor_flow",
       "is_generated": true
     }

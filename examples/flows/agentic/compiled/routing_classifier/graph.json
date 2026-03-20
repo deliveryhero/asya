@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "account_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "account_agent",
       "is_generated": false
     },
     {
       "id": "billing_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "billing_agent",
       "is_generated": false
     },
     {
       "id": "classifier",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "classifier",
       "is_generated": false
     },
     {
       "id": "format_reply",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "format_reply",
       "is_generated": false
     },
     {
       "id": "general_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "general_agent",
       "is_generated": false
     },
@@ -51,13 +51,13 @@
     },
     {
       "id": "start_routing_classifier",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_routing_classifier",
       "is_generated": true
     },
     {
       "id": "technical_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "technical_agent",
       "is_generated": false
     }

@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "classifier",
       "is_generated": false
     },
     {
       "id": "deep_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "deep_analyzer",
       "is_generated": false
     },
@@ -21,13 +21,13 @@
     },
     {
       "id": "fast_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "fast_analyzer",
       "is_generated": false
     },
     {
       "id": "formatter",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "formatter",
       "is_generated": false
     },
@@ -45,13 +45,13 @@
     },
     {
       "id": "sequential_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "sequential_analyzer",
       "is_generated": false
     },
     {
       "id": "start_adaptive_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_adaptive_flow",
       "is_generated": true
     }

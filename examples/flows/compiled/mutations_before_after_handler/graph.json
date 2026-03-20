@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "handler_a",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_a",
       "is_generated": false
     },
     {
       "id": "handler_b",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_b",
       "is_generated": false
     },
@@ -24,7 +24,7 @@
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "is_generated": true,
       "mutations": [
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_mutations_before_after_handler_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_mutations_before_after_handler_flow",
       "is_generated": true,
       "mutations": [

@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "analytical_writer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "analytical_writer",
       "is_generated": false
     },
     {
       "id": "concise_writer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "concise_writer",
       "is_generated": false
     },
     {
       "id": "creative_writer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "creative_writer",
       "is_generated": false
     },
@@ -27,7 +27,7 @@
     },
     {
       "id": "judge",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "judge",
       "is_generated": false
     },
@@ -39,7 +39,7 @@
     },
     {
       "id": "start_voting_ensemble",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_voting_ensemble",
       "is_generated": true
     }

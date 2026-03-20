@@ -35,10 +35,7 @@ def _compile_flow_file(
     target: str,
     flow_name_override: str | None,
     output_dir: str | None,
-    plot: bool,
-    plot_format: str,
     verbose: bool,
-    force: bool,
     strict: bool = False,
 ) -> None:
     """Compile a flow from a .py source file."""
@@ -136,9 +133,8 @@ def _recompile_kebab_target(
     help="Output format for flow diagram",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", is_flag=True, help="Overwrite without checking git status")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force, strict):
+def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, strict):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
@@ -148,9 +144,10 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
       flow.py:my_flow      Compile specific flow function from file
       my-flow              Recompile from existing .asya/ manifests
     """
+    _ = plot, plot_format  # accepted by CLI, not yet wired to compile_file
     try:
         if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force, strict)
+            _compile_flow_file(str(target.source), flow_name, output_dir, verbose, strict)
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:

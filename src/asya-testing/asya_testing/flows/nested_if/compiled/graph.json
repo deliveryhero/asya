@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "finalize_result",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "finalize_result",
       "is_generated": false
     },
     {
       "id": "route_a_x",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "route_a_x",
       "is_generated": false
     },
     {
       "id": "route_a_y",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "route_a_y",
       "is_generated": false
     },
     {
       "id": "route_b_x",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "route_b_x",
       "is_generated": false
     },
     {
       "id": "route_b_y",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "route_b_y",
       "is_generated": false
     },
@@ -93,13 +93,13 @@
     },
     {
       "id": "start_test_nested_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_test_nested_flow",
       "is_generated": true
     },
     {
       "id": "validate_input",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "validate_input",
       "is_generated": false
     }

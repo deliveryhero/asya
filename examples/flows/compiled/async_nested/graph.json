@@ -3,25 +3,25 @@
   "nodes": [
     {
       "id": "auto_approve",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "auto_approve",
       "is_generated": false
     },
     {
       "id": "detailed_review",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "detailed_review",
       "is_generated": false
     },
     {
       "id": "human_review",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "human_review",
       "is_generated": false
     },
     {
       "id": "initial_review",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "initial_review",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_review_pipeline_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_review_pipeline_flow",
       "is_generated": true
     }

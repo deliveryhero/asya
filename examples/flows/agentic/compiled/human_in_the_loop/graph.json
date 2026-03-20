@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "approval_gate",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "approval_gate",
       "is_generated": false
     },
     {
       "id": "executor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "executor",
       "is_generated": false
     },
     {
       "id": "notifier",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "notifier",
       "is_generated": false
     },
     {
       "id": "proposal_generator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "proposal_generator",
       "is_generated": false
     },
     {
       "id": "revision_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "revision_agent",
       "is_generated": false
     },
@@ -75,7 +75,7 @@
     },
     {
       "id": "start_human_in_the_loop",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_human_in_the_loop",
       "is_generated": true,
       "mutations": [

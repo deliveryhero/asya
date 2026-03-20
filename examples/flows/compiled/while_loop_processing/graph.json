@@ -3,31 +3,31 @@
   "nodes": [
     {
       "id": "check_threshold",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "check_threshold",
       "is_generated": false
     },
     {
       "id": "finalize_loop",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "finalize_loop",
       "is_generated": false
     },
     {
       "id": "initialize",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "initialize",
       "is_generated": false
     },
     {
       "id": "process_abort",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "process_abort",
       "is_generated": false
     },
     {
       "id": "process_item",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "process_item",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_loop_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_loop_flow",
       "is_generated": true
     }

@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "handler_setup",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_setup",
       "is_generated": false
     },
     {
       "id": "handler_true",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_true",
       "is_generated": false
     },
@@ -21,7 +21,7 @@
     },
     {
       "id": "start_if_no_else_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_if_no_else_flow",
       "is_generated": true
     }

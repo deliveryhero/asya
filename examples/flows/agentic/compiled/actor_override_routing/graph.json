@@ -3,25 +3,25 @@
   "nodes": [
     {
       "id": "audit_logger",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "audit_logger",
       "is_generated": false
     },
     {
       "id": "classify",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "classify",
       "is_generated": false
     },
     {
       "id": "escalate",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "escalate",
       "is_generated": false
     },
     {
       "id": "format_output",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "format_output",
       "is_generated": false
     },
@@ -33,13 +33,13 @@
     },
     {
       "id": "start_actor_override_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_actor_override_flow",
       "is_generated": true
     },
     {
       "id": "tool_executor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "tool_executor",
       "is_generated": false
     }

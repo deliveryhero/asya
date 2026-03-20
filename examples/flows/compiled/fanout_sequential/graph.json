@@ -15,13 +15,13 @@
     },
     {
       "id": "research_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "research_agent",
       "is_generated": false
     },
     {
       "id": "review_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "review_agent",
       "is_generated": false
     },
@@ -39,13 +39,13 @@
     },
     {
       "id": "start_multi_stage_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_multi_stage_flow",
       "is_generated": true
     },
     {
       "id": "summarizer",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "summarizer",
       "is_generated": false
     }

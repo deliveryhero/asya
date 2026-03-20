@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "language_detector",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "language_detector",
       "is_generated": false
     },
     {
       "id": "ocr_extractor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "ocr_extractor",
       "is_generated": false
     },
@@ -21,7 +21,7 @@
     },
     {
       "id": "router_document_pipeline_line_28_seq_1",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "router_document_pipeline_line_28_seq_1",
       "is_generated": true,
       "mutations": [
@@ -30,13 +30,13 @@
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "sentiment_analyzer",
       "is_generated": false
     },
     {
       "id": "start_document_pipeline",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_document_pipeline",
       "is_generated": true,
       "mutations": [
@@ -45,7 +45,7 @@
     },
     {
       "id": "translator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "translator",
       "is_generated": false
     }

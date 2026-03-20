@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile ../../minimal.py
 # Single-Actor Flow: no router needed
 # The actor below IS the entrypoint; label it in your AsyncActor spec:
 #   asya.sh/flow: minimal_flow
-#   asya.sh/flow-role: entrypoint
+#   asya.sh/flow-role: entry
 # ======================================================================
 
 FLOW_METADATA = {
@@ -22,6 +22,6 @@ FLOW_METADATA = {
     "actor": 'handler_a',
     "labels": {
         "asya.sh/flow": "minimal_flow",
-        "asya.sh/flow-role": "entrypoint",
+        "asya.sh/flow-role": "entry",
     },
 }

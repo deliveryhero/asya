@@ -3,55 +3,55 @@
   "nodes": [
     {
       "id": "api_specialist",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "api_specialist",
       "is_generated": false
     },
     {
       "id": "content_generalist",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "content_generalist",
       "is_generated": false
     },
     {
       "id": "content_team_lead",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "content_team_lead",
       "is_generated": false
     },
     {
       "id": "data_generalist",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "data_generalist",
       "is_generated": false
     },
     {
       "id": "data_team_lead",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "data_team_lead",
       "is_generated": false
     },
     {
       "id": "editor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "editor",
       "is_generated": false
     },
     {
       "id": "final_assembler",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "final_assembler",
       "is_generated": false
     },
     {
       "id": "generalist",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "generalist",
       "is_generated": false
     },
     {
       "id": "root_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "root_agent",
       "is_generated": false
     },
@@ -93,19 +93,19 @@
     },
     {
       "id": "sql_specialist",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "sql_specialist",
       "is_generated": false
     },
     {
       "id": "start_hierarchical_delegation",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_hierarchical_delegation",
       "is_generated": true
     },
     {
       "id": "writer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "writer",
       "is_generated": false
     }

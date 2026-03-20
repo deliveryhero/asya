@@ -44,6 +44,7 @@ def compile(  # noqa: A001
     Returns:
         FlowInfo with all compilation artifacts.
     """
+    _ = plot  # accepted by API, not yet wired to compile_file
     source_path = Path(source).resolve()
 
     project = None
@@ -67,7 +68,7 @@ def compile(  # noqa: A001
             try:
                 flow_function = _infer_flow_function(source_path)
                 output_dir = str(project.resolve_path("compiler.routers") / (flow_function or source_path.stem))
-            except Exception:
+            except (KeyError, FileNotFoundError):
                 output_dir = str(source_path.parent / "compiled" / source_path.stem)
         else:
             output_dir = str(source_path.parent / "compiled" / source_path.stem)

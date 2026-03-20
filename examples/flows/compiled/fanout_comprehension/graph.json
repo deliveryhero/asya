@@ -9,19 +9,19 @@
     },
     {
       "id": "post_processor",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "post_processor",
       "is_generated": false
     },
     {
       "id": "preprocessor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "preprocessor",
       "is_generated": false
     },
     {
       "id": "research_agent",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "research_agent",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_research_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_research_flow",
       "is_generated": true
     }

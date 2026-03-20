@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_init",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_init",
       "is_generated": false
     },
     {
       "id": "handler_process",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_process",
       "is_generated": false
     },
@@ -51,7 +51,7 @@
     },
     {
       "id": "start_while_with_break_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_while_with_break_flow",
       "is_generated": true
     }

@@ -19,7 +19,7 @@ def test_compile_help():
     assert "--output-dir" in result.output
     assert "--plot" in result.output
     assert "--verbose" in result.output
-    assert "--force" in result.output
+    assert "--strict" in result.output
 
 
 def test_compile_py_file(tmp_path: Path):
@@ -41,7 +41,7 @@ def test_compile_py_file(tmp_path: Path):
 
     output_dir = tmp_path / "out"
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, [str(flow_source), "-o", str(output_dir), "--force"])
+    result = runner.invoke(compile_cmd, [str(flow_source), "-o", str(output_dir)])
 
     assert result.exit_code == 0, (
         f"stdout: {result.output}\nstderr: {result.stderr if hasattr(result, 'stderr') else ''}"

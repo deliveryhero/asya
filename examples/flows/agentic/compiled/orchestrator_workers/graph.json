@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "analysis_worker",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "analysis_worker",
       "is_generated": false
     },
     {
       "id": "data_worker",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "data_worker",
       "is_generated": false
     },
     {
       "id": "orchestrator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "orchestrator",
       "is_generated": false
     },
@@ -66,7 +66,7 @@
     },
     {
       "id": "start_orchestrator_workers",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_orchestrator_workers",
       "is_generated": true,
       "mutations": [
@@ -76,13 +76,13 @@
     },
     {
       "id": "synthesizer",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "synthesizer",
       "is_generated": false
     },
     {
       "id": "writing_worker",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "writing_worker",
       "is_generated": false
     }

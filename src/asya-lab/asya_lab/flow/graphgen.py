@@ -21,7 +21,7 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     exitpoints: list[str] = []
 
     # Pin start_ to top
-    start_ids = [_sanitize_id(n["id"]) for n in data.nodes if n["flow_role"] == "entrypoint"]
+    start_ids = [_sanitize_id(n["id"]) for n in data.nodes if n["flow_role"] == "entry"]
     if start_ids:
         lines.append("    { rank=source; " + "; ".join(start_ids) + "; }")
         lines.append("")
@@ -29,13 +29,13 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
         label = _dot_node_label(node)
-        if node["flow_role"] == "entrypoint":
+        if node["flow_role"] == "entry":
             lines.append(f'    {nid} [label="{label}", fillcolor=palegreen];')
         elif node.get("is_generated"):
             lines.append(f'    {nid} [label="{label}", fillcolor=wheat];')
         else:
             lines.append(f'    {nid} [label="{label}", fillcolor=lightblue];')
-        if node["flow_role"] == "exitpoint":
+        if node["flow_role"] == "exit":
             exitpoints.append(nid)
 
     # Add ephemeral __end__ node for layout clarity
@@ -107,7 +107,7 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
         label = _mermaid_node_label(node)
-        if node["flow_role"] == "entrypoint":
+        if node["flow_role"] == "entry":
             lines.append(f"    {nid}([{label}])")
             entrypoints.append(nid)
         elif node.get("is_generated"):
@@ -116,7 +116,7 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         else:
             lines.append(f"    {nid}[{label}]")
             handlers.append(nid)
-        if node["flow_role"] == "exitpoint":
+        if node["flow_role"] == "exit":
             exitpoints.append(nid)
 
     # Ephemeral __end__ node

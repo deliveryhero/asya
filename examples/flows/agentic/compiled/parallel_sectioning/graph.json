@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "aggregator",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "aggregator",
       "is_generated": false
     },
     {
       "id": "entity_recognizer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "entity_recognizer",
       "is_generated": false
     },
@@ -21,7 +21,7 @@
     },
     {
       "id": "preprocessor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "preprocessor",
       "is_generated": false
     },
@@ -33,19 +33,19 @@
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "sentiment_analyzer",
       "is_generated": false
     },
     {
       "id": "start_parallel_sectioning",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_parallel_sectioning",
       "is_generated": true
     },
     {
       "id": "topic_extractor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "topic_extractor",
       "is_generated": false
     }

@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "error_handler",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "error_handler",
       "is_generated": false
     },
     {
       "id": "parser",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "parser",
       "is_generated": false
     },
@@ -21,25 +21,25 @@
     },
     {
       "id": "sink_adapter",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "sink_adapter",
       "is_generated": false
     },
     {
       "id": "start_typeddict_pipeline",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_typeddict_pipeline",
       "is_generated": true
     },
     {
       "id": "transformer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "transformer",
       "is_generated": false
     },
     {
       "id": "validator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "validator",
       "is_generated": false
     }

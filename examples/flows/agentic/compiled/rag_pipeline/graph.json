@@ -3,37 +3,37 @@
   "nodes": [
     {
       "id": "fact_checker",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "fact_checker",
       "is_generated": false
     },
     {
       "id": "generator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "generator",
       "is_generated": false
     },
     {
       "id": "query_analyzer",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "query_analyzer",
       "is_generated": false
     },
     {
       "id": "query_refiner",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "query_refiner",
       "is_generated": false
     },
     {
       "id": "relevance_evaluator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "relevance_evaluator",
       "is_generated": false
     },
     {
       "id": "retriever",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "retriever",
       "is_generated": false
     },
@@ -66,7 +66,7 @@
     },
     {
       "id": "start_rag_pipeline",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_rag_pipeline",
       "is_generated": true,
       "mutations": [

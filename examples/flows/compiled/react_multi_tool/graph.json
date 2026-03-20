@@ -3,19 +3,19 @@
   "nodes": [
     {
       "id": "calculator",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "calculator",
       "is_generated": false
     },
     {
       "id": "code_executor",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "code_executor",
       "is_generated": false
     },
     {
       "id": "llm_call",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "llm_call",
       "is_generated": false
     },
@@ -45,7 +45,7 @@
     },
     {
       "id": "start_research_agent",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_research_agent",
       "is_generated": true,
       "mutations": [
@@ -54,7 +54,7 @@
     },
     {
       "id": "web_search",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "web_search",
       "is_generated": false
     }

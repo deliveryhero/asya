@@ -3,49 +3,49 @@
   "nodes": [
     {
       "id": "handler_check_quality",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_check_quality",
       "is_generated": false
     },
     {
       "id": "handler_enrich_data",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_enrich_data",
       "is_generated": false
     },
     {
       "id": "handler_error",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_error",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
+      "flow_role": "exit",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_preprocess",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_preprocess",
       "is_generated": false
     },
     {
       "id": "handler_retry_handler",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_retry_handler",
       "is_generated": false
     },
     {
       "id": "handler_transform_batch",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_transform_batch",
       "is_generated": false
     },
     {
       "id": "handler_validate",
-      "flow_role": "processor",
+      "flow_role": "actor",
       "label": "handler_validate",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_complex_flow",
-      "flow_role": "entrypoint",
+      "flow_role": "entry",
       "label": "start_complex_flow",
       "is_generated": true
     }
