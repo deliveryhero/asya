@@ -1,9 +1,14 @@
 ---
 title: "Phase 2: Manifests, error handling, rules, and CLI"
 priority: 1 # high
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/.worktrees/compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
+  - branch:compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
 dependencies:
   - dlad
 ---
+
 
 ## Overview
 
@@ -190,3 +195,15 @@ for rules extraction. Needed for resiliency schema (policies+rules).
 - RFC: `.aint/aints/compiler-simplify/rfc.md` (sections: Compiler pipeline, AsyaProject integration, CLI interface, SDK interface, flow_role vocabulary, Config extraction)
 - Design decisions: `.aint/aints/compiler-simplify/design-decisions.md`
 - Error handling design: `.aint/aints/compiler-simplify/open.3dp2.compiler-error-handling.md`
+
+
+## Notes:
+
+Don't forget to uncomment `.pre-commit-hooks/compile-flows.sh` to compile flows once syntax is implemented:
+```
+   # Flows requiring unsupported syntax (try/except, inline with)
+    [[ "$flow_name" == try_except_* ]] && continue
+    [[ "$flow_name" == with_inline_ctx ]] && continue
+    [[ "$flow_name" == adk_llm_auditor ]] && continue
+    [[ "$flow_name" == guardrails_sandwich ]] && continue
+```
