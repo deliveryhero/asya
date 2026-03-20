@@ -18,7 +18,7 @@ uv pip install "git+https://github.com/asiffer/mkdocs-shadcn@30-search-indexing-
 ## Installation
 
 ```bash
-uv pip install -r docs/mkdoc/requirements.txt
+uv pip install -r docs/website/requirements.txt
 ```
 
 ## Configuration
@@ -50,7 +50,7 @@ Monitor the upstream issue. When mkdocs-shadcn releases a new version (likely v0
 
 ```bash
 uv pip install mkdocs-shadcn --upgrade
-# Then update docs/requirements.txt to use: mkdocs-shadcn>=0.9.8
+# Then update docs/website/requirements.txt to use: mkdocs-shadcn>=0.9.8
 ```
 
 ## Alternative: Material Theme

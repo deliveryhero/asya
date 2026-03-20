@@ -52,7 +52,7 @@ asya/
     └── flows/              # sample Python flows
 ```
 
-See [docs/architecture/](docs/architecture/) for component deep-dives.
+See [docs/reference/components/](docs/reference/components/) for component deep-dives.
 
 **Examples** (`examples/`):
 - `asyas/` — real-world AsyncActor CRD manifests; use as reference when writing or reviewing actor specs
@@ -149,7 +149,7 @@ profile assembly.
 - Modify routing from a generator handler: `yield "SET", ".route.next", ["actor_a"]`
 - Only `.route.next` and `.headers` are writable; `.route.prev`, `.route.curr`, `.id` are read-only
 
-See [docs/architecture/protocols/actor-actor.md](docs/architecture/protocols/actor-actor.md).
+See [docs/reference/specs/envelope.md](docs/reference/specs/envelope.md).
 
 ## Agentic Capabilities
 
@@ -179,7 +179,7 @@ Because flows compile to message-passing chains, they can only use actors that m
 ### ABI Yield Protocol
 
 Generator handlers communicate with the runtime via structured yields. Full spec:
-`docs/reference/abi-protocol.md`.
+`docs/reference/specs/abi-protocol.md`.
 
 | Yield form | Effect |
 |---|---|
@@ -250,6 +250,10 @@ Use Haiku/Sonnet subagents for lint errors and unit test failures — these are 
 
 Never proactively create documentation files (*.md, README.md, design docs) unless explicitly
 requested. Updating existing docs to reflect code changes is fine.
+
+- `docs/` contains only documentation content (.md files). Website assets live in `docs/website/`.
+- Mirrored guides in `usage/` and `setup/` must cross-link each other.
+- `docs/plans/` is gitignored and must never be committed. Use aint for work tracking.
 
 ### Code Comment Policy
 
