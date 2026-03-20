@@ -1,3 +1,4 @@
+<!-- Type: Explanation -->
 # Autoscaling
 
 ## How KEDA Works

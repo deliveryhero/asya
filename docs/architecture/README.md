@@ -1,3 +1,4 @@
+<!-- Type: Explanation -->
 # Architecture Overview
 
 Asya🎭 is a Kubernetes-native async actor framework with pluggable components for AI/ML orchestration.

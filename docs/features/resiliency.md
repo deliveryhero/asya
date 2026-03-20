@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Resiliency: Policies and Retry Rules
 
 Configure per-actor retry behavior via named policies and error-matching rules.

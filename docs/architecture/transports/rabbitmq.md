@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # RabbitMQ Transport
 
 Self-hosted open-source message broker.

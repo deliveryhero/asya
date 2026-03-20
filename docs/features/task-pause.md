@@ -1,3 +1,4 @@
+<!-- Type: Explanation -->
 # Task Pause/Resume
 
 Pause a pipeline mid-execution to collect human input, then resume with that

@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Socket Transport
 
 ⚠️ **Local testing only.** The socket transport exists exclusively for Docker Compose developer

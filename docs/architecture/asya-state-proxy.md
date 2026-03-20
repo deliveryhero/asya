@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # State Proxy
 
 ## Overview

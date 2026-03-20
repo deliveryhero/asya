@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Observability
 
 ## Built-in Metrics
@@ -46,7 +47,20 @@ Exposed via controller-runtime:
 
 ### Gateway Metrics
 
-Gateway does NOT currently expose Prometheus metrics. This is a future enhancement.
+The gateway does not currently expose Prometheus metrics. The gateway source code
+(`src/asya-gateway/`) contains no metric registrations (no `promauto`, `prometheus.NewCounter`,
+or similar calls).
+
+**Available operational data** (non-Prometheus):
+
+- **Structured JSON logs**: all requests, task state transitions, and errors are logged with
+  `task_id`, `status`, `actor`, and `timestamp` fields. Use log aggregation (Loki, CloudWatch)
+  for gateway observability.
+- **PostgreSQL task state**: query the `tasks` and `task_updates` tables directly for historical
+  task completion rates, error rates, and latency distributions.
+- **Health endpoint**: `GET /health` returns `OK` -- usable for K8s liveness/readiness probes.
+
+Prometheus metric exposition for the gateway is a planned enhancement.
 
 ## Integration with Prometheus
 

@@ -1,3 +1,4 @@
+<!-- Type: How-to -->
 # Local Kind Installation
 
 Local development cluster with Kind (Kubernetes in Docker).

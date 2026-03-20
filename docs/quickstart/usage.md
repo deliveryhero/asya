@@ -1,3 +1,4 @@
+<!-- Type: Tutorial -->
 # Usage: Writing and Deploying Actors
 
 Two files, two owners: a Python handler written by your team, and an `AsyncActor` CRD managed by your platform team. Asya injects the sidecar, creates the queue, and wires KEDA autoscaling — your code stays pure Python.

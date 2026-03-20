@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Asya Toolkit
 
 CLI tools for interacting with Asya system.

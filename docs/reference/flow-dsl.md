@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Flow DSL Reference
 
 ## What is the Flow DSL?

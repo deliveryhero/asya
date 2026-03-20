@@ -1,3 +1,4 @@
+<!-- Type: Tutorial -->
 # Agentic Patterns in Asya
 
 This tutorial is for developers who know an agentic framework (Google ADK,
