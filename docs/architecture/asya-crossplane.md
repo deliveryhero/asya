@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Crossplane Compositions
 
 ## Overview

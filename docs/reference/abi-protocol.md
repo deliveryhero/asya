@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # ABI Protocol Reference
 
 ## What is the ABI?

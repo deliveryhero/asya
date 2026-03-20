@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Observability
 
 ## Built-in Metrics
@@ -46,7 +47,13 @@ Exposed via controller-runtime:
 
 ### Gateway Metrics
 
-Gateway does NOT currently expose Prometheus metrics. This is a future enhancement.
+Gateway does NOT currently expose Prometheus metrics. Available operational data:
+
+- **Structured JSON logs** — request/response logging with trace context
+- **PostgreSQL task state** — query `tasks` table for status, timestamps, error details
+- **Health endpoint** — `GET /health` for liveness/readiness probes
+
+Prometheus metric instrumentation is planned as a future enhancement.
 
 ## Integration with Prometheus
 

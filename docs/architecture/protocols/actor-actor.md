@@ -1,3 +1,4 @@
+<!-- Type: Reference -->
 # Actor-to-Actor Protocol
 
 ## Envelope Structure

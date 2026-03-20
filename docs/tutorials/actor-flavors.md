@@ -1,3 +1,4 @@
+<!-- Type: Tutorial -->
 # Actor Flavors
 
 Flavors are named, reusable building blocks that platform engineers pre-create
