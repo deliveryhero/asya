@@ -104,6 +104,7 @@ class ParseResult:
     is_async: bool = False
     class_methods: set[str] = field(default_factory=set)
     import_map: dict[str, str] = field(default_factory=dict)
+    groups: list[dict] = field(default_factory=list)  # {"id": flow_name, "actors": [names]}
 
 
 # ---------------------------------------------------------------------------
@@ -168,10 +169,14 @@ class FlowParser:
         self._decorator_index: dict[str, str] = {}
         self._inline_funcs: set[str] = set()
         self._rule_engine: RuleEngine | None = rule_engine
+        self._groups: list[dict] = []
+        self._expansion_depth: int = 0
+        self._tree: ast.Module | None = None
 
     def parse(self) -> ParseResult:
         try:
             tree = ast.parse(self.source_code, filename=self.filename)
+            self._tree = tree
         except SyntaxError as e:
             raise FlowCompileError(f"Syntax error in {self.filename}:{e.lineno}: {e.msg}") from e
 
@@ -212,6 +217,7 @@ class FlowParser:
             is_async=self.is_async,
             class_methods=self.class_methods.copy(),
             import_map=dict(self.import_map),
+            groups=list(self._groups),
         )
 
     # -- Compatibility methods for existing compiler.py --
@@ -324,14 +330,11 @@ class FlowParser:
             if isinstance(node, _FUNC_DEF_TYPES) and self._has_flow_decorator(node):
                 candidates.append(node)
 
-        if len(candidates) > 1:
-            locs = ", ".join(f"{c.name}:{c.lineno}" for c in candidates)
-            raise FlowCompileError(f"Multiple @flow decorators found ({locs}); exactly one is required")
-
         if not candidates:
             return None
 
-        func = candidates[0]
+        # Last @flow function is the entrypoint; earlier ones are composition targets
+        func = candidates[-1]
         func.decorator_list = [d for d in func.decorator_list if not self._is_flow_decorator(d)]
         self._validate_flow_signature(func)
         return func
@@ -421,7 +424,7 @@ class FlowParser:
             if isinstance(value, ast.Await):
                 value = value.value
             if isinstance(value, ast.Call):
-                return [self._parse_actor_call(stmt)]
+                return self._parse_actor_call(stmt)
             else:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Invalid assignment to 'p'")
         elif isinstance(target, ast.Subscript):
@@ -478,7 +481,7 @@ class FlowParser:
         code = ast.unparse(stmt)
         return [Mutation(lineno=stmt.lineno, code=code)]
 
-    def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
+    def _parse_actor_call(self, stmt: ast.Assign) -> list[Operation]:
         call = stmt.value
         if isinstance(call, ast.Await):
             is_await = True
@@ -522,19 +525,23 @@ class FlowParser:
                 )
             if directive.treat_as == "inline":
                 self._inline_funcs.add(actor_name)
-                return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+                return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             elif directive.treat_as == "actor":
                 self._actors.append(actor_name)
-                return ActorCall(lineno=stmt.lineno, name=actor_name)
-            elif directive.treat_as in ("flow", "unfold", "config"):
-                raise FlowCompileError(
-                    f"{self.filename}:{stmt.lineno}: Directive '{directive.treat_as}' is not yet implemented"
-                )
+                return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+            elif directive.treat_as in ("flow", "unfold"):
+                return self._expand_flow_call(actor_name, stmt.lineno)
+            elif directive.treat_as == "config":
+                raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Directive 'config' is not yet implemented")
 
         # Definition-site decorator (lower priority)
-        if actor_name in self._decorator_index and self._decorator_index[actor_name] == "inline":
-            self._inline_funcs.add(actor_name)
-            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+        if actor_name in self._decorator_index:
+            dec_type = self._decorator_index[actor_name]
+            if dec_type == "inline":
+                self._inline_funcs.add(actor_name)
+                return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
+            elif dec_type in ("flow", "unfold"):
+                return self._expand_flow_call(actor_name, stmt.lineno)
 
         # Rule engine classification (lowest priority)
         if self._rule_engine is not None:
@@ -544,14 +551,14 @@ class FlowParser:
             treat_as = self._rule_engine.classify(qualified_name, module_path=self.module_path or None)
             if treat_as is not None and treat_as in (TreatAs.INLINE, TreatAs.CONFIG):
                 self._inline_funcs.add(actor_name)
-                return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+                return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
+            if treat_as is not None and treat_as in (TreatAs.FLOW, TreatAs.UNFOLD):
+                return self._expand_flow_call(actor_name, stmt.lineno)
 
         self._actors.append(actor_name)
-        return ActorCall(lineno=stmt.lineno, name=actor_name)
+        return [ActorCall(lineno=stmt.lineno, name=actor_name)]
 
-    def _parse_wrapper_call(
-        self, stmt: ast.Assign, outer_call: ast.Call, *, is_await: bool = False
-    ) -> ActorCall | Mutation:
+    def _parse_wrapper_call(self, stmt: ast.Assign, outer_call: ast.Call, *, is_await: bool = False) -> list[Operation]:
         """Parse call-site wrapper patterns: actor(handler)(p), inline(fn)(p)."""
         inner_call = outer_call.func
         if not isinstance(inner_call, ast.Call):
@@ -584,7 +591,7 @@ class FlowParser:
         # Inline comment directive overrides call-site wrapper
         directive = self._directives.get(stmt.lineno)
         if directive is not None and directive.treat_as == "inline":
-            return Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))
+            return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
 
         # Determine wrapper type from name suffix
         if wrapper_name.endswith("inline"):
@@ -594,13 +601,86 @@ class FlowParser:
                 call_node = ast.Await(value=call_node)
             unwrapped = ast.unparse(ast.Assign(targets=stmt.targets, value=call_node, lineno=stmt.lineno))
             self._inline_funcs.add(actor_name)
-            return Mutation(lineno=stmt.lineno, code=unwrapped)
+            return [Mutation(lineno=stmt.lineno, code=unwrapped)]
         elif wrapper_name.endswith("flow") or wrapper_name.endswith("unfold"):
-            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Wrapper '{wrapper_name}' is not yet implemented")
+            return self._expand_flow_call(actor_name, stmt.lineno)
 
         # Default: actor wrapper
         self._actors.append(actor_name)
-        return ActorCall(lineno=stmt.lineno, name=actor_name)
+        return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+
+    def _expand_flow_call(self, func_name: str, lineno: int) -> list[Operation]:
+        """Expand a @flow or unfold call by inlining the function body."""
+        if self._expansion_depth > 10:
+            raise FlowCompileError(
+                f"{self.filename}:{lineno}: Maximum flow composition depth exceeded (circular reference?)"
+            )
+
+        func_node = self._find_function_def(func_name)
+        if func_node is None:
+            raise FlowCompileError(
+                f"{self.filename}:{lineno}: Function '{func_name}' not found in module. "
+                f"Flow composition requires the function to be defined in the same file."
+            )
+
+        # Validate signature
+        if len(func_node.args.args) != 1:
+            raise FlowCompileError(
+                f"{self.filename}:{func_node.lineno}: Function '{func_name}' must have "
+                f"exactly one parameter for flow composition"
+            )
+        param_name = func_node.args.args[0].arg
+        if param_name not in VALID_PARAM_NAMES:
+            raise FlowCompileError(
+                f"{self.filename}:{func_node.lineno}: Function '{func_name}' parameter must be "
+                f"one of {VALID_PARAM_NAMES}, got '{param_name}'"
+            )
+
+        import copy
+
+        body = copy.deepcopy(func_node.body)
+
+        # Normalize parameter name to 'p'
+        if param_name != "p":
+            normalizer = _ParamNormalizer(param_name)
+            for i, stmt in enumerate(body):
+                body[i] = normalizer.visit(stmt)
+                ast.fix_missing_locations(body[i])
+
+        # Track actors before expansion to identify group members
+        actors_before = len(self._actors)
+
+        # Recursively parse the inner function body
+        self._expansion_depth += 1
+        try:
+            inner_ops = self._parse_body(body)
+        finally:
+            self._expansion_depth -= 1
+
+        # Strip trailing Return — the outer flow provides its own
+        while inner_ops and isinstance(inner_ops[-1], Return):
+            inner_ops.pop()
+
+        # Record group metadata for @flow-decorated functions
+        if self._decorator_index.get(func_name) == "flow":
+            group_actors = list(self._actors[actors_before:])
+            self._groups.append(
+                {
+                    "id": func_name,
+                    "actors": group_actors,
+                }
+            )
+
+        return inner_ops
+
+    def _find_function_def(self, name: str) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+        """Find a function definition by name in the parsed module."""
+        if self._tree is None:
+            return None
+        for node in self._tree.body:
+            if isinstance(node, _FUNC_DEF_TYPES) and node.name == name:
+                return node
+        return None
 
     def _parse_if(self, stmt: ast.If) -> list[Operation]:
         test = ast.unparse(stmt.test)
