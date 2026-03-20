@@ -66,7 +66,7 @@
     {
       "from": "router_multi_stage_flow_line_16_fanout_1",
       "to": "fanin_multi_stage_flow_line_16",
-      "label": null,
+      "label": "fanout: p['research']",
       "type": "set"
     },
     {
@@ -90,7 +90,7 @@
     {
       "from": "router_multi_stage_flow_line_15_fanout_2",
       "to": "fanin_multi_stage_flow_line_15",
-      "label": null,
+      "label": "fanout: p['topics']",
       "type": "set"
     },
     {

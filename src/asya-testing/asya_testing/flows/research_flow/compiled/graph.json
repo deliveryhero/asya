@@ -48,7 +48,7 @@
     {
       "from": "router_research_flow_line_7_fanout_1",
       "to": "fanin_research_flow_line_7",
-      "label": null,
+      "label": "fanout: p['topics']",
       "type": "set"
     },
     {

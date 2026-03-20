@@ -93,13 +93,15 @@ def _collect_resolve_vars(func_node: ast.AST) -> dict[str, str]:
     return var_map
 
 
-def _collect_slices_targets(func_node: ast.AST) -> list[str]:
+def _collect_slices_targets(func_node: ast.AST) -> tuple[list[str], str | None]:
     """Collect handler names from _slices.append((resolve("name"), ...)) patterns.
 
     Fanout codegen populates _slices with (actor, payload) tuples:
         _slices.append((resolve("research_agent"), t))
 
-    Returns list of handler names used as fanout slice targets.
+    Returns (slice_targets, fanout_label):
+    - slice_targets: handler names used as fanout slice targets
+    - fanout_label: e.g. "fanout: p['topics']" (from for-loop iterable) or "fanout"
     """
     targets: list[str] = []
     for node in ast.walk(func_node):
@@ -116,7 +118,26 @@ def _collect_slices_targets(func_node: ast.AST) -> list[str]:
             name = _extract_resolve_arg(node.args[0].elts[0])
             if name:
                 targets.append(name)
-    return targets
+
+    if not targets:
+        return [], None
+
+    # Extract for-loop iterable for the fanout label
+    for node in ast.walk(func_node):
+        if not isinstance(node, ast.For):
+            continue
+        # Check if this for-loop body contains _slices.append
+        if any(
+            isinstance(child, ast.Call)
+            and isinstance(child.func, ast.Attribute)
+            and child.func.attr == "append"
+            and isinstance(child.func.value, ast.Name)
+            and child.func.value.id == "_slices"
+            for child in ast.walk(node)
+        ):
+            return targets, f"fanout: {ast.unparse(node.iter)}"
+
+    return targets, "fanout"
 
 
 def _is_in_slices_loop(parent_map: dict[int, ast.AST], node: ast.AST) -> bool:
@@ -162,7 +183,7 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     # Track resolve() variable assignments for fanout patterns
     resolve_vars = _collect_resolve_vars(func_node)
     # Collect fanout slice targets from _slices.append((resolve("name"), ...))
-    slice_targets = _collect_slices_targets(func_node)
+    slice_targets, fanout_label = _collect_slices_targets(func_node)
 
     for node in ast.walk(func_node):
         if not isinstance(node, ast.Yield | ast.YieldFrom):
@@ -234,6 +255,12 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
     # Fanout slice edges: router → each slice actor → aggregator
     if slice_targets:
         agg_name = resolve_vars.get("_agg")
+        # Label the router → fanin edge with the fanout info
+        if agg_name and fanout_label:
+            for edge in edges:
+                if edge["from"] == handler_name and edge["to"] == agg_name and edge["type"] == "set":
+                    edge["label"] = fanout_label
+                    break
         for target in slice_targets:
             edges.append({"from": handler_name, "to": target, "label": None, "type": "fanout"})
             if agg_name:

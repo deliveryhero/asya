@@ -14,7 +14,7 @@ digraph "parallel_sectioning" {
 
     start_parallel_sectioning -> preprocessor;
     preprocessor -> router_parallel_sectioning_line_48_fanout_1;
-    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48;
+    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48 [label="fanout"];
     fanin_parallel_sectioning_line_48 -> aggregator;
     router_parallel_sectioning_line_48_fanout_1 -> sentiment_analyzer;
     sentiment_analyzer -> fanin_parallel_sectioning_line_48;

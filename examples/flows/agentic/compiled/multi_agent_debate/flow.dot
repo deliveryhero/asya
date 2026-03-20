@@ -23,7 +23,7 @@ digraph "multi_agent_debate" {
     start_multi_agent_debate [label="start_multi_agent_debate", fillcolor=palegreen];
 
     start_multi_agent_debate -> router_multi_agent_debate_line_55_seq_7;
-    router_multi_agent_debate_line_74_fanout_2 -> fanin_multi_agent_debate_line_74;
+    router_multi_agent_debate_line_74_fanout_2 -> fanin_multi_agent_debate_line_74 [label="fanout"];
     router_multi_agent_debate_line_74_fanout_2 -> revise_a;
     revise_a -> fanin_multi_agent_debate_line_74;
     router_multi_agent_debate_line_74_fanout_2 -> revise_b;
@@ -37,7 +37,7 @@ digraph "multi_agent_debate" {
     router_multi_agent_debate_line_64_seq_5 -> convergence_checker;
     convergence_checker -> router_multi_agent_debate_line_68_if_4;
     router_multi_agent_debate_line_63_while_1 -> router_multi_agent_debate_line_64_seq_5;
-    router_multi_agent_debate_line_57_fanout_6 -> fanin_multi_agent_debate_line_57;
+    router_multi_agent_debate_line_57_fanout_6 -> fanin_multi_agent_debate_line_57 [label="fanout"];
     fanin_multi_agent_debate_line_57 -> router_multi_agent_debate_line_63_while_1;
     router_multi_agent_debate_line_57_fanout_6 -> debater_a;
     debater_a -> fanin_multi_agent_debate_line_57;

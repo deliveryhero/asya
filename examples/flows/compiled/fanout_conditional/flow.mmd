@@ -14,7 +14,7 @@ flowchart TD
 
     start_adaptive_flow --> classifier
     classifier --> router_adaptive_flow_line_16_if_2
-    router_adaptive_flow_line_17_fanout_1 --> fanin_adaptive_flow_line_17
+    router_adaptive_flow_line_17_fanout_1 -->|fanout| fanin_adaptive_flow_line_17
     router_adaptive_flow_line_17_fanout_1 --> fast_analyzer
     fast_analyzer --> fanin_adaptive_flow_line_17
     router_adaptive_flow_line_17_fanout_1 --> deep_analyzer

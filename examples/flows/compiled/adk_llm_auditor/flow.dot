@@ -50,7 +50,7 @@ digraph "adk_llm_auditor" {
     router_llm_auditor_line_70_if -> router_llm_auditor_line_73_if [label="not (p['aggregate_score'] >= 90)"];
     router_llm_auditor_line_65_if -> router_llm_auditor_line_66_seq [label="p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70"];
     router_llm_auditor_line_65_if -> router_llm_auditor_line_70_if [label="not (p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70)"];
-    fanout_llm_auditor_line_56 -> fanin_llm_auditor_line_56;
+    fanout_llm_auditor_line_56 -> fanin_llm_auditor_line_56 [label="fanout"];
     fanin_llm_auditor_line_56 -> adk_llm_auditor_QualityScorer_aggregate;
     adk_llm_auditor_QualityScorer_aggregate -> router_llm_auditor_line_65_if;
     fanout_llm_auditor_line_56 -> accuracy_scorer;

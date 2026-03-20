@@ -60,7 +60,7 @@
     {
       "from": "router_map_reduce_line_55_fanout_1",
       "to": "fanin_map_reduce_line_55",
-      "label": null,
+      "label": "fanout: p['chunks']",
       "type": "set"
     },
     {

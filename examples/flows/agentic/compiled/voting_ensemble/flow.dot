@@ -12,7 +12,7 @@ digraph "voting_ensemble" {
     start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
 
     start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
-    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44;
+    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44 [label="fanout"];
     fanin_voting_ensemble_line_44 -> judge;
     router_voting_ensemble_line_44_fanout_1 -> creative_writer;
     creative_writer -> fanin_voting_ensemble_line_44;

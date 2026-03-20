@@ -60,7 +60,7 @@
     {
       "from": "router_async_research_flow_line_16_fanout_1",
       "to": "fanin_async_research_flow_line_16",
-      "label": null,
+      "label": "fanout: p['topics']",
       "type": "set"
     },
     {

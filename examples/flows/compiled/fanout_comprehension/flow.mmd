@@ -11,7 +11,7 @@ flowchart TD
 
     start_research_flow --> preprocessor
     preprocessor --> router_research_flow_line_15_fanout_1
-    router_research_flow_line_15_fanout_1 --> fanin_research_flow_line_15
+    router_research_flow_line_15_fanout_1 -->|fanout: p['topics']| fanin_research_flow_line_15
     fanin_research_flow_line_15 --> post_processor
     router_research_flow_line_15_fanout_1 --> research_agent
     research_agent --> fanin_research_flow_line_15

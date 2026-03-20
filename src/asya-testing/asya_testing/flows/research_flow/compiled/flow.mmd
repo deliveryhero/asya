@@ -9,7 +9,7 @@ flowchart TD
     summarizer[summarizer]
 
     start_research_flow --> router_research_flow_line_7_fanout_1
-    router_research_flow_line_7_fanout_1 --> fanin_research_flow_line_7
+    router_research_flow_line_7_fanout_1 -->|fanout: p['topics']| fanin_research_flow_line_7
     fanin_research_flow_line_7 --> summarizer
     router_research_flow_line_7_fanout_1 --> research_agent
     research_agent --> fanin_research_flow_line_7

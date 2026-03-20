@@ -126,7 +126,7 @@
     {
       "from": "router_multi_agent_debate_line_74_fanout_2",
       "to": "fanin_multi_agent_debate_line_74",
-      "label": null,
+      "label": "fanout",
       "type": "set"
     },
     {
@@ -210,7 +210,7 @@
     {
       "from": "router_multi_agent_debate_line_57_fanout_6",
       "to": "fanin_multi_agent_debate_line_57",
-      "label": null,
+      "label": "fanout",
       "type": "set"
     },
     {

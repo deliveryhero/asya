@@ -13,11 +13,11 @@ digraph "fanout_sequential" {
     summarizer [label="summarizer", fillcolor=lightblue];
 
     start_multi_stage_flow -> router_multi_stage_flow_line_15_fanout_2;
-    router_multi_stage_flow_line_16_fanout_1 -> fanin_multi_stage_flow_line_16;
+    router_multi_stage_flow_line_16_fanout_1 -> fanin_multi_stage_flow_line_16 [label="fanout: p['research']"];
     fanin_multi_stage_flow_line_16 -> summarizer;
     router_multi_stage_flow_line_16_fanout_1 -> review_agent;
     review_agent -> fanin_multi_stage_flow_line_16;
-    router_multi_stage_flow_line_15_fanout_2 -> fanin_multi_stage_flow_line_15;
+    router_multi_stage_flow_line_15_fanout_2 -> fanin_multi_stage_flow_line_15 [label="fanout: p['topics']"];
     fanin_multi_stage_flow_line_15 -> router_multi_stage_flow_line_16_fanout_1;
     router_multi_stage_flow_line_15_fanout_2 -> research_agent;
     research_agent -> fanin_multi_stage_flow_line_15;

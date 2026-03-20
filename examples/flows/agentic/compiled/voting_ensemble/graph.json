@@ -60,7 +60,7 @@
     {
       "from": "router_voting_ensemble_line_44_fanout_1",
       "to": "fanin_voting_ensemble_line_44",
-      "label": null,
+      "label": "fanout",
       "type": "set"
     },
     {
