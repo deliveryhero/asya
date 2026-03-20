@@ -35,6 +35,7 @@ digraph "orchestrator_workers" {
     router_orchestrator_workers_line_57_while_1 -> router_orchestrator_workers_line_58_seq_7;
     analysis_worker -> router_orchestrator_workers_line_72_if_2;
     writing_worker -> router_orchestrator_workers_line_72_if_2;
-    router_orchestrator_workers_line_72_if_2 -> router_orchestrator_workers_line_57_while_1;
+    router_orchestrator_workers_line_72_if_2 -> router_orchestrator_workers_line_57_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
+    router_orchestrator_workers_line_69_if_3 -> router_orchestrator_workers_line_57_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
     synthesizer -> __end__;
 }

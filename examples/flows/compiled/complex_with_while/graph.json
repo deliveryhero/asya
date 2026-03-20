@@ -192,13 +192,19 @@
     {
       "from": "router_complex_flow_line_29_if_2",
       "to": "router_complex_flow_line_22_while_1",
-      "label": null,
+      "label": "else",
       "type": "continuation"
     },
     {
       "from": "handler_retry_handler",
       "to": "handler_finalize",
       "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_complex_flow_line_32_if_4",
+      "to": "handler_finalize",
+      "label": "else",
       "type": "continuation"
     }
   ],

@@ -11,3 +11,11 @@ flowchart TD
     handler_a --> handler_b
     handler_b --> handler_c
     handler_c --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_sequential_flow entrypoint
+    class handler_a,handler_b,handler_c handler
+    class __end__ endpoint

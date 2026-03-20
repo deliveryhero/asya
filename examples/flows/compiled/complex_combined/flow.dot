@@ -40,7 +40,7 @@ digraph "complex_combined_flow" {
     router_complex_combined_flow_line_19_if_7 -> router_complex_combined_flow_line_32_if_6 [label="else", color="#E07040", fontcolor="#E07040"];
     router_complex_combined_flow_line_15_if_8 -> router_complex_combined_flow_line_19_if_7 [label="else", color="#E07040", fontcolor="#E07040"];
     router_complex_combined_flow_line_15_if_8 -> handler_error [label="not p['valid']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_complex_combined_flow_line_29_if_2 -> router_complex_combined_flow_line_21_while_1;
+    router_complex_combined_flow_line_29_if_2 -> router_complex_combined_flow_line_21_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
     handler_type_a -> handler_finalize;
     handler_type_b -> handler_finalize;
     handler_default -> handler_finalize;

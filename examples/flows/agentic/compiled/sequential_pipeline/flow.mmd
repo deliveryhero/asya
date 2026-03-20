@@ -13,3 +13,11 @@ flowchart TD
     trading_analyst --> execution_planner
     execution_planner --> risk_evaluator
     risk_evaluator --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_sequential_pipeline entrypoint
+    class data_analyst,execution_planner,risk_evaluator,trading_analyst handler
+    class __end__ endpoint

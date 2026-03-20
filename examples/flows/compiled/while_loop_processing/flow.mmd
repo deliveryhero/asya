@@ -30,5 +30,16 @@ flowchart TD
     router_loop_flow_line_16_while_1 -->|"p['iteration'] < p['max_iterations']"| router_loop_flow_line_17_seq_6
     router_loop_flow_line_16_while_1 -->|"else"| finalize_loop
     router_loop_flow_line_15_seq_7 --> router_loop_flow_line_16_while_1
-    router_loop_flow_line_27_if_2 --> router_loop_flow_line_16_while_1
+    router_loop_flow_line_27_if_2 -->|"else"| router_loop_flow_line_16_while_1
     finalize_loop --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_loop_flow entrypoint
+    class router_loop_flow_line_15_seq_7,router_loop_flow_line_16_while_1,router_loop_flow_line_17_seq_6,router_loop_flow_line_20_if_5,router_loop_flow_line_21_seq_4,router_loop_flow_line_23_seq_3,router_loop_flow_line_27_if_2 router
+    class check_threshold,finalize_loop,initialize,process_abort,process_item handler
+    class __end__ endpoint
+    linkStyle 2,6,11 stroke:#2E8B57
+    linkStyle 7,12,14 stroke:#E07040

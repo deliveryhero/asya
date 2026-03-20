@@ -22,3 +22,13 @@ flowchart TD
     router_parallel_sectioning_line_48_fanout_1 --> entity_recognizer
     entity_recognizer --> fanin_parallel_sectioning_line_48
     aggregator --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_parallel_sectioning entrypoint
+    class router_parallel_sectioning_line_48_fanout_1 router
+    class aggregator,entity_recognizer,fanin_parallel_sectioning_line_48,preprocessor,sentiment_analyzer,topic_extractor handler
+    class __end__ endpoint
+    linkStyle 2 stroke:#2E8B57

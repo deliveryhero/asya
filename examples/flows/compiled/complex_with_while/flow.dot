@@ -38,8 +38,9 @@ digraph "complex_flow" {
     router_complex_flow_line_19_if_5 -> router_complex_flow_line_32_if_4 [label="else", color="#E07040", fontcolor="#E07040"];
     router_complex_flow_line_15_if_6 -> router_complex_flow_line_19_if_5 [label="else", color="#E07040", fontcolor="#E07040"];
     router_complex_flow_line_15_if_6 -> handler_error [label="not p['valid']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_complex_flow_line_29_if_2 -> router_complex_flow_line_22_while_1;
+    router_complex_flow_line_29_if_2 -> router_complex_flow_line_22_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
     handler_retry_handler -> handler_finalize;
+    router_complex_flow_line_32_if_4 -> handler_finalize [label="else", color="#E07040", fontcolor="#E07040"];
     handler_error -> __end__;
     handler_finalize -> __end__;
 }

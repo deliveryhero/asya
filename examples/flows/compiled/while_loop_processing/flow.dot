@@ -34,6 +34,6 @@ digraph "loop_flow" {
     router_loop_flow_line_16_while_1 -> router_loop_flow_line_17_seq_6 [label="p['iteration'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
     router_loop_flow_line_16_while_1 -> finalize_loop [label="else", color="#E07040", fontcolor="#E07040"];
     router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
-    router_loop_flow_line_27_if_2 -> router_loop_flow_line_16_while_1;
+    router_loop_flow_line_27_if_2 -> router_loop_flow_line_16_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
     finalize_loop -> __end__;
 }

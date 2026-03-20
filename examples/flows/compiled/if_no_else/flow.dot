@@ -14,5 +14,6 @@ digraph "if_no_else_flow" {
     start_if_no_else_flow -> handler_setup;
     handler_setup -> router_if_no_else_flow_line_14_if_1;
     router_if_no_else_flow_line_14_if_1 -> handler_true [label="p['condition']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_no_else_flow_line_14_if_1 -> handler_true [label="else", color="#E07040", fontcolor="#E07040"];
     handler_true -> __end__;
 }

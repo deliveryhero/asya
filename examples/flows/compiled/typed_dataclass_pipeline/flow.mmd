@@ -13,3 +13,11 @@ flowchart TD
     classifier --> enricher
     enricher --> formatter
     formatter --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_typed_dataclass_pipeline entrypoint
+    class classifier,enricher,extractor,formatter handler
+    class __end__ endpoint

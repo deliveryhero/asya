@@ -45,3 +45,14 @@ flowchart TD
     editor --> final_assembler
     content_generalist --> final_assembler
     final_assembler --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_hierarchical_delegation entrypoint
+    class router_hierarchical_delegation_line_61_if_6,router_hierarchical_delegation_line_65_if_2,router_hierarchical_delegation_line_67_if_1,router_hierarchical_delegation_line_72_if_5,router_hierarchical_delegation_line_76_if_4,router_hierarchical_delegation_line_78_if_3 router
+    class api_specialist,content_generalist,content_team_lead,data_generalist,data_team_lead,editor,final_assembler,generalist,root_agent,sql_specialist,writer handler
+    class __end__ endpoint
+    linkStyle 2,4,6,8,10,13 stroke:#2E8B57
+    linkStyle 3,5,7,9,12,15 stroke:#E07040

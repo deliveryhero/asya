@@ -16,3 +16,13 @@ flowchart TD
     router_map_reduce_line_55_fanout_1 --> chunk_processor
     chunk_processor --> fanin_map_reduce_line_55
     reducer --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_map_reduce entrypoint
+    class router_map_reduce_line_55_fanout_1 router
+    class chunk_processor,fanin_map_reduce_line_55,reducer,splitter handler
+    class __end__ endpoint
+    linkStyle 2 stroke:#2E8B57

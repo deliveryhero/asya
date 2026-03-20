@@ -44,6 +44,12 @@
       "to": "handler_true",
       "label": "p['condition']",
       "type": "prepend"
+    },
+    {
+      "from": "router_if_no_else_flow_line_14_if_1",
+      "to": "handler_true",
+      "label": "else",
+      "type": "continuation"
     }
   ],
   "groups": []

@@ -15,4 +15,5 @@ digraph "react_agent" {
     router_react_agent_line_14_while_1 -> llm_call;
     llm_call -> router_react_agent_line_16_if_2;
     execute_tool -> router_react_agent_line_14_while_1;
+    router_react_agent_line_16_if_2 -> router_react_agent_line_14_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
 }
