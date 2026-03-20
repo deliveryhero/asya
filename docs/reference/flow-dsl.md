@@ -937,7 +937,7 @@ FLOW_METADATA = {
     "flow_name": "my_flow",
     "type": "single-actor",
     "actor": "handler_name",
-    "labels": {"asya.sh/flow": "my_flow", "asya.sh/flow-role": "entrypoint"},
+    "labels": {"asya.sh/flow": "my_flow", "asya.sh/role": "start"},
 }
 ```
 
