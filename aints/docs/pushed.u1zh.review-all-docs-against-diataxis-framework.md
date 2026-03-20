@@ -32,7 +32,7 @@ The `docs/` directory has grown organically and suffers from:
 1. **Two paths, one tree** — actor authors and platform engineers enter from different landing pages (`usage/`, `setup/`) but share `reference/` and top-level concept docs. No explicit "for data scientists" / "for engineers" labels — the scope naturally attracts the right audience.
 2. **Flat with prefixes** — within `usage/` and `setup/`, files use prefixes (`start-`, `guide-`, `ops-`) for lexical grouping instead of subdirectories. READMEs provide the reading order.
 3. **Mirrored concepts** — concepts that span both audiences (actor-flavors, state, pause-resume, timeouts) exist in both `usage/` and `setup/` with the same filename and cross-links. Usage answers "how do I use this?", setup answers "how do I provision this?"
-4. **Separate website from content** — `docs/` is pure documentation. Website config (mkdocs, stylesheets, images, JS) moves to `docs-website/`.
+4. **Separate website from content** — `docs/` is pure documentation. Website config (mkdocs, stylesheets, images, JS) moves to `docs/website/`.
 5. **Reference is strict technical information** — component specs, protocol specs, CRD reference, env vars. Shared by both audiences.
 
 ## Target Structure
@@ -120,7 +120,7 @@ docs/
     testing-state-proxy.md          State proxy / storage backend test strategy
     testing-transport.md            Transport backend test strategy
 
-docs-website/                       MkDocs / asya.sh site config (separate from content)
+docs/website/                       MkDocs / asya.sh site config (separate from content)
   mkdocs.yml                        Site config (moved from repo root)
   stylesheets/                      extra.css, shared.css (moved from docs/stylesheets/)
   img/                              Logos, diagrams (moved from docs/img/)
@@ -132,11 +132,11 @@ docs-website/                       MkDocs / asya.sh site config (separate from 
 
 | Current location | Action |
 |------------------|--------|
-| `docs/stylesheets/` | Move to `docs-website/stylesheets/` |
-| `docs/img/` (static assets) | Move logos, PNGs, SVGs to `docs-website/img/` |
+| `docs/stylesheets/` | Move to `docs/website/stylesheets/` |
+| `docs/img/` (static assets) | Move logos, PNGs, SVGs to `docs/website/img/` |
 | `docs/img/flows/` (code artifacts) | Move to `examples/flows/compiled/` — these are compiled flow examples (Python, dot, SVG), not website assets |
-| `docs/mkdocs/` | Move to `docs-website/` (requirements.txt, README) |
-| `mkdocs.yml` (repo root) | Move to `docs-website/mkdocs.yml`, update `docs_dir` to `../docs` |
+| `docs/mkdocs/` | Move to `docs/website/` (requirements.txt, README) |
+| `mkdocs.yml` (repo root) | Move to `docs/website/mkdocs.yml`, update `docs_dir` to `../docs` |
 | `docs/plans/` | Add to `.gitignore`, add note to AGENTS.md to never commit |
 | `docs/comparisons/` | Delete `.venv/` dirs (hundreds of MBs, not docs). Keep comparison scripts if any exist outside `.venv/`, move to `.aint/aints/` as research artifacts. Add `docs/comparisons/` to `.gitignore`. |
 | `docs/internal/` | Rename to `docs/contributing/`, move reference-worthy files out |
@@ -293,10 +293,10 @@ Deploy Asya on your cluster, configure transports, monitor and scale.
 | `docs/reference/connectors/redis.md` | Redis state connector config, LWW vs CAS | Source code |
 | `docs/reference/connectors/nats-kv.md` | NATS KV state connector config | Source code |
 
-### docs-website/ setup
+### docs/website/ setup
 
 ```
-docs-website/
+docs/website/
   mkdocs.yml                Updated: docs_dir: ../docs, nav reflects new structure
   stylesheets/              Moved from docs/stylesheets/
     extra.css
@@ -309,16 +309,16 @@ docs-website/
   README.md                 Moved from docs/mkdocs/README-mkdocs-shadcn-patch.md
 ```
 
-**Image path strategy**: Use mkdocs `custom_dir` overlay so that `docs-website/img/` is served
-at the `/img/` URL path. Docs continue to reference images as `../docs-website/img/foo.png`
+**Image path strategy**: Use mkdocs `custom_dir` overlay so that `docs/website/img/` is served
+at the `/img/` URL path. Docs continue to reference images as `../docs/website/img/foo.png`
 from markdown, but mkdocs sees them at `/img/foo.png` via the overlay. This must be prototyped
 and tested before the migration begins.
 
 **mkdocs.yml configuration**: The moved `mkdocs.yml` needs:
-- `docs_dir: ../docs` to find content
+- `docs_dir: ..` to find content (docs/website/ → docs/)
 - `custom_dir: .` or explicit overlay for stylesheets/img/js
 - Updated `extra_css`, `extra_javascript` paths
-- Updated `nav` tree reflecting the new structure
+- Full `nav` tree rewrite reflecting the new structure (every path in the current nav changes)
 - `edit_uri` update for correct GitHub edit links
 
 This configuration must be prototyped in a branch before the migration PR.
@@ -355,9 +355,10 @@ These should use explicit section-by-section mapping during implementation, not 
 ### Migration constraints
 
 1. **Single PR** — the migration must be atomic to avoid a period with half-broken links
-2. **Prototype docs-website/ first** — verify mkdocs build works with the new directory layout before moving files
-3. **Fix broken references** — `docs/explanation/agentic-design.md` references non-existent `docs/architecture/gateway-security-model.md`; fix during migration
-4. **Internal-to-public editorial pass** — `internal/gateway-api-spec.md` and `internal/gateway-security.md` need light editing when promoted to `reference/` (remove "internal" framing, add audience-appropriate context)
+2. **Prototype docs/website/ first** — verify mkdocs build works with the new directory layout before moving files
+3. **Patch mkdocs.yml nav** — every path in the current `nav:` tree changes; rewrite the full nav to match the new structure; this is part of the migration PR, not a follow-up
+4. **Fix broken references** — `docs/explanation/agentic-design.md` references non-existent `docs/architecture/gateway-security-model.md`; fix during migration
+5. **Internal-to-public editorial pass** — `internal/gateway-api-spec.md` and `internal/gateway-security.md` need light editing when promoted to `reference/` (remove "internal" framing, add audience-appropriate context)
 
 ### Navigation convention
 
@@ -377,7 +378,7 @@ Add to AGENTS.md:
 ### Documentation Policy Additions
 
 - `docs/plans/` is gitignored and must never be committed. Use aint for work tracking.
-- `docs/` contains only documentation content (.md files). Website assets live in `docs-website/`.
+- `docs/` contains only documentation content (.md files). Website assets live in `docs/website/`.
 - Mirrored guides in `usage/` and `setup/` must cross-link each other.
 ```
 
