@@ -1,4 +1,15 @@
+<!-- Type: Reference -->
+
 # Flow DSL Reference
+
+Syntax rules, IR specification, compiler stages, and generated router tables
+for the Flow DSL.
+
+For background on why the Flow DSL exists, the router problem it solves,
+and how CPS compilation works, see
+[Flow Compilation](../explanation/flow-compilation.md).
+
+---
 
 ## What is the Flow DSL?
 
@@ -24,182 +35,6 @@ This compiles into four router actors that handle sequencing, branching,
 and merging. You deploy the routers alongside your handler actors
 (`classify`, `escalate`, `standard_review`, `notify`) and Asya runs the
 pipeline.
-
----
-
-## What problem does it solve?
-
-### The router problem
-
-In Asya, every actor receives a message, does its work, and the sidecar
-forwards the result to the next actor in `route.next`. Simple chains are
-easy — you just list actors in the route:
-
-```json
-{"route": {"prev": [], "curr": "classify", "next": ["review", "notify"]}}
-```
-
-But the moment you need **branching** (if urgent, escalate; otherwise,
-standard review), you need a **router actor** — an actor whose only job is
-to inspect the payload and rewrite `route.next`:
-
-```python
-def urgency_router(payload):
-    if payload["category"] == "urgent":
-        yield "SET", ".route.next", ["escalate", "notify"]
-    else:
-        yield "SET", ".route.next", ["standard-review", "notify"]
-    yield payload
-```
-
-For a simple if/else this is manageable. But real pipelines have nested
-conditions, loops, fan-out, error handling, and early exits. Writing
-routers by hand for these is tedious, error-prone, and hard to test in
-isolation.
-
-### What Flow solves
-
-Flow automates router generation. You write the control flow once in
-readable Python. The compiler produces the router actors. You focus on
-business logic in your handler actors.
-
-| You write | Compiler generates |
-|---|---|
-| `if state["x"]: ...` | Conditional router that rewrites `route.next` |
-| `while state["retries"] < 3: ...` | Loop-back router with iteration guard |
-| `state = await handler(state)` | Route entry for `handler` in the sequence |
-| `try: ... except: ...` | Error dispatch and recovery routers |
-| `return state` | End router that signals pipeline completion |
-
-### What Flow does NOT do
-
-Flow is strictly about **control flow** — the order in which actors
-execute and the conditions under which they execute. It has no opinion on:
-
-- **Business logic**: what `classify` or `escalate` actually do — that's
-  your handler code
-- **Data transformation**: how payloads are shaped, validated, or enriched
-  — that's inside each actor
-- **Streaming**: token-by-token LLM output, SSE events — that's handled
-  by the actor's ABI yields (`yield "FLY", {...}`)
-- **Data storage**: S3 uploads, database writes — that's your actor's
-  concern
-
-Flow groups actors and generates the routing glue between them. Nothing
-more.
-
----
-
-## How Asya executes flows: CPS
-
-### Classic nested execution
-
-In regular Python, function calls form a **call stack**:
-
-```python
-def pipeline(data):
-    validated = validate(data)       # call, wait, return
-    enriched = enrich(validated)     # call, wait, return
-    result = process(enriched)       # call, wait, return
-    return result
-```
-
-Everything runs in one process. State lives on the stack. If `enrich`
-raises, Python unwinds the stack through `process` back to `pipeline`.
-The caller holds the context — it knows where execution came from and
-where it's going next.
-
-### Continuation-Passing Style (CPS)
-
-Asya doesn't have a call stack. Each actor is a separate process (a
-Kubernetes pod). There is no caller waiting for a return value. Instead,
-the **message itself** carries the continuation — the list of actors that
-should run next.
-
-When you write:
-
-```python
-async def pipeline(state: dict) -> dict:
-    state = await validate(state)
-    state = await enrich(state)
-    state = await process(state)
-    return state
-```
-
-This **looks like** sequential function calls, but the compiler transforms
-it into something fundamentally different:
-
-```
-Message arrives at start_pipeline router
-  → router sets route.next = [validate, enrich, process]
-  → message sent to validate actor
-
-validate processes payload, returns result
-  → sidecar shifts route: curr=enrich, next=[process]
-  → message sent to enrich actor
-
-enrich processes payload, returns result
-  → sidecar shifts route: curr=process, next=[]
-  → message sent to process actor
-
-process processes payload, returns result
-  → route is empty → sidecar sends to x-sink (completion)
-```
-
-Each `await` compiles to **a message hop between independent actors**, not
-a function call within one process. There is no call stack connecting
-them. The message's `route` field IS the continuation — it tells the
-system what to do next.
-
-### State is in the message
-
-In classic Python, intermediate state lives in local variables, closures,
-and the call stack. In Asya, there is exactly one place for state: **the
-message payload**.
-
-```python
-async def pipeline(state: dict) -> dict:
-    state["step"] = "validated"
-    state = await validate(state)
-
-    # At this point, we're in a different process.
-    # The only thing that survived is what's in state.
-    state["step"] = "enriched"
-    state = await enrich(state)
-    return state
-```
-
-When the compiler generates routers, the mutation `state["step"] =
-"validated"` becomes part of a router actor that modifies the payload
-before forwarding it. The `validate` actor receives the modified payload,
-does its work, and the result — with any changes validate made — flows
-to the next actor.
-
-**There are no closures, no shared memory, no globals between actors.**
-
-If an actor needs data that isn't in the payload, it reads from external
-storage (S3, a database, a cache). The Flow DSL doesn't manage this — it's
-the actor's responsibility.
-
-### Why this matters
-
-The CPS model means:
-
-- **Each actor is independently deployable and scalable.** `validate` can
-  run on 10 pods while `enrich` runs on 2.
-
-- **Failures are isolated.** If `enrich` crashes, only its message is
-  affected. `validate` and `process` are unaware.
-
-- **There is no "pipeline process" to keep alive.** The pipeline is a
-  series of queue hops. No long-running orchestrator.
-
-- **Retries are per-actor.** If `process` fails, only that step retries.
-  The message (with all accumulated state) re-enters the same actor.
-
-The trade-off: you must be deliberate about what goes into the payload.
-Everything the next actor needs must be serialized into the message or
-retrievable from external storage.
 
 ---
 
@@ -518,80 +353,7 @@ resolve("handlers.analyze_sentiment")           # full path
 
 ---
 
-## Design principles
-
-### Flow = control flow only
-
-A flow describes **which actors run and in what order**. It does not
-describe what those actors do. This separation means:
-
-- Actors are reusable across different flows
-- Actors can be tested independently (no flow context needed)
-- Flows can be changed without touching actor code
-- Scaling decisions are per-actor, not per-flow
-
-### State = message payload
-
-Everything an actor needs must be in the message payload or in external
-storage. There are no hidden channels between actors. This makes the data
-flow explicit and debuggable — you can inspect any message in the queue to
-see the full pipeline state at that point.
-
-### Routers are actors too
-
-Generated routers are deployed as regular AsyncActors. They consume from
-a queue, process the message (rewrite `route.next`), and the sidecar
-forwards the result. The only difference from handler actors is that
-routers modify routing metadata instead of business data.
-
-This means routers benefit from the same infrastructure: autoscaling,
-retries, monitoring, and deployment. There is no special "router runtime"
-— it's actors all the way down.
-
----
-
-## Compiler architecture
-
-### Pipeline overview
-
-```
-Source (.py)
-     |
-     v
-  [Parser]  ←── Rules Engine (AST-level classification + extraction)
-     |               ↑
-     |          Value Extractor (AST Call → spec values)
-     v
-  IR Operations (ActorCall, Mutation, Condition, ...)
-     |
-     v
-  [Grouper]
-     |
-     v
-  Routers (execution units)
-     |
-     v
-  [CodeGen]
-     |
-     v
-  routers.py + flow.dot
-```
-
-Each stage has a clear input/output contract:
-
-| Stage | Input | Output | Operates on |
-|-------|-------|--------|-------------|
-| **Parser** | Python source (AST) | `(flow_name, [IROperation])` | AST nodes |
-| **Rules Engine** | Symbol name (string) | `TreatAs` classification | Strings (AST-derived) |
-| **Value Extractor** | `ast.Call` + `CompilerRule` | `{spec_path: value}` | AST nodes |
-| **Grouper** | `[IROperation]` | `[Router]` | IR only |
-| **CodeGen** | `[Router]` | Python source string | IR only |
-
-The boundary is strict: **rules and extraction operate at AST level** (they need
-call arguments, decorator lists, function names). Everything downstream — grouper
-and codegen — operates on **IR only** and never touches AST nodes.
-
-### Stage 1: Parser (AST → IR)
+## Stage 1: Parser (AST → IR)
 
 **Source**: `src/asya-lab/asya_lab/flow/parser.py`
 
@@ -599,7 +361,7 @@ The parser walks the flow function's AST and produces a flat list of IR
 operations. It handles flow function discovery, parameter normalization, and
 statement classification.
 
-#### Flow function discovery
+### Flow function discovery
 
 The parser scans top-level function definitions for one matching the flow
 signature: a function with a single `dict`-typed parameter and `dict` return
@@ -614,7 +376,7 @@ def helper(x: int) -> int:              # does not match
 The parameter name (`state`, `p`, `payload`) is normalized to `p` internally
 via `_ParamNormalizer`, so all downstream IR uses `p` consistently.
 
-#### Import map
+### Import map
 
 The parser collects all `import` and `from...import` statements from the
 module into a `{bare_name: qualified_name}` map:
@@ -627,7 +389,7 @@ from tenacity import retry, stop_after_attempt
 This map is passed to the value extractor so positional arguments of bare
 function calls can be resolved via `inspect.signature` on the qualified name.
 
-#### Statement classification
+### Statement classification
 
 Each statement in the flow function body maps to one IR node type:
 
@@ -649,7 +411,7 @@ Each statement in the flow function body maps to one IR node type:
 | `return state` | `Return` | Early exit |
 | `raise` | `Raise` | Re-raise in except block |
 
-#### Rules engine integration
+### Rules engine integration
 
 When classifying a symbol (e.g. `tenacity.retry`, `handler_a`), the parser
 consults the rules engine:
@@ -667,14 +429,14 @@ For `CONFIG` rules with `where:` trees, the parser calls
 `ValueExtractor.extract(call_node, rule)` to pull spec values and stores them
 in `InlineCode.extracted_values`.
 
-### Rules engine (AST-level classification)
+## Rules engine (AST-level classification)
 
 **Source**: `src/asya-lab/asya_lab/compiler/rules.py`
 
 The rules engine classifies Python symbols against an ordered list of compiler
 rules using a most-specific-wins strategy.
 
-#### TreatAs classifications
+### TreatAs classifications
 
 | Value | Meaning | IR result |
 |-------|---------|-----------|
@@ -684,7 +446,7 @@ rules using a most-specific-wins strategy.
 | `inline` | Inline code into router body | `InlineCode` |
 | `config` | Extract configuration values | `InlineCode` + `extracted_values` |
 
-#### Matching tiers
+### Matching tiers
 
 Rules are matched against symbols with four tiers (lower = more specific = wins):
 
@@ -697,7 +459,7 @@ Rules are matched against symbols with four tiers (lower = more specific = wins)
 
 Within tier 1, longer prefixes win (`"tenacity.stop.*"` beats `"tenacity.*"`).
 
-#### Default rules
+### Default rules
 
 ```yaml
 - match: "."    # same-package symbols
@@ -710,7 +472,7 @@ Within tier 1, longer prefixes win (`"tenacity.stop.*"` beats `"tenacity.*"`).
 Without user rules, bare symbols (same-package) are unfolded and dotted
 symbols (external) are inlined.
 
-#### User rules
+### User rules
 
 Loaded from `.asya/config.compiler.rules.yaml`. User rules prepend to defaults,
 so exact matches (tier 0) override wildcards:
@@ -725,7 +487,7 @@ so exact matches (tier 0) override wildcards:
           assign-to: spec.resiliency.retry.maxAttempts
 ```
 
-#### Inline comment override
+### Inline comment override
 
 The highest-priority classification is the `# asya: <action>` inline comment:
 
@@ -734,7 +496,7 @@ p = external.lib(p)  # asya: actor   — forces actor regardless of rules
 p = local_helper(p)  # asya: inline  — forces inline regardless of rules
 ```
 
-### Value extractor (AST-level extraction)
+## Value extractor (AST-level extraction)
 
 **Source**: `src/asya-lab/asya_lab/compiler/extractor.py`
 
@@ -742,7 +504,7 @@ The extractor pulls spec values from `ast.Call` nodes guided by `where:` trees
 in compiler rules. It produces `{spec_path: value}` dicts that the compiler
 writes into AsyncActor manifests.
 
-#### Argument binding
+### Argument binding
 
 Call arguments are bound to parameter names:
 
@@ -753,7 +515,7 @@ Call arguments are bound to parameter names:
    and read its signature
 4. **Positional fallback**: use index as string key (`"0"`, `"1"`, ...)
 
-#### Where-tree walking
+### Where-tree walking
 
 The `where:` tree is walked recursively:
 
@@ -766,7 +528,7 @@ The `where:` tree is walked recursively:
 - **BinOp flattening**: `a() | b() | c()` flattened into three calls, each
   walked independently (tenacity's pipe combinator)
 
-#### ParamSpec
+### ParamSpec
 
 Rules can declare both positional and keyword bindings:
 
@@ -778,7 +540,7 @@ The extractor tries `kwarg` first (always known from keyword args), then falls
 back to positional `arg` index. The `type` field is metadata for future
 validation.
 
-#### Static value extraction
+### Static value extraction
 
 The extractor handles these AST expression types:
 
@@ -790,7 +552,7 @@ The extractor handles these AST expression types:
 | `ast.UnaryOp(USub)` | `-5` | Negated number |
 | Complex expressions | `foo()`, `x + y` | `None` (not extractable) |
 
-### IR specification
+## IR specification
 
 **Source**: `src/asya-lab/asya_lab/flow/ir.py`
 
@@ -827,7 +589,7 @@ The IR is a flat tree: `Condition`, `WhileLoop`, and `TryExcept` contain nested
 operation lists in their branches, but there is no separate "block" concept.
 The grouper walks this tree to produce routers.
 
-### Stage 2: Grouper (IR → Routers)
+## Stage 2: Grouper (IR → Routers)
 
 **Source**: `src/asya-lab/asya_lab/flow/grouper.py`
 
@@ -835,7 +597,7 @@ The grouper transforms the flat IR operation list into a list of `Router`
 execution units. Each router becomes a separate async function in the
 generated code.
 
-#### What is a Router?
+### What is a Router?
 
 A `Router` is an execution unit with:
 
@@ -863,7 +625,7 @@ Router:
   fan_out_op: FanOutCall | None
 ```
 
-#### Grouping rules
+### Grouping rules
 
 1. **Mutation fusion**: consecutive mutations are batched into the next
    router's `mutations` list — no separate actor for mutations
@@ -877,25 +639,25 @@ Router:
    MRO), reraise (unhandled)
 5. **FanOut**: creates a fan-out router + aggregator reference
 
-#### Convergence resolution
+### Convergence resolution
 
 Branches (if/else, try/except) must reconverge. The grouper uses placeholder
 labels (`CONVERGENCE_0`, `LOOP_EXIT_0`, etc.) during grouping, then resolves
 them to actual actor names in a final pass.
 
-#### Optimization
+### Optimization
 
 - **Start router merger**: if the first router after `start_` only has
   mutations (no branching), merge into `start_` to save one actor hop
 
-### Stage 3: Code generator (Routers → Code)
+## Stage 3: Code generator (Routers → Code)
 
 **Source**: `src/asya-lab/asya_lab/flow/codegen.py`
 
 The code generator emits Python source from the router list. Each router
 becomes an `async def` function using the ABI yield protocol.
 
-#### Generated router types
+### Generated router types
 
 | Router type | Generated behavior |
 |---|---|
@@ -909,7 +671,7 @@ becomes an `async def` function using the ABI yield protocol.
 | Fan-out | Emit N+1 messages: parent + N sub-agents with `x-asya-fan-in` headers |
 | End | `SET .route.next` to `[]` (pipeline completion) |
 
-#### Handler resolution
+### Handler resolution
 
 The generated `resolve()` function maps handler names from the flow source to
 actor names using `ASYA_HANDLER_*` environment variables:
@@ -927,7 +689,7 @@ resolve("handlers.analyze_sentiment")     # full path
 
 Ambiguous matches raise an error listing candidates.
 
-#### Single-actor flows
+### Single-actor flows
 
 When a flow has exactly one actor call and no branching, the code generator
 emits a `FLOW_METADATA` constant instead of router functions:
@@ -941,7 +703,7 @@ FLOW_METADATA = {
 }
 ```
 
-#### Router naming convention
+### Router naming convention
 
 | Pattern | Purpose |
 |---|---|
@@ -958,7 +720,7 @@ FLOW_METADATA = {
 | `router_{flow}_line_{N}_except_dispatch_{id}` | Exception dispatch |
 | `router_{flow}_line_{N}_reraise_{id}` | Unhandled exception |
 
-### Future: adapter generation
+## Future: adapter generation
 
 When a flow calls a decorated function (e.g. `@tool(...)`) that doesn't
 conform to the `dict -> dict` actor protocol, the compiler will generate
@@ -984,7 +746,9 @@ adapter — it never touches AST nodes directly.
 
 ---
 
-## Further reading
+## See also
 
+- [Flow Compilation](../explanation/flow-compilation.md) — why the Flow DSL
+  exists, the router problem, CPS model, and design principles
 - [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers

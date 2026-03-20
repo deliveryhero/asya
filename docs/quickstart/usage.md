@@ -794,5 +794,5 @@ kubectl logs -f deploy/text-processor -c asya-sidecar
 - [Motivation](../motivation.md) — why choreography over orchestration
 - [Architecture Overview](../architecture/README.md) — component deep-dives
 - [Actor-Actor Protocol](../architecture/protocols/actor-actor.md) — envelope spec and payload enrichment
-- [Operate: Scaling](../operate/scaling.md) — KEDA config, GPU workloads, cost optimization
+- [Scaling](../howto/configure-autoscaling.md) — KEDA config, GPU workloads, cost optimization
 - [Examples](https://github.com/deliveryhero/asya/tree/main/examples) — ready-to-run actors and flows
