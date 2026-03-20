@@ -97,9 +97,9 @@
 <!-- router_sample_flow_line_5_if_3&#45;&gt;handler_type_b -->
 <g id="edge5" class="edge">
 <title>router_sample_flow_line_5_if_3&#45;&gt;handler_type_b</title>
-<path fill="none" stroke="#e07040" d="M199.63,-350.18C184.8,-334.41 162.77,-310.97 145.96,-293.09"/>
-<polygon fill="#e07040" stroke="#e07040" points="148.62,-290.81 139.22,-285.92 143.52,-295.61 148.62,-290.81"/>
-<text text-anchor="middle" x="195.66" y="-319.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M199.63,-350.18C184.8,-334.41 162.77,-310.97 145.96,-293.09"/>
+<polygon fill="#d35400" stroke="#d35400" points="148.62,-290.81 139.22,-285.92 143.52,-295.61 148.62,-290.81"/>
+<text text-anchor="middle" x="195.66" y="-319.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_sample_flow_line_6_seq_1 -->
 <g id="node8" class="node">

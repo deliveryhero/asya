@@ -24,7 +24,9 @@
       "flow_role": "exitpoint",
       "label": "router_document_pipeline_line_28_seq_1",
       "is_generated": true,
-      "mutations": ["p['status'] = 'done'"]
+      "mutations": [
+        "p['status'] = 'done'"
+      ]
     },
     {
       "id": "sentiment_analyzer",
@@ -37,7 +39,9 @@
       "flow_role": "entrypoint",
       "label": "start_document_pipeline",
       "is_generated": true,
-      "mutations": ["p['status'] = 'processing'"]
+      "mutations": [
+        "p['status'] = 'processing'"
+      ]
     },
     {
       "id": "translator",

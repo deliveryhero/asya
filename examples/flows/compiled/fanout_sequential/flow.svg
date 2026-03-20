@@ -90,9 +90,9 @@
 <!-- router_multi_stage_flow_line_15_fanout_2&#45;&gt;fanin_multi_stage_flow_line_15 -->
 <g id="edge6" class="edge">
 <title>router_multi_stage_flow_line_15_fanout_2&#45;&gt;fanin_multi_stage_flow_line_15</title>
-<path fill="none" stroke="#2e8b57" d="M140.93,-504.1C140.2,-493.54 139.37,-479.8 139,-467.6 138.52,-451.61 138.52,-447.59 139,-431.6 139.25,-423.4 139.7,-414.51 140.2,-406.35"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="143.68,-406.81 140.83,-396.61 136.69,-406.36 143.68,-406.81"/>
-<text text-anchor="middle" x="195.62" y="-445.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout: p[&#39;topics&#39;]</text>
+<path fill="none" stroke="#6c35ea" d="M140.93,-504.1C140.2,-493.54 139.37,-479.8 139,-467.6 138.52,-451.61 138.52,-447.59 139,-431.6 139.25,-423.4 139.7,-414.51 140.2,-406.35"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="143.68,-406.81 140.83,-396.61 136.69,-406.36 143.68,-406.81"/>
+<text text-anchor="middle" x="195.62" y="-445.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout: p[&#39;topics&#39;]</text>
 </g>
 <!-- router_multi_stage_flow_line_15_fanout_2&#45;&gt;research_agent -->
 <g id="edge8" class="edge">
@@ -103,9 +103,9 @@
 <!-- router_multi_stage_flow_line_16_fanout_1&#45;&gt;fanin_multi_stage_flow_line_16 -->
 <g id="edge2" class="edge">
 <title>router_multi_stage_flow_line_16_fanout_1&#45;&gt;fanin_multi_stage_flow_line_16</title>
-<path fill="none" stroke="#2e8b57" d="M141.03,-285.1C140.36,-274.54 139.59,-260.8 139.25,-248.6 138.81,-232.61 138.81,-228.59 139.25,-212.6 139.48,-204.4 139.9,-195.51 140.36,-187.36"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="143.84,-187.8 140.94,-177.61 136.85,-187.38 143.84,-187.8"/>
-<text text-anchor="middle" x="203.75" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout: p[&#39;research&#39;]</text>
+<path fill="none" stroke="#6c35ea" d="M141.03,-285.1C140.36,-274.54 139.59,-260.8 139.25,-248.6 138.81,-232.61 138.81,-228.59 139.25,-212.6 139.48,-204.4 139.9,-195.51 140.36,-187.36"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="143.84,-187.8 140.94,-177.61 136.85,-187.38 143.84,-187.8"/>
+<text text-anchor="middle" x="203.75" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout: p[&#39;research&#39;]</text>
 </g>
 <!-- router_multi_stage_flow_line_16_fanout_1&#45;&gt;review_agent -->
 <g id="edge4" class="edge">

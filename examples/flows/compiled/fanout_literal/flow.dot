@@ -15,7 +15,7 @@ digraph "analysis_flow" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
-    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
+    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
     fanin_analysis_flow_line_14 -> merge_analysis;
     router_analysis_flow_line_14_fanout_1 -> sentiment_analyzer;
     sentiment_analyzer -> fanin_analysis_flow_line_14;

@@ -15,7 +15,7 @@ digraph "voting_ensemble" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
-    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
+    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
     fanin_voting_ensemble_line_44 -> judge;
     router_voting_ensemble_line_44_fanout_1 -> creative_writer;
     creative_writer -> fanin_voting_ensemble_line_44;

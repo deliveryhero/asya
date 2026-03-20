@@ -1,0 +1,29 @@
+digraph "research_agent" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_research_agent; }
+
+    calculator [label="calculator", fillcolor=lightblue];
+    code_executor [label="code_executor", fillcolor=lightblue];
+    llm_call [label="llm_call", fillcolor=lightblue];
+    router_research_agent_line_15_while_1 [label="router_research_agent_line_15_while_1", fillcolor=wheat];
+    router_research_agent_line_17_if_4 [label="router_research_agent_line_17_if_4", fillcolor=wheat];
+    router_research_agent_line_19_if_3 [label="router_research_agent_line_19_if_3", fillcolor=wheat];
+    router_research_agent_line_21_if_2 [label="router_research_agent_line_21_if_2", fillcolor=wheat];
+    start_research_agent [label="start_research_agent\n\np['messages'] = p.get('messages', [])", fillcolor=palegreen];
+    web_search [label="web_search", fillcolor=lightblue];
+
+    start_research_agent -> router_research_agent_line_15_while_1;
+    router_research_agent_line_21_if_2 -> code_executor [label="p.get('tool_name') == 'code_exec'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_research_agent_line_19_if_3 -> calculator [label="p.get('tool_name') == 'calculator'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_research_agent_line_19_if_3 -> router_research_agent_line_21_if_2 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_research_agent_line_17_if_4 -> web_search [label="p.get('tool_name') == 'search'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_research_agent_line_17_if_4 -> router_research_agent_line_19_if_3 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_research_agent_line_15_while_1 -> llm_call;
+    llm_call -> router_research_agent_line_17_if_4;
+    web_search -> router_research_agent_line_15_while_1;
+    calculator -> router_research_agent_line_15_while_1;
+    code_executor -> router_research_agent_line_15_while_1;
+    router_research_agent_line_21_if_2 -> router_research_agent_line_15_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+}

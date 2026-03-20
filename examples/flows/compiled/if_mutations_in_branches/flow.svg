@@ -92,9 +92,9 @@
 <!-- router_if_mutations_in_branches_flow_line_14_if_3&#45;&gt;handler_type_b -->
 <g id="edge5" class="edge">
 <title>router_if_mutations_in_branches_flow_line_14_if_3&#45;&gt;handler_type_b</title>
-<path fill="none" stroke="#e07040" d="M283.82,-386.33C263.06,-368.23 230.28,-339.64 206.83,-319.19"/>
-<polygon fill="#e07040" stroke="#e07040" points="209.32,-316.72 199.48,-312.79 204.72,-322 209.32,-316.72"/>
-<text text-anchor="middle" x="275.94" y="-355.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M283.82,-386.33C263.06,-368.23 230.28,-339.64 206.83,-319.19"/>
+<polygon fill="#d35400" stroke="#d35400" points="209.32,-316.72 199.48,-312.79 204.72,-322 209.32,-316.72"/>
+<text text-anchor="middle" x="275.94" y="-355.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_if_mutations_in_branches_flow_line_15_seq_1 -->
 <g id="node7" class="node">

@@ -84,9 +84,9 @@
 <!-- router_review_pipeline_flow_line_17_if_1&#45;&gt;auto_approve -->
 <g id="edge5" class="edge">
 <title>router_review_pipeline_flow_line_17_if_1&#45;&gt;auto_approve</title>
-<path fill="none" stroke="#e07040" d="M134.55,-264.19C130.67,-240.21 123.63,-196.74 118.98,-168.02"/>
-<polygon fill="#e07040" stroke="#e07040" points="122.44,-167.52 117.39,-158.2 115.53,-168.64 122.44,-167.52"/>
-<text text-anchor="middle" x="144.31" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M134.55,-264.19C130.67,-240.21 123.63,-196.74 118.98,-168.02"/>
+<polygon fill="#d35400" stroke="#d35400" points="122.44,-167.52 117.39,-158.2 115.53,-168.64 122.44,-167.52"/>
+<text text-anchor="middle" x="144.31" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_review_pipeline_flow_line_17_if_1&#45;&gt;detailed_review -->
 <g id="edge3" class="edge">

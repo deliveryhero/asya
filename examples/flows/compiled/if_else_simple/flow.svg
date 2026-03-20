@@ -91,9 +91,9 @@
 <!-- router_if_else_simple_flow_line_14_if_1&#45;&gt;handler_type_b -->
 <g id="edge5" class="edge">
 <title>router_if_else_simple_flow_line_14_if_1&#45;&gt;handler_type_b</title>
-<path fill="none" stroke="#e07040" d="M155.98,-229.13C161.95,-223.91 168.05,-217.9 172.88,-211.6 178.75,-203.94 183.82,-194.73 187.89,-186.17"/>
-<polygon fill="#e07040" stroke="#e07040" points="191.01,-187.76 191.87,-177.2 184.61,-184.92 191.01,-187.76"/>
-<text text-anchor="middle" x="196.8" y="-198.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M155.98,-229.13C161.95,-223.91 168.05,-217.9 172.88,-211.6 178.75,-203.94 183.82,-194.73 187.89,-186.17"/>
+<polygon fill="#d35400" stroke="#d35400" points="191.01,-187.76 191.87,-177.2 184.61,-184.92 191.01,-187.76"/>
+<text text-anchor="middle" x="196.8" y="-198.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 </g>
 </svg>

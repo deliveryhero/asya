@@ -290,6 +290,9 @@ def _extract_resolve_targets(node: ast.expr, resolve_vars: dict[str, str] | None
                 targets.append(name)
             elif isinstance(elt, ast.Name) and elt.id in resolve_vars:
                 targets.append(resolve_vars[elt.id])
+            elif isinstance(elt, ast.Constant) and isinstance(elt.value, str):
+                # Plain string target: ["actor_name"] (used in handler overrides)
+                targets.append(elt.value)
 
     return targets
 
@@ -635,6 +638,22 @@ def _validate_graph(graph: GraphData) -> list[str]:
         has_else = any(e.get("label") == "else" for e in outgoing)
         if has_conditional and not has_else:
             warnings.append(f"if router '{node_id}' has conditional edge but no else edge")
+
+    # Check 5: Each generated router has at most one unconditional (unlabeled) outgoing edge.
+    # Excluded: fanout edges (legitimately multi-target), handler nodes (may be reused
+    # in multiple branches, each with a different continuation).
+    router_ids = {n["id"] for n in graph.nodes if n.get("is_generated")}
+    for node_id in sorted(router_ids):
+        unlabeled = [
+            e
+            for e in graph.edges
+            if e["from"] == node_id and not e.get("label") and e.get("type") not in ("fanout", "continuation")
+        ]
+        if len(unlabeled) > 1:
+            unlabeled_targets = [e["to"] for e in unlabeled]
+            warnings.append(
+                f"router '{node_id}' has {len(unlabeled)} unconditional outgoing edges: {unlabeled_targets}"
+            )
 
     return warnings
 

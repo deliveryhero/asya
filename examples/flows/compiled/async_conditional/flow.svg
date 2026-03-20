@@ -90,9 +90,9 @@
 <!-- router_content_pipeline_flow_line_16_if_2&#45;&gt;router_content_pipeline_flow_line_18_if_1 -->
 <g id="edge7" class="edge">
 <title>router_content_pipeline_flow_line_16_if_2&#45;&gt;router_content_pipeline_flow_line_18_if_1</title>
-<path fill="none" stroke="#e07040" d="M237.79,-337.21C219.63,-323.9 194.36,-305.37 174.27,-290.63"/>
-<polygon fill="#e07040" stroke="#e07040" points="176.51,-287.94 166.38,-284.84 172.37,-293.58 176.51,-287.94"/>
-<text text-anchor="middle" x="225" y="-306.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M237.79,-337.21C219.63,-323.9 194.36,-305.37 174.27,-290.63"/>
+<polygon fill="#d35400" stroke="#d35400" points="176.51,-287.94 166.38,-284.84 172.37,-293.58 176.51,-287.94"/>
+<text text-anchor="middle" x="225" y="-306.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- text_processor -->
 <g id="node8" class="node">
@@ -110,9 +110,9 @@
 <!-- router_content_pipeline_flow_line_18_if_1&#45;&gt;generic_processor -->
 <g id="edge4" class="edge">
 <title>router_content_pipeline_flow_line_18_if_1&#45;&gt;generic_processor</title>
-<path fill="none" stroke="#e07040" d="M109.39,-247.27C103.23,-242.4 97.58,-236.51 94,-229.6 87.33,-216.73 86.47,-200.71 87.49,-187.14"/>
-<polygon fill="#e07040" stroke="#e07040" points="90.93,-187.83 88.6,-177.5 83.98,-187.03 90.93,-187.83"/>
-<text text-anchor="middle" x="106.75" y="-207.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M109.39,-247.27C103.23,-242.4 97.58,-236.51 94,-229.6 87.33,-216.73 86.47,-200.71 87.49,-187.14"/>
+<polygon fill="#d35400" stroke="#d35400" points="90.93,-187.83 88.6,-177.5 83.98,-187.03 90.93,-187.83"/>
+<text text-anchor="middle" x="106.75" y="-207.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_content_pipeline_flow_line_18_if_1&#45;&gt;image_processor -->
 <g id="edge3" class="edge">

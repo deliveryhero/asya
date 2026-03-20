@@ -6,23 +6,23 @@ on the tool name returned by the LLM. Demonstrates conditional
 tool routing inside a ReAct loop.
 """
 
-from collections.abc import AsyncGenerator
+from asya_lab.flow import flow
 
 
-async def research_agent(state: dict) -> AsyncGenerator[dict, None]:
+@flow
+async def research_agent(state: dict) -> dict:
     state["messages"] = state.get("messages", [])
     while True:
         state = await llm_call(state)
-        tool_name = state.get("tool_name")
-        if tool_name == "search":
+        if state.get("tool_name") == "search":
             state = await web_search(state)
-        elif tool_name == "calculator":
+        elif state.get("tool_name") == "calculator":
             state = await calculator(state)
-        elif tool_name == "code_exec":
+        elif state.get("tool_name") == "code_exec":
             state = await code_executor(state)
         else:
-            yield {"type": "result", **state}
-            return
+            break
+    return state
 
 
 async def llm_call(state: dict) -> dict:

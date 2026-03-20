@@ -1,0 +1,34 @@
+flowchart TD
+    %% Flow: actor_override_flow
+
+    audit_logger[audit_logger]
+    classify[classify]
+    escalate[escalate]
+    format_output[format_output]
+    router_actor_override_flow_line_25_if_1{{router_actor_override_flow_line_25_if_1}}
+    start_actor_override_flow([start_actor_override_flow])
+    tool_executor[tool_executor]
+    __end__((( )))
+
+    start_actor_override_flow --> classify
+    router_actor_override_flow_line_25_if_1 -->|"p.get('needs_tool')"| tool_executor
+    tool_executor --> format_output
+    router_actor_override_flow_line_25_if_1 -->|"else"| format_output
+    classify -->|"p.get('urgent')
+[ABORT]"| escalate
+    classify -->|"else"| audit_logger
+    audit_logger --> router_actor_override_flow_line_25_if_1
+    escalate --> __end__
+    format_output --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_actor_override_flow entrypoint
+    class router_actor_override_flow_line_25_if_1 router
+    class audit_logger,classify,escalate,format_output,tool_executor handler
+    class __end__ endpoint
+    linkStyle 1 stroke:#2E8B57
+    linkStyle 3 stroke:#E07040
+    linkStyle 4,5 stroke:#3CB371

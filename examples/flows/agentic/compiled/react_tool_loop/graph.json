@@ -26,63 +26,74 @@
       "is_generated": false
     },
     {
-      "id": "router_react_tool_loop_line_46_loop_back_0",
+      "id": "router_react_tool_loop_line_48_while_1",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_46_loop_back_0",
+      "label": "router_react_tool_loop_line_48_while_1",
       "is_generated": true
     },
     {
-      "id": "router_react_tool_loop_line_47_seq",
+      "id": "router_react_tool_loop_line_49_seq_8",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_47_seq",
+      "label": "router_react_tool_loop_line_49_seq_8",
       "is_generated": true,
-      "mutations": ["p['iteration'] += 1"]
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
     },
     {
-      "id": "router_react_tool_loop_line_53_if",
+      "id": "router_react_tool_loop_line_55_if_7",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_53_if",
+      "label": "router_react_tool_loop_line_55_if_7",
       "is_generated": true
     },
     {
-      "id": "router_react_tool_loop_line_59_if",
+      "id": "router_react_tool_loop_line_61_if_6",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_59_if",
+      "label": "router_react_tool_loop_line_61_if_6",
       "is_generated": true,
-      "mutations": ["p['tool_name'] = p['tool_calls'][0]['name']"]
+      "mutations": [
+        "p['tool_name'] = p['tool_calls'][0]['name']"
+      ]
     },
     {
-      "id": "router_react_tool_loop_line_61_if",
+      "id": "router_react_tool_loop_line_63_if_5",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_61_if",
+      "label": "router_react_tool_loop_line_63_if_5",
       "is_generated": true
     },
     {
-      "id": "router_react_tool_loop_line_63_if",
+      "id": "router_react_tool_loop_line_65_if_4",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_63_if",
+      "label": "router_react_tool_loop_line_65_if_4",
       "is_generated": true
     },
     {
-      "id": "router_react_tool_loop_line_66_seq",
+      "id": "router_react_tool_loop_line_68_seq_3",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_66_seq",
+      "label": "router_react_tool_loop_line_68_seq_3",
       "is_generated": true,
-      "mutations": ["p['observation'] = 'Unknown tool'"]
+      "mutations": [
+        "p['observation'] = 'Unknown tool'"
+      ]
     },
     {
-      "id": "router_react_tool_loop_line_72_if",
+      "id": "router_react_tool_loop_line_74_if_2",
       "flow_role": "router",
-      "label": "router_react_tool_loop_line_72_if",
+      "label": "router_react_tool_loop_line_74_if_2",
       "is_generated": true,
-      "mutations": ["p['messages'] = p.get('messages', [])"]
+      "mutations": [
+        "p['messages'] = p.get('messages', [])"
+      ]
     },
     {
       "id": "start_react_tool_loop",
       "flow_role": "entrypoint",
       "label": "start_react_tool_loop",
       "is_generated": true,
-      "mutations": ["p['messages'] = p.get('messages', [])", "p['iteration'] = 0"]
+      "mutations": [
+        "p['messages'] = p.get('messages', [])",
+        "p['iteration'] = 0"
+      ]
     },
     {
       "id": "web_search",
@@ -94,110 +105,110 @@
   "edges": [
     {
       "from": "start_react_tool_loop",
-      "to": "router_react_tool_loop_line_46_loop_back_0",
+      "to": "router_react_tool_loop_line_48_while_1",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_react_tool_loop_line_66_seq",
-      "to": "router_react_tool_loop_line_72_if",
-      "label": null,
-      "type": "prepend"
+      "from": "router_react_tool_loop_line_74_if_2",
+      "to": "format_response",
+      "label": "p['iteration'] >= 10",
+      "type": "set"
     },
     {
-      "from": "router_react_tool_loop_line_63_if",
+      "from": "router_react_tool_loop_line_65_if_4",
       "to": "calculator",
       "label": "p['tool_name'] == 'calculator'",
       "type": "prepend"
     },
     {
-      "from": "calculator",
-      "to": "router_react_tool_loop_line_72_if",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_react_tool_loop_line_63_if",
-      "to": "router_react_tool_loop_line_66_seq",
-      "label": "not (p['tool_name'] == 'calculator')",
+      "from": "router_react_tool_loop_line_65_if_4",
+      "to": "router_react_tool_loop_line_68_seq_3",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_react_tool_loop_line_61_if",
+      "from": "router_react_tool_loop_line_63_if_5",
       "to": "code_exec",
       "label": "p['tool_name'] == 'code_exec'",
       "type": "prepend"
     },
     {
-      "from": "code_exec",
-      "to": "router_react_tool_loop_line_72_if",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_react_tool_loop_line_61_if",
-      "to": "router_react_tool_loop_line_63_if",
-      "label": "not (p['tool_name'] == 'code_exec')",
+      "from": "router_react_tool_loop_line_63_if_5",
+      "to": "router_react_tool_loop_line_65_if_4",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_react_tool_loop_line_72_if",
-      "to": "format_response",
-      "label": "p['iteration'] >= 10",
-      "type": "prepend"
-    },
-    {
-      "from": "router_react_tool_loop_line_59_if",
+      "from": "router_react_tool_loop_line_61_if_6",
       "to": "web_search",
       "label": "p['tool_name'] == 'web_search'",
       "type": "prepend"
     },
     {
       "from": "web_search",
-      "to": "router_react_tool_loop_line_72_if",
+      "to": "router_react_tool_loop_line_74_if_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_react_tool_loop_line_59_if",
-      "to": "router_react_tool_loop_line_61_if",
-      "label": "not (p['tool_name'] == 'web_search')",
+      "from": "router_react_tool_loop_line_61_if_6",
+      "to": "router_react_tool_loop_line_63_if_5",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_react_tool_loop_line_53_if",
+      "from": "router_react_tool_loop_line_55_if_7",
+      "to": "router_react_tool_loop_line_61_if_6",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_55_if_7",
       "to": "format_response",
       "label": "not p.get('tool_calls')",
-      "type": "prepend"
+      "type": "set"
     },
     {
-      "from": "router_react_tool_loop_line_53_if",
-      "to": "router_react_tool_loop_line_59_if",
-      "label": "not (not p.get('tool_calls'))",
-      "type": "prepend"
-    },
-    {
-      "from": "router_react_tool_loop_line_47_seq",
+      "from": "router_react_tool_loop_line_49_seq_8",
       "to": "llm_reason",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "llm_reason",
-      "to": "router_react_tool_loop_line_53_if",
+      "to": "router_react_tool_loop_line_55_if_7",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_react_tool_loop_line_46_loop_back_0",
-      "to": "router_react_tool_loop_line_47_seq",
+      "from": "router_react_tool_loop_line_48_while_1",
+      "to": "router_react_tool_loop_line_49_seq_8",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_react_tool_loop_line_53_if",
-      "to": "router_react_tool_loop_line_46_loop_back_0",
+      "from": "code_exec",
+      "to": "router_react_tool_loop_line_74_if_2",
       "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "calculator",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_68_seq_3",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_74_if_2",
+      "to": "router_react_tool_loop_line_48_while_1",
+      "label": "else",
       "type": "continuation"
     }
   ],

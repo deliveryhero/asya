@@ -187,9 +187,9 @@
 <!-- router_multi_agent_debate_line_57_fanout_6&#45;&gt;fanin_multi_agent_debate_line_57 -->
 <g id="edge16" class="edge">
 <title>router_multi_agent_debate_line_57_fanout_6&#45;&gt;fanin_multi_agent_debate_line_57</title>
-<path fill="none" stroke="#2e8b57" d="M289.51,-787.59C307.72,-779.54 325.25,-767.86 336,-751 344.6,-737.51 344.14,-728.78 336,-715 328.17,-701.74 315.79,-691.52 302.44,-683.72"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="304.39,-680.8 293.92,-679.17 301.1,-686.97 304.39,-680.8"/>
-<text text-anchor="middle" x="362.9" y="-728.7" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout</text>
+<path fill="none" stroke="#6c35ea" d="M289.51,-787.59C307.72,-779.54 325.25,-767.86 336,-751 344.6,-737.51 344.14,-728.78 336,-715 328.17,-701.74 315.79,-691.52 302.44,-683.72"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="304.39,-680.8 293.92,-679.17 301.1,-686.97 304.39,-680.8"/>
+<text text-anchor="middle" x="362.9" y="-728.7" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout</text>
 </g>
 <!-- router_multi_agent_debate_line_64_seq_5 -->
 <g id="node14" class="node">
@@ -226,9 +226,9 @@
 <!-- router_multi_agent_debate_line_68_if_4&#45;&gt;router_multi_agent_debate_line_71_if_3 -->
 <g id="edge11" class="edge">
 <title>router_multi_agent_debate_line_68_if_4&#45;&gt;router_multi_agent_debate_line_71_if_3</title>
-<path fill="none" stroke="#e07040" d="M253.21,-325.61C264.39,-312.84 279.77,-295.27 292.38,-280.85"/>
-<polygon fill="#e07040" stroke="#e07040" points="294.87,-283.32 298.82,-273.49 289.6,-278.71 294.87,-283.32"/>
-<text text-anchor="middle" x="296.15" y="-294.7" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M253.21,-325.61C264.39,-312.84 279.77,-295.27 292.38,-280.85"/>
+<polygon fill="#d35400" stroke="#d35400" points="294.87,-283.32 298.82,-273.49 289.6,-278.71 294.87,-283.32"/>
+<text text-anchor="middle" x="296.15" y="-294.7" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_multi_agent_debate_line_71_if_3&#45;&gt;final_judge -->
 <g id="edge10" class="edge">
@@ -246,16 +246,16 @@
 <!-- router_multi_agent_debate_line_71_if_3&#45;&gt;router_multi_agent_debate_line_74_fanout_2 -->
 <g id="edge9" class="edge">
 <title>router_multi_agent_debate_line_71_if_3&#45;&gt;router_multi_agent_debate_line_74_fanout_2</title>
-<path fill="none" stroke="#e07040" d="M315,-235.61C315,-223.68 315,-207.57 315,-193.74"/>
-<polygon fill="#e07040" stroke="#e07040" points="318.5,-193.86 315,-183.86 311.5,-193.86 318.5,-193.86"/>
-<text text-anchor="middle" x="327.75" y="-204.7" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M315,-235.61C315,-223.68 315,-207.57 315,-193.74"/>
+<polygon fill="#d35400" stroke="#d35400" points="318.5,-193.86 315,-183.86 311.5,-193.86 318.5,-193.86"/>
+<text text-anchor="middle" x="327.75" y="-204.7" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_multi_agent_debate_line_74_fanout_2&#45;&gt;fanin_multi_agent_debate_line_74 -->
 <g id="edge2" class="edge">
 <title>router_multi_agent_debate_line_74_fanout_2&#45;&gt;fanin_multi_agent_debate_line_74</title>
-<path fill="none" stroke="#2e8b57" d="M193.7,-145.57C174.53,-137.45 157.02,-125.76 144.75,-109 135.3,-96.09 137.07,-87.04 144.75,-73 151.66,-60.37 162.92,-50.26 174.99,-42.36"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="176.7,-45.41 183.48,-37.27 173.1,-39.41 176.7,-45.41"/>
-<text text-anchor="middle" x="165.38" y="-86.7" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout</text>
+<path fill="none" stroke="#6c35ea" d="M193.7,-145.57C174.53,-137.45 157.02,-125.76 144.75,-109 135.3,-96.09 137.07,-87.04 144.75,-73 151.66,-60.37 162.92,-50.26 174.99,-42.36"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="176.7,-45.41 183.48,-37.27 173.1,-39.41 176.7,-45.41"/>
+<text text-anchor="middle" x="165.38" y="-86.7" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout</text>
 </g>
 <!-- router_multi_agent_debate_line_74_fanout_2&#45;&gt;revise_a -->
 <g id="edge3" class="edge">

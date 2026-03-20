@@ -91,9 +91,9 @@
 <!-- router_early_return_flow_line_14_if_1&#45;&gt;handler_process -->
 <g id="edge3" class="edge">
 <title>router_early_return_flow_line_14_if_1&#45;&gt;handler_process</title>
-<path fill="none" stroke="#e07040" d="M143.7,-264.22C148.28,-258.92 152.85,-252.84 156.12,-246.6 160.09,-239.04 163,-230.27 165.1,-222.07"/>
-<polygon fill="#e07040" stroke="#e07040" points="168.47,-223.03 167.23,-212.51 161.64,-221.5 168.47,-223.03"/>
-<text text-anchor="middle" x="175.62" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M143.7,-264.22C148.28,-258.92 152.85,-252.84 156.12,-246.6 160.09,-239.04 163,-230.27 165.1,-222.07"/>
+<polygon fill="#d35400" stroke="#d35400" points="168.47,-223.03 167.23,-212.51 161.64,-221.5 168.47,-223.03"/>
+<text text-anchor="middle" x="175.62" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 </g>
 </svg>

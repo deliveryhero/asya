@@ -73,9 +73,9 @@
 <!-- router_decorator_inline_comments_flow_line_18_if_1&#45;&gt;standard_handler -->
 <g id="edge4" class="edge">
 <title>router_decorator_inline_comments_flow_line_18_if_1&#45;&gt;standard_handler</title>
-<path fill="none" stroke="#e07040" d="M226.42,-156.18C234.11,-151.52 241.24,-145.74 246.5,-138.6 251.62,-131.65 254.21,-122.81 255.44,-114.35"/>
-<polygon fill="#e07040" stroke="#e07040" points="258.93,-114.64 256.26,-104.39 251.95,-114.07 258.93,-114.64"/>
-<text text-anchor="middle" x="266.81" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M226.42,-156.18C234.11,-151.52 241.24,-145.74 246.5,-138.6 251.62,-131.65 254.21,-122.81 255.44,-114.35"/>
+<polygon fill="#d35400" stroke="#d35400" points="258.93,-114.64 256.26,-104.39 251.95,-114.07 258.93,-114.64"/>
+<text text-anchor="middle" x="266.81" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- standard_handler&#45;&gt;__end__ -->
 <g id="edge6" class="edge">

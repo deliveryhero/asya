@@ -114,9 +114,9 @@
 <!-- router_voting_ensemble_line_44_fanout_1&#45;&gt;fanin_voting_ensemble_line_44 -->
 <g id="edge2" class="edge">
 <title>router_voting_ensemble_line_44_fanout_1&#45;&gt;fanin_voting_ensemble_line_44</title>
-<path fill="none" stroke="#2e8b57" d="M340.74,-285.21C358.8,-277.13 376.26,-265.43 386.88,-248.6 395.41,-235.07 395.86,-225.84 386.88,-212.6 377.45,-198.72 363.84,-188.41 348.83,-180.75"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="350.71,-177.76 340.17,-176.72 347.76,-184.11 350.71,-177.76"/>
-<text text-anchor="middle" x="414.07" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout</text>
+<path fill="none" stroke="#6c35ea" d="M340.74,-285.21C358.8,-277.13 376.26,-265.43 386.88,-248.6 395.41,-235.07 395.86,-225.84 386.88,-212.6 377.45,-198.72 363.84,-188.41 348.83,-180.75"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="350.71,-177.76 340.17,-176.72 347.76,-184.11 350.71,-177.76"/>
+<text text-anchor="middle" x="414.07" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout</text>
 </g>
 </g>
 </svg>

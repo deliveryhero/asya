@@ -17,7 +17,7 @@ digraph "parallel_sectioning" {
 
     start_parallel_sectioning -> preprocessor;
     preprocessor -> router_parallel_sectioning_line_48_fanout_1;
-    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
+    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
     fanin_parallel_sectioning_line_48 -> aggregator;
     router_parallel_sectioning_line_48_fanout_1 -> sentiment_analyzer;
     sentiment_analyzer -> fanin_parallel_sectioning_line_48;

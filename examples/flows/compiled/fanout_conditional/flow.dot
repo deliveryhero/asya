@@ -18,14 +18,14 @@ digraph "adaptive_flow" {
 
     start_adaptive_flow -> classifier;
     classifier -> router_adaptive_flow_line_16_if_2;
-    router_adaptive_flow_line_17_fanout_1 -> fanin_adaptive_flow_line_17 [label="fanout", color="#2E8B57", fontcolor="#2E8B57"];
+    router_adaptive_flow_line_17_fanout_1 -> fanin_adaptive_flow_line_17 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
     router_adaptive_flow_line_17_fanout_1 -> fast_analyzer;
     fast_analyzer -> fanin_adaptive_flow_line_17;
     router_adaptive_flow_line_17_fanout_1 -> deep_analyzer;
     deep_analyzer -> fanin_adaptive_flow_line_17;
     router_adaptive_flow_line_16_if_2 -> router_adaptive_flow_line_17_fanout_1 [label="p['parallel']", color="#2E8B57", fontcolor="#2E8B57"];
     router_adaptive_flow_line_17_fanout_1 -> formatter;
-    router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="else", color="#E07040", fontcolor="#E07040"];
+    router_adaptive_flow_line_16_if_2 -> sequential_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
     sequential_analyzer -> formatter;
     fanin_adaptive_flow_line_17 -> formatter;
     formatter -> __end__;

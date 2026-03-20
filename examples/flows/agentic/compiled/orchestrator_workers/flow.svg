@@ -105,9 +105,9 @@
 <!-- router_orchestrator_workers_line_62_if_6&#45;&gt;router_orchestrator_workers_line_65_if_5 -->
 <g id="edge9" class="edge">
 <title>router_orchestrator_workers_line_62_if_6&#45;&gt;router_orchestrator_workers_line_65_if_5</title>
-<path fill="none" stroke="#e07040" d="M200.38,-625.21C200.38,-613.28 200.38,-597.17 200.38,-583.34"/>
-<polygon fill="#e07040" stroke="#e07040" points="203.88,-583.46 200.38,-573.46 196.88,-583.46 203.88,-583.46"/>
-<text text-anchor="middle" x="213.12" y="-594.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M200.38,-625.21C200.38,-613.28 200.38,-597.17 200.38,-583.34"/>
+<polygon fill="#d35400" stroke="#d35400" points="203.88,-583.46 200.38,-573.46 196.88,-583.46 203.88,-583.46"/>
+<text text-anchor="middle" x="213.12" y="-594.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- synthesizer -->
 <g id="node12" class="node">
@@ -138,9 +138,9 @@
 <!-- router_orchestrator_workers_line_65_if_5&#45;&gt;router_orchestrator_workers_line_67_if_4 -->
 <g id="edge8" class="edge">
 <title>router_orchestrator_workers_line_65_if_5&#45;&gt;router_orchestrator_workers_line_67_if_4</title>
-<path fill="none" stroke="#e07040" d="M293.99,-535.15C309.98,-530.32 323.13,-524.47 328.38,-517.6 333.81,-510.48 333.79,-501.29 331.63,-492.56"/>
-<polygon fill="#e07040" stroke="#e07040" points="335.04,-491.71 328.49,-483.38 328.41,-493.97 335.04,-491.71"/>
-<text text-anchor="middle" x="345.73" y="-504.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M293.99,-535.15C309.98,-530.32 323.13,-524.47 328.38,-517.6 333.81,-510.48 333.79,-501.29 331.63,-492.56"/>
+<polygon fill="#d35400" stroke="#d35400" points="335.04,-491.71 328.49,-483.38 328.41,-493.97 335.04,-491.71"/>
+<text text-anchor="middle" x="345.73" y="-504.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_orchestrator_workers_line_67_if_4&#45;&gt;analysis_worker -->
 <g id="edge4" class="edge">
@@ -158,16 +158,16 @@
 <!-- router_orchestrator_workers_line_67_if_4&#45;&gt;router_orchestrator_workers_line_69_if_3 -->
 <g id="edge5" class="edge">
 <title>router_orchestrator_workers_line_67_if_4&#45;&gt;router_orchestrator_workers_line_69_if_3</title>
-<path fill="none" stroke="#e07040" d="M404.79,-445.17C412.38,-440.58 419.15,-434.82 424.38,-427.6 433.75,-414.63 430.39,-406.43 424.38,-391.6 423.08,-388.41 421.34,-385.34 419.32,-382.45"/>
-<polygon fill="#e07040" stroke="#e07040" points="422.22,-380.46 413.14,-375 416.83,-384.93 422.22,-380.46"/>
-<text text-anchor="middle" x="442.96" y="-405.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M404.79,-445.17C412.38,-440.58 419.15,-434.82 424.38,-427.6 433.75,-414.63 430.39,-406.43 424.38,-391.6 423.08,-388.41 421.34,-385.34 419.32,-382.45"/>
+<polygon fill="#d35400" stroke="#d35400" points="422.22,-380.46 413.14,-375 416.83,-384.93 422.22,-380.46"/>
+<text text-anchor="middle" x="442.96" y="-405.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_orchestrator_workers_line_69_if_3&#45;&gt;router_orchestrator_workers_line_57_while_1 -->
 <g id="edge17" class="edge">
 <title>router_orchestrator_workers_line_69_if_3&#45;&gt;router_orchestrator_workers_line_57_while_1</title>
-<path fill="none" stroke="#e07040" d="M436.34,-373.97C444.79,-378.72 452.95,-384.55 459.38,-391.6 482.21,-416.68 487.38,-428.68 487.38,-462.6 487.38,-802.6 487.38,-802.6 487.38,-802.6 487.38,-820.63 487.38,-840.86 487.38,-856.83"/>
-<polygon fill="#e07040" stroke="#e07040" points="483.88,-856.6 487.38,-866.6 490.88,-856.6 483.88,-856.6"/>
-<text text-anchor="middle" x="500.12" y="-639.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M436.34,-373.97C444.79,-378.72 452.95,-384.55 459.38,-391.6 482.21,-416.68 487.38,-428.68 487.38,-462.6 487.38,-802.6 487.38,-802.6 487.38,-802.6 487.38,-820.63 487.38,-840.86 487.38,-856.83"/>
+<polygon fill="#d35400" stroke="#d35400" points="483.88,-856.6 487.38,-866.6 490.88,-856.6 483.88,-856.6"/>
+<text text-anchor="middle" x="500.12" y="-639.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- writing_worker -->
 <g id="node13" class="node">
@@ -185,9 +185,9 @@
 <!-- router_orchestrator_workers_line_72_if_2&#45;&gt;router_orchestrator_workers_line_57_while_1 -->
 <g id="edge16" class="edge">
 <title>router_orchestrator_workers_line_72_if_2&#45;&gt;router_orchestrator_workers_line_57_while_1</title>
-<path fill="none" stroke="#e07040" d="M397.77,-184.02C476.63,-192.75 559.38,-210.51 559.38,-246.6 559.38,-802.6 559.38,-802.6 559.38,-802.6 559.38,-826.53 542.08,-846.95 524.44,-861.54"/>
-<polygon fill="#e07040" stroke="#e07040" points="522.78,-858.4 517.03,-867.29 527.07,-863.93 522.78,-858.4"/>
-<text text-anchor="middle" x="572.12" y="-549.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M397.77,-184.02C476.63,-192.75 559.38,-210.51 559.38,-246.6 559.38,-802.6 559.38,-802.6 559.38,-802.6 559.38,-826.53 542.08,-846.95 524.44,-861.54"/>
+<polygon fill="#d35400" stroke="#d35400" points="522.78,-858.4 517.03,-867.29 527.07,-863.93 522.78,-858.4"/>
+<text text-anchor="middle" x="572.12" y="-549.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_orchestrator_workers_line_72_if_2&#45;&gt;synthesizer -->
 <g id="edge2" class="edge">

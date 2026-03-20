@@ -1,0 +1,94 @@
+{
+  "flow_name": "actor_override_flow",
+  "nodes": [
+    {
+      "id": "audit_logger",
+      "flow_role": "processor",
+      "label": "audit_logger",
+      "is_generated": false
+    },
+    {
+      "id": "classify",
+      "flow_role": "processor",
+      "label": "classify",
+      "is_generated": false
+    },
+    {
+      "id": "escalate",
+      "flow_role": "exitpoint",
+      "label": "escalate",
+      "is_generated": false
+    },
+    {
+      "id": "format_output",
+      "flow_role": "exitpoint",
+      "label": "format_output",
+      "is_generated": false
+    },
+    {
+      "id": "router_actor_override_flow_line_25_if_1",
+      "flow_role": "router",
+      "label": "router_actor_override_flow_line_25_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_actor_override_flow",
+      "flow_role": "entrypoint",
+      "label": "start_actor_override_flow",
+      "is_generated": true
+    },
+    {
+      "id": "tool_executor",
+      "flow_role": "processor",
+      "label": "tool_executor",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_actor_override_flow",
+      "to": "classify",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_actor_override_flow_line_25_if_1",
+      "to": "tool_executor",
+      "label": "p.get('needs_tool')",
+      "type": "prepend"
+    },
+    {
+      "from": "tool_executor",
+      "to": "format_output",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_actor_override_flow_line_25_if_1",
+      "to": "format_output",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "classify",
+      "to": "escalate",
+      "label": "p.get('urgent')",
+      "type": "set",
+      "override": true
+    },
+    {
+      "from": "classify",
+      "to": "audit_logger",
+      "label": "else",
+      "type": "prepend",
+      "override": true
+    },
+    {
+      "from": "audit_logger",
+      "to": "router_actor_override_flow_line_25_if_1",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

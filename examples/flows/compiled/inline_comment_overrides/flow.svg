@@ -54,9 +54,9 @@
 <!-- router_order_pipeline_line_32_if_2&#45;&gt;charge_payment -->
 <g id="edge3" class="edge">
 <title>router_order_pipeline_line_32_if_2&#45;&gt;charge_payment</title>
-<path fill="none" stroke="#e07040" d="M144.66,-180.18C128.58,-164.26 104.63,-140.55 86.51,-122.61"/>
-<polygon fill="#e07040" stroke="#e07040" points="89.29,-120.43 79.72,-115.88 84.36,-125.41 89.29,-120.43"/>
-<text text-anchor="middle" x="139.45" y="-149.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M144.66,-180.18C128.58,-164.26 104.63,-140.55 86.51,-122.61"/>
+<polygon fill="#d35400" stroke="#d35400" points="89.29,-120.43 79.72,-115.88 84.36,-125.41 89.29,-120.43"/>
+<text text-anchor="middle" x="139.45" y="-149.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_order_pipeline_line_33_seq_1 -->
 <g id="node4" class="node">

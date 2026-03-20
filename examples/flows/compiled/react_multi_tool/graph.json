@@ -1,0 +1,137 @@
+{
+  "flow_name": "research_agent",
+  "nodes": [
+    {
+      "id": "calculator",
+      "flow_role": "processor",
+      "label": "calculator",
+      "is_generated": false
+    },
+    {
+      "id": "code_executor",
+      "flow_role": "processor",
+      "label": "code_executor",
+      "is_generated": false
+    },
+    {
+      "id": "llm_call",
+      "flow_role": "processor",
+      "label": "llm_call",
+      "is_generated": false
+    },
+    {
+      "id": "router_research_agent_line_15_while_1",
+      "flow_role": "router",
+      "label": "router_research_agent_line_15_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_agent_line_17_if_4",
+      "flow_role": "router",
+      "label": "router_research_agent_line_17_if_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_agent_line_19_if_3",
+      "flow_role": "router",
+      "label": "router_research_agent_line_19_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_agent_line_21_if_2",
+      "flow_role": "router",
+      "label": "router_research_agent_line_21_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "start_research_agent",
+      "flow_role": "entrypoint",
+      "label": "start_research_agent",
+      "is_generated": true,
+      "mutations": [
+        "p['messages'] = p.get('messages', [])"
+      ]
+    },
+    {
+      "id": "web_search",
+      "flow_role": "processor",
+      "label": "web_search",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_research_agent",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_21_if_2",
+      "to": "code_executor",
+      "label": "p.get('tool_name') == 'code_exec'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_19_if_3",
+      "to": "calculator",
+      "label": "p.get('tool_name') == 'calculator'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_19_if_3",
+      "to": "router_research_agent_line_21_if_2",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_17_if_4",
+      "to": "web_search",
+      "label": "p.get('tool_name') == 'search'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_17_if_4",
+      "to": "router_research_agent_line_19_if_3",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_15_while_1",
+      "to": "llm_call",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "llm_call",
+      "to": "router_research_agent_line_17_if_4",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "web_search",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "calculator",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "code_executor",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_research_agent_line_21_if_2",
+      "to": "router_research_agent_line_15_while_1",
+      "label": "else",
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

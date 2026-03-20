@@ -78,9 +78,9 @@
 <!-- router_analysis_flow_line_14_fanout_1&#45;&gt;fanin_analysis_flow_line_14 -->
 <g id="edge2" class="edge">
 <title>router_analysis_flow_line_14_fanout_1&#45;&gt;fanin_analysis_flow_line_14</title>
-<path fill="none" stroke="#2e8b57" d="M172.05,-285.38C169.02,-267.04 165.99,-237.3 172.25,-212.6 174.61,-203.3 178.92,-193.86 183.53,-185.54"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="186.51,-187.36 188.62,-176.98 180.5,-183.79 186.51,-187.36"/>
-<text text-anchor="middle" x="192.88" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout</text>
+<path fill="none" stroke="#6c35ea" d="M172.05,-285.38C169.02,-267.04 165.99,-237.3 172.25,-212.6 174.61,-203.3 178.92,-193.86 183.53,-185.54"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="186.51,-187.36 188.62,-176.98 180.5,-183.79 186.51,-187.36"/>
+<text text-anchor="middle" x="192.88" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout</text>
 </g>
 <!-- sentiment_analyzer -->
 <g id="node6" class="node">

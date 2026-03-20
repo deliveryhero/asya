@@ -67,9 +67,9 @@
 <!-- router_if_empty_branches_flow_line_14_if_1&#45;&gt;handler_finalize -->
 <g id="edge4" class="edge">
 <title>router_if_empty_branches_flow_line_14_if_1&#45;&gt;handler_finalize</title>
-<path fill="none" stroke="#e07040" d="M186.16,-156.1C192.62,-151.36 198.46,-145.57 202.25,-138.6 208.02,-127.98 202.67,-118.14 193.43,-109.9"/>
-<polygon fill="#e07040" stroke="#e07040" points="195.78,-107.29 185.71,-104.01 191.54,-112.86 195.78,-107.29"/>
-<text text-anchor="middle" x="217.39" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M186.16,-156.1C192.62,-151.36 198.46,-145.57 202.25,-138.6 208.02,-127.98 202.67,-118.14 193.43,-109.9"/>
+<polygon fill="#d35400" stroke="#d35400" points="195.78,-107.29 185.71,-104.01 191.54,-112.86 195.78,-107.29"/>
+<text text-anchor="middle" x="217.39" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 </g>
 </svg>

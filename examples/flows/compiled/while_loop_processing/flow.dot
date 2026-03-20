@@ -27,13 +27,13 @@ digraph "loop_flow" {
     router_loop_flow_line_21_seq_4 -> process_abort;
     process_abort -> router_loop_flow_line_23_seq_3;
     router_loop_flow_line_20_if_5 -> router_loop_flow_line_21_seq_4 [label="p.get('skip_threshold_check')", color="#2E8B57", fontcolor="#2E8B57"];
-    router_loop_flow_line_20_if_5 -> check_threshold [label="else", color="#E07040", fontcolor="#E07040"];
+    router_loop_flow_line_20_if_5 -> check_threshold [label="else", color="#D35400", fontcolor="#D35400"];
     check_threshold -> router_loop_flow_line_27_if_2;
     router_loop_flow_line_17_seq_6 -> process_item;
     process_item -> router_loop_flow_line_20_if_5;
     router_loop_flow_line_16_while_1 -> router_loop_flow_line_17_seq_6 [label="p['iteration'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_loop_flow_line_16_while_1 -> finalize_loop [label="else", color="#E07040", fontcolor="#E07040"];
+    router_loop_flow_line_16_while_1 -> finalize_loop [label="else", color="#D35400", fontcolor="#D35400"];
     router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
-    router_loop_flow_line_27_if_2 -> router_loop_flow_line_16_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
+    router_loop_flow_line_27_if_2 -> router_loop_flow_line_16_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
     finalize_loop -> __end__;
 }

@@ -23,7 +23,7 @@ digraph "human_in_the_loop" {
     router_human_in_the_loop_line_80_seq_2 -> notifier;
     router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_80_seq_2 [label="p['attempt'] >= 3", color="#2E8B57", fontcolor="#2E8B57"];
     router_human_in_the_loop_line_75_if_4 -> revision_agent [label="p.get('approval') == 'rejected'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_75_if_4 [label="else", color="#E07040", fontcolor="#E07040"];
+    router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_75_if_4 [label="else", color="#D35400", fontcolor="#D35400"];
     router_human_in_the_loop_line_70_if_5 -> executor [label="p.get('approval') in ('approved', 'modified')", color="#2E8B57", fontcolor="#2E8B57"];
     executor -> notifier;
     router_human_in_the_loop_line_61_seq_6 -> proposal_generator;
@@ -31,7 +31,7 @@ digraph "human_in_the_loop" {
     approval_gate -> router_human_in_the_loop_line_70_if_5;
     router_human_in_the_loop_line_60_while_1 -> router_human_in_the_loop_line_61_seq_6;
     revision_agent -> router_human_in_the_loop_line_79_if_3;
-    router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
-    router_human_in_the_loop_line_75_if_4 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#E07040", fontcolor="#E07040"];
+    router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_line_75_if_4 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
     notifier -> __end__;
 }

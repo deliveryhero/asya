@@ -67,9 +67,9 @@
 <!-- router_if_no_else_flow_line_14_if_1&#45;&gt;handler_true -->
 <g id="edge4" class="edge">
 <title>router_if_no_else_flow_line_14_if_1&#45;&gt;handler_true</title>
-<path fill="none" stroke="#e07040" d="M140.92,-156.26C145.72,-151.13 150.16,-145.12 152.75,-138.6 155.7,-131.16 155.7,-128.04 152.75,-120.6 151.54,-117.54 149.92,-114.6 148.04,-111.81"/>
-<polygon fill="#e07040" stroke="#e07040" points="150.86,-109.72 141.86,-104.12 145.4,-114.11 150.86,-109.72"/>
-<text text-anchor="middle" x="167.71" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M140.92,-156.26C145.72,-151.13 150.16,-145.12 152.75,-138.6 155.7,-131.16 155.7,-128.04 152.75,-120.6 151.54,-117.54 149.92,-114.6 148.04,-111.81"/>
+<polygon fill="#d35400" stroke="#d35400" points="150.86,-109.72 141.86,-104.12 145.4,-114.11 150.86,-109.72"/>
+<text text-anchor="middle" x="167.71" y="-125.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 </g>
 </svg>

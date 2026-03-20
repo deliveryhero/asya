@@ -93,9 +93,9 @@
 <!-- router_while_mutations_in_loop_flow_line_15_while_1&#45;&gt;handler_finalize -->
 <g id="edge6" class="edge">
 <title>router_while_mutations_in_loop_flow_line_15_while_1&#45;&gt;handler_finalize</title>
-<path fill="none" stroke="#e07040" d="M256.3,-319.64C218.72,-306.92 168.46,-288.08 126.62,-266 114.03,-259.35 100.99,-250.8 89.73,-242.81"/>
-<polygon fill="#e07040" stroke="#e07040" points="92.12,-240.22 81.97,-237.18 88.01,-245.89 92.12,-240.22"/>
-<text text-anchor="middle" x="218.66" y="-288.7" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M256.3,-319.64C218.72,-306.92 168.46,-288.08 126.62,-266 114.03,-259.35 100.99,-250.8 89.73,-242.81"/>
+<polygon fill="#d35400" stroke="#d35400" points="92.12,-240.22 81.97,-237.18 88.01,-245.89 92.12,-240.22"/>
+<text text-anchor="middle" x="218.66" y="-288.7" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_while_mutations_in_loop_flow_line_16_seq_3 -->
 <g id="node7" class="node">

@@ -15,7 +15,7 @@ digraph "early_return_flow" {
 
     start_early_return_flow -> handler_validate;
     handler_validate -> router_early_return_flow_line_14_if_1;
-    router_early_return_flow_line_14_if_1 -> handler_process [label="else", color="#E07040", fontcolor="#E07040"];
+    router_early_return_flow_line_14_if_1 -> handler_process [label="else", color="#D35400", fontcolor="#D35400"];
     handler_process -> handler_finalize;
     router_early_return_flow_line_14_if_1 -> handler_error [label="not p['valid']", color="#2E8B57", fontcolor="#2E8B57"];
     handler_error -> __end__;

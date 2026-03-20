@@ -15,7 +15,7 @@ digraph "map_reduce" {
 
     start_map_reduce -> splitter;
     splitter -> router_map_reduce_line_55_fanout_1;
-    router_map_reduce_line_55_fanout_1 -> fanin_map_reduce_line_55 [label="fanout: p['chunks']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_map_reduce_line_55_fanout_1 -> fanin_map_reduce_line_55 [label="fanout: p['chunks']", color="#6C35EA", fontcolor="#6C35EA"];
     fanin_map_reduce_line_55 -> reducer;
     router_map_reduce_line_55_fanout_1 -> chunk_processor;
     chunk_processor -> fanin_map_reduce_line_55;

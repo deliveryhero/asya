@@ -5,6 +5,7 @@ Pipeline: Parse -> CodeGen -> Analyze -> GraphGen
 
 from __future__ import annotations
 
+import ast
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -93,7 +94,8 @@ class FlowCompiler:
         self._generated_code = code
 
         # Step 3: Analyze (graph extraction from generated code)
-        self._graph_data = analyze(code)
+        handler_sources = self._extract_handler_sources(source_code, result.actors)
+        self._graph_data = analyze(code, handler_sources)
         self.warnings.extend(self._graph_data.warnings)
 
         self.flow_name = result.flow_name
@@ -181,6 +183,26 @@ class FlowCompiler:
 
     def get_warnings(self) -> list[str]:
         return self.warnings
+
+    @staticmethod
+    def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:
+        """Extract source code of handler functions referenced by the flow.
+
+        Enables the analyzer to discover override edges (yield SET routes)
+        defined inside actor handlers, not just in generated routers.
+        """
+        if not actor_names:
+            return {}
+        try:
+            tree = ast.parse(source_code)
+        except SyntaxError:
+            return {}
+        names = set(actor_names)
+        result: dict[str, str] = {}
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name in names:
+                result[node.name] = ast.unparse(node)
+        return result
 
     def _parse(self, source_code: str, filename: str) -> ParseResult:
         module_path = _calculate_module_path(filename)

@@ -49,17 +49,29 @@ def to_dot(data: GraphData, flow_name: str) -> str:
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
         attrs = []
-        if edge.get("label"):
-            label = edge["label"]
+        label = edge.get("label") or ""
+        # SET overrides abort envelope processing — annotate in label
+        if edge.get("override") and edge.get("type") == "set" and label:
+            label = f"{label}\n[ABORT]"
+        if label:
             attrs.append(f'label="{_escape_dot(label)}"')
-            if label == "else":
-                attrs.append('color="#E07040"')
-                attrs.append('fontcolor="#E07040"')
-            else:
-                attrs.append('color="#2E8B57"')
-                attrs.append('fontcolor="#2E8B57"')
+        # Override edges use brighter versions of the same green/orange scheme
         if edge.get("override"):
-            attrs.append("color=red")
+            if label == "else":
+                color = "#FF5500"
+            else:
+                color = "#00B84D"
+        elif label == "else":
+            color = "#D35400"
+        elif label.startswith("fanout"):
+            color = "#6C35EA"
+        elif label:
+            color = "#2E8B57"
+        else:
+            color = None
+        if color:
+            attrs.append(f'color="{color}"')
+            attrs.append(f'fontcolor="{color}"')
         attr_str = f" [{', '.join(attrs)}]" if attrs else ""
         lines.append(f"    {src} -> {dst}{attr_str};")
 
@@ -117,20 +129,28 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     edge_index = 0
     conditional_indices: list[int] = []
     else_indices: list[int] = []
+    fanout_indices: list[int] = []
+    override_indices: list[int] = []
 
     for edge in data.edges:
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
-        label = edge.get("label", "")
+        label = edge.get("label") or ""
+        if edge.get("override") and edge.get("type") == "set" and label:
+            label = f"{label}\n[ABORT]"
         if label:
             label = str(label).replace('"', "'")
             lines.append(f'    {src} -->|"{label}"| {dst}')
-            if label == "else":
-                else_indices.append(edge_index)
-            else:
-                conditional_indices.append(edge_index)
         else:
             lines.append(f"    {src} --> {dst}")
+        if edge.get("override"):
+            override_indices.append(edge_index)
+        elif label == "else":
+            else_indices.append(edge_index)
+        elif label.startswith("fanout"):
+            fanout_indices.append(edge_index)
+        elif label:
+            conditional_indices.append(edge_index)
         edge_index += 1
 
     # Exitpoint edges to __end__
@@ -162,8 +182,12 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         lines.append("    class __end__ endpoint")
     if conditional_indices:
         lines.append(f"    linkStyle {','.join(str(i) for i in conditional_indices)} stroke:#2E8B57")
+    if fanout_indices:
+        lines.append(f"    linkStyle {','.join(str(i) for i in fanout_indices)} stroke:#7B68EE")
     if else_indices:
         lines.append(f"    linkStyle {','.join(str(i) for i in else_indices)} stroke:#E07040")
+    if override_indices:
+        lines.append(f"    linkStyle {','.join(str(i) for i in override_indices)} stroke:#3CB371")
 
     return "\n".join(lines)
 

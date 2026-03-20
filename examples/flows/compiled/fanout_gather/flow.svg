@@ -84,9 +84,9 @@
 <!-- router_async_research_flow_line_16_fanout_1&#45;&gt;fanin_async_research_flow_line_16 -->
 <g id="edge3" class="edge">
 <title>router_async_research_flow_line_16_fanout_1&#45;&gt;fanin_async_research_flow_line_16</title>
-<path fill="none" stroke="#2e8b57" d="M140.79,-285.15C131.38,-275.44 121.1,-262.52 116.12,-248.6 109.08,-228.89 110.29,-205.18 113.05,-187.04"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="116.49,-187.71 114.81,-177.25 109.6,-186.48 116.49,-187.71"/>
-<text text-anchor="middle" x="172.75" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout: p[&#39;topics&#39;]</text>
+<path fill="none" stroke="#6c35ea" d="M140.79,-285.15C131.38,-275.44 121.1,-262.52 116.12,-248.6 109.08,-228.89 110.29,-205.18 113.05,-187.04"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="116.49,-187.71 114.81,-177.25 109.6,-186.48 116.49,-187.71"/>
+<text text-anchor="middle" x="172.75" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout: p[&#39;topics&#39;]</text>
 </g>
 <!-- router_async_research_flow_line_16_fanout_1&#45;&gt;research_agent -->
 <g id="edge5" class="edge">

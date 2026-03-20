@@ -115,9 +115,9 @@
 <!-- router_adaptive_flow_line_16_if_2&#45;&gt;sequential_analyzer -->
 <g id="edge10" class="edge">
 <title>router_adaptive_flow_line_16_if_2&#45;&gt;sequential_analyzer</title>
-<path fill="none" stroke="#e07040" d="M359.96,-410.29C366.37,-405.16 372.81,-399.14 377.75,-392.6 395.41,-369.22 405.69,-337.06 411.22,-314.11"/>
-<polygon fill="#e07040" stroke="#e07040" points="414.6,-315.05 413.36,-304.53 407.76,-313.52 414.6,-315.05"/>
-<text text-anchor="middle" x="401.2" y="-379.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M359.96,-410.29C366.37,-405.16 372.81,-399.14 377.75,-392.6 395.41,-369.22 405.69,-337.06 411.22,-314.11"/>
+<polygon fill="#d35400" stroke="#d35400" points="414.6,-315.05 413.36,-304.53 407.76,-313.52 414.6,-315.05"/>
+<text text-anchor="middle" x="401.2" y="-379.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_adaptive_flow_line_17_fanout_1&#45;&gt;deep_analyzer -->
 <g id="edge6" class="edge">
@@ -128,9 +128,9 @@
 <!-- router_adaptive_flow_line_17_fanout_1&#45;&gt;fanin_adaptive_flow_line_17 -->
 <g id="edge3" class="edge">
 <title>router_adaptive_flow_line_17_fanout_1&#45;&gt;fanin_adaptive_flow_line_17</title>
-<path fill="none" stroke="#2e8b57" d="M221.82,-320.22C197.92,-304.86 166.62,-280.02 152.5,-248.6 143.5,-228.57 150.41,-204.32 158.84,-186.04"/>
-<polygon fill="#2e8b57" stroke="#2e8b57" points="161.95,-187.64 163.32,-177.14 155.7,-184.5 161.95,-187.64"/>
-<text text-anchor="middle" x="173.12" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#2e8b57">fanout</text>
+<path fill="none" stroke="#6c35ea" d="M221.82,-320.22C197.92,-304.86 166.62,-280.02 152.5,-248.6 143.5,-228.57 150.41,-204.32 158.84,-186.04"/>
+<polygon fill="#6c35ea" stroke="#6c35ea" points="161.95,-187.64 163.32,-177.14 155.7,-184.5 161.95,-187.64"/>
+<text text-anchor="middle" x="173.12" y="-226.3" font-family="Times,serif" font-size="14.00" fill="#6c35ea">fanout</text>
 </g>
 <!-- router_adaptive_flow_line_17_fanout_1&#45;&gt;fast_analyzer -->
 <g id="edge4" class="edge">

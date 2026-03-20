@@ -79,9 +79,9 @@
 <!-- router_typeddict_pipeline_line_77_if_1&#45;&gt;transformer -->
 <g id="edge4" class="edge">
 <title>router_typeddict_pipeline_line_77_if_1&#45;&gt;transformer</title>
-<path fill="none" stroke="#e07040" d="M168.4,-264.28C176.17,-259.44 183.72,-253.56 189.5,-246.6 195.41,-239.49 199.54,-230.4 202.41,-221.77"/>
-<polygon fill="#e07040" stroke="#e07040" points="205.72,-222.91 205.08,-212.34 198.99,-221.01 205.72,-222.91"/>
-<text text-anchor="middle" x="212.27" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M168.4,-264.28C176.17,-259.44 183.72,-253.56 189.5,-246.6 195.41,-239.49 199.54,-230.4 202.41,-221.77"/>
+<polygon fill="#d35400" stroke="#d35400" points="205.72,-222.91 205.08,-212.34 198.99,-221.01 205.72,-222.91"/>
+<text text-anchor="middle" x="212.27" y="-233.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- sink_adapter -->
 <g id="node5" class="node">

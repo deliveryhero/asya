@@ -92,9 +92,9 @@
 <!-- router_text_analysis_flow_line_11_if_4&#45;&gt;router_text_analysis_flow_line_13_if_3 -->
 <g id="edge9" class="edge">
 <title>router_text_analysis_flow_line_11_if_4&#45;&gt;router_text_analysis_flow_line_13_if_3</title>
-<path fill="none" stroke="#e07040" d="M182.46,-458.27C190.29,-453.32 198.08,-447.39 204.25,-440.6 210.84,-433.35 216.14,-424.12 220.19,-415.4"/>
-<polygon fill="#e07040" stroke="#e07040" points="223.4,-416.79 224.06,-406.22 216.95,-414.07 223.4,-416.79"/>
-<text text-anchor="middle" x="228.9" y="-427.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M182.46,-458.27C190.29,-453.32 198.08,-447.39 204.25,-440.6 210.84,-433.35 216.14,-424.12 220.19,-415.4"/>
+<polygon fill="#d35400" stroke="#d35400" points="223.4,-416.79 224.06,-406.22 216.95,-414.07 223.4,-416.79"/>
+<text text-anchor="middle" x="228.9" y="-427.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- router_text_analysis_flow_line_16_seq_2 -->
 <g id="node7" class="node">
@@ -106,9 +106,9 @@
 <!-- router_text_analysis_flow_line_13_if_3&#45;&gt;router_text_analysis_flow_line_16_seq_2 -->
 <g id="edge5" class="edge">
 <title>router_text_analysis_flow_line_13_if_3&#45;&gt;router_text_analysis_flow_line_16_seq_2</title>
-<path fill="none" stroke="#e07040" d="M230.25,-368.19C230.25,-352.47 230.25,-328.73 230.25,-308.26"/>
-<polygon fill="#e07040" stroke="#e07040" points="233.75,-308.5 230.25,-298.5 226.75,-308.5 233.75,-308.5"/>
-<text text-anchor="middle" x="243" y="-328.3" font-family="Times,serif" font-size="14.00" fill="#e07040">else</text>
+<path fill="none" stroke="#d35400" d="M230.25,-368.19C230.25,-352.47 230.25,-328.73 230.25,-308.26"/>
+<polygon fill="#d35400" stroke="#d35400" points="233.75,-308.5 230.25,-298.5 226.75,-308.5 233.75,-308.5"/>
+<text text-anchor="middle" x="243" y="-328.3" font-family="Times,serif" font-size="14.00" fill="#d35400">else</text>
 </g>
 <!-- spanish_sentiment -->
 <g id="node9" class="node">

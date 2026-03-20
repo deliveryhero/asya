@@ -37,8 +37,10 @@ Payload contract:
   state["tool_name"]   - dispatched tool name (set by router)
   state["observation"]  - tool execution result
 """
+from asya_lab.flow import flow
 
 
+@flow
 async def react_tool_loop(state: dict) -> dict:
     state["messages"] = state.get("messages", [])
     state["iteration"] = 0
