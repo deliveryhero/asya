@@ -1,12 +1,17 @@
 # Research: Handler-to-Image Mapping and Build System Integration
 
 **Date**: 2026-03-20 (updated from 2026-03-19)
-**Status**: Decided -- Skaffold-native (pending PoC)
+**Status**: Decided -- Skaffold YAML as source of truth (binary optional), pending tool comparison demo
 **Context**: How the compiler resolves handler functions to container images.
 Emerged from brainstorming session on compiler simplification (see
 `compiler-simplify/rfc.md`).
-**Insight summary**: This research doc sits at the intersection of three concerns: **Python import resolution** (how to find the handler's source file), **build system mapping** (which image contains it), and **in-container path translation** (what the import path will be inside the container). The key architectural bet is outsourcing the middle concern to Skaffold rather than maintaining a custom mapping.
- 
+**Insight summary**: This research doc sits at the intersection of three
+concerns: **Python import resolution** (how to find the handler's source file),
+**build system mapping** (which image contains it), and **in-container path
+translation** (what the import path will be inside the container). The key
+architectural bet is outsourcing the middle concern to a build tool's config
+file rather than maintaining a custom mapping in `.asya/config.yaml`.
+
 ---
 
 ## 1. The Two Problems
@@ -21,7 +26,7 @@ the project's Python interpreter (auto-detected from venv/uv/poetry or
 
 **Decision**: trust the local Python environment for handler identity.
 
-### 1.2 Image Binding (decided: Skaffold-native)
+### 1.2 Image Binding (decided: build tool config as source of truth)
 
 Given a resolved handler function, determine which container image it
 lives in and what its in-container module path is. This is the hard
@@ -33,10 +38,13 @@ problem because:
 - Images may not exist yet when the compiler runs
 - One handler package could be in multiple images (N:M relationship)
 
-**Current implementation**: fragile string-prefix matching in
-`project.py:resolve_image()` against `build:` entries in config.yaml.
-`handler_name.startswith(module.replace(".", "_"))` -- opaque and
-hard to debug.
+**Previous approach** (removed): `.asya/config.yaml` `build:` section with
+opaque `module:` prefix matching and opaque `command:` strings. Removed because:
+- Declaring module-to-image mapping manually while having multiple Python envs
+  (venvs, Jupyter kernels) creates confusing UX and hard-to-debug mismatches
+- Opaque build commands prevent the compiler from understanding the build
+  system, limiting its ability to resolve handlers correctly
+- The mapping duplicates information the repo structure already implies
 
 ---
 
@@ -75,12 +83,15 @@ hierarchical inheritance.
 - **Rejected**: inventing a new file format. Pants/Bazel themselves are
   too heavy as dependencies.
 
-### 2.5 Module-prefix map
+### 2.5 Module-prefix map (previous `config.yaml` `build:` section)
 
 Flat dict of module prefixes to images with longest-prefix match.
 
-- **Partially viable**: simple concept, but extremely hard to config and use,
-still a central config that doesn't self-describe the project structure.
+- **Rejected**: simple concept but the manual declaration of module-to-image
+  mapping while having multiple Python envs is confusing UX. The mapping
+  duplicates information that build tool configs already capture. Opaque
+  `command:` strings prevent the compiler from understanding the build
+  system. **The `build:` section is removed from `.asya/config.yaml`.**
 
 ---
 
@@ -118,15 +129,15 @@ system package support, no `uv` support in Paketo yet.
 
 | Actor type | Build marker | Strategy | DS effort |
 |---|---|---|---|
+| Single-file handler | No Dockerfile, no package | ConfigMap mount | Zero config (see `asya-lab/bggr`) |
 | Simple Python | `project.toml` / `requirements.txt` | Buildpacks | Zero config |
 | GPU/CUDA | `Dockerfile` | Docker build | Write Dockerfile |
 | Pre-built / external | No local build | Config only | Declare image |
 
 Discovery rule: scan for directories containing build markers.
 `Dockerfile` takes precedence over `project.toml` when both present.
-
-**Open**: pre-built images should NOT go in a separate `.asya/config.yaml`
-(separated configuration is bad design). Need a unified model.
+Single-file handlers with no matching artifact get ConfigMap-mounted
+on `router_image` (see `asya-lab/bggr`).
 
 ### 3.4 Skaffold / Tilt as Build Orchestrators
 
@@ -162,22 +173,31 @@ mixed strategies (buildpacks + Dockerfile) in one config.
 
 | Aspect | With Skaffold | Without |
 |---|---|---|
-| New dependency | Yes (CLI tool) | No |
-| Config format | Standard | Custom |
-| Build execution | Mature, battle-tested | Shell out to pack/docker |
-| File watching | Built-in | Must implement |
+| New dependency | YAML only (binary optional) | No |
+| Config format | Standard, widely adopted | Custom |
+| Build execution | Mature, battle-tested (when binary present) | Shell out to pack/docker |
+| File watching | Built-in (`skaffold dev`) | Must implement |
 | Learning curve | Skaffold concepts | Asya-only |
 | Image naming | Partially solved | Must design |
+| Config parsability | `yaml.safe_load()` -- trivial | N/A |
 
 **Trade-off with Tilt**:
 
-Tilt uses a programmable `Tiltfile` (Starlark). More flexible than
-YAML but less standard. Better for local dev (live reload). Docker
-Inc maintains it. Needs hands-on evaluation.
+| Aspect | Tilt | Skaffold |
+|---|---|---|
+| Config format | Starlark (programmable) | YAML (declarative) |
+| Config parsability by asya | Needs Starlark interpreter or tilt binary | `yaml.safe_load()` |
+| Multi-config | `load()` in Starlark | `requires:` in YAML |
+| Dev loop | Stronger (live_update, resource grouping) | Good (file sync, port-forward) |
+| Scaffolding safety | Hard (appending Starlark is fragile) | Easy (appending YAML entries) |
+| Maintained by | Docker Inc | Google |
+
+**Status**: Hands-on evaluation needed. See aint for Skaffold-vs-Tilt
+demo (`examples/demo-skaffold/`, `examples/demo-tilt/`).
 
 ---
 
-## 4. Decisions (from 2026-03-20 brainstorming)
+## 4. Decisions (from 2026-03-20 brainstorming, updated 2026-03-20 review)
 
 ### D1: Image contains package, not the other way around
 
@@ -187,46 +207,56 @@ the mapping metadata must live **outside Python** -- no decorators, no
 should not know which images they belong to. They may belong to multiple
 (dev/prod, slim/fat, CPU/GPU).
 
-### D2: Skaffold as single source of truth
+### D2: Build tool config as single source of truth (YAML parsed natively)
 
-**Decision**: `skaffold.yaml` is the source of truth for "which source
+**Decision**: The build tool's config file (currently `skaffold.yaml`,
+pending Tilt comparison) is the source of truth for "which source
 directories produce which images."
+
+**Key design**: Asya reads the config file **natively** (YAML parsing,
+no binary dependency). The build tool binary is **optional** -- only
+needed for actual build/dev commands, not for compilation.
 
 Resolution chain:
 ```
 handler function (Python)
   -> inspect.getfile()
   -> absolute source path
-  -> find skaffold artifact whose context dir contains this path
+  -> find artifact whose context dir contains this path (longest prefix)
   -> artifact.image (registry/repo, no tag)
   -> Griffe maps filesystem path to importable package name (D6)
   -> emit AsyncActor CRD with correct in-container FQN
+
+If no artifact matches:
+  -> single .py file with no pyproject.toml ancestor?
+     -> ConfigMap mount on router_image (no build needed, see asya-lab/bggr)
+  -> otherwise -> error with hint to add artifact
 ```
 
-Dockerfile scanning is used as input to **generating** skaffold.yaml
-(via `asya init`), not as a parallel resolution path. The compiler
-reads only skaffold.yaml.
+**Two data flows**:
+1. **Reading** (source of truth): `asya compile` reads `skaffold.yaml`
+   artifacts to resolve handlers to images. No binary needed.
+2. **Writing** (scaffolding): `asya init --scan` analyzes repo structure
+   (Dockerfiles, pyproject.toml) and generates/appends `skaffold.yaml`
+   entries. Additive only -- never overwrites existing user entries.
 
-`asya build` / `asya s build` (= `asya skaffold build`) MAY be used
-as a shortcut for building images, but is not required. The primary
-value of skaffold integration is **resolving code -> image**, not
-building.
+`asya s build` / `asya s dev` (= `asya skaffold build/dev`) are thin
+passthroughs to the skaffold binary when installed. Without the binary:
+*"skaffold not found -- install it or run your build commands manually."*
 
-### D3: N:M disambiguation via Skaffold profiles
+### D3: N:M disambiguation via profiles (deferred to v2)
 
-One handler package in multiple images (dev/prod, CPU/GPU) is handled
-by Skaffold profiles. The compiler takes `--profile <name>` and filters
-artifacts accordingly. One profile = one unambiguous mapping.
+For v1, one package maps to exactly one image. Different image
+**tags** (dev/prod) are handled by kustomize overlays (D5), not by
+artifact duplication.
 
-```bash
-asya compile my_flow.py --profile prod
-```
+Full N:M (same package in CPU vs GPU images) deferred -- Skaffold
+profiles or Tilt config variants can handle this when needed.
 
 ### D4: Tags are a deployment concern, not a compiler concern
 
-Skaffold stores image **names** per artifact but tags are computed at
-build time (via `tagPolicy`: gitCommit, sha256, dateTime, etc.). The
-compiler emits CRDs with image names only (no tags).
+The compiler emits CRDs with image **names** only (no tags). Tags are
+injected at tag time via `asya tag` command (see D5a).
 
 Three user scenarios, all consistent:
 
@@ -246,18 +276,38 @@ kustomize `images:` transformer in `overlays/{context}/`:
 spec:
   image: ghcr.io/team/nlp
 
-# overlays/dev/kustomization.yaml (scaffolded once, preserved)
+# overlays/stg/kustomization.yaml
 resources:
   - ../../common
 images:
-  - name: ghcr.io/team/nlp        # TODO: set newTag
-  - name: ghcr.io/team/gpu-model   # TODO: set newTag
+  - name: ghcr.io/team/nlp
+    newTag: v1
 ```
 
-On first compile, the compiler scaffolds `images:` entries (no tags)
-in overlay kustomization files. On recompile, it appends new images
-without touching existing entries. CI uses `kustomize edit set image`
-or `skaffold render` to inject real tags.
+### D5a: `asya tag` command
+
+**New command** for injecting tags into kustomize overlays:
+
+```bash
+asya tag <flow-or-actor> --context <ctx> --arg tag=<value>
+```
+
+Under the hood:
+1. Read `base/*.yaml` -> collect unique image names from artifacts
+2. For each image: run `kustomize edit set image <name>=<name>:<tag>`
+   in `overlays/<ctx>/kustomization.yaml`
+3. Print what was set
+
+This is:
+- Separate from `asya compile` (tags are deployment concern)
+- Separate from `asya k apply` (tag without deploying -- useful for
+  GitOps where you commit tags, then ArgoCD applies)
+- Compatible with skaffold (`skaffold build` produces a tag, user
+  passes it to `asya tag`)
+- Compatible with CI (CI computes tag from git SHA, runs `asya tag`)
+
+Power-user alternative: `skaffold render` produces fully tagged
+manifests (but renders from its own templates, not kustomize overlays).
 
 ### D6: In-container module path via Griffe static analysis
 
@@ -265,108 +315,200 @@ or `skaffold render` to inject real tags.
 
 The problem: the compiler knows the handler's local FQN (from
 `inspect.getfile()`), but the in-container FQN may differ. Simple
-path math (relativize source path against skaffold context dir) breaks
+path math (relativize source path against context dir) breaks
 when `pip install` remaps directory names to package names (the package
 name in `pyproject.toml` can differ from the directory name).
 
-**Decision**: use [Griffe](https://mkdocstrings.github.io/griffe/) to
-statically analyze each skaffold artifact's context directory and discover
-importable Python package names. Griffe handles all packaging variants
-(pyproject.toml, setup.py, setup.cfg, flat modules) without importing.
+**Decision**: use [griffelib](https://github.com/mkdocstrings/griffe)
+(the zero-dependency library distribution, ~32KB) to statically analyze
+each artifact's context directory and discover importable Python package
+names. Griffe handles all packaging variants (pyproject.toml, setup.py,
+setup.cfg, flat modules) without importing.
 
-Griffe runs at **`asya analyze` time** (not in the compiler). It produces
-a directory-to-package lookup that the compiler consumes. This keeps the
-compiler fast and dependency-light.
+**Dependency**: `griffelib` (not `griffe`) -- zero runtime dependencies,
+~32KB installed size. See https://github.com/mkdocstrings/griffe/issues/408
 
-Resolution example:
+**Algorithm** (verified via PoC):
+
+```python
+def find_python_roots(context_dir: Path) -> list[Path]:
+    """Find pyproject.toml/setup.py directories inside context.
+    These are Python package roots whose parent dirs should be
+    on the import search path. Returned most-specific first."""
+    specific = set()
+    for marker in ['pyproject.toml', 'setup.py', 'setup.cfg']:
+        for p in context_dir.rglob(marker):
+            specific.add(p.parent)
+    # Most specific first (longest path), context dir as fallback
+    result = sorted(specific, key=lambda p: -len(str(p)))
+    result.append(context_dir)
+    return result
+
+def resolve_fqn(source_file: Path, context_dir: Path) -> str:
+    """Map a source file to its in-container importable FQN."""
+    search_paths = find_python_roots(context_dir)
+    for sp in search_paths:
+        try:
+            rel = source_file.relative_to(sp)
+        except ValueError:
+            continue
+        parts = list(rel.parts)
+        if parts[-1].endswith('.py'):
+            parts[-1] = parts[-1][:-3]
+        candidate_fqn = '.'.join(parts)
+        # Verify with Griffe
+        finder = griffe.ModuleFinder(search_paths=[str(sp)])
+        try:
+            spec = finder.find_spec(candidate_fqn.split('.')[0])
+            if spec:
+                return candidate_fqn
+        except Exception:
+            continue
+    raise ValueError(f"Cannot resolve FQN for {source_file}")
 ```
-# skaffold.yaml: artifact { context: ".", image: "ghcr.io/team/nlp" }
-# Griffe scans repo root, discovers:
-#   actors/nlp/  -> package "nlp_actors"  (from pyproject.toml)
-#   libs/common/ -> package "common"      (from pyproject.toml)
-#
-# Compiler sees: from nlp_actors.handler import classify
-# inspect.getfile(classify) -> /repo/actors/nlp/nlp_actors/handler.py
-# File is inside actors/nlp/ which Griffe says is package "nlp_actors"
-# In-container FQN: nlp_actors.handler.classify
-```
 
-Why not Dockerfile COPY parsing:
-- Skaffold doesn't know what happens inside the Dockerfile
+**Key technique**: scan for `pyproject.toml` inside the build context,
+use those directories as search paths (most-specific first). This
+correctly resolves `libs/common/common/utils.py` -> `common.utils`
+(not the broken `libs.common.common.utils` that naive path math gives).
+
+**Caching**: use Griffe's built-in `ModulesCollection` caching -- one
+`GriffeLoader`/`ModuleFinder` instance per artifact context, reused
+across all handler resolutions within that context. The `pyproject.toml`
+filesystem scan (`rglob`) is cached per context dir in a dict during
+one compile invocation.
+
+**Why not Dockerfile COPY parsing**:
+- The build tool doesn't know what happens inside the Dockerfile
 - COPY destinations, PYTHONPATH, pip install all affect import paths
 - Griffe solves the problem at the Python packaging level, not the
   Docker layer level -- which is the right abstraction
 
+### D6a: Resolution output file
+
+The compiler emits a resolution report alongside other compiler artifacts:
+
+```
+compiled/<flow>/
+  routers.py
+  flow.dot
+  resolution.yaml    # handler resolution trace
+```
+
+**NOT** in `.asya/manifests/` (kustomize/kubectl would try to deploy it).
+
+```yaml
+# resolution.yaml -- compiler output, deterministic, git-tracked
+python: /home/user/.venv/bin/python
+skaffold: skaffold.yaml
+artifacts: 3
+handlers:
+  - function: e_commerce.validate.validate_order
+    source: actors/nlp/nlp_actors/handler.py
+    artifact:
+      context: actors/nlp/
+      image: ghcr.io/team/nlp
+    griffe:
+      search_paths: [actors/nlp/]
+      package: nlp_actors
+      fqn: nlp_actors.handler.validate_order
+    actor: validate-order
+  - function: handler.process
+    source: actors/simple/handler.py
+    artifact: null
+    configmap_mount: true
+    actor: process
+```
+
+**No timestamps** -- file must be deterministic (same inputs -> same
+output) to avoid spoiling git history.
+
 ### D7: Progressive complexity
 
-- **Zero-config**: single-package flows with one Dockerfile ->
-  `asya init` generates skaffold.yaml, one artifact, done
+- **Zero-config**: single-file handler with no deps ->
+  ConfigMap mount on `router_image`, no build, no skaffold artifact
+  (see `asya-lab/bggr`)
+- **Single-image**: one Dockerfile ->
+  `asya init --scan` generates `skaffold.yaml`, one artifact, done
 - **Multi-image**: multiple Dockerfiles/buildpacks ->
-  `asya init` scaffolds, user adjusts
-- **N:M variants**: Skaffold profiles for dev/prod/GPU/CPU
-- **Pre-built/external images**: still open (see Q3 below)
+  `asya init --scan` scaffolds, user adjusts
+- **N:M variants**: deferred to v2 (Skaffold profiles or Tilt config)
+- **Pre-built/external images**: see Q3
 
 ---
 
 ## 5. Resolution Scenarios
 
 Systematic analysis of the resolution chain across project structures.
-All scenarios use the same chain: `inspect.getfile()` -> skaffold
-artifact match -> Griffe package discovery -> in-container FQN.
+All scenarios use the same chain: `inspect.getfile()` -> artifact
+context match (longest prefix) -> Griffe package discovery (pyproject.toml
+roots as search paths) -> in-container FQN.
+
+### S0: Single-file handler (no build) ✅ NEW
+
+```
+actors/quick/
+└── handler.py       # def process(p): ...
+```
+
+- `inspect.getfile(process)` -> `repo/actors/quick/handler.py`
+- No skaffold artifact matches (no Dockerfile, no pyproject.toml)
+- Compiler detects single-file handler -> ConfigMap mount
+- Base image: `templates.router_image` (e.g., `python:3.13-slim`)
+- Handler code baked into ConfigMap, mounted at runtime
+- See `asya-lab/bggr` for full design
 
 ### S1: Standard pyproject.toml package ✅
 
 ```
 repo/
-├── actors/nlp/
-│   ├── pyproject.toml    # name = "nlp-actors", packages = ["nlp_actors"]
-│   ├── Dockerfile        # RUN pip install .
-│   └── nlp_actors/
-│       ├── __init__.py
-│       └── handler.py    # def classify(p): ...
-├── .asya/config.yaml
-└── skaffold.yaml         # artifact: context=actors/nlp/, image=ghcr.io/team/nlp
+  actors/nlp/
+    pyproject.toml    # name = "nlp-actors", packages = ["nlp_actors"]
+    Dockerfile        # RUN pip install .
+    nlp_actors/
+      __init__.py
+      handler.py      # def classify(p): ...
+  .asya/config.yaml
+  skaffold.yaml       # artifact: context=actors/nlp/, image=ghcr.io/team/nlp
 ```
 
 - **Local**: `pip install -e actors/nlp/` -> `from nlp_actors.handler import classify`
 - `inspect.getfile(classify)` -> `repo/actors/nlp/nlp_actors/handler.py`
 - Skaffold: context `actors/nlp/` contains the source path -> image matched
-- Griffe scans `actors/nlp/`, finds package `nlp_actors`
+- Griffe: `find_python_roots(actors/nlp/)` -> `[actors/nlp/]` (has pyproject.toml)
+- Griffe: `find_spec('nlp_actors')` -> package `nlp_actors`
 - In-container FQN: `nlp_actors.handler.classify` ✅
-- **Notebook**: same, if venv has the package installed ✅
 
 ### S2: requirements.txt + flat scripts ✅
 
 ```
 actors/simple/
-├── requirements.txt
-├── Dockerfile          # COPY . /app, ENV PYTHONPATH=/app
-└── handler.py          # def process(p): ...
+  requirements.txt
+  Dockerfile          # COPY . /app, ENV PYTHONPATH=/app
+  handler.py          # def process(p): ...
 ```
 
 - `inspect.getfile(process)` -> `repo/actors/simple/handler.py`
 - Skaffold: context `actors/simple/` matches
-- Griffe scans `actors/simple/`, finds flat module `handler`
+- Griffe: no pyproject.toml, context dir is search path, finds flat module `handler`
 - In-container FQN: `handler.process` ✅
 - **Caveat**: locally the user must import as `from handler import process`
   (with `actors/simple/` on sys.path), not as `actors.simple.handler.process`.
-  If the local import uses a longer path, the local FQN != Griffe FQN.
-  This is a user setup issue, not a compiler issue.
 
 ### S3: Nested .asya/ sub-projects (monorepo) ✅
 
 ```
 repo/
-├── team-a/
-│   ├── .asya/config.yaml
-│   ├── skaffold.yaml      # artifact: context=., image=ghcr.io/team-a/svc
-│   └── my_service/
-│       ├── __init__.py
-│       └── handler.py
-├── team-b/
-│   ├── .asya/config.yaml
-│   ├── skaffold.yaml
-│   └── ...
+  team-a/
+    .asya/config.yaml
+    skaffold.yaml      # artifact: context=., image=ghcr.io/team-a/svc
+    my_service/
+      __init__.py
+      handler.py
+  team-b/
+    .asya/config.yaml
+    skaffold.yaml
+    ...
 ```
 
 - Compiler walks up from flow file, finds `team-a/.asya/`, uses
@@ -374,14 +516,15 @@ repo/
 - `inspect.getfile()` -> `repo/team-a/my_service/handler.py`
 - Context is `team-a/` -> Griffe scans, finds package `my_service`
 - In-container FQN: `my_service.handler.X` ✅
-- Each sub-project is self-contained with its own skaffold.yaml
+- Each sub-project has its own skaffold.yaml (no walk-up merge for
+  skaffold -- use skaffold's own `requires:` for multi-config)
 
-### S4: Standalone single-file actor ✅
+### S4: Standalone single-file actor with Dockerfile ✅
 
 ```
 actors/quick/
-├── Dockerfile        # COPY classify.py /app/
-└── classify.py       # def handler(p): ...
+  Dockerfile        # COPY classify.py /app/
+  classify.py       # def handler(p): ...
 ```
 
 - `inspect.getfile(handler)` -> `repo/actors/quick/classify.py`
@@ -394,33 +537,32 @@ actors/quick/
 
 ```
 repo/
-├── libs/common/
-│   ├── pyproject.toml  # name = "common-utils", packages = ["common"]
-│   └── common/
-│       ├── __init__.py
-│       └── utils.py    # def tokenize(p): ...
-├── actors/nlp/
-│   ├── pyproject.toml
-│   ├── Dockerfile      # context must be repo root to reach ../libs/
-│   └── nlp_actors/
-│       └── handler.py  # from common.utils import tokenize
-└── skaffold.yaml       # artifact: context=".", image=ghcr.io/team/nlp
+  libs/common/
+    pyproject.toml  # name = "common-utils", packages = ["common"]
+    common/
+      __init__.py
+      utils.py      # def tokenize(p): ...
+  actors/nlp/
+    pyproject.toml
+    Dockerfile      # context must be repo root to reach ../libs/
+    nlp_actors/
+      handler.py    # from common.utils import tokenize
+  skaffold.yaml     # artifact: context=".", image=ghcr.io/team/nlp
 ```
 
 - Docker build context must be repo root (`.`) since Dockerfile cannot
   COPY from outside its context
-- Alternative: use Skaffold multi-config with `requires` for dependency
-  ordering between sub-configs (see [Skaffold multi-config](
-  https://skaffold.dev/docs/design/config/#multi-config-projects))
 - `inspect.getfile(tokenize)` -> `repo/libs/common/common/utils.py`
 - Skaffold: context `.` (repo root) contains the path -> image matched
-- Griffe scans repo root, discovers `libs/common/` contains package
-  `common` (from pyproject.toml) ✅
+- Griffe: `find_python_roots(.)` -> `[libs/common/, .]` (pyproject.toml
+  found at `libs/common/`)
+- Griffe tries `libs/common/` first (most specific) -> `common/utils.py`
+  relative to it -> `find_spec('common')` succeeds
 - In-container FQN: `common.utils.tokenize` ✅
-- **Key**: path math alone would give `libs.common.common.utils.tokenize`
-  (wrong). Griffe is needed to know that `libs/common/` is package `common`.
+- **Key**: path math from repo root would give `libs.common.common.utils`
+  (wrong). The pyproject.toml-aware search path ordering is essential.
 
-### S6: pip-installed third-party handler ❌ (out of scope)
+### S6: pip-installed third-party handler ❌ (deferred)
 
 ```python
 # flow.py
@@ -429,30 +571,13 @@ p = create_agent(p)
 ```
 
 - `inspect.getfile()` -> `/venv/lib/python3.13/site-packages/langchain/...`
-- Not inside any skaffold artifact's context dir -> **no match**
-- This is a pre-built/external image case (see Q3 below)
-- Requires explicit configuration -- the compiler cannot auto-discover
-  which image contains a pip-installed package
+- Not inside any artifact's context dir -> **no match**
+- Requires explicit configuration -- deferred to Q3 below
 
-### S7: N:M -- same package in multiple images ✅ (via profiles)
+### S7: N:M -- same package in multiple images ✅ (deferred to v2)
 
-```yaml
-# skaffold.yaml
-build:
-  artifacts:
-    - image: ghcr.io/team/nlp-cpu
-      context: actors/nlp/
-profiles:
-  - name: gpu
-    patches:
-      - op: replace
-        path: /build/artifacts/0/image
-        value: ghcr.io/team/nlp-gpu
-```
-
-- `asya compile --profile gpu` selects the GPU artifact
-- Same resolution chain, different image name per profile ✅
-- Without `--profile`, default artifact wins
+For v1: one package = one image. Different tags handled by kustomize
+overlays (D5). Full N:M via Skaffold profiles deferred.
 
 ### S8: Class-based handler ✅
 
@@ -470,13 +595,14 @@ class TextProcessor:
 
 | # | Scenario | Auto-resolves? | Griffe needed? | Notes |
 |---|---|---|---|---|
+| S0 | Single-file (no build) | ✅ | No | ConfigMap mount, see `asya-lab/bggr` |
 | S1 | pyproject.toml package | ✅ | ✅ | Happy path |
 | S2 | requirements.txt + flat | ✅ | ✅ | Local import must match context-relative path |
 | S3 | Nested .asya/ monorepo | ✅ | ✅ | Each sub-project self-contained |
-| S4 | Standalone script | ✅ | ✅ | Same caveat as S2 |
-| S5 | Shared library | ✅ | ✅ | Context must be repo root; Griffe essential |
-| S6 | pip third-party | ❌ | N/A | Needs explicit config (Q3) |
-| S7 | N:M variants | ✅ | ✅ | Skaffold profiles |
+| S4 | Standalone + Dockerfile | ✅ | ✅ | Same caveat as S2 |
+| S5 | Shared library | ✅ | ✅ | pyproject.toml search paths essential |
+| S6 | pip third-party | ❌ | N/A | Deferred (Q3) |
+| S7 | N:M variants | ✅ | ✅ | Deferred to v2 (profiles) |
 | S8 | Class-based handler | ✅ | ✅ | Griffe resolves class.method |
 
 ---
@@ -488,37 +614,102 @@ class TextProcessor:
 Handlers from pip-installed packages or external team images have no
 build context and no Dockerfile. They don't fit in skaffold.yaml
 (which describes things to build). Options:
-- Extend skaffold.yaml with custom metadata
-- Separate section in `.asya/config.yaml` for pre-built image bindings
-- Flow-level config (per-flow image overrides)
+
+- `x-asya:` extension key on skaffold artifact entries (skaffold ignores
+  unknown keys):
+  ```yaml
+  build:
+    artifacts:
+      - image: ghcr.io/third-party/langchain:v2
+        x-asya:
+          module: langchain
+  ```
+- Separate `images:` section in `.asya/config.yaml` (only for pre-built,
+  not for buildable images -- avoids the old `build:` problem)
+- Flow-level annotations
+
+Low priority for v1 -- most actors will have local source code.
+
+### Q4: Skaffold vs Tilt tool choice
+
+Hands-on evaluation needed before committing. See aint for demo
+comparison (`examples/demo-skaffold/`, `examples/demo-tilt/`).
+
+Key factors:
+- Config parsability (can asya read without binary?)
+- Multi-config ergonomics for monorepos
+- Dev loop quality (file sync, rebuild speed)
+- Scaffolding safety (additive generation without overwriting)
 
 ---
 
-## 7. Next Steps
+## 7. Implementation: What Changes
 
-1. **PoC: Skaffold integration** -- set up a sample multi-actor project,
-   generate skaffold.yaml from Dockerfiles, verify the resolution chain
-   works end-to-end (handler -> source path -> artifact -> image name).
-2. **PoC: `skaffold dev`** -- verify file sync works for the dev loop
-   (no-build scenario).
-3. **PoC: Griffe package discovery** -- verify Griffe correctly discovers
-   importable package names from context dirs across scenarios S1-S5.
-4. **Design pre-built image binding** -- resolve Q3 (S6).
+### Removed from `.asya/config.yaml`
+
+The `build:` section is **entirely removed**. The config file retains:
+- `templates:` -- template constants (namespace, transport, router_image)
+- `compiler:` -- compiler settings (manifests path, routers path)
+- `secrets:` -- K8s secret mappings
+- `contexts:` -- deployment contexts
+
+### Removed from codebase
+
+- `project.py:resolve_image()` -- replaced by artifact matching + Griffe
+- `build_cli.py` -- rewritten as `asya s` (skaffold passthrough)
+- `asya build` command -- replaced by `asya s build`
+
+### New components
+
+| Component | Purpose |
+|-----------|---------|
+| `asya_lab/build/artifact_resolver.py` | Parse skaffold.yaml, match source files to artifacts |
+| `asya_lab/build/griffe_resolver.py` | Griffe-based FQN resolution per context dir |
+| `asya_lab/build/resolution.py` | Full resolution chain + `resolution.yaml` output |
+| `asya s` CLI group | Thin skaffold passthrough (`build`, `dev`, `render`) |
+| `asya tag` CLI command | Tag injection into kustomize overlays |
+| `asya init --scan` | Scan repo for Dockerfiles -> generate skaffold.yaml entries |
+
+### New dependency
+
+`griffelib` (zero-dependency, ~32KB) added to `asya-lab` core dependencies.
 
 ---
 
-## 8. Design Principles (from brainstorming)
+## 8. Next Steps
+
+1. **Hands-on demo**: Build `examples/demo-skaffold/` and
+   `examples/demo-tilt/` with real GKE deployment. Compare DX.
+   (see demo comparison aint)
+2. **Implement artifact resolver**: Parse skaffold.yaml, match source
+   files to artifacts by longest context prefix.
+3. **Implement Griffe resolver**: `find_python_roots()` + `resolve_fqn()`
+   with caching.
+4. **Implement `resolution.yaml` output**: Deterministic, git-tracked,
+   next to `flow.dot`.
+5. **Implement `asya tag`**: Kustomize overlay tag injection command.
+6. **Implement `asya init --scan`**: Additive skaffold.yaml generation
+   from Dockerfiles.
+7. **Remove `build:` from config**: Delete `resolve_image()`,
+   update config schema, update tests.
+
+---
+
+## 9. Design Principles (from brainstorming)
 
 1. Image contains package, not the other way around (D1)
 2. No Python-side annotations for image binding -- it's a deployment concern
-3. `skaffold.yaml` is the single source of truth (D2)
-4. Dockerfile scanning feeds INTO skaffold.yaml generation, not a parallel path
-5. Tags are a deployment concern, not a compiler concern (D4)
-6. Kustomize overlays own tag injection (D5)
-7. Progressive complexity: zero-config for simple, profiles for complex (D7)
-8. `asya build` is a convenience wrapper, not required
+3. Build tool config is the single source of truth for context->image (D2)
+4. Asya reads the config natively (YAML); build binary is optional
+5. Dockerfile scanning feeds INTO config generation, not a parallel path
+6. Tags are a deployment concern, not a compiler concern (D4)
+7. Kustomize overlays own tag injection; `asya tag` is the command (D5/D5a)
+8. Progressive complexity: configmap -> single image -> multi-image -> N:M (D7)
 9. Handler functions stay clean -- no image info in decorators
-10. No new file formats -- use existing standards (skaffold.yaml, Dockerfile, kustomize)
+10. No new file formats -- use existing standards (skaffold.yaml, kustomize)
+11. Resolution must be transparent: `resolution.yaml` traces every step (D6a)
+12. `griffelib` (zero-dep) handles Python package discovery correctly (D6)
+13. Walk-up merge for `.asya/` configs; build tool's own multi-config for builds
 
 ---
 
@@ -530,6 +721,10 @@ build context and no Dockerfile. They don't fit in skaffold.yaml
 - [Skaffold taggers](https://skaffold.dev/docs/taggers/)
 - [Skaffold multi-config projects](https://skaffold.dev/docs/design/config/#multi-config-projects)
 - [Griffe -- Python API introspection](https://mkdocstrings.github.io/griffe/)
+- [griffelib -- zero-dependency distribution](https://github.com/mkdocstrings/griffe/issues/408)
+- [Tilt -- local K8s development](https://docs.tilt.dev/)
 - [Pants BUILD files](https://www.pantsbuild.org/stable/docs/using-pants/key-concepts/targets-and-build-files)
 - Asya research: `research-no-dockerfile.md`, `research-seamless-build.md`
-- Asya RFC: `compiler-simplify/rfc.md` (sections on image mapping)
+- Asya research: `research-compiler-resolution.md` (config schema, stages)
+- Asya RFC: `rfc.md` (asya-lab epic)
+- Asya aint: `asya-lab/bggr` (ConfigMap-mount single-file actors)
