@@ -13,7 +13,7 @@ Regenerate by running: asya flow compile single_actor.py
 # Single-Actor Flow: no router needed
 # The actor below IS the entrypoint; label it in your AsyncActor spec:
 #   asya.sh/flow: single_actor_flow
-#   asya.sh/role: entry
+#   asya.sh/role: start
 # ======================================================================
 
 FLOW_METADATA = {

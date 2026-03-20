@@ -3,58 +3,54 @@
   "nodes": [
     {
       "id": "handle_known_error",
-      "role": "exitpoint",
       "label": "handle_known_error",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handle_unknown_error",
-      "role": "exitpoint",
       "label": "handle_unknown_error",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "risky_operation",
-      "role": "processor",
-      "label": "risky_operation",
-      "generated": false
+      "label": "risky_operation"
     },
     {
       "id": "router_resilient_pipeline_line_10_seq",
-      "role": "router",
       "label": "router_resilient_pipeline_line_10_seq",
-      "generated": true,
-      "mutations": ["p['error_type'] = 'unknown'"]
+      "mutations": [
+        "p['error_type'] = 'unknown'"
+      ],
+      "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "role": "router",
       "label": "router_resilient_pipeline_line_4_except_dispatch_0",
       "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_4_try_enter_0",
-      "role": "router",
       "label": "router_resilient_pipeline_line_4_try_enter_0",
       "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_4_try_exit_0",
-      "role": "exitpoint",
       "label": "router_resilient_pipeline_line_4_try_exit_0",
+      "role": "end",
       "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_7_seq",
-      "role": "router",
       "label": "router_resilient_pipeline_line_7_seq",
-      "generated": true,
-      "mutations": ["p['error_type'] = 'known'"]
+      "mutations": [
+        "p['error_type'] = 'known'"
+      ],
+      "generated": true
     },
     {
       "id": "start_resilient_pipeline",
-      "role": "entrypoint",
       "label": "start_resilient_pipeline",
+      "role": "start",
       "generated": true
     }
   ],
