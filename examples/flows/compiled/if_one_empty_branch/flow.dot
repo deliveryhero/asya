@@ -1,4 +1,4 @@
-digraph "if_empty_branches_flow" {
+digraph "if_one_empty_branch" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

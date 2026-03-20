@@ -2,10 +2,40 @@
   "flow_name": "voting_ensemble",
   "nodes": [
     {
+      "id": "analytical_writer",
+      "flow_role": "actor",
+      "label": "analytical_writer",
+      "is_generated": false
+    },
+    {
+      "id": "concise_writer",
+      "flow_role": "actor",
+      "label": "concise_writer",
+      "is_generated": false
+    },
+    {
+      "id": "creative_writer",
+      "flow_role": "actor",
+      "label": "creative_writer",
+      "is_generated": false
+    },
+    {
       "id": "end_voting_ensemble",
       "flow_role": "exit",
       "label": "end_voting_ensemble",
       "is_generated": true
+    },
+    {
+      "id": "fanin_voting_ensemble_line_44",
+      "flow_role": "router",
+      "label": "fanin_voting_ensemble_line_44",
+      "is_generated": false
+    },
+    {
+      "id": "judge",
+      "flow_role": "actor",
+      "label": "judge",
+      "is_generated": false
     },
     {
       "id": "router_voting_ensemble_line_44_fanout_1",
@@ -28,13 +58,61 @@
       "type": "prepend"
     },
     {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "fanin_voting_ensemble_line_44",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fanin_voting_ensemble_line_44",
+      "to": "judge",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "creative_writer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "creative_writer",
+      "to": "fanin_voting_ensemble_line_44",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "analytical_writer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "analytical_writer",
+      "to": "fanin_voting_ensemble_line_44",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_voting_ensemble_line_44_fanout_1",
+      "to": "concise_writer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "concise_writer",
+      "to": "fanin_voting_ensemble_line_44",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "end_voting_ensemble",
       "to": "__terminal__",
       "label": null,
       "type": "abort"
     },
     {
-      "from": "router_voting_ensemble_line_44_fanout_1",
+      "from": "judge",
       "to": "end_voting_ensemble",
       "label": null,
       "type": "continuation"

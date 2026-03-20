@@ -1,4 +1,4 @@
-digraph "multi_stage_flow" {
+digraph "fanout_sequential" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

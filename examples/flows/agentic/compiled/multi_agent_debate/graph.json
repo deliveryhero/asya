@@ -208,12 +208,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_64_seq_5",
-      "to": "router_multi_agent_debate_line_63_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_multi_agent_debate_line_57_fanout_6",
       "to": "fanin_multi_agent_debate_line_57",
       "label": null,
@@ -272,6 +266,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_multi_agent_debate_line_68_if_4",
+      "to": "router_multi_agent_debate_line_63_while_1",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "fanin_multi_agent_debate_line_74",

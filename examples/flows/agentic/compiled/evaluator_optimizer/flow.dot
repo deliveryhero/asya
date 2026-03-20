@@ -21,7 +21,7 @@ digraph "evaluator_optimizer" {
     generator -> evaluator;
     evaluator -> router_evaluator_optimizer_line_68_if_3;
     router_evaluator_optimizer_line_58_while_1 -> router_evaluator_optimizer_line_59_seq_4;
-    router_evaluator_optimizer_line_59_seq_4 -> router_evaluator_optimizer_line_58_while_1;
     router_evaluator_optimizer_line_56_seq_5 -> router_evaluator_optimizer_line_58_while_1;
+    router_evaluator_optimizer_line_68_if_3 -> router_evaluator_optimizer_line_58_while_1;
     polisher -> end_evaluator_optimizer;
 }

@@ -1,4 +1,4 @@
-digraph "if_mutations_in_branches_flow" {
+digraph "if_mutations_in_branches" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -16,9 +16,9 @@ digraph "if_mutations_in_branches_flow" {
     handler_setup -> router_if_mutations_in_branches_flow_line_14_if_3;
     router_if_mutations_in_branches_flow_line_15_seq_1 -> handler_type_a;
     router_if_mutations_in_branches_flow_line_14_if_3 -> router_if_mutations_in_branches_flow_line_15_seq_1 [label="p['type'] == 'A'"];
-    router_if_mutations_in_branches_flow_line_15_seq_1 -> handler_finalize;
     router_if_mutations_in_branches_flow_line_14_if_3 -> handler_type_b [label="not (p['type'] == 'A')"];
     handler_type_b -> router_if_mutations_in_branches_flow_line_20_seq_2;
     router_if_mutations_in_branches_flow_line_20_seq_2 -> handler_finalize;
+    handler_type_a -> handler_finalize;
     handler_finalize -> end_if_mutations_in_branches_flow;
 }

@@ -328,6 +328,73 @@ def _ast_contains(tree: ast.AST, target: ast.AST) -> bool:
     return any(node is target for node in ast.walk(tree))
 
 
+def _splice_prepend_continuations(edges: list[dict]) -> None:
+    """Splice prepend chains into continuation chains.
+
+    When router R prepends [P] and has a continuation edge R → C (from a parent
+    chain), the runtime route is [..., P, C, ...]. This function rewrites edges
+    to reflect the actual runtime ordering:
+    - Find the end of each prepend chain (follow continuations from prepend target)
+    - Connect chain end → C (continuation)
+    - Remove R → C (now routed through the prepend chain)
+    """
+    from collections import defaultdict
+
+    outgoing: dict[str, dict[str, list[dict]]] = defaultdict(lambda: defaultdict(list))
+    for edge in edges:
+        outgoing[edge["from"]][edge["type"]].append(edge)
+
+    edges_to_add: list[dict] = []
+    edges_to_remove: list[dict] = []
+
+    for node, by_type in outgoing.items():
+        prepend_edges = by_type.get("prepend", [])
+        continuation_edges = by_type.get("continuation", [])
+
+        if not prepend_edges or not continuation_edges:
+            continue
+
+        for cont_edge in continuation_edges:
+            cont_target = cont_edge["to"]
+
+            for prep_edge in prepend_edges:
+                chain_end = _find_chain_end(prep_edge["to"], edges)
+                if chain_end != cont_target and chain_end != node:
+                    edges_to_add.append({"from": chain_end, "to": cont_target, "label": None, "type": "continuation"})
+
+            edges_to_remove.append(cont_edge)
+
+    for edge in edges_to_remove:
+        if edge in edges:
+            edges.remove(edge)
+    edges.extend(edges_to_add)
+
+
+def _find_chain_end(node: str, edges: list[dict]) -> str:
+    """Follow continuation edges from node to find the chain end (leaf)."""
+    visited = {node}
+    current = node
+    while True:
+        next_nodes = [e["to"] for e in edges if e["from"] == current and e["type"] == "continuation"]
+        if not next_nodes or next_nodes[0] in visited:
+            return current
+        current = next_nodes[0]
+        visited.add(current)
+
+
+def _deduplicate_edges(edges: list[dict]) -> None:
+    """Remove duplicate edges with the same from/to/type."""
+    seen: set[tuple[str, str, str]] = set()
+    i = 0
+    while i < len(edges):
+        key = (edges[i]["from"], edges[i]["to"], edges[i]["type"])
+        if key in seen:
+            edges.pop(i)
+        else:
+            seen.add(key)
+            i += 1
+
+
 def analyze(
     routers_source: str,
     handler_sources: dict[str, str] | None = None,
@@ -378,7 +445,16 @@ def analyze(
 
     # Step 3: TODO - Parse manifests for resiliency.rules error routing
 
-    # Step 4: Connect endpoint handlers to end_ node (implicit flow continuation).
+    # Step 4: Splice prepend chains into continuation chains.
+    # When router R prepends [P1, P2] and has continuation R → C (from a parent chain),
+    # the runtime route becomes [..., P1, P2, C, ...]. Rewrite the graph edges to
+    # reflect this: connect the last prepended handler to C, remove R → C.
+    _splice_prepend_continuations(all_edges)
+
+    # Step 5: Deduplicate edges (same from/to/type can appear from multiple branches).
+    _deduplicate_edges(all_edges)
+
+    # Step 6: Connect endpoint handlers to end_ node (implicit flow continuation).
     # The end_ router is in the initial route.next; start_ prepends before it.
     # Endpoint handlers are leaf nodes that sit at the end of continuation chains
     # (e.g., handler_finalize), not intermediate dispatch targets (e.g., handler_type_b).

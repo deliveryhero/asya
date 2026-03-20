@@ -22,13 +22,12 @@ digraph "rag_pipeline" {
     generator -> fact_checker;
     router_rag_pipeline_line_66_if_3 -> router_rag_pipeline_line_70_if_2 [label="not (p.get('is_sufficient'))"];
     router_rag_pipeline_line_66_if_3 -> generator [label="p.get('is_sufficient')"];
-    generator -> fact_checker;
     router_rag_pipeline_line_57_seq_4 -> retriever;
     retriever -> relevance_evaluator;
     relevance_evaluator -> router_rag_pipeline_line_66_if_3;
     router_rag_pipeline_line_56_while_1 -> router_rag_pipeline_line_57_seq_4;
-    router_rag_pipeline_line_57_seq_4 -> router_rag_pipeline_line_56_while_1;
     router_rag_pipeline_line_50_seq_5 -> query_analyzer;
     query_analyzer -> router_rag_pipeline_line_56_while_1;
+    router_rag_pipeline_line_66_if_3 -> router_rag_pipeline_line_56_while_1;
     fact_checker -> end_rag_pipeline;
 }

@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_callsite_flow",
+  "flow_name": "decorator_callsite",
   "nodes": [
     {
       "id": "end_decorator_callsite_flow",

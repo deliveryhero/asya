@@ -1,4 +1,4 @@
-digraph "content_pipeline_flow" {
+digraph "async_conditional" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -19,6 +19,7 @@ digraph "content_pipeline_flow" {
     router_content_pipeline_flow_line_16_if_2 -> text_processor [label="p['content_type'] == 'text'"];
     text_processor -> quality_check;
     router_content_pipeline_flow_line_16_if_2 -> router_content_pipeline_flow_line_18_if_1 [label="not (p['content_type'] == 'text')"];
-    router_content_pipeline_flow_line_18_if_1 -> quality_check;
+    image_processor -> quality_check;
+    generic_processor -> quality_check;
     quality_check -> end_content_pipeline_flow;
 }

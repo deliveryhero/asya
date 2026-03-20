@@ -1,0 +1,122 @@
+{
+  "flow_name": "guardrails_sandwich",
+  "nodes": [
+    {
+      "id": "core_agent",
+      "flow_role": "actor",
+      "label": "core_agent",
+      "is_generated": false
+    },
+    {
+      "id": "end_guardrails_sandwich",
+      "flow_role": "exit",
+      "label": "end_guardrails_sandwich",
+      "is_generated": true
+    },
+    {
+      "id": "input_validator",
+      "flow_role": "actor",
+      "label": "input_validator",
+      "is_generated": false
+    },
+    {
+      "id": "output_validator",
+      "flow_role": "actor",
+      "label": "output_validator",
+      "is_generated": false
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_reraise_0",
+      "flow_role": "actor",
+      "label": "router_guardrails_sandwich_line_47_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_try_enter_0",
+      "flow_role": "router",
+      "label": "router_guardrails_sandwich_line_47_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_try_exit_0",
+      "flow_role": "router",
+      "label": "router_guardrails_sandwich_line_47_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "safe_fallback",
+      "flow_role": "actor",
+      "label": "safe_fallback",
+      "is_generated": false
+    },
+    {
+      "id": "start_guardrails_sandwich",
+      "flow_role": "entry",
+      "label": "start_guardrails_sandwich",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_guardrails_sandwich",
+      "to": "router_guardrails_sandwich_line_47_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_try_enter_0",
+      "to": "input_validator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "input_validator",
+      "to": "core_agent",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "core_agent",
+      "to": "output_validator",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "output_validator",
+      "to": "router_guardrails_sandwich_line_47_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "to": "safe_fallback",
+      "label": "'Exception' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "to": "router_guardrails_sandwich_line_47_reraise_0",
+      "label": "not ('Exception' in _all_types)",
+      "type": "prepend"
+    },
+    {
+      "from": "end_guardrails_sandwich",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_try_exit_0",
+      "to": "end_guardrails_sandwich",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

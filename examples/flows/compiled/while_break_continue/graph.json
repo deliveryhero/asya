@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_break_continue_flow",
+  "flow_name": "while_break_continue",
   "nodes": [
     {
       "id": "end_while_break_continue_flow",
@@ -124,12 +124,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_break_continue_flow_line_15_seq_4",
-      "to": "router_while_break_continue_flow_line_14_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_while_break_continue_flow_line_14_while_1",
       "to": "handler_finalize",
       "label": "not (p['i'] < p['max_iterations'])",
@@ -146,6 +140,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_while_break_continue_flow_line_17_if_3",
+      "to": "router_while_break_continue_flow_line_14_while_1",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "handler_finalize",

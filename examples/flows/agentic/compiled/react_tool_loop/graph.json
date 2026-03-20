@@ -1,0 +1,218 @@
+{
+  "flow_name": "react_tool_loop",
+  "nodes": [
+    {
+      "id": "calculator",
+      "flow_role": "actor",
+      "label": "calculator",
+      "is_generated": false
+    },
+    {
+      "id": "code_exec",
+      "flow_role": "actor",
+      "label": "code_exec",
+      "is_generated": false
+    },
+    {
+      "id": "end_react_tool_loop",
+      "flow_role": "exit",
+      "label": "end_react_tool_loop",
+      "is_generated": true
+    },
+    {
+      "id": "format_response",
+      "flow_role": "actor",
+      "label": "format_response",
+      "is_generated": false
+    },
+    {
+      "id": "llm_reason",
+      "flow_role": "actor",
+      "label": "llm_reason",
+      "is_generated": false
+    },
+    {
+      "id": "router_react_tool_loop_line_46_loop_back_0",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_46_loop_back_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_47_seq",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_47_seq",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_53_if",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_53_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_59_if",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_59_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_61_if",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_61_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_63_if",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_63_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_66_seq",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_66_seq",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_72_if",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_72_if",
+      "is_generated": true
+    },
+    {
+      "id": "start_react_tool_loop",
+      "flow_role": "entry",
+      "label": "start_react_tool_loop",
+      "is_generated": true
+    },
+    {
+      "id": "web_search",
+      "flow_role": "actor",
+      "label": "web_search",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_react_tool_loop",
+      "to": "router_react_tool_loop_line_46_loop_back_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_66_seq",
+      "to": "router_react_tool_loop_line_72_if",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_63_if",
+      "to": "calculator",
+      "label": "p['tool_name'] == 'calculator'",
+      "type": "prepend"
+    },
+    {
+      "from": "calculator",
+      "to": "router_react_tool_loop_line_72_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_63_if",
+      "to": "router_react_tool_loop_line_66_seq",
+      "label": "not (p['tool_name'] == 'calculator')",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_61_if",
+      "to": "code_exec",
+      "label": "p['tool_name'] == 'code_exec'",
+      "type": "prepend"
+    },
+    {
+      "from": "code_exec",
+      "to": "router_react_tool_loop_line_72_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_61_if",
+      "to": "router_react_tool_loop_line_63_if",
+      "label": "not (p['tool_name'] == 'code_exec')",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_72_if",
+      "to": "format_response",
+      "label": "p['iteration'] >= 10",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_59_if",
+      "to": "web_search",
+      "label": "p['tool_name'] == 'web_search'",
+      "type": "prepend"
+    },
+    {
+      "from": "web_search",
+      "to": "router_react_tool_loop_line_72_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_59_if",
+      "to": "router_react_tool_loop_line_61_if",
+      "label": "not (p['tool_name'] == 'web_search')",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_53_if",
+      "to": "format_response",
+      "label": "not p.get('tool_calls')",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_53_if",
+      "to": "router_react_tool_loop_line_59_if",
+      "label": "not (not p.get('tool_calls'))",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_47_seq",
+      "to": "llm_reason",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "llm_reason",
+      "to": "router_react_tool_loop_line_53_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_46_loop_back_0",
+      "to": "router_react_tool_loop_line_47_seq",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "end_react_tool_loop",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_react_tool_loop_line_53_if",
+      "to": "router_react_tool_loop_line_46_loop_back_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "format_response",
+      "to": "end_react_tool_loop",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

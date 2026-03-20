@@ -118,12 +118,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_75_if_4",
-      "to": "router_human_in_the_loop_line_79_if_3",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_human_in_the_loop_line_70_if_5",
       "to": "executor",
       "label": "p.get('approval') in ('approved', 'modified')",
@@ -160,12 +154,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_61_seq_6",
-      "to": "router_human_in_the_loop_line_60_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_human_in_the_loop_line_58_seq_7",
       "to": "router_human_in_the_loop_line_60_while_1",
       "label": null,
@@ -176,6 +164,18 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "revision_agent",
+      "to": "router_human_in_the_loop_line_79_if_3",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_human_in_the_loop_line_70_if_5",
+      "to": "router_human_in_the_loop_line_60_while_1",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "notifier",

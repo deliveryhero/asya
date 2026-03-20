@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_before_after_handler_flow",
+  "flow_name": "mutations_before_after_handler",
   "nodes": [
     {
       "id": "end_mutations_before_after_handler_flow",

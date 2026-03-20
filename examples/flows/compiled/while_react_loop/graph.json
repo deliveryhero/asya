@@ -1,5 +1,5 @@
 {
-  "flow_name": "react_agent",
+  "flow_name": "while_react_loop",
   "nodes": [
     {
       "id": "end_react_agent",
@@ -70,12 +70,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_react_agent_line_16_if_2",
-      "to": "router_react_agent_line_14_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "end_react_agent",
       "to": "__terminal__",
       "label": null,
@@ -83,7 +77,7 @@
     },
     {
       "from": "execute_tool",
-      "to": "end_react_agent",
+      "to": "router_react_agent_line_14_while_1",
       "label": null,
       "type": "continuation"
     }

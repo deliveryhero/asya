@@ -94,12 +94,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_plan_and_execute_line_59_if_3",
-      "to": "router_plan_and_execute_line_54_while_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_plan_and_execute_line_54_while_2",
       "to": "router_plan_and_execute_line_62_seq_1",
       "label": "not (p['current_step'] < len(p.get('plan', [])))",
@@ -125,7 +119,7 @@
     },
     {
       "from": "re_planner",
-      "to": "end_plan_and_execute",
+      "to": "router_plan_and_execute_line_54_while_2",
       "label": null,
       "type": "continuation"
     },

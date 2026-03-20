@@ -1,4 +1,4 @@
-digraph "ingester" {
+digraph "typed_pydantic_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

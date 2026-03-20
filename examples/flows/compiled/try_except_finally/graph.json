@@ -124,12 +124,6 @@
       "type": "prepend"
     },
     {
-      "from": "release_resource",
-      "to": "finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_resource_pipeline_line_5_except_dispatch_0",
       "to": "router_resource_pipeline_line_9_seq",
       "label": "'RuntimeError' in _all_types",

@@ -1,5 +1,5 @@
 {
-  "flow_name": "complex_flow",
+  "flow_name": "complex_with_while",
   "nodes": [
     {
       "id": "end_complex_flow",
@@ -154,12 +154,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_26_if_3",
-      "to": "router_complex_flow_line_22_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_complex_flow_line_22_while_1",
       "to": "__terminal__",
       "label": "not (p.get('batch_count', 0) < p.get('max_batches', 3))",
@@ -184,22 +178,10 @@
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_complex_flow_line_19_if_5",
       "to": "router_complex_flow_line_32_if_4",
       "label": "not (p.get('needs_enrichment'))",
       "type": "prepend"
-    },
-    {
-      "from": "router_complex_flow_line_32_if_4",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
     },
     {
       "from": "router_complex_flow_line_15_if_6",
@@ -221,6 +203,24 @@
     },
     {
       "from": "handler_finalize",
+      "to": "router_complex_flow_line_22_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_complex_flow_line_29_if_2",
+      "to": "router_complex_flow_line_22_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_retry_handler",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_error",
       "to": "end_complex_flow",
       "label": null,
       "type": "continuation"

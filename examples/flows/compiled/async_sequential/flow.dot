@@ -1,4 +1,4 @@
-digraph "llm_auditor_flow" {
+digraph "async_sequential" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

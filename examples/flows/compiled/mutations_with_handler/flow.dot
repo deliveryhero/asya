@@ -1,4 +1,4 @@
-digraph "mutations_with_handler_flow" {
+digraph "mutations_with_handler" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

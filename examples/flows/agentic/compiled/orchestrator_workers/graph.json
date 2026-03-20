@@ -142,12 +142,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_67_if_4",
-      "to": "router_orchestrator_workers_line_72_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_orchestrator_workers_line_62_if_6",
       "to": "router_orchestrator_workers_line_65_if_5",
       "label": "not (p.get('is_complete'))",
@@ -178,12 +172,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_58_seq_7",
-      "to": "router_orchestrator_workers_line_57_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_orchestrator_workers_line_54_seq_8",
       "to": "router_orchestrator_workers_line_57_while_1",
       "label": null,
@@ -197,7 +185,19 @@
     },
     {
       "from": "analysis_worker",
-      "to": "end_orchestrator_workers",
+      "to": "router_orchestrator_workers_line_72_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_orchestrator_workers_line_69_if_3",
+      "to": "router_orchestrator_workers_line_72_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_orchestrator_workers_line_62_if_6",
+      "to": "router_orchestrator_workers_line_57_while_1",
       "label": null,
       "type": "continuation"
     },

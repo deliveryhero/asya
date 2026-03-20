@@ -1,5 +1,5 @@
 {
-  "flow_name": "nested_loop_flow",
+  "flow_name": "while_nested_loop",
   "nodes": [
     {
       "id": "end_nested_loop_flow",
@@ -94,12 +94,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_nested_loop_flow_line_20_seq_3",
-      "to": "router_nested_loop_flow_line_19_while_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_nested_loop_flow_line_19_while_2",
       "to": "finalize_loop_j",
       "label": "not (p['j'] < p['max_j'])",
@@ -116,12 +110,6 @@
       "to": "router_nested_loop_flow_line_17_seq_4",
       "label": "p['i'] < p['max_i']",
       "type": "prepend"
-    },
-    {
-      "from": "router_nested_loop_flow_line_17_seq_4",
-      "to": "router_nested_loop_flow_line_16_while_1",
-      "label": null,
-      "type": "continuation"
     },
     {
       "from": "router_nested_loop_flow_line_16_while_1",
@@ -142,6 +130,18 @@
       "type": "abort"
     },
     {
+      "from": "process_item",
+      "to": "router_nested_loop_flow_line_19_while_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_nested_loop_flow_line_19_while_2",
+      "to": "router_nested_loop_flow_line_16_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "finalize_loop_i",
       "to": "end_nested_loop_flow",
       "label": null,
@@ -149,12 +149,6 @@
     },
     {
       "from": "finalize_loop_j",
-      "to": "end_nested_loop_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "process_item",
       "to": "end_nested_loop_flow",
       "label": null,
       "type": "continuation"

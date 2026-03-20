@@ -23,8 +23,6 @@ digraph "text_analysis_flow" {
     english_sentiment -> extract_entities;
     extract_entities -> router_text_analysis_flow_line_20_seq_1;
     router_text_analysis_flow_line_11_if_4 -> router_text_analysis_flow_line_13_if_3 [label="not (p['language'] == 'en')"];
-    router_text_analysis_flow_line_13_if_3 -> extract_entities;
-    extract_entities -> router_text_analysis_flow_line_20_seq_1;
-    router_text_analysis_flow_line_16_seq_2 -> end_text_analysis_flow;
-    spanish_sentiment -> end_text_analysis_flow;
+    spanish_sentiment -> extract_entities;
+    router_text_analysis_flow_line_16_seq_2 -> extract_entities;
 }

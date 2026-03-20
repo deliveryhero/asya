@@ -1,5 +1,5 @@
 {
-  "flow_name": "ingester",
+  "flow_name": "typed_pydantic_pipeline",
   "nodes": [
     {
       "id": "end_ingester",

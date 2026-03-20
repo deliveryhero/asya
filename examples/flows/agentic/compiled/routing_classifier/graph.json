@@ -124,16 +124,22 @@
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_49_if_2",
+      "from": "end_routing_classifier",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "technical_agent",
       "to": "format_reply",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "end_routing_classifier",
-      "to": "__terminal__",
+      "from": "router_routing_classifier_line_51_if_1",
+      "to": "format_reply",
       "label": null,
-      "type": "abort"
+      "type": "continuation"
     },
     {
       "from": "format_reply",

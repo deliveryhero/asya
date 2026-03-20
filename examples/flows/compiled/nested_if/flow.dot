@@ -1,4 +1,4 @@
-digraph "nested_if_flow" {
+digraph "nested_if" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -29,8 +29,10 @@ digraph "nested_if_flow" {
     router_nested_if_flow_line_24_if_6 -> router_nested_if_flow_line_25_seq_4 [label="p['level2'] == 'X'"];
     router_nested_if_flow_line_24_if_6 -> router_nested_if_flow_line_28_seq_5 [label="not (p['level2'] == 'X')"];
     router_nested_if_flow_line_14_if_7 -> router_nested_if_flow_line_16_if_3 [label="p['level1'] == 'A'"];
-    router_nested_if_flow_line_16_if_3 -> handler_finalize;
     router_nested_if_flow_line_14_if_7 -> router_nested_if_flow_line_24_if_6 [label="not (p['level1'] == 'A')"];
-    router_nested_if_flow_line_24_if_6 -> handler_finalize;
+    router_nested_if_flow_line_17_seq_1 -> handler_finalize;
+    router_nested_if_flow_line_20_seq_2 -> handler_finalize;
+    router_nested_if_flow_line_25_seq_4 -> handler_finalize;
+    router_nested_if_flow_line_28_seq_5 -> handler_finalize;
     handler_finalize -> end_nested_if_flow;
 }

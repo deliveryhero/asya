@@ -1,5 +1,5 @@
 {
-  "flow_name": "class_instantiation_flow",
+  "flow_name": "sequential_with_class",
   "nodes": [
     {
       "id": "end_class_instantiation_flow",

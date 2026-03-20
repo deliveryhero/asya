@@ -124,12 +124,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_51_seq_4",
-      "to": "router_research_and_refine_line_50_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_research_and_refine_line_47_seq_5",
       "to": "router_research_and_refine_line_50_while_1",
       "label": null,
@@ -140,6 +134,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
+      "to": "router_research_and_refine_line_50_while_1",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "write_report",

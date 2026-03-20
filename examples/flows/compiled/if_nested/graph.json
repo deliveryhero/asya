@@ -1,5 +1,5 @@
 {
-  "flow_name": "conditional_nested_flow",
+  "flow_name": "if_nested",
   "nodes": [
     {
       "id": "end_conditional_nested_flow",
@@ -226,12 +226,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_conditional_nested_flow_line_10_seq_10",
-      "to": "router_conditional_nested_flow_line_27_seq_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_conditional_nested_flow_line_9_if_11",
       "to": "router_conditional_nested_flow_line_27_seq_2",
       "label": "not (p['a'] == 'A')",
@@ -242,6 +236,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_conditional_nested_flow_line_12_if_9",
+      "to": "router_conditional_nested_flow_line_27_seq_2",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_conditional_nested_flow_line_18_seq_3",

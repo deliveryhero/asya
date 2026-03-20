@@ -82,12 +82,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_sample_flow_line_6_seq_1",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_sample_flow_line_5_if_3",
       "to": "handler_type_b",
       "label": "not (p['type'] == 'A')",
@@ -110,6 +104,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "handler_type_a",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "handler_finalize",

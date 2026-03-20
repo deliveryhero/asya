@@ -2,10 +2,23 @@ digraph "voting_ensemble" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
+    analytical_writer [label="analytical_writer", fillcolor=lightblue];
+    concise_writer [label="concise_writer", fillcolor=lightblue];
+    creative_writer [label="creative_writer", fillcolor=lightblue];
     end_voting_ensemble [label="end_voting_ensemble", fillcolor=palegreen];
+    fanin_voting_ensemble_line_44 [label="fanin_voting_ensemble_line_44", fillcolor=lightblue];
+    judge [label="judge", fillcolor=lightblue];
     router_voting_ensemble_line_44_fanout_1 [label="router_voting_ensemble_line_44_fanout_1", fillcolor=wheat];
     start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
 
     start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
-    router_voting_ensemble_line_44_fanout_1 -> end_voting_ensemble;
+    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44;
+    fanin_voting_ensemble_line_44 -> judge;
+    router_voting_ensemble_line_44_fanout_1 -> creative_writer;
+    creative_writer -> fanin_voting_ensemble_line_44;
+    router_voting_ensemble_line_44_fanout_1 -> analytical_writer;
+    analytical_writer -> fanin_voting_ensemble_line_44;
+    router_voting_ensemble_line_44_fanout_1 -> concise_writer;
+    concise_writer -> fanin_voting_ensemble_line_44;
+    judge -> end_voting_ensemble;
 }

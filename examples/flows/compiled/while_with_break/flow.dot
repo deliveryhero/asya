@@ -1,4 +1,4 @@
-digraph "while_with_break_flow" {
+digraph "while_with_break" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -18,8 +18,8 @@ digraph "while_with_break_flow" {
     router_while_with_break_flow_line_15_seq_3 -> handler_process;
     handler_process -> router_while_with_break_flow_line_17_if_2;
     router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3 [label="p['i'] < p['max_iterations']"];
-    router_while_with_break_flow_line_15_seq_3 -> router_while_with_break_flow_line_14_while_1;
     router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
     router_while_with_break_flow_line_13_seq_4 -> router_while_with_break_flow_line_14_while_1;
+    router_while_with_break_flow_line_17_if_2 -> router_while_with_break_flow_line_14_while_1;
     handler_finalize -> end_while_with_break_flow;
 }

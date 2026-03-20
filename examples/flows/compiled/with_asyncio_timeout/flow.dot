@@ -17,7 +17,6 @@ digraph "with_asyncio_timeout" {
     translator -> sentiment_analyzer;
     sentiment_analyzer -> router_document_pipeline_line_28_seq_1;
     router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="not (p.get('language') != 'en')"];
-    sentiment_analyzer -> router_document_pipeline_line_28_seq_1;
     router_document_pipeline_line_18_seq_3 -> ocr_extractor;
     ocr_extractor -> language_detector;
     language_detector -> router_document_pipeline_line_24_if_2;

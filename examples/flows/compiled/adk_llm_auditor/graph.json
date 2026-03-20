@@ -226,12 +226,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_llm_auditor_line_73_if",
-      "to": "critique",
-      "label": "not (p['aggregate_score'] >= 70)",
-      "type": "prepend"
-    },
-    {
       "from": "critique",
       "to": "deep_reviser",
       "label": null,
@@ -370,12 +364,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_47_seq",
-      "to": "router_llm_auditor_line_46_loop_back_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_llm_auditor_line_41_if",
       "to": "router_llm_auditor_line_42_seq",
       "label": "not p.get('claims')",
@@ -392,6 +380,12 @@
       "to": "__terminal__",
       "label": null,
       "type": "abort"
+    },
+    {
+      "from": "router_llm_auditor_line_50_try_enter_0",
+      "to": "router_llm_auditor_line_46_loop_back_0",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "fallback_generate",

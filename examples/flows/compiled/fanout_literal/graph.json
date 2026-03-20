@@ -1,5 +1,5 @@
 {
-  "flow_name": "analysis_flow",
+  "flow_name": "fanout_literal",
   "nodes": [
     {
       "id": "end_analysis_flow",

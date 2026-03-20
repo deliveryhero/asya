@@ -1,5 +1,5 @@
 {
-  "flow_name": "nested_if_flow",
+  "flow_name": "nested_if",
   "nodes": [
     {
       "id": "end_nested_if_flow",
@@ -160,28 +160,40 @@
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_16_if_3",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
       "from": "router_nested_if_flow_line_14_if_7",
       "to": "router_nested_if_flow_line_24_if_6",
       "label": "not (p['level1'] == 'A')",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_24_if_6",
+      "from": "end_nested_if_flow",
+      "to": "__terminal__",
+      "label": null,
+      "type": "abort"
+    },
+    {
+      "from": "router_nested_if_flow_line_17_seq_1",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "end_nested_if_flow",
-      "to": "__terminal__",
+      "from": "router_nested_if_flow_line_20_seq_2",
+      "to": "handler_finalize",
       "label": null,
-      "type": "abort"
+      "type": "continuation"
+    },
+    {
+      "from": "router_nested_if_flow_line_25_seq_4",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_nested_if_flow_line_28_seq_5",
+      "to": "handler_finalize",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "handler_finalize",
