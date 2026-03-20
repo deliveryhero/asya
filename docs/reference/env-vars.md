@@ -1,0 +1,214 @@
+<!-- Type: Reference -->
+
+# Environment Variables Reference
+
+Consolidated reference of all environment variables used by Asya components.
+Grouped by component.
+
+**Project policy**: environment variables must not have defaults in application
+code. All required values are passed explicitly via Helm charts or Makefile
+targets. The defaults listed below are what the code falls back to when a
+variable is unset -- they exist for local development convenience, not for
+production use.
+
+---
+
+## asya-sidecar
+
+Source: `src/asya-sidecar/internal/config/config.go`
+
+### Core
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_ACTOR_NAME` | Queue to consume from (logical actor name) | _(required)_ |
+| `ASYA_NAMESPACE` | Kubernetes namespace (used for queue name prefix) | `""` |
+| `ASYA_TRANSPORT` | Transport backend: `rabbitmq`, `sqs`, `pubsub` | `rabbitmq` |
+| `ASYA_LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARN`, `ERROR`) | _(unset)_ |
+
+### Socket
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_SOCKET_DIR` | Directory for the runtime Unix socket | `/var/run/asya` |
+| `ASYA_SOCKET_MESH_DIR` | Directory for mesh-mode sockets | `/var/run/asya/mesh` |
+
+### Routing
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_ACTOR_SINK` | Success destination queue | `x-sink` |
+| `ASYA_ACTOR_SUMP` | Error destination queue | `x-sump` |
+| `ASYA_IS_END_ACTOR` | Disable response routing (for x-sink, x-sump) | `false` |
+
+### Resiliency
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Per-call actor timeout (Go duration, e.g. `5m`, `30s`) | `5m` |
+| `ASYA_RESILIENCY_POLICIES` | JSON object of named retry policies | `""` |
+| `ASYA_RESILIENCY_RULES` | JSON array of error-to-policy matching rules | `""` |
+
+### Gateway integration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_GATEWAY_URL` | Gateway mesh URL for progress reporting | `""` |
+| `ASYA_RUNTIME_READY_TIMEOUT` | Max wait for runtime to become ready | _(unset)_ |
+| `ASYA_GATEWAY_READY_TIMEOUT` | Max wait for gateway to become reachable | _(unset)_ |
+
+### Metrics
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_METRICS_ENABLED` | Enable Prometheus metrics | `true` |
+| `ASYA_METRICS_ADDR` | Metrics server listen address | `:8080` |
+| `ASYA_METRICS_NAMESPACE` | Prometheus metric name prefix | `asya_actor` |
+| `ASYA_CUSTOM_METRICS` | JSON for custom Prometheus metrics | `""` |
+
+### RabbitMQ transport
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_RABBITMQ_URL` | Full AMQP connection URL (overrides host/port/user/pass) | _(unset)_ |
+| `ASYA_RABBITMQ_HOST` | RabbitMQ host | `localhost` |
+| `ASYA_RABBITMQ_PORT` | RabbitMQ port | `5672` |
+| `ASYA_RABBITMQ_USERNAME` | RabbitMQ username | `guest` |
+| `ASYA_RABBITMQ_PASSWORD` | RabbitMQ password | `guest` |
+| `ASYA_RABBITMQ_EXCHANGE` | RabbitMQ exchange name | `asya` |
+| `ASYA_RABBITMQ_PREFETCH` | Prefetch count | `1` |
+| `ASYA_QUEUE_RETRY_MAX_ATTEMPTS` | Max reconnection attempts on queue error | _(unset)_ |
+| `ASYA_QUEUE_RETRY_BACKOFF` | Initial backoff duration for queue reconnection | _(unset)_ |
+
+### SQS transport
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_SQS_ENDPOINT` | SQS endpoint URL (for LocalStack or custom endpoints) | `""` |
+| `ASYA_AWS_REGION` | AWS region for SQS | `us-east-1` |
+| `ASYA_SQS_VISIBILITY_TIMEOUT` | SQS visibility timeout (seconds) | `0` |
+| `ASYA_SQS_WAIT_TIME_SECONDS` | SQS long-poll wait time (seconds) | `20` |
+
+### Pub/Sub transport
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_PUBSUB_PROJECT_ID` | GCP project ID | `""` |
+| `ASYA_PUBSUB_ENDPOINT` | Pub/Sub emulator endpoint | `""` |
+
+---
+
+## asya-runtime
+
+Source: `src/asya-runtime/asya_runtime.py`
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_HANDLER` | Handler path (`module.function` or `module.Class.method`) | _(required)_ |
+| `ASYA_SOCKET_DIR` | Socket directory | `/var/run/asya` |
+| `ASYA_SOCKET_NAME` | Socket filename | `asya-runtime.sock` |
+| `ASYA_SOCKET_CHMOD` | Socket file permissions (octal) | `0o666` |
+| `ASYA_ENABLE_VALIDATION` | Validate incoming envelope structure | `true` |
+| `ASYA_LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
+| `ASYA_PYTHONEXECUTABLE` | Python executable path (for non-standard installs) | _(unset)_ |
+| `ASYA_STATE_PROXY_MOUNTS` | State proxy mount configuration (set by Crossplane) | _(unset)_ |
+
+---
+
+## asya-gateway
+
+Source: `src/asya-gateway/cmd/gateway/main.go`
+
+### Core
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_GATEWAY_MODE` | Deployment mode: `api`, `mesh`, or `testing` | _(unset)_ |
+| `ASYA_GATEWAY_PORT` | HTTP listen port | `8080` |
+| `ASYA_DATABASE_URL` | PostgreSQL connection string | `""` |
+| `ASYA_CONFIG_PATH` | Path to `flows.yaml` ConfigMap mount | _(unset)_ |
+| `ASYA_CONFIG_POLL_INTERVAL` | How often to poll the ConfigMap for changes | `10s` |
+| `ASYA_NAMESPACE` | Kubernetes namespace for queue name prefix | `default` |
+| `ASYA_LOG_LEVEL` | Log level | `INFO` |
+| `ASYA_PERSISTENCE_MOUNT` | Mount path for file-based persistence | _(unset)_ |
+
+### Transport (same as sidecar)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_RABBITMQ_URL` | RabbitMQ connection URL | `""` |
+| `ASYA_RABBITMQ_EXCHANGE` | RabbitMQ exchange | `asya` |
+| `ASYA_RABBITMQ_POOL_SIZE` | RabbitMQ connection pool size | `20` |
+| `ASYA_SQS_ENDPOINT` | SQS endpoint URL | `""` |
+| `ASYA_SQS_REGION` | SQS region | `us-east-1` |
+| `ASYA_SQS_VISIBILITY_TIMEOUT` | SQS visibility timeout | `300` |
+| `ASYA_SQS_WAIT_TIME_SECONDS` | SQS long-poll wait time | `20` |
+| `ASYA_PUBSUB_PROJECT_ID` | GCP Pub/Sub project ID | `""` |
+| `ASYA_PUBSUB_ENDPOINT` | Pub/Sub emulator endpoint | `""` |
+
+### Database connection pool
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_DB_MAX_CONNS` | Maximum PostgreSQL connections | `10` |
+| `ASYA_DB_MIN_CONNS` | Minimum PostgreSQL connections | `2` |
+| `ASYA_DB_MAX_CONN_LIFETIME` | Maximum connection lifetime | `1h` |
+| `ASYA_DB_MAX_CONN_IDLE_TIME` | Maximum connection idle time | `30m` |
+
+### A2A configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_A2A_API_KEY` | API key for A2A authentication | _(unset)_ |
+| `ASYA_A2A_JWT_JWKS_URL` | JWKS URL for JWT validation | _(unset)_ |
+| `ASYA_A2A_JWT_ISSUER` | Expected JWT issuer | _(unset)_ |
+| `ASYA_A2A_JWT_AUDIENCE` | Expected JWT audience | _(unset)_ |
+| `ASYA_A2A_NAME` | Agent card display name | `Asya Gateway` |
+| `ASYA_A2A_DESCRIPTION` | Agent card description | `AI Actor Mesh for distributed agentic workloads` |
+| `ASYA_A2A_VERSION` | Agent card version | `1.0.0` |
+| `ASYA_A2A_PUBLIC_URL` | Public base URL for the agent card | `""` |
+| `ASYA_A2A_PROVIDER_ORG` | Agent card provider organization | `Asya` |
+| `ASYA_A2A_PROVIDER_URL` | Agent card provider URL | `https://asya.sh` |
+
+### MCP configuration
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_MCP_API_KEY` | API key for MCP authentication | _(unset)_ |
+| `ASYA_MCP_OAUTH_ENABLED` | Enable OAuth 2.1 for MCP | _(unset)_ |
+| `ASYA_MCP_OAUTH_ISSUER` | OAuth issuer URL | _(unset)_ |
+| `ASYA_MCP_OAUTH_SECRET` | OAuth HMAC signing secret | _(unset)_ |
+| `ASYA_MCP_OAUTH_TOKEN_TTL` | OAuth access token TTL (seconds) | `3600` |
+| `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | Bearer token for dynamic client registration | _(unset)_ |
+
+---
+
+## asya-crew
+
+Source: `src/asya-crew/asya_crew/`
+
+### Shared
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_PERSISTENCE_MOUNT` | Mount path for persisting envelopes | `""` |
+| `ASYA_MSG_ROOT` | Root path for envelope message files | `/proc/asya/msg` |
+
+### x-sink
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_SINK_HOOKS` | Comma-separated hook names to run on sink | `""` |
+| `ASYA_SINK_FANOUT_HOOKS` | Run hooks for fan-out children | `false` |
+
+### x-pause
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_PAUSE_METADATA` | Additional metadata to include in checkpoint | `""` |
+
+### x-resume
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `ASYA_RESUME_MERGE_MODE` | How to merge resume input into payload: `shallow` | `shallow` |
