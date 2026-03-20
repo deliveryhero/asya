@@ -380,32 +380,36 @@ def context_group() -> None:
 
 @context_group.command("list")
 def context_list() -> None:
-    """List configured contexts."""
+    """List configured contexts.
+
+    Shows asya contexts from .asya/config.yaml if configured,
+    otherwise falls through to kubectl config get-contexts.
+    """
     asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
+    if asya_dir is not None:
+        try:
+            project = AsyaProject.from_dir(asya_dir.parent)
+        except (FileNotFoundError, KeyError):
+            project = None
 
-    try:
-        project = AsyaProject.from_dir(asya_dir.parent)
-    except (FileNotFoundError, KeyError) as e:
-        click.echo(f"[-] Failed to load config: {e}", err=True)
-        sys.exit(1)
+        if project is not None:
+            contexts = project.cfg.get("contexts")
+            if contexts:
+                default_ctx = project.cfg.get("default_context")
+                for name in contexts:
+                    ctx = contexts[name]
+                    marker = "*" if name == default_ctx else " "
+                    kubecontext = ctx.get("kubecontext", "")
+                    namespace = ctx.get("namespace", "")
+                    readonly = " (readonly)" if ctx.get("readonly") else ""
+                    click.echo(f"  {marker} {name:<20} kubecontext={kubecontext:<30} namespace={namespace}{readonly}")
+                return
 
-    contexts = project.cfg.get("contexts")
-    if not contexts:
-        click.echo("No contexts configured in .asya/config.yaml")
-        return
-
-    default_ctx = project.cfg.get("default_context")
-
-    for name in contexts:
-        ctx = contexts[name]
-        marker = "*" if name == default_ctx else " "
-        kubecontext = ctx.get("kubecontext", "")
-        namespace = ctx.get("namespace", "")
-        readonly = " (readonly)" if ctx.get("readonly") else ""
-        click.echo(f"  {marker} {name:<20} kubecontext={kubecontext:<30} namespace={namespace}{readonly}")
+    result = subprocess.run(  # nosec B603, B607
+        ["kubectl", "config", "get-contexts"],
+        check=False,
+    )
+    sys.exit(result.returncode)
 
 
 @context_group.command("use")
@@ -413,37 +417,40 @@ def context_list() -> None:
 def context_use(name: str) -> None:
     """Set the default context.
 
-    Updates default_context in .asya/config.yaml.
+    If asya contexts are configured in .asya/config.yaml, updates
+    default_context there. Otherwise falls through to kubectl config use-context.
     """
     asya_dir = find_asya_dir(Path.cwd())
-    if asya_dir is None:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
 
-    config_path = asya_dir / "config.yaml"
-    if not config_path.exists():
-        click.echo(f"[-] Config not found: {config_path}", err=True)
-        sys.exit(1)
+    if asya_dir is not None:
+        config_path = asya_dir / "config.yaml"
+        if config_path.exists():
+            text = config_path.read_text()
+            config = yaml.safe_load(text) or {}
+            contexts = config.get("contexts", {})
 
-    text = config_path.read_text()
-    config = yaml.safe_load(text) or {}
+            if contexts:
+                if name not in contexts:
+                    click.echo(f"[-] Context '{name}' not found", err=True)
+                    available = list(contexts.keys())
+                    if available:
+                        click.echo(f"[-] Available: {', '.join(available)}", err=True)
+                    sys.exit(1)
 
-    contexts = config.get("contexts", {})
-    if name not in contexts:
-        click.echo(f"[-] Context '{name}' not found", err=True)
-        available = list(contexts.keys())
-        if available:
-            click.echo(f"[-] Available: {', '.join(available)}", err=True)
-        sys.exit(1)
+                pattern = re.compile(r"^(?!#)(\s*)default_context:.*$", re.MULTILINE)
+                if pattern.search(text):
+                    text = pattern.sub(rf"\1default_context: {name}", text)
+                else:
+                    text = text.rstrip() + f"\ndefault_context: {name}\n"
+                config_path.write_text(text)
+                click.echo(f"[+] Default context set to '{name}'")
+                return
 
-    # Targeted replacement to preserve YAML comments and formatting
-    pattern = re.compile(r"^(?!#)(\s*)default_context:.*$", re.MULTILINE)
-    if pattern.search(text):
-        text = pattern.sub(rf"\1default_context: {name}", text)
-    else:
-        text = text.rstrip() + f"\ndefault_context: {name}\n"
-    config_path.write_text(text)
-    click.echo(f"[+] Default context set to '{name}'")
+    result = subprocess.run(  # nosec B603, B607
+        ["kubectl", "config", "use-context", name],
+        check=False,
+    )
+    sys.exit(result.returncode)
 
 
 # ---------------------------------------------------------------------------
