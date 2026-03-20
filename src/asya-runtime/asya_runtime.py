@@ -1216,7 +1216,9 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             try:
                 frames = _collect_payload_frames(envelope, user_func)
             except Exception as exc:
-                logger.exception("Fatal error on processing input envelope")
+                envelope_id = envelope.get("id", "unknown")
+                logger.error("Handler error: %s: %s (envelope_id=%s)", type(exc).__name__, exc, envelope_id)
+                logger.debug("Handler error traceback:", exc_info=True)
                 self._send_json(500, _error_response("processing_error", exc))
                 return
 
@@ -1241,8 +1243,6 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
         self.end_headers()
         self.close_connection = True  # single-threaded server must not keep-alive SSE connections
 
-        ctx = _AbiContext(envelope)
-
         def on_fly(payload):
             data = json.dumps({"payload": payload}, default=_json_default)
             self.wfile.write(f"event: upstream\ndata: {data}\n\n".encode())
@@ -1254,12 +1254,15 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
             self.wfile.flush()
 
         try:
+            ctx = _AbiContext(envelope)
             if inspect.isasyncgenfunction(user_func):
                 asyncio.run(_drive_async_generator(user_func(envelope["payload"]), ctx, on_fly=on_fly, on_emit=on_emit))
             else:
                 _drive_generator(user_func(envelope["payload"]), ctx, on_fly=on_fly, on_emit=on_emit)
         except Exception as exc:
-            logger.exception("Error during SSE streaming")
+            envelope_id = envelope.get("id", "unknown")
+            logger.error("Handler error: %s: %s (envelope_id=%s)", type(exc).__name__, exc, envelope_id)
+            logger.debug("Handler error traceback:", exc_info=True)
             error_data = json.dumps(_error_response("processing_error", exc))
             self.wfile.write(f"event: error\ndata: {error_data}\n\n".encode())
             self.wfile.flush()
