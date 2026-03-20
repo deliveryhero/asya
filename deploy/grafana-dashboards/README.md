@@ -139,4 +139,4 @@ Operator metrics (controller-runtime):
 - `controller_runtime_reconcile_errors_total{controller="asyncactor"}`
 - `controller_runtime_reconcile_time_seconds{controller="asyncactor"}`
 
-See [docs/setup/ops-monitoring.md](../../docs/setup/ops-monitoring.md) for details.
+See [docs/setup/ops-observability.md](../../docs/setup/ops-observability.md) for details.

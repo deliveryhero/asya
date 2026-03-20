@@ -1,4 +1,3 @@
-<!-- Type: Usage Guide -->
 
 # Agentic Patterns in Asya
 
@@ -753,6 +752,8 @@ Key A2A states and their Asya equivalents:
 | `input_required` | `paused` | Waiting for human input (x-pause) |
 | `completed` | `succeeded` | x-sink received final result |
 | `failed` | `failed` | x-sump received error envelope |
+| `canceled` | `canceled` | Task canceled by client |
+| `auth_required` | `auth_required` | Authentication required before proceeding |
 
 ### MCP protocol
 

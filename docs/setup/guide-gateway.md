@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 # Setup Guide: Gateway Configuration
 
 This guide shows how to deploy and configure the Asya gateway, including authentication, tool registration, and multi-mode deployment.

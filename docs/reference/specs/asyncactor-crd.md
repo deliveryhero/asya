@@ -165,7 +165,7 @@ Override default sidecar configuration.
 ### stateProxy
 
 State proxy mount configurations for persistent state access. Each entry adds
-a state proxy sidecar container and FUSE mount to the pod.
+a state proxy sidecar container and a logical mount to the pod.
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -185,7 +185,7 @@ stateProxy:
     path: /state/checkpoints
   writeMode: buffered
   connector:
-    image: ghcr.io/deliveryhero/asya-state-proxy-s3:latest
+    image: ghcr.io/deliveryhero/asya-state-proxy-s3-buffered-lww:latest
     env:
     - name: STATE_BUCKET
       value: my-checkpoints-bucket

@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 # Troubleshooting
 
 Common issues and solutions.

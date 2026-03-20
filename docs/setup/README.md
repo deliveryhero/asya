@@ -25,6 +25,6 @@ Configure and customize the platform:
 
 ## Operations
 
-- **[Monitoring](ops-monitoring.md)** — Prometheus metrics, Grafana dashboards, alerting
+- **[Observability](ops-observability.md)** — Prometheus metrics, Grafana dashboards, alerting
 - **[Troubleshooting](ops-troubleshooting.md)** — Symptom-to-solution checklist
 - **[Upgrades](ops-upgrades.md)** — Version upgrade procedures, rollback

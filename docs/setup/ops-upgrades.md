@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 # Upgrades
 
 Version upgrade procedures for Asya🎭 components.

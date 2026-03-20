@@ -31,10 +31,9 @@ Writes always overwrite the existing object. No conflict detection. Suitable for
 
 Writes include a condition that the object has not changed since it was last read.
 If the object was modified externally, the write fails with `FileExistsError`.
-Suitable for state that may be accessed by multiple processes. CAS retries are
-handled in two layers: the connector retries internally on transient conflicts,
-and the sidecar requeues the message with exponential backoff if retries are
-exhausted.
+Suitable for state that may be accessed by multiple processes. On a CAS conflict
+(`FileExistsError`), the sidecar requeues the message with exponential backoff,
+and the handler runs again from scratch with a fresh read.
 
 The CAS primitive varies by backend: S3 uses ETags with conditional `PutObject`,
 GCS uses generation numbers with `if_generation_match`, Redis uses

@@ -104,9 +104,8 @@ the connector caches the key's revision. On `write()`, the connector passes the
 cached revision for conditional update. If the key was modified externally, the
 update fails, which the connector maps to `FileExistsError` (HTTP 409).
 
-Per the RFC, CAS retries are handled in two layers: the connector retries
-internally on transient conflicts, and the sidecar requeues the message with
-exponential backoff if retries are exhausted.
+On a CAS conflict (`FileExistsError`), the sidecar requeues the message with
+exponential backoff, and the handler runs again from scratch with a fresh read.
 
 ### Extended Attributes
 

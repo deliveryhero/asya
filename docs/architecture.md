@@ -69,7 +69,7 @@ Each actor pod contains two containers:
 
 - **[Message Queues](reference/transports/README.md)**: Pluggable transports (SQS, RabbitMQ, GCP Pub/Sub)
 - **[KEDA](setup/guide-autoscaling.md)**: Monitors queue depth, scales actors 0-N based on workload
-- **[Observability](setup/ops-monitoring.md)**: Prometheus metrics, structured logging
+- **[Observability](setup/ops-observability.md)**: Prometheus metrics, structured logging
 
 ## Sync Gateway
 

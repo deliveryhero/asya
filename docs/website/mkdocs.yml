@@ -63,7 +63,7 @@ nav:
     - Retries: setup/guide-retries.md
     - Gateway: setup/guide-gateway.md
   - Operations:
-    - Monitoring: setup/ops-monitoring.md
+    - Observability: setup/ops-observability.md
     - Troubleshooting: setup/ops-troubleshooting.md
     - Upgrades: setup/ops-upgrades.md
 - REFERENCE:
@@ -94,12 +94,12 @@ nav:
     - RabbitMQ: reference/transports/rabbitmq.md
     - Pub/Sub: reference/transports/pubsub.md
     - Socket: reference/transports/socket.md
-  - Connectors:
-    - Overview: reference/connectors/README.md
-    - S3: reference/connectors/s3.md
-    - GCS: reference/connectors/gcs.md
-    - Redis: reference/connectors/redis.md
-    - NATS KV: reference/connectors/nats-kv.md
+  - State Proxy Connectors:
+    - Overview: reference/state-proxy-connectors/README.md
+    - S3: reference/state-proxy-connectors/s3.md
+    - GCS: reference/state-proxy-connectors/gcs.md
+    - Redis: reference/state-proxy-connectors/redis.md
+    - NATS KV: reference/state-proxy-connectors/nats-kv.md
   - Environment Variables: reference/env-vars.md
 - CONTRIBUTING:
   - Overview: contributing/README.md

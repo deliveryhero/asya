@@ -70,7 +70,7 @@ Deploy, configure, and operate. **[Full index ->](setup/README.md)**
 
 - [Quickstart](setup/start-quickstart.md) | [AWS EKS](setup/start-aws-eks.md) | [GCP GKE](setup/start-gcp-gke.md)
 - [Helm Charts](setup/guide-helm-charts.md) | [Autoscaling](setup/guide-autoscaling.md) | [Gateway](setup/guide-gateway.md)
-- [Monitoring](setup/ops-monitoring.md) | [Troubleshooting](setup/ops-troubleshooting.md) | [Upgrades](setup/ops-upgrades.md)
+- [Monitoring](setup/ops-observability.md) | [Troubleshooting](setup/ops-troubleshooting.md) | [Upgrades](setup/ops-upgrades.md)
 
 ### Reference
 

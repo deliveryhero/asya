@@ -1,4 +1,3 @@
-<!-- Type: Usage Guide -->
 # Actor Handler Patterns
 
 This guide covers practical patterns for writing Asya actor handlers: from basic

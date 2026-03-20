@@ -81,6 +81,8 @@ Supported methods: `message/send`, `message/stream`, `tasks/get`, `tasks/list`, 
 
 **Response** `200 application/json` — JSON-RPC 2.0 response.
 
+**Blocking behavior**: The `message/send` method holds the connection open and streams SSE events (progress updates, FLY partial payloads) until the task reaches a terminal state (`completed`, `failed`, `canceled`, `input_required`, or `auth_required`). The client receives the final task result as the last event in the stream. Use `message/stream` for an explicitly streaming variant, or `tasks/get` for polling.
+
 **Auth errors** `401` — missing/invalid credentials.
 
 ---

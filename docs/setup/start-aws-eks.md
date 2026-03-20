@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 # AWS EKS Installation
 
 Production deployment of 🎭 on Amazon EKS.
