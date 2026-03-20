@@ -52,7 +52,7 @@ graph LR
 
 - **[Crossplane Compositions](asya-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, render the sidecar inline, and configure KEDA autoscaling
 - **[Gateway](asya-gateway.md)**: Optional MCP HTTP API for task submission, SSE streaming, and status tracking
-- **[CLI](asya-lab.md)**: Command-line tool for interacting with the gateway (MCP client)
+- **[CLI](../reference/cli.md)**: Command-line tool for interacting with the gateway (MCP client)
 
 ### Actor Components
 
@@ -68,7 +68,7 @@ Each actor pod contains two containers:
 ### Infrastructure
 
 - **[Message Queue](transports/README.md)**: Pluggable transports (SQS, RabbitMQ, Kafka/NATS planned)
-- **[KEDA](autoscaling.md)**: Monitors queue depth, scales actors 0→N based on workload
+- **[KEDA](../howto/configure-autoscaling.md)**: Monitors queue depth, scales actors 0→N based on workload
 - **[Observability](observability.md)**: Prometheus metrics, structured logging, OpenTelemetry integration
 
 ## Message Flow
@@ -107,7 +107,7 @@ Each actor pod contains two containers:
 ## Component Details
 
 - **[AsyncActor CRD](asya-actor.md)**: Workload specification, scaling configuration, timeout settings
-- **[Autoscaling](autoscaling.md)**: KEDA integration, scaling strategies, queue-based autoscaling
+- **[Autoscaling](../howto/configure-autoscaling.md)**: KEDA integration, scaling strategies, queue-based autoscaling
 - **[Observability](observability.md)**: Metrics, logging, tracing, monitoring best practices
 
 ## Deployment Patterns
