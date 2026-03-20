@@ -42,12 +42,12 @@ def _compile_flow_file(
     strict: bool = False,
 ) -> None:
     """Compile a flow from a .py source file."""
-    from asya_lab.flow_cli import _stamp_manifests
+    from asya_lab.flow import _infer_flow_function
 
     source_path = Path(target).resolve()
-    source_code = source_path.read_text()
 
-    # Load rules from config (if .asya/ exists)
+    # Load project config (if .asya/ exists)
+    project = None
     rule_engine = None
     try:
         project = AsyaProject.from_dir(source_path.parent)
@@ -55,59 +55,42 @@ def _compile_flow_file(
     except FileNotFoundError:
         pass
 
-    # Compile in-memory to learn flow_function before resolving output paths
-    compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine)
-    compiled_code = compiler.compile(source_code, str(source_path))
-    flow_function = compiler.flow_name
+    # Infer flow function name via lightweight AST scan (no full compile)
+    flow_function = _infer_flow_function(source_path) or source_path.stem
 
     if flow_name_override:
         flow_name = flow_name_override
-    elif flow_function:
-        flow_name = flow_function.replace("_", "-")
     else:
-        flow_name = source_path.stem.replace("_", "-")
+        flow_name = flow_function.replace("_", "-")
 
     # Resolve compiled output dir from config or CLI override
     if output_dir:
         compiled_dir = Path(output_dir).resolve()
     else:
-        compiled_dir = _resolve_compiled_dir(source_path, flow_function or source_path.stem)
+        compiled_dir = _resolve_compiled_dir(source_path, flow_function)
 
-    # Write compiled code to resolved dir
-    compiled_dir.mkdir(parents=True, exist_ok=True)
-    compiled_file = compiled_dir / "routers.py"
-    compiled_file.write_text(compiled_code)
+    # Single compile call — handles code + manifests + graph outputs
+    compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
+    result = compiler.compile_file(str(source_path), str(compiled_dir), overwrite=True)
 
     if verbose:
-        click.echo(f"[+] Compiled flow to: {compiled_file}")
+        click.echo(f"[+] Compiled flow to: {result.routers_path}")
         click.echo(f"[+] Flow name: '{flow_name}'")
 
         actor = compiler.single_actor_name
         if actor is not None:
             click.echo("[+] Single-actor flow: no router actor needed")
 
-    if plot:
-        try:
-            dot_file, plot_path = compiler.generate_plot(str(compiled_dir), plot_format=plot_format)
-            if verbose:
-                click.echo(f"[+] Generated: {dot_file}")
-                if plot_path:
-                    click.echo(f"[+] Generated: {plot_path}")
-        except (ImportError, RuntimeError) as e:
-            click.echo(f"[!] {e}", err=True)
-        except Exception as e:
-            click.echo(f"[!] Failed to generate plot: {e}", err=True)
+        if result.manifests_dir and result.manifests_dir != compiled_dir:
+            click.echo(f"[+] Stamped manifests to: {result.manifests_dir}")
 
-    warnings = compiler.get_warnings()
+    warnings = result.warnings
     if warnings:
         for w in warnings:
             click.echo(f"[!] {w}", err=True)
         if strict:
             click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
             sys.exit(1)
-
-    manifests_dir = output_dir if output_dir else None
-    _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
 
 
 def _recompile_kebab_target(
