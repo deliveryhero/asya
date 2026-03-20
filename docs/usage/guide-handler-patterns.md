@@ -64,9 +64,9 @@ async def process(payload: dict):
     # Read where the envelope came from
     prev = yield "GET", ".route.prev"
 
-    # Conditionally re-route
+    # Conditionally re-route (prepend reviewer before remaining pipeline)
     if payload.get("needs_review"):
-        yield "SET", ".route.next", ["reviewer"]
+        yield "SET", ".route.next[:0]", ["reviewer"]
 
     payload["processed"] = True
     yield payload

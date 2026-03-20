@@ -4,12 +4,15 @@ System actors with reserved roles for framework-level tasks.
 
 ## Overview
 
-Crew actors are **end actors** that run in special sidecar mode (`ASYA_IS_END_ACTOR=true`). They:
+Crew actors are **terminal actors** that run with a dedicated sidecar role (`ASYA_ACTOR_ROLE`). The two roles are:
+
+- `sink` — x-sink reports final status to gateway, then routes to configurable hooks
+- `sump` — x-sump emits Prometheus metrics only; does NOT report to gateway
+
+Both roles:
 
 - Accept messages with ANY route state (no route validation)
-- Do NOT route responses to any queue (terminal processing)
 - Persist results to object storage via state proxy (optional)
-- Sidecar reports final task status to gateway (not the runtime)
 
 ## Current Crew Actors
 
@@ -63,12 +66,13 @@ succeeded/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
 
 **Responsibilities**:
 
-- Second layer of two-layer termination: receives messages after hooks have been processed
-- Persists failed messages to object storage via state proxy (optional)
-- Logs terminal failures at ERROR level with full message summary
-- Sidecar reports task failure to gateway with error details and actor info
+- Second layer (final terminal) of two-layer termination: receives messages from x-sink after hooks complete or fail
+- Emits Prometheus metrics (hook success/failure counters)
+- On error (`status.phase=failed`): logs the complete message JSON to stdout as last-resort persistence
+- Does NOT report to gateway — metrics only
+- ACKs and terminates; nothing routes below x-sump
 
-**Queue**: `asya-{namespace}-x-sump` (automatically routed by sidecar when runtime/sidecar errors occur)
+**Queue**: `asya-{namespace}-x-sump` (reached via x-sink's `ASYA_ACTOR_SINK=x-sump` setting, not directly from regular actor sidecars)
 
 **Handler**: `asya_crew.sump.sump_handler` (generator, uses ABI yield protocol)
 
@@ -92,34 +96,39 @@ failed/2025-11-18T14:30:45.123456Z/failing-actor/abc-123.json
 ```
 
 **Error Message Structure**:
-Messages routed to `x-sump` contain error information in the payload:
+Messages routed to `x-sump` contain error information in `status.error`, not in the payload:
 ```json
 {
   "id": "abc-123",
   "route": {
-    "actors": ["preprocess", "infer", "postprocess"],
-    "current": 1
+    "prev": ["preprocess", "infer"],
+    "curr": "x-sump"
   },
-  "payload": {
-    "error": "Runtime timeout exceeded",
-    "details": {
-      "message": "Processing timeout after 5m",
+  "status": {
+    "phase": "failed",
+    "reason": "PolicyExhausted",
+    "actor": "infer",
+    "attempt": 3,
+    "max_attempts": 3,
+    "error": {
       "type": "TimeoutError",
+      "mro": ["Exception"],
+      "message": "Processing timeout after 5m",
       "traceback": "..."
-    },
-    "original_payload": {"input": "..."}
-  }
+    }
+  },
+  "payload": {"input": "..."}
 }
 ```
 
 **Flow**:
-1. Sidecar receives error message from `asya-{namespace}-x-sump` queue
+1. Sidecar receives message from `asya-{namespace}-x-sump` queue (routed from x-sink after hooks)
 2. Sidecar forwards message to runtime via Unix socket
-3. Generator handler reads metadata via ABI, logs failure details
-4. Handler persists message to storage (if configured), then `yield payload`
-5. Sidecar extracts error info from message payload
-6. Sidecar reports final task status `failed` to gateway with error details and actor information
-7. Sidecar acks message (does NOT route anywhere)
+3. Generator handler reads metadata via ABI
+4. Handler emits Prometheus metrics (hook_success / hook_failure counters)
+5. On error (`status.phase=failed`): handler logs the complete message JSON to stdout
+6. Handler returns without yielding (terminal)
+7. Sidecar acks message (does NOT route anywhere, does NOT report to gateway)
 
 ## Deployment
 
@@ -133,7 +142,7 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 **Chart structure**:
 
 - Creates two AsyncActor resources: `x-sink` and `x-sump`
-- Operator handles sidecar injection and `ASYA_IS_END_ACTOR=true` flag
+- Operator handles sidecar injection and sets `ASYA_ACTOR_ROLE` (`sink` for x-sink, `sump` for x-sump)
 
 **Default configuration** (from `values.yaml`):
 ```yaml
@@ -308,16 +317,24 @@ The sink and sump handlers are **generators** that use the ABI yield protocol. T
 
 ### Sidecar Integration
 
-When `ASYA_IS_END_ACTOR=true`, sidecar uses `processEndActorEnvelope`:
+The sidecar behavior depends on `ASYA_ACTOR_ROLE`:
+
+**`sink` role** (x-sink):
 1. Accepts messages with any route state (no validation)
 2. Sends message to runtime without route checking
 3. Captures the first downstream frame from the generator (if any)
 4. Falls back to original envelope payload if runtime returned nothing
-5. Checks `shouldReportFinalToGateway` — reports only for terminal, non-fan-in/fan-out messages:
-   - `x-sink`: Task status `succeeded` with result payload
-   - `x-sump`: Task status `failed` with error details, actor info, route
-6. Does NOT route to any queue (terminal)
+5. Reports final task status to gateway (succeeded or failed) — skipped for fan-in partials and fan-out children
+6. Routes to configured hooks via `ASYA_SINK_HOOKS`
 7. Acks message
+
+**`sump` role** (x-sump):
+1. Accepts messages with any route state (no validation)
+2. Sends message to runtime without route checking
+3. Runtime emits Prometheus metrics and logs errors
+4. Does NOT report to gateway
+5. Does NOT route to any queue (terminal)
+6. Acks message
 
 ## Future Crew Actors
 
@@ -327,14 +344,6 @@ When `ASYA_IS_END_ACTOR=true`, sidecar uses `processEndActorEnvelope`:
 - Wait for all chunks to complete
 - Merge results and continue pipeline
 - Track parent-child relationships via `parent_id`
-
-**Auto-retry** functionality by `x-sump`:
-
-- Implement exponential backoff
-- Classify errors as retriable vs permanent
-- Track retry count in message headers
-- Re-queue retriable messages with backoff delay
-- Move to DLQ after max retries exceeded
 
 **Custom monitoring**:
 

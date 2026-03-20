@@ -116,9 +116,10 @@ Router → Transport.Ack/Nack()
 | Single value | Route to next actor |
 | Array (fan-out) | Route each to next actor |
 | Empty | Send to x-sink |
-| Error | Send to x-sump |
+| Error (retriable) | Retry via SendWithDelay to own queue |
+| Error (fatal/exhausted) | Send to x-sink (phase: failed) |
 | SLA expired | Send to x-sink (phase=failed, reason=Timeout) |
-| Runtime timeout | Send to x-sump, crash pod |
+| Runtime timeout | Send to x-sink (phase: failed), crash pod |
 | End of route | Send to x-sink |
 
 ## Transport Interface
@@ -232,14 +233,16 @@ volumes:
 ## Error Handling Strategy
 
 | Error Type | Action | Destination |
-|------------|--------|-------------|
-| Parse error | Log + send error | x-sump |
-| Runtime error | Log + send error | x-sump |
-| SLA expired | Log + stamp phase=failed, reason=Timeout | x-sink |
-| Runtime timeout | Log + construct error + crash pod | x-sump |
-| Empty response | Log + send original | x-sink |
-| Transport error | Log + NACK | retry queue |
-| Shutdown signal | Graceful NACK | retry queue |
+|---|---|---|
+| Handler success | ACK + route to next actor | Next actor or x-sink (phase: succeeded) |
+| Handler error (retriable, attempts remaining) | ACK + SendWithDelay | Own queue (retry) |
+| Handler error (retriable, exhausted) | ACK + send failed envelope | x-sink (phase: failed, reason: PolicyExhausted) |
+| Handler error (fatal / non-retryable) | ACK + send failed envelope | x-sink (phase: failed, reason: NonRetryableFailure) |
+| Parse error | ACK + send failed envelope | x-sink (phase: failed, no retry) |
+| SLA expired | ACK + stamp phase=failed, reason=Timeout | x-sink |
+| Runtime timeout | ACK + send to x-sink + crash pod | x-sink (phase: failed, reason: Timeout) |
+| Runtime connection failure | ACK + retry (retriable) | Own queue |
+| Transport error (can't send) | No ACK | Transport redelivers → DLQ |
 
 ## Configuration
 
@@ -302,19 +305,19 @@ All configuration via environment variables:
 **Detection:** Sidecar fails to connect to Unix socket (`failed to connect to runtime socket`)
 
 **Recovery:**
-1. Sidecar routes message to `x-sump` queue with connection error
+1. Sidecar treats connection failure as a retriable error and retries via SendWithDelay
 2. Kubernetes restarts runtime container automatically
 3. Socket recreated on shared emptyDir volume
-4. Next message attempt succeeds
+4. Retried message succeeds once runtime is back; if retries exhausted → x-sink (phase: failed)
 
-**Message fate:** Sent to x-sump for retry logic (not automatically retried)
+**Message fate:** Retried as retriable error; after exhaustion sent to x-sink (phase: failed)
 
 #### Timeout (Hung Process)
 **Detection:** No response within effective timeout: `min(ASYA_RESILIENCY_ACTOR_TIMEOUT, remaining_SLA)`
 
 **Recovery:**
 1. Socket read returns `context.DeadlineExceeded`
-2. Message sent to x-sump with timeout error
+2. Message sent to x-sink (phase: failed, reason: Timeout)
 3. Sidecar **crashes the pod** (exits with status code 1)
 4. Kubernetes restarts the pod to recover clean state
 
@@ -334,20 +337,22 @@ All configuration via environment variables:
 **Detection:** Runtime returns error response with traceback
 
 **Recovery:**
-1. Error routed to x-sump with full exception details
-2. Runtime container remains healthy (exception was caught)
-3. Ready to process next message
+1. Error matched against resiliency policy rules
+2. If retriable and attempts remaining: retried via SendWithDelay to own queue
+3. If non-retryable or exhausted: routed to x-sink (phase: failed)
+4. Runtime container remains healthy (exception was caught)
+5. Ready to process next message
 
-**Message fate:** Sent to x-sump with detailed error context for debugging
+**Message fate:** Retried according to policy, or routed to x-sink (phase: failed) with detailed error context
 
 ### Message Delivery Guarantees
 
 | Failure Scenario | Message Lost? | Auto Recovery | Notes |
 |------------------|---------------|---------------|-------|
 | Sidecar crash | ❌ No | ✅ Yes (fast) | NACK → redelivery |
-| Runtime crash | ❌ No | ✅ Yes | Via x-sump queue |
-| Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Via x-sump queue |
-| Runtime timeout | ❌ No | ✅ Yes (crash + restart) | Via x-sump, pod crashes to prevent zombie |
+| Runtime crash | ❌ No | ✅ Yes | Retried → x-sink (phase: failed) on exhaustion |
+| Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Retried → x-sink (phase: failed) on exhaustion |
+| Runtime timeout | ❌ No | ✅ Yes (crash + restart) | Via x-sink (phase: failed), pod crashes to prevent zombie |
 | SLA expired | ❌ No | ✅ Yes | Via x-sink (phase=failed), runtime not called |
 | Pod eviction | ❌ No | ✅ Yes | Full pod restart |
 | Socket corruption | ❌ No | ✅ Yes | Transient, usually recovers |
@@ -374,7 +379,7 @@ The sidecar implements **at-least-once delivery**, not exactly-once:
      failureThreshold: 3
    ```
 
-2. **Implement retry logic** in x-sump actor (exponential backoff, max attempts)
+2. **Monitor retry metrics** (`asya_actor_messages_total{result="retried"}`)
 
 3. **Monitor timeout metrics** (`asya_actor_runtime_errors_total{error_type="timeout"}`)
 
@@ -593,10 +598,8 @@ Note: `RecordProcessingDuration` is called only in `handleErrorResponse`, not in
 
 ## Metrics and Observability
 
-The sidecar exposes Prometheus metrics for monitoring. See [Metrics Reference](observability.md) for details.
+The sidecar exposes Prometheus metrics for monitoring. See the [Resiliency](#resiliency) section for metrics emitted during retry and error handling.
 
 ## Next Steps
 
-- [Message Flow](protocols/actor-actor.md) - Detailed message routing
-- [Runtime Component](asya-runtime.md) - Actor runtime
-- [Metrics Reference](observability.md) - Monitoring
+- [Runtime Component](core-runtime.md) - Actor runtime
