@@ -480,10 +480,11 @@ class FlowParser:
 
     def _parse_actor_call(self, stmt: ast.Assign) -> ActorCall | Mutation:
         call = stmt.value
-        is_await = isinstance(call, ast.Await)
-        if is_await:
-            assert isinstance(call, ast.Await)
+        if isinstance(call, ast.Await):
+            is_await = True
             call = call.value
+        else:
+            is_await = False
         if not isinstance(call, ast.Call):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Expected function call")
 
