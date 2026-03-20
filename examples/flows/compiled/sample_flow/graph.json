@@ -19,21 +19,21 @@
       "label": "handler_type_b"
     },
     {
-      "id": "router_sample_flow_line_10_seq_2",
-      "label": "router_sample_flow_line_10_seq_2",
+      "id": "router_sample_flow_line_11_seq_2",
+      "label": "router_sample_flow_line_11_seq_2",
       "generated": true,
       "mutations": [
         "p['branch'] = 'B'"
       ]
     },
     {
-      "id": "router_sample_flow_line_5_if_3",
-      "label": "router_sample_flow_line_5_if_3",
+      "id": "router_sample_flow_line_6_if_3",
+      "label": "router_sample_flow_line_6_if_3",
       "generated": true
     },
     {
-      "id": "router_sample_flow_line_6_seq_1",
-      "label": "router_sample_flow_line_6_seq_1",
+      "id": "router_sample_flow_line_7_seq_1",
+      "label": "router_sample_flow_line_7_seq_1",
       "generated": true,
       "mutations": [
         "p['branch'] = 'A'"
@@ -55,36 +55,36 @@
     },
     {
       "from": "handler_setup",
-      "to": "router_sample_flow_line_5_if_3",
+      "to": "router_sample_flow_line_6_if_3",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_sample_flow_line_6_seq_1",
+      "from": "router_sample_flow_line_7_seq_1",
       "to": "handler_type_a",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_sample_flow_line_5_if_3",
-      "to": "router_sample_flow_line_6_seq_1",
+      "from": "router_sample_flow_line_6_if_3",
+      "to": "router_sample_flow_line_7_seq_1",
       "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
-      "from": "router_sample_flow_line_5_if_3",
+      "from": "router_sample_flow_line_6_if_3",
       "to": "handler_type_b",
       "label": "else",
       "type": "prepend"
     },
     {
       "from": "handler_type_b",
-      "to": "router_sample_flow_line_10_seq_2",
+      "to": "router_sample_flow_line_11_seq_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_sample_flow_line_10_seq_2",
+      "from": "router_sample_flow_line_11_seq_2",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
