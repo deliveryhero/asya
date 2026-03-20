@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_only",
+  "flow_name": "mutations_only_flow",
   "nodes": [
     {
       "id": "end_mutations_only_flow",
@@ -29,13 +29,7 @@
     },
     {
       "from": "router_mutations_only_flow_line_14_seq_1",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "end_mutations_only_flow",
-      "to": "__terminal__",
+      "to": "end_mutations_only_flow",
       "label": null,
       "type": "abort"
     }

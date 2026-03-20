@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_with_continue",
+  "flow_name": "while_with_continue_flow",
   "nodes": [
     {
       "id": "end_while_with_continue_flow",
@@ -92,12 +92,6 @@
       "to": "router_while_with_continue_flow_line_14_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "end_while_with_continue_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_process",

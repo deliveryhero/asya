@@ -1,4 +1,4 @@
-digraph "fanout_conditional" {
+digraph "adaptive_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

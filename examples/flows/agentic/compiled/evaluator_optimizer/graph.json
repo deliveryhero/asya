@@ -118,12 +118,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_evaluator_optimizer",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_evaluator_optimizer_line_68_if_3",
       "to": "router_evaluator_optimizer_line_58_while_1",
       "label": null,

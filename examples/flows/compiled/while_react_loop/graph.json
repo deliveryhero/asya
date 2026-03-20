@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_react_loop",
+  "flow_name": "react_agent",
   "nodes": [
     {
       "id": "end_react_agent",
@@ -53,7 +53,7 @@
     },
     {
       "from": "router_react_agent_line_16_if_2",
-      "to": "__terminal__",
+      "to": "end_react_agent",
       "label": "not (p.get('tool_calls'))",
       "type": "abort"
     },
@@ -68,12 +68,6 @@
       "to": "router_react_agent_line_16_if_2",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_react_agent",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "execute_tool",

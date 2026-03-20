@@ -64,12 +64,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_typed_dataclass_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "formatter",
       "to": "end_typed_dataclass_pipeline",
       "label": null,

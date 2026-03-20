@@ -1,5 +1,5 @@
 {
-  "flow_name": "nested_if",
+  "flow_name": "test_nested_flow",
   "nodes": [
     {
       "id": "end_test_nested_flow",
@@ -164,12 +164,6 @@
       "to": "router_test_nested_flow_line_19_if_6",
       "label": "not (p['level1'] == 'A')",
       "type": "prepend"
-    },
-    {
-      "from": "end_test_nested_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "router_test_nested_flow_line_12_seq_1",

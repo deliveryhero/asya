@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_nested_loop",
+  "flow_name": "nested_loop_flow",
   "nodes": [
     {
       "id": "end_nested_loop_flow",
@@ -122,12 +122,6 @@
       "to": "router_nested_loop_flow_line_16_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "end_nested_loop_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "process_item",

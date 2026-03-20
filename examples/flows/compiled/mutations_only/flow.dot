@@ -1,4 +1,4 @@
-digraph "mutations_only" {
+digraph "mutations_only_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -7,4 +7,5 @@ digraph "mutations_only" {
     start_mutations_only_flow [label="start_mutations_only_flow", fillcolor=palegreen];
 
     start_mutations_only_flow -> router_mutations_only_flow_line_14_seq_1;
+    router_mutations_only_flow_line_14_seq_1 -> end_mutations_only_flow [style=dashed];
 }

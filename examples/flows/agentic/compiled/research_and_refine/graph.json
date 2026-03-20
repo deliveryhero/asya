@@ -130,12 +130,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_research_and_refine",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_research_and_refine_line_55_if_3",
       "to": "router_research_and_refine_line_50_while_1",
       "label": null,

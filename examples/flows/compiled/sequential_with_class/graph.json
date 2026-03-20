@@ -1,5 +1,5 @@
 {
-  "flow_name": "sequential_with_class",
+  "flow_name": "class_instantiation_flow",
   "nodes": [
     {
       "id": "end_class_instantiation_flow",
@@ -50,12 +50,6 @@
       "to": "sequential_with_class.MLModel.predict",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_class_instantiation_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "sequential_with_class.MLModel.predict",

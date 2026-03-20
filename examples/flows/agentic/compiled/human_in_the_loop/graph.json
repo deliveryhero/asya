@@ -160,12 +160,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_human_in_the_loop",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "revision_agent",
       "to": "router_human_in_the_loop_line_79_if_3",
       "label": null,

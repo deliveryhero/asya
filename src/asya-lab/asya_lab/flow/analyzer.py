@@ -473,6 +473,18 @@ def analyze(
             for ep in sorted(endpoints):
                 all_edges.append({"from": ep, "to": end_node, "label": None, "type": "continuation"})
 
+    # Step 7: Replace __terminal__ with end_ node.
+    # Abort edges (route.next = []) are semantically "flow ends here". When an
+    # end_ node exists, point aborts at it instead of the invisible __terminal__
+    # sentinel. Skip the end_ node's own abort (it IS the exit).
+    if end_nodes:
+        end_node = end_nodes[0]
+        all_edges = [
+            {**e, "to": end_node} if e["to"] == "__terminal__" and e["from"] != end_node else e for e in all_edges
+        ]
+        # Remove end_ self-abort — it's the exit, not an error
+        all_edges = [e for e in all_edges if not (e["from"] == end_node and e["to"] == "__terminal__")]
+
     # Build nodes from all referenced names
     all_names: set[str] = set()
     for edge in all_edges:

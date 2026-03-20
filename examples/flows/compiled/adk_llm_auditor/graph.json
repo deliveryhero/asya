@@ -376,12 +376,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_llm_auditor",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_llm_auditor_line_50_try_enter_0",
       "to": "router_llm_auditor_line_46_loop_back_0",
       "label": null,

@@ -82,12 +82,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_map_reduce",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "reducer",
       "to": "end_map_reduce",
       "label": null,

@@ -28,7 +28,7 @@ flowchart TD
     router_loop_flow_line_17_seq_6 --> process_item
     process_item --> router_loop_flow_line_20_if_5
     router_loop_flow_line_16_while_1 -->|p['iteration'] < p['max_iterations']| router_loop_flow_line_17_seq_6
-    router_loop_flow_line_17_seq_6 --> router_loop_flow_line_16_while_1
     router_loop_flow_line_16_while_1 -->|not (p['iteration'] < p['max_iterations'])| finalize_loop
     router_loop_flow_line_15_seq_7 --> router_loop_flow_line_16_while_1
+    router_loop_flow_line_20_if_5 --> router_loop_flow_line_16_while_1
     finalize_loop --> end_loop_flow

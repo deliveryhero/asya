@@ -18,5 +18,6 @@ flowchart TD
     router_if_elif_else_flow_line_14_if_2 -->|p['type'] == 'A'| handler_type_a
     handler_type_a --> handler_finalize
     router_if_elif_else_flow_line_14_if_2 -->|not (p['type'] == 'A')| router_if_elif_else_flow_line_16_if_1
-    router_if_elif_else_flow_line_16_if_1 --> handler_finalize
+    handler_type_b --> handler_finalize
+    handler_default --> handler_finalize
     handler_finalize --> end_if_elif_else_flow

@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_true_simple",
+  "flow_name": "while_true_flow",
   "nodes": [
     {
       "id": "end_while_true_flow",
@@ -80,12 +80,6 @@
       "to": "router_while_true_flow_line_14_while_1",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_while_true_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_finalize",

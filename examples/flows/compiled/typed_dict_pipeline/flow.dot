@@ -1,4 +1,4 @@
-digraph "typed_dict_pipeline" {
+digraph "typeddict_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

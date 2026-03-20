@@ -1,4 +1,4 @@
-digraph "while_mutations_in_loop" {
+digraph "while_mutations_in_loop_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

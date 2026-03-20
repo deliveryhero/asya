@@ -16,13 +16,12 @@ flowchart TD
     start_text_analysis_flow --> clean_text
     clean_text --> tokenize
     tokenize --> router_text_analysis_flow_line_11_if_4
+    router_text_analysis_flow_line_20_seq_1 --> end_text_analysis_flow
     router_text_analysis_flow_line_13_if_3 -->|p['language'] == 'es'| spanish_sentiment
     router_text_analysis_flow_line_13_if_3 -->|not (p['language'] == 'es')| router_text_analysis_flow_line_16_seq_2
     router_text_analysis_flow_line_11_if_4 -->|p['language'] == 'en'| english_sentiment
     english_sentiment --> extract_entities
     extract_entities --> router_text_analysis_flow_line_20_seq_1
     router_text_analysis_flow_line_11_if_4 -->|not (p['language'] == 'en')| router_text_analysis_flow_line_13_if_3
-    router_text_analysis_flow_line_13_if_3 --> extract_entities
-    extract_entities --> router_text_analysis_flow_line_20_seq_1
-    router_text_analysis_flow_line_16_seq_2 --> end_text_analysis_flow
-    spanish_sentiment --> end_text_analysis_flow
+    spanish_sentiment --> extract_entities
+    router_text_analysis_flow_line_16_seq_2 --> extract_entities

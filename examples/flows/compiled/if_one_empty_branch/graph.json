@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_one_empty_branch",
+  "flow_name": "if_empty_branches_flow",
   "nodes": [
     {
       "id": "end_if_empty_branches_flow",
@@ -68,12 +68,6 @@
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_if_empty_branches_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_finalize",

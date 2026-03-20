@@ -28,7 +28,9 @@ flowchart TD
     router_test_nested_flow_line_19_if_6 -->|p['level2'] == 'X'| router_test_nested_flow_line_20_seq_4
     router_test_nested_flow_line_19_if_6 -->|not (p['level2'] == 'X')| router_test_nested_flow_line_23_seq_5
     router_test_nested_flow_line_9_if_7 -->|p['level1'] == 'A'| router_test_nested_flow_line_11_if_3
-    router_test_nested_flow_line_11_if_3 --> finalize_result
     router_test_nested_flow_line_9_if_7 -->|not (p['level1'] == 'A')| router_test_nested_flow_line_19_if_6
-    router_test_nested_flow_line_19_if_6 --> finalize_result
+    router_test_nested_flow_line_12_seq_1 --> finalize_result
+    router_test_nested_flow_line_15_seq_2 --> finalize_result
+    router_test_nested_flow_line_20_seq_4 --> finalize_result
+    router_test_nested_flow_line_23_seq_5 --> finalize_result
     finalize_result --> end_test_nested_flow

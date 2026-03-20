@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_before_after_handler",
+  "flow_name": "mutations_before_after_handler_flow",
   "nodes": [
     {
       "id": "end_mutations_before_after_handler_flow",
@@ -53,7 +53,7 @@
     },
     {
       "from": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "to": "__terminal__",
+      "to": "end_mutations_before_after_handler_flow",
       "label": null,
       "type": "abort"
     },
@@ -80,12 +80,6 @@
       "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_mutations_before_after_handler_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     }
   ],
   "groups": []

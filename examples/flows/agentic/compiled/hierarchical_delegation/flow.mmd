@@ -36,7 +36,9 @@ flowchart TD
     router_hierarchical_delegation_line_72_if_5 -->|not (p.get('domain') == 'content')| generalist
     router_hierarchical_delegation_line_61_if_6 -->|p.get('domain') == 'data'| data_team_lead
     data_team_lead --> router_hierarchical_delegation_line_65_if_2
-    router_hierarchical_delegation_line_65_if_2 --> final_assembler
     router_hierarchical_delegation_line_61_if_6 -->|not (p.get('domain') == 'data')| router_hierarchical_delegation_line_72_if_5
-    router_hierarchical_delegation_line_72_if_5 --> final_assembler
+    sql_specialist --> final_assembler
+    router_hierarchical_delegation_line_67_if_1 --> final_assembler
+    router_hierarchical_delegation_line_76_if_4 --> final_assembler
+    generalist --> final_assembler
     final_assembler --> end_hierarchical_delegation

@@ -1,5 +1,5 @@
 {
-  "flow_name": "sequential",
+  "flow_name": "sequential_flow",
   "nodes": [
     {
       "id": "end_sequential_flow",
@@ -50,12 +50,6 @@
       "to": "handler_c",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_sequential_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_c",

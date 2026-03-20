@@ -1,4 +1,4 @@
-digraph "if_nested" {
+digraph "conditional_nested_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -24,6 +24,7 @@ digraph "if_nested" {
 
     start_conditional_nested_flow -> handler_validate_input;
     handler_validate_input -> router_conditional_nested_flow_line_9_if_11;
+    router_conditional_nested_flow_line_29_seq_1 -> end_conditional_nested_flow [style=dashed];
     router_conditional_nested_flow_line_27_seq_2 -> handler_finalize;
     handler_finalize -> router_conditional_nested_flow_line_29_seq_1;
     router_conditional_nested_flow_line_16_seq_4 -> handler_b;

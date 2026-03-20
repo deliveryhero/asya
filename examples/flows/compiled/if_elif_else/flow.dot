@@ -1,4 +1,4 @@
-digraph "if_elif_else" {
+digraph "if_elif_else_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

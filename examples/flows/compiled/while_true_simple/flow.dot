@@ -1,4 +1,4 @@
-digraph "while_true_simple" {
+digraph "while_true_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

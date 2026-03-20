@@ -1,5 +1,5 @@
 {
-  "flow_name": "inline_comment_overrides",
+  "flow_name": "order_pipeline",
   "nodes": [
     {
       "id": "charge_payment",
@@ -53,7 +53,7 @@
     },
     {
       "from": "router_order_pipeline_line_33_seq_1",
-      "to": "__terminal__",
+      "to": "end_order_pipeline",
       "label": null,
       "type": "abort"
     },
@@ -80,12 +80,6 @@
       "to": "router_order_pipeline_line_32_if_2",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_order_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "charge_payment",

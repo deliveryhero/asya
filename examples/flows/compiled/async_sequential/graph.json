@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_sequential",
+  "flow_name": "llm_auditor_flow",
   "nodes": [
     {
       "id": "critic",
@@ -38,12 +38,6 @@
       "to": "reviser",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_llm_auditor_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "reviser",

@@ -106,12 +106,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_voting_ensemble",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "judge",
       "to": "end_voting_ensemble",
       "label": null,

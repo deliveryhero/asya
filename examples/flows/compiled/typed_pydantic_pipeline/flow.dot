@@ -1,4 +1,4 @@
-digraph "typed_pydantic_pipeline" {
+digraph "ingester" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -7,4 +7,5 @@ digraph "typed_pydantic_pipeline" {
     start_ingester [label="start_ingester", fillcolor=palegreen];
 
     start_ingester -> router_ingester_line_181_seq_1;
+    router_ingester_line_181_seq_1 -> end_ingester [style=dashed];
 }

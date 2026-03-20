@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_nested",
+  "flow_name": "review_pipeline_flow",
   "nodes": [
     {
       "id": "auto_approve",
@@ -74,12 +74,6 @@
       "to": "auto_approve",
       "label": "not (p['score'] < 0.5)",
       "type": "prepend"
-    },
-    {
-      "from": "end_review_pipeline_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "human_review",

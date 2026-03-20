@@ -131,14 +131,8 @@
     },
     {
       "from": "router_retry_pipeline_line_16_while_0",
-      "to": "__terminal__",
+      "to": "end_retry_pipeline",
       "label": "not (p['attempt'] < 3)",
-      "type": "abort"
-    },
-    {
-      "from": "end_retry_pipeline",
-      "to": "__terminal__",
-      "label": null,
       "type": "abort"
     },
     {

@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_with_if",
+  "flow_name": "if_inside_while_flow",
   "nodes": [
     {
       "id": "end_if_inside_while_flow",
@@ -98,12 +98,6 @@
       "to": "router_if_inside_while_flow_line_14_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "end_if_inside_while_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_even",

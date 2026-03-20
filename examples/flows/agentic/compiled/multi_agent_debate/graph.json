@@ -262,12 +262,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_multi_agent_debate",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_multi_agent_debate_line_68_if_4",
       "to": "router_multi_agent_debate_line_63_while_1",
       "label": null,

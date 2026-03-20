@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_callsite",
+  "flow_name": "decorator_callsite_flow",
   "nodes": [
     {
       "id": "end_decorator_callsite_flow",
@@ -50,12 +50,6 @@
       "to": "enricher",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_decorator_callsite_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "enricher",

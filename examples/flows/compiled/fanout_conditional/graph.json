@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_conditional",
+  "flow_name": "adaptive_flow",
   "nodes": [
     {
       "id": "classifier",
@@ -128,12 +128,6 @@
       "to": "formatter",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_adaptive_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "fanin_adaptive_flow_line_17",

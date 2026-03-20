@@ -106,12 +106,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_guardrails_sandwich",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_guardrails_sandwich_line_47_try_exit_0",
       "to": "end_guardrails_sandwich",
       "label": null,

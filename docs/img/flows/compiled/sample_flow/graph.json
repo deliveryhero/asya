@@ -100,12 +100,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_sample_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "handler_type_a",
       "to": "handler_finalize",
       "label": null,

@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_literal",
+  "flow_name": "analysis_flow",
   "nodes": [
     {
       "id": "end_analysis_flow",
@@ -104,12 +104,6 @@
       "to": "fanin_analysis_flow_line_14",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_analysis_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "merge_analysis",

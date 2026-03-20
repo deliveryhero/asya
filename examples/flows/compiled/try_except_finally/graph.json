@@ -136,12 +136,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_resource_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "finalize",
       "to": "end_resource_pipeline",
       "label": null,

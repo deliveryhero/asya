@@ -112,12 +112,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_plan_and_execute",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "re_planner",
       "to": "router_plan_and_execute_line_54_while_2",
       "label": null,

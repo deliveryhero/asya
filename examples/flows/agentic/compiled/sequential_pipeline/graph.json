@@ -64,12 +64,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_sequential_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "risk_evaluator",
       "to": "end_sequential_pipeline",
       "label": null,

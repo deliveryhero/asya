@@ -1,5 +1,5 @@
 {
-  "flow_name": "typed_pydantic_pipeline",
+  "flow_name": "ingester",
   "nodes": [
     {
       "id": "end_ingester",
@@ -29,13 +29,7 @@
     },
     {
       "from": "router_ingester_line_181_seq_1",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
-      "from": "end_ingester",
-      "to": "__terminal__",
+      "to": "end_ingester",
       "label": null,
       "type": "abort"
     }

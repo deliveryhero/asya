@@ -118,12 +118,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_parallel_sectioning",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "aggregator",
       "to": "end_parallel_sectioning",
       "label": null,

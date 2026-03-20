@@ -100,12 +100,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_order_processing",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "fulfillment_handler",
       "to": "end_order_processing",
       "label": null,

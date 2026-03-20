@@ -70,12 +70,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_research_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "summarizer",
       "to": "end_research_flow",
       "label": null,

@@ -94,12 +94,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_order_processing",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_order_processing_line_4_try_exit_0",
       "to": "end_order_processing",
       "label": null,

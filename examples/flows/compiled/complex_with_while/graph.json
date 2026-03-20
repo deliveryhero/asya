@@ -1,5 +1,5 @@
 {
-  "flow_name": "complex_with_while",
+  "flow_name": "complex_flow",
   "nodes": [
     {
       "id": "end_complex_flow",
@@ -119,7 +119,7 @@
     },
     {
       "from": "router_complex_flow_line_29_if_2",
-      "to": "__terminal__",
+      "to": "end_complex_flow",
       "label": "p['quality_score'] >= 50",
       "type": "abort"
     },
@@ -155,7 +155,7 @@
     },
     {
       "from": "router_complex_flow_line_22_while_1",
-      "to": "__terminal__",
+      "to": "end_complex_flow",
       "label": "not (p.get('batch_count', 0) < p.get('max_batches', 3))",
       "type": "abort"
     },
@@ -194,12 +194,6 @@
       "to": "handler_error",
       "label": "not p['valid']",
       "type": "set"
-    },
-    {
-      "from": "end_complex_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_finalize",

@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_mutations_in_loop",
+  "flow_name": "while_mutations_in_loop_flow",
   "nodes": [
     {
       "id": "end_while_mutations_in_loop_flow",
@@ -98,12 +98,6 @@
       "to": "router_while_mutations_in_loop_flow_line_15_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "end_while_mutations_in_loop_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "router_while_mutations_in_loop_flow_line_20_seq_2",

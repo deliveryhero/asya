@@ -214,12 +214,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_hierarchical_delegation",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "sql_specialist",
       "to": "final_assembler",
       "label": null,

@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_sequential",
+  "flow_name": "multi_stage_flow",
   "nodes": [
     {
       "id": "end_multi_stage_flow",
@@ -110,12 +110,6 @@
       "to": "fanin_multi_stage_flow_line_15",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_multi_stage_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "summarizer",

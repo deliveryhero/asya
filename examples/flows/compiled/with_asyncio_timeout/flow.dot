@@ -13,6 +13,7 @@ digraph "with_asyncio_timeout" {
     translator [label="translator", fillcolor=lightblue];
 
     start_document_pipeline -> router_document_pipeline_line_18_seq_3;
+    router_document_pipeline_line_28_seq_1 -> end_document_pipeline [style=dashed];
     router_document_pipeline_line_24_if_2 -> translator [label="p.get('language') != 'en'"];
     translator -> sentiment_analyzer;
     sentiment_analyzer -> router_document_pipeline_line_28_seq_1;

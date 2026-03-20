@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_elif_else",
+  "flow_name": "if_elif_else_flow",
   "nodes": [
     {
       "id": "end_if_elif_else_flow",
@@ -98,12 +98,6 @@
       "to": "router_if_elif_else_flow_line_16_if_1",
       "label": "not (p['type'] == 'A')",
       "type": "prepend"
-    },
-    {
-      "from": "end_if_elif_else_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "handler_type_b",

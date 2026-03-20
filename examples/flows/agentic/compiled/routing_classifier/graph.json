@@ -124,12 +124,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_routing_classifier",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "technical_agent",
       "to": "format_reply",
       "label": null,

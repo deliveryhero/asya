@@ -196,12 +196,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_react_tool_loop",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_react_tool_loop_line_53_if",
       "to": "router_react_tool_loop_line_46_loop_back_0",
       "label": null,

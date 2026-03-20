@@ -178,12 +178,6 @@
       "type": "prepend"
     },
     {
-      "from": "end_orchestrator_workers",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "analysis_worker",
       "to": "router_orchestrator_workers_line_72_if_2",
       "label": null,

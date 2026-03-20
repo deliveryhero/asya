@@ -154,12 +154,6 @@
       "type": "continuation"
     },
     {
-      "from": "end_rag_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_rag_pipeline_line_66_if_3",
       "to": "router_rag_pipeline_line_56_while_1",
       "label": null,

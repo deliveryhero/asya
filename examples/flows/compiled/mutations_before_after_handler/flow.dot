@@ -1,4 +1,4 @@
-digraph "mutations_before_after_handler" {
+digraph "mutations_before_after_handler_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -11,6 +11,7 @@ digraph "mutations_before_after_handler" {
     start_mutations_before_after_handler_flow [label="start_mutations_before_after_handler_flow", fillcolor=palegreen];
 
     start_mutations_before_after_handler_flow -> router_mutations_before_after_handler_flow_line_13_seq_3;
+    router_mutations_before_after_handler_flow_line_17_seq_1 -> end_mutations_before_after_handler_flow [style=dashed];
     router_mutations_before_after_handler_flow_line_15_seq_2 -> handler_b;
     handler_b -> router_mutations_before_after_handler_flow_line_17_seq_1;
     router_mutations_before_after_handler_flow_line_13_seq_3 -> handler_a;

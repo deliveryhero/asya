@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_comprehension",
+  "flow_name": "research_flow",
   "nodes": [
     {
       "id": "end_research_flow",
@@ -80,12 +80,6 @@
       "to": "fanin_research_flow_line_15",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_research_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "post_processor",

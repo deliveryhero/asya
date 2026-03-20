@@ -65,7 +65,7 @@
     },
     {
       "from": "router_document_pipeline_line_28_seq_1",
-      "to": "__terminal__",
+      "to": "end_document_pipeline",
       "label": null,
       "type": "abort"
     },
@@ -110,12 +110,6 @@
       "to": "router_document_pipeline_line_24_if_2",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_document_pipeline",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     }
   ],
   "groups": []

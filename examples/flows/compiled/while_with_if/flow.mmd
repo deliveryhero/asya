@@ -16,9 +16,8 @@ flowchart TD
     router_if_inside_while_flow_line_16_if_2 -->|p['i'] % 2 == 0| handler_even
     router_if_inside_while_flow_line_16_if_2 -->|not (p['i'] % 2 == 0)| handler_odd
     router_if_inside_while_flow_line_14_while_1 -->|p['i'] < p['max_iterations']| router_if_inside_while_flow_line_16_if_2
-    router_if_inside_while_flow_line_16_if_2 --> router_if_inside_while_flow_line_14_while_1
     router_if_inside_while_flow_line_14_while_1 -->|not (p['i'] < p['max_iterations'])| handler_finalize
     router_if_inside_while_flow_line_13_seq_3 --> router_if_inside_while_flow_line_14_while_1
-    handler_even --> end_if_inside_while_flow
+    handler_even --> router_if_inside_while_flow_line_14_while_1
+    handler_odd --> router_if_inside_while_flow_line_14_while_1
     handler_finalize --> end_if_inside_while_flow
-    handler_odd --> end_if_inside_while_flow

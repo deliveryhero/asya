@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_inline_comments",
+  "flow_name": "decorator_inline_comments_flow",
   "nodes": [
     {
       "id": "classifier",
@@ -74,12 +74,6 @@
       "to": "router_decorator_inline_comments_flow_line_18_if_1",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "end_decorator_inline_comments_flow",
-      "to": "__terminal__",
-      "label": null,
-      "type": "abort"
     },
     {
       "from": "fast_handler",
