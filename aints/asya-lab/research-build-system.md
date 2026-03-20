@@ -197,8 +197,8 @@ handler function (Python)
   -> absolute source path
   -> find skaffold artifact whose context dir contains this path
   -> artifact.image (registry/repo, no tag)
-  -> parse Dockerfile COPY to determine in-container module path
-  -> emit AsyncActor CRD
+  -> Griffe maps filesystem path to importable package name (D6)
+  -> emit AsyncActor CRD with correct in-container FQN
 ```
 
 Dockerfile scanning is used as input to **generating** skaffold.yaml
@@ -257,12 +257,43 @@ in overlay kustomization files. On recompile, it appends new images
 without touching existing entries. CI uses `kustomize edit set image`
 or `skaffold render` to inject real tags.
 
-### D6: In-container module path via Dockerfile COPY parsing
+### D6: In-container module path via Griffe static analysis
 
-Best-effort parsing of Dockerfile COPY directives to determine where
-source ends up inside the image. Falls back to convention (local path
-= container path) if parsing fails (variable expansion, multi-stage).
-Buildpacks always use `/workspace/` (predictable).
+**Supersedes earlier idea of Dockerfile COPY parsing.**
+
+The problem: the compiler knows the handler's local FQN (from
+`inspect.getfile()`), but the in-container FQN may differ. Simple
+path math (relativize source path against skaffold context dir) breaks
+when `pip install` remaps directory names to package names (the package
+name in `pyproject.toml` can differ from the directory name).
+
+**Decision**: use [Griffe](https://mkdocstrings.github.io/griffe/) to
+statically analyze each skaffold artifact's context directory and discover
+importable Python package names. Griffe handles all packaging variants
+(pyproject.toml, setup.py, setup.cfg, flat modules) without importing.
+
+Griffe runs at **`asya analyze` time** (not in the compiler). It produces
+a directory-to-package lookup that the compiler consumes. This keeps the
+compiler fast and dependency-light.
+
+Resolution example:
+```
+# skaffold.yaml: artifact { context: ".", image: "ghcr.io/team/nlp" }
+# Griffe scans repo root, discovers:
+#   actors/nlp/  -> package "nlp_actors"  (from pyproject.toml)
+#   libs/common/ -> package "common"      (from pyproject.toml)
+#
+# Compiler sees: from nlp_actors.handler import classify
+# inspect.getfile(classify) -> /repo/actors/nlp/nlp_actors/handler.py
+# File is inside actors/nlp/ which Griffe says is package "nlp_actors"
+# In-container FQN: nlp_actors.handler.classify
+```
+
+Why not Dockerfile COPY parsing:
+- Skaffold doesn't know what happens inside the Dockerfile
+- COPY destinations, PYTHONPATH, pip install all affect import paths
+- Griffe solves the problem at the Python packaging level, not the
+  Docker layer level -- which is the right abstraction
 
 ### D7: Progressive complexity
 
@@ -275,9 +306,182 @@ Buildpacks always use `/workspace/` (predictable).
 
 ---
 
-## 5. Remaining Open Questions
+## 5. Resolution Scenarios
 
-### Q3: Pre-built / external images
+Systematic analysis of the resolution chain across project structures.
+All scenarios use the same chain: `inspect.getfile()` -> skaffold
+artifact match -> Griffe package discovery -> in-container FQN.
+
+### S1: Standard pyproject.toml package ✅
+
+```
+repo/
+├── actors/nlp/
+│   ├── pyproject.toml    # name = "nlp-actors", packages = ["nlp_actors"]
+│   ├── Dockerfile        # RUN pip install .
+│   └── nlp_actors/
+│       ├── __init__.py
+│       └── handler.py    # def classify(p): ...
+├── .asya/config.yaml
+└── skaffold.yaml         # artifact: context=actors/nlp/, image=ghcr.io/team/nlp
+```
+
+- **Local**: `pip install -e actors/nlp/` -> `from nlp_actors.handler import classify`
+- `inspect.getfile(classify)` -> `repo/actors/nlp/nlp_actors/handler.py`
+- Skaffold: context `actors/nlp/` contains the source path -> image matched
+- Griffe scans `actors/nlp/`, finds package `nlp_actors`
+- In-container FQN: `nlp_actors.handler.classify` ✅
+- **Notebook**: same, if venv has the package installed ✅
+
+### S2: requirements.txt + flat scripts ✅
+
+```
+actors/simple/
+├── requirements.txt
+├── Dockerfile          # COPY . /app, ENV PYTHONPATH=/app
+└── handler.py          # def process(p): ...
+```
+
+- `inspect.getfile(process)` -> `repo/actors/simple/handler.py`
+- Skaffold: context `actors/simple/` matches
+- Griffe scans `actors/simple/`, finds flat module `handler`
+- In-container FQN: `handler.process` ✅
+- **Caveat**: locally the user must import as `from handler import process`
+  (with `actors/simple/` on sys.path), not as `actors.simple.handler.process`.
+  If the local import uses a longer path, the local FQN != Griffe FQN.
+  This is a user setup issue, not a compiler issue.
+
+### S3: Nested .asya/ sub-projects (monorepo) ✅
+
+```
+repo/
+├── team-a/
+│   ├── .asya/config.yaml
+│   ├── skaffold.yaml      # artifact: context=., image=ghcr.io/team-a/svc
+│   └── my_service/
+│       ├── __init__.py
+│       └── handler.py
+├── team-b/
+│   ├── .asya/config.yaml
+│   ├── skaffold.yaml
+│   └── ...
+```
+
+- Compiler walks up from flow file, finds `team-a/.asya/`, uses
+  `team-a/skaffold.yaml`
+- `inspect.getfile()` -> `repo/team-a/my_service/handler.py`
+- Context is `team-a/` -> Griffe scans, finds package `my_service`
+- In-container FQN: `my_service.handler.X` ✅
+- Each sub-project is self-contained with its own skaffold.yaml
+
+### S4: Standalone single-file actor ✅
+
+```
+actors/quick/
+├── Dockerfile        # COPY classify.py /app/
+└── classify.py       # def handler(p): ...
+```
+
+- `inspect.getfile(handler)` -> `repo/actors/quick/classify.py`
+- Skaffold: context `actors/quick/` matches
+- Griffe finds flat module `classify`
+- In-container FQN: `classify.handler` ✅
+- Same caveat as S2: local import must match context-relative path
+
+### S5: Shared library across artifacts ✅
+
+```
+repo/
+├── libs/common/
+│   ├── pyproject.toml  # name = "common-utils", packages = ["common"]
+│   └── common/
+│       ├── __init__.py
+│       └── utils.py    # def tokenize(p): ...
+├── actors/nlp/
+│   ├── pyproject.toml
+│   ├── Dockerfile      # context must be repo root to reach ../libs/
+│   └── nlp_actors/
+│       └── handler.py  # from common.utils import tokenize
+└── skaffold.yaml       # artifact: context=".", image=ghcr.io/team/nlp
+```
+
+- Docker build context must be repo root (`.`) since Dockerfile cannot
+  COPY from outside its context
+- Alternative: use Skaffold multi-config with `requires` for dependency
+  ordering between sub-configs (see [Skaffold multi-config](
+  https://skaffold.dev/docs/design/config/#multi-config-projects))
+- `inspect.getfile(tokenize)` -> `repo/libs/common/common/utils.py`
+- Skaffold: context `.` (repo root) contains the path -> image matched
+- Griffe scans repo root, discovers `libs/common/` contains package
+  `common` (from pyproject.toml) ✅
+- In-container FQN: `common.utils.tokenize` ✅
+- **Key**: path math alone would give `libs.common.common.utils.tokenize`
+  (wrong). Griffe is needed to know that `libs/common/` is package `common`.
+
+### S6: pip-installed third-party handler ❌ (out of scope)
+
+```python
+# flow.py
+from langchain.agents import create_agent  # pip-installed, not local code
+p = create_agent(p)
+```
+
+- `inspect.getfile()` -> `/venv/lib/python3.13/site-packages/langchain/...`
+- Not inside any skaffold artifact's context dir -> **no match**
+- This is a pre-built/external image case (see Q3 below)
+- Requires explicit configuration -- the compiler cannot auto-discover
+  which image contains a pip-installed package
+
+### S7: N:M -- same package in multiple images ✅ (via profiles)
+
+```yaml
+# skaffold.yaml
+build:
+  artifacts:
+    - image: ghcr.io/team/nlp-cpu
+      context: actors/nlp/
+profiles:
+  - name: gpu
+    patches:
+      - op: replace
+        path: /build/artifacts/0/image
+        value: ghcr.io/team/nlp-gpu
+```
+
+- `asya compile --profile gpu` selects the GPU artifact
+- Same resolution chain, different image name per profile ✅
+- Without `--profile`, default artifact wins
+
+### S8: Class-based handler ✅
+
+```python
+# actors/nlp/nlp_actors/handler.py
+class TextProcessor:
+    def classify(self, p: dict) -> dict: ...
+```
+
+- `inspect.getfile(TextProcessor.classify)` -> same file path
+- Griffe discovers `nlp_actors` package, resolves class + method
+- In-container FQN: `nlp_actors.handler.TextProcessor.classify` ✅
+
+### Summary
+
+| # | Scenario | Auto-resolves? | Griffe needed? | Notes |
+|---|---|---|---|---|
+| S1 | pyproject.toml package | ✅ | ✅ | Happy path |
+| S2 | requirements.txt + flat | ✅ | ✅ | Local import must match context-relative path |
+| S3 | Nested .asya/ monorepo | ✅ | ✅ | Each sub-project self-contained |
+| S4 | Standalone script | ✅ | ✅ | Same caveat as S2 |
+| S5 | Shared library | ✅ | ✅ | Context must be repo root; Griffe essential |
+| S6 | pip third-party | ❌ | N/A | Needs explicit config (Q3) |
+| S7 | N:M variants | ✅ | ✅ | Skaffold profiles |
+| S8 | Class-based handler | ✅ | ✅ | Griffe resolves class.method |
+
+---
+
+## 6. Remaining Open Questions
+
+### Q3: Pre-built / external images (S6)
 
 Handlers from pip-installed packages or external team images have no
 build context and no Dockerfile. They don't fit in skaffold.yaml
@@ -286,29 +490,22 @@ build context and no Dockerfile. They don't fit in skaffold.yaml
 - Separate section in `.asya/config.yaml` for pre-built image bindings
 - Flow-level config (per-flow image overrides)
 
-### Q6: Dockerfile COPY parsing reliability
-
-Best-effort parsing is accepted (D6), but edge cases remain:
-variable expansion (`COPY ${DIR} /app`), multi-stage
-(`COPY --from=builder`). Need to define the fallback behavior
-and error messages clearly.
-
 ---
 
-## 6. Next Steps
+## 7. Next Steps
 
 1. **PoC: Skaffold integration** -- set up a sample multi-actor project,
    generate skaffold.yaml from Dockerfiles, verify the resolution chain
    works end-to-end (handler -> source path -> artifact -> image name).
 2. **PoC: `skaffold dev`** -- verify file sync works for the dev loop
    (no-build scenario).
-3. **Prototype Dockerfile COPY parser** -- best-effort, test against
-   real-world Dockerfiles in the project.
-4. **Design pre-built image binding** -- resolve Q3.
+3. **PoC: Griffe package discovery** -- verify Griffe correctly discovers
+   importable package names from context dirs across scenarios S1-S5.
+4. **Design pre-built image binding** -- resolve Q3 (S6).
 
 ---
 
-## 7. Design Principles (from brainstorming)
+## 8. Design Principles (from brainstorming)
 
 1. Image contains package, not the other way around (D1)
 2. No Python-side annotations for image binding -- it's a deployment concern
@@ -329,6 +526,8 @@ and error messages clearly.
 - [Paketo Python buildpack](https://paketo.io/docs/howto/python/)
 - [Skaffold builders](https://skaffold.dev/docs/builders/)
 - [Skaffold taggers](https://skaffold.dev/docs/taggers/)
+- [Skaffold multi-config projects](https://skaffold.dev/docs/design/config/#multi-config-projects)
+- [Griffe -- Python API introspection](https://mkdocstrings.github.io/griffe/)
 - [Pants BUILD files](https://www.pantsbuild.org/stable/docs/using-pants/key-concepts/targets-and-build-files)
 - Asya research: `research-no-dockerfile.md`, `research-seamless-build.md`
 - Asya RFC: `compiler-simplify/rfc.md` (sections on image mapping)
