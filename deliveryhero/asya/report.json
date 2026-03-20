@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "48676e7b8b5f25b090e9170910a9bdd60cfdd0b2",
+  "commit": "fe986bcb52b117c306743c335a09cc831b5f926c",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -25436,7 +25436,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 31941,
+    "code": 31946,
     "test": 19909,
     "code_files": [
       {
@@ -27120,9 +27120,9 @@
         "language": "Python"
       },
       {
-        "code": 283,
-        "comment": 85,
-        "blank": 96,
+        "code": 288,
+        "comment": 88,
+        "blank": 95,
         "path": "src/asya-lab/asya_lab/k_cli.py",
         "language": "Python"
       },
@@ -28327,6 +28327,6 @@
       }
     ]
   },
-  "test_execution_time": 382000000000,
-  "timestamp": "2026-03-20T21:46:56.942506036Z"
+  "test_execution_time": 351000000000,
+  "timestamp": "2026-03-20T22:42:13.006495299Z"
 }
