@@ -1,7 +1,9 @@
 ---
 title: "Compiler rules: per-scope semantics for context managers, decorators, and single calls"
 priority: 2 # medium
+assignee: Artem Yushkovskiy
 ---
+
 
 
 
