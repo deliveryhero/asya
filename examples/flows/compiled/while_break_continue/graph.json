@@ -9,7 +9,7 @@
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
@@ -63,7 +63,7 @@
     },
     {
       "id": "start_while_break_continue_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_while_break_continue_flow",
       "is_generated": true
     }

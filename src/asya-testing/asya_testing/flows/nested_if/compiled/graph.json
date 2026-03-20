@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "finalize_result",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "finalize_result",
       "is_generated": false
     },
@@ -93,7 +93,7 @@
     },
     {
       "id": "start_test_nested_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_test_nested_flow",
       "is_generated": true
     },

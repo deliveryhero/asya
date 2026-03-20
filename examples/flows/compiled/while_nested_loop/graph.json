@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "finalize_loop_i",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "finalize_loop_i",
       "is_generated": false
     },
     {
       "id": "finalize_loop_j",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "finalize_loop_j",
       "is_generated": false
     },
@@ -67,7 +67,7 @@
     },
     {
       "id": "start_nested_loop_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_nested_loop_flow",
       "is_generated": true
     }

@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "auto_approve",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "auto_approve",
       "is_generated": false
     },
@@ -15,7 +15,7 @@
     },
     {
       "id": "human_review",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "human_review",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_review_pipeline_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_review_pipeline_flow",
       "is_generated": true
     }

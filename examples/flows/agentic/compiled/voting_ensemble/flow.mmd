@@ -21,11 +21,11 @@ flowchart TD
     concise_writer --> fanin_voting_ensemble_line_44
     judge --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_voting_ensemble entrypoint
+    class start_voting_ensemble start
     class router_voting_ensemble_line_44_fanout_1 router
     class analytical_writer,concise_writer,creative_writer,fanin_voting_ensemble_line_44,judge handler
     class __end__ endpoint

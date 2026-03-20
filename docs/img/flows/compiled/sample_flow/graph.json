@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
@@ -51,7 +51,7 @@
     },
     {
       "id": "start_sample_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_sample_flow",
       "is_generated": true
     }

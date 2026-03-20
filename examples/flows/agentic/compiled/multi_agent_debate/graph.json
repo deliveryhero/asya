@@ -39,7 +39,7 @@
     },
     {
       "id": "final_judge",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "final_judge",
       "is_generated": false
     },
@@ -102,7 +102,7 @@
     },
     {
       "id": "start_multi_agent_debate",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_multi_agent_debate",
       "is_generated": true,
       "mutations": [

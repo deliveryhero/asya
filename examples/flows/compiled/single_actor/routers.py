@@ -22,6 +22,6 @@ FLOW_METADATA = {
     "actor": 'document_processor',
     "labels": {
         "asya.sh/flow": "single_actor_flow",
-        "asya.sh/flow-role": "entry",
+        "asya.sh/flow-role": "start",
     },
 }

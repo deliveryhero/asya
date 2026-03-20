@@ -9,7 +9,7 @@
     },
     {
       "id": "post_processor",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "post_processor",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_research_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_research_flow",
       "is_generated": true
     }

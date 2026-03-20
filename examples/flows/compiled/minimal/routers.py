@@ -22,6 +22,6 @@ FLOW_METADATA = {
     "actor": 'handler_a',
     "labels": {
         "asya.sh/flow": "minimal_flow",
-        "asya.sh/flow-role": "entry",
+        "asya.sh/flow-role": "start",
     },
 }

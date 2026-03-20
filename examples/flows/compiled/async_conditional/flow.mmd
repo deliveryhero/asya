@@ -22,11 +22,11 @@ flowchart TD
     generic_processor --> quality_check
     quality_check --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_content_pipeline_flow entrypoint
+    class start_content_pipeline_flow start
     class router_content_pipeline_flow_line_16_if_2,router_content_pipeline_flow_line_18_if_1 router
     class classifier,generic_processor,image_processor,quality_check,text_processor handler
     class __end__ endpoint

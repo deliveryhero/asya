@@ -22,11 +22,11 @@ class TestActorInfo:
             name="start-my-flow",
             handler="routers.start_my_flow",
             image="python:3.13-slim",
-            flow_role="entry",
+            flow_role="start",
             is_generated=True,
         )
         assert actor.is_generated is True
-        assert actor.flow_role == "entry"
+        assert actor.flow_role == "start"
 
     def test_env_defaults_to_empty(self):
         actor = ActorInfo(name="a", handler="a", image="img", flow_role="actor")

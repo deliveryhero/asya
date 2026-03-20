@@ -21,13 +21,13 @@
     },
     {
       "id": "formatter",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "formatter",
       "is_generated": false
     },
     {
       "id": "start_typed_dataclass_pipeline",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_typed_dataclass_pipeline",
       "is_generated": true
     }

@@ -39,7 +39,7 @@
     },
     {
       "id": "final_assembler",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "final_assembler",
       "is_generated": false
     },
@@ -99,7 +99,7 @@
     },
     {
       "id": "start_hierarchical_delegation",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_hierarchical_delegation",
       "is_generated": true
     },

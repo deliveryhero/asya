@@ -15,13 +15,13 @@
     },
     {
       "id": "escalate",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "escalate",
       "is_generated": false
     },
     {
       "id": "format_output",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "format_output",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_actor_override_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_actor_override_flow",
       "is_generated": true
     },

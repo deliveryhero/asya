@@ -585,11 +585,9 @@ def _validate_graph(graph: GraphData) -> list[str]:
     """Validate graph invariants and return warnings for violations.
 
     Checks:
-    1. Fully connected: every node is reachable from the entry node
-    2. No dangling non-exit leaves: nodes with incoming edges but no outgoing
-       edges must have flow_role=exit
-    3. Disconnected sources: nodes with outgoing but no incoming edges must be entry nodes
-    4. If routers must have both conditional and else edges
+    1. Fully connected: every node is reachable from the start node
+    2. Disconnected sources: nodes with outgoing but no incoming edges must be start nodes
+    3. If routers must have both conditional and else edges
     """
     warnings: list[str] = []
     node_ids = {n["id"] for n in graph.nodes}
@@ -601,11 +599,11 @@ def _validate_graph(graph: GraphData) -> list[str]:
     for edge in graph.edges:
         adjacency[edge["from"]].add(edge["to"])
 
-    # Check 1: Reachability from entrypoint
-    entrypoints = [n["id"] for n in graph.nodes if n["flow_role"] == "entry"]
-    if entrypoints:
+    # Check 1: Reachability from start node
+    start_nodes = [n["id"] for n in graph.nodes if n["flow_role"] == "start"]
+    if start_nodes:
         reachable: set[str] = set()
-        stack = list(entrypoints)
+        stack = list(start_nodes)
         while stack:
             current = stack.pop()
             if current in reachable:
@@ -614,19 +612,12 @@ def _validate_graph(graph: GraphData) -> list[str]:
             stack.extend(adjacency.get(current, set()))
         unreachable = node_ids - reachable
         for node_id in sorted(unreachable):
-            warnings.append(f"node '{node_id}' is not reachable from entry")
+            warnings.append(f"node '{node_id}' is not reachable from start")
 
-    # Check 2: No dangling non-exit leaves
-    leaves = targets - sources
-    for leaf in sorted(leaves):
-        node = next((n for n in graph.nodes if n["id"] == leaf), None)
-        if node and node["flow_role"] != "exit":
-            warnings.append(f"node '{leaf}' is a leaf but has flow_role='{node['flow_role']}', expected 'exit'")
-
-    # Check 3: Nodes that are sources but not targets (and not entrypoints) are disconnected
+    # Check 2: Nodes that are sources but not targets (and not start nodes) are disconnected
     for node_id in sorted(sources - targets):
         node = next((n for n in graph.nodes if n["id"] == node_id), None)
-        if node and node["flow_role"] != "entry":
+        if node and node["flow_role"] != "start":
             warnings.append(f"node '{node_id}' has no incoming edges but is not an entry")
 
     # Check 4: Every if router must have both a conditional and an else edge
@@ -768,18 +759,13 @@ def _is_payload_target(node: ast.expr) -> bool:
 def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -> str:
     """Determine the flow role of a node.
 
-    Roles: entry, exit, router, actor.
+    Roles: start, router, actor.
     """
     if name.startswith("start_"):
-        return "entry"
+        return "start"
     if name.startswith("fanin_"):
         return "router"
 
-    is_source = any(e["from"] == name for e in edges)
-    is_target = any(e["to"] == name for e in edges)
-
-    if is_target and not is_source:
-        return "exit"
     if name in router_names:
         return "router"
     return "actor"

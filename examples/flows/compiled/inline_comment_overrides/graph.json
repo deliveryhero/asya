@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "charge_payment",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "charge_payment",
       "is_generated": false
     },
@@ -15,7 +15,7 @@
     },
     {
       "id": "router_order_pipeline_line_33_seq_1",
-      "flow_role": "exit",
+      "flow_role": "router",
       "label": "router_order_pipeline_line_33_seq_1",
       "is_generated": true,
       "mutations": [
@@ -24,7 +24,7 @@
     },
     {
       "id": "start_order_pipeline",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_order_pipeline",
       "is_generated": true
     },

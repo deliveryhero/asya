@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "error_handler",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "error_handler",
       "is_generated": false
     },
@@ -21,13 +21,13 @@
     },
     {
       "id": "sink_adapter",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "sink_adapter",
       "is_generated": false
     },
     {
       "id": "start_typeddict_pipeline",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_typeddict_pipeline",
       "is_generated": true
     },

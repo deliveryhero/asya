@@ -163,7 +163,7 @@ class CodeGenerator:
                 "actor": {actor.name!r},
                 "labels": {{
                     "asya.sh/flow": "{self.flow_name}",
-                    "asya.sh/flow-role": "entry",
+                    "asya.sh/flow-role": "start",
                 }},
             }}
             """

@@ -17,11 +17,11 @@ flowchart TD
     router_while_true_flow_line_16_if_2 -->|"else"| router_while_true_flow_line_14_while_1
     handler_finalize --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_while_true_flow entrypoint
+    class start_while_true_flow start
     class router_while_true_flow_line_14_while_1,router_while_true_flow_line_16_if_2 router
     class handler_finalize,handler_init,handler_process handler
     class __end__ endpoint

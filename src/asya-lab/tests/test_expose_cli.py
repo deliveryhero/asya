@@ -17,7 +17,7 @@ ACTOR_MANIFEST = {
         "name": "start-my-flow",
         "labels": {
             "asya.sh/flow": "my-flow",
-            "asya.sh/flow-role": "entry",
+            "asya.sh/flow-role": "start",
             "asya.sh/managed-by": "asya-compiler",
         },
     },

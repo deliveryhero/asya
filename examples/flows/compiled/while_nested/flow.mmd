@@ -31,11 +31,11 @@ flowchart TD
     handler_finalize --> __end__
     handler_outer_end --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_while_nested_flow entrypoint
+    class start_while_nested_flow start
     class router_while_nested_flow_line_13_seq_6,router_while_nested_flow_line_14_while_1,router_while_nested_flow_line_15_seq_5,router_while_nested_flow_line_17_seq_4,router_while_nested_flow_line_18_while_2,router_while_nested_flow_line_19_seq_3 router
     class handler_finalize,handler_init,handler_inner,handler_outer,handler_outer_end handler
     class __end__ endpoint

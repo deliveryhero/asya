@@ -42,7 +42,7 @@
     },
     {
       "id": "router_text_analysis_flow_line_20_seq_1",
-      "flow_role": "exit",
+      "flow_role": "router",
       "label": "router_text_analysis_flow_line_20_seq_1",
       "is_generated": true,
       "mutations": [
@@ -57,7 +57,7 @@
     },
     {
       "id": "start_text_analysis_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_text_analysis_flow",
       "is_generated": true
     },

@@ -15,13 +15,13 @@
     },
     {
       "id": "handler_c",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_c",
       "is_generated": false
     },
     {
       "id": "start_sequential_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_sequential_flow",
       "is_generated": true
     }

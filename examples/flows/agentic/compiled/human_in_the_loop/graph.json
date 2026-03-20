@@ -15,7 +15,7 @@
     },
     {
       "id": "notifier",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "notifier",
       "is_generated": false
     },
@@ -75,7 +75,7 @@
     },
     {
       "id": "start_human_in_the_loop",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_human_in_the_loop",
       "is_generated": true,
       "mutations": [

@@ -27,7 +27,7 @@
     },
     {
       "id": "start_agent_with_tools",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_agent_with_tools",
       "is_generated": true,
       "mutations": [

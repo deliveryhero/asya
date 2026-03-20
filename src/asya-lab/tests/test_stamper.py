@@ -198,7 +198,7 @@ class TestBaseLayer:
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
-        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "entry"
+        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "start"
 
     def test_router_actor_has_handler_env(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)

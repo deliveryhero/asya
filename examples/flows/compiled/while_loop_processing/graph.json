@@ -9,7 +9,7 @@
     },
     {
       "id": "finalize_loop",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "finalize_loop",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_loop_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_loop_flow",
       "is_generated": true
     }

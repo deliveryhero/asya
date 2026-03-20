@@ -15,7 +15,7 @@
     },
     {
       "id": "polisher",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "polisher",
       "is_generated": false
     },
@@ -48,7 +48,7 @@
     },
     {
       "id": "start_evaluator_optimizer",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_evaluator_optimizer",
       "is_generated": true,
       "mutations": [

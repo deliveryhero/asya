@@ -3,7 +3,7 @@
   "nodes": [
     {
       "id": "aggregator",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "aggregator",
       "is_generated": false
     },
@@ -39,7 +39,7 @@
     },
     {
       "id": "start_parallel_sectioning",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_parallel_sectioning",
       "is_generated": true
     },

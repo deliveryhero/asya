@@ -15,7 +15,7 @@
     },
     {
       "id": "handler_c",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_c",
       "is_generated": false
     },
@@ -117,7 +117,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_29_seq_1",
-      "flow_role": "exit",
+      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_29_seq_1",
       "is_generated": true,
       "mutations": [
@@ -136,7 +136,7 @@
     },
     {
       "id": "start_conditional_nested_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_conditional_nested_flow",
       "is_generated": true
     }

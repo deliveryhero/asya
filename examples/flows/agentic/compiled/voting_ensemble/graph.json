@@ -27,7 +27,7 @@
     },
     {
       "id": "judge",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "judge",
       "is_generated": false
     },
@@ -39,7 +39,7 @@
     },
     {
       "id": "start_voting_ensemble",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_voting_ensemble",
       "is_generated": true
     }

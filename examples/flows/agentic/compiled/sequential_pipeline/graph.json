@@ -15,13 +15,13 @@
     },
     {
       "id": "risk_evaluator",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "risk_evaluator",
       "is_generated": false
     },
     {
       "id": "start_sequential_pipeline",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_sequential_pipeline",
       "is_generated": true
     },

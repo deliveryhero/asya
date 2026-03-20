@@ -15,7 +15,7 @@
     },
     {
       "id": "merge_analysis",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "merge_analysis",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_analysis_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_analysis_flow",
       "is_generated": true
     },

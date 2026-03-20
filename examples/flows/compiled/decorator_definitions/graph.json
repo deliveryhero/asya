@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "enrich",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "enrich",
       "is_generated": false
     },
     {
       "id": "start_decorator_definitions_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_decorator_definitions_flow",
       "is_generated": true
     },

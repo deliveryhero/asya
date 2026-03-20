@@ -21,7 +21,7 @@
     },
     {
       "id": "router_document_pipeline_line_28_seq_1",
-      "flow_role": "exit",
+      "flow_role": "router",
       "label": "router_document_pipeline_line_28_seq_1",
       "is_generated": true,
       "mutations": [
@@ -36,7 +36,7 @@
     },
     {
       "id": "start_document_pipeline",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_document_pipeline",
       "is_generated": true,
       "mutations": [

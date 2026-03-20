@@ -66,7 +66,7 @@
     },
     {
       "id": "start_orchestrator_workers",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_orchestrator_workers",
       "is_generated": true,
       "mutations": [
@@ -76,7 +76,7 @@
     },
     {
       "id": "synthesizer",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "synthesizer",
       "is_generated": false
     },

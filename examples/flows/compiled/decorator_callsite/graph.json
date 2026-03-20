@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "enricher",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "enricher",
       "is_generated": false
     },
     {
       "id": "start_decorator_callsite_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_decorator_callsite_flow",
       "is_generated": true
     },

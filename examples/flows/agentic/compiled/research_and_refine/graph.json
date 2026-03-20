@@ -48,7 +48,7 @@
     },
     {
       "id": "start_research_and_refine",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_research_and_refine",
       "is_generated": true,
       "mutations": [
@@ -58,7 +58,7 @@
     },
     {
       "id": "write_report",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "write_report",
       "is_generated": false
     }

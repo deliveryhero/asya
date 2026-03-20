@@ -15,13 +15,13 @@
     },
     {
       "id": "handler_error",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_error",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_complex_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_complex_flow",
       "is_generated": true
     }

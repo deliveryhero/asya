@@ -35,11 +35,11 @@ flowchart TD
     route_b_y --> finalize_result
     finalize_result --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_test_nested_flow entrypoint
+    class start_test_nested_flow start
     class router_test_nested_flow_line_11_if_3,router_test_nested_flow_line_12_seq_1,router_test_nested_flow_line_15_seq_2,router_test_nested_flow_line_19_if_6,router_test_nested_flow_line_20_seq_4,router_test_nested_flow_line_23_seq_5,router_test_nested_flow_line_9_if_7 router
     class finalize_result,route_a_x,route_a_y,route_b_x,route_b_y,validate_input handler
     class __end__ endpoint

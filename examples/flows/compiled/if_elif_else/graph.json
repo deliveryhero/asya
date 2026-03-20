@@ -9,7 +9,7 @@
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "handler_finalize",
       "is_generated": false
     },
@@ -45,7 +45,7 @@
     },
     {
       "id": "start_if_elif_else_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_if_elif_else_flow",
       "is_generated": true
     }

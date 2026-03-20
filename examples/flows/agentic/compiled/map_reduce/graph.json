@@ -15,7 +15,7 @@
     },
     {
       "id": "reducer",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "reducer",
       "is_generated": false
     },
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_map_reduce",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_map_reduce",
       "is_generated": true
     }

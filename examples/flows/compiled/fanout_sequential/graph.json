@@ -39,13 +39,13 @@
     },
     {
       "id": "start_multi_stage_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_multi_stage_flow",
       "is_generated": true
     },
     {
       "id": "summarizer",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "summarizer",
       "is_generated": false
     }

@@ -45,7 +45,7 @@
     },
     {
       "id": "start_research_agent",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_research_agent",
       "is_generated": true,
       "mutations": [

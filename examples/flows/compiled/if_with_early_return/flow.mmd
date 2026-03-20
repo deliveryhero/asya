@@ -17,11 +17,11 @@ flowchart TD
     handler_error --> __end__
     handler_finalize --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_early_return_flow entrypoint
+    class start_early_return_flow start
     class router_early_return_flow_line_14_if_1 router
     class handler_error,handler_finalize,handler_process,handler_validate handler
     class __end__ endpoint

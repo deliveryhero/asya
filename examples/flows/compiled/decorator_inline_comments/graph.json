@@ -9,7 +9,7 @@
     },
     {
       "id": "fast_handler",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "fast_handler",
       "is_generated": false
     },
@@ -21,13 +21,13 @@
     },
     {
       "id": "standard_handler",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "standard_handler",
       "is_generated": false
     },
     {
       "id": "start_decorator_inline_comments_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_decorator_inline_comments_flow",
       "is_generated": true
     }

@@ -8,10 +8,10 @@ flowchart TD
     start_ingester --> router_ingester_line_181_seq_1
     router_ingester_line_181_seq_1 --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_ingester entrypoint
+    class start_ingester start
     class router_ingester_line_181_seq_1 router
     class __end__ endpoint

@@ -27,7 +27,7 @@
     },
     {
       "id": "start_react_agent",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_react_agent",
       "is_generated": true
     }

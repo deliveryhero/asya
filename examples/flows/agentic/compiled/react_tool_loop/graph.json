@@ -15,7 +15,7 @@
     },
     {
       "id": "format_response",
-      "flow_role": "exit",
+      "flow_role": "actor",
       "label": "format_response",
       "is_generated": false
     },
@@ -87,7 +87,7 @@
     },
     {
       "id": "start_react_tool_loop",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_react_tool_loop",
       "is_generated": true,
       "mutations": [

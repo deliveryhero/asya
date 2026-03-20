@@ -412,5 +412,5 @@ Each overlay builds on top of `common/`.
 
     def _router_flow_role(self, name: str) -> str:
         if name.startswith("start_"):
-            return "entry"
+            return "start"
         return "router"

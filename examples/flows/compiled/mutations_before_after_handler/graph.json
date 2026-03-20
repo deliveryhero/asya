@@ -24,7 +24,7 @@
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "flow_role": "exit",
+      "flow_role": "router",
       "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "is_generated": true,
       "mutations": [
@@ -33,7 +33,7 @@
     },
     {
       "id": "start_mutations_before_after_handler_flow",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "start_mutations_before_after_handler_flow",
       "is_generated": true,
       "mutations": [

@@ -15,11 +15,11 @@ flowchart TD
     research_agent --> fanin_research_flow_line_7
     summarizer --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_research_flow entrypoint
+    class start_research_flow start
     class router_research_flow_line_7_fanout_1 router
     class fanin_research_flow_line_7,research_agent,summarizer handler
     class __end__ endpoint
