@@ -10,6 +10,8 @@ dependencies:
   - cavw
 ---
 
+Status: PR closed for now, deferred for the future.
+
 
 Create testing/component/transport/ — a Docker Compose component test for SocketTransport methods in isolation.
 

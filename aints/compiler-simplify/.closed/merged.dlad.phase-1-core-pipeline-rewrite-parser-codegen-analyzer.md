@@ -5,6 +5,7 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer
   - branch:compiler-simplify/dlad.phase-1-core-pipeline-rewrite-parser-codegen-analyzer
+  - pr:337
 dependencies:
   - 7179
 ---
