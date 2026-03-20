@@ -17,7 +17,7 @@
   },
   "editable": true,
   "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
+  "graphTooltip": 1,
   "id": null,
   "links": [
     {
@@ -39,6 +39,194 @@
         "w": 24,
         "x": 0,
         "y": 0
+      },
+      "id": 50,
+      "panels": [],
+      "title": "Flow Health",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null",
+                "result": {
+                  "text": "No data"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "max": 100,
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 80
+              },
+              {
+                "color": "green",
+                "value": 95
+              }
+            ]
+          },
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "id": 51,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "(\n  sum by (flow) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", role=\"end\", status=\"success\"}[5m]))\n  /\n  sum by (flow) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", role=\"start\", status=\"success\"}[5m]))\n) * 100",
+          "legendFormat": "{{flow}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Flow Completion Rate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 16,
+        "x": 8,
+        "y": 1
+      },
+      "id": 52,
+      "options": {
+        "legend": {
+          "calcs": ["last", "max"],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (flow) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", role=\"start\", status=\"success\"}[5m]))",
+          "legendFormat": "{{flow}} started",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${datasource}"
+          },
+          "expr": "sum by (flow) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", role=\"end\", status=\"success\"}[5m]))",
+          "legendFormat": "{{flow}} completed",
+          "refId": "B"
+        }
+      ],
+      "title": "Flow Invocations (started vs completed)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 7
       },
       "id": 1,
       "panels": [],
@@ -105,7 +293,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 1
+        "y": 8
       },
       "id": 2,
       "options": {
@@ -213,7 +401,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 1
+        "y": 8
       },
       "id": 23,
       "options": {
@@ -248,7 +436,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 9
+        "y": 16
       },
       "id": 10,
       "panels": [],
@@ -315,7 +503,7 @@
         "h": 8,
         "w": 8,
         "x": 0,
-        "y": 10
+        "y": 17
       },
       "id": 15,
       "options": {
@@ -404,7 +592,7 @@
         "h": 8,
         "w": 8,
         "x": 8,
-        "y": 10
+        "y": 17
       },
       "id": 20,
       "options": {
@@ -493,7 +681,7 @@
         "h": 8,
         "w": 8,
         "x": 16,
-        "y": 10
+        "y": 17
       },
       "id": 21,
       "options": {
@@ -528,7 +716,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 18
+        "y": 25
       },
       "id": 4,
       "panels": [],
@@ -595,7 +783,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 19
+        "y": 26
       },
       "id": 100,
       "options": {
@@ -684,7 +872,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 19
+        "y": 26
       },
       "id": 101,
       "options": {
@@ -719,7 +907,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 34
       },
       "id": 7,
       "panels": [],
@@ -786,7 +974,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 28
+        "y": 35
       },
       "id": 8,
       "options": {
@@ -821,7 +1009,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 36
+        "y": 43
       },
       "id": 11,
       "panels": [],
@@ -888,7 +1076,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 44
       },
       "id": 102,
       "options": {
@@ -932,7 +1120,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 45
+        "y": 52
       },
       "id": 12,
       "panels": [],
@@ -999,7 +1187,7 @@
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 46
+        "y": 53
       },
       "id": 13,
       "options": {
@@ -1097,7 +1285,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 46
+        "y": 53
       },
       "id": 14,
       "options": {
@@ -1147,7 +1335,7 @@
   ],
   "refresh": "30s",
   "schemaVersion": 39,
-  "tags": ["asya", "actors", "kubernetes"],
+  "tags": ["asya", "kubernetes"],
   "templating": {
     "list": [
       {
@@ -1207,16 +1395,16 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\"}, queue)",
+        "definition": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
         "hide": 0,
         "includeAll": true,
-        "label": "Queue",
+        "label": "Flow",
         "multi": true,
-        "name": "queue",
+        "name": "flow",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\"}, queue)",
+          "query": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -1235,16 +1423,16 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
+        "definition": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\"}, queue)",
         "hide": 0,
         "includeAll": true,
-        "label": "Flow",
+        "label": "Queue",
         "multi": true,
-        "name": "flow",
+        "name": "queue",
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
+          "query": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\"}, queue)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 2,
@@ -1320,8 +1508,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Asya - Actors Overview",
-  "uid": "asya-actors-v3",
-  "version": 4,
+  "title": "Asya - Overview",
+  "uid": "asya-overview",
+  "version": 1,
   "weekStart": ""
 }

@@ -11,8 +11,7 @@ single source of truth. The symlinks are validated by `.pre-commit-hooks/check-s
 
 | File | Source | Purpose |
 |------|--------|---------|
-| `asya-actors-overview.json` | `deploy/grafana-dashboards/asya-actors-overview.json` | Grafana dashboard for Asya actor metrics |
-| `asya-flows-overview.json` | `deploy/grafana-dashboards/asya-flows-overview.json` | Grafana dashboard for per-flow health and throughput |
+| `asya-actors-overview.json` | `deploy/grafana-dashboards/asya-actors-overview.json` | Grafana dashboard for Asya flows and actor metrics |
 
 ## Adding New Files
 
