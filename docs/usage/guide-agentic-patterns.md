@@ -539,11 +539,11 @@ yield payload
 
 | Topic | Document |
 |-------|---------|
-| ABI verb reference, path syntax, testing | `docs/reference/abi-protocol.md` |
-| Flow DSL syntax, supported constructs | `docs/reference/flow-dsl.md` |
+| ABI verb reference, path syntax, testing | [ABI Protocol](../reference/specs/abi-protocol.md) |
+| Flow DSL syntax, supported constructs | [Flow DSL](../reference/specs/flow-dsl.md) |
 | Flow DSL examples (15 patterns) | `examples/flows/agentic/` |
 | ABI handler examples (3 patterns) | `examples/actors/agentic/` |
-| Gateway security model (auth, dual-deployment) | `docs/architecture/gateway-security-model.md` |
-| Envelope protocol and routing semantics | `docs/architecture/protocols/actor-actor.md` |
+| Gateway security model (auth, dual-deployment) | `../reference/components/core-gateway.md` |
+| Envelope protocol and routing semantics | `../reference/specs/envelope.md` |
 | State proxy and stateful actors | `src/asya-crew/asya_crew/` |
 | AsyncActor XRD reference | `deploy/helm-charts/asya-crossplane/` |

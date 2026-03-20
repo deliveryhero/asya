@@ -305,7 +305,7 @@ See the retry policy documentation for details on configuring error-specific ret
 |-------|----------|
 | Sidecar timeout enforcement | [docs/reference/components/core-sidecar.md](../reference/components/core-sidecar.md) |
 | Runtime behavior on timeout | [docs/reference/components/core-runtime.md](../reference/components/core-runtime.md) |
-| Retry policies for timeout errors | [docs/reference/specs/retry-policies.md](../reference/specs/retry-policies.md) |
+| Retry policies for timeout errors | [../reference/specs/error-handling.md](../reference/specs/retry-policies.md) |
 | SLA configuration | [docs/reference/components/core-gateway.md](../reference/components/core-gateway.md) |
 
 ---

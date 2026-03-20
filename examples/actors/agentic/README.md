@@ -11,7 +11,7 @@ handlers — not compilable flows.
 | `pause_for_human.py` | Suspend pipeline for human approval | `SET .route.next[:0]` |
 
 For explanation and worked examples, see
-[docs/tutorials/agentic-patterns.md](../../../docs/tutorials/agentic-patterns.md).
+[docs/usage/guide-agentic-patterns.md](../../../docs/usage/guide-agentic-patterns.md).
 
 ## How these differ from `examples/flows/agentic/`
 

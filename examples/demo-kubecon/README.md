@@ -9,7 +9,7 @@ This demo runs on GKE with Pub/Sub transport and Vertex AI.
 
 - Python 3.13+, [uv](https://docs.astral.sh/uv/)
 - GCP project with Vertex AI API and Pub/Sub API enabled
-- GKE cluster with Asya installed (see [docs/install/gcp-gke.md](../../docs/install/gcp-gke.md))
+- GKE cluster with Asya installed (see [docs/setup/start-gcp-gke.md](../../docs/setup/start-gcp-gke.md))
 - Artifact Registry repository for actor images
 
 ## Setup
