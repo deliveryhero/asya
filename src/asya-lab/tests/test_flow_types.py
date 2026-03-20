@@ -50,3 +50,25 @@ class TestFlowInfo:
         assert info.flow_name == "my-flow"
         assert info.svg is None
         assert info.actors == []
+
+
+def test_sdk_compile_function(tmp_path):
+    """Test the top-level compile() SDK function."""
+    from asya_lab.flow import compile as flow_compile
+
+    source = tmp_path / "simple_flow.py"
+    source.write_text("""
+from asya_lab.flow import flow
+
+async def step_a(payload: dict) -> dict:
+    return payload
+
+@flow
+async def simple(payload: dict) -> dict:
+    payload = await step_a(payload)
+    return payload
+""")
+
+    result = flow_compile(str(source), output_dir=str(tmp_path / "out"))
+    assert isinstance(result, FlowInfo)
+    assert result.routers_path.exists()
