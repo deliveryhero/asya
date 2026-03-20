@@ -9,8 +9,8 @@
 
 ## Prerequisites
 
-- A running Asya playground cluster (follow the [Getting Started guide](../quickstart/README.md) through step 4)
-- Familiarity with single-actor deployment (see [Build Your First Actor](first-actor.md))
+- A running Asya playground cluster (follow the [Getting Started guide](../setup/start-quickstart.md) through step 4)
+- Familiarity with single-actor deployment (see [Build Your First Actor](start-first-actor.md))
 
 ## The pipeline
 
@@ -271,6 +271,6 @@ The actors are independently deployable and scalable. Uppercaser could run 10 re
 
 ## Next steps
 
-- [Write Your First Flow](first-flow.md) -- use the Flow DSL to define pipelines in Python instead of manual routing
-- [Add Human-in-the-Loop](pause-resume.md) -- pause a pipeline for human input
-- [ABI Protocol Reference](../reference/abi-protocol.md) -- dynamic routing with generator handlers
+- [Write Your First Flow](start-first-flow.md) -- use the Flow DSL to define pipelines in Python instead of manual routing
+- [Add Human-in-the-Loop](../setup/guide-pause-resume.md) -- pause a pipeline for human input
+- [ABI Protocol Reference](../reference/specs/abi-protocol.md) -- dynamic routing with generator handlers

@@ -146,6 +146,8 @@ async def analysis_flow(p: dict) -> dict:
 
 `asya flow compile analysis_flow.py` generates router actors that implement the branching logic as message-passing chains using **CPS (continuation-passing style)**. Instead of calling the next function, each step sends a message to the next actor's queue.
 
+**Flows are not a Kubernetes resource.** There is no `AsyncFlow` CRD. A flow is simply a group of `AsyncActor` resources linked by the `asya.sh/flow` label. The compiler generates router actors with this label set, and `asya.sh/flow-role` distinguishes entrypoints, routers, and processors. You can query all actors in a flow with `kubectl get asya -l asya.sh/flow=<name>`. This keeps the actor as the single primitive — flows are a labeling convention, not a hierarchy.
+
 Flows support fan-out/fan-in via list comprehensions, list literals, and `asyncio.gather`. Dynamic routing (`yield "SET"`), fire-and-forget fan-out (multiple `yield` without aggregation), and `None` returns are actor-only features.
 
 **See**: [Flow DSL](reference/specs/flow-dsl.md), [Flow Compiler](reference/components/lab-flow-compiler.md)

@@ -85,7 +85,7 @@ spec:
     emptyDir: {}  # Replace with actual state proxy config
 ```
 
-**Note**: The actual state proxy setup depends on your backend (S3, GCS, Redis, NATS KV). See [State Proxy Documentation](../architecture/asya-state-proxy.md) for backend-specific configuration.
+**Note**: The actual state proxy setup depends on your backend (S3, GCS, Redis, NATS KV). See [State Proxy Documentation](../reference/components/core-state-proxy.md) for backend-specific configuration.
 
 ## Step 3: Enable x-pause and x-resume in Helm
 

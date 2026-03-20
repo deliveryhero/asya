@@ -19,13 +19,15 @@ flowchart TD
     error_handler --> __end__
     sink_adapter --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_typeddict_pipeline entrypoint
+    class start_typeddict_pipeline start
+    class error_handler,sink_adapter endnode
     class router_typeddict_pipeline_line_77_if_1 router
-    class error_handler,parser,sink_adapter,transformer,validator handler
+    class parser,transformer,validator handler
     class __end__ endpoint
     linkStyle 5 stroke:#2E8B57
     linkStyle 3 stroke:#E07040

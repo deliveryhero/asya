@@ -3,33 +3,27 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
       "label": "handler_finalize",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "handler_process",
-      "flow_role": "processor",
-      "label": "handler_process",
-      "is_generated": false
+      "label": "handler_process"
     },
     {
       "id": "handler_setup",
-      "flow_role": "processor",
-      "label": "handler_setup",
-      "is_generated": false
+      "label": "handler_setup"
     },
     {
       "id": "router_if_empty_branches_flow_line_14_if_1",
-      "flow_role": "router",
       "label": "router_if_empty_branches_flow_line_14_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_if_empty_branches_flow",
-      "flow_role": "entrypoint",
       "label": "start_if_empty_branches_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

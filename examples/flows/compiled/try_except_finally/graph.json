@@ -3,71 +3,63 @@
   "nodes": [
     {
       "id": "acquire_resource",
-      "flow_role": "processor",
-      "label": "acquire_resource",
-      "is_generated": false
+      "label": "acquire_resource"
     },
     {
       "id": "finalize",
-      "flow_role": "exitpoint",
       "label": "finalize",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "handle_failure",
-      "flow_role": "exitpoint",
       "label": "handle_failure",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "process_with_resource",
-      "flow_role": "processor",
-      "label": "process_with_resource",
-      "is_generated": false
+      "label": "process_with_resource"
     },
     {
       "id": "release_resource",
-      "flow_role": "processor",
-      "label": "release_resource",
-      "is_generated": false
+      "label": "release_resource"
     },
     {
       "id": "router_resource_pipeline_line_5_except_dispatch_0",
-      "flow_role": "router",
       "label": "router_resource_pipeline_line_5_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resource_pipeline_line_5_reraise_0",
-      "flow_role": "exitpoint",
       "label": "router_resource_pipeline_line_5_reraise_0",
-      "is_generated": true
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_resource_pipeline_line_5_try_enter_0",
-      "flow_role": "router",
       "label": "router_resource_pipeline_line_5_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resource_pipeline_line_5_try_exit_0",
-      "flow_role": "router",
       "label": "router_resource_pipeline_line_5_try_exit_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resource_pipeline_line_9_seq",
-      "flow_role": "router",
       "label": "router_resource_pipeline_line_9_seq",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'failed'"]
+      "mutations": [
+        "p['status'] = 'failed'"
+      ],
+      "generated": true
     },
     {
       "id": "start_resource_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_resource_pipeline",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'started'"]
+      "mutations": [
+        "p['status'] = 'started'"
+      ],
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

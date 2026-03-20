@@ -417,6 +417,5 @@ kubectl logs -n asya-system deployment/asya-gateway -f
 
 ## Next Steps
 
-- [Register tools in the gateway](../howto/register-gateway-tools.md)
-- [Gateway Architecture](../architecture/asya-gateway.md)
-- [Deploy actors](../howto/add-new-actor.md)
+- [Gateway Architecture](../reference/components/core-gateway.md)
+- [Deploy actors](../usage/start-first-actor.md)

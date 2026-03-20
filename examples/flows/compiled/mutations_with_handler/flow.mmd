@@ -10,11 +10,12 @@ flowchart TD
     handler_process --> router_mutations_with_handler_flow_line_17_seq_1
     router_mutations_with_handler_flow_line_17_seq_1 --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_mutations_with_handler_flow entrypoint
+    class start_mutations_with_handler_flow start
     class router_mutations_with_handler_flow_line_17_seq_1 router
     class handler_process handler
     class __end__ endpoint

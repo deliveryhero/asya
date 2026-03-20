@@ -3,111 +3,84 @@
   "nodes": [
     {
       "id": "api_specialist",
-      "flow_role": "processor",
-      "label": "api_specialist",
-      "is_generated": false
+      "label": "api_specialist"
     },
     {
       "id": "content_generalist",
-      "flow_role": "processor",
-      "label": "content_generalist",
-      "is_generated": false
+      "label": "content_generalist"
     },
     {
       "id": "content_team_lead",
-      "flow_role": "processor",
-      "label": "content_team_lead",
-      "is_generated": false
+      "label": "content_team_lead"
     },
     {
       "id": "data_generalist",
-      "flow_role": "processor",
-      "label": "data_generalist",
-      "is_generated": false
+      "label": "data_generalist"
     },
     {
       "id": "data_team_lead",
-      "flow_role": "processor",
-      "label": "data_team_lead",
-      "is_generated": false
+      "label": "data_team_lead"
     },
     {
       "id": "editor",
-      "flow_role": "processor",
-      "label": "editor",
-      "is_generated": false
+      "label": "editor"
     },
     {
       "id": "final_assembler",
-      "flow_role": "exitpoint",
       "label": "final_assembler",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "generalist",
-      "flow_role": "processor",
-      "label": "generalist",
-      "is_generated": false
+      "label": "generalist"
     },
     {
       "id": "root_agent",
-      "flow_role": "processor",
-      "label": "root_agent",
-      "is_generated": false
+      "label": "root_agent"
     },
     {
       "id": "router_hierarchical_delegation_line_61_if_6",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_61_if_6",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_65_if_2",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_65_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_67_if_1",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_67_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_72_if_5",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_72_if_5",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_76_if_4",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_76_if_4",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_78_if_3",
-      "flow_role": "router",
       "label": "router_hierarchical_delegation_line_78_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "sql_specialist",
-      "flow_role": "processor",
-      "label": "sql_specialist",
-      "is_generated": false
+      "label": "sql_specialist"
     },
     {
       "id": "start_hierarchical_delegation",
-      "flow_role": "entrypoint",
       "label": "start_hierarchical_delegation",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "writer",
-      "flow_role": "processor",
-      "label": "writer",
-      "is_generated": false
+      "label": "writer"
     }
   ],
   "edges": [

@@ -6,7 +6,7 @@ for the Flow DSL.
 
 For background on why the Flow DSL exists, the router problem it solves,
 and how CPS compilation works, see
-[Flow Compilation](../explanation/flow-compilation.md).
+[Flow Compiler Architecture](../components/lab-flow-compiler.md).
 
 ---
 
@@ -34,6 +34,14 @@ This compiles into four router actors that handle sequencing, branching,
 and merging. You deploy the routers alongside your handler actors
 (`classify`, `escalate`, `standard_review`, `notify`) and Asya runs the
 pipeline.
+
+**There is no `AsyncFlow` CRD.** A flow is a group of `AsyncActor`
+resources linked by the `asya.sh/flow` label. The compiler sets this
+label (along with `asya.sh/flow-role` to distinguish `entrypoint`,
+`router`, and `processor` actors) on every generated manifest. Query all
+actors in a flow with `kubectl get asya -l asya.sh/flow=<name>`. The
+actor remains the single Kubernetes primitive — flows are a labeling
+convention on top of it.
 
 ---
 
@@ -698,7 +706,7 @@ FLOW_METADATA = {
     "flow_name": "my_flow",
     "type": "single-actor",
     "actor": "handler_name",
-    "labels": {"asya.sh/flow": "my_flow", "asya.sh/flow-role": "entrypoint"},
+    "labels": {"asya.sh/flow": "my_flow", "asya.sh/role": "start"},
 }
 ```
 
@@ -747,7 +755,7 @@ adapter — it never touches AST nodes directly.
 
 ## See also
 
-- [Flow Compilation](../explanation/flow-compilation.md) — why the Flow DSL
+- [Flow Compiler Architecture](../components/lab-flow-compiler.md) — why the Flow DSL
   exists, the router problem, CPS model, and design principles
 - [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers

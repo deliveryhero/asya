@@ -171,7 +171,7 @@ examples/demo-kubecon/
 │   ├── compiler/templates/                 # AsyncActor + ConfigMap + kustomization templates
 │   │   ├── actor.yaml
 │   │   ├── router.yaml
-│   │   ├── configmap_routers.yaml
+│   │   ├── configmap-routers.yaml
 │   │   └── kustomization.yaml
 │   └── manifests/
 │       ├── flavors/                        # platform config (GCP credentials, LLM retry)

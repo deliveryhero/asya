@@ -5,7 +5,7 @@ digraph "class_instantiation_flow" {
     { rank=source; start_class_instantiation_flow; }
 
     sequential_with_class_DataPreprocessor_clean [label="DataPreprocessor.clean", fillcolor=lightblue];
-    sequential_with_class_MLModel_predict [label="MLModel.predict", fillcolor=lightblue];
+    sequential_with_class_MLModel_predict [label="MLModel.predict", fillcolor=lightsalmon];
     start_class_instantiation_flow [label="start_class_instantiation_flow", fillcolor=palegreen];
     transformation [label="transformation", fillcolor=lightblue];
 

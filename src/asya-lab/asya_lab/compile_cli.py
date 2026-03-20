@@ -35,19 +35,18 @@ def _compile_flow_file(
     target: str,
     flow_name_override: str | None,
     output_dir: str | None,
-    plot: bool,
-    plot_format: str,
     verbose: bool,
-    force: bool,
     strict: bool = False,
+    plot: bool = False,
+    plot_format: str = "png",
 ) -> None:
     """Compile a flow from a .py source file."""
-    from asya_lab.flow_cli import _stamp_manifests
+    from asya_lab.flow import _infer_flow_function
 
     source_path = Path(target).resolve()
-    source_code = source_path.read_text()
 
-    # Load rules from config (if .asya/ exists)
+    # Load project config (if .asya/ exists)
+    project = None
     rule_engine = None
     try:
         project = AsyaProject.from_dir(source_path.parent)
@@ -55,50 +54,26 @@ def _compile_flow_file(
     except FileNotFoundError:
         pass
 
-    # Compile in-memory to learn flow_function before resolving output paths
-    compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine)
-    compiled_code = compiler.compile(source_code, str(source_path))
-    flow_function = compiler.flow_name
+    # Infer flow function name via lightweight AST scan (no full compile)
+    flow_function = _infer_flow_function(source_path) or source_path.stem
 
     if flow_name_override:
         flow_name = flow_name_override
-    elif flow_function:
-        flow_name = flow_function.replace("_", "-")
     else:
-        flow_name = source_path.stem.replace("_", "-")
+        flow_name = flow_function.replace("_", "-")
 
     # Resolve compiled output dir from config or CLI override
     if output_dir:
         compiled_dir = Path(output_dir).resolve()
     else:
-        compiled_dir = _resolve_compiled_dir(source_path, flow_function or source_path.stem)
+        compiled_dir = _resolve_compiled_dir(source_path, flow_function)
 
-    # Write compiled code to resolved dir
-    compiled_dir.mkdir(parents=True, exist_ok=True)
-    compiled_file = compiled_dir / "routers.py"
-    compiled_file.write_text(compiled_code)
+    # Single compile call — handles code + manifests + graph outputs
+    compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
+    result = compiler.compile_file(str(source_path), str(compiled_dir), overwrite=True)
 
-    if verbose:
-        click.echo(f"[+] Compiled flow to: {compiled_file}")
-        click.echo(f"[+] Flow name: '{flow_name}'")
-
-        actor = compiler.single_actor_name
-        if actor is not None:
-            click.echo("[+] Single-actor flow: no router actor needed")
-
-    if plot:
-        try:
-            dot_file, plot_path = compiler.generate_plot(str(compiled_dir), plot_format=plot_format)
-            if verbose:
-                click.echo(f"[+] Generated: {dot_file}")
-                if plot_path:
-                    click.echo(f"[+] Generated: {plot_path}")
-        except (ImportError, RuntimeError) as e:
-            click.echo(f"[!] {e}", err=True)
-        except Exception as e:
-            click.echo(f"[!] Failed to generate plot: {e}", err=True)
-
-    warnings = compiler.get_warnings()
+    # Print warnings before summary
+    warnings = result.warnings
     if warnings:
         for w in warnings:
             click.echo(f"[!] {w}", err=True)
@@ -106,8 +81,39 @@ def _compile_flow_file(
             click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
             sys.exit(1)
 
-    manifests_dir = output_dir if output_dir else None
-    _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
+    # Print compilation summary
+    num_actors = len(result.actors)
+    num_routers = sum(1 for a in result.actors if a.generated)
+    click.echo(f"[+] Compiled flow '{flow_name}' ({num_actors} actors, {num_routers} routers)")
+
+    click.echo(f"    routers:   {result.routers_path}")
+
+    graph_file = compiled_dir / "graph.json"
+    if graph_file.exists():
+        click.echo(f"    graph:     {graph_file}")
+
+    dot_file = compiled_dir / "flow.dot"
+    if dot_file.exists():
+        click.echo(f"    dot:       {dot_file}")
+
+    mmd_file = compiled_dir / "flow.mmd"
+    if mmd_file.exists():
+        click.echo(f"    mermaid:   {mmd_file}")
+
+    if plot:
+        plot_file = compiled_dir / f"flow.{plot_format}"
+        if plot_file.exists():
+            click.echo(f"    plot:      {plot_file}")
+        else:
+            click.echo("[!] Plot requested but graphviz 'dot' not found; skipping render", err=True)
+
+    if verbose:
+        actor = compiler.single_actor_name
+        if actor is not None:
+            click.echo("[+] Single-actor flow: no router actor needed")
+
+        if result.manifests_dir and result.manifests_dir != compiled_dir:
+            click.echo(f"[+] Stamped manifests to: {result.manifests_dir}")
 
 
 def _recompile_kebab_target(
@@ -147,15 +153,14 @@ def _recompile_kebab_target(
 @click.option(
     "--plot-format",
     "plot_format",
-    default="svg",
+    default="png",
     type=click.Choice(["svg", "png"]),
     show_default=True,
     help="Output format for flow diagram",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-@click.option("--force", is_flag=True, help="Overwrite without checking git status")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force, strict):
+def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, strict):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
@@ -167,7 +172,15 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
     """
     try:
         if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force, strict)
+            _compile_flow_file(
+                str(target.source),
+                flow_name,
+                output_dir,
+                verbose,
+                strict,
+                plot=plot,
+                plot_format=plot_format,
+            )
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:

@@ -62,8 +62,7 @@ async def process(payload: dict):
     yield payload
 ```
 
-**ABI verbs**: `GET`, `SET`, `DEL`, `FLY`. See [ABI Protocol
-Reference](../reference/specs/abi-protocol.md) for full details.
+**ABI verbs**: `GET`, `SET`, `DEL`, `FLY`. See [ABI Protocol Reference](../reference/specs/abi-protocol.md) for full details.
 
 **When to use**: routing decisions, streaming, metadata inspection.
 
@@ -649,7 +648,7 @@ spec:
 | `spec.image` | Container image containing your handler code |
 | `spec.handler` | Python import path: `module.function` or `module.Class.method` |
 
-**Reference**: [AsyncActor CRD Reference](../reference/asyncactor-crd.md) for all
+**Reference**: [AsyncActor CRD Reference](../reference/specs/asyncactor-crd.md) for all
 available fields.
 
 #### Optional: configure autoscaling
@@ -762,8 +761,7 @@ Example: `preprocess -> inference -> postprocess`
 The sidecar advances the route automatically. When `postprocess` finishes with an
 empty `route.next`, the envelope is routed to `x-sink`.
 
-To register this pipeline as a gateway tool, see [How to Register Tools in the
-Gateway](register-gateway-tools.md).
+To register this pipeline as a gateway tool, see [Gateway Setup Guide](../setup/guide-gateway.md).
 
 ---
 
@@ -790,10 +788,10 @@ Python runs, and easy to understand.
 
 - [ABI Protocol Reference](../reference/specs/abi-protocol.md) — full verb reference,
   path syntax, testing helpers
-- [Architecture: Runtime](../architecture/asya-runtime.md) — handler types, async
+- [Runtime Component](../reference/components/core-runtime.md) — handler types, async
   support, configuration
-- [Architecture: Actor Envelope](../architecture/protocols/actor-actor.md) —
+- [Envelope Protocol](../reference/specs/envelope.md) —
   envelope structure and routing
-- [How to Debug an Envelope](../howto/debug-envelope.md) — trace envelopes
+- [How to Debug an Envelope](ops-debugging.md) — trace envelopes
   through the mesh
-- [AsyncActor CRD Reference](../reference/asyncactor-crd.md) — all spec fields
+- [AsyncActor CRD Reference](../reference/specs/asyncactor-crd.md) — all spec fields

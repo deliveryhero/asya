@@ -153,7 +153,7 @@ kubectl wait --for=condition=ready pod -l app=rabbitmq \
   -n asya-e2e --timeout=300s
 ```
 
-**See**: [../../install/local-kind.md](../../install/local-kind.md) for full local setup.
+**See**: [Quickstart Guide](../../setup/start-quickstart.md) for full local setup.
 
 ## Cost Considerations
 

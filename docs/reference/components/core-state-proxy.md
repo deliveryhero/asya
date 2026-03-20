@@ -577,8 +577,8 @@ except FileNotFoundError:
 
 ## Related Components
 
-- [Crossplane Compositions](asya-crossplane.md) — reads `stateProxy` from AsyncActor XR and renders connector containers
-- [Runtime](asya-runtime.md) — installs file I/O hooks from `ASYA_STATE_PROXY_MOUNTS`
+- [Crossplane Compositions](core-crossplane.md) — reads `stateProxy` from AsyncActor XR and renders connector containers
+- [Runtime](core-runtime.md) — installs file I/O hooks from `ASYA_STATE_PROXY_MOUNTS`
 - XRD definition: `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml`
 - Connector server: `src/asya-state-proxy/asya_state_proxy/server.py`
 - Connector interface: `src/asya-state-proxy/asya_state_proxy/interface.py`

@@ -3,71 +3,64 @@
   "nodes": [
     {
       "id": "call_another_api",
-      "flow_role": "processor",
-      "label": "call_another_api",
-      "is_generated": false
+      "label": "call_another_api"
     },
     {
       "id": "call_external_api",
-      "flow_role": "processor",
-      "label": "call_external_api",
-      "is_generated": false
+      "label": "call_external_api"
     },
     {
       "id": "log_retry",
-      "flow_role": "exitpoint",
       "label": "log_retry",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "prepare_request",
-      "flow_role": "processor",
-      "label": "prepare_request",
-      "is_generated": false
+      "label": "prepare_request"
     },
     {
       "id": "router_retry_pipeline_line_16_while_0",
-      "flow_role": "router",
       "label": "router_retry_pipeline_line_16_while_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_retry_pipeline_line_17_seq",
-      "flow_role": "router",
       "label": "router_retry_pipeline_line_17_seq",
-      "is_generated": true,
-      "mutations": ["p['attempt'] += 1"]
+      "mutations": [
+        "p['attempt'] += 1"
+      ],
+      "generated": true
     },
     {
       "id": "router_retry_pipeline_line_18_except_dispatch_0",
-      "flow_role": "router",
       "label": "router_retry_pipeline_line_18_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_retry_pipeline_line_18_reraise_0",
-      "flow_role": "exitpoint",
       "label": "router_retry_pipeline_line_18_reraise_0",
-      "is_generated": true
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_retry_pipeline_line_18_try_enter_0",
-      "flow_role": "router",
       "label": "router_retry_pipeline_line_18_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_retry_pipeline_line_18_try_exit_0",
-      "flow_role": "exitpoint",
       "label": "router_retry_pipeline_line_18_try_exit_0",
-      "is_generated": true
+      "role": "end",
+      "generated": true
     },
     {
       "id": "start_retry_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_retry_pipeline",
-      "is_generated": true,
-      "mutations": ["p['attempt'] = 0"]
+      "mutations": [
+        "p['attempt'] = 0"
+      ],
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

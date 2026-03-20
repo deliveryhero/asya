@@ -43,7 +43,7 @@ All sidecar metrics use namespace `asya_actor` (configurable via `ASYA_METRICS_N
 
 ### Custom Metrics
 
-Configurable via `ASYA_CUSTOM_METRICS` environment variable (JSON array). See [asya-sidecar.md](../architecture/asya-sidecar.md#metrics-and-observability) for details.
+Configurable via `ASYA_CUSTOM_METRICS` environment variable (JSON array). See [Sidecar documentation](../reference/components/core-sidecar.md) for details.
 
 ## Prometheus Configuration
 

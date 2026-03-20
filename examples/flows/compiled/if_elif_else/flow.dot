@@ -5,7 +5,7 @@ digraph "if_elif_else_flow" {
     { rank=source; start_if_elif_else_flow; }
 
     handler_default [label="handler_default", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
     handler_validate [label="handler_validate", fillcolor=lightblue];

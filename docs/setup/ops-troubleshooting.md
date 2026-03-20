@@ -98,6 +98,10 @@ kubectl logs deploy/<actor> -c asya-runtime
 - Reduce batch size
 - Profile memory usage
 
+## Further Reading
+
+- [Debugging Envelopes](../usage/ops-debugging.md) — trace envelopes through the mesh
+
 ## Timeout Errors
 
 **Symptoms**: `timeout_error` in logs
@@ -126,6 +130,6 @@ kubectl describe pod <gateway-pod>
 
 ## For More Help
 
-- Check [Architecture Documentation](../architecture/README.md)
+- Check [Architecture Documentation](../architecture.md)
 - Review logs with `kubectl logs`
 - Describe resources with `kubectl describe`

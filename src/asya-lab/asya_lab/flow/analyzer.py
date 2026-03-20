@@ -14,7 +14,7 @@ from dataclasses import dataclass, field
 class GraphData:
     """Graph topology extracted from yield analysis."""
 
-    nodes: list[dict] = field(default_factory=list)  # {"id", "flow_role", "label", "is_generated"}
+    nodes: list[dict] = field(default_factory=list)  # {"id", "role", "label", "generated"}
     edges: list[dict] = field(default_factory=list)  # {"from", "to", "label", "type", "override"}
     groups: list[dict] = field(default_factory=list)  # {"id", "nodes"}
     warnings: list[str] = field(default_factory=list)
@@ -563,14 +563,16 @@ def analyze(
 
     nodes = []
     for name in sorted(all_names):
-        is_generated = name in router_names
+        generated = name in router_names
         flow_role = _determine_flow_role(name, router_names, all_edges)
         node_dict: dict = {
             "id": name,
-            "flow_role": flow_role,
             "label": name,
-            "is_generated": is_generated,
         }
+        if flow_role in ("start", "end"):
+            node_dict["role"] = flow_role
+        if generated:
+            node_dict["generated"] = True
         if name in router_mutations:
             node_dict["mutations"] = router_mutations[name]
         nodes.append(node_dict)
@@ -585,11 +587,9 @@ def _validate_graph(graph: GraphData) -> list[str]:
     """Validate graph invariants and return warnings for violations.
 
     Checks:
-    1. Fully connected: every node is reachable from the entrypoint
-    2. No dangling non-exit leaves: nodes with incoming edges but no outgoing
-       edges must have flow_role=exitpoint
-    3. Disconnected sources: nodes with outgoing but no incoming edges must be entrypoints
-    4. If routers must have both conditional and else edges
+    1. Fully connected: every node is reachable from the start node
+    2. Disconnected sources: nodes with outgoing but no incoming edges must be start nodes
+    3. If routers must have both conditional and else edges
     """
     warnings: list[str] = []
     node_ids = {n["id"] for n in graph.nodes}
@@ -601,11 +601,11 @@ def _validate_graph(graph: GraphData) -> list[str]:
     for edge in graph.edges:
         adjacency[edge["from"]].add(edge["to"])
 
-    # Check 1: Reachability from entrypoint
-    entrypoints = [n["id"] for n in graph.nodes if n["flow_role"] == "entrypoint"]
-    if entrypoints:
+    # Check 1: Reachability from start node
+    start_nodes = [n["id"] for n in graph.nodes if n.get("role") == "start"]
+    if start_nodes:
         reachable: set[str] = set()
-        stack = list(entrypoints)
+        stack = list(start_nodes)
         while stack:
             current = stack.pop()
             if current in reachable:
@@ -614,20 +614,13 @@ def _validate_graph(graph: GraphData) -> list[str]:
             stack.extend(adjacency.get(current, set()))
         unreachable = node_ids - reachable
         for node_id in sorted(unreachable):
-            warnings.append(f"node '{node_id}' is not reachable from entrypoint")
+            warnings.append(f"node '{node_id}' is not reachable from start")
 
-    # Check 2: No dangling non-exit leaves
-    leaves = targets - sources
-    for leaf in sorted(leaves):
-        node = next((n for n in graph.nodes if n["id"] == leaf), None)
-        if node and node["flow_role"] != "exitpoint":
-            warnings.append(f"node '{leaf}' is a leaf but has flow_role='{node['flow_role']}', expected 'exitpoint'")
-
-    # Check 3: Nodes that are sources but not targets (and not entrypoints) are disconnected
+    # Check 2: Nodes that are sources but not targets (and not start nodes) are disconnected
     for node_id in sorted(sources - targets):
         node = next((n for n in graph.nodes if n["id"] == node_id), None)
-        if node and node["flow_role"] != "entrypoint":
-            warnings.append(f"node '{node_id}' has no incoming edges but is not an entrypoint")
+        if node and node.get("role") != "start":
+            warnings.append(f"node '{node_id}' has no incoming edges but is not an entry")
 
     # Check 4: Every if router must have both a conditional and an else edge
     for node_id in sorted(node_ids):
@@ -642,7 +635,7 @@ def _validate_graph(graph: GraphData) -> list[str]:
     # Check 5: Each generated router has at most one unconditional (unlabeled) outgoing edge.
     # Excluded: fanout edges (legitimately multi-target), handler nodes (may be reused
     # in multiple branches, each with a different continuation).
-    router_ids = {n["id"] for n in graph.nodes if n.get("is_generated")}
+    router_ids = {n["id"] for n in graph.nodes if n.get("generated")}
     for node_id in sorted(router_ids):
         unlabeled = [
             e
@@ -768,18 +761,22 @@ def _is_payload_target(node: ast.expr) -> bool:
 def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -> str:
     """Determine the flow role of a node.
 
-    Roles: entrypoint, exitpoint, router, processor.
+    Roles: start, end, router, actor.
+    - start: the generated start_* entrypoint router
+    - end: leaf actor whose only outgoing edges go to __end__
+    - router: generated routers (conditionals, loops, fanout, fanin)
+    - actor: regular user handler with downstream routing
     """
     if name.startswith("start_"):
-        return "entrypoint"
+        return "start"
     if name.startswith("fanin_"):
         return "router"
-
-    is_source = any(e["from"] == name for e in edges)
-    is_target = any(e["to"] == name for e in edges)
-
-    if is_target and not is_source:
-        return "exitpoint"
     if name in router_names:
         return "router"
-    return "processor"
+
+    # Leaf detection: actor with no outgoing edges (sidecar routes to x-sink)
+    has_outgoing = any(e["from"] == name for e in edges)
+    if not has_outgoing:
+        return "end"
+
+    return "actor"

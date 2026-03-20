@@ -19,11 +19,12 @@ flowchart TD
     router_document_pipeline_line_24_if_2 -->|"else"| sentiment_analyzer
     router_document_pipeline_line_28_seq_1 --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_document_pipeline entrypoint
+    class start_document_pipeline start
     class router_document_pipeline_line_24_if_2,router_document_pipeline_line_28_seq_1 router
     class language_detector,ocr_extractor,sentiment_analyzer,translator handler
     class __end__ endpoint

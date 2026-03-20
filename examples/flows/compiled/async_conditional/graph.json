@@ -3,51 +3,40 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "processor",
-      "label": "classifier",
-      "is_generated": false
+      "label": "classifier"
     },
     {
       "id": "generic_processor",
-      "flow_role": "processor",
-      "label": "generic_processor",
-      "is_generated": false
+      "label": "generic_processor"
     },
     {
       "id": "image_processor",
-      "flow_role": "processor",
-      "label": "image_processor",
-      "is_generated": false
+      "label": "image_processor"
     },
     {
       "id": "quality_check",
-      "flow_role": "exitpoint",
       "label": "quality_check",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "router_content_pipeline_flow_line_16_if_2",
-      "flow_role": "router",
       "label": "router_content_pipeline_flow_line_16_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_content_pipeline_flow_line_18_if_1",
-      "flow_role": "router",
       "label": "router_content_pipeline_flow_line_18_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_content_pipeline_flow",
-      "flow_role": "entrypoint",
       "label": "start_content_pipeline_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "text_processor",
-      "flow_role": "processor",
-      "label": "text_processor",
-      "is_generated": false
+      "label": "text_processor"
     }
   ],
   "edges": [

@@ -4,7 +4,7 @@ digraph "rag_pipeline" {
 
     { rank=source; start_rag_pipeline; }
 
-    fact_checker [label="fact_checker", fillcolor=lightblue];
+    fact_checker [label="fact_checker", fillcolor=lightsalmon];
     generator [label="generator", fillcolor=lightblue];
     query_analyzer [label="query_analyzer", fillcolor=lightblue];
     query_refiner [label="query_refiner", fillcolor=lightblue];

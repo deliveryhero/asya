@@ -84,6 +84,7 @@ helm install asya asya/asya-playground \
 
 ```bash
 # Wait for Crossplane providers, functions, and AsyncActor XRD to become ready
+# Wait for Crossplane providers, functions, and AsyncActor XRD to become ready
 kubectl wait --for=condition=Healthy \
   providers/provider-aws-sqs providers/provider-kubernetes \
   functions/function-go-templating functions/function-patch-and-transform functions/function-auto-ready \
@@ -170,7 +171,7 @@ helm install asya-crew asya/asya-crew \
 ```
 
 Configure external services (real AWS SQS/S3, RabbitMQ, etc.) by overriding the relevant
-values in each chart. See [For Platform Engineers](../operate/) for the full
+values in each chart. See [Gateway Setup Guide](guide-gateway.md) and [Helm Charts Guide](guide-helm-charts.md) for the full
 production setup guide.
 
 </details>
@@ -336,10 +337,10 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ## What's next?
 
-- **[Usage Guide](usage.md)** — actor handlers, class-based actors, the Flow DSL
-- **[Operate](../operate/)** — monitoring, scaling policies, troubleshooting, upgrades
-- **[Architecture](../architecture/README.md)** — deep dive into actors, envelopes, routing
-- **[Examples](../../examples/)** — sample actors and flows
+- **[Build Your First Actor](../usage/start-first-actor.md)** — actor handlers, class-based actors, the Flow DSL
+- **[Monitoring](ops-observability.md)** — monitoring, scaling policies, troubleshooting, upgrades
+- **[Architecture](../architecture.md)** — deep dive into actors, envelopes, routing
+- **[Examples](https://github.com/deliveryhero/asya/tree/main/examples)** — sample actors and flows
 
 ---
 

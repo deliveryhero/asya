@@ -10,7 +10,7 @@ digraph "multi_agent_debate" {
     debater_c [label="debater_c", fillcolor=lightblue];
     fanin_multi_agent_debate_line_57 [label="fanin_multi_agent_debate_line_57", fillcolor=lightblue];
     fanin_multi_agent_debate_line_74 [label="fanin_multi_agent_debate_line_74", fillcolor=lightblue];
-    final_judge [label="final_judge", fillcolor=lightblue];
+    final_judge [label="final_judge", fillcolor=lightsalmon];
     revise_a [label="revise_a", fillcolor=lightblue];
     revise_b [label="revise_b", fillcolor=lightblue];
     revise_c [label="revise_c", fillcolor=lightblue];

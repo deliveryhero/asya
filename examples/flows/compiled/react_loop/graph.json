@@ -3,33 +3,27 @@
   "nodes": [
     {
       "id": "execute_tool",
-      "flow_role": "processor",
-      "label": "execute_tool",
-      "is_generated": false
+      "label": "execute_tool"
     },
     {
       "id": "llm_call",
-      "flow_role": "processor",
-      "label": "llm_call",
-      "is_generated": false
+      "label": "llm_call"
     },
     {
       "id": "router_agent_with_tools_line_17_while_1",
-      "flow_role": "router",
       "label": "router_agent_with_tools_line_17_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_agent_with_tools_line_19_if_2",
-      "flow_role": "router",
       "label": "router_agent_with_tools_line_19_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_agent_with_tools",
-      "flow_role": "entrypoint",
       "label": "start_agent_with_tools",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['messages'] = p.get('messages', [])"
       ]

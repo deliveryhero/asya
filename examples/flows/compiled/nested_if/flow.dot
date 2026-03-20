@@ -8,7 +8,7 @@ digraph "nested_if_flow" {
     handler_a_y [label="handler_a_y", fillcolor=lightblue];
     handler_b_x [label="handler_b_x", fillcolor=lightblue];
     handler_b_y [label="handler_b_y", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_validate [label="handler_validate", fillcolor=lightblue];
     router_nested_if_flow_line_14_if_7 [label="router_nested_if_flow_line_14_if_7", fillcolor=wheat];
     router_nested_if_flow_line_16_if_3 [label="router_nested_if_flow_line_16_if_3\n\np['l1'] = 'A'", fillcolor=wheat];

@@ -3,51 +3,39 @@
   "nodes": [
     {
       "id": "aggregator",
-      "flow_role": "exitpoint",
       "label": "aggregator",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "entity_recognizer",
-      "flow_role": "processor",
-      "label": "entity_recognizer",
-      "is_generated": false
+      "label": "entity_recognizer"
     },
     {
       "id": "fanin_parallel_sectioning_line_48",
-      "flow_role": "router",
-      "label": "fanin_parallel_sectioning_line_48",
-      "is_generated": false
+      "label": "fanin_parallel_sectioning_line_48"
     },
     {
       "id": "preprocessor",
-      "flow_role": "processor",
-      "label": "preprocessor",
-      "is_generated": false
+      "label": "preprocessor"
     },
     {
       "id": "router_parallel_sectioning_line_48_fanout_1",
-      "flow_role": "router",
       "label": "router_parallel_sectioning_line_48_fanout_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "processor",
-      "label": "sentiment_analyzer",
-      "is_generated": false
+      "label": "sentiment_analyzer"
     },
     {
       "id": "start_parallel_sectioning",
-      "flow_role": "entrypoint",
       "label": "start_parallel_sectioning",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "topic_extractor",
-      "flow_role": "processor",
-      "label": "topic_extractor",
-      "is_generated": false
+      "label": "topic_extractor"
     }
   ],
   "edges": [

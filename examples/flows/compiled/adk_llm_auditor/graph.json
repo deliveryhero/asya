@@ -3,185 +3,169 @@
   "nodes": [
     {
       "id": "accuracy_scorer",
-      "flow_role": "processor",
-      "label": "accuracy_scorer",
-      "is_generated": false
+      "label": "accuracy_scorer"
     },
     {
       "id": "adk_llm_auditor.QualityScorer.aggregate",
-      "flow_role": "processor",
-      "label": "adk_llm_auditor.QualityScorer.aggregate",
-      "is_generated": false
+      "label": "adk_llm_auditor.QualityScorer.aggregate"
     },
     {
       "id": "completeness_scorer",
-      "flow_role": "processor",
-      "label": "completeness_scorer",
-      "is_generated": false
+      "label": "completeness_scorer"
     },
     {
       "id": "critique",
-      "flow_role": "processor",
-      "label": "critique",
-      "is_generated": false
+      "label": "critique"
     },
     {
       "id": "deep_reviser",
-      "flow_role": "processor",
-      "label": "deep_reviser",
-      "is_generated": false
+      "label": "deep_reviser"
     },
     {
       "id": "extract_claims",
-      "flow_role": "processor",
-      "label": "extract_claims",
-      "is_generated": false
+      "label": "extract_claims"
     },
     {
       "id": "fallback_generate",
-      "flow_role": "exitpoint",
       "label": "fallback_generate",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "fanin_llm_auditor_line_56",
-      "flow_role": "router",
-      "label": "fanin_llm_auditor_line_56",
-      "is_generated": false
+      "label": "fanin_llm_auditor_line_56"
     },
     {
       "id": "fanout_llm_auditor_line_56",
-      "flow_role": "router",
       "label": "fanout_llm_auditor_line_56",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "finalize",
-      "flow_role": "exitpoint",
       "label": "finalize",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "llm_generate",
-      "flow_role": "processor",
-      "label": "llm_generate",
-      "is_generated": false
+      "label": "llm_generate"
     },
     {
       "id": "reviser",
-      "flow_role": "processor",
-      "label": "reviser",
-      "is_generated": false
+      "label": "reviser"
     },
     {
       "id": "router_llm_auditor_line_41_if",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_41_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_42_seq",
-      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_42_seq",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'no_claims'"]
+      "mutations": [
+        "p['status'] = 'no_claims'"
+      ],
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_46_loop_back_0",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_46_loop_back_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_47_seq",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_47_seq",
-      "is_generated": true,
-      "mutations": ["p['iteration'] += 1"]
+      "mutations": [
+        "p['iteration'] += 1"
+      ],
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_50_except_dispatch_0",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_50_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_50_try_enter_0",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_50_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_50_try_exit_0",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_50_try_exit_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_65_if",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_65_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_66_seq",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_66_seq",
-      "is_generated": true,
-      "mutations": ["p['prev_score'] = p['aggregate_score']"]
+      "mutations": [
+        "p['prev_score'] = p['aggregate_score']"
+      ],
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_70_if",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_70_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_71_seq",
-      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_71_seq",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'approved'"]
+      "mutations": [
+        "p['status'] = 'approved'"
+      ],
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_73_if",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_73_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_83_if",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_83_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_84_seq",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_84_seq",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'max_iterations'"]
+      "mutations": [
+        "p['status'] = 'max_iterations'"
+      ],
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_87_seq",
-      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_87_seq",
-      "is_generated": true,
-      "mutations": ["p['prev_score'] = p['aggregate_score']"]
+      "mutations": [
+        "p['prev_score'] = p['aggregate_score']"
+      ],
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_llm_auditor_line_90_seq",
-      "flow_role": "router",
       "label": "router_llm_auditor_line_90_seq",
-      "is_generated": true,
-      "mutations": ["p['partial'] = False"]
+      "mutations": [
+        "p['partial'] = False"
+      ],
+      "generated": true
     },
     {
       "id": "start_llm_auditor",
-      "flow_role": "entrypoint",
       "label": "start_llm_auditor",
-      "is_generated": true,
-      "mutations": ["p['iteration'] = 0", "p['status'] = 'started'", "p['partial'] = True"]
+      "mutations": [
+        "p['iteration'] = 0",
+        "p['status'] = 'started'",
+        "p['partial'] = True"
+      ],
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

@@ -3,51 +3,40 @@
   "nodes": [
     {
       "id": "handler_default",
-      "flow_role": "processor",
-      "label": "handler_default",
-      "is_generated": false
+      "label": "handler_default"
     },
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
       "label": "handler_finalize",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "handler_type_a",
-      "flow_role": "processor",
-      "label": "handler_type_a",
-      "is_generated": false
+      "label": "handler_type_a"
     },
     {
       "id": "handler_type_b",
-      "flow_role": "processor",
-      "label": "handler_type_b",
-      "is_generated": false
+      "label": "handler_type_b"
     },
     {
       "id": "handler_validate",
-      "flow_role": "processor",
-      "label": "handler_validate",
-      "is_generated": false
+      "label": "handler_validate"
     },
     {
       "id": "router_if_elif_else_flow_line_14_if_2",
-      "flow_role": "router",
       "label": "router_if_elif_else_flow_line_14_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_if_elif_else_flow_line_16_if_1",
-      "flow_role": "router",
       "label": "router_if_elif_else_flow_line_16_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_if_elif_else_flow",
-      "flow_role": "entrypoint",
       "label": "start_if_elif_else_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [
