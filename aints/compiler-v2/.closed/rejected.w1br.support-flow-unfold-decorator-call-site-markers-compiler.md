@@ -1,7 +1,10 @@
 ---
 title: "Support @flow and @unfold decorator/call-site markers in compiler"
 priority: 2 # medium
+tags:
+  - superseded-by:7qkk
 ---
+
 
 Add `@flow`, `@unfold` as decorator markers and `flow(func)(p)`, `unfold(func)(p)` as call-site markers.
 
