@@ -12,13 +12,15 @@ This guide assumes you are a **platform engineer** responsible for defining flav
 
 A flavor is a cluster-scoped `EnvironmentConfig` resource with two requirements:
 
-1. Label `asya.sh/flavor: <name>`
+1. Resource name matching the flavor name (the function fetches by name)
 2. A `data` field shaped like a partial AsyncActor spec
+
+By convention, flavors also carry the label `asya.sh/flavor: <name>` for discoverability (`kubectl get environmentconfigs -l asya.sh/flavor`).
 
 When Crossplane reconciles an AsyncActor that lists flavors, the `function-asya-flavors` composition function:
 
 1. Reads `spec.flavors` from the actor
-2. Requests matching `EnvironmentConfig` resources from Crossplane
+2. Requests each `EnvironmentConfig` by name from Crossplane
 3. Merges all flavor data using type-aware rules
 4. Applies the actor's inline spec as the final override
 5. Writes the resolved spec back onto the XR's desired state
@@ -58,11 +60,11 @@ kubectl apply -f cpu-standard.yaml
 
 | Field | Description |
 |-------|-------------|
-| `metadata.name` | Kubernetes resource name (any valid DNS label) |
-| `metadata.labels["asya.sh/flavor"]` | Flavor identifier — actors reference this name |
+| `metadata.name` | Flavor name — actors reference this name in `spec.flavors` (the function fetches by resource name) |
+| `metadata.labels["asya.sh/flavor"]` | Convention label for discoverability (`kubectl get environmentconfigs -l asya.sh/flavor`) |
 | `data` | Partial AsyncActor spec — only the fields this flavor provides |
 
-**Naming convention**: Use the `asya.sh/flavor` label value as the canonical name, not the resource name. This allows renaming the resource without breaking actor references.
+**Naming convention**: The `metadata.name` is the canonical flavor identifier. Keep the `asya.sh/flavor` label value in sync with the resource name for discoverability.
 
 ## Flavor Composability
 
@@ -311,13 +313,12 @@ data:
     policies:
       transient:
         maxAttempts: 5
-        backoff:
-          initialInterval: 1s
-          maxInterval: 30s
-          multiplier: 2.0
+        backoff: exponential
+        initialDelay: 1s
+        maxInterval: 30s
     rules:
-    - errorPatterns: ["TimeoutError", "ConnectionError"]
-      policyName: transient
+    - errors: ["TimeoutError", "ConnectionError"]
+      policy: transient
 ```
 
 **Use case**: Actors that call flaky external APIs.

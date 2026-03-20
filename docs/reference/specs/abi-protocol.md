@@ -128,6 +128,7 @@ nxt  = yield "GET", ".route.next"       # list of upcoming actors
 hdrs = yield "GET", ".headers"          # all headers
 tid  = yield "GET", ".headers.trace_id" # single header
 mid  = yield "GET", ".id"              # message ID
+pid  = yield "GET", ".parent_id"      # parent ID (fanout lineage)
 ```
 
 ### SET — write metadata
@@ -172,6 +173,7 @@ Remove a field from the envelope metadata.
 ```python
 yield "DEL", ".headers.trace_id"
 yield "DEL", ".route.next"
+yield "DEL", ".status.error"          # clear error state (e.g., in except-dispatch routers)
 ```
 
 ### FLY — stream upstream
@@ -286,7 +288,7 @@ Not all metadata fields are writable. The ABI enforces access control:
 | `.route.curr`  | read | deny  | deny  |
 | `.route.next`  | read | write | write |
 | `.headers.*`   | read | write | write |
-| `.status`      | read | write | deny  |
+| `.status`      | read | write | write |
 
 The envelope **payload** is not accessible via the ABI — it's the function
 argument itself. The ABI operates on envelope metadata only.

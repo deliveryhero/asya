@@ -113,7 +113,7 @@ Any unknown path returns `404 Not Found`.
 
 | Error | Cause | Action |
 |-------|-------|--------|
-| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Send to `x-sink` (phase: failed, reason: Timeout), crash pod |
+| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Send to `x-sump` (phase: failed), crash pod |
 | HTTP parse error | Unexpected non-HTTP response | Route to `x-sink` (phase: failed) |
 
 ## Timeout Strategy

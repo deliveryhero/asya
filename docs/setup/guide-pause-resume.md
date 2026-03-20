@@ -199,17 +199,19 @@ When no fields are defined, resume input merges at the payload root via shallow 
 Place `x-pause` in the route where a pause point is needed:
 
 ```yaml
-# Gateway tool definition
+# Gateway flows.yaml
+flows:
 - name: review_pipeline
+  entrypoint: analyzer
+  route_next: [x-pause, summarizer]
   description: Analyze data then pause for human review
-  route: [analyzer, x-pause, summarizer]
   timeout: 120
 ```
 
 A route can contain multiple pause points:
 
 ```yaml
-route: [step-1, x-pause, step-2, x-pause, step-3]
+route_next: [x-pause, step-2, x-pause, step-3]
 ```
 
 Each pause persists the current state. On resume, the pipeline continues from the most recent pause point.

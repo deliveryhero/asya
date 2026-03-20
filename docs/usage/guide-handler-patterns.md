@@ -64,7 +64,7 @@ async def process(payload: dict):
 ```
 
 **ABI verbs**: `GET`, `SET`, `DEL`, `FLY`. See [ABI Protocol
-Reference](../reference/abi-protocol.md) for full details.
+Reference](../reference/specs/abi-protocol.md) for full details.
 
 **When to use**: routing decisions, streaming, metadata inspection.
 
@@ -248,7 +248,7 @@ the gateway.
 
 When your actor needs to stream tokens upstream, modify routing dynamically, or
 read envelope metadata, use a **generator adapter**. The yield-based
-[ABI protocol](../reference/abi-protocol.md) provides four verbs: GET, SET,
+[ABI protocol](../reference/specs/abi-protocol.md) provides four verbs: GET, SET,
 DEL, FLY.
 
 ```python
@@ -789,7 +789,7 @@ Python runs, and easy to understand.
 
 ## Further reading
 
-- [ABI Protocol Reference](../reference/abi-protocol.md) — full verb reference,
+- [ABI Protocol Reference](../reference/specs/abi-protocol.md) — full verb reference,
   path syntax, testing helpers
 - [Architecture: Runtime](../architecture/asya-runtime.md) — handler types, async
   support, configuration

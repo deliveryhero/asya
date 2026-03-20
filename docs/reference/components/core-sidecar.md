@@ -119,7 +119,7 @@ Router → Transport.Ack/Nack()
 | Error (retriable) | Retry via SendWithDelay to own queue |
 | Error (fatal/exhausted) | Send to x-sink (phase: failed) |
 | SLA expired | Send to x-sink (phase=failed, reason=Timeout) |
-| Runtime timeout | Send to x-sink (phase: failed), crash pod |
+| Runtime timeout | Send to x-sump (phase: failed), crash pod |
 | End of route | Send to x-sink |
 
 ## Transport Interface
@@ -240,7 +240,7 @@ volumes:
 | Handler error (fatal / non-retryable) | ACK + send failed envelope | x-sink (phase: failed, reason: NonRetryableFailure) |
 | Parse error | ACK + send failed envelope | x-sink (phase: failed, no retry) |
 | SLA expired | ACK + stamp phase=failed, reason=Timeout | x-sink |
-| Runtime timeout | ACK + send to x-sink + crash pod | x-sink (phase: failed, reason: Timeout) |
+| Runtime timeout | ACK + send to x-sump + crash pod | x-sump (phase: failed) |
 | Runtime connection failure | ACK + retry (retriable) | Own queue |
 | Transport error (can't send) | No ACK | Transport redelivers → DLQ |
 
@@ -317,7 +317,7 @@ All configuration via environment variables:
 
 **Recovery:**
 1. Socket read returns `context.DeadlineExceeded`
-2. Message sent to x-sink (phase: failed, reason: Timeout)
+2. Message sent to x-sump (phase: failed)
 3. Sidecar **crashes the pod** (exits with status code 1)
 4. Kubernetes restarts the pod to recover clean state
 
@@ -352,7 +352,7 @@ All configuration via environment variables:
 | Sidecar crash | ❌ No | ✅ Yes (fast) | NACK → redelivery |
 | Runtime crash | ❌ No | ✅ Yes | Retried → x-sink (phase: failed) on exhaustion |
 | Runtime OOM | ❌ No | ✅ Yes (may CrashLoopBackoff) | Retried → x-sink (phase: failed) on exhaustion |
-| Runtime timeout | ❌ No | ✅ Yes (crash + restart) | Via x-sink (phase: failed), pod crashes to prevent zombie |
+| Runtime timeout | ❌ No | ✅ Yes (crash + restart) | Via x-sump (phase: failed), pod crashes to prevent zombie |
 | SLA expired | ❌ No | ✅ Yes | Via x-sink (phase=failed), runtime not called |
 | Pod eviction | ❌ No | ✅ Yes | Full pod restart |
 | Socket corruption | ❌ No | ✅ Yes | Transient, usually recovers |

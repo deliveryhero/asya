@@ -13,9 +13,9 @@ across all levels: unit, integration, and end-to-end.
 | Auth: wrong issuer / audience | ✅ | — | ✅ |
 | Agent card (`/.well-known/agent.json`) | ✅ `agent_card_producer_test.go` | — | ✅ |
 | Extended agent card (skills from DB) | ✅ | — | ✅ |
-| `tasks/send` (blocking SSE) | ✅ `blocking_test.go` | ✅ `gateway-actors` | ✅ |
+| `message/send` (blocking SSE) | ✅ `blocking_test.go` | ✅ `gateway-actors` | ✅ |
 | `tasks/get` | ✅ `executor_test.go` | ✅ | ✅ |
-| `tasks/subscribe` (live SSE) | ✅ | ✅ | ✅ |
+| `tasks/resubscribe` (live SSE) | ✅ | ✅ | ✅ |
 | `tasks/cancel` | ✅ | ✅ | ✅ |
 | `tasks/list` | ✅ | ✅ | ✅ |
 | A2A→envelope translation | ✅ `translator_test.go` | — | — |
@@ -56,13 +56,13 @@ Tests the JSON-RPC dispatcher that routes methods to handlers.
 
 | Method | Scenario | Assertion |
 |--------|----------|-----------|
-| `tasks/send` | Valid payload | Dispatches to blocking handler |
+| `message/send` | Valid payload | Dispatches to blocking handler |
 | `tasks/get` | Known task ID | Returns task with current state |
 | `tasks/get` | Unknown task ID | JSON-RPC error `-32001` (not found) |
 | `tasks/list` | Context ID with tasks | Returns task list |
 | `tasks/list` | Unknown context ID | Returns empty list |
 | `tasks/cancel` | Running task | Returns `canceled` state |
-| `tasks/subscribe` | Completed task | Immediate final event |
+| `tasks/resubscribe` | Completed task | Immediate final event |
 | Unknown method | Any | JSON-RPC error `-32601` |
 | Malformed JSON | Any | JSON-RPC error `-32700` |
 
@@ -139,11 +139,11 @@ RabbitMQ) inside Docker Compose. No Kind cluster required.
 
 | Scenario | Profile | Assertion |
 |----------|---------|-----------|
-| `tasks/send` → echo actor → `completed` | rabbitmq, sqs | Final SSE state=`completed` |
+| `message/send` → echo actor → `completed` | rabbitmq, sqs | Final SSE state=`completed` |
 | `tasks/get` after completion | rabbitmq | Non-empty task struct |
 | `tasks/list` with context | rabbitmq | At least one task returned |
 | `tasks/cancel` while running | rabbitmq | State transitions to `canceled` |
-| `tasks/subscribe` live stream | rabbitmq | Events arrive before task finishes |
+| `tasks/resubscribe` live stream | rabbitmq | Events arrive before task finishes |
 | Multi-hop pipeline (doubler→incrementer) | rabbitmq | Final payload transformed correctly |
 
 **Infrastructure**: The A2A tests use `ASYA_A2A_API_KEY=test-key` (set in the
@@ -223,19 +223,19 @@ in the agent card and can be dispatched via `metadata.skill`:
 
 | Test | Method | Assertion |
 |------|--------|-----------|
-| `test_tasks_send_dispatches_work_and_returns_task_state` | `tasks/send` | SSE stream ends with `final=true`, state=`completed` |
+| `test_tasks_send_dispatches_work_and_returns_task_state` | `message/send` | SSE stream ends with `final=true`, state=`completed` |
 | `test_tasks_get_returns_task_state` | `tasks/get` | State=`completed` for known task |
-| `test_tasks_subscribe_streams_events` | `tasks/subscribe` | Events received, final state=`completed` |
-| `test_tasks_subscribe_live_stream` | `tasks/subscribe` | Events arrive while task is running |
+| `test_tasks_subscribe_streams_events` | `tasks/resubscribe` | Events received, final state=`completed` |
+| `test_tasks_subscribe_live_stream` | `tasks/resubscribe` | Events arrive while task is running |
 | `test_tasks_cancel_transitions_to_cancelled` | `tasks/cancel` | State=`canceled` |
 | `test_tasks_list_returns_tasks_for_context` | `tasks/list` | ≥2 tasks for shared context ID |
-| `test_multihop_pipeline_via_a2a` | `tasks/send` | Multi-actor pipeline reaches `completed` |
+| `test_multihop_pipeline_via_a2a` | `message/send` | Multi-actor pipeline reaches `completed` |
 
 ### Helper Functions
 
 ```python
 _send_task(skill, payload) -> list[dict]
-    # tasks/send with metadata.skill; collects SSE until result.final=True
+    # message/send with metadata.skill; collects SSE until result.final=True
 
 _a2a_stream(method, params) -> list[dict]
     # Generic SSE collector
@@ -270,6 +270,6 @@ make trigger-tests PROFILE=rabbitmq-minio PYTEST_OPTS="-v -s -k test_a2a"
 | Scenario | Level absent | Rationale |
 |----------|-------------|-----------|
 | JWT auth | Integration | JWKS requires a running HTTP server; Docker Compose can serve it but adds complexity. API-key auth suffices at integration level. |
-| Concurrent `tasks/send` (fan-out) | E2E | Already covered by MCP fan-out tests (`test_fanout_fanin_flow_e2e.py`). |
-| `tasks/send` with `text` message parts | Unit only | Actor mesh only sees `payload`; text→payload translation is a unit concern. |
+| Concurrent `message/send` (fan-out) | E2E | Already covered by MCP fan-out tests (`test_fanout_fanin_flow_e2e.py`). |
+| `message/send` with `text` message parts | Unit only | Actor mesh only sees `payload`; text→payload translation is a unit concern. |
 | A2A over Pub/Sub transport | E2E only | Integration test matrix does not include Pub/Sub; covered by `pubsub-gcs` E2E profile. |

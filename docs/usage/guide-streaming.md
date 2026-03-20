@@ -247,17 +247,17 @@ curl -N -H "Accept: text/event-stream" \
 Stream format:
 
 ```
-event: fly
+event: partial
 data: {"partial":true,"text":"Hello"}
 
-event: fly
+event: partial
 data: {"partial":true,"text":" world"}
 
 event: update
 data: {"id":"task-123","status":"succeeded","result":{...}}
 ```
 
-FLY events arrive with `event: fly`. Progress updates from the sidecar arrive with `event: update`. The final result arrives as the last `update` event with `status: succeeded`.
+FLY events arrive with `event: partial` by default. If the FLY payload contains A2A-specific keys (`artifact_update`, `status_update`, or `message`), the event type matches that key instead. Progress updates from the sidecar arrive with `event: update`. The final result arrives as the last `update` event with `status: succeeded`.
 
 ### A2A Subscribe
 
