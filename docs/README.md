@@ -24,8 +24,8 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
   - [Crew](architecture/asya-crew.md) - Built-in system actors (x-sink, x-sump, x-pause, x-resume)
   - [Flow Compiler](architecture/asya-flow.md) - How Flow DSL transforms Python into actor networks
   - [State Proxy](architecture/asya-state-proxy.md) - Virtual persistent state for stateless actors
-  - [CLI Tools](architecture/asya-lab.md) - `asya flow`, `asya mcp`, `asya build`, `asya k`
-  - [Autoscaling](architecture/autoscaling.md) - KEDA per-actor queue-depth scaling
+  - [CLI Tools](reference/cli.md) - `asya flow`, `asya mcp`, `asya build`, `asya k`
+  - [Autoscaling](howto/configure-autoscaling.md) - KEDA per-actor queue-depth scaling
   - [Observability](architecture/observability.md) - Metrics, tracing, Prometheus/Grafana
 - **Protocols**
   - [Actor-Actor](architecture/protocols/actor-actor.md) - Envelope spec and payload enrichment
@@ -49,7 +49,7 @@ GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryh
 - **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
 
 ### Operations
-- **[Scaling](operate/scaling.md)** - KEDA config, GPU workloads, cost optimization
+- **[Scaling](howto/configure-autoscaling.md)** - KEDA config, GPU workloads, cost optimization
 - **[Monitoring](operate/monitoring.md)** - Dashboards, alerts, metrics
 - **[Troubleshooting](operate/troubleshooting.md)** - Common issues and solutions
 - **[Upgrades](operate/upgrades.md)** - Version upgrade procedures
