@@ -961,11 +961,11 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	if err != nil {
 		slog.Info("Runtime call failed", "id", msg.ID, "duration", runtimeDuration, "error", err)
 	} else {
-		status := "success"
 		if streamHalted {
-			status = "error"
+			slog.Warn("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount, "status", "error")
+		} else {
+			slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount, "status", "success")
 		}
-		slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount, "status", status)
 	}
 
 	if r.metrics != nil {
