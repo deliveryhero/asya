@@ -4,7 +4,9 @@ priority: 2 # medium
 assignee: Artem Yushkovskiy
 tags:
   - worktree:docs/kubecon-prettify
+  - pr:343
 ---
+
 
 
 Add a Features section with comparison table showing key differentiators: scale-to-zero, no SDK lock-in, envelope routing, pure Python handlers.
