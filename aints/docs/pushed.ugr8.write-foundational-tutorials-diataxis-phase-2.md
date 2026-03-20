@@ -1,9 +1,12 @@
 ---
 title: Write foundational tutorials (Diataxis Phase 2)
 priority: 2 # medium
+tags:
+  - pr:338
 dependencies:
   - zb3d
 ---
+
 
 Fill the biggest Diataxis gap: learning-oriented tutorials that teach by doing.
 
