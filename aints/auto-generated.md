@@ -105,7 +105,7 @@
 - ✓ merged [1fn6] add-rabbitmq-crossplane-composition
 
 ## compiler-simplify/
-> rfc.md: 1144 lines
+> rfc.md: 1142 lines
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|

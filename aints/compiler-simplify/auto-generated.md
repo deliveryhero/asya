@@ -2,7 +2,7 @@
 # git-aint: 1 active, 1 open | 16 merged
 
 ## compiler-simplify/
-> rfc.md: 1144 lines
+> rfc.md: 1142 lines
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
