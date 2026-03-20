@@ -3,9 +3,11 @@ title: Polish docs navigation and stubs (Diataxis Phase 4)
 priority: 4 # backlog
 tags:
   - worktree:misc/w91z.docs-nav-polish
+  - pr:338
 dependencies:
   - zb3d
 ---
+
 
 
 Final polish pass after major Diataxis restructuring.
