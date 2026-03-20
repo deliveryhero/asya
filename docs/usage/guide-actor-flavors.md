@@ -31,8 +31,10 @@ reconciliation cycle.
 ## How flavors work
 
 A flavor is a Kubernetes `EnvironmentConfig` (a Crossplane cluster-scoped
-resource) with the label `asya.sh/flavor: <name>`. Its `data` field contains a
-partial `AsyncActor` spec — only the fields the flavor wants to provide.
+resource) whose resource name matches the flavor name. Its `data` field
+contains a partial `AsyncActor` spec — only the fields the flavor wants to
+provide. By convention, flavors also carry the label `asya.sh/flavor: <name>`
+for discoverability (`kubectl get environmentconfigs -l asya.sh/flavor`).
 
 When Crossplane reconciles an `AsyncActor` that lists flavors, the
 `function-asya-flavors` composition function runs a two-phase resolution:
@@ -114,9 +116,10 @@ merge — they cannot be set by flavors.
 
 ## Creating a flavor (platform engineer)
 
-A flavor is a plain `EnvironmentConfig` manifest. The only required convention is
-the `asya.sh/flavor: <name>` label and a `data` field shaped like a partial
-`AsyncActor` spec.
+A flavor is a plain `EnvironmentConfig` manifest. The resource name must match
+the flavor name (the function fetches by name). By convention, add the
+`asya.sh/flavor: <name>` label for discoverability. The `data` field is shaped
+like a partial `AsyncActor` spec.
 
 ### Example: compute profile for GPU inference
 

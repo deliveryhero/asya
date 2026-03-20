@@ -41,9 +41,9 @@
 - `route` (required): Actor routing state
   - `prev`: Actors that have already processed the envelope (read-only, maintained by runtime)
   - `curr`: The actor currently processing the envelope (read-only, set by runtime)
-  - `next`: Actors yet to process the envelope (modifiable via VFS)
+  - `next`: Actors yet to process the envelope (modifiable via ABI)
 - `status` (optional): Envelope lifecycle status, stamped by gateway on creation
-  - `phase`: Current lifecycle phase (`pending`, `processing`, `succeeded`, `failed`)
+  - `phase`: Current lifecycle phase (`pending`, `processing`, `retrying`, `succeeded`, `failed`, `paused`, `canceled`)
   - `actor`: Actor that last updated the status
   - `deadline_at`: Absolute deadline in RFC3339 UTC (omitted if no timeout configured)
 - `payload` (required): User data processed by actors
@@ -109,14 +109,14 @@ async def process(payload):
 **Fanout ID semantics**:
 
 - First yielded envelope retains original ID (for SSE streaming compatibility)
-- Subsequent yielded envelopes receive suffixed IDs: `{original_id}-{index}`
-- All fanout children have `parent_id` set to original envelope ID
+- Subsequent yielded envelopes receive UUID4 IDs (globally unique, no collision across concurrent fan-outs)
+- All fanout children (index > 0) have `parent_id` set to original envelope ID
 
 **Example**: Envelope `abc-123` yields 3 items:
 
 - Index 0: `id="abc-123"`, `parent_id=null` (original ID preserved)
-- Index 1: `id="abc-123-1"`, `parent_id="abc-123"` (fanout child)
-- Index 2: `id="abc-123-2"`, `parent_id="abc-123"` (fanout child)
+- Index 1: `id="550e8400-e29b-41d4-a716-446655440000"`, `parent_id="abc-123"` (fanout child, UUID4)
+- Index 2: `id="7c9e6679-7425-40de-944b-e07fc1f90ae7"`, `parent_id="abc-123"` (fanout child, UUID4)
 
 **Note**: Returning a list from a handler does NOT trigger fan-out. A returned list is treated as a single payload value.
 
@@ -189,7 +189,9 @@ When gateway is enabled, tasks have lifecycle statuses tracked throughout proces
 | `pending` | Task created, not yet processing | Gateway creates task from MCP tool call |
 | `running` | Task is being processed by actors | Sidecar sends first progress update |
 | `succeeded` | Pipeline completed successfully | `x-sink` crew actor reports success |
-| `failed` | Pipeline failed with error | `x-sump` crew actor reports failure |
+| `failed` | Pipeline failed with error | `x-sink` crew actor reports failure (or gateway backstop timer) |
+| `paused` | Waiting for external input | Sidecar detects `x-asya-pause` header from x-pause crew actor |
+| `canceled` | Task was canceled | Client cancels via `POST /a2a/tasks/{id}:cancel` |
 | `unknown` | Status cannot be determined | Edge cases, missing updates |
 
 ### Progress Reporting

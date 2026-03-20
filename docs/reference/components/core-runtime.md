@@ -174,18 +174,20 @@ return {"processed": True}
 
 Sidecar creates one message, routes to next actor.
 
-### Fan-Out
+### Fan-Out (Generator)
 
 ```python
-return [{"chunk": 1}, {"chunk": 2}, {"chunk": 3}]
+async def process(payload):
+    for item in payload["items"]:
+        yield {"item": item}
 ```
 
-Sidecar creates multiple messages (one per item).
+Each `yield` produces a separate downstream envelope. Returning a list does NOT trigger fan-out — it is treated as a single payload value.
 
 ### Abort
 
 ```python
-return None  # or []
+return None
 ```
 
 Sidecar routes message to `x-sink` (no more processing).
@@ -215,7 +217,7 @@ Runtime catches exception, creates error response with detailed traceback:
 - `msg_parsing_error`: Invalid JSON or message structure
 - `connection_error`: Socket/network issues
 
-Sidecar receives error response and routes message to `x-sump`.
+Sidecar receives error response and applies resiliency policy: retries if configured, or routes to `x-sink` (phase: failed) if exhausted or non-retryable. `x-sink` then dispatches through hooks to `x-sump`.
 
 ## `asya_runtime.py` via ConfigMap
 

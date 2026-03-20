@@ -24,7 +24,7 @@ spec:
     actorTimeout: 5m  # 5 minutes
 ```
 
-**Format**: Duration string (`30s`, `2m`, `1h`). No default — if omitted, the actor has unlimited time.
+**Format**: Duration string (`30s`, `2m`, `1h`). **Default**: `5m` (sidecar default when not specified in the AsyncActor spec).
 
 ---
 
@@ -274,7 +274,9 @@ This ensures the **entire pipeline** respects the SLA even if individual actors 
 
 `actorTimeout` controls **when** the sidecar gives up on a single message.
 
-Retry policies (configured via `resiliency.policies` and `resiliency.rules`) control **what** happens after the timeout:
+**Runtime timeouts are not retried.** When `actorTimeout` fires, the sidecar sends the envelope to `x-sump` and crashes the pod (`os.Exit(1)`) to prevent zombie processing. The pod restart ensures a clean state, but the timed-out message is terminal.
+
+Retry policies (configured via `resiliency.policies` and `resiliency.rules`) apply to **handler errors** (exceptions raised by user code), not to runtime timeouts. For example:
 
 ```yaml
 resiliency:
@@ -282,18 +284,17 @@ resiliency:
   policies:
     llm_retry:
       maxAttempts: 3
-      delay: 10s
-      backoffMultiplier: 2
+      initialDelay: 10s
+      backoff: exponential
   rules:
-    - errorMatch: "timeout_error"
+    - errors: ["TimeoutError"]
       policy: llm_retry
 ```
 
 With this configuration:
 1. Sidecar waits up to 5 minutes for the runtime to respond
-2. If the timeout fires, the envelope is routed to `x-sump` with a `timeout_error`
-3. The retry policy sees `timeout_error` and re-enqueues the message
-4. After 3 attempts, the message is marked as failed
+2. If the handler raises a `TimeoutError` (e.g., from an HTTP client), the retry policy matches and re-enqueues
+3. If the sidecar's own deadline fires (runtime does not respond at all), the envelope goes to `x-sump` and the pod crashes -- no retry
 
 See the retry policy documentation for details on configuring error-specific retry behavior.
 
@@ -305,7 +306,7 @@ See the retry policy documentation for details on configuring error-specific ret
 |-------|----------|
 | Sidecar timeout enforcement | [docs/reference/components/core-sidecar.md](../reference/components/core-sidecar.md) |
 | Runtime behavior on timeout | [docs/reference/components/core-runtime.md](../reference/components/core-runtime.md) |
-| Retry policies for timeout errors | [../reference/specs/error-handling.md](../reference/specs/retry-policies.md) |
+| Retry policies for timeout errors | [Error handling](../reference/specs/error-handling.md) |
 | SLA configuration | [docs/reference/components/core-gateway.md](../reference/components/core-gateway.md) |
 
 ---

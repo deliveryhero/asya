@@ -36,7 +36,7 @@ The gateway uses two independent state stores with clearly separated ownership:
                         │   gateway-flows ConfigMap   │
                         │   (flows.yaml — K8s object) │
                         └──────────────┬──────────────┘
-                                       │ polls every 5 s
+                                       │ polls every 10 s
                                        │ (toolstore.Watch)
                         ┌──────────────▼──────────────┐
    external client ───► │        api pod              │
@@ -74,7 +74,7 @@ The gateway uses two independent state stores with clearly separated ownership:
 | | api pod | mesh pod |
 |---|---|---|
 | Mounts ConfigMap | ✅ (`ASYA_CONFIG_PATH`) | ❌ |
-| Hot-reloads on change | ✅ every 5 s | ❌ |
+| Hot-reloads on change | ✅ every 10 s (default) | ❌ |
 | Uses for dispatch | ✅ MCP + A2A + agent card | ❌ |
 
 The ConfigMap is the source of truth for *what flows exist*. It is seeded by
@@ -133,7 +133,7 @@ config:
 ```
 
 Tool/skill registration is **ConfigMap-backed**: flows are declared in
-`flows.yaml`, mounted into the api pod, and hot-reloaded every 5 seconds by a
+`flows.yaml`, mounted into the api pod, and hot-reloaded every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) by a
 polling watcher (`toolstore.Watch`). Updating the ConfigMap is the only way to
 add, change, or remove an exposed tool or A2A skill — no restart is needed.
 

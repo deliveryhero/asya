@@ -392,9 +392,11 @@ data: {"id":"task-abc","status":"running","progress_percent":33.0,"curr":"actor-
 FLY event (e.g. LLM token stream):
 
 ```
-event: text_delta
+event: partial
 data: {"type":"text_delta","token":"Hello"}
 ```
+
+The SSE event type defaults to `partial`. If the FLY payload contains an A2A-specific key (`artifact_update`, `status_update`, or `message`), the event type matches that key.
 
 ---
 

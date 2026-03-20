@@ -215,7 +215,7 @@ The gateway acts as its own authorization server, issuing HMAC-SHA256 JWTs.
 
 ## Tool Registration
 
-The gateway reads tool definitions from a ConfigMap named `gateway-flows`, mounted into the api pod. The gateway polls this ConfigMap every 5 seconds and hot-reloads without a pod restart.
+The gateway reads tool definitions from a ConfigMap named `gateway-flows`, mounted into the api pod. The gateway polls this ConfigMap every 10 seconds (configurable via `ASYA_CONFIG_POLL_INTERVAL`) and hot-reloads without a pod restart.
 
 ### Step 1: Create flows.yaml
 
@@ -406,7 +406,7 @@ kubectl run psql-test --rm -i --restart=Never --image=postgres:15 \
 
 ### Tools not appearing after ConfigMap update
 
-Wait 5 seconds for the poll interval, or force reload:
+Wait for the poll interval (default 10 seconds), or force reload:
 ```bash
 curl -X POST http://asya-gateway-mesh.asya-system.svc.cluster.local:8080/mesh/config-reload
 ```

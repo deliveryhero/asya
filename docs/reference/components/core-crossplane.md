@@ -49,22 +49,24 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
 
 **Pipeline steps**:
 
-1. **render-sqs-queue**: Creates SQS Queue
+1. **resolve-flavors** (conditional, when `functions.flavorsEnabled`): Resolves flavor EnvironmentConfigs and merges them into the XR's desired spec. Actors without `spec.flavors` pass through unchanged. See [Actor Flavors](../../usage/guide-actor-flavors.md).
+
+2. **render-sqs-queue**: Creates SQS Queue
    - Name: `asya-{namespace}-{actor}`
    - Visibility timeout: 30s
    - Message retention: 4 days
    - Receive wait time: 20s (long polling)
    - Tags: `asya.sh/namespace`, `asya.sh/actor`
 
-2. **render-serviceaccount**: Creates ServiceAccount with IRSA annotation (if `irsa.enabled=true`)
+3. **render-serviceaccount**: Creates ServiceAccount with IRSA annotation (if `irsa.enabled=true`)
    - Name: Configured via `irsa.serviceAccountName` (shared per namespace)
    - Annotation: `eks.amazonaws.com/role-arn` from `irsa.roleArn` or pattern
 
-3. **render-triggerauthentication**: Creates KEDA TriggerAuthentication
+4. **render-triggerauthentication**: Creates KEDA TriggerAuthentication
    - Auth provider: `podIdentity` or `secret` (configured via `keda.authProvider`)
    - Enables KEDA to read SQS queue metrics
 
-4. **render-scaledobject**: Creates KEDA ScaledObject (if `scaling.enabled=true`)
+5. **render-scaledobject**: Creates KEDA ScaledObject (if `scaling.enabled=true`)
    - Waits for queue URL from SQS Queue status
    - References TriggerAuthentication for AWS credentials
    - Configures autoscaling policies (scale-up aggressive, scale-down gradual)
@@ -72,13 +74,13 @@ The `asyncactor-sqs` composition uses function-go-templating to render resources
    - Max replicas: `spec.scaling.maxReplicaCount` (default: 10)
    - Queue length target: `spec.scaling.queueLength` (default: 5 messages/replica)
 
-5. **render-deployment**: Creates Deployment
+6. **render-deployment**: Creates Deployment
    - Pod spec rendered from flat fields: `spec.image`, `spec.handler`, `spec.env`, `spec.resources`, etc.
    - Injects labels: `asya.sh/inject=true`, `asya.sh/actor={name}`
    - ServiceAccount: Uses IRSA ServiceAccount if enabled
    - Replicas: From `spec.replicas` if scaling disabled, otherwise managed by KEDA
 
-6. **patch-status-and-derive-phase**: Aggregates status from managed resources
+7. **patch-status-and-derive-phase**: Aggregates status from managed resources
    - Reads queue URL, queue ARN from SQS Queue status
    - Checks Ready conditions on Queue, ScaledObject, Deployment
    - Calculates phase: `Creating`, `Ready`, or `Napping`

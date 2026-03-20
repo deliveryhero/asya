@@ -145,9 +145,9 @@ profile assembly.
 - **Runtime** (not sidecar) shifts the route: `prev` grows, `curr` advances, `next` shrinks
 - `x-sink` and `x-sump` are **automatic** — never include them in route configs
   - Empty `route.curr` or `None` return → sidecar routes to `x-sink`
-  - Runtime error → sidecar acks and routes to `x-sump`
+  - Runtime error → sidecar applies resiliency policy (retry or route to `x-sink` with phase: failed)
 - Modify routing from a generator handler: `yield "SET", ".route.next", ["actor_a"]`
-- Only `.route.next` and `.headers` are writable; `.route.prev`, `.route.curr`, `.id` are read-only
+- Only `.route.next`, `.headers`, and `.status` are writable; `.route.prev`, `.route.curr`, `.id`, `.parent_id` are read-only
 
 See [docs/reference/specs/envelope.md](docs/reference/specs/envelope.md).
 
@@ -169,11 +169,14 @@ Both actors and flows share a `dict -> dict` signature, but they are fundamental
   group of router actors using **CPS (continuation-passing style)**: instead of calling the next
   function, each step sends a message to the next actor's queue.
 
-Because flows compile to message-passing chains, they can only use actors that map payload **1:1**:
+Flows support fan-out/fan-in via list comprehensions, list literals, and `asyncio.gather`.
+Individual actor calls within flows must map payload **1:1**:
 - ✅ `return payload` (function actor)
 - ✅ exactly one `yield payload` (generator actor, no FLY yields)
+- ✅ `[actor(x) for x in items]` — fan-out with automatic fan-in aggregation
+- ✅ `asyncio.gather(a(x), b(y))` — heterogeneous fan-out with aggregation
 - ❌ `yield "FLY", ...` — not supported in flows (FLY is actor-only)
-- ❌ multiple yields / fan-out — not supported in flows
+- ❌ fire-and-forget fan-out (multiple `yield` without aggregation) — actor-only
 - ❌ returning `None` (abort) — not supported in flows
 
 ### ABI Yield Protocol
@@ -216,7 +219,7 @@ Special root routes (unaffected by base prefix):
 - `/.well-known/agent.json` — A2A Agent Card discovery
 - `/health` — K8s liveness/readiness probe
 
-A2A task state mapping: `pending` → `submitted`, `processing` → `working`, `succeeded` → `completed`,
+A2A task state mapping: `pending` → `submitted`, `running` → `working`, `succeeded` → `completed`,
 `paused` → `input_required`, `failed` → `failed`, `canceled` → `canceled`.
 
 ## AI Automation Policies

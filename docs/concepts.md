@@ -146,7 +146,7 @@ async def analysis_flow(p: dict) -> dict:
 
 `asya flow compile analysis_flow.py` generates router actors that implement the branching logic as message-passing chains using **CPS (continuation-passing style)**. Instead of calling the next function, each step sends a message to the next actor's queue.
 
-Flows only support actors with a 1:1 payload mapping (`return dict`). Dynamic routing (`yield "SET"`), fan-out, and `None` returns are actor-only features.
+Flows support fan-out/fan-in via list comprehensions, list literals, and `asyncio.gather`. Dynamic routing (`yield "SET"`), fire-and-forget fan-out (multiple `yield` without aggregation), and `None` returns are actor-only features.
 
 **See**: [Flow DSL](reference/specs/flow-dsl.md), [Flow Compiler](reference/components/lab-flow-compiler.md)
 
