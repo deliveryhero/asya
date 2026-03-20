@@ -40,7 +40,7 @@ cd ../testing/e2e
 make up
 ```
 
-See [docs/install/local-kind.md](../docs/install/local-kind.md) for detailed local deployment instructions.
+See [docs/setup/start-quickstart.md](../docs/setup/start-quickstart.md) for detailed local deployment instructions.
 
 **Minimal Framework Installation**
 
@@ -98,6 +98,6 @@ helm uninstall crossplane -n crossplane-system
 See `../examples/asyas/` for AsyncActor CRD examples.
 
 For deployment guides, see:
-- [Local Kind Installation](../docs/install/local-kind.md)
-- [AWS EKS Installation](../docs/install/aws-eks.md)
-- [Helm Charts Documentation](../docs/install/helm-charts.md)
+- [Local Kind Installation](../docs/setup/start-quickstart.md)
+- [AWS EKS Installation](../docs/setup/start-aws-eks.md)
+- [Helm Charts Documentation](../docs/setup/guide-helm-charts.md)

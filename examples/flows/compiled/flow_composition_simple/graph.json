@@ -1,0 +1,63 @@
+{
+  "flow_name": "outer_pipeline",
+  "nodes": [
+    {
+      "id": "enrich",
+      "label": "enrich"
+    },
+    {
+      "id": "preprocess",
+      "label": "preprocess"
+    },
+    {
+      "id": "start_outer_pipeline",
+      "label": "start_outer_pipeline",
+      "role": "start",
+      "generated": true
+    },
+    {
+      "id": "store",
+      "label": "store",
+      "role": "end"
+    },
+    {
+      "id": "validate",
+      "label": "validate"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_outer_pipeline",
+      "to": "preprocess",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "preprocess",
+      "to": "validate",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "validate",
+      "to": "enrich",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "enrich",
+      "to": "store",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": [
+    {
+      "id": "validation_stage",
+      "nodes": [
+        "validate",
+        "enrich"
+      ]
+    }
+  ]
+}

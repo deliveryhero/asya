@@ -1,10 +1,10 @@
 <p align="left">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="./docs/img/logo_colored_with_borders.png">
-    <img src="./docs/img/logo_black_w_borders.png" alt="Asya🎭" width="120"/>
+    <source media="(prefers-color-scheme: dark)" srcset="./docs/website/img/logo_colored_with_borders.png">
+    <img src="./docs/website/img/logo_black_w_borders.png" alt="Asya🎭" width="120"/>
   </picture>
   &nbsp;&nbsp;
-  <img src="./docs/img/dh-logo.png" alt="Delivery Hero" width="120"/>
+  <img src="./docs/website/img/dh-logo.png" alt="Delivery Hero" width="120"/>
 </p>
 
 **The Message Knows the Way.**
@@ -43,12 +43,12 @@ Your code stays clean.
 
 | | |
 |---|---|
-| **[Setup](docs/quickstart/README.md)** | Install on Kind (local) or your cluster — start here |
-| **[Usage](docs/quickstart/usage.md)** | Write handlers, deploy actors, build flows with the Flow DSL |
+| **[Setup](docs/setup/README.md)** | Install on Kind (local) or your cluster — start here |
+| **[Usage](docs/usage/README.md)** | Write handlers, deploy actors, build flows with the Flow DSL |
 | **[Concepts](docs/concepts.md)** | Envelope, actor, sidecar, routing — the core model |
 | **[Motivation](docs/motivation.md)** | Why async actors beat synchronous REST for AI at scale |
-| **[Architecture](docs/architecture/README.md)** | Components, protocols, data flow |
-| **[Operate](docs/operate/)** | Monitoring, scaling, troubleshooting, upgrades |
+| **[Architecture](docs/architecture.md)** | Components, protocols, data flow |
+| **[Reference](docs/reference/README.md)** | Specs, configuration tables, API surfaces |
 | **[Examples](examples/)** | Actor specs and flow DSL examples |
 
 ---

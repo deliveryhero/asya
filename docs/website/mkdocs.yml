@@ -1,0 +1,132 @@
+site_name: Asya
+site_url: https://asya.sh/docs
+site_description: Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale
+repo_name: deliveryhero/asya
+repo_url: https://github.com/deliveryhero/asya
+edit_uri: edit/main/docs/
+
+docs_dir: ..
+
+theme:
+  name: shadcn
+  custom_dir: .
+  favicon: website/img/favicon.svg
+  features:
+  - navigation.sections
+  - navigation.expand
+  - navigation.indexes
+  - toc.integrate
+  - search.suggest
+  - search.highlight
+
+extra_css:
+- website/stylesheets/extra.css
+
+extra_javascript:
+- website/js/search-bridge.js
+
+nav:
+- Home: README.md
+- UNDERSTAND:
+  - Motivation: motivation.md
+  - Core Concepts: concepts.md
+  - Architecture: architecture.md
+- USAGE:
+  - Overview: usage/README.md
+  - Getting Started:
+    - First Actor: usage/start-first-actor.md
+    - First Actor Mesh: usage/start-first-actor-mesh.md
+    - First Flow: usage/start-first-flow.md
+  - Guides:
+    - Handler Patterns: usage/guide-handler-patterns.md
+    - Agentic Patterns: usage/guide-agentic-patterns.md
+    - Streaming: usage/guide-streaming.md
+    - Actor Flavors: usage/guide-actor-flavors.md
+    - State Proxy: usage/guide-state-proxy.md
+    - Pause/Resume: usage/guide-pause-resume.md
+    - Timeouts: usage/guide-timeouts.md
+  - Operations:
+    - Debugging: usage/ops-debugging.md
+- SETUP:
+  - Overview: setup/README.md
+  - Getting Started:
+    - Quickstart: setup/start-quickstart.md
+    - AWS EKS: setup/start-aws-eks.md
+    - GCP GKE: setup/start-gcp-gke.md
+  - Guides:
+    - Helm Charts: setup/guide-helm-charts.md
+    - Autoscaling: setup/guide-autoscaling.md
+    - Actor Flavors: setup/guide-actor-flavors.md
+    - State Proxy: setup/guide-state-proxy.md
+    - Pause/Resume: setup/guide-pause-resume.md
+    - Timeouts: setup/guide-timeouts.md
+    - Retries: setup/guide-retries.md
+    - Gateway: setup/guide-gateway.md
+  - Operations:
+    - Observability: setup/ops-observability.md
+    - Troubleshooting: setup/ops-troubleshooting.md
+    - Upgrades: setup/ops-upgrades.md
+- REFERENCE:
+  - Overview: reference/README.md
+  - Components:
+    - Index: reference/components/README.md
+    - Sidecar: reference/components/core-sidecar.md
+    - Runtime: reference/components/core-runtime.md
+    - Gateway: reference/components/core-gateway.md
+    - Crew: reference/components/core-crew.md
+    - Crossplane: reference/components/core-crossplane.md
+    - State Proxy: reference/components/core-state-proxy.md
+    - Actor: reference/components/core-actor.md
+    - Flow Compiler: reference/components/lab-flow-compiler.md
+    - CLI: reference/components/lab-cli.md
+  - Specifications:
+    - Index: reference/specs/README.md
+    - Envelope: reference/specs/envelope.md
+    - Sidecar-Runtime: reference/specs/sidecar-runtime.md
+    - Gateway API: reference/specs/gateway-api.md
+    - ABI Protocol: reference/specs/abi-protocol.md
+    - Flow DSL: reference/specs/flow-dsl.md
+    - Error Handling: reference/specs/error-handling.md
+    - AsyncActor CRD: reference/specs/asyncactor-crd.md
+  - Transports:
+    - Overview: reference/transports/README.md
+    - SQS: reference/transports/sqs.md
+    - RabbitMQ: reference/transports/rabbitmq.md
+    - Pub/Sub: reference/transports/pubsub.md
+    - Socket: reference/transports/socket.md
+  - State Proxy Connectors:
+    - Overview: reference/state-proxy-connectors/README.md
+    - S3: reference/state-proxy-connectors/s3.md
+    - GCS: reference/state-proxy-connectors/gcs.md
+    - Redis: reference/state-proxy-connectors/redis.md
+    - NATS KV: reference/state-proxy-connectors/nats-kv.md
+  - Environment Variables: reference/env-vars.md
+- CONTRIBUTING:
+  - Overview: contributing/README.md
+  - Testing A2A: contributing/testing-a2a.md
+  - Testing State Proxy: contributing/testing-state-proxy.md
+  - Testing Transports: contributing/testing-transport.md
+
+plugins:
+- shadcn/search:
+    prebuild_index: python
+- mermaid2:
+    arguments:
+      theme: default
+
+markdown_extensions:
+- admonition
+- toc:
+    permalink: true
+- tables
+- pymdownx.highlight:
+    use_pygments: true
+- pymdownx.inlinehilite
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:mermaid2.fence_mermaid
+- pymdownx.snippets
+
+copyright: Copyright &copy; 2025 Delivery Hero SE

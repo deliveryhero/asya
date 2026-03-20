@@ -1,0 +1,29 @@
+flowchart TD
+    %% Flow: outer_pipeline
+
+    enrich[enrich]
+    preprocess[preprocess]
+    start_outer_pipeline([start_outer_pipeline])
+    store[store]
+    validate[validate]
+    __end__((( )))
+
+    start_outer_pipeline --> preprocess
+    preprocess --> validate
+    validate --> enrich
+    enrich --> store
+    store --> __end__
+    subgraph validation_stage[validation_stage]
+        validate
+        enrich
+    end
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_outer_pipeline start
+    class store endnode
+    class enrich,preprocess,validate handler
+    class __end__ endpoint

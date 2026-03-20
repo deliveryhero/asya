@@ -65,24 +65,45 @@ class TestInlineCommentDirectives:
         with pytest.raises(FlowCompileError, match="decompose"):
             FlowParser(source, "test.py").parse()
 
-    def test_flow_directive_raises_not_implemented(self):
+    def test_flow_directive_inlines_flow_body(self):
         source = textwrap.dedent("""
+            @flow
+            def sub_flow(p: dict) -> dict:
+                p = inner_handler(p)
+                return p
+
             @flow
             def my_flow(p: dict) -> dict:
                 p = sub_flow(p)  # asya: flow
                 return p
         """)
-        with pytest.raises(FlowCompileError, match="not yet implemented"):
-            FlowParser(source, "test.py").parse()
+        result = FlowParser(source, "test.py").parse()
+        actor_names = [op.name for op in result.operations if isinstance(op, ActorCall)]
+        assert "inner_handler" in actor_names
 
-    def test_unfold_directive_raises_not_implemented(self):
+    def test_unfold_directive_inlines_function_body(self):
         source = textwrap.dedent("""
+            def helper(p: dict) -> dict:
+                p = inner_handler(p)
+                return p
+
             @flow
             def my_flow(p: dict) -> dict:
                 p = helper(p)  # asya: unfold
                 return p
         """)
-        with pytest.raises(FlowCompileError, match="not yet implemented"):
+        result = FlowParser(source, "test.py").parse()
+        actor_names = [op.name for op in result.operations if isinstance(op, ActorCall)]
+        assert "inner_handler" in actor_names
+
+    def test_flow_directive_without_definition_raises_error(self):
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = unknown_flow(p)  # asya: flow
+                return p
+        """)
+        with pytest.raises(FlowCompileError, match="not found"):
             FlowParser(source, "test.py").parse()
 
 

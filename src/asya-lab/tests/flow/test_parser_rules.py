@@ -38,11 +38,33 @@ class TestRuleClassification:
         assert isinstance(ops[0], Mutation)
 
     def test_same_package_classified_unfold(self) -> None:
+        # Same-package functions are classified as UNFOLD by default rules.
+        # When the function is not defined in the same file, expansion falls
+        # back gracefully to treating it as a regular ActorCall.
         source = "@flow\ndef flow(p: dict) -> dict:\n    p = helper(p)\n    return p\n"
         engine = RuleEngine.with_defaults()
         parser = FlowParser(source, "test.py", module_path="my_project.flows", rule_engine=engine)
         ops = parser.parse().operations
         assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "helper"
+
+    def test_same_package_unfold_with_definition(self) -> None:
+        # When the function IS defined in the same file, UNFOLD expands it.
+        # inner_handler is not in same package, so rule engine classifies it as INLINE by default.
+        # But since it has no rule engine match on module_path, it falls through to ActorCall.
+        source = (
+            "def helper(p: dict) -> dict:\n"
+            "    p = inner_handler(p)  # asya: actor\n"
+            "    return p\n\n"
+            "@flow\ndef flow(p: dict) -> dict:\n"
+            "    p = helper(p)\n"
+            "    return p\n"
+        )
+        engine = RuleEngine.with_defaults()
+        parser = FlowParser(source, "test.py", module_path="my_project.flows", rule_engine=engine)
+        ops = parser.parse().operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "inner_handler"
 
     def test_no_engine_all_actors(self) -> None:
         source = "@flow\ndef flow(p: dict) -> dict:\n    p = handler(p)\n    return p\n"

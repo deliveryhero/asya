@@ -27,7 +27,7 @@ export ASYA_RABBITMQ_URL=amqp://user:pass@localhost:5672/
 
 ## Message Format
 
-See [docs/architecture/protocols/actor-actor.md](../../docs/architecture/protocols/actor-actor.md) for complete message structure and routing details
+See [docs/reference/specs/envelope.md](../../docs/reference/specs/envelope.md) for complete message structure and routing details
 
 ## Building
 
