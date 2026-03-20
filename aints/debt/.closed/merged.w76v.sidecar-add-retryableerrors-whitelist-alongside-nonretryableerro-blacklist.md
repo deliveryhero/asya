@@ -1,7 +1,10 @@
 ---
 title: "Sidecar: add retryableErrors whitelist alongside nonRetryableErrors blacklist"
 priority: 2 # medium
+tags:
+  - superseded-by:7179
 ---
+
 
 Add `retryableErrors` (whitelist) field to `ResiliencyConfig` alongside existing `nonRetryableErrors` (blacklist).
 
