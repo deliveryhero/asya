@@ -1,7 +1,10 @@
 ---
-title: Don't generate empty start/end routers
+title: "Don't generate empty start/end routers"
 priority: 2 # medium
+tags:
+  - superseded-by:gml9
 ---
+
 
 ## Problem
 
