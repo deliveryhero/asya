@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # GCS State Connector
 
 Google Cloud Storage connector for state proxy.

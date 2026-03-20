@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # Asya Flow Compiler — Architecture
 
 This document describes the **compiler internals** — how the Flow DSL

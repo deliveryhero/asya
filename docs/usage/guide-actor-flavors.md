@@ -1,4 +1,3 @@
-<!-- Type: Tutorial -->
 # Actor Flavors
 
 Flavors are named, reusable building blocks that platform engineers pre-create
@@ -333,3 +332,7 @@ kubectl logs -n crossplane-system \
   -l pkg.crossplane.io/revision \
   --all-containers=true | grep "Flavors applied"
 ```
+
+---
+
+**Platform setup**: To create and manage flavor resources, see [setup/guide-actor-flavors.md](../setup/guide-actor-flavors.md).

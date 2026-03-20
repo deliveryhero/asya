@@ -1,4 +1,3 @@
-<!-- Type: Setup -->
 # Configuring Timeouts
 
 This guide covers timeout configuration at the platform level — how to set up timeout constraints in AsyncActor manifests, gateway configuration, and transport settings.

@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # State Proxy Connectors
 
 State proxy connectors are pluggable storage backends that give actors persistent state access via standard Python file operations.

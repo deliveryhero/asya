@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # Transports
 
 Asya supports pluggable message queue transports for actor communication.

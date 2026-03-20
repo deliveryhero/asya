@@ -45,7 +45,7 @@ Production deployment of 🎭 on Amazon EKS.
 
 **Actor role** (`asya-actor-role`) - shared IAM role for all actor sidecars. Provides access to SQS queues and S3 bucket for persisting messages. This role is assigned via IRSA (or EKS Pod Identity) to a shared `asya-actors` ServiceAccount in each actor namespace — no static AWS credentials are stored in the cluster:
 
-> **Note:** For local development with LocalStack, IRSA is unavailable. Use a static `aws-creds` Secret with `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` instead. See `docs/quickstart/README_CROSSPLANE.md` for the dev setup.
+> **Note:** For local development with LocalStack, IRSA is unavailable. Use a static `aws-creds` Secret with `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` instead. See [Quickstart](start-quickstart.md) for the dev setup.
 ```json
 {
   "Effect": "Allow",

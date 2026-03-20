@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # AsyncActor
 
 ## What is an Actor?

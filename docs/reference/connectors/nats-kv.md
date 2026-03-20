@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 # NATS KV State Connector
 
 NATS JetStream Key-Value connector for state proxy.

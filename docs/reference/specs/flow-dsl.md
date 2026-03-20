@@ -1,4 +1,3 @@
-<!-- Type: Reference -->
 
 # Flow DSL Reference
 
