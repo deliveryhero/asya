@@ -17,7 +17,7 @@ See [core-state-proxy.md](../components/core-state-proxy.md) for architecture an
 | [S3](s3.md) | AWS S3 / MinIO | LWW or CAS | General-purpose object storage, model weights, large files |
 | [GCS](gcs.md) | Google Cloud Storage | LWW or CAS | GCP deployments, model weights, large files |
 | [Redis](redis.md) | Redis | CAS with WATCH/EXEC | Fast key-value storage, small objects, TTL support |
-| [NATS KV](nats-kv.md) | NATS JetStream KV | (configuration details TBD) | Cloud-native deployments with NATS infrastructure |
+| [NATS KV](nats-kv.md) | NATS JetStream KV | CAS with revision (not yet implemented) | Cloud-native deployments with NATS infrastructure |
 
 ## Consistency Models
 
@@ -29,9 +29,20 @@ Writes always overwrite the existing object. No conflict detection. Suitable for
 
 ### Compare-And-Set (CAS)
 
-Writes include a condition that the object has not changed since it was last read. If the object was modified externally, the write fails with `FileExistsError`. Suitable for state that may be accessed by multiple processes.
+Writes include a condition that the object has not changed since it was last read.
+If the object was modified externally, the write fails with `FileExistsError`.
+Suitable for state that may be accessed by multiple processes. CAS retries are
+handled in two layers: the connector retries internally on transient conflicts,
+and the sidecar requeues the message with exponential backoff if retries are
+exhausted.
+
+The CAS primitive varies by backend: S3 uses ETags with conditional `PutObject`,
+GCS uses generation numbers with `if_generation_match`, Redis uses
+WATCH/MULTI/EXEC optimistic locking, and NATS KV uses revision-based conditional
+updates.
 
 **Connectors**: `s3-buffered-cas`, `gcs-buffered-cas`, `redis-buffered-cas`
+(planned: `nats-kv-buffered-cas`)
 
 ## Write Modes
 
@@ -53,7 +64,7 @@ Opens HTTP connection immediately, sends each `write()` call as an HTTP chunk us
 
 **For fast key-value storage**: Redis with buffered-cas. Best for small objects (< 1 MB) that need low-latency access.
 
-**For cloud-native stacks with NATS**: NATS KV (when available).
+**For cloud-native stacks with NATS**: NATS KV (not yet implemented).
 
 **For MinIO compatibility**: S3 connectors work with MinIO via `AWS_ENDPOINT_URL`.
 

@@ -2,34 +2,44 @@
 
 NATS JetStream Key-Value connector for state proxy.
 
-⚠️ **Status**: Planned. This connector is not yet implemented.
+**Status**: Not yet implemented. The planned connector is `nats-kv-buffered-cas`.
 
 ## Overview
 
-The NATS KV connector will provide cloud-native key-value storage for state proxy using NATS JetStream's built-in KV store.
+The NATS KV connector will provide cloud-native key-value storage for state proxy
+using NATS JetStream's built-in KV store. It will implement the
+`StateProxyConnector` interface with CAS support via revision-based conditional
+updates.
+
+Per the RFC, the connector naming convention is `{backend}-{buffering}-{consistency}`.
+The planned connector name is `nats-kv-buffered-cas`.
 
 NATS KV offers:
 
 - Distributed key-value storage with pub/sub foundation
 - Strong consistency with Raft consensus
-- Watch/subscribe support for reactive updates
+- Revision-based CAS (each key mutation increments a revision number)
 - TTL and history management
 - Low latency for co-located workloads
 
+## Planned Variant
+
+| Image Suffix | Consistency | Write Mode | Use Case |
+|--------------|-------------|------------|----------|
+| `nats-kv-buffered-cas` | Compare-And-Set (revision) | Buffered | Small objects with strong consistency |
+
 ## Planned Configuration
 
-(Configuration details TBD)
-
-### Environment Variables (Tentative)
+### Environment Variables
 
 | Variable | Required | Description | Default |
 |----------|----------|-------------|---------|
-| `NATS_URL` | ✅ | NATS server URL (e.g. `nats://nats:4222`) | — |
-| `NATS_KV_BUCKET` | ✅ | JetStream KV bucket name | — |
-| `STATE_PREFIX` | ❌ | Key prefix inside KV bucket | `""` (root) |
-| `NATS_CREDS_FILE` | ❌ | Path to NATS credentials file | — |
+| `NATS_URL` | Yes | NATS server URL (e.g. `nats://nats:4222`) | -- |
+| `NATS_KV_BUCKET` | Yes | JetStream KV bucket name | -- |
+| `STATE_PREFIX` | No | Key prefix inside KV bucket | `""` (root) |
+| `NATS_CREDS_FILE` | No | Path to NATS credentials file | -- |
 
-### AsyncActor Example (Tentative)
+### AsyncActor Example
 
 ```yaml
 apiVersion: asya.sh/v1alpha1
@@ -45,7 +55,7 @@ spec:
         path: /state/cache
       writeMode: buffered
       connector:
-        image: ghcr.io/deliveryhero/asya-state-proxy-nats-kv:v1.0.0
+        image: ghcr.io/deliveryhero/asya-state-proxy-nats-kv-buffered-cas:v1.0.0
         env:
           - name: NATS_URL
             value: nats://nats.default.svc.cluster.local:4222
@@ -59,14 +69,14 @@ spec:
             memory: 32Mi
 ```
 
-## Key Patterns (Tentative)
+## Key Patterns
 
-Handler path `/state/cache/user_123.json` would map to NATS KV key:
+Handler path `/state/cache/user_123.json` maps to NATS KV key:
 
 - **Without prefix**: `user_123.json`
 - **With prefix** (`STATE_PREFIX=cache-actor`): `cache-actor.user_123.json`
 
-## JetStream Bucket Setup (Tentative)
+## JetStream Bucket Setup
 
 **Pre-create the KV bucket** before deploying actors:
 
@@ -84,16 +94,26 @@ nats kv add actor-state \
 - **Max value size**: 1 MB (NATS KV optimized for small values)
 - **Storage**: File-based for persistence
 
-## Consistency Model (Tentative)
+## Consistency Model
 
-NATS KV provides strong consistency via Raft consensus. Writes are linearizable when bucket has `replicas > 1`.
+NATS KV provides strong consistency via Raft consensus. Writes are linearizable
+when the bucket has `replicas > 1`.
 
-**Expected behavior**:
+The planned CAS behavior uses NATS KV's built-in revision numbers. On `read()`,
+the connector caches the key's revision. On `write()`, the connector passes the
+cached revision for conditional update. If the key was modified externally, the
+update fails, which the connector maps to `FileExistsError` (HTTP 409).
 
-- Last-Write-Wins semantics by default
-- Optional CAS support via revision-based conditional updates (if implemented)
+Per the RFC, CAS retries are handled in two layers: the connector retries
+internally on transient conflicts, and the sidecar requeues the message with
+exponential backoff if retries are exhausted.
 
-## Authentication (Tentative)
+### Extended Attributes
+
+The connector will expose the `version` attribute (NATS KV revision number) as a
+read-only extended attribute via `os.getxattr(path, "user.asya.version")`.
+
+## Authentication
 
 NATS supports multiple authentication mechanisms:
 
@@ -116,23 +136,6 @@ NATS supports multiple authentication mechanisms:
 - Large files (> 1 MB) — use S3/GCS instead
 - High write throughput (> 10k ops/s) — NATS KV optimized for reads
 - Long-term archival — use object storage
-
-## Development Status
-
-This connector is in the planning phase. Contributions welcome.
-
-**Implementation tasks**:
-
-- [ ] Define connector interface implementation (`StateProxyConnector`)
-- [ ] Implement NATS JetStream KV client integration
-- [ ] Add buffered write mode support
-- [ ] Add CAS support via revision-based updates
-- [ ] Create Dockerfile and publish image
-- [ ] Add component tests
-- [ ] Document authentication patterns
-- [ ] Add Helm chart integration
-
-See [asya-state-proxy](https://github.com/deliveryhero/asya/tree/main/src/asya-state-proxy) for implementation reference.
 
 ## Related Documentation
 
