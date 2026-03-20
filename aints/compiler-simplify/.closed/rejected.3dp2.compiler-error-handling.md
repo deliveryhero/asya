@@ -3,9 +3,11 @@ title: Compiler error handling
 priority: 2 # medium
 tags:
   - integrate-into:gml9
+  - absorbed-into:gml9
 dependencies:
   - 7179
 ---
+
 
 
 ## Context
