@@ -1,9 +1,12 @@
 ---
-title: "Compiler error handling"
+title: Compiler error handling
 priority: 2 # medium
+tags:
+  - integrate-into:gml9
 dependencies:
-- 7179
+  - 7179
 ---
+
 
 ## Context
 
