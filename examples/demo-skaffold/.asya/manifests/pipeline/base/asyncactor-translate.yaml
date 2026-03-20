@@ -8,7 +8,7 @@ metadata:
     asya.sh/role: end
 spec:
   actor: translate
-  image: skaffold-translator
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.5-27-gfd384607
   handler: translator.handler.translate
   scaling:
     enabled: true

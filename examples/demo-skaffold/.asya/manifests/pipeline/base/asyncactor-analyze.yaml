@@ -7,7 +7,7 @@ metadata:
     asya.sh/flow: pipeline
 spec:
   actor: analyze
-  image: skaffold-sentiment-actors
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.5-27-gfd384607
   handler: sentiment_actors.handler.analyze
   scaling:
     enabled: true
