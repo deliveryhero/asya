@@ -1,5 +1,3 @@
 .venv/
-compiled/
-.asya/manifests/
 uv.lock
 skaffold

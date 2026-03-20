@@ -1,0 +1,21 @@
+flowchart TD
+    %% Flow: pipeline
+
+    analyze[analyze]
+    start_pipeline([start_pipeline])
+    summarize[summarize]
+    translate[translate]
+    __end__((( )))
+
+    start_pipeline --> analyze
+    analyze --> summarize
+    summarize --> translate
+    translate --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_pipeline entrypoint
+    class analyze,summarize,translate handler
+    class __end__ endpoint

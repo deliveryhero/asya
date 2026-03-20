@@ -1,0 +1,50 @@
+{
+  "flow_name": "pipeline",
+  "nodes": [
+    {
+      "id": "analyze",
+      "flow_role": "processor",
+      "label": "analyze",
+      "is_generated": false
+    },
+    {
+      "id": "start_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "summarize",
+      "flow_role": "processor",
+      "label": "summarize",
+      "is_generated": false
+    },
+    {
+      "id": "translate",
+      "flow_role": "exitpoint",
+      "label": "translate",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_pipeline",
+      "to": "analyze",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "analyze",
+      "to": "summarize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "summarize",
+      "to": "translate",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}
