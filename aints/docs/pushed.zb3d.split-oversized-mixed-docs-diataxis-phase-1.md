@@ -1,9 +1,12 @@
 ---
 title: Split oversized mixed docs (Diataxis Phase 1)
 priority: 2 # medium
+tags:
+  - pr:338
 dependencies:
   - u1zh
 ---
+
 
 Reorganize existing docs by splitting files that mix Diataxis quadrants. No new content — just move and restructure.
 
