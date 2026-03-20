@@ -88,16 +88,22 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     lines.append("")
 
     exitpoints: list[str] = []
+    entrypoints: list[str] = []
+    routers: list[str] = []
+    handlers: list[str] = []
 
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
         label = _mermaid_node_label(node)
         if node["flow_role"] == "entrypoint":
             lines.append(f"    {nid}([{label}])")
+            entrypoints.append(nid)
         elif node.get("is_generated"):
             lines.append(f"    {nid}{{{{{label}}}}}")
+            routers.append(nid)
         else:
             lines.append(f"    {nid}[{label}]")
+            handlers.append(nid)
         if node["flow_role"] == "exitpoint":
             exitpoints.append(nid)
 
@@ -107,6 +113,11 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
 
     lines.append("")
 
+    # Edges — track indices for linkStyle coloring
+    edge_index = 0
+    conditional_indices: list[int] = []
+    else_indices: list[int] = []
+
     for edge in data.edges:
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
@@ -114,12 +125,18 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         if label:
             label = str(label).replace('"', "'")
             lines.append(f'    {src} -->|"{label}"| {dst}')
+            if label == "else":
+                else_indices.append(edge_index)
+            else:
+                conditional_indices.append(edge_index)
         else:
             lines.append(f"    {src} --> {dst}")
+        edge_index += 1
 
     # Exitpoint edges to __end__
     for nid in exitpoints:
         lines.append(f"    {nid} --> __end__")
+        edge_index += 1
 
     # Groups as subgraphs
     for group in data.groups:
@@ -128,6 +145,25 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         for member in group.get("nodes", []):
             lines.append(f"        {_sanitize_id(member)}")
         lines.append("    end")
+
+    # Styling — match DOT color scheme
+    lines.append("")
+    lines.append("    classDef entrypoint fill:#98FB98,stroke:#333")
+    lines.append("    classDef router fill:#F5DEB3,stroke:#333")
+    lines.append("    classDef handler fill:#ADD8E6,stroke:#333")
+    lines.append("    classDef endpoint fill:#000,stroke:#333,color:#fff")
+    if entrypoints:
+        lines.append(f"    class {','.join(entrypoints)} entrypoint")
+    if routers:
+        lines.append(f"    class {','.join(routers)} router")
+    if handlers:
+        lines.append(f"    class {','.join(handlers)} handler")
+    if exitpoints:
+        lines.append("    class __end__ endpoint")
+    if conditional_indices:
+        lines.append(f"    linkStyle {','.join(str(i) for i in conditional_indices)} stroke:#2E8B57")
+    if else_indices:
+        lines.append(f"    linkStyle {','.join(str(i) for i in else_indices)} stroke:#E07040")
 
     return "\n".join(lines)
 
