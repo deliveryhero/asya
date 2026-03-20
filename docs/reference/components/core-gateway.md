@@ -142,17 +142,13 @@ The Helm chart creates an empty `gateway-flows` ConfigMap. After deployment,
 flows are registered by patching the ConfigMap (e.g., via `asya flow expose`
 or `kubectl patch`). No Helm upgrade is needed.
 
-**See also**: `docs/internal/gateway-security.md` for all auth-related env vars
-(`ASYA_A2A_API_KEY`, `ASYA_MCP_OAUTH_*`, etc.).
-
 ## API Endpoints
 
 **See**: `docs/internal/gateway-api-spec.md` for the full API reference with complete request/response schemas for all routes.
 
 
 
-Routes are split across the two deployments. Authentication requirements are
-described in `docs/internal/gateway-security.md`.
+Routes are split across the two deployments.
 
 ### External API routes (`mode: api`)
 
@@ -431,7 +427,7 @@ flows:
 | `mcp` | ❌ | Present → exposed as MCP tool; `inputSchema` is the JSON Schema for arguments |
 | `a2a` | ❌ | Present → exposed as A2A skill |
 
-## Security
+## Authentication & Security
 
 The gateway implements protocol-native authentication on external routes and
 network-level isolation for mesh routes. No auth code runs on mesh routes —
@@ -444,13 +440,141 @@ they are unreachable from outside the cluster by design.
 | Mesh (`/mesh/…`) | None — ClusterIP only, unreachable externally |
 | Well-known + health | Always public |
 
-OAuth 2.1 tokens carry `mcp:invoke` / `mcp:read` scope claims; per-endpoint
-scope enforcement is post-v0 (tokens are authenticated but scopes are not yet
-checked per operation).
+### A2A Authentication
 
-**See**: `docs/internal/gateway-security.md` for the complete security reference:
-deployment model rationale, env var table, OAuth 2.1 flow walkthrough, and
-NetworkPolicy examples.
+Two schemes are supported with OR semantics — a request is authenticated if
+either check passes:
+
+**API Key**
+
+```
+X-API-Key: <value>
+```
+
+Configured via `ASYA_A2A_API_KEY`. When set, the header value must match
+exactly (constant-time comparison).
+
+**JWT Bearer**
+
+```
+Authorization: Bearer <JWT>
+```
+
+Configured via `ASYA_A2A_JWT_JWKS_URL` + `ASYA_A2A_JWT_ISSUER` +
+`ASYA_A2A_JWT_AUDIENCE`. The gateway fetches the JWKS from the configured URL
+and validates the token signature, issuer, and audience claims.
+
+When neither `ASYA_A2A_API_KEY` nor `ASYA_A2A_JWT_JWKS_URL` is set, A2A auth
+is disabled (all requests pass). This is the default for local development.
+
+The public Agent Card at `/.well-known/agent.json` advertises the configured
+schemes. Authenticated clients access only their own tasks — the gateway must
+not reveal the existence of tasks belonging to other clients.
+
+### MCP Authentication
+
+MCP auth is applied to `/mcp`, `/mcp/sse`, and `/tools/call`. Two modes are
+mutually exclusive:
+
+**API Key (simple, non-spec-compliant)**
+
+```
+Authorization: Bearer <static-key>
+```
+
+Set `ASYA_MCP_API_KEY` to a shared secret. Suitable for internal tooling
+(`asya-lab` CLI, known MCP hosts) where full OAuth is not needed.
+
+When `ASYA_MCP_API_KEY` is empty, MCP auth is disabled.
+
+**OAuth 2.1 (full MCP spec compliance)**
+
+Set `ASYA_MCP_OAUTH_ENABLED=true` plus `ASYA_MCP_OAUTH_ISSUER` and
+`ASYA_MCP_OAUTH_SECRET`. The gateway acts as its own authorization server,
+issuing HMAC-SHA256 JWTs. PostgreSQL is required (`ASYA_DATABASE_URL`).
+
+Scopes (issued but not yet enforced per-endpoint):
+
+| Scope | Intended permission |
+|-------|-------------------|
+| `mcp:invoke` | Call tools, send messages |
+| `mcp:read` | List tools, read task state |
+
+Scopes are issued into access tokens and stored in the database. However,
+`MCPAuthMiddleware` currently only validates that a token is authentic (signature,
+`iss`, `aud`, `exp`) — it does **not** check that the token's scope is sufficient
+for the specific operation being requested.
+
+OAuth 2.1 endpoints (when `ASYA_MCP_OAUTH_ENABLED=true`):
+
+```bash
+GET  /.well-known/oauth-protected-resource    # RFC 9728 resource metadata
+GET  /.well-known/oauth-authorization-server  # RFC 8414 server metadata
+POST /oauth/register                          # Dynamic Client Registration
+GET  /oauth/authorize                         # Authorization Code endpoint
+POST /oauth/token                             # Token exchange and refresh
+```
+
+PKCE (`code_challenge_method=S256`) is required for all clients.
+
+Dynamic Client Registration (`/oauth/register`) is public by default. To restrict
+it, set `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` — callers must then supply
+`Authorization: Bearer <registration-token>` to register.
+
+### Mesh Security
+
+Mesh routes carry no authentication code. Security is enforced at the network
+layer:
+
+- `asya-gateway-mesh` K8s Service is `ClusterIP` — no Ingress, no NodePort.
+  It is physically unreachable from outside the cluster.
+- Sidecars and crew actors reach it via in-cluster DNS:
+  `asya-gateway-mesh.<namespace>.svc.cluster.local`.
+
+For defence in depth, add a K8s NetworkPolicy restricting ingress to actor pods:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: gateway-mesh-ingress
+spec:
+  podSelector:
+    matchLabels:
+      app: asya-gateway-mesh
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              asya.sh/component: actor
+      ports:
+        - port: 8080
+```
+
+Alternatively, enable a service mesh (Istio/Linkerd) for automatic mTLS between
+all pods with zero Asya code changes.
+
+### Environment Variables
+
+All auth-related environment variables:
+
+| Variable | Default | Required | Description |
+|----------|---------|----------|-------------|
+| `ASYA_GATEWAY_MODE` | — | Yes | `api`, `mesh`, or `testing` |
+| `ASYA_DATABASE_URL` | `""` | For OAuth 2.1 | PostgreSQL DSN; required when `ASYA_MCP_OAUTH_ENABLED=true` |
+| **A2A** | | | |
+| `ASYA_A2A_API_KEY` | `""` | No | Static API key; auth disabled when empty |
+| `ASYA_A2A_JWT_JWKS_URL` | `""` | No | JWKS endpoint URL for JWT validation |
+| `ASYA_A2A_JWT_ISSUER` | `""` | With JWKS | Expected `iss` claim |
+| `ASYA_A2A_JWT_AUDIENCE` | `""` | With JWKS | Expected `aud` claim |
+| **MCP Phase 2** | | | |
+| `ASYA_MCP_API_KEY` | `""` | No | Static Bearer token; auth disabled when empty |
+| **MCP Phase 3 (OAuth 2.1)** | | | |
+| `ASYA_MCP_OAUTH_ENABLED` | `false` | No | Set to `true` to enable OAuth 2.1 |
+| `ASYA_MCP_OAUTH_ISSUER` | `""` | Yes (OAuth) | Issuer URL embedded in tokens and metadata |
+| `ASYA_MCP_OAUTH_SECRET` | `""` | Yes (OAuth) | HMAC-SHA256 signing key for access tokens |
+| `ASYA_MCP_OAUTH_TOKEN_TTL` | `3600` | No | Access token lifetime in seconds |
+| `ASYA_MCP_OAUTH_REGISTRATION_TOKEN` | `""` | No | Bearer token protecting `/oauth/register`; empty = open |
 
 ## Using MCP tools
 **See**: [Usage](../quickstart/usage.md#using-mcp-tools) for instructions how to test MCP locally.

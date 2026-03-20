@@ -192,31 +192,106 @@ helm install asya-crew deploy/helm-charts/asya-crew/ \
 
 ## Implementation Details
 
-### Storage Persistence
+### Checkpointer
 
-Crew actors persist messages to object storage via the state proxy sidecar. The storage backend (S3, GCS, MinIO) is configured through the state proxy connector in the AsyncActor CRD.
+The checkpointer (`src/asya-crew/asya_crew/checkpointer.py`) persists complete messages (metadata + payload) as JSON files via the state proxy filesystem abstraction. The storage backend is pluggable — S3, GCS, or any backend supported by the state proxy connector configured in the AsyncActor CRD.
 
-**Key structure breakdown**:
+**Storage Backend**:
 
-- `{prefix}`: Determined by status phase (`succeeded/`, `failed/`, or `checkpoint/`)
-- `{timestamp}`: ISO 8601 UTC timestamp (`2025-11-18T14:30:45.123456Z`)
-- `{last_actor}`: Last processed actor from `route.prev[-1]`
-- `{message_id}`: Message ID (or `x-asya-origin-id` header for fan-in merged results)
+The checkpointer writes through the state proxy mount, not directly to cloud storage. The mount path is configured via `ASYA_PERSISTENCE_MOUNT`. The state proxy connector sidecar transparently syncs writes to the configured backend.
 
-**Example key generation**:
-```python
-prefix = "succeeded"
-timestamp = "2025-11-18T14:30:45.123456Z"
-last_actor = "text-processor"
-message_id = "abc-123"
+This keeps the checkpointer backend-agnostic: the same Python code works for S3, GCS, NATS, Redis, or any future connector that implements the state proxy interface.
 
-key = f"{prefix}/{timestamp}/{last_actor}/{message_id}.json"
-# Result: succeeded/2025-11-18T14:30:45.123456Z/text-processor/abc-123.json
+**Key Pattern**:
+
+Files are stored at `{mount}/{prefix}/{id}.json`:
+
+| `status.phase`   | `prefix`     | Example key               |
+|------------------|-------------|---------------------------|
+| `succeeded`      | `succeeded` | `succeeded/msg-123.json`  |
+| `failed`         | `failed`    | `failed/msg-456.json`     |
+| (mid-pipeline)   | `checkpoint`| `checkpoint/msg-789.json` |
+
+The flat `{prefix}/{id}.json` pattern is chosen because the gateway already knows the task ID (= message ID) and the final status. It can reconstruct the object key without querying any index — no DB column or header needed for lookup.
+
+**Security**: Message IDs are sanitized with `os.path.basename()` before use in paths to prevent path traversal attacks (e.g., a crafted ID like `../../etc/passwd`).
+
+The actor name and timestamp are preserved inside the JSON body (`route.prev`, `status.phase`) for debugging and analytics.
+
+**JSON Schema**:
+
+```json
+{
+  "id": "<message-id>",
+  "parent_id": "<parent-id>",   // omitted if empty (fanout child only)
+  "route": {
+    "prev": ["actor-a", "actor-b"],
+    "curr": "x-sink"
+  },
+  "status": { "phase": "succeeded" },  // omitted if no phase
+  "payload": { ... }
+}
 ```
 
 **Persisted content**: Complete message (including id, route, payload, status) as formatted JSON.
 
 **Error handling**: Storage write failures are logged but do NOT fail the handler. The handler continues regardless of persistence success/failure.
+
+**Graceful skip**: If `ASYA_PERSISTENCE_MOUNT` is not set, the checkpointer logs a debug message and returns immediately. This allows crew actors to run in environments without persistence configured (e.g., lightweight test setups).
+
+**State Proxy Configuration**:
+
+Persistence is wired through an `EnvironmentConfig` flavor that adds a state proxy sidecar to the crew actor pods. The flavor configures:
+
+- `spec.stateProxy.connector.image` — backend-specific connector image (e.g., `asya-state-proxy-s3-buffered-lww`, `asya-state-proxy-gcs-buffered-lww`)
+- `spec.stateProxy.mount.path` — filesystem path visible to the checkpointer
+- Backend-specific env vars (bucket, endpoint, credentials) passed to the connector
+
+Example crew chart snippet for the GCS profile:
+
+```yaml
+crew:
+  persistence:
+    enabled: true
+    backend: gcs
+    config:
+      bucket: asya-results
+      project: my-gcp-project
+    connector:
+      image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:latest
+  x-sink:
+    env:
+      ASYA_PERSISTENCE_MOUNT: "/state/checkpoints/results"
+```
+
+**Future: Date-Partitioned Keys**:
+
+Data scientists can query historical checkpointed messages using DuckDB over the object store. The current flat `{prefix}/{id}.json` structure is scannable, but date-partitioned keys would enable more efficient glob queries.
+
+Proposed future key pattern:
+
+```
+{prefix}/{YYYY-MM-DD}/{id}.json
+```
+
+Example:
+
+```
+succeeded/2026-03-06/msg-123.json
+failed/2026-03-06/msg-456.json
+```
+
+This enables DuckDB queries scoped by date:
+
+```sql
+SELECT *
+FROM read_json_auto('s3://asya-results/succeeded/2026-03-06/*.json')
+WHERE json_extract_string(payload, '$.model') = 'sdxl'
+```
+
+With date-partitioned keys, the gateway can reconstruct the key by deriving the date from `tasks.updated_at::date`: `{status}/{tasks.updated_at::date}/{id}.json`.
+
+⚠️ Not yet implemented. Date partitioning is planned as a follow-up when DuckDB OLAP use cases are confirmed.
 
 ### Handler Return Value
 

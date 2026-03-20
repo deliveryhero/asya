@@ -1,4 +1,4 @@
-<!-- Type: Tutorial -->
+<!-- Type: Usage Guide -->
 
 # Agentic Patterns in Asya
 
@@ -6,12 +6,87 @@ Hands-on pattern walkthroughs for developers who know an agentic framework
 (Google ADK, LangGraph, CrewAI, Mastra) and want to build equivalent systems
 on Asya.
 
-For background on Asya's agentic model, core concepts (envelope, actors,
-Flow DSL), and the Flow vs Actor comparison table, see
-[Agentic Design](../explanation/agentic-design.md).
+---
 
-For quick-reference tables (ADK pattern map, ABI cheatsheet), see
-[Agentic Cheatsheet](../reference/agentic-cheatsheet.md).
+## Overview
+
+Most agentic frameworks provide ready-made agent types: `SequentialAgent`,
+`ParallelAgent`, `LoopAgent`, `ReActAgent`. The framework is smart; your code
+plugs into it.
+
+**Asya takes the opposite approach: the framework is dumb; your code is
+explicit.**
+
+There are no built-in agent types. Instead Asya provides two primitives:
+
+| Primitive | What it is | Analogy |
+|-----------|-----------|---------|
+| **Actor** | A stateless function that transforms a payload dict | A single tool / function call in ADK |
+| **Flow** | A Python file that describes control flow between actors | An agent definition — but compiled, not interpreted |
+
+You express orchestration patterns (sequential, parallel, conditional, loop)
+as a **Flow DSL** file, which the compiler turns into router actors deployed on
+Kubernetes. Inner business logic — LLM calls, API calls, data transforms —
+lives in regular Python actor handlers.
+
+### Why this model
+
+- **No hidden state machine**: the routing graph is visible code, not an
+  invisible framework loop.
+- **Each actor is a separate pod**: actors scale independently, restart
+  independently, and are billed independently.
+- **No framework lock-in in actor code**: actor handlers are plain Python
+  functions with no Asya imports. You can run and test them locally without
+  any Asya infrastructure.
+- **Choreography over orchestration**: there is no central runner that drives
+  the flow. Envelopes carry their own routing table; each actor advances the
+  route and passes the envelope to the next queue.
+
+### The envelope
+
+Every message in Asya is an **envelope**:
+
+```json
+{
+  "id": "env-abc123",
+  "route": {
+    "prev": ["start-router", "preprocessor"],
+    "curr": "llm-actor",
+    "next": ["formatter", "notifier"]
+  },
+  "headers": {"trace_id": "t-xyz", "priority": "high"},
+  "payload": {"query": "summarize this document", "text": "..."}
+}
+```
+
+- `payload` — the application data. Actors read and write it. This is your
+  conversation state.
+- `route.next` — the ordered list of actors still to process this envelope.
+  Each actor pops itself off the front and forwards to the next queue.
+- `headers` — routing metadata (trace IDs, priority, fan-in signals). Not
+  application data.
+- `route.prev` / `route.curr` — read-only history of where the envelope has
+  been.
+
+### Flow vs Actor capabilities
+
+| Capability | Flow DSL | Actor handler |
+|-----------|----------|---------------|
+| Sequential chain | ✅ `state = await actor_a(state)` | n/a (you are the actor) |
+| Conditional routing | ✅ `if/elif/else` | ✅ via ABI `SET .route.next` |
+| Loops | ✅ `while` / `for` | n/a |
+| Fan-out / Fan-in | ✅ `asyncio.gather(...)` | possible but manual |
+| Try/except | ✅ | via error routing |
+| **Stream tokens to UI (FLY)** | ❌ not possible | ✅ `yield "FLY", {...}` |
+| Dynamic routing at runtime | ❌ compile-time only | ✅ `yield "SET", ".route.next", [...]` |
+| Read envelope metadata | ❌ | ✅ `yield "GET", ".route.prev"` |
+| Pause for human input | ❌ | ✅ route to `x-pause` crew actor |
+
+**Why Flow cannot stream tokens (FLY)**: FLY is an ABI instruction that sends
+a dict *upstream* to the gateway via a direct HTTP call from the sidecar,
+bypassing message queues entirely. Flow router actors are **generated code** —
+they only emit ABI instructions for routing (`SET`, `GET`). They never call an
+LLM and have nothing to stream. Streaming happens in handler actors.
 
 ---
 
@@ -239,12 +314,231 @@ Full example: `examples/actors/agentic/pause_for_human.py`
 
 ---
 
+## State management
+
+### Payload as conversation state
+
+The payload dict is the conversation state. Every actor reads from it and
+writes to it. Downstream actors see everything upstream actors wrote.
+
+This is the same concept as ADK's `State` object, but simpler: there is no
+delta tracking, no scope prefix system, no compaction. What you write is what
+the next actor reads.
+
+```python
+# Actor A
+async def actor_a(payload: dict) -> dict:
+    payload["answer"] = await llm.complete(payload["question"])
+    return payload
+
+# Actor B sees payload["answer"] written by A
+async def actor_b(payload: dict) -> dict:
+    payload["formatted"] = f"Answer: {payload['answer']}"
+    return payload
+```
+
+**Constraint**: payloads must be JSON-serializable (they travel through SQS/
+RabbitMQ). For large binary data (model weights, media files), store a reference
+(S3 URL, artifact ID) in the payload and keep the actual data in external
+storage.
+
+### State proxy: transparent persistent storage
+
+For use cases that need persistent state across messages or across actors —
+conversation history, per-user context, fan-in aggregation — Asya provides
+the **state proxy**.
+
+The state proxy is a sidecar container injected alongside the actor runtime.
+It exposes a local filesystem path (e.g., `/state/`) that maps to a remote
+storage backend (S3, GCS, Redis, NATS KV). Actor code uses standard Python
+file I/O; the runtime transparently translates it to storage operations:
+
+```python
+import json
+import os
+
+STATE_PATH = os.environ.get("ASYA_STATE_MOUNT", "/state")
+
+async def context_actor(payload: dict) -> dict:
+    user_id = payload["user_id"]
+    history_path = f"{STATE_PATH}/history/{user_id}.json"
+
+    # Read prior conversation history (if exists)
+    try:
+        with open(history_path) as f:
+            history = json.load(f)
+    except FileNotFoundError:
+        history = []
+
+    history.append({"role": "user", "content": payload["message"]})
+    response = await llm.complete(history)
+    history.append({"role": "assistant", "content": response})
+
+    # Write updated history
+    with open(history_path, "w") as f:
+        json.dump(history, f)
+
+    payload["response"] = response
+    return payload
+```
+
+Configure via `spec.stateProxy` in the AsyncActor manifest:
+
+```yaml
+spec:
+  actor: context-actor
+  stateProxy:
+    - name: user-history
+      mount:
+        path: /state
+      connector:
+        type: s3
+        bucket: my-bucket
+        prefix: actor-state/
+```
+
+For local development without Kubernetes, the mount path is a real directory —
+actor code works identically.
+
+---
+
+## Gateway integration
+
+Actors communicate asynchronously through queues. This is efficient and
+resilient, but AI clients (LLMs, orchestrators, browsers) speak synchronous
+HTTP — they send a request and block waiting for a response.
+
+The **asya-gateway** bridges this gap. It:
+
+1. Receives a synchronous HTTP request (A2A or MCP)
+2. Creates a task record and assigns it an ID
+3. Sends the initial envelope to the actor queue
+4. Streams progress events back to the client as SSE while actors process
+5. Returns the final result when the pipeline completes
+
+### A2A protocol
+
+A2A (Agent-to-Agent) exposes actor pipelines as **skills** via a JSON-RPC
+endpoint.
+
+```bash
+# Discover available skills
+curl https://my-gateway/.well-known/agent.json
+
+# Invoke a skill
+curl -X POST https://my-gateway/a2a/my-skill \
+  -H "X-API-Key: $API_KEY" \
+  -d '{"message": {"parts": [{"text": "Summarize this: ..."}]}}'
+```
+
+A2A responses use **task semantics**: the call returns a task ID immediately
+(`submitted`), then streams status updates (`working`, `input_required`) and
+finally the result (`completed`). This matches the async actor model directly.
+
+Key A2A states and their Asya equivalents:
+
+| A2A state | Asya internal | Meaning |
+|-----------|--------------|---------|
+| `submitted` | `pending` | Envelope queued, not yet picked up |
+| `working` | `running` | Actor(s) processing |
+| `input_required` | `paused` | Waiting for human input (x-pause) |
+| `completed` | `succeeded` | x-sink received final result |
+| `failed` | `failed` | x-sump received error envelope |
+
+### MCP protocol
+
+MCP (Model Context Protocol) exposes actor pipelines as **tools** that an LLM
+can call via JSON-RPC 2.0.
+
+```bash
+# List available tools
+curl https://my-gateway/mcp -d '{"jsonrpc":"2.0","method":"tools/list","id":1}'
+
+# Call a tool (LLM-initiated)
+curl https://my-gateway/mcp -d '{
+  "jsonrpc": "2.0",
+  "method": "tools/call",
+  "params": {"name": "my-tool", "arguments": {"text": "..."}},
+  "id": 2
+}'
+```
+
+MCP supports SSE streaming (`/mcp/sse`) for real-time tool output — FLY events
+from actors arrive at the client as streaming text chunks.
+
+### Flow registry: exposing actor pipelines as tools/skills
+
+Which pipelines are exposed via A2A and MCP is configured in the
+`gateway-flows` ConfigMap:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-flows
+data:
+  flows.yaml: |
+    tools:
+      - name: document-summarizer
+        description: Summarizes documents using LLM
+        actor: start-document-pipeline  # entry router actor
+        route:
+          - preprocessor
+          - llm-summarizer
+          - formatter
+```
+
+The gateway polls this ConfigMap at runtime (configurable via
+`ASYA_CONFIG_POLL_INTERVAL`). Updating the ConfigMap updates the exposed
+tools without restarting the gateway.
+
+---
+
+## Quick Reference: ADK → Asya pattern map
+
+| ADK pattern | Asya equivalent | Where |
+|------------|----------------|-------|
+| `SequentialAgent([A, B, C])` | Linear flow: `state = await A(state); state = await B(state)` | Flow DSL |
+| `ParallelAgent([A, B, C])` | `asyncio.gather(A(x), B(x), C(x))` | Flow DSL |
+| `LoopAgent(sub_agents, max=5)` | `while` loop in flow DSL | Flow DSL |
+| `transfer_to_agent("X")` | `yield "SET", ".route.next", ["x"]` in generator actor | Actor (ABI) |
+| `Event(partial=True, content=Part(text=t))` | `yield "FLY", {"partial": True, "text": t}` | Actor (ABI) |
+| `should_pause_invocation()` | route to `x-pause`, set `_pause_metadata` | Actor (ABI) |
+| `State` (delta-tracked) | `payload` dict (full state, JSON-serialized per hop) | Envelope |
+| `output_key` enrichment | `payload["key"] = result` | Anywhere |
+| `AgentTool` (agent-as-tool) | standard actor call (same dict→dict interface) | Flow DSL |
+| `before/after_model_callback` | no direct equivalent (pre/post actor in pipeline) | Flow DSL |
+| Session/conversation history | payload dict or state proxy | Payload / State proxy |
+
+## Quick Reference: ABI yield protocol
+
+```python
+# Read metadata
+value = yield "GET", ".route.prev"         # who processed this before
+value = yield "GET", ".headers.trace_id"   # any header
+
+# Rewrite routing
+yield "SET", ".route.next", ["actor_a"]           # replace next
+yield "SET", ".route.next[:0]", ["actor_a"]       # prepend to next
+yield "SET", ".route.next[999:]", ["actor_a"]     # append to next
+
+# Delete metadata
+yield "DEL", ".headers.trace_id"
+
+# Stream upstream to client (SSE)
+yield "FLY", {"type": "text_delta", "token": "..."}
+yield "FLY", {"type": "text_done"}
+
+# Emit downstream payload (to next actor)
+yield payload
+```
+
+---
+
 ## See also
 
 | Topic | Document |
 |-------|---------|
-| Agentic design concepts (envelope, actors, Flow vs Actor) | [docs/explanation/agentic-design.md](../explanation/agentic-design.md) |
-| ADK pattern map and ABI quick reference | [docs/reference/agentic-cheatsheet.md](../reference/agentic-cheatsheet.md) |
 | ABI verb reference, path syntax, testing | `docs/reference/abi-protocol.md` |
 | Flow DSL syntax, supported constructs | `docs/reference/flow-dsl.md` |
 | Flow DSL examples (15 patterns) | `examples/flows/agentic/` |

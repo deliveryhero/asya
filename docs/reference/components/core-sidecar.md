@@ -383,6 +383,214 @@ The sidecar implements **at-least-once delivery**, not exactly-once:
 
 5. **Configure readiness probes** to prevent routing to unhealthy pods during startup
 
+## Resiliency
+
+The sidecar implements policy-based retry and error routing. When a handler raises an exception, the sidecar matches it against configured rules to select a policy, then applies that policy to decide whether to retry, route to a fallback actor, or fail permanently.
+
+### Configuration
+
+Two environment variables control resiliency behavior:
+
+- `ASYA_RESILIENCY_POLICIES` — JSON object of named policy configurations
+- `ASYA_RESILIENCY_RULES` — JSON array of error-matching rules (optional)
+
+When no rules are configured, all errors use the `default` policy.
+
+Example:
+```bash
+ASYA_RESILIENCY_POLICIES='{"default":{"maxAttempts":3,"backoff":"exponential","initialDelay":"1s","maxInterval":"30s","jitter":true}}'
+ASYA_RESILIENCY_RULES='[{"errors":["ValueError","KeyError"],"policy":"nonretryable"}]'
+```
+
+### Policy Fields
+
+Each entry in `ASYA_RESILIENCY_POLICIES` is a named `PolicyConfig` object:
+
+| Field | Type | Description |
+|---|---|---|
+| `maxAttempts` | int | Maximum attempts including the first. Default: 1 (no retry). |
+| `backoff` | string | Backoff strategy: `constant`, `linear`, or `exponential`. |
+| `initialDelay` | duration | Delay before the first retry (e.g. `"1s"`, `"500ms"`). |
+| `maxInterval` | duration | Cap on per-attempt delay (e.g. `"30s"`, `"5m"`). |
+| `maxDuration` | duration | Maximum total time across all retry attempts (e.g. `"10m"`). When exceeded, the policy is exhausted regardless of `maxAttempts`. |
+| `jitter` | bool | Add random jitter to delays to prevent thundering-herd bursts. |
+| `onExhausted` | string[] | Actor list to route the envelope to when the policy is exhausted. If omitted, the envelope goes to `x-sink` with `reason=PolicyExhausted`. |
+
+### Backoff Strategies
+
+| Strategy | Delay formula |
+|---|---|
+| `constant` | Every attempt waits `initialDelay`. |
+| `linear` | Attempt N waits `N * initialDelay`, capped at `maxInterval`. |
+| `exponential` | Attempt N waits `initialDelay * 2^(N-1)`, capped at `maxInterval`. |
+
+All strategies respect `maxDuration` — once the total elapsed time since the first attempt exceeds `maxDuration`, the policy is exhausted.
+
+### Error-Matching Rules
+
+`ASYA_RESILIENCY_RULES` is an ordered JSON array. Each rule maps a set of error type patterns to a named policy:
+
+```json
+[
+  {"errors": ["ValueError", "KeyError"], "policy": "nonretryable"},
+  {"errors": ["requests.exceptions.Timeout"], "policy": "slow-retry"}
+]
+```
+
+The sidecar checks rules in order and selects the first rule whose `errors` list matches the exception. If no rule matches, the `"default"` policy is used.
+
+#### Pattern Matching
+
+- **Short name** (no `.`): matches the part after the last `.` in any MRO entry. `"ValueError"` matches `builtins.ValueError`, `mylib.ValueError`, etc.
+- **Fully-qualified name** (contains `.`): exact string equality against the exception type or any MRO ancestor.
+
+MRO (Method Resolution Order) is the full inheritance chain of the exception, as reported by the Python runtime. This means `"Exception"` matches any subclass of `Exception`, making it a catch-all wildcard.
+
+### Envelope Status at Failure
+
+When an envelope reaches `x-sink` after policy exhaustion, its `status` block contains:
+
+```json
+{
+  "phase": "failed",
+  "reason": "PolicyExhausted",
+  "actor": "my-actor",
+  "attempt": 3,
+  "max_attempts": 3,
+  "created_at": "2026-01-01T00:00:00Z",
+  "updated_at": "2026-01-01T00:00:05Z",
+  "error": {
+    "type": "ValueError",
+    "mro": ["ValueError", "Exception", "BaseException", "object"],
+    "message": "...",
+    "traceback": "..."
+  }
+}
+```
+
+When routed to an `onExhausted` actor instead, `reason` is `PolicyRouted`.
+
+### Transport Constraints
+
+Retry with delay requires the transport to support `SendWithDelay`. Currently:
+
+| Transport | Retry with delay |
+|---|---|
+| SQS | ✅ Supported |
+| RabbitMQ | ❌ Not supported — policy exhausts on first retry attempt, envelope goes to x-sink |
+
+Non-retryable patterns (policies with `maxAttempts=1`) and `onExhausted` routing work on all transports since they do not require delayed sends.
+
+### Internal Architecture
+
+#### Configuration Loading
+
+Two env vars are parsed at startup by `internal/config`:
+
+- `ASYA_RESILIENCY_POLICIES` — JSON object decoded into `map[string]PolicyConfig`
+- `ASYA_RESILIENCY_RULES` — JSON array decoded into `[]RetryRule`
+
+Both live on `ResiliencyConfig`, which is `nil` when neither var is set (no resiliency configured; single attempt, legacy behaviour).
+
+`PolicyConfig` struct:
+
+```go
+type PolicyConfig struct {
+    MaxAttempts  int          `json:"maxAttempts"`
+    Backoff      RetryPolicy  `json:"backoff"`
+    InitialDelay JSONDuration `json:"initialDelay"`
+    MaxInterval  JSONDuration `json:"maxInterval"`
+    MaxDuration  JSONDuration `json:"maxDuration"`
+    Jitter       bool         `json:"jitter"`
+    OnExhausted  []string     `json:"onExhausted"`
+}
+```
+
+`JSONDuration` parses Go duration strings (`"1s"`, `"500ms"`, `"5m"`) via `time.ParseDuration`.
+
+#### Error Handling Flow
+
+```
+handleErrorResponse
+  ├── _on_error header? → routeToFlowErrorHandler (flow error path)
+  ├── Record metrics (error count, processing duration)
+  ├── Resiliency nil? → sendRetryFailure(RuntimeError)
+  ├── matchPolicy(errorType, mro)
+  │     nil? → sendRetryFailure(RuntimeError)
+  └── applyPolicy(policy)
+        ├── attempts not exhausted AND duration not exceeded
+        │     → retryMessage (SendWithDelay)
+        │         SendWithDelay fails → sendRetryFailure(RuntimeError)
+        ├── exhausted + OnExhausted configured
+        │     → routeOnExhausted
+        └── exhausted + no OnExhausted
+              → sendRetryFailure(PolicyExhausted)
+```
+
+#### Policy Matching
+
+Builds a candidate list: `[errorType] + mro`. Iterates rules in order; for each rule, checks every pattern against every candidate:
+
+- **FQN pattern** (contains `.`): exact equality — `candidate == pattern`
+- **Short name** (no `.`): matches `candidate[lastDot+1:]`
+
+First matching rule wins; its `policy` key is looked up in `Policies`. If no rule matches, `Policies["default"]` is returned. If no default exists, returns `nil` → `sendRetryFailure(RuntimeError)`.
+
+#### Policy Application
+
+1. `maxAttempts = max(policy.MaxAttempts, 1)` — zero is treated as 1
+2. `msg.Status.MaxAttempts = maxAttempts` — propagated to the final x-sink envelope
+3. `attemptsExhausted = msg.Status.Attempt >= maxAttempts`
+4. `durationExhausted = createdAt + maxDuration < now` (only when `MaxDuration > 0`)
+5. If neither exhausted: `retryMessage` → `SendWithDelay(delay)`
+6. If exhausted and `OnExhausted` non-empty: `routeOnExhausted`
+7. If exhausted and `OnExhausted` empty: `sendRetryFailure(PolicyExhausted)`
+
+#### Delay Computation
+
+Delay for attempt N (1-indexed current attempt):
+
+| Backoff | Formula |
+|---|---|
+| `constant` | `initialDelay` |
+| `linear` | `N * initialDelay` |
+| `exponential` | `initialDelay * 2^(N-1)` |
+
+All capped at `maxInterval` (when set). Jitter adds `rand * 0.1 * delay`. Minimum returned delay is 0.
+
+#### Envelope Status Lifecycle
+
+`ensureAndUpdateStatus` is called at the start of every `ProcessMessage` to initialise or advance `msg.Status`:
+
+| Condition | Action |
+|---|---|
+| `status == nil` | Create with `phase=pending`, `attempt=1`, `created_at=now` |
+| `status.actor != currentActor` | Reset `attempt=1`, `created_at=now`, `error=nil` (actor transition) |
+| Same actor, retry | Increment `attempt`, update `updated_at` |
+
+The `created_at` reset on actor transition ensures `maxDuration` is scoped to the current actor, not the entire pipeline lifetime.
+
+On retry: `status.phase = retrying`, `status.actor = currentActor`.
+On success: `status.phase = succeeded`, `status.error = nil`.
+On failure: `status.phase = failed`, `status.reason = <reason>`, `status.error = <details>`.
+
+#### Retry Transport Requirement
+
+`retryMessage` calls `transport.SendWithDelay(queue, body, delay)`. If the transport returns `ErrDelayNotSupported` (e.g. RabbitMQ), the sidecar falls back to `sendRetryFailure(RuntimeError)` immediately — the envelope goes to `x-sink` on the first retry attempt.
+
+#### Metrics Emitted
+
+| Metric call | When |
+|---|---|
+| `RecordMessageProcessed("error")` | Every error response |
+| `RecordProcessingDuration` | Every error response (once, in `handleErrorResponse`) |
+| `RecordMessageProcessed("retried")` | Successful `SendWithDelay` |
+| `RecordMessageFailed("retry_send_failed")` | `SendWithDelay` fails |
+| `RecordMessageProcessed("policy_routed")` | Routed to `onExhausted` actor |
+| `RecordMessageFailed("policy_exhausted")` | Sent to x-sink as exhausted |
+
+Note: `RecordProcessingDuration` is called only in `handleErrorResponse`, not inside `applyPolicy` terminal branches, to avoid double-counting.
+
 ## Metrics and Observability
 
 The sidecar exposes Prometheus metrics for monitoring. See [Metrics Reference](observability.md) for details.
