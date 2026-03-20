@@ -6,6 +6,7 @@ assignee: Artem Yushkovskiy
 
 
 
+
 Audit completed. Initial Diataxis phases 1-4 executed in PR #338 (split oversized docs,
 write tutorials, fill gaps, polish). The restructure design below supersedes those phases
 with a comprehensive audience-driven reorganization.
