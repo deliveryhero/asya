@@ -33,17 +33,8 @@ The simplest form: a function that takes a dict and returns a dict.
 ```python
 # file: handlers/echo.py
 
-def process(payload: dict) -> dict:
-    payload["greeting"] = f"Hello, {payload.get('name', 'world')}!"
-    return payload
-```
-
-Async version:
-
-```python
 async def process(payload: dict) -> dict:
-    result = await some_async_operation(payload["input"])
-    payload["output"] = result
+    payload["greeting"] = f"Hello, {payload.get('name', 'world')}!"
     return payload
 ```
 

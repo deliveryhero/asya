@@ -99,7 +99,7 @@ Runtime returns mutated payload:
 Handlers use `yield` to produce multiple outputs. Each `yield` sends a frame immediately to the sidecar over the Unix socket, and the sidecar creates a separate message for routing.
 
 ```python
-def process(payload):
+async def process(payload):
     for item in payload["items"]:
         yield {"processed": item}
 ```

@@ -27,7 +27,7 @@ Create `uppercaser.py`:
 
 ```python
 # uppercaser.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     text = payload.get("text", "")
     return {
         **payload,
@@ -39,7 +39,7 @@ Create `word_counter.py`:
 
 ```python
 # word_counter.py
-def process(payload: dict) -> dict:
+async def process(payload: dict) -> dict:
     text = payload.get("upper_text", "")
     return {
         **payload,
@@ -54,8 +54,8 @@ from uppercaser import process as upper
 from word_counter import process as count
 
 payload = {"text": "hello actor mesh"}
-payload = upper(payload)
-payload = count(payload)
+payload = await upper(payload)
+payload = await count(payload)
 assert payload == {
     "text": "hello actor mesh",
     "upper_text": "HELLO ACTOR MESH",

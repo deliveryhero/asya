@@ -33,19 +33,19 @@ from asya_lab.flow import flow
 
 
 @flow
-def text_pipeline(p: dict) -> dict:
-    p = normalize(p)
-    p = analyze(p)
+async def text_pipeline(p: dict) -> dict:
+    p = await normalize(p)
+    p = await analyze(p)
     return p
 
 
-def normalize(p: dict) -> dict:
+async def normalize(p: dict) -> dict:
     """Lowercase and strip whitespace."""
     text = p.get("text", "")
     return {**p, "normalized": text.strip().lower()}
 
 
-def analyze(p: dict) -> dict:
+async def analyze(p: dict) -> dict:
     """Count characters and words."""
     text = p.get("normalized", "")
     return {

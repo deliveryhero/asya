@@ -1,7 +1,8 @@
 # Asya Flow Compiler — Architecture
 
 This document describes the **compiler internals** — how the Flow DSL
-source is parsed, grouped into routers, and code-generated.
+source is parsed, code-generated into routers, analyzed for routing
+edges, and rendered as graphs.
 
 For the user-facing syntax, concepts, and deployment guide, see
 [Flow DSL Reference](../reference/flow-dsl.md).
@@ -28,7 +29,7 @@ standard review), you need a **router actor** — an actor whose only job is
 to inspect the payload and rewrite `route.next`:
 
 ```python
-def urgency_router(payload):
+async def urgency_router(payload):
     if payload["category"] == "urgent":
         yield "SET", ".route.next", ["escalate", "notify"]
     else:
@@ -49,13 +50,19 @@ business logic in your handler actors.
 Flow source (.py)
     │
     ▼
-  Parser ──→ Python AST → IR operations
+  Parser ──→ Python AST → Operations + Config
     │
     ▼
-  Grouper ──→ IR operations → Router list (optimized)
+  CodeGen ──→ Operations → routers.py
     │
     ▼
-  CodeGen ──→ Router list → routers.py + flow.dot
+  Manifests ──→ Actor metadata → AsyncActor YAML
+    │
+    ▼
+  Analyzer ──→ Yield analysis → GraphData
+    │
+    ▼
+  GraphGen ──→ GraphData → graph.json + DOT + Mermaid + SVG
 ```
 
 Source: `src/asya-lab/asya_lab/flow/`
@@ -72,10 +79,10 @@ should run next.
 In regular Python, function calls form a **call stack**:
 
 ```python
-def pipeline(data):
-    validated = validate(data)       # call, wait, return
-    enriched = enrich(validated)     # call, wait, return
-    result = process(enriched)       # call, wait, return
+async def pipeline(data):
+    validated = await validate(data)       # call, wait, return
+    enriched = await enrich(validated)     # call, wait, return
+    result = await process(enriched)       # call, wait, return
     return result
 ```
 
@@ -182,48 +189,30 @@ retries, monitoring, and deployment. There is no special "router runtime"
 ## Compilation Pipeline
 
 ```
-Source (.py)
-     |
-     v
-  [Parser]  ←── Rules Engine (AST-level classification + extraction)
-     |               ↑
-     |          Value Extractor (AST Call → spec values)
-     v
-  IR Operations (ActorCall, Mutation, Condition, ...)
-     |
-     v
-  [Grouper]
-     |
-     v
-  Routers (execution units)
-     |
-     v
-  [CodeGen]
-     |
-     v
-  routers.py + flow.dot
+flow.py ──→ [1. Parse] ──→ [2. CodeGen] ──→ [3. Manifests] ──→ [4. Analyze] ──→ [5. GraphGen] ──→ FlowInfo
 ```
 
 Each stage has a clear input/output contract:
 
-| Stage | Input | Output | Operates on |
-|-------|-------|--------|-------------|
-| **Parser** | Python source (AST) | `(flow_name, [IROperation])` | AST nodes |
-| **Rules Engine** | Symbol name (string) | `TreatAs` classification | Strings (AST-derived) |
-| **Value Extractor** | `ast.Call` + `CompilerRule` | `{spec_path: value}` | AST nodes |
-| **Grouper** | `[IROperation]` | `[Router]` | IR only |
-| **CodeGen** | `[Router]` | Python source string | IR only |
+| Stage | Input | Output | Description |
+|---|---|---|---|
+| **Parser** | Python source (AST) | `ParseResult` (operations, actors, resiliency rules) | AST → flat operation list |
+| **CodeGen** | `ParseResult` | `routers.py` | Operations → Python router code (direct, no grouper) |
+| **Manifests** | `ParseResult` | AsyncActor XR YAML (kustomize base/) | Actor metadata → deployment manifests |
+| **Analyzer** | routers.py + handler files + manifests | `GraphData` | Yield analysis: extract routing edges from code |
+| **GraphGen** | `GraphData` | graph.json + flow.dot + flow.mmd + flow.svg | Render graph in multiple formats |
 
-The boundary is strict: **rules and extraction operate at AST level** (they need
-call arguments, decorator lists, function names). Everything downstream — grouper
-and codegen — operates on **IR only** and never touches AST nodes.
+The boundary is strict: **rules and config extraction operate at AST level** (they
+need call arguments, decorator lists, function names) and fold into `ParseResult`.
+Everything downstream — codegen, manifests, analyzer, and graph generation —
+operates on parsed results and generated artifacts, never on AST nodes directly.
 
 ## 1. Parser
 
 **File**: `parser.py`
 
 The parser reads a Python source file, finds the flow function, and walks
-the AST to produce a flat list of IR operations.
+the AST to produce a flat list of operations and extracted configuration.
 
 ### Input validation
 
@@ -232,22 +221,44 @@ the AST to produce a flat list of IR operations.
 - Parameter name: `p`, `payload`, or `state`
 - Return type annotation: `dict`
 
-### IR operations
+### Operation types
 
-The parser produces these operation types:
+The parser produces five operation types:
 
-| IR Operation | Source construct | Fields |
+| Operation | Source construct | Fields |
 |---|---|---|
-| `ActorCall` | `p = handler(p)` | lineno, name, is_method, class_name |
-| `ClassInstantiation` | `model = MLModel()` | lineno, var_name, class_name |
+| `ActorCall` | `p = handler(p)` | lineno, name, source_file |
 | `Mutation` | `p["key"] = value` | lineno, code |
-| `Condition` | `if p["x"]: ...` | lineno, test, true_ops, false_ops |
-| `WhileLoop` | `while cond: ...` | lineno, test, body_ops, is_infinite |
-| `Break` | `break` | lineno |
-| `Continue` | `continue` | lineno |
-| `Return` | `return p` | lineno |
-| `TryExcept` | `try: ... except: ...` | lineno, try_ops, handlers, finally_ops |
-| `FanOutOp` | `p["x"] = [a(p), b(p)]` | lineno, target_key, actor_calls, pattern |
+| `Conditional` | `if p["x"]: ...` | lineno, test, true_branch, false_branch |
+| `Loop` | `while cond: ...` | lineno, test, body (`test: None` for `while True`) |
+| `FanOut` | `p["x"] = [a(p), b(p)]` | lineno, target_key, actor_calls, pattern |
+
+Previous IR types that no longer exist as separate operations:
+
+| Eliminated type | Where it went |
+|---|---|
+| `Break` | Codegen emits routing to convergence point after the loop |
+| `Continue` | Codegen emits routing to loop top (self-referencing router) |
+| `Return` | Codegen emits routing to exit actor |
+| `TryExcept` / `ExceptHandler` | Parser extracts error types into `resiliency_rules` in `ParseResult` |
+
+### ParseResult
+
+The parser returns a `ParseResult` containing the operations and all
+extracted configuration:
+
+```python
+@dataclass
+class ParseResult:
+    flow_name: str
+    operations: list[Operation]
+    actors: list[ActorRef]          # resolved handler metadata
+    resiliency_rules: list[dict]    # from try/except → manifest resiliency.rules
+    extracted_configs: list[dict]   # from decorator/context manager extraction
+    ignore_decorators: list[str]    # FQNs for ASYA_IGNORE_DECORATORS env var
+    imports: list[str]
+    constants: list[str]
+```
 
 ### Rejected constructs
 
@@ -256,91 +267,45 @@ The parser rejects with clear error messages:
 - `for` loops (use `while` with index)
 - `yield` / `yield from` (flows don't produce events)
 - `import` / `global` / `nonlocal`
-- `except ... as e:` binding (bare `except` or typed only)
-- Nested `try`/`except`
 - Class instantiation with non-default arguments
 - Nested function calls (`a(b(p))`)
 - Multiple assignment targets (`x, y = ...`)
+- `try`/`except` without a matching compiler rule (with a rule,
+  error types are extracted into `resiliency_rules` instead)
 
-## 2. Grouper
+**Note**: The grouper stage has been eliminated. The code generator operates
+directly on the parser's operation list, producing router functions without
+an intermediate Router representation. Each control flow point becomes a
+router function with the invariant: one decision per router.
 
-**File**: `grouper.py`
-
-The grouper transforms the flat IR operation list into an optimized list
-of `Router` objects. Each router becomes one deployed actor.
-
-### Router types
-
-| Type | Flag | Generated by | Purpose |
-|---|---|---|---|
-| Start | name prefix `start_` | Always | Entry point, initial routing |
-| End | name prefix `end_` | Always | Exit point, clears route |
-| Sequential | default | Mutations + unconditional actors | Batch mutations, append actors |
-| Conditional | `condition` set | `if`/`elif`/`else` | Branch on payload value |
-| Loop-back | `is_loop_back` | `while` loops | Re-insert loop body into route |
-| Fan-out | `is_fan_out` | `p["x"] = [a(), b()]` | Parallel dispatch + aggregator |
-| Try-enter | `is_try_enter` | `try:` block | Set `_on_error` header |
-| Try-exit | `is_try_exit` | End of try body | Clear `_on_error` header |
-| Except-dispatch | `is_except_dispatch` | `except:` clauses | Match error type, route to handler |
-| Reraise | `is_reraise` | Unmatched exceptions | Raise RuntimeError |
-
-### Optimization: mutation batching
-
-Consecutive mutations are grouped into a single router:
-
-```python
-# Source: 3 mutations + 1 actor call
-p["a"] = 1
-p["b"] = 2
-p["c"] = 3
-p = handler(p)
-
-# Grouper produces 1 router (not 4):
-#   mutations: [p["a"]=1, p["b"]=2, p["c"]=3]
-#   true_branch_actors: [handler]
-```
-
-### Loop handling
-
-`while` loops generate a loop-back router that references itself in
-`route.next`, creating a cycle in the actor graph:
-
-```
-                ┌──────────────────┐
-                │ loop_back_router │
-                │   if condition:  │
-                │     next = [body,│──── true ───→ [body_actors...,
-                │            self] │                loop_back_router]
-                │   else:          │
-                │     next = []    │──── false ──→ [continuation...]
-                └──────────────────┘
-```
-
-For `while True:`, `break` statements generate conditional exits within
-the loop body. The grouper tracks break targets to wire them to the
-correct continuation point after the loop.
-
-### Fan-out handling
-
-Fan-out operations produce a generator router that yields N+1 messages:
-
-- Index 0: parent payload → aggregator → continuation
-- Index 1..N: slice payloads → individual actors → aggregator
-
-Each message carries `x-asya-fan-in` headers for the aggregator to
-reconstruct the result.
-
-## 3. Code Generator
+## 2. Code Generator
 
 **File**: `codegen.py`
 
-The code generator takes the router list and produces Python source code.
+The code generator receives `ParseResult` and produces Python source code
+directly from the operations list. Each control flow point becomes a router
+function. Sequential actors between control flow points are grouped into a
+single router.
+
+**Invariant: one decision per router.** Each generated router function has
+at most one level of if/else. Nested control flow in the flow DSL produces
+a chain of routers, not nested Python blocks inside a single function. This
+keeps the yield analyzer trivial — it only needs to extract conditions from
+flat if/else blocks.
+
+The mapping from operations to generated code:
+
+- `ActorCall` → `_next.append(resolve("handler_name"))`
+- `Mutation` → raw code string inserted into the router body
+- `Conditional` → `if test: ... else: ...` with routing in branches
+- `Loop` → self-referencing router (condition check + body routing)
+- `FanOut` → multi-yield pattern (parallel dispatch + aggregator)
 
 ### Generated file structure
 
 ```python
 # Header (source file reference, "DO NOT EDIT" warning)
-# Router functions (one per Router object)
+# Router functions (one per control flow point)
 # resolve() function (handler name → actor name mapping)
 ```
 
@@ -350,7 +315,7 @@ All routers follow the same structure — read current route, compute new
 route, emit payload:
 
 ```python
-def router_flow_line_5_if(payload: dict):
+async def router_flow_line_5_if(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next_tail = yield "GET", ".route.next"    # read remaining route
@@ -382,17 +347,70 @@ ASYA_HANDLER_MY_ACTOR="module.handler"
 Resolution supports suffix matching — `resolve("handler")` matches
 `module.handler` if unambiguous.
 
-## 4. DOT Generator
+## 3. Manifest Generator
 
-**File**: `dot.py`
+**File**: `templater.py`
 
-Optionally generates Graphviz DOT diagrams for visual inspection.
+The manifest generator takes `ParseResult` and produces AsyncActor XR YAML
+files into a kustomize `base/` directory. Each actor in the flow gets a
+manifest with handler reference, labels (including `asya.sh/flow` and
+`asya.sh/flow-role`), extracted configuration from compiler rules, and
+decorator stripping instructions (`ASYA_IGNORE_DECORATORS` env var).
 
-**Node colors**:
-- Green (`lightgreen`): Start/End routers
-- Wheat: Conditional and loop routers
-- Blue (`lightblue`): User handler actors
-- Yellow (`lightyellow`): Condition test labels
+The `base/` directory is compiler-owned and always overwritten on
+recompilation. Platform customizations go in a separate `common/` overlay
+that the compiler never touches.
+
+## 4. Yield Analyzer
+
+**File**: `analyzer.py`
+
+The yield analyzer extracts routing edges from generated routers,
+user-written handlers, and manifest error routes to produce a unified
+`GraphData` structure.
+
+It parses Python source via `ast.parse()`, walking handler function ASTs
+to find yield statements matching ABI patterns (`yield "SET", ".route.next",
+[...]`). For each yield inside an if/else block, the enclosing condition is
+captured as the edge label.
+
+### Three handler categories
+
+1. **Generated routers** (`routers.py`): Full yield analysis — all patterns
+   are analyzable since the compiler generated them. The one-decision-per-router
+   invariant means the analyzer only encounters flat if/else blocks.
+2. **User-written handlers** (project source): Best-effort yield analysis
+   via `inspect.getsource()` or direct file read. Captures `yield "SET",
+   ".route.next"` patterns for override edges.
+3. **External package handlers** (site-packages): Best-effort via
+   `inspect.getsource()`. Opaque node if source is unavailable
+   (C extensions, bytecode-only).
+
+### Merge algorithm
+
+1. Parse generated routers → extract routing chains
+2. Parse user handlers → extract override edges
+3. Parse manifests → `resiliency.rules[*].thenRoute` → error routing edges
+4. Merge: chains + overrides + error edges. Override edges from user handlers
+   replace flow-declared edges (marked `override: true`).
+
+## 5. Graph Generator
+
+**File**: `graphgen.py`
+
+Three renderers consuming the same `GraphData`:
+
+```python
+def to_dot(data: GraphData, flow_name: str) -> str: ...
+def to_mermaid(data: GraphData, flow_name: str) -> str: ...
+def to_json(data: GraphData, flow_name: str) -> dict: ...
+```
+
+Each renderer iterates nodes and edges from `GraphData` and applies format-
+specific styling. The DOT renderer uses node colors to distinguish actor
+types (green for entry/exit, wheat for routers, blue for user handlers).
+The Mermaid renderer produces equivalent diagrams for documentation contexts
+where Graphviz is unavailable.
 
 ## CLI
 
@@ -412,10 +430,10 @@ default 100), `--overwrite`, `--verbose`.
 | Suite | Location | Coverage |
 |---|---|---|
 | Parser unit tests | `src/asya-lab/tests/flow/test_parser*.py` | ~95% |
-| Grouper unit tests | `src/asya-lab/tests/flow/test_grouper*.py` | ~91% |
 | CodeGen unit tests | `src/asya-lab/tests/flow/test_codegen*.py` | ~98% |
+| Analyzer unit tests | `src/asya-lab/tests/flow/test_analyzer*.py` | Yield pattern extraction + merge |
+| GraphGen unit tests | `src/asya-lab/tests/flow/test_graphgen*.py` | DOT + Mermaid + JSON rendering |
 | Compiler API tests | `src/asya-lab/tests/flow/test_compiler*.py` | ~93% |
-| DOT generator tests | `src/asya-lab/tests/flow/test_dot*.py` | 100% |
 | Component tests | `testing/component/flow-compiler/` | E2E compilation + execution |
 
 ## What Flow Does NOT Do
