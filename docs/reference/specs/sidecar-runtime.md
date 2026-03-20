@@ -106,15 +106,15 @@ Any unknown path returns `404 Not Found`.
 
 | Code | Cause | Sidecar action |
 |------|-------|----------------|
-| `msg_parsing_error` | Malformed JSON or missing required fields | Route to `x-sump` |
-| `processing_error` | Unhandled Python exception in handler | Route to `x-sump` |
+| `msg_parsing_error` | Malformed JSON or missing required fields | Route to `x-sink` (phase: failed, no retry) |
+| `processing_error` | Unhandled Python exception in handler | Apply resiliency policy (retry or route to `x-sink`) |
 
 **Sidecar-side errors** (not from runtime):
 
 | Error | Cause | Action |
 |-------|-------|--------|
-| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Send to `x-sump`, crash pod |
-| HTTP parse error | Unexpected non-HTTP response | Route to `x-sump` |
+| `context.DeadlineExceeded` | Runtime exceeded `ASYA_RESILIENCY_ACTOR_TIMEOUT` | Send to `x-sink` (phase: failed, reason: Timeout), crash pod |
+| HTTP parse error | Unexpected non-HTTP response | Route to `x-sink` (phase: failed) |
 
 ## Timeout Strategy
 
@@ -139,7 +139,7 @@ Where `remaining_SLA = deadline_at - now` (only if `deadline_at` is set).
 ### Runtime Timeout Behavior
 
 **On runtime timeout** (`context.DeadlineExceeded`):
-1. Sidecar sends the envelope to `x-sump` with a timeout error
+1. Sidecar sends the envelope to `x-sink` (phase: failed, reason: Timeout)
 2. Sidecar **crashes the pod** (exits with status code 1)
 3. Kubernetes restarts the pod to recover clean state
 
@@ -197,4 +197,4 @@ curl --unix-socket /var/run/asya/asya-runtime.sock http://localhost/healthz
 2. **Monitor `x-sump` queue depth** — a growing sump queue signals systematic handler errors or timeout spikes.
 3. **Size container memory** for peak model/data size, not average; OOM kills look like pod crashes and are hard to distinguish from timeout crashes without metrics.
 4. **Use `GET /healthz`** as the Kubernetes readiness probe target — it becomes available only after the handler is fully loaded, so the pod never receives traffic while still initialising.
-5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify envelopes land in `x-sump` rather than disappearing silently.
+5. **Test failure modes in staging** before production: inject bad payloads, simulate timeouts, and verify envelopes land in `x-sink` (phase: failed) rather than disappearing silently.

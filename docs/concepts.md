@@ -121,11 +121,11 @@ Crew actors are built-in system actors that handle framework-level concerns:
 | Actor | Role |
 |---|---|
 | `x-sink` | Persists successful results to S3/MinIO; reports success to the gateway |
-| `x-sump` | Receives envelopes that raised an exception; persists error details |
+| `x-sump` | Final terminal in the two-layer termination chain; emits metrics and logs errors |
 | `x-pause` | Checkpoints an envelope to S3 and signals `paused` (human-in-the-loop) |
 | `x-resume` | Restores a checkpointed envelope and re-injects it into the mesh |
 
-`x-sink` and `x-sump` are automatic — never include them in route configs. An empty `route.next` or a `None` return routes to `x-sink`. An unhandled exception routes to `x-sump`. This means every pipeline has exactly two terminal states, regardless of how many actors it has or how routing is modified.
+`x-sink` and `x-sump` are automatic — never include them in route configs. An empty `route.next` or a `None` return routes to `x-sink`. A handler error is retried per the actor's resiliency policy; if exhausted, the envelope goes to `x-sink` (phase: failed). `x-sink` then routes through configured hooks to `x-sump`. This means every pipeline terminates through `x-sink`, regardless of success or failure.
 
 **See**: [Crew](reference/components/core-crew.md)
 

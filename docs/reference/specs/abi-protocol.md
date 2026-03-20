@@ -96,9 +96,9 @@ async def process(payload):
     async for token in llm.stream(payload["prompt"]):
         yield "FLY", {"partial": True, "text": token}
 
-    # Modify routing
+    # Modify routing (prepend steps before remaining pipeline)
     if payload.get("needs_review"):
-        yield "SET", ".route.next", ["reviewer", "notifier"]
+        yield "SET", ".route.next[:0]", ["reviewer", "notifier"]
 
     # Emit result downstream
     payload["result"] = await llm.complete(payload["prompt"])

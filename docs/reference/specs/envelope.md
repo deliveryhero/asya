@@ -77,14 +77,9 @@ Namespace: `example-ecommerce`
 
 ## End Queues
 
-**`x-sink`**: Pipeline completed, aborted, or expired
-- Automatically routed by sidecar when `route.curr` is `""` (route exhausted)
-- Automatically routed when runtime returns empty response
-- Automatically routed when `status.deadline_at` has passed (SLA expired, stamped with `phase=failed`, `reason=Timeout`)
+**`x-sink`**: First layer of termination. Receives ALL terminal envelopes — both succeeded and failed. Routed by sidecar when route is exhausted (success), when SLA expires, or when resiliency policy is exhausted (failure). Reports final status to gateway, dispatches to hooks.
 
-**`x-sump`**: Processing error occurred
-- Automatically routed when runtime returns error
-- Automatically routed when runtime call times out (per-call timeout exceeded)
+**`x-sump`**: Second layer of termination (final terminal). Receives envelopes from x-sink after hook processing. Emits metrics and logs errors. Never reached directly from regular actor sidecars.
 
 **Important**: Do not include `x-sink` or `x-sump` in route configurations - managed by sidecar.
 
@@ -141,7 +136,7 @@ Runtime returns error object:
 }
 ```
 
-**Action**: Sidecar routes to `x-sump` (no increment)
+**Action**: Sidecar applies resiliency policy: retries if configured, or routes to `x-sink` (phase: failed) if exhausted/non-retryable
 
 ## Payload Enrichment Pattern
 
@@ -264,10 +259,11 @@ Actor N completes → Sidecar routes to x-sink
 
 **Error path**:
 ```
-Runtime error → Sidecar routes to x-sump
-  → x-sump persists to S3
-  → x-sump reports: POST /mesh/{id}/final
+Runtime error → Sidecar retries per resiliency policy
+  → If exhausted/non-retryable → Sidecar routes to x-sink (phase: failed)
+  → x-sink reports: POST /mesh/{id}/final
      {status: "failed", error: "..."}
+  → x-sink dispatches to hooks → x-sump (final terminal)
   → Gateway updates: status=failed
   → SSE: final error event
 ```
