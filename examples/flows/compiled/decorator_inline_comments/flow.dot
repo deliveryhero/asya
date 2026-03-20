@@ -1,4 +1,4 @@
-digraph "decorator_inline_comments" {
+digraph "decorator_inline_comments_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

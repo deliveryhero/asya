@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_break_continue",
+  "flow_name": "while_break_continue_flow",
   "nodes": [
     {
       "id": "end_while_break_continue_flow",

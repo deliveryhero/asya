@@ -1,5 +1,5 @@
 {
-  "flow_name": "decorator_inline_comments",
+  "flow_name": "decorator_inline_comments_flow",
   "nodes": [
     {
       "id": "classifier",

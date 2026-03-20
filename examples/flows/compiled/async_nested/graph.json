@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_nested",
+  "flow_name": "review_pipeline_flow",
   "nodes": [
     {
       "id": "auto_approve",

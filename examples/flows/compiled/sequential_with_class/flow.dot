@@ -1,4 +1,4 @@
-digraph "sequential_with_class" {
+digraph "class_instantiation_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

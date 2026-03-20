@@ -1,5 +1,5 @@
 {
-  "flow_name": "async_sequential",
+  "flow_name": "llm_auditor_flow",
   "nodes": [
     {
       "id": "critic",

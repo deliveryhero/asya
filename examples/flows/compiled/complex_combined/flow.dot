@@ -1,4 +1,4 @@
-digraph "complex_combined" {
+digraph "complex_combined_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

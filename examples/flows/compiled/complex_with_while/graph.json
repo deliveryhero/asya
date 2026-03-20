@@ -1,5 +1,5 @@
 {
-  "flow_name": "complex_with_while",
+  "flow_name": "complex_flow",
   "nodes": [
     {
       "id": "end_complex_flow",

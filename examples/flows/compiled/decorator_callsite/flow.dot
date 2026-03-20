@@ -1,4 +1,4 @@
-digraph "decorator_callsite" {
+digraph "decorator_callsite_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

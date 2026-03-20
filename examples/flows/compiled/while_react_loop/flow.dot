@@ -1,4 +1,4 @@
-digraph "while_react_loop" {
+digraph "react_agent" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

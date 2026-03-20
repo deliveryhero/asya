@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_elif_else",
+  "flow_name": "if_elif_else_flow",
   "nodes": [
     {
       "id": "end_if_elif_else_flow",

@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_simple",
+  "flow_name": "while_simple_flow",
   "nodes": [
     {
       "id": "end_while_simple_flow",

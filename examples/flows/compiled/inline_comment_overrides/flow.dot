@@ -1,4 +1,4 @@
-digraph "inline_comment_overrides" {
+digraph "order_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

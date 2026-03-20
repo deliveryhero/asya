@@ -1,5 +1,5 @@
 {
-  "flow_name": "fanout_conditional",
+  "flow_name": "adaptive_flow",
   "nodes": [
     {
       "id": "classifier",

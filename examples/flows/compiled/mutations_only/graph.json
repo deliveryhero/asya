@@ -1,5 +1,5 @@
 {
-  "flow_name": "mutations_only",
+  "flow_name": "mutations_only_flow",
   "nodes": [
     {
       "id": "end_mutations_only_flow",

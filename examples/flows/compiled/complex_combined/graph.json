@@ -1,5 +1,5 @@
 {
-  "flow_name": "complex_combined",
+  "flow_name": "complex_combined_flow",
   "nodes": [
     {
       "id": "end_complex_combined_flow",

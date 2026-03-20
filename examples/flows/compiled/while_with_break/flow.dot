@@ -1,4 +1,4 @@
-digraph "while_with_break" {
+digraph "while_with_break_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

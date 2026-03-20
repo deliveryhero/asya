@@ -1,4 +1,4 @@
-digraph "fanout_gather" {
+digraph "async_research_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
