@@ -93,7 +93,7 @@ class ActorInfo:  # extends existing templater.ActorInfo
     name: str                   # "handler-a" (K8s name)
     handler: str                # "handler_a.classify" (in-container path)
     image: str
-    flow_role: str              # "entry" | "exit" | "entryexit" | "router" | "actor"
+    flow_role: str              # "start" | "end" 
     env: list[dict]
     is_generated: bool          # renamed from is_router
     manifest_path: Path
@@ -107,8 +107,9 @@ class ActorInfo:  # extends existing templater.ActorInfo
 
 - Entrypoint: first user actor called in flow (no empty start router)
 - Exitpoints: last actors before each `return` (no empty end router)
-- flow_role vocabulary: `entry`, `exit`, `entryexit`, `router`, `actor`
-- Single-valued `asya.sh/flow-role` K8s label. `entryexit` for single-actor flows
+- `asya.sh/role` label vocabulary: `start`, `end`
+- `asya.sh/generated`: boolean "true"
+- Single-valued `asya.sh/role` K8s label.
 - Subsumes aint `20c9`
 
 ### 5. Manifest generation

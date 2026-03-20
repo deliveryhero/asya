@@ -318,7 +318,7 @@ result.warnings          # list[str]
 result.actors[0].name           # "handler-a" (K8s name, hyphens)
 result.actors[0].handler        # "handler_a.classify" (in-container path)
 result.actors[0].image          # "ghcr.io/team/actors:latest"
-result.actors[0].flow_role      # "start" | "router" | "actor"
+result.actors[0].flow_role      # "start" | "end" | "router" | "actor"
 result.actors[0].env            # [{"name": "KEY", "value": "val"}]
 result.actors[0].is_generated   # True for routers, False for user handlers
 result.actors[0].manifest_path  # Path to base/ manifest YAML
@@ -417,13 +417,14 @@ the same vocabulary:
 | Value | Meaning |
 |---|---|
 | `start` | Flow entrypoint (receives initial message from gateway). Always a generated `start_*` router. Exactly one per flow. |
+| `end`   | Leaf actor(s) before return — sidecar reports per-flow completion. No outgoing edges to other actors. |
 | `router` | Other generated routers (conditionals, loops, fanout) |
-| `actor` | Regular user handler |
+| `actor` | Regular user handler with downstream routing |
 
 Exactly one `start` per flow. The `start_*` router function name
-matches the label value. Exit detection is not a deployment concern —
-x-sink handles completion reporting. The label value must be
-implemented in the XRD.
+matches the label value. Leaf actors (no outgoing edges) get
+`flow_role: end` so sidecars can report per-flow completion metrics.
+The label value must be implemented in the XRD.
 
 ### Start detection
 
@@ -433,11 +434,10 @@ The compiler marks exactly one actor as the flow entrypoint:
   initial messages here. Always exactly one per flow.
   The `start_*` function name aligns with `flow_role: start`.
 
-- **Exit detection removed**: not a deployment concern. The sidecar
-  routes to x-sink when `route.next` is empty, and x-sink reports
-  completion to the gateway. No `flow_role` label needed for exit
-  actors. The graph renderer derives exit nodes from topology (nodes
-  serve as exit.
+- **End detection**: leaf actors (no outgoing edges to other actors)
+  get `flow_role: end`. The sidecar routes to x-sink when `route.next`
+  is empty, and x-sink reports completion to the gateway. The `end`
+  label enables per-flow completion metrics at the sidecar level.
 
 This eliminates empty start/end routers (aint `20c9`).
 
@@ -975,7 +975,7 @@ async def simple(p):
     return p
 ```
 
-`classify` is the only actor: `flow_role: actor`.
+`classify` is the only actor: `flow_role: end`.
 No router generated. No `is_generated` actors. Manifest has label
 `asya.sh/flow-role: actor`. The gateway sends directly to this actor
 (no start router needed for single-actor flows).
@@ -993,7 +993,7 @@ async def branching(p):
     return p               # exitpoint 2
 ```
 
-Both `fast_handler` and `postprocess` are terminal actors (`flow_role: actor`).
+Both `fast_handler` and `postprocess` are terminal actors (`flow_role: end`).
 The graph renderer derives exit nodes from topology (no outgoing edges
 except to `__end__`). The start router receives the initial message.
 
@@ -1078,7 +1078,7 @@ Wire into `asya serve` REST API.
 
 - **aint `20c9` (empty start/end routers)**: Addressed by smart
   start detection. The generated `start_*` router is labeled
-  `flow_role: start`. Exit detection removed (x-sink handles completion).
+  `flow_role: start`. Leaf actors get `flow_role: end` for completion metrics.
 
 - **aint `w1br` (@flow and @unfold)**: Flow composition (inline expansion)
   replaces the need for a separate `@unfold` marker. Calling a `@flow`

@@ -26,7 +26,7 @@ Each entry records the decision and the reasoning behind it.
 | W4 | **1:N via graph UI** — DS clicks actor nodes to customize name/config, writes to kustomize overlay. | Interactive workflow: graph is editable, not just visualization. |
 | W5 | **Config schema from AsyncActor XRD** — actor edit UI reads OpenAPI schema from XRD. | Single source of truth for editable fields. UI doesn't guess. |
 | W6 | **Flow composition = compile-time inlining** — inner flow expanded, visual grouping in graph, all actors get outer flow's label. | No runtime nesting. Each flow reference creates new actor instances. Multiple nesting levels = nested groups. |
-| W7 | **Smart start detection** — generated `start_*` router is `flow_role: start`. Exit detection removed (x-sink handles completion). | Eliminates no-op end routers (aint `20c9`). |
+| W7 | **Smart start/end detection** — generated `start_*` router is `flow_role: start`. Leaf actors (no outgoing edges) get `flow_role: end` for sidecar completion metrics. | Eliminates no-op end routers (aint `20c9`). |
 | W8 | **External handlers = best-effort** — yield analysis if source available in site-packages, opaque node otherwise. | Pragmatic: most packages have source. C extensions / bytecode-only get opaque box. |
 | W9 | **Three environments: script/package, notebook, IDE** — all use the same compiler. | Batch (CLI), explicit (notebook `compile()` call), reactive (VSCode extension on save). |
 | W10 | **Notebook = explicit recompile** — DS re-runs `compile()` cell. VSCode extension is reactive (on save). Anywidget for reactive notebooks is future investigation. | Simplest model for now. Reactive notebooks need separate research. |
@@ -51,7 +51,7 @@ Each entry records the decision and the reasoning behind it.
 |---|---|---|
 | G1 | **graph.json = minimal topology + source links** — deployment-level only, no local dev info. | Local paths (source_file, handler_local) stay in `FlowInfo`/`ActorInfo` only. graph.json stays clean. |
 | G2 | **Node/edge labels are graph-theoretical** — `nodes[*].label` and `edges[*].label`, no semantic interpretation. | Pure graph data. `asya serve` and CLI merge with source files for rich display. |
-| G3 | **`flow_role` vocabulary: `start`, `router`, `actor`** — used in both graph.json and `asya.sh/flow-role` K8s label. `start` aligns with `start_*` router naming. No exit label (x-sink handles completion). | Unified vocabulary across graph, manifests, and K8s labels. Needs XRD-level validation. |
+| G3 | **`flow_role` vocabulary: `start`, `end`, `router`, `actor`** — used in both graph.json and `asya.sh/flow-role` K8s label. `start` aligns with `start_*` router naming. `end` marks leaf actors for sidecar completion metrics. | Unified vocabulary across graph, manifests, and K8s labels. Needs XRD-level validation. |
 | G4 | **`override: true` on edges** — marks yield-analyzed routing that overwrites flow-declared routing. | Distinguishes "flow said B→C" from "handler B actually routes to D" in scenario E. |
 | G5 | **graph.json includes image info per node** — handler path depends on image's PYTHONPATH. | In-container handler path may differ from local dev path. Image determines resolution. |
 | G6 | **graph.json includes manifest paths** — links to base/ manifest files per node. | `asya serve` and CLI can navigate from graph node to its manifest for config editing. |
@@ -82,7 +82,7 @@ Each entry records the decision and the reasoning behind it.
 | P1 | **Five-step pipeline: Parse → CodeGen → Manifests → Analyze → GraphGen** — no grouper, no IR tree. | Parse extracts operations, CodeGen produces routers.py, Manifests produces XR YAML, Analyze does yield analysis, GraphGen renders DOT/MMD/JSON. |
 | P2 | **Yield analysis runs after code + manifest generation (Step 4)** — cross-handler analysis across generated routers + user-written actors + manifest error edges. | Yield analysis needs all handler files and manifests written first. Runs on the combined set. |
 | P3 | **Manifests produced by compiler (not analyzer)** — compiler knows actor config from parsing decorators/context managers. | Analyzer only knows routing topology from yields. Config extraction is a parser concern. |
-| P4 | **Exactly one `start` per flow** — generated `start_*` router receives initial message from gateway. No exit label needed (x-sink handles completion). | 3-value vocabulary: `start`/`router`/`actor`. |
+| P4 | **Exactly one `start` per flow** — generated `start_*` router receives initial message from gateway. Leaf actors get `flow_role: end` for completion metrics. | 4-value vocabulary: `start`/`end`/`router`/`actor`. |
 | P5 | **Path A: Yield-Analysis-First** — graph topology from yield analysis of deployment artifacts (code + manifests), not from an IR. | Source of truth = what's deployed. No IR boundary tension. Yield analysis needed for user handlers anyway. |
 | P6 | **5 operation types: ActorCall, Mutation, Conditional, Loop, FanOut** — down from 12 IR node types. | Break/Continue → codegen routing. Return → exit routing. TryExcept → manifest resiliency.rules. WithBlock → config/Mutation via rules. |
 | P7 | **Strict parser: reject unrecognized constructs** — try/except, with-block, decorators without matched compiler rules produce compile errors. | Better to fail loudly than silently ignore. Users add rules or restructure. |

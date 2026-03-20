@@ -47,7 +47,7 @@ graph outputs match expected topology:
 - All other compiled/ directories
 
 For each:
-1. Run `asya compile` on the source flow
+1. make sure they're not ignored in `.pre-commit-hooks/compile-flows.sh`, run pre-commit to compile them
 2. Verify routers.py produces equivalent runtime behavior
 3. Verify graph.json/DOT/Mermaid show correct topology
 4. Commit updated compiled/ outputs
@@ -55,7 +55,8 @@ For each:
 ### 3. Edge case validation
 
 Test and verify:
-- **Single-actor flow**: `flow_role: entryexit`, no routers generated
+- **Single-actor flow**: `role: entry`, single entry router generated
+- **No-op flow**: `role: entry`, single entry router generated
 - **Multiple exitpoints**: branching flow with multiple returns
 - **Nested if/while**: chain of routers (one decision per router, P13)
 - **FanOut patterns**: comprehension, literal, gather
