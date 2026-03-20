@@ -1,3 +1,4 @@
+"""NLP pipeline with language-based conditional branching and entity extraction."""
 from asya_lab.flow import flow
 @flow
 def text_analysis_flow(p: dict) -> dict:
