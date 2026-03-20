@@ -408,7 +408,7 @@ def _find_chain_end(node: str, edges: list[dict]) -> str:
         visited.add(current)
 
 
-def _ensure_else_edges(edges: list[dict]) -> None:
+def _ensure_else_edges(edges: list[dict]) -> list[str]:
     """Ensure every if router has both a conditional and an else edge.
 
     After splice, some if routers may have:
@@ -417,14 +417,18 @@ def _ensure_else_edges(edges: list[dict]) -> None:
 
     The merge point is found by following the true branch's prepend chain to its
     end — that's where both paths converge at runtime.
+
+    Returns warnings for if routers where the else edge could not be determined.
     """
+    warnings: list[str] = []
+
     # Find if routers
     if_routers: set[str] = set()
     for e in edges:
         if "_if_" in e["from"] and e["from"].startswith("router_"):
             if_routers.add(e["from"])
 
-    for router in if_routers:
+    for router in sorted(if_routers):
         outgoing = [e for e in edges if e["from"] == router]
 
         # Conditional edges: labeled with a condition (not "else", not None)
@@ -444,17 +448,19 @@ def _ensure_else_edges(edges: list[dict]) -> None:
             continue
 
         # Case 2: no else edge at all → find merge point via chain end
+        found = False
         for cond_edge in conditional:
             if cond_edge["type"] == "prepend":
                 chain_end = _find_chain_end(cond_edge["to"], edges)
                 if chain_end != router:
                     edges.append({"from": router, "to": chain_end, "label": "else", "type": "continuation"})
+                    found = True
                     break
-            elif cond_edge["type"] == "set":
-                # SET edges point to the break/return target; the else path
-                # continues from the route tail — check for continuations
-                # from other edges that share the same merge point
-                pass
+
+        if not found:
+            warnings.append(f"if router '{router}' has no else edge and merge point could not be determined")
+
+    return warnings
 
 
 def _deduplicate_edges(edges: list[dict]) -> None:
@@ -540,7 +546,8 @@ def analyze(
     # Splice may remove continuation edges that represent the else path (when the
     # codegen emits `else: pass`). Restore them as labeled "else" edges, and label
     # any unlabeled continuations from if routers as "else".
-    _ensure_else_edges(all_edges)
+    all_warnings: list[str] = []
+    all_warnings.extend(_ensure_else_edges(all_edges))
 
     # Step 5: Deduplicate edges (same from/to/type can appear from multiple branches).
     _deduplicate_edges(all_edges)
@@ -566,7 +573,8 @@ def analyze(
         nodes.append(node_dict)
 
     graph = GraphData(nodes=nodes, edges=all_edges)
-    graph.warnings = _validate_graph(graph)
+    all_warnings.extend(_validate_graph(graph))
+    graph.warnings = all_warnings
     return graph
 
 

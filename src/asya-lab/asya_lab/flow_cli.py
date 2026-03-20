@@ -87,8 +87,9 @@ def _stamp_manifests(
 @click.command("validate")
 @click.argument("flow_file")
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-def validate(flow_file, verbose):
-    """Validate flow without compiling."""
+@click.option("--strict", is_flag=True, help="Treat warnings as errors")
+def validate(flow_file, verbose, strict):
+    """Validate flow by compiling and checking graph invariants."""
     try:
         compiler = FlowCompiler(verbose=verbose)
 
@@ -98,15 +99,17 @@ def validate(flow_file, verbose):
             sys.exit(1)
 
         source_code = source_path.read_text()
-        compiler.validate(source_code, str(source_path))
+        compiler.compile(source_code, str(source_path))
 
         click.echo(f"[+] Flow is valid: {flow_file}")
 
         warnings = compiler.get_warnings()
         if warnings:
-            click.echo("\nWarnings:", err=True)
-            for warning in warnings:
-                click.echo(f"\n{warning}", err=True)
+            for w in warnings:
+                click.echo(f"[!] {w}", err=True)
+            if strict:
+                click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
+                sys.exit(1)
 
     except FlowCompileError as e:
         click.echo("[-] Validation failed:\n", err=True)

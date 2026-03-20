@@ -39,6 +39,7 @@ def _compile_flow_file(
     plot_format: str,
     verbose: bool,
     force: bool,
+    strict: bool = False,
 ) -> None:
     """Compile a flow from a .py source file."""
     from asya_lab.flow_cli import _stamp_manifests
@@ -98,6 +99,14 @@ def _compile_flow_file(
         except Exception as e:
             click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
 
+    warnings = compiler.get_warnings()
+    if warnings:
+        for w in warnings:
+            click.echo(f"[!] {w}", err=True)
+        if strict:
+            click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
+            sys.exit(1)
+
     manifests_dir = output_dir if output_dir else None
     _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
 
@@ -146,7 +155,8 @@ def _recompile_kebab_target(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", is_flag=True, help="Overwrite without checking git status")
-def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force):
+@click.option("--strict", is_flag=True, help="Treat warnings as errors")
+def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force, strict):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
@@ -158,7 +168,7 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
     """
     try:
         if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
+            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force, strict)
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:

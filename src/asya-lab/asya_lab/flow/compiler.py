@@ -94,6 +94,7 @@ class FlowCompiler:
 
         # Step 3: Analyze (graph extraction from generated code)
         self._graph_data = analyze(code)
+        self.warnings.extend(self._graph_data.warnings)
 
         self.flow_name = result.flow_name
 
