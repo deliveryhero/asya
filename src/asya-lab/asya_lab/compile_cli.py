@@ -127,7 +127,7 @@ def _recompile_kebab_target(
 @click.option(
     "--plot-format",
     "plot_format",
-    default="svg",
+    default="png",
     type=click.Choice(["svg", "png"]),
     show_default=True,
     help="Output format for flow diagram",

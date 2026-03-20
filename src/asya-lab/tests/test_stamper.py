@@ -17,7 +17,7 @@ from omegaconf import OmegaConf
 def template_dir(tmp_path):
     """Create a minimal .asya/ with actor template."""
     asya_dir = tmp_path / ".asya"
-    templates_dir = asya_dir / "compiler" / "templates"
+    templates_dir = asya_dir / "templates"
     templates_dir.mkdir(parents=True)
 
     template = {

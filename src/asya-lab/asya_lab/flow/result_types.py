@@ -42,6 +42,5 @@ class FlowInfo:
     graph: dict
     dot: str
     mermaid: str
-    svg: str | None
     actors: list[ActorInfo]
     warnings: list[str] = field(default_factory=list)

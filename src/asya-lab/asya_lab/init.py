@@ -14,6 +14,7 @@ templates:
 compiler:
   routers: "./compiled"
   manifests: ".asya/manifests"
+  templates: ".asya/templates"
 
 build:
   - module: "*"
@@ -125,9 +126,9 @@ def init_project(
     if not config_file.exists():
         config_file.write_text(_ROOT_CONFIG.format(registry=registry))
 
-    # compiler/templates/ — templates are NOT part of the config tree,
+    # templates/ — templates are NOT part of the config tree,
     # they are stored as files and referenced by the stamper
-    templates_dir = asya_dir / "compiler" / "templates"
+    templates_dir = asya_dir / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)
 
     actor_template = templates_dir / "actor.yaml"

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from textwrap import dedent
 
 from asya_lab.flow.parser import (
@@ -69,16 +68,7 @@ class CodeGenerator:
         self.module_constants = result.constants
         self.inline_defs = result.inline_defs
 
-        if output_file:
-            try:
-                output_path = Path(output_file).resolve()
-                source_path = Path(source_file).resolve()
-                relative_path = os.path.relpath(source_path, output_path.parent)
-                self.source_file = relative_path
-            except (ValueError, OSError):
-                self.source_file = os.path.basename(source_file)
-        else:
-            self.source_file = os.path.basename(source_file)
+        self.source_file = os.path.basename(source_file)
 
         self._functions: list[_RouterFunc] = []
         self._has_fan_out = False

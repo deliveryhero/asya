@@ -24,7 +24,7 @@ class TestInitProject:
 
     def test_creates_actor_template(self, tmp_path: Path) -> None:
         init_project(tmp_path, **_DEFAULTS)
-        template = tmp_path / ".asya" / "compiler" / "templates" / "actor.yaml"
+        template = tmp_path / ".asya" / "templates" / "actor.yaml"
         assert template.exists()
         assert "AsyncActor" in template.read_text()
 
@@ -66,7 +66,7 @@ class TestInitIdempotent:
 
     def test_preserves_existing_template(self, tmp_path: Path) -> None:
         init_project(tmp_path, **_DEFAULTS)
-        template = tmp_path / ".asya" / "compiler" / "templates" / "actor.yaml"
+        template = tmp_path / ".asya" / "templates" / "actor.yaml"
         template.write_text("custom: content\n")
 
         init_project(tmp_path, **_DEFAULTS)
@@ -78,8 +78,8 @@ class TestInitIdempotent:
         (asya_dir / "config.yaml").write_text("templates:\n  name: existing\n")
 
         init_project(tmp_path, **_DEFAULTS)
-        assert (asya_dir / "compiler" / "templates" / "actor.yaml").exists()
-        assert (asya_dir / "compiler" / "templates" / "router.yaml").exists()
+        assert (asya_dir / "templates" / "actor.yaml").exists()
+        assert (asya_dir / "templates" / "router.yaml").exists()
         assert (asya_dir / "config.compiler.rules.yaml").exists()
 
 

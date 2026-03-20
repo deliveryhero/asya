@@ -53,12 +53,10 @@ class TestFlowInfo:
             graph={"nodes": [], "edges": []},
             dot="digraph {}",
             mermaid="flowchart LR",
-            svg=None,
             actors=[],
             warnings=[],
         )
         assert info.flow_name == "my-flow"
-        assert info.svg is None
         assert info.actors == []
 
 

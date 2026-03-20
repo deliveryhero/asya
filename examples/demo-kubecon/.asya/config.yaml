@@ -10,3 +10,4 @@ build:
 compiler:
   routers: "./src/demo_actors/compiled"
   manifests: ".asya/manifests"
+  templates: ".asya/templates"

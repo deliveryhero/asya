@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# Use a pinned graphviz Docker image so SVG output is reproducible across machines.
+# Use a pinned graphviz Docker image so PNG output is reproducible across machines.
 # Falls back to local 'dot' with a warning if Docker is unavailable.
 GRAPHVIZ_IMAGE="asya-graphviz:12.2.0"
 DOT_WRAPPER_DIR=""
