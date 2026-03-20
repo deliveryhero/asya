@@ -5,7 +5,7 @@ digraph "if_inside_while_flow" {
     { rank=source; start_if_inside_while_flow; }
 
     handler_even [label="handler_even", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_odd [label="handler_odd", fillcolor=lightblue];
     router_if_inside_while_flow_line_13_seq_3 [label="router_if_inside_while_flow_line_13_seq_3\n\np['i'] = 0", fillcolor=wheat];

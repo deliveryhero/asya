@@ -4,7 +4,7 @@ digraph "test_nested_flow" {
 
     { rank=source; start_test_nested_flow; }
 
-    finalize_result [label="finalize_result", fillcolor=lightblue];
+    finalize_result [label="finalize_result", fillcolor=lightsalmon];
     route_a_x [label="route_a_x", fillcolor=lightblue];
     route_a_y [label="route_a_y", fillcolor=lightblue];
     route_b_x [label="route_b_x", fillcolor=lightblue];

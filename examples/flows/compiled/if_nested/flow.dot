@@ -6,7 +6,7 @@ digraph "conditional_nested_flow" {
 
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
-    handler_c [label="handler_c", fillcolor=lightblue];
+    handler_c [label="handler_c", fillcolor=lightsalmon];
     handler_d [label="handler_d", fillcolor=lightblue];
     handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_validate_input [label="handler_validate_input", fillcolor=lightblue];

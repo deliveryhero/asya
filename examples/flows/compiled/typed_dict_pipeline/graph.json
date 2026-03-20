@@ -3,45 +3,36 @@
   "nodes": [
     {
       "id": "error_handler",
-      "flow_role": "exitpoint",
       "label": "error_handler",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "parser",
-      "flow_role": "processor",
-      "label": "parser",
-      "is_generated": false
+      "label": "parser"
     },
     {
       "id": "router_typeddict_pipeline_line_77_if_1",
-      "flow_role": "router",
       "label": "router_typeddict_pipeline_line_77_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "sink_adapter",
-      "flow_role": "exitpoint",
       "label": "sink_adapter",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "start_typeddict_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_typeddict_pipeline",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "transformer",
-      "flow_role": "processor",
-      "label": "transformer",
-      "is_generated": false
+      "label": "transformer"
     },
     {
       "id": "validator",
-      "flow_role": "processor",
-      "label": "validator",
-      "is_generated": false
+      "label": "validator"
     }
   ],
   "edges": [

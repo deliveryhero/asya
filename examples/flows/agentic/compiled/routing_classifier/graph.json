@@ -3,63 +3,49 @@
   "nodes": [
     {
       "id": "account_agent",
-      "flow_role": "processor",
-      "label": "account_agent",
-      "is_generated": false
+      "label": "account_agent"
     },
     {
       "id": "billing_agent",
-      "flow_role": "processor",
-      "label": "billing_agent",
-      "is_generated": false
+      "label": "billing_agent"
     },
     {
       "id": "classifier",
-      "flow_role": "processor",
-      "label": "classifier",
-      "is_generated": false
+      "label": "classifier"
     },
     {
       "id": "format_reply",
-      "flow_role": "exitpoint",
       "label": "format_reply",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "general_agent",
-      "flow_role": "processor",
-      "label": "general_agent",
-      "is_generated": false
+      "label": "general_agent"
     },
     {
       "id": "router_routing_classifier_line_47_if_3",
-      "flow_role": "router",
       "label": "router_routing_classifier_line_47_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_routing_classifier_line_49_if_2",
-      "flow_role": "router",
       "label": "router_routing_classifier_line_49_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_routing_classifier_line_51_if_1",
-      "flow_role": "router",
       "label": "router_routing_classifier_line_51_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_routing_classifier",
-      "flow_role": "entrypoint",
       "label": "start_routing_classifier",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "technical_agent",
-      "flow_role": "processor",
-      "label": "technical_agent",
-      "is_generated": false
+      "label": "technical_agent"
     }
   ],
   "edges": [

@@ -6,7 +6,7 @@ digraph "react_tool_loop" {
 
     calculator [label="calculator", fillcolor=lightblue];
     code_exec [label="code_exec", fillcolor=lightblue];
-    format_response [label="format_response", fillcolor=lightblue];
+    format_response [label="format_response", fillcolor=lightsalmon];
     llm_reason [label="llm_reason", fillcolor=lightblue];
     router_react_tool_loop_line_48_while_1 [label="router_react_tool_loop_line_48_while_1", fillcolor=wheat];
     router_react_tool_loop_line_49_seq_8 [label="router_react_tool_loop_line_49_seq_8\n\np['iteration'] += 1", fillcolor=wheat];

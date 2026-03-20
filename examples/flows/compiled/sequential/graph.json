@@ -3,27 +3,22 @@
   "nodes": [
     {
       "id": "handler_a",
-      "flow_role": "processor",
-      "label": "handler_a",
-      "is_generated": false
+      "label": "handler_a"
     },
     {
       "id": "handler_b",
-      "flow_role": "processor",
-      "label": "handler_b",
-      "is_generated": false
+      "label": "handler_b"
     },
     {
       "id": "handler_c",
-      "flow_role": "exitpoint",
       "label": "handler_c",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "start_sequential_flow",
-      "flow_role": "entrypoint",
       "label": "start_sequential_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

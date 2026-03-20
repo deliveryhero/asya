@@ -3,9 +3,8 @@
   "nodes": [
     {
       "id": "router_mutations_only_flow_line_14_seq_1",
-      "flow_role": "exitpoint",
       "label": "router_mutations_only_flow_line_14_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['step'] = 1",
         "p['x'] = 10",
@@ -16,9 +15,9 @@
     },
     {
       "id": "start_mutations_only_flow",
-      "flow_role": "entrypoint",
       "label": "start_mutations_only_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

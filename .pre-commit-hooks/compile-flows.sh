@@ -4,7 +4,7 @@ set -euo pipefail
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
-# Use a pinned graphviz Docker image so SVG output is reproducible across machines.
+# Use a pinned graphviz Docker image so PNG output is reproducible across machines.
 # Falls back to local 'dot' with a warning if Docker is unavailable.
 GRAPHVIZ_IMAGE="asya-graphviz:12.2.0"
 DOT_WRAPPER_DIR=""
@@ -61,7 +61,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
-  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot --force --strict &
+  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot --strict &
 
   # Store the process ID of the background task
   pids+=("$!")

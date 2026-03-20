@@ -3,24 +3,21 @@
   "nodes": [
     {
       "id": "handler_process",
-      "flow_role": "processor",
-      "label": "handler_process",
-      "is_generated": false
+      "label": "handler_process"
     },
     {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
-      "flow_role": "exitpoint",
       "label": "router_mutations_with_handler_flow_line_17_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['finalized'] = True"
       ]
     },
     {
       "id": "start_mutations_with_handler_flow",
-      "flow_role": "entrypoint",
       "label": "start_mutations_with_handler_flow",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['initialized'] = True",
         "p['step'] = 1",

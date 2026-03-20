@@ -3,45 +3,35 @@
   "nodes": [
     {
       "id": "analytical_writer",
-      "flow_role": "processor",
-      "label": "analytical_writer",
-      "is_generated": false
+      "label": "analytical_writer"
     },
     {
       "id": "concise_writer",
-      "flow_role": "processor",
-      "label": "concise_writer",
-      "is_generated": false
+      "label": "concise_writer"
     },
     {
       "id": "creative_writer",
-      "flow_role": "processor",
-      "label": "creative_writer",
-      "is_generated": false
+      "label": "creative_writer"
     },
     {
       "id": "fanin_voting_ensemble_line_44",
-      "flow_role": "router",
-      "label": "fanin_voting_ensemble_line_44",
-      "is_generated": false
+      "label": "fanin_voting_ensemble_line_44"
     },
     {
       "id": "judge",
-      "flow_role": "exitpoint",
       "label": "judge",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "router_voting_ensemble_line_44_fanout_1",
-      "flow_role": "router",
       "label": "router_voting_ensemble_line_44_fanout_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_voting_ensemble",
-      "flow_role": "entrypoint",
       "label": "start_voting_ensemble",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

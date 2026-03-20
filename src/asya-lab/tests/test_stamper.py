@@ -6,23 +6,18 @@ from unittest.mock import MagicMock
 
 import pytest
 import yaml
+from asya_lab.compiler.templater import ManifestTemplater
 from asya_lab.config.project import AsyaProject
 from asya_lab.config.store import ConfigStore
+from asya_lab.flow.codegen import CodegenMeta
 from omegaconf import OmegaConf
-
-
-try:
-    from asya_lab.compiler.templater import ManifestTemplater
-    from asya_lab.flow.grouper import Router
-except ModuleNotFoundError:
-    pytest.skip("grouper module removed in Phase 1", allow_module_level=True)
 
 
 @pytest.fixture()
 def template_dir(tmp_path):
     """Create a minimal .asya/ with actor template."""
     asya_dir = tmp_path / ".asya"
-    templates_dir = asya_dir / "compiler" / "templates"
+    templates_dir = asya_dir / "templates"
     templates_dir.mkdir(parents=True)
 
     template = {
@@ -33,7 +28,6 @@ def template_dir(tmp_path):
             "namespace": "{{ namespace }}",
             "labels": {
                 "asya.sh/flow": "{{ flow_name }}",
-                "asya.sh/flow-role": "{{ flow_role }}",
             },
         },
         "spec": {
@@ -61,7 +55,7 @@ def template_dir(tmp_path):
             },
         },
     }
-    (templates_dir / "configmap_routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
+    (templates_dir / "configmap-routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
 
     kustomization_template = {
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
@@ -116,15 +110,14 @@ def project_with_contexts():
 
 
 @pytest.fixture()
-def sequential_routers():
-    """Routers for a simple sequential flow: start -> handler_a -> handler_b."""
-    return [
-        Router(
-            name="start_my_flow",
-            lineno=0,
-            true_branch_actors=["handler_a", "handler_b"],
-        ),
-    ]
+def sequential_meta():
+    """CodegenMeta for a simple sequential flow: start -> handler_a -> handler_b."""
+    return CodegenMeta(
+        router_names=["start_my_flow"],
+        all_handler_names={"handler_a", "handler_b"},
+        router_refs={"start_my_flow": ["handler_a", "handler_b"]},
+        single_actor=None,
+    )
 
 
 @pytest.fixture()
@@ -132,30 +125,30 @@ def router_code():
     return "# Auto-generated\ndef start_my_flow(payload):\n    yield payload\n"
 
 
-def _make_templater(flow_name, routers, router_code, project, template_path, flow_function=None):
+def _make_templater(flow_name, codegen_meta, router_code, project, template_path, flow_function=None):
     templates_dir = template_path.parent
     router_template = templates_dir / "router.yaml"
     return ManifestTemplater(
         flow_name=flow_name,
         flow_function=flow_function or flow_name.replace("-", "_"),
-        routers=routers,
+        codegen_meta=codegen_meta,
         router_code=router_code,
         project=project,
         actor_template_path=template_path,
         router_template_path=router_template if router_template.exists() else None,
-        configmap_routers_template_path=templates_dir / "configmap_routers.yaml",
+        configmap_routers_template_path=templates_dir / "configmap-routers.yaml",
         kustomization_template_path=templates_dir / "kustomization.yaml",
     )
 
 
 class TestBaseLayer:
-    def test_base_dir_created(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_base_dir_created(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
         assert (tmp_path / "manifests" / "base").is_dir()
 
-    def test_base_contains_kustomization(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_base_contains_kustomization(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         kust_path = tmp_path / "manifests" / "base" / "kustomization.yaml"
@@ -165,21 +158,18 @@ class TestBaseLayer:
         assert kust["kind"] == "Kustomization"
         assert "resources" in kust
 
-    def test_base_contains_actor_manifests(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_base_contains_actor_manifests(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         base = tmp_path / "manifests" / "base"
-        # 2 router actors + 2 handler actors + configmap + kustomization
+        # 1 router actor + 2 handler actors + configmap + kustomization
         assert (base / "asyncactor-start-my-flow.yaml").exists()
-        assert (base / "asyncactor-end-my-flow.yaml").exists()
         assert (base / "asyncactor-handler-a.yaml").exists()
         assert (base / "asyncactor-handler-b.yaml").exists()
 
-    def test_actor_manifest_has_correct_metadata(
-        self, tmp_path, sequential_routers, router_code, project, template_dir
-    ):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_actor_manifest_has_correct_metadata(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
@@ -188,10 +178,12 @@ class TestBaseLayer:
         assert actor["metadata"]["name"] == "handler-a"
         assert actor["metadata"]["namespace"] == "test-ns"
         assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
-        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "handler"
+        # Middle handler: no asya.sh/role, no asya.sh/generated
+        assert "asya.sh/role" not in actor["metadata"]["labels"]
+        assert "asya.sh/generated" not in actor["metadata"]["labels"]
 
-    def test_handler_image_is_fully_resolved(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_handler_image_is_fully_resolved(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
@@ -200,17 +192,19 @@ class TestBaseLayer:
         assert "${" not in image
         assert image == "ghcr.io/test-org/handler-a:latest"
 
-    def test_router_actor_uses_router_image(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_router_actor_uses_router_image(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
-        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "entrypoint"
+        # Start router: has both asya.sh/role and asya.sh/generated
+        assert actor["metadata"]["labels"]["asya.sh/role"] == "start"
+        assert actor["metadata"]["labels"]["asya.sh/generated"] == "true"
 
-    def test_router_actor_has_handler_env(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_router_actor_has_handler_env(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
@@ -219,8 +213,8 @@ class TestBaseLayer:
         assert "ASYA_HANDLER_HANDLER_A" in env_names
         assert "ASYA_HANDLER_HANDLER_B" in env_names
 
-    def test_configmap_contains_router_code(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_configmap_contains_router_code(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         cm = yaml.safe_load((tmp_path / "manifests" / "base" / "configmap-routers.yaml").read_text())
@@ -229,8 +223,8 @@ class TestBaseLayer:
         assert "routers.py" in cm["data"]
         assert "start_my_flow" in cm["data"]["routers.py"]
 
-    def test_kustomization_lists_all_resources(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_kustomization_lists_all_resources(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
@@ -239,9 +233,9 @@ class TestBaseLayer:
         assert "asyncactor-start-my-flow.yaml" in resources
         assert "asyncactor-handler-a.yaml" in resources
 
-    def test_recompile_regenerates_base(self, tmp_path, sequential_routers, router_code, project, template_dir):
+    def test_recompile_regenerates_base(self, tmp_path, sequential_meta, router_code, project, template_dir):
         out = tmp_path / "manifests"
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
 
         templater.stamp(out)
         # Add a stale file
@@ -253,16 +247,16 @@ class TestBaseLayer:
 
 
 class TestCommonLayer:
-    def test_common_created_on_first_stamp(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_common_created_on_first_stamp(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         kust = yaml.safe_load((tmp_path / "manifests" / "common" / "kustomization.yaml").read_text())
         assert kust["resources"] == ["../base"]
 
-    def test_common_preserved_on_recompile(self, tmp_path, sequential_routers, router_code, project, template_dir):
+    def test_common_preserved_on_recompile(self, tmp_path, sequential_meta, router_code, project, template_dir):
         out = tmp_path / "manifests"
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
 
         templater.stamp(out)
         # User adds a patch
@@ -274,15 +268,15 @@ class TestCommonLayer:
 
 
 class TestOverlaysLayer:
-    def test_no_overlays_without_contexts(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_no_overlays_without_contexts(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
         assert not (tmp_path / "manifests" / "overlays").exists()
 
     def test_overlays_created_from_contexts(
-        self, tmp_path, sequential_routers, router_code, project_with_contexts, template_dir
+        self, tmp_path, sequential_meta, router_code, project_with_contexts, template_dir
     ):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project_with_contexts, template_dir)
+        templater = _make_templater("my-flow", sequential_meta, router_code, project_with_contexts, template_dir)
         templater.stamp(tmp_path / "manifests")
 
         for ctx in ("stg", "prod"):
@@ -290,10 +284,10 @@ class TestOverlaysLayer:
             assert kust["resources"] == ["../../common"]
 
     def test_overlays_preserved_on_recompile(
-        self, tmp_path, sequential_routers, router_code, project_with_contexts, template_dir
+        self, tmp_path, sequential_meta, router_code, project_with_contexts, template_dir
     ):
         out = tmp_path / "manifests"
-        templater = _make_templater("my-flow", sequential_routers, router_code, project_with_contexts, template_dir)
+        templater = _make_templater("my-flow", sequential_meta, router_code, project_with_contexts, template_dir)
 
         templater.stamp(out)
         # User adds a patch to stg overlay
@@ -304,11 +298,9 @@ class TestOverlaysLayer:
 
 
 class TestIdempotency:
-    def test_identical_output_on_repeated_compile(
-        self, tmp_path, sequential_routers, router_code, project, template_dir
-    ):
+    def test_identical_output_on_repeated_compile(self, tmp_path, sequential_meta, router_code, project, template_dir):
         out = tmp_path / "manifests"
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
 
         templater.stamp(out)
         first_run = {}
@@ -321,18 +313,93 @@ class TestIdempotency:
 
 
 class TestReturnedFiles:
-    def test_stamp_returns_generated_paths(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_stamp_returns_generated_paths(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         generated = templater.stamp(tmp_path / "manifests")
 
         assert any("base/kustomization.yaml" in g for g in generated)
         assert any("base/configmap-routers.yaml" in g for g in generated)
         assert any("common/kustomization.yaml" in g for g in generated)
 
-    def test_second_stamp_skips_existing_common(self, tmp_path, sequential_routers, router_code, project, template_dir):
-        templater = _make_templater("my-flow", sequential_routers, router_code, project, template_dir)
+    def test_second_stamp_skips_existing_common(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
         generated = templater.stamp(tmp_path / "manifests")
 
         # common/ should not be in second run's generated list
         assert not any("common/" in g for g in generated)
+
+
+class TestTwoLabelSystem:
+    """Test the asya.sh/role + asya.sh/generated label system.
+
+    Two orthogonal labels:
+      asya.sh/role: start|end — only on start/end actors
+      asya.sh/generated: "true" — only on generated routers
+    """
+
+    @pytest.fixture()
+    def conditional_meta(self):
+        """CodegenMeta for: start -> handler_a -> if_router -> handler_b (end) | handler_c (end)."""
+        return CodegenMeta(
+            router_names=["start_my_flow", "router_my_flow_line_5_if_1"],
+            all_handler_names={"handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"},
+            router_refs={
+                "start_my_flow": ["handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"],
+                "router_my_flow_line_5_if_1": ["handler_a", "handler_b", "handler_c"],
+            },
+            single_actor=None,
+        )
+
+    def _load_actor(self, tmp_path, name):
+        return yaml.safe_load((tmp_path / "manifests" / "base" / f"asyncactor-{name}.yaml").read_text())
+
+    def test_start_router_has_role_and_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "start-my-flow")
+        labels = actor["metadata"]["labels"]
+        assert labels["asya.sh/role"] == "start"
+        assert labels["asya.sh/generated"] == "true"
+
+    def test_middle_handler_has_no_role_no_generated(
+        self, tmp_path, sequential_meta, router_code, project, template_dir
+    ):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "handler-a")
+        labels = actor["metadata"]["labels"]
+        assert "asya.sh/role" not in labels
+        assert "asya.sh/generated" not in labels
+
+    def test_middle_router_has_generated_no_role(self, tmp_path, conditional_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "router-my-flow-line-5-if-1")
+        labels = actor["metadata"]["labels"]
+        assert "asya.sh/role" not in labels
+        assert labels["asya.sh/generated"] == "true"
+
+    def test_end_handler_has_role_no_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        """When flow_roles marks an actor as 'end', manifests get asya.sh/role: end."""
+        flow_roles = {"start_my_flow": "start", "handler_a": "actor", "handler_b": "end"}
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.flow_roles = flow_roles
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "handler-b")
+        labels = actor["metadata"]["labels"]
+        assert labels["asya.sh/role"] == "end"
+        assert "asya.sh/generated" not in labels
+
+    def test_all_actors_have_flow_label(self, tmp_path, conditional_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        base = tmp_path / "manifests" / "base"
+        for path in sorted(base.glob("asyncactor-*.yaml")):
+            actor = yaml.safe_load(path.read_text())
+            assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow", f"{path.name} missing flow label"

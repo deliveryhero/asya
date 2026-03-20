@@ -3,21 +3,18 @@
   "nodes": [
     {
       "id": "enrich",
-      "flow_role": "exitpoint",
       "label": "enrich",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "start_decorator_definitions_flow",
-      "flow_role": "entrypoint",
       "label": "start_decorator_definitions_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "validate",
-      "flow_role": "processor",
-      "label": "validate",
-      "is_generated": false
+      "label": "validate"
     }
   ],
   "edges": [

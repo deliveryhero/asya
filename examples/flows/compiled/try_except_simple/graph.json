@@ -3,52 +3,48 @@
   "nodes": [
     {
       "id": "notify_rejection",
-      "flow_role": "exitpoint",
       "label": "notify_rejection",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "router_order_processing_line_4_except_dispatch_0",
-      "flow_role": "router",
       "label": "router_order_processing_line_4_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_order_processing_line_4_reraise_0",
-      "flow_role": "exitpoint",
       "label": "router_order_processing_line_4_reraise_0",
-      "is_generated": true
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_order_processing_line_4_try_enter_0",
-      "flow_role": "router",
       "label": "router_order_processing_line_4_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_order_processing_line_4_try_exit_0",
-      "flow_role": "exitpoint",
       "label": "router_order_processing_line_4_try_exit_0",
-      "is_generated": true
+      "role": "end",
+      "generated": true
     },
     {
       "id": "router_order_processing_line_7_seq",
-      "flow_role": "router",
       "label": "router_order_processing_line_7_seq",
-      "is_generated": true,
-      "mutations": ["p['status'] = 'invalid'"]
+      "mutations": [
+        "p['status'] = 'invalid'"
+      ],
+      "generated": true
     },
     {
       "id": "start_order_processing",
-      "flow_role": "entrypoint",
       "label": "start_order_processing",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "validate_order",
-      "flow_role": "processor",
-      "label": "validate_order",
-      "is_generated": false
+      "label": "validate_order"
     }
   ],
   "edges": [

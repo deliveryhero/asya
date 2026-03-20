@@ -22,13 +22,15 @@ flowchart TD
     router_evaluator_optimizer_line_72_if_2 -->|"else"| router_evaluator_optimizer_line_58_while_1
     polisher --> __end__
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_evaluator_optimizer entrypoint
+    class start_evaluator_optimizer start
+    class polisher endnode
     class router_evaluator_optimizer_line_58_while_1,router_evaluator_optimizer_line_59_seq_4,router_evaluator_optimizer_line_68_if_3,router_evaluator_optimizer_line_72_if_2 router
-    class evaluator,generator,polisher handler
+    class evaluator,generator handler
     class __end__ endpoint
     linkStyle 1,3 stroke:#2E8B57
     linkStyle 2,8 stroke:#E07040

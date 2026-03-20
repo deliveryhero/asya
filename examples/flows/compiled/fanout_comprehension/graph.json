@@ -3,39 +3,31 @@
   "nodes": [
     {
       "id": "fanin_research_flow_line_15",
-      "flow_role": "router",
-      "label": "fanin_research_flow_line_15",
-      "is_generated": false
+      "label": "fanin_research_flow_line_15"
     },
     {
       "id": "post_processor",
-      "flow_role": "exitpoint",
       "label": "post_processor",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "preprocessor",
-      "flow_role": "processor",
-      "label": "preprocessor",
-      "is_generated": false
+      "label": "preprocessor"
     },
     {
       "id": "research_agent",
-      "flow_role": "processor",
-      "label": "research_agent",
-      "is_generated": false
+      "label": "research_agent"
     },
     {
       "id": "router_research_flow_line_15_fanout_1",
-      "flow_role": "router",
       "label": "router_research_flow_line_15_fanout_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_research_flow",
-      "flow_role": "entrypoint",
       "label": "start_research_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
-from pathlib import Path
 from textwrap import dedent
 
 from asya_lab.flow.parser import (
@@ -23,6 +22,9 @@ from asya_lab.flow.parser import (
     ParseResult,
     Return,
 )
+
+
+ROUTER_PREFIXES = ("start_", "router_", "fanin_")
 
 
 @dataclass
@@ -44,6 +46,16 @@ class _RouterFunc:
     seq_chain: list[str] | None = None
 
 
+@dataclass
+class CodegenMeta:
+    """Metadata about generated code, used by manifest templater."""
+
+    router_names: list[str]
+    all_handler_names: set[str]
+    router_refs: dict[str, list[str]]  # router_name -> list of referenced actor names
+    single_actor: str | None  # set for single-actor flows
+
+
 class CodeGenerator:
     def __init__(
         self,
@@ -56,16 +68,7 @@ class CodeGenerator:
         self.module_constants = result.constants
         self.inline_defs = result.inline_defs
 
-        if output_file:
-            try:
-                output_path = Path(output_file).resolve()
-                source_path = Path(source_file).resolve()
-                relative_path = os.path.relpath(source_path, output_path.parent)
-                self.source_file = relative_path
-            except (ValueError, OSError):
-                self.source_file = os.path.basename(source_file)
-        else:
-            self.source_file = os.path.basename(source_file)
+        self.source_file = os.path.basename(source_file)
 
         self._functions: list[_RouterFunc] = []
         self._has_fan_out = False
@@ -92,6 +95,35 @@ class CodeGenerator:
 
         return "\n".join(parts)
 
+    def get_meta(self) -> CodegenMeta:
+        """Return metadata about the generated code."""
+        if self._is_single_actor_flow():
+            actor = next(op for op in self.result.operations if isinstance(op, ActorCall))
+            return CodegenMeta(
+                router_names=[],
+                all_handler_names=set(),
+                router_refs={},
+                single_actor=actor.name,
+            )
+
+        start_name = f"start_{self.flow_name}"
+        router_names = [start_name]
+        for rf in self._functions:
+            router_names.append(rf.name)
+
+        all_handlers = set(self._all_handlers)
+        # Conservative: each router gets refs to ALL handlers.
+        # The resolve() function uses env-var lookup at runtime, so
+        # each router pod needs all handler mappings available.
+        router_refs = {rname: sorted(all_handlers) for rname in router_names}
+
+        return CodegenMeta(
+            router_names=router_names,
+            all_handler_names=all_handlers,
+            router_refs=router_refs,
+            single_actor=None,
+        )
+
     # -- Single-actor optimization --
 
     def _is_single_actor_flow(self) -> bool:
@@ -112,7 +144,7 @@ class CodeGenerator:
             # Single-Actor Flow: no router needed
             # The actor below IS the entrypoint; label it in your AsyncActor spec:
             #   asya.sh/flow: {self.flow_name}
-            #   asya.sh/flow-role: entrypoint
+            #   asya.sh/role: start
             # ======================================================================
 
             FLOW_METADATA = {{
@@ -121,7 +153,7 @@ class CodeGenerator:
                 "actor": {actor.name!r},
                 "labels": {{
                     "asya.sh/flow": "{self.flow_name}",
-                    "asya.sh/flow-role": "entrypoint",
+                    "asya.sh/role": "start",
                 }},
             }}
             """

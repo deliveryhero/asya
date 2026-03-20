@@ -14,11 +14,12 @@ flowchart TD
     execute_tool --> router_agent_with_tools_line_17_while_1
     router_agent_with_tools_line_19_if_2 -->|"else"| router_agent_with_tools_line_17_while_1
 
-    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_agent_with_tools entrypoint
+    class start_agent_with_tools start
     class router_agent_with_tools_line_17_while_1,router_agent_with_tools_line_19_if_2 router
     class execute_tool,llm_call handler
     linkStyle 1 stroke:#2E8B57

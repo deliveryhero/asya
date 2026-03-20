@@ -3,54 +3,45 @@
   "nodes": [
     {
       "id": "evaluator",
-      "flow_role": "processor",
-      "label": "evaluator",
-      "is_generated": false
+      "label": "evaluator"
     },
     {
       "id": "generator",
-      "flow_role": "processor",
-      "label": "generator",
-      "is_generated": false
+      "label": "generator"
     },
     {
       "id": "polisher",
-      "flow_role": "exitpoint",
       "label": "polisher",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "router_evaluator_optimizer_line_58_while_1",
-      "flow_role": "router",
       "label": "router_evaluator_optimizer_line_58_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_evaluator_optimizer_line_59_seq_4",
-      "flow_role": "router",
       "label": "router_evaluator_optimizer_line_59_seq_4",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
       "id": "router_evaluator_optimizer_line_68_if_3",
-      "flow_role": "router",
       "label": "router_evaluator_optimizer_line_68_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_evaluator_optimizer_line_72_if_2",
-      "flow_role": "router",
       "label": "router_evaluator_optimizer_line_72_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_evaluator_optimizer",
-      "flow_role": "entrypoint",
       "label": "start_evaluator_optimizer",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['iteration'] = 0"
       ]

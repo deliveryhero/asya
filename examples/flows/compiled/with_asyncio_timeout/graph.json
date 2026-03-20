@@ -3,51 +3,41 @@
   "nodes": [
     {
       "id": "language_detector",
-      "flow_role": "processor",
-      "label": "language_detector",
-      "is_generated": false
+      "label": "language_detector"
     },
     {
       "id": "ocr_extractor",
-      "flow_role": "processor",
-      "label": "ocr_extractor",
-      "is_generated": false
+      "label": "ocr_extractor"
     },
     {
       "id": "router_document_pipeline_line_24_if_2",
-      "flow_role": "router",
       "label": "router_document_pipeline_line_24_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_document_pipeline_line_28_seq_1",
-      "flow_role": "exitpoint",
       "label": "router_document_pipeline_line_28_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['status'] = 'done'"
       ]
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "processor",
-      "label": "sentiment_analyzer",
-      "is_generated": false
+      "label": "sentiment_analyzer"
     },
     {
       "id": "start_document_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_document_pipeline",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['status'] = 'processing'"
       ]
     },
     {
       "id": "translator",
-      "flow_role": "processor",
-      "label": "translator",
-      "is_generated": false
+      "label": "translator"
     }
   ],
   "edges": [

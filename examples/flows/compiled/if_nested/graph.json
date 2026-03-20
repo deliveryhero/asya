@@ -3,123 +3,102 @@
   "nodes": [
     {
       "id": "handler_a",
-      "flow_role": "processor",
-      "label": "handler_a",
-      "is_generated": false
+      "label": "handler_a"
     },
     {
       "id": "handler_b",
-      "flow_role": "processor",
-      "label": "handler_b",
-      "is_generated": false
+      "label": "handler_b"
     },
     {
       "id": "handler_c",
-      "flow_role": "exitpoint",
       "label": "handler_c",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "handler_d",
-      "flow_role": "processor",
-      "label": "handler_d",
-      "is_generated": false
+      "label": "handler_d"
     },
     {
       "id": "handler_finalize",
-      "flow_role": "processor",
-      "label": "handler_finalize",
-      "is_generated": false
+      "label": "handler_finalize"
     },
     {
       "id": "handler_validate_input",
-      "flow_role": "processor",
-      "label": "handler_validate_input",
-      "is_generated": false
+      "label": "handler_validate_input"
     },
     {
       "id": "router_conditional_nested_flow_line_10_seq_10",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_10_seq_10",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 1"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_12_if_9",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_12_if_9",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_conditional_nested_flow_line_15_if_6",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_15_if_6",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 2"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_16_seq_4",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_16_seq_4",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 3"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_18_seq_3",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_18_seq_3",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 4"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_20_seq_5",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_20_seq_5",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 5"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_23_seq_8",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_23_seq_8",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 6"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_25_seq_7",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_25_seq_7",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 7"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_27_seq_2",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_27_seq_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 8"
       ]
     },
     {
       "id": "router_conditional_nested_flow_line_29_seq_1",
-      "flow_role": "exitpoint",
       "label": "router_conditional_nested_flow_line_29_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] += 9",
         "p['x'] *= 10"
@@ -127,18 +106,17 @@
     },
     {
       "id": "router_conditional_nested_flow_line_9_if_11",
-      "flow_role": "router",
       "label": "router_conditional_nested_flow_line_9_if_11",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['x'] = 1"
       ]
     },
     {
       "id": "start_conditional_nested_flow",
-      "flow_role": "entrypoint",
       "label": "start_conditional_nested_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

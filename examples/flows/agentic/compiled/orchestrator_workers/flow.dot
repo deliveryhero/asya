@@ -15,7 +15,7 @@ digraph "orchestrator_workers" {
     router_orchestrator_workers_line_69_if_3 [label="router_orchestrator_workers_line_69_if_3", fillcolor=wheat];
     router_orchestrator_workers_line_72_if_2 [label="router_orchestrator_workers_line_72_if_2", fillcolor=wheat];
     start_orchestrator_workers [label="start_orchestrator_workers\n\np['iteration'] = 0\np['worker_results'] = []", fillcolor=palegreen];
-    synthesizer [label="synthesizer", fillcolor=lightblue];
+    synthesizer [label="synthesizer", fillcolor=lightsalmon];
     writing_worker [label="writing_worker", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];

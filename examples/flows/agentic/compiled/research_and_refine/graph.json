@@ -3,54 +3,44 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "processor",
-      "label": "critic",
-      "is_generated": false
+      "label": "critic"
     },
     {
       "id": "refine_query",
-      "flow_role": "processor",
-      "label": "refine_query",
-      "is_generated": false
+      "label": "refine_query"
     },
     {
       "id": "researcher",
-      "flow_role": "processor",
-      "label": "researcher",
-      "is_generated": false
+      "label": "researcher"
     },
     {
       "id": "router_research_and_refine_line_50_while_1",
-      "flow_role": "router",
       "label": "router_research_and_refine_line_50_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_research_and_refine_line_51_seq_4",
-      "flow_role": "router",
       "label": "router_research_and_refine_line_51_seq_4",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
       "id": "router_research_and_refine_line_55_if_3",
-      "flow_role": "router",
       "label": "router_research_and_refine_line_55_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_research_and_refine_line_59_if_2",
-      "flow_role": "router",
       "label": "router_research_and_refine_line_59_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_research_and_refine",
-      "flow_role": "entrypoint",
       "label": "start_research_and_refine",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['iteration'] = 0",
         "p['search_query'] = p.get('question', '')"
@@ -58,9 +48,8 @@
     },
     {
       "id": "write_report",
-      "flow_role": "exitpoint",
       "label": "write_report",
-      "is_generated": false
+      "role": "end"
     }
   ],
   "edges": [

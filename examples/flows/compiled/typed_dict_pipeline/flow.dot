@@ -4,10 +4,10 @@ digraph "typeddict_pipeline" {
 
     { rank=source; start_typeddict_pipeline; }
 
-    error_handler [label="error_handler", fillcolor=lightblue];
+    error_handler [label="error_handler", fillcolor=lightsalmon];
     parser [label="parser", fillcolor=lightblue];
     router_typeddict_pipeline_line_77_if_1 [label="router_typeddict_pipeline_line_77_if_1", fillcolor=wheat];
-    sink_adapter [label="sink_adapter", fillcolor=lightblue];
+    sink_adapter [label="sink_adapter", fillcolor=lightsalmon];
     start_typeddict_pipeline [label="start_typeddict_pipeline", fillcolor=palegreen];
     transformer [label="transformer", fillcolor=lightblue];
     validator [label="validator", fillcolor=lightblue];

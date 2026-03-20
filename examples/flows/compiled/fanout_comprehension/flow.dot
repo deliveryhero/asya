@@ -5,7 +5,7 @@ digraph "research_flow" {
     { rank=source; start_research_flow; }
 
     fanin_research_flow_line_15 [label="fanin_research_flow_line_15", fillcolor=lightblue];
-    post_processor [label="post_processor", fillcolor=lightblue];
+    post_processor [label="post_processor", fillcolor=lightsalmon];
     preprocessor [label="preprocessor", fillcolor=lightblue];
     research_agent [label="research_agent", fillcolor=lightblue];
     router_research_flow_line_15_fanout_1 [label="router_research_flow_line_15_fanout_1", fillcolor=wheat];

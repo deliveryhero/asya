@@ -4,7 +4,7 @@ digraph "decorator_definitions_flow" {
 
     { rank=source; start_decorator_definitions_flow; }
 
-    enrich [label="enrich", fillcolor=lightblue];
+    enrich [label="enrich", fillcolor=lightsalmon];
     start_decorator_definitions_flow [label="start_decorator_definitions_flow", fillcolor=palegreen];
     validate [label="validate", fillcolor=lightblue];
 

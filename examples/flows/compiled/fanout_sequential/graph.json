@@ -3,51 +3,40 @@
   "nodes": [
     {
       "id": "fanin_multi_stage_flow_line_15",
-      "flow_role": "router",
-      "label": "fanin_multi_stage_flow_line_15",
-      "is_generated": false
+      "label": "fanin_multi_stage_flow_line_15"
     },
     {
       "id": "fanin_multi_stage_flow_line_16",
-      "flow_role": "router",
-      "label": "fanin_multi_stage_flow_line_16",
-      "is_generated": false
+      "label": "fanin_multi_stage_flow_line_16"
     },
     {
       "id": "research_agent",
-      "flow_role": "processor",
-      "label": "research_agent",
-      "is_generated": false
+      "label": "research_agent"
     },
     {
       "id": "review_agent",
-      "flow_role": "processor",
-      "label": "review_agent",
-      "is_generated": false
+      "label": "review_agent"
     },
     {
       "id": "router_multi_stage_flow_line_15_fanout_2",
-      "flow_role": "router",
       "label": "router_multi_stage_flow_line_15_fanout_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_multi_stage_flow_line_16_fanout_1",
-      "flow_role": "router",
       "label": "router_multi_stage_flow_line_16_fanout_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_multi_stage_flow",
-      "flow_role": "entrypoint",
       "label": "start_multi_stage_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "summarizer",
-      "flow_role": "exitpoint",
       "label": "summarizer",
-      "is_generated": false
+      "role": "end"
     }
   ],
   "edges": [

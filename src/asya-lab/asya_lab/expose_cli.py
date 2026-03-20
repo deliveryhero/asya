@@ -43,7 +43,7 @@ def _find_base_dir(project: AsyaProject, flow_name: str) -> Path:
 
 
 def _find_entrypoint(base_dir: Path) -> str:
-    """Scan base/ YAML files for the actor with label asya.sh/flow-role: entrypoint."""
+    """Scan base/ YAML files for the actor with label asya.sh/role: start."""
     for yaml_file in sorted(base_dir.glob("*.yaml")):
         if yaml_file.name in ("kustomization.yaml", "configmap-routers.yaml", "configmap-flows.yaml"):
             continue
@@ -53,11 +53,11 @@ def _find_entrypoint(base_dir: Path) -> str:
             if not isinstance(doc, dict):
                 continue
             labels = doc.get("metadata", {}).get("labels", {})
-            if labels.get("asya.sh/flow-role") == "entrypoint":
+            if labels.get("asya.sh/role") == "start":
                 actor_name = doc["metadata"]["name"]
                 return actor_name
 
-    click.echo("[-] No actor with label asya.sh/flow-role=entrypoint found in base/", err=True)
+    click.echo("[-] No actor with label asya.sh/role=start found in base/", err=True)
     sys.exit(1)
 
 

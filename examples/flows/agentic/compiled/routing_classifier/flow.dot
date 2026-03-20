@@ -7,7 +7,7 @@ digraph "routing_classifier" {
     account_agent [label="account_agent", fillcolor=lightblue];
     billing_agent [label="billing_agent", fillcolor=lightblue];
     classifier [label="classifier", fillcolor=lightblue];
-    format_reply [label="format_reply", fillcolor=lightblue];
+    format_reply [label="format_reply", fillcolor=lightsalmon];
     general_agent [label="general_agent", fillcolor=lightblue];
     router_routing_classifier_line_47_if_3 [label="router_routing_classifier_line_47_if_3", fillcolor=wheat];
     router_routing_classifier_line_49_if_2 [label="router_routing_classifier_line_49_if_2", fillcolor=wheat];

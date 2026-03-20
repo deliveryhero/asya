@@ -3,51 +3,43 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "flow_role": "exitpoint",
       "label": "handler_finalize",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "handler_init",
-      "flow_role": "processor",
-      "label": "handler_init",
-      "is_generated": false
+      "label": "handler_init"
     },
     {
       "id": "handler_process",
-      "flow_role": "processor",
-      "label": "handler_process",
-      "is_generated": false
+      "label": "handler_process"
     },
     {
       "id": "router_while_with_continue_flow_line_13_seq_3",
-      "flow_role": "router",
       "label": "router_while_with_continue_flow_line_13_seq_3",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['i'] = 0"
       ]
     },
     {
       "id": "router_while_with_continue_flow_line_14_while_1",
-      "flow_role": "router",
       "label": "router_while_with_continue_flow_line_14_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_while_with_continue_flow_line_16_if_2",
-      "flow_role": "router",
       "label": "router_while_with_continue_flow_line_16_if_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['i'] += 1"
       ]
     },
     {
       "id": "start_while_with_continue_flow",
-      "flow_role": "entrypoint",
       "label": "start_while_with_continue_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

@@ -3,72 +3,57 @@
   "nodes": [
     {
       "id": "fact_checker",
-      "flow_role": "exitpoint",
       "label": "fact_checker",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "generator",
-      "flow_role": "processor",
-      "label": "generator",
-      "is_generated": false
+      "label": "generator"
     },
     {
       "id": "query_analyzer",
-      "flow_role": "processor",
-      "label": "query_analyzer",
-      "is_generated": false
+      "label": "query_analyzer"
     },
     {
       "id": "query_refiner",
-      "flow_role": "processor",
-      "label": "query_refiner",
-      "is_generated": false
+      "label": "query_refiner"
     },
     {
       "id": "relevance_evaluator",
-      "flow_role": "processor",
-      "label": "relevance_evaluator",
-      "is_generated": false
+      "label": "relevance_evaluator"
     },
     {
       "id": "retriever",
-      "flow_role": "processor",
-      "label": "retriever",
-      "is_generated": false
+      "label": "retriever"
     },
     {
       "id": "router_rag_pipeline_line_56_while_1",
-      "flow_role": "router",
       "label": "router_rag_pipeline_line_56_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_rag_pipeline_line_57_seq_4",
-      "flow_role": "router",
       "label": "router_rag_pipeline_line_57_seq_4",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['retrieval_attempts'] += 1"
       ]
     },
     {
       "id": "router_rag_pipeline_line_66_if_3",
-      "flow_role": "router",
       "label": "router_rag_pipeline_line_66_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_rag_pipeline_line_70_if_2",
-      "flow_role": "router",
       "label": "router_rag_pipeline_line_70_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_rag_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_rag_pipeline",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['retrieval_attempts'] = 0"
       ]

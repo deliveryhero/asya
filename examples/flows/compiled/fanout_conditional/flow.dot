@@ -8,7 +8,7 @@ digraph "adaptive_flow" {
     deep_analyzer [label="deep_analyzer", fillcolor=lightblue];
     fanin_adaptive_flow_line_17 [label="fanin_adaptive_flow_line_17", fillcolor=lightblue];
     fast_analyzer [label="fast_analyzer", fillcolor=lightblue];
-    formatter [label="formatter", fillcolor=lightblue];
+    formatter [label="formatter", fillcolor=lightsalmon];
     router_adaptive_flow_line_16_if_2 [label="router_adaptive_flow_line_16_if_2", fillcolor=wheat];
     router_adaptive_flow_line_17_fanout_1 [label="router_adaptive_flow_line_17_fanout_1", fillcolor=wheat];
     sequential_analyzer [label="sequential_analyzer", fillcolor=lightblue];

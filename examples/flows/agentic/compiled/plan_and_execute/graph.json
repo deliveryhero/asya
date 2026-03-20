@@ -3,51 +3,42 @@
   "nodes": [
     {
       "id": "executor",
-      "flow_role": "processor",
-      "label": "executor",
-      "is_generated": false
+      "label": "executor"
     },
     {
       "id": "planner",
-      "flow_role": "processor",
-      "label": "planner",
-      "is_generated": false
+      "label": "planner"
     },
     {
       "id": "re_planner",
-      "flow_role": "processor",
-      "label": "re_planner",
-      "is_generated": false
+      "label": "re_planner"
     },
     {
       "id": "router_plan_and_execute_line_54_while_2",
-      "flow_role": "router",
       "label": "router_plan_and_execute_line_54_while_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_plan_and_execute_line_59_if_3",
-      "flow_role": "router",
       "label": "router_plan_and_execute_line_59_if_3",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['current_step'] += 1"
       ]
     },
     {
       "id": "router_plan_and_execute_line_62_seq_1",
-      "flow_role": "router",
       "label": "router_plan_and_execute_line_62_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['completed'] = True"
       ]
     },
     {
       "id": "start_plan_and_execute",
-      "flow_role": "entrypoint",
       "label": "start_plan_and_execute",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['current_step'] = 0",
         "p['step_results'] = []"
@@ -55,9 +46,8 @@
     },
     {
       "id": "synthesizer",
-      "flow_role": "exitpoint",
       "label": "synthesizer",
-      "is_generated": false
+      "role": "end"
     }
   ],
   "edges": [
