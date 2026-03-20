@@ -6,7 +6,9 @@
       "flow_role": "exitpoint",
       "label": "router_ingester_line_181_seq_1",
       "is_generated": true,
-      "mutations": ["p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"]
+      "mutations": [
+        "p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"
+      ]
     },
     {
       "id": "start_ingester",

@@ -30,21 +30,28 @@
       "flow_role": "router",
       "label": "router_plan_and_execute_line_59_if_3",
       "is_generated": true,
-      "mutations": ["p['current_step'] += 1"]
+      "mutations": [
+        "p['current_step'] += 1"
+      ]
     },
     {
       "id": "router_plan_and_execute_line_62_seq_1",
       "flow_role": "router",
       "label": "router_plan_and_execute_line_62_seq_1",
       "is_generated": true,
-      "mutations": ["p['completed'] = True"]
+      "mutations": [
+        "p['completed'] = True"
+      ]
     },
     {
       "id": "start_plan_and_execute",
       "flow_role": "entrypoint",
       "label": "start_plan_and_execute",
       "is_generated": true,
-      "mutations": ["p['current_step'] = 0", "p['step_results'] = []"]
+      "mutations": [
+        "p['current_step'] = 0",
+        "p['step_results'] = []"
+      ]
     },
     {
       "id": "synthesizer",

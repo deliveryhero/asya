@@ -9,6 +9,7 @@ cd "$REPO_ROOT"
 GRAPHVIZ_IMAGE="asya-graphviz:12.2.0"
 DOT_WRAPPER_DIR=""
 
+# shellcheck disable=SC2329
 _cleanup() {
   [ -n "$DOT_WRAPPER_DIR" ] && rm -rf "$DOT_WRAPPER_DIR"
 }
@@ -29,12 +30,7 @@ exec docker run --rm -v "$REPO_ROOT:$REPO_ROOT" -w "\$PWD" $GRAPHVIZ_IMAGE "\$@"
 EOF
   chmod +x "$DOT_WRAPPER_DIR/dot"
   export PATH="$DOT_WRAPPER_DIR:$PATH"
-  echo "[.] Using pinned graphviz via Docker ($GRAPHVIZ_IMAGE)"
-else
-  echo "[!] Docker not found — using local dot (SVG output may differ across machines)"
 fi
-
-echo "[.] Compiling flow DSL files in parallel..."
 
 # Store PIDs of background processes
 pids=()
@@ -68,20 +64,15 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
-  # Run the command in the background using '&'
-  (
-    echo "[.] Compiling: $flow_name"
-    uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot --force
-  ) &
+  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot --force --strict &
 
   # Store the process ID of the background task
   pids+=("$!")
 done
 
-# Wait for all background processes to complete
-echo "[.] Waiting for all tasks to finish..."
+# Wait for all background processes
+failed=0
 for pid in "${pids[@]}"; do
-  wait "$pid"
+  wait "$pid" || failed=1
 done
-
-echo "[+] Flow compilation complete"
+exit $failed

@@ -36,7 +36,9 @@
       "flow_role": "router",
       "label": "router_loop_flow_line_15_seq_7",
       "is_generated": true,
-      "mutations": ["p['iteration'] = 0"]
+      "mutations": [
+        "p['iteration'] = 0"
+      ]
     },
     {
       "id": "router_loop_flow_line_16_while_1",
@@ -49,7 +51,9 @@
       "flow_role": "router",
       "label": "router_loop_flow_line_17_seq_6",
       "is_generated": true,
-      "mutations": ["p['iteration'] += 1"]
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
     },
     {
       "id": "router_loop_flow_line_20_if_5",
@@ -62,14 +66,18 @@
       "flow_role": "router",
       "label": "router_loop_flow_line_21_seq_4",
       "is_generated": true,
-      "mutations": ["p['abort'] = 1"]
+      "mutations": [
+        "p['abort'] = 1"
+      ]
     },
     {
       "id": "router_loop_flow_line_23_seq_3",
       "flow_role": "router",
       "label": "router_loop_flow_line_23_seq_3",
       "is_generated": true,
-      "mutations": ["p['abort'] = 2"]
+      "mutations": [
+        "p['abort'] = 2"
+      ]
     },
     {
       "id": "router_loop_flow_line_27_if_2",

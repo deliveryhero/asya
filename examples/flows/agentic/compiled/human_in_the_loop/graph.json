@@ -42,7 +42,9 @@
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_61_seq_6",
       "is_generated": true,
-      "mutations": ["p['attempt'] += 1"]
+      "mutations": [
+        "p['attempt'] += 1"
+      ]
     },
     {
       "id": "router_human_in_the_loop_line_70_if_5",
@@ -67,14 +69,18 @@
       "flow_role": "router",
       "label": "router_human_in_the_loop_line_80_seq_2",
       "is_generated": true,
-      "mutations": ["p['result'] = 'Max revision attempts reached'"]
+      "mutations": [
+        "p['result'] = 'Max revision attempts reached'"
+      ]
     },
     {
       "id": "start_human_in_the_loop",
       "flow_role": "entrypoint",
       "label": "start_human_in_the_loop",
       "is_generated": true,
-      "mutations": ["p['attempt'] = 0"]
+      "mutations": [
+        "p['attempt'] = 0"
+      ]
     }
   ],
   "edges": [

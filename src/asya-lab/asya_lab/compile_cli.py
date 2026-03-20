@@ -78,26 +78,25 @@ def _compile_flow_file(
     compiled_file = compiled_dir / "routers.py"
     compiled_file.write_text(compiled_code)
 
-    click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
-    click.echo(f"[+] Using flow name '{flow_name}'")
+    if verbose:
+        click.echo(f"[+] Compiled flow to: {compiled_file}")
+        click.echo(f"[+] Flow name: '{flow_name}'")
 
-    actor = compiler.single_actor_name
-    if actor is not None:
-        click.echo("[+] Single-actor flow detected: no router actor needed")
-        click.echo(f"[+] Apply these labels to actor '{actor}':")
-        click.echo(f"[+]   asya.sh/flow: {flow_name}")
-        click.echo("[+]   asya.sh/flow-role: entrypoint")
+        actor = compiler.single_actor_name
+        if actor is not None:
+            click.echo("[+] Single-actor flow: no router actor needed")
 
     if plot:
         try:
             dot_file, plot_path = compiler.generate_plot(str(compiled_dir), plot_format=plot_format)
-            click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-            if plot_path:
-                click.echo(f"[+] Generated graphviz {plot_format} plot: {plot_path}")
+            if verbose:
+                click.echo(f"[+] Generated: {dot_file}")
+                if plot_path:
+                    click.echo(f"[+] Generated: {plot_path}")
         except (ImportError, RuntimeError) as e:
-            click.echo(f"[!] Warning: {e}", err=True)
+            click.echo(f"[!] {e}", err=True)
         except Exception as e:
-            click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
+            click.echo(f"[!] Failed to generate plot: {e}", err=True)
 
     warnings = compiler.get_warnings()
     if warnings:

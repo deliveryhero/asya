@@ -48,7 +48,9 @@
       "flow_role": "router",
       "label": "router_rag_pipeline_line_57_seq_4",
       "is_generated": true,
-      "mutations": ["p['retrieval_attempts'] += 1"]
+      "mutations": [
+        "p['retrieval_attempts'] += 1"
+      ]
     },
     {
       "id": "router_rag_pipeline_line_66_if_3",
@@ -67,7 +69,9 @@
       "flow_role": "entrypoint",
       "label": "start_rag_pipeline",
       "is_generated": true,
-      "mutations": ["p['retrieval_attempts'] = 0"]
+      "mutations": [
+        "p['retrieval_attempts'] = 0"
+      ]
     }
   ],
   "edges": [

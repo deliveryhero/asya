@@ -30,7 +30,9 @@
       "flow_role": "router",
       "label": "router_research_and_refine_line_51_seq_4",
       "is_generated": true,
-      "mutations": ["p['iteration'] += 1"]
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
     },
     {
       "id": "router_research_and_refine_line_55_if_3",
@@ -49,7 +51,10 @@
       "flow_role": "entrypoint",
       "label": "start_research_and_refine",
       "is_generated": true,
-      "mutations": ["p['iteration'] = 0", "p['search_query'] = p.get('question', '')"]
+      "mutations": [
+        "p['iteration'] = 0",
+        "p['search_query'] = p.get('question', '')"
+      ]
     },
     {
       "id": "write_report",

@@ -36,7 +36,9 @@
       "flow_role": "router",
       "label": "router_while_nested_flow_line_13_seq_6",
       "is_generated": true,
-      "mutations": ["p['i'] = 0"]
+      "mutations": [
+        "p['i'] = 0"
+      ]
     },
     {
       "id": "router_while_nested_flow_line_14_while_1",
@@ -49,14 +51,18 @@
       "flow_role": "router",
       "label": "router_while_nested_flow_line_15_seq_5",
       "is_generated": true,
-      "mutations": ["p['i'] += 1"]
+      "mutations": [
+        "p['i'] += 1"
+      ]
     },
     {
       "id": "router_while_nested_flow_line_17_seq_4",
       "flow_role": "router",
       "label": "router_while_nested_flow_line_17_seq_4",
       "is_generated": true,
-      "mutations": ["p['j'] = 0"]
+      "mutations": [
+        "p['j'] = 0"
+      ]
     },
     {
       "id": "router_while_nested_flow_line_18_while_2",
@@ -69,7 +75,9 @@
       "flow_role": "router",
       "label": "router_while_nested_flow_line_19_seq_3",
       "is_generated": true,
-      "mutations": ["p['j'] += 1"]
+      "mutations": [
+        "p['j'] += 1"
+      ]
     },
     {
       "id": "start_while_nested_flow",

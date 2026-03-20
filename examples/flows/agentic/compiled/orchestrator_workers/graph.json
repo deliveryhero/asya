@@ -30,7 +30,9 @@
       "flow_role": "router",
       "label": "router_orchestrator_workers_line_58_seq_7",
       "is_generated": true,
-      "mutations": ["p['iteration'] += 1"]
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
     },
     {
       "id": "router_orchestrator_workers_line_62_if_6",
@@ -67,7 +69,10 @@
       "flow_role": "entrypoint",
       "label": "start_orchestrator_workers",
       "is_generated": true,
-      "mutations": ["p['iteration'] = 0", "p['worker_results'] = []"]
+      "mutations": [
+        "p['iteration'] = 0",
+        "p['worker_results'] = []"
+      ]
     },
     {
       "id": "synthesizer",

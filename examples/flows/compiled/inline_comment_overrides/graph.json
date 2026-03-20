@@ -18,7 +18,9 @@
       "flow_role": "exitpoint",
       "label": "router_order_pipeline_line_33_seq_1",
       "is_generated": true,
-      "mutations": ["p['status'] = 'rejected'"]
+      "mutations": [
+        "p['status'] = 'rejected'"
+      ]
     },
     {
       "id": "start_order_pipeline",

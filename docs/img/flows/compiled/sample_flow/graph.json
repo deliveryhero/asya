@@ -30,7 +30,9 @@
       "flow_role": "router",
       "label": "router_sample_flow_line_10_seq_2",
       "is_generated": true,
-      "mutations": ["p['branch'] = 'B'"]
+      "mutations": [
+        "p['branch'] = 'B'"
+      ]
     },
     {
       "id": "router_sample_flow_line_5_if_3",
@@ -43,7 +45,9 @@
       "flow_role": "router",
       "label": "router_sample_flow_line_6_seq_1",
       "is_generated": true,
-      "mutations": ["p['branch'] = 'A'"]
+      "mutations": [
+        "p['branch'] = 'A'"
+      ]
     },
     {
       "id": "start_sample_flow",

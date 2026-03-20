@@ -60,7 +60,9 @@
       "flow_role": "router",
       "label": "router_complex_combined_flow_line_20_seq_4",
       "is_generated": true,
-      "mutations": ["p['i'] = 0"]
+      "mutations": [
+        "p['i'] = 0"
+      ]
     },
     {
       "id": "router_complex_combined_flow_line_21_while_1",
@@ -73,7 +75,9 @@
       "flow_role": "router",
       "label": "router_complex_combined_flow_line_24_if_3",
       "is_generated": true,
-      "mutations": ["p['i'] += 1"]
+      "mutations": [
+        "p['i'] += 1"
+      ]
     },
     {
       "id": "router_complex_combined_flow_line_29_if_2",

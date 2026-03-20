@@ -48,42 +48,54 @@
       "flow_role": "router",
       "label": "router_nested_if_flow_line_16_if_3",
       "is_generated": true,
-      "mutations": ["p['l1'] = 'A'"]
+      "mutations": [
+        "p['l1'] = 'A'"
+      ]
     },
     {
       "id": "router_nested_if_flow_line_17_seq_1",
       "flow_role": "router",
       "label": "router_nested_if_flow_line_17_seq_1",
       "is_generated": true,
-      "mutations": ["p['l2'] = 'X'"]
+      "mutations": [
+        "p['l2'] = 'X'"
+      ]
     },
     {
       "id": "router_nested_if_flow_line_20_seq_2",
       "flow_role": "router",
       "label": "router_nested_if_flow_line_20_seq_2",
       "is_generated": true,
-      "mutations": ["p['l2'] = 'Y'"]
+      "mutations": [
+        "p['l2'] = 'Y'"
+      ]
     },
     {
       "id": "router_nested_if_flow_line_24_if_6",
       "flow_role": "router",
       "label": "router_nested_if_flow_line_24_if_6",
       "is_generated": true,
-      "mutations": ["p['l1'] = 'B'"]
+      "mutations": [
+        "p['l1'] = 'B'"
+      ]
     },
     {
       "id": "router_nested_if_flow_line_25_seq_4",
       "flow_role": "router",
       "label": "router_nested_if_flow_line_25_seq_4",
       "is_generated": true,
-      "mutations": ["p['l2'] = 'X'"]
+      "mutations": [
+        "p['l2'] = 'X'"
+      ]
     },
     {
       "id": "router_nested_if_flow_line_28_seq_5",
       "flow_role": "router",
       "label": "router_nested_if_flow_line_28_seq_5",
       "is_generated": true,
-      "mutations": ["p['l2'] = 'Y'"]
+      "mutations": [
+        "p['l2'] = 'Y'"
+      ]
     },
     {
       "id": "start_nested_if_flow",

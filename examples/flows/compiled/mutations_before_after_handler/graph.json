@@ -18,21 +18,27 @@
       "flow_role": "router",
       "label": "router_mutations_before_after_handler_flow_line_15_seq_2",
       "is_generated": true,
-      "mutations": ["p['step'] = 2"]
+      "mutations": [
+        "p['step'] = 2"
+      ]
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "flow_role": "exitpoint",
       "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "is_generated": true,
-      "mutations": ["p['step'] = 3"]
+      "mutations": [
+        "p['step'] = 3"
+      ]
     },
     {
       "id": "start_mutations_before_after_handler_flow",
       "flow_role": "entrypoint",
       "label": "start_mutations_before_after_handler_flow",
       "is_generated": true,
-      "mutations": ["p['step'] = 1"]
+      "mutations": [
+        "p['step'] = 1"
+      ]
     }
   ],
   "edges": [

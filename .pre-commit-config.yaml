@@ -51,6 +51,7 @@ repos:
   - id: prettier
     types: [json]
     args: ["--write", "--print-width", "120"]
+    exclude: graph\.json$
 
 # Check JSON validity (after prettier formatting)
 - repo: https://github.com/pre-commit/pre-commit-hooks

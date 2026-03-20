@@ -78,7 +78,9 @@
       "flow_role": "router",
       "label": "router_multi_agent_debate_line_64_seq_5",
       "is_generated": true,
-      "mutations": ["p['round'] += 1"]
+      "mutations": [
+        "p['round'] += 1"
+      ]
     },
     {
       "id": "router_multi_agent_debate_line_68_if_4",
@@ -103,7 +105,9 @@
       "flow_role": "entrypoint",
       "label": "start_multi_agent_debate",
       "is_generated": true,
-      "mutations": ["p['round'] = 0"]
+      "mutations": [
+        "p['round'] = 0"
+      ]
     }
   ],
   "edges": [

@@ -25,14 +25,14 @@ def _stamp_manifests(
     source_path = Path(flow_file).resolve()
     asya_dir = find_asya_dir(source_path.parent)
     if asya_dir is None:
-        click.echo("[!] No .asya/ directory found; skipping manifest stamping", err=True)
-        click.echo("[!] Run 'asya init' to create one", err=True)
+        if verbose:
+            click.echo("[.] No .asya/ directory found; skipping manifest stamping", err=True)
         return
 
     template_path = asya_dir / "compiler" / "templates" / "actor.yaml"
     if not template_path.exists():
-        click.echo(f"[!] Actor template not found: {template_path}", err=True)
-        click.echo("[!] Run 'asya init' to create one; skipping manifest stamping", err=True)
+        if verbose:
+            click.echo("[.] Actor template not found; skipping manifest stamping", err=True)
         return
 
     # Naming convention (see rfc.md section 7.4):

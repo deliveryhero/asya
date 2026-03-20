@@ -24,7 +24,9 @@
       "flow_role": "router",
       "label": "router_while_simple_flow_line_13_seq_3",
       "is_generated": true,
-      "mutations": ["p['i'] = 0"]
+      "mutations": [
+        "p['i'] = 0"
+      ]
     },
     {
       "id": "router_while_simple_flow_line_14_while_1",
@@ -37,7 +39,9 @@
       "flow_role": "router",
       "label": "router_while_simple_flow_line_15_seq_2",
       "is_generated": true,
-      "mutations": ["p['i'] += 1"]
+      "mutations": [
+        "p['i'] += 1"
+      ]
     },
     {
       "id": "start_while_simple_flow",
