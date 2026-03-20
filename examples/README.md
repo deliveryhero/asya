@@ -37,7 +37,7 @@ Deploy:
 kubectl apply -f asyas/simple-actor.yaml
 ```
 
-**Recommended for local development:** See [../docs/install/local-kind.md](../docs/install/local-kind.md) for full stack deployment with Kind cluster.
+**Recommended for local development:** See [../docs/setup/start-quickstart.md](../docs/setup/start-quickstart.md) for full stack deployment with Kind cluster.
 
 ## Using Examples
 

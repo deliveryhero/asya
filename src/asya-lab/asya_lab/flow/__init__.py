@@ -72,19 +72,25 @@ def compile(  # noqa: A001
 
 
 def _infer_flow_function(source_path: Path) -> str | None:
-    """Quick scan for @flow decorator to get function name before full compile."""
+    """Quick scan for @flow decorator to get function name before full compile.
+
+    With flow composition, multiple @flow functions may exist in a file.
+    The last one is the entrypoint (same convention as parser._find_flow_function).
+    """
     import ast
 
     try:
         tree = ast.parse(source_path.read_text())
     except SyntaxError:
         return None
-    for node in ast.walk(tree):
+    last_flow: str | None = None
+    for node in tree.body:
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             for dec in node.decorator_list:
                 if isinstance(dec, ast.Name) and dec.id == "flow":
-                    return node.name
-    return None
+                    last_flow = node.name
+                    break
+    return last_flow
 
 
 __all__ = ["ActorInfo", "FlowCompileError", "FlowCompiler", "FlowInfo", "compile", "flow"]

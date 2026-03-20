@@ -13,7 +13,7 @@ Compile a flow:
 ```bash
 cd examples/flows/
 
-uv run asya flow compile ./simple_pipeline.py -o /tmp/simple_pipeline_compiled.py
+uv run asya flow compile ./sequential.py -o /tmp/sequential_compiled.py
 ```
 
 ## Overview
@@ -34,85 +34,107 @@ Valid flow functions must follow these rules:
 
 ## Examples
 
-### 1. simple_pipeline.py
+### 1. sequential.py
 
 Basic linear flow without control structures.
 
 **Pattern**: Sequential handler execution
 
 ```python
-def flow_simple_pipeline(p: dict) -> dict:
-    p = preprocess(p)
-    p = analyze(p)
-    p = format_output(p)
+def sequential_flow(p: dict) -> dict:
+    p = handler_a(p)
+    p = handler_b(p)
+    p = handler_c(p)
     return p
 ```
 
 **Use case**: Simple data transformation pipelines
 
-### 2. conditional_routing.py
+### 2. if_else_simple.py
 
-If/elif/else branching based on payload data.
+If/else branching based on payload data.
 
 **Pattern**: Type-based routing
 
 ```python
-def flow_conditional_routing(p: dict) -> dict:
-    p = validate_input(p)
+def if_else_simple_flow(p: dict) -> dict:
+    p = handler_setup(p)
     if p["type"] == "A":
-        p = handle_type_a(p)
-    elif p["type"] == "B":
-        p = handle_type_b(p)
+        p = handler_type_a(p)
     else:
-        p = handle_default(p)
-    p = finalize(p)
+        p = handler_type_b(p)
+    p = handler_finalize(p)
     return p
 ```
 
 **Use case**: Dynamic routing based on message type or category
 
-### 3. loop_processing.py
+### 3. while_loop_processing.py
 
 While loops with break and continue statements.
 
 **Pattern**: Iterative processing with early exit
 
 ```python
-def flow_loop_processing(p: dict) -> dict:
+def loop_flow(p: dict) -> dict:
     p = initialize(p)
+
+    p["iteration"] = 0
     while p["iteration"] < p["max_iterations"]:
+        p["iteration"] += 1
         p = process_item(p)
+
         if p.get("skip_threshold_check"):
+            p['abort'] = 1
+            p = process_abort(p)
+            p['abort'] = 2
             continue
         p = check_threshold(p)
+
         if p["threshold_met"]:
             break
+
     p = finalize_loop(p)
     return p
 ```
 
 **Use case**: Batch processing, retry logic, iterative refinement
 
-**Note**: This example generates a compiler warning about potential infinite loops because the compiler cannot analyze handler function internals. The `process_item` handler actually increments `p["iteration"]`, so the loop is safe. This warning can be disabled with `--disable-infinite-loop-check`.
-
-### 4. complex_workflow.py
+### 4. complex_combined.py
 
 Nested control structures combining multiple patterns.
 
 **Pattern**: Complex decision trees with loops
 
 ```python
-def flow_complex_workflow(p: dict) -> dict:
-    p = preprocess(p)
-    if not p["valid"]:
-        return error_handler(p)
+def complex_combined_flow(p: dict) -> dict:
+    p = handler_init(p)
 
-    if p.get("needs_enrichment"):
-        while p["batch_count"] < p["max_batches"]:
-            p = transform_batch(p)
-            if p["quality_score"] >= 50:
+    if not p["valid"]:
+        p = handler_error(p)
+        return p
+
+    if p["needs_loop"]:
+        p["i"] = 0
+        while p["i"] < p["max_iterations"]:
+            p["i"] += 1
+
+            if p["skip_even"] and p["i"] % 2 == 0:
+                continue
+
+            p = handler_process(p)
+
+            if p["stop_early"]:
                 break
-    p = finalize(p)
+    else:
+        if p["type"] == "A":
+            p = handler_type_a(p)
+        elif p["type"] == "B":
+            p = handler_type_b(p)
+        else:
+            p = handler_default(p)
+
+    p = handler_finalize(p)
     return p
 ```
 
@@ -123,10 +145,10 @@ def flow_complex_workflow(p: dict) -> dict:
 ### Compile a flow
 
 ```bash
-asya flow compile simple_pipeline.py
+asya flow compile sequential.py
 ```
 
-This generates `simple_pipeline_compiled.py` with:
+This generates `sequential_compiled.py` with:
 - Original flow function (for local execution)
 - Generated routers (for Kubernetes deployment)
 - Handler resolution logic
@@ -135,7 +157,7 @@ This generates `simple_pipeline_compiled.py` with:
 ### Validate without compiling
 
 ```bash
-asya flow validate conditional_routing.py
+asya flow validate if_else_simple.py
 ```
 
 Checks syntax and DSL constraints without generating code.
@@ -157,9 +179,9 @@ Compiled files contain:
 Import and call the flow function directly:
 
 ```python
-from simple_pipeline_compiled import flow_simple_pipeline
+from sequential_compiled import sequential_flow
 
-result = flow_simple_pipeline({"data": "test"})
+result = sequential_flow({"data": "test"})
 ```
 
 ### Docker Mode
@@ -259,17 +281,15 @@ environment:
 Test your flow locally:
 
 ```python
-def test_simple_pipeline():
-    result = flow_simple_pipeline({"input": "test"})
-    assert result["preprocessed"] == True
-    assert result["analyzed"] == True
-    assert result["formatted"] == True
+def test_sequential():
+    result = sequential_flow({"input": "test"})
+    assert "input" in result
 ```
 
 ## Next Steps
 
-1. Compile an example: `asya flow compile simple_pipeline.py`
-2. Examine the generated code: `cat simple_pipeline_compiled.py`
+1. Compile an example: `asya flow compile sequential.py`
+2. Examine the generated code: `cat sequential_compiled.py`
 3. Test locally by importing the compiled function
 4. Deploy to Kubernetes using AsyncActor CRDs (see `/examples/asyas/`)
 

@@ -108,7 +108,7 @@ asya_actor_processing_duration_seconds_count{queue="text-processing"} 1523
 
 ## Prometheus Setup
 
-See [Deployment Guide](../../docs/guides/deploy.md#monitoring) for Prometheus/Grafana setup.
+See [Deployment Guide](../../docs/setup/ops-observability.md) for Prometheus/Grafana setup.
 
 ### Pod Annotations
 

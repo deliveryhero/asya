@@ -118,6 +118,9 @@ class FlowCompiler:
         # Step 3: Analyze (graph extraction from generated code)
         handler_sources = self._extract_handler_sources(source_code, result.actors)
         self._graph_data = analyze(code, handler_sources)
+        # Pass through flow composition groups from parser
+        if result.groups:
+            self._graph_data.groups = result.groups
         self.warnings.extend(self._graph_data.warnings)
 
         self.flow_name = result.flow_name

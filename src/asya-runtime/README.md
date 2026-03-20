@@ -111,4 +111,4 @@ make test-cov     # With coverage
 
 ## Deployment
 
-See [docs/architecture/asya-runtime.md](../../docs/architecture/asya-runtime.md) for Kubernetes deployment details
+See [docs/reference/components/core-runtime.md](../../docs/reference/components/core-runtime.md) for Kubernetes deployment details

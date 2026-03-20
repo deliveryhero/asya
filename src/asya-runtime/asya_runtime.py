@@ -37,7 +37,7 @@ Handler Types:
             yield payload                                # emit downstream frame
 
         Writable paths: .route.next, .headers, .status
-        Read-only paths: .route.prev, .route.curr, .id
+        Read-only paths: .route.prev, .route.curr, .id, .parent_id
 
 State Proxy Hooks:
     When ASYA_STATE_PROXY_MOUNTS is set, the runtime patches Python stdlib functions

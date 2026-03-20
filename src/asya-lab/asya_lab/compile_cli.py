@@ -37,6 +37,8 @@ def _compile_flow_file(
     output_dir: str | None,
     verbose: bool,
     strict: bool = False,
+    plot: bool = False,
+    plot_format: str = "png",
 ) -> None:
     """Compile a flow from a .py source file."""
     from asya_lab.flow import _infer_flow_function
@@ -70,17 +72,7 @@ def _compile_flow_file(
     compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
     result = compiler.compile_file(str(source_path), str(compiled_dir), overwrite=True)
 
-    if verbose:
-        click.echo(f"[+] Compiled flow to: {result.routers_path}")
-        click.echo(f"[+] Flow name: '{flow_name}'")
-
-        actor = compiler.single_actor_name
-        if actor is not None:
-            click.echo("[+] Single-actor flow: no router actor needed")
-
-        if result.manifests_dir and result.manifests_dir != compiled_dir:
-            click.echo(f"[+] Stamped manifests to: {result.manifests_dir}")
-
+    # Print warnings before summary
     warnings = result.warnings
     if warnings:
         for w in warnings:
@@ -88,6 +80,40 @@ def _compile_flow_file(
         if strict:
             click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
             sys.exit(1)
+
+    # Print compilation summary
+    num_actors = len(result.actors)
+    num_routers = sum(1 for a in result.actors if a.generated)
+    click.echo(f"[+] Compiled flow '{flow_name}' ({num_actors} actors, {num_routers} routers)")
+
+    click.echo(f"    routers:   {result.routers_path}")
+
+    graph_file = compiled_dir / "graph.json"
+    if graph_file.exists():
+        click.echo(f"    graph:     {graph_file}")
+
+    dot_file = compiled_dir / "flow.dot"
+    if dot_file.exists():
+        click.echo(f"    dot:       {dot_file}")
+
+    mmd_file = compiled_dir / "flow.mmd"
+    if mmd_file.exists():
+        click.echo(f"    mermaid:   {mmd_file}")
+
+    if plot:
+        plot_file = compiled_dir / f"flow.{plot_format}"
+        if plot_file.exists():
+            click.echo(f"    plot:      {plot_file}")
+        else:
+            click.echo("[!] Plot requested but graphviz 'dot' not found; skipping render", err=True)
+
+    if verbose:
+        actor = compiler.single_actor_name
+        if actor is not None:
+            click.echo("[+] Single-actor flow: no router actor needed")
+
+        if result.manifests_dir and result.manifests_dir != compiled_dir:
+            click.echo(f"[+] Stamped manifests to: {result.manifests_dir}")
 
 
 def _recompile_kebab_target(
@@ -144,10 +170,17 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
       flow.py:my_flow      Compile specific flow function from file
       my-flow              Recompile from existing .asya/ manifests
     """
-    _ = plot, plot_format  # accepted by CLI, not yet wired to compile_file
     try:
         if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, verbose, strict)
+            _compile_flow_file(
+                str(target.source),
+                flow_name,
+                output_dir,
+                verbose,
+                strict,
+                plot=plot,
+                plot_format=plot_format,
+            )
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:
