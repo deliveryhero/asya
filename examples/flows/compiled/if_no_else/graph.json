@@ -2,20 +2,14 @@
   "flow_name": "if_no_else_flow",
   "nodes": [
     {
-      "id": "end_if_no_else_flow",
-      "flow_role": "exit",
-      "label": "end_if_no_else_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_setup",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_setup",
       "is_generated": false
     },
     {
       "id": "handler_true",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_true",
       "is_generated": false
     },
@@ -27,7 +21,7 @@
     },
     {
       "id": "start_if_no_else_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_if_no_else_flow",
       "is_generated": true
     }
@@ -50,12 +44,6 @@
       "to": "handler_true",
       "label": "p['condition']",
       "type": "prepend"
-    },
-    {
-      "from": "handler_true",
-      "to": "end_if_no_else_flow",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

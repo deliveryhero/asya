@@ -2,12 +2,11 @@ digraph "while_nested_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_while_nested_flow [label="end_while_nested_flow", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_inner [label="handler_inner", fillcolor=lightblue];
     handler_outer [label="handler_outer", fillcolor=lightblue];
-    handler_outer_end [label="handler_outer_end", fillcolor=lightblue];
+    handler_outer_end [label="handler_outer_end", fillcolor=palegreen];
     router_while_nested_flow_line_13_seq_6 [label="router_while_nested_flow_line_13_seq_6", fillcolor=wheat];
     router_while_nested_flow_line_14_while_1 [label="router_while_nested_flow_line_14_while_1", fillcolor=wheat];
     router_while_nested_flow_line_15_seq_5 [label="router_while_nested_flow_line_15_seq_5", fillcolor=wheat];
@@ -29,6 +28,4 @@ digraph "while_nested_flow" {
     router_while_nested_flow_line_13_seq_6 -> router_while_nested_flow_line_14_while_1;
     handler_inner -> router_while_nested_flow_line_18_while_2;
     router_while_nested_flow_line_17_seq_4 -> router_while_nested_flow_line_14_while_1;
-    handler_finalize -> end_while_nested_flow;
-    handler_outer_end -> end_while_nested_flow;
 }

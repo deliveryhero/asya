@@ -2,8 +2,7 @@ digraph "while_mutations_in_loop_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_while_mutations_in_loop_flow [label="end_while_mutations_in_loop_flow", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     router_while_mutations_in_loop_flow_line_13_seq_4 [label="router_while_mutations_in_loop_flow_line_13_seq_4", fillcolor=wheat];
@@ -20,5 +19,4 @@ digraph "while_mutations_in_loop_flow" {
     router_while_mutations_in_loop_flow_line_15_while_1 -> handler_finalize [label="not (p['i'] < p['max_iterations'])"];
     router_while_mutations_in_loop_flow_line_13_seq_4 -> router_while_mutations_in_loop_flow_line_15_while_1;
     router_while_mutations_in_loop_flow_line_20_seq_2 -> router_while_mutations_in_loop_flow_line_15_while_1;
-    handler_finalize -> end_while_mutations_in_loop_flow;
 }

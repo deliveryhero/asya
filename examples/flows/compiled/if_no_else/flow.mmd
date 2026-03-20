@@ -1,13 +1,11 @@
 flowchart TD
     %% Flow: if_no_else_flow
 
-    end_if_no_else_flow([end_if_no_else_flow])
     handler_setup[handler_setup]
-    handler_true[handler_true]
+    handler_true([handler_true])
     router_if_no_else_flow_line_14_if_1{{router_if_no_else_flow_line_14_if_1}}
     start_if_no_else_flow([start_if_no_else_flow])
 
     start_if_no_else_flow --> handler_setup
     handler_setup --> router_if_no_else_flow_line_14_if_1
     router_if_no_else_flow_line_14_if_1 -->|p['condition']| handler_true
-    handler_true --> end_if_no_else_flow

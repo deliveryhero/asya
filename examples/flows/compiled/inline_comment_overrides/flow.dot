@@ -2,11 +2,10 @@ digraph "order_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    charge_payment [label="charge_payment", fillcolor=lightblue];
-    end_order_pipeline [label="end_order_pipeline", fillcolor=palegreen];
+    charge_payment [label="charge_payment", fillcolor=palegreen];
     router_order_pipeline_line_27_seq_3 [label="router_order_pipeline_line_27_seq_3", fillcolor=wheat];
     router_order_pipeline_line_32_if_2 [label="router_order_pipeline_line_32_if_2", fillcolor=wheat];
-    router_order_pipeline_line_33_seq_1 [label="router_order_pipeline_line_33_seq_1", fillcolor=wheat];
+    router_order_pipeline_line_33_seq_1 [label="router_order_pipeline_line_33_seq_1", fillcolor=palegreen];
     start_order_pipeline [label="start_order_pipeline", fillcolor=palegreen];
     validate_order [label="validate_order", fillcolor=lightblue];
 
@@ -15,6 +14,4 @@ digraph "order_pipeline" {
     router_order_pipeline_line_32_if_2 -> router_order_pipeline_line_33_seq_1 [label="p.get('fraud_score', 0) > 0.8"];
     router_order_pipeline_line_27_seq_3 -> validate_order;
     validate_order -> router_order_pipeline_line_32_if_2;
-    charge_payment -> end_order_pipeline;
-    router_order_pipeline_line_33_seq_1 -> end_order_pipeline;
 }

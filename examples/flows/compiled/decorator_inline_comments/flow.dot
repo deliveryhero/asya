@@ -3,11 +3,10 @@ digraph "decorator_inline_comments_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     classifier [label="classifier", fillcolor=lightblue];
-    end_decorator_inline_comments_flow [label="end_decorator_inline_comments_flow", fillcolor=palegreen];
-    fast_handler [label="fast_handler", fillcolor=lightblue];
+    fast_handler [label="fast_handler", fillcolor=palegreen];
     router_decorator_inline_comments_flow_line_16_seq_2 [label="router_decorator_inline_comments_flow_line_16_seq_2", fillcolor=wheat];
     router_decorator_inline_comments_flow_line_18_if_1 [label="router_decorator_inline_comments_flow_line_18_if_1", fillcolor=wheat];
-    standard_handler [label="standard_handler", fillcolor=lightblue];
+    standard_handler [label="standard_handler", fillcolor=palegreen];
     start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
 
     start_decorator_inline_comments_flow -> router_decorator_inline_comments_flow_line_16_seq_2;
@@ -15,6 +14,4 @@ digraph "decorator_inline_comments_flow" {
     router_decorator_inline_comments_flow_line_18_if_1 -> standard_handler [label="not (p['category'] == 'priority')"];
     router_decorator_inline_comments_flow_line_16_seq_2 -> classifier;
     classifier -> router_decorator_inline_comments_flow_line_18_if_1;
-    fast_handler -> end_decorator_inline_comments_flow;
-    standard_handler -> end_decorator_inline_comments_flow;
 }

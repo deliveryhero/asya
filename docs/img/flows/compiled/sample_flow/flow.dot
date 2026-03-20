@@ -2,8 +2,7 @@ digraph "sample_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_sample_flow [label="end_sample_flow", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_setup [label="handler_setup", fillcolor=lightblue];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
@@ -20,5 +19,4 @@ digraph "sample_flow" {
     handler_type_b -> router_sample_flow_line_10_seq_2;
     router_sample_flow_line_10_seq_2 -> handler_finalize;
     handler_type_a -> handler_finalize;
-    handler_finalize -> end_sample_flow;
 }

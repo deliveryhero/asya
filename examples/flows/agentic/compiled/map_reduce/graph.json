@@ -3,15 +3,9 @@
   "nodes": [
     {
       "id": "chunk_processor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "chunk_processor",
       "is_generated": false
-    },
-    {
-      "id": "end_map_reduce",
-      "flow_role": "exit",
-      "label": "end_map_reduce",
-      "is_generated": true
     },
     {
       "id": "fanin_map_reduce_line_55",
@@ -21,7 +15,7 @@
     },
     {
       "id": "reducer",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "reducer",
       "is_generated": false
     },
@@ -33,13 +27,13 @@
     },
     {
       "id": "splitter",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "splitter",
       "is_generated": false
     },
     {
       "id": "start_map_reduce",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_map_reduce",
       "is_generated": true
     }
@@ -78,12 +72,6 @@
     {
       "from": "chunk_processor",
       "to": "fanin_map_reduce_line_55",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "reducer",
-      "to": "end_map_reduce",
       "label": null,
       "type": "continuation"
     }

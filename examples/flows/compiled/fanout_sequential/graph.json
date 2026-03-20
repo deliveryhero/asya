@@ -2,12 +2,6 @@
   "flow_name": "multi_stage_flow",
   "nodes": [
     {
-      "id": "end_multi_stage_flow",
-      "flow_role": "exit",
-      "label": "end_multi_stage_flow",
-      "is_generated": true
-    },
-    {
       "id": "fanin_multi_stage_flow_line_15",
       "flow_role": "router",
       "label": "fanin_multi_stage_flow_line_15",
@@ -21,13 +15,13 @@
     },
     {
       "id": "research_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "research_agent",
       "is_generated": false
     },
     {
       "id": "review_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "review_agent",
       "is_generated": false
     },
@@ -45,13 +39,13 @@
     },
     {
       "id": "start_multi_stage_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_multi_stage_flow",
       "is_generated": true
     },
     {
       "id": "summarizer",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "summarizer",
       "is_generated": false
     }
@@ -108,12 +102,6 @@
     {
       "from": "research_agent",
       "to": "fanin_multi_stage_flow_line_15",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "summarizer",
-      "to": "end_multi_stage_flow",
       "label": null,
       "type": "continuation"
     }

@@ -53,11 +53,6 @@ async def router_research_flow_line_7_fanout_1(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def end_research_flow(payload: dict):
-    """Exitpoint for flow 'research_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

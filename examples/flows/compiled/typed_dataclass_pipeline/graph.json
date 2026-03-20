@@ -3,37 +3,31 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "classifier",
       "is_generated": false
     },
     {
-      "id": "end_typed_dataclass_pipeline",
-      "flow_role": "exit",
-      "label": "end_typed_dataclass_pipeline",
-      "is_generated": true
-    },
-    {
       "id": "enricher",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "enricher",
       "is_generated": false
     },
     {
       "id": "extractor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "extractor",
       "is_generated": false
     },
     {
       "id": "formatter",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "formatter",
       "is_generated": false
     },
     {
       "id": "start_typed_dataclass_pipeline",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_typed_dataclass_pipeline",
       "is_generated": true
     }
@@ -60,12 +54,6 @@
     {
       "from": "enricher",
       "to": "formatter",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "formatter",
-      "to": "end_typed_dataclass_pipeline",
       "label": null,
       "type": "continuation"
     }

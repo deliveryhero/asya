@@ -3,9 +3,8 @@ digraph "sequential_pipeline" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     data_analyst [label="data_analyst", fillcolor=lightblue];
-    end_sequential_pipeline [label="end_sequential_pipeline", fillcolor=palegreen];
     execution_planner [label="execution_planner", fillcolor=lightblue];
-    risk_evaluator [label="risk_evaluator", fillcolor=lightblue];
+    risk_evaluator [label="risk_evaluator", fillcolor=palegreen];
     start_sequential_pipeline [label="start_sequential_pipeline", fillcolor=palegreen];
     trading_analyst [label="trading_analyst", fillcolor=lightblue];
 
@@ -13,5 +12,4 @@ digraph "sequential_pipeline" {
     data_analyst -> trading_analyst;
     trading_analyst -> execution_planner;
     execution_planner -> risk_evaluator;
-    risk_evaluator -> end_sequential_pipeline;
 }

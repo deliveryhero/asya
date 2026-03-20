@@ -3,37 +3,31 @@
   "nodes": [
     {
       "id": "acquire_resource",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "acquire_resource",
       "is_generated": false
     },
     {
-      "id": "end_resource_pipeline",
-      "flow_role": "exit",
-      "label": "end_resource_pipeline",
-      "is_generated": true
-    },
-    {
       "id": "finalize",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "finalize",
       "is_generated": false
     },
     {
       "id": "handle_failure",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handle_failure",
       "is_generated": false
     },
     {
       "id": "process_with_resource",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "process_with_resource",
       "is_generated": false
     },
     {
       "id": "release_resource",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "release_resource",
       "is_generated": false
     },
@@ -45,7 +39,7 @@
     },
     {
       "id": "router_resource_pipeline_line_5_reraise_0",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_resource_pipeline_line_5_reraise_0",
       "is_generated": true
     },
@@ -69,7 +63,7 @@
     },
     {
       "id": "start_resource_pipeline",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_resource_pipeline",
       "is_generated": true
     }
@@ -134,24 +128,6 @@
       "to": "router_resource_pipeline_line_5_reraise_0",
       "label": "not ('RuntimeError' in _all_types)",
       "type": "prepend"
-    },
-    {
-      "from": "finalize",
-      "to": "end_resource_pipeline",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handle_failure",
-      "to": "end_resource_pipeline",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_resource_pipeline_line_5_reraise_0",
-      "to": "end_resource_pipeline",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

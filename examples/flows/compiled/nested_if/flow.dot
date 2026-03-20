@@ -2,12 +2,11 @@ digraph "nested_if_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_nested_if_flow [label="end_nested_if_flow", fillcolor=palegreen];
-    handler_a_x [label="handler_a_x", fillcolor=lightblue];
-    handler_a_y [label="handler_a_y", fillcolor=lightblue];
-    handler_b_x [label="handler_b_x", fillcolor=lightblue];
-    handler_b_y [label="handler_b_y", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_a_x [label="handler_a_x", fillcolor=palegreen];
+    handler_a_y [label="handler_a_y", fillcolor=palegreen];
+    handler_b_x [label="handler_b_x", fillcolor=palegreen];
+    handler_b_y [label="handler_b_y", fillcolor=palegreen];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_validate [label="handler_validate", fillcolor=lightblue];
     router_nested_if_flow_line_14_if_7 [label="router_nested_if_flow_line_14_if_7", fillcolor=wheat];
     router_nested_if_flow_line_16_if_3 [label="router_nested_if_flow_line_16_if_3", fillcolor=wheat];
@@ -34,9 +33,4 @@ digraph "nested_if_flow" {
     router_nested_if_flow_line_20_seq_2 -> handler_finalize;
     router_nested_if_flow_line_25_seq_4 -> handler_finalize;
     router_nested_if_flow_line_28_seq_5 -> handler_finalize;
-    handler_a_x -> end_nested_if_flow;
-    handler_a_y -> end_nested_if_flow;
-    handler_b_x -> end_nested_if_flow;
-    handler_b_y -> end_nested_if_flow;
-    handler_finalize -> end_nested_if_flow;
 }

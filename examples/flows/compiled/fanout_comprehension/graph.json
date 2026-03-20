@@ -2,12 +2,6 @@
   "flow_name": "research_flow",
   "nodes": [
     {
-      "id": "end_research_flow",
-      "flow_role": "exit",
-      "label": "end_research_flow",
-      "is_generated": true
-    },
-    {
       "id": "fanin_research_flow_line_15",
       "flow_role": "router",
       "label": "fanin_research_flow_line_15",
@@ -15,19 +9,19 @@
     },
     {
       "id": "post_processor",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "post_processor",
       "is_generated": false
     },
     {
       "id": "preprocessor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "preprocessor",
       "is_generated": false
     },
     {
       "id": "research_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "research_agent",
       "is_generated": false
     },
@@ -39,7 +33,7 @@
     },
     {
       "id": "start_research_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_research_flow",
       "is_generated": true
     }
@@ -78,12 +72,6 @@
     {
       "from": "research_agent",
       "to": "fanin_research_flow_line_15",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "post_processor",
-      "to": "end_research_flow",
       "label": null,
       "type": "continuation"
     }

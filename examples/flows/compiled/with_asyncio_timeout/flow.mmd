@@ -1,12 +1,11 @@
 flowchart TD
     %% Flow: document_pipeline
 
-    end_document_pipeline([end_document_pipeline])
     language_detector[language_detector]
     ocr_extractor[ocr_extractor]
     router_document_pipeline_line_18_seq_3{{router_document_pipeline_line_18_seq_3}}
     router_document_pipeline_line_24_if_2{{router_document_pipeline_line_24_if_2}}
-    router_document_pipeline_line_28_seq_1{{router_document_pipeline_line_28_seq_1}}
+    router_document_pipeline_line_28_seq_1([router_document_pipeline_line_28_seq_1])
     sentiment_analyzer[sentiment_analyzer]
     start_document_pipeline([start_document_pipeline])
     translator[translator]
@@ -16,7 +15,6 @@ flowchart TD
     translator --> sentiment_analyzer
     sentiment_analyzer --> router_document_pipeline_line_28_seq_1
     router_document_pipeline_line_24_if_2 -->|not (p.get('language') != 'en')| sentiment_analyzer
-    sentiment_analyzer --> router_document_pipeline_line_28_seq_1
     router_document_pipeline_line_18_seq_3 --> ocr_extractor
     ocr_extractor --> language_detector
     language_detector --> router_document_pipeline_line_24_if_2

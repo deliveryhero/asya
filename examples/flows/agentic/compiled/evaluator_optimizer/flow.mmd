@@ -1,10 +1,9 @@
 flowchart TD
     %% Flow: evaluator_optimizer
 
-    end_evaluator_optimizer([end_evaluator_optimizer])
     evaluator[evaluator]
     generator[generator]
-    polisher[polisher]
+    polisher([polisher])
     router_evaluator_optimizer_line_56_seq_5{{router_evaluator_optimizer_line_56_seq_5}}
     router_evaluator_optimizer_line_58_while_1{{router_evaluator_optimizer_line_58_while_1}}
     router_evaluator_optimizer_line_59_seq_4{{router_evaluator_optimizer_line_59_seq_4}}
@@ -22,4 +21,3 @@ flowchart TD
     router_evaluator_optimizer_line_58_while_1 --> router_evaluator_optimizer_line_59_seq_4
     router_evaluator_optimizer_line_56_seq_5 --> router_evaluator_optimizer_line_58_while_1
     router_evaluator_optimizer_line_68_if_3 --> router_evaluator_optimizer_line_58_while_1
-    polisher --> end_evaluator_optimizer

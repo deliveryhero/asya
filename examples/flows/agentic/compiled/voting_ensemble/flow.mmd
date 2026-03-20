@@ -4,9 +4,8 @@ flowchart TD
     analytical_writer[analytical_writer]
     concise_writer[concise_writer]
     creative_writer[creative_writer]
-    end_voting_ensemble([end_voting_ensemble])
     fanin_voting_ensemble_line_44[fanin_voting_ensemble_line_44]
-    judge[judge]
+    judge([judge])
     router_voting_ensemble_line_44_fanout_1{{router_voting_ensemble_line_44_fanout_1}}
     start_voting_ensemble([start_voting_ensemble])
 
@@ -19,4 +18,3 @@ flowchart TD
     analytical_writer --> fanin_voting_ensemble_line_44
     router_voting_ensemble_line_44_fanout_1 --> concise_writer
     concise_writer --> fanin_voting_ensemble_line_44
-    judge --> end_voting_ensemble

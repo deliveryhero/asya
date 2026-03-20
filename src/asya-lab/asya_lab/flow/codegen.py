@@ -313,8 +313,6 @@ class CodeGenerator:
             resolved = ", ".join(f'resolve("{a}")' for a in chain)
             self._all_handlers.update(chain)
             lines.append(f'    yield "SET", ".route.next", [{resolved}]')
-        else:
-            lines.append('    yield "SET", ".route.next", []')
 
         lines.append("    yield p")
         lines.append("")
@@ -365,8 +363,6 @@ class CodeGenerator:
                 resolved = ", ".join(f'resolve("{a}")' for a in chain)
                 self._all_handlers.update(chain)
                 lines.append(f'{indent}yield "SET", ".route.next", [{resolved}]')
-            else:
-                lines.append(f'{indent}yield "SET", ".route.next", []')
             lines.append(f"{indent}yield p")
             lines.append(f"{indent}return")
         elif chain:
@@ -406,8 +402,6 @@ class CodeGenerator:
                 resolved = ", ".join(f'resolve("{a}")' for a in exit_chain)
                 self._all_handlers.update(exit_chain)
                 lines.append(f'        yield "SET", ".route.next", [{resolved}]')
-            else:
-                lines.append('        yield "SET", ".route.next", []')
             lines.append("        yield p")
             lines.append("        return")
         else:
@@ -502,9 +496,6 @@ class CodeGenerator:
         for rf in self._functions:
             lines.append(rf.code)
 
-        # End router
-        lines.append(self._generate_end_router())
-
         return "\n".join(lines)
 
     def _generate_start_router(self, entry_chain: list[str]) -> str:
@@ -519,17 +510,6 @@ class CodeGenerator:
             lines.append(f'    _next.append(resolve("{actor}"))')
 
         lines.append('    yield "SET", ".route.next[:0]", _next')
-        lines.append("    yield payload")
-        lines.append("")
-
-        return "\n".join(lines)
-
-    def _generate_end_router(self) -> str:
-        name = f"end_{self.flow_name}"
-        lines = []
-        lines.append(f"async def {name}(payload: dict):")
-        lines.append(f'    """Exitpoint for flow \'{self.flow_name}\'"""')
-        lines.append('    yield "SET", ".route.next", []')
         lines.append("    yield payload")
         lines.append("")
 

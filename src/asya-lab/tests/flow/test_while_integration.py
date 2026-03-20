@@ -98,7 +98,6 @@ def flow(p: dict) -> dict:
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
 
         assert "start_flow" in func_names
-        assert "end_flow" in func_names
         assert any("while" in n for n in func_names)
 
     def test_compile_while_true(self):
@@ -365,7 +364,6 @@ def complex_flow(p: dict) -> dict:
 
         func_names = [n.name for n in ast.walk(tree) if isinstance(n, ast.FunctionDef | ast.AsyncFunctionDef)]
         assert "start_complex_flow" in func_names
-        assert "end_complex_flow" in func_names
         assert any("_while_" in n for n in func_names)
 
     def test_react_loop_pattern(self):

@@ -4,7 +4,6 @@ digraph "orchestrator_workers" {
 
     analysis_worker [label="analysis_worker", fillcolor=lightblue];
     data_worker [label="data_worker", fillcolor=lightblue];
-    end_orchestrator_workers [label="end_orchestrator_workers", fillcolor=palegreen];
     orchestrator [label="orchestrator", fillcolor=lightblue];
     router_orchestrator_workers_line_54_seq_8 [label="router_orchestrator_workers_line_54_seq_8", fillcolor=wheat];
     router_orchestrator_workers_line_57_while_1 [label="router_orchestrator_workers_line_57_while_1", fillcolor=wheat];
@@ -15,8 +14,8 @@ digraph "orchestrator_workers" {
     router_orchestrator_workers_line_69_if_3 [label="router_orchestrator_workers_line_69_if_3", fillcolor=wheat];
     router_orchestrator_workers_line_72_if_2 [label="router_orchestrator_workers_line_72_if_2", fillcolor=wheat];
     start_orchestrator_workers [label="start_orchestrator_workers", fillcolor=palegreen];
-    synthesizer [label="synthesizer", fillcolor=lightblue];
-    writing_worker [label="writing_worker", fillcolor=lightblue];
+    synthesizer [label="synthesizer", fillcolor=palegreen];
+    writing_worker [label="writing_worker", fillcolor=palegreen];
 
     start_orchestrator_workers -> router_orchestrator_workers_line_54_seq_8;
     router_orchestrator_workers_line_72_if_2 -> synthesizer [label="p['iteration'] >= 10"];
@@ -35,6 +34,4 @@ digraph "orchestrator_workers" {
     analysis_worker -> router_orchestrator_workers_line_72_if_2;
     router_orchestrator_workers_line_69_if_3 -> router_orchestrator_workers_line_72_if_2;
     router_orchestrator_workers_line_62_if_6 -> router_orchestrator_workers_line_57_while_1;
-    synthesizer -> end_orchestrator_workers;
-    writing_worker -> end_orchestrator_workers;
 }

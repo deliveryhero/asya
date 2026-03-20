@@ -2,10 +2,9 @@ digraph "analysis_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_analysis_flow [label="end_analysis_flow", fillcolor=palegreen];
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
     fanin_analysis_flow_line_14 [label="fanin_analysis_flow_line_14", fillcolor=lightblue];
-    merge_analysis [label="merge_analysis", fillcolor=lightblue];
+    merge_analysis [label="merge_analysis", fillcolor=palegreen];
     router_analysis_flow_line_14_fanout_1 [label="router_analysis_flow_line_14_fanout_1", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
@@ -20,5 +19,4 @@ digraph "analysis_flow" {
     topic_extractor -> fanin_analysis_flow_line_14;
     router_analysis_flow_line_14_fanout_1 -> entity_recognizer;
     entity_recognizer -> fanin_analysis_flow_line_14;
-    merge_analysis -> end_analysis_flow;
 }

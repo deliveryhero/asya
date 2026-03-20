@@ -3,21 +3,15 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "classifier",
       "is_generated": false
     },
     {
       "id": "deep_analyzer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "deep_analyzer",
       "is_generated": false
-    },
-    {
-      "id": "end_adaptive_flow",
-      "flow_role": "exit",
-      "label": "end_adaptive_flow",
-      "is_generated": true
     },
     {
       "id": "fanin_adaptive_flow_line_17",
@@ -27,13 +21,13 @@
     },
     {
       "id": "fast_analyzer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "fast_analyzer",
       "is_generated": false
     },
     {
       "id": "formatter",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "formatter",
       "is_generated": false
     },
@@ -51,13 +45,13 @@
     },
     {
       "id": "sequential_analyzer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "sequential_analyzer",
       "is_generated": false
     },
     {
       "id": "start_adaptive_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_adaptive_flow",
       "is_generated": true
     }
@@ -126,18 +120,6 @@
     {
       "from": "sequential_analyzer",
       "to": "formatter",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "fanin_adaptive_flow_line_17",
-      "to": "end_adaptive_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "formatter",
-      "to": "end_adaptive_flow",
       "label": null,
       "type": "continuation"
     }

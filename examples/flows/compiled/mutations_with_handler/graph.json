@@ -2,14 +2,8 @@
   "flow_name": "mutations_with_handler_flow",
   "nodes": [
     {
-      "id": "end_mutations_with_handler_flow",
-      "flow_role": "exit",
-      "label": "end_mutations_with_handler_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_process",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_process",
       "is_generated": false
     },
@@ -21,13 +15,13 @@
     },
     {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_mutations_with_handler_flow_line_17_seq_1",
       "is_generated": true
     },
     {
       "id": "start_mutations_with_handler_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_mutations_with_handler_flow",
       "is_generated": true
     }
@@ -48,12 +42,6 @@
     {
       "from": "handler_process",
       "to": "router_mutations_with_handler_flow_line_17_seq_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_mutations_with_handler_flow_line_17_seq_1",
-      "to": "end_mutations_with_handler_flow",
       "label": null,
       "type": "continuation"
     }

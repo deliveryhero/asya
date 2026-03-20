@@ -1,9 +1,8 @@
 flowchart TD
     %% Flow: research_flow
 
-    end_research_flow([end_research_flow])
     fanin_research_flow_line_15[fanin_research_flow_line_15]
-    post_processor[post_processor]
+    post_processor([post_processor])
     preprocessor[preprocessor]
     research_agent[research_agent]
     router_research_flow_line_15_fanout_1{{router_research_flow_line_15_fanout_1}}
@@ -15,4 +14,3 @@ flowchart TD
     fanin_research_flow_line_15 --> post_processor
     router_research_flow_line_15_fanout_1 --> research_agent
     research_agent --> fanin_research_flow_line_15
-    post_processor --> end_research_flow

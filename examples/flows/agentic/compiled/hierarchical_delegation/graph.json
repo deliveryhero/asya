@@ -3,61 +3,55 @@
   "nodes": [
     {
       "id": "api_specialist",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "api_specialist",
       "is_generated": false
     },
     {
       "id": "content_generalist",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "content_generalist",
       "is_generated": false
     },
     {
       "id": "content_team_lead",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "content_team_lead",
       "is_generated": false
     },
     {
       "id": "data_generalist",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "data_generalist",
       "is_generated": false
     },
     {
       "id": "data_team_lead",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "data_team_lead",
       "is_generated": false
     },
     {
       "id": "editor",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "editor",
       "is_generated": false
     },
     {
-      "id": "end_hierarchical_delegation",
-      "flow_role": "exit",
-      "label": "end_hierarchical_delegation",
-      "is_generated": true
-    },
-    {
       "id": "final_assembler",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "final_assembler",
       "is_generated": false
     },
     {
       "id": "generalist",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "generalist",
       "is_generated": false
     },
     {
       "id": "root_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "root_agent",
       "is_generated": false
     },
@@ -99,19 +93,19 @@
     },
     {
       "id": "sql_specialist",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "sql_specialist",
       "is_generated": false
     },
     {
       "id": "start_hierarchical_delegation",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_hierarchical_delegation",
       "is_generated": true
     },
     {
       "id": "writer",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "writer",
       "is_generated": false
     }
@@ -234,42 +228,6 @@
     {
       "from": "generalist",
       "to": "final_assembler",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "api_specialist",
-      "to": "end_hierarchical_delegation",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "content_generalist",
-      "to": "end_hierarchical_delegation",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "data_generalist",
-      "to": "end_hierarchical_delegation",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "editor",
-      "to": "end_hierarchical_delegation",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "final_assembler",
-      "to": "end_hierarchical_delegation",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "writer",
-      "to": "end_hierarchical_delegation",
       "label": null,
       "type": "continuation"
     }

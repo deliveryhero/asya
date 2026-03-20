@@ -2,14 +2,13 @@ digraph "complex_combined_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_complex_combined_flow [label="end_complex_combined_flow", fillcolor=palegreen];
-    handler_default [label="handler_default", fillcolor=lightblue];
-    handler_error [label="handler_error", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_default [label="handler_default", fillcolor=palegreen];
+    handler_error [label="handler_error", fillcolor=palegreen];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
-    handler_type_b [label="handler_type_b", fillcolor=lightblue];
+    handler_type_b [label="handler_type_b", fillcolor=palegreen];
     router_complex_combined_flow_line_15_if_8 [label="router_complex_combined_flow_line_15_if_8", fillcolor=wheat];
     router_complex_combined_flow_line_19_if_7 [label="router_complex_combined_flow_line_19_if_7", fillcolor=wheat];
     router_complex_combined_flow_line_20_seq_4 [label="router_complex_combined_flow_line_20_seq_4", fillcolor=wheat];
@@ -39,8 +38,4 @@ digraph "complex_combined_flow" {
     router_complex_combined_flow_line_21_while_1 -> handler_finalize;
     handler_type_a -> handler_finalize;
     router_complex_combined_flow_line_34_if_5 -> handler_finalize;
-    handler_default -> end_complex_combined_flow;
-    handler_error -> end_complex_combined_flow;
-    handler_finalize -> end_complex_combined_flow;
-    handler_type_b -> end_complex_combined_flow;
 }

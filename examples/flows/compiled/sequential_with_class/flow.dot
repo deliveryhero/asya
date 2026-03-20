@@ -2,14 +2,12 @@ digraph "class_instantiation_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_class_instantiation_flow [label="end_class_instantiation_flow", fillcolor=palegreen];
     sequential_with_class_DataPreprocessor_clean [label="DataPreprocessor.clean", fillcolor=lightblue];
-    sequential_with_class_MLModel_predict [label="MLModel.predict", fillcolor=lightblue];
+    sequential_with_class_MLModel_predict [label="MLModel.predict", fillcolor=palegreen];
     start_class_instantiation_flow [label="start_class_instantiation_flow", fillcolor=palegreen];
     transformation [label="transformation", fillcolor=lightblue];
 
     start_class_instantiation_flow -> sequential_with_class_DataPreprocessor_clean;
     sequential_with_class_DataPreprocessor_clean -> transformation;
     transformation -> sequential_with_class_MLModel_predict;
-    sequential_with_class_MLModel_predict -> end_class_instantiation_flow;
 }

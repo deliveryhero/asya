@@ -101,11 +101,6 @@ async def router_test_nested_flow_line_9_if_7(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def end_test_nested_flow(payload: dict):
-    """Exitpoint for flow 'test_nested_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

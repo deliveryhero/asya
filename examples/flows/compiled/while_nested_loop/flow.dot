@@ -2,9 +2,8 @@ digraph "nested_loop_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_nested_loop_flow [label="end_nested_loop_flow", fillcolor=palegreen];
-    finalize_loop_i [label="finalize_loop_i", fillcolor=lightblue];
-    finalize_loop_j [label="finalize_loop_j", fillcolor=lightblue];
+    finalize_loop_i [label="finalize_loop_i", fillcolor=palegreen];
+    finalize_loop_j [label="finalize_loop_j", fillcolor=palegreen];
     initialize [label="initialize", fillcolor=lightblue];
     process_item [label="process_item", fillcolor=lightblue];
     router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5", fillcolor=wheat];
@@ -25,6 +24,4 @@ digraph "nested_loop_flow" {
     router_nested_loop_flow_line_15_seq_5 -> router_nested_loop_flow_line_16_while_1;
     process_item -> router_nested_loop_flow_line_19_while_2;
     router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_16_while_1;
-    finalize_loop_i -> end_nested_loop_flow;
-    finalize_loop_j -> end_nested_loop_flow;
 }

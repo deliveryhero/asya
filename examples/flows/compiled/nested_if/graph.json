@@ -2,44 +2,38 @@
   "flow_name": "nested_if_flow",
   "nodes": [
     {
-      "id": "end_nested_if_flow",
-      "flow_role": "exit",
-      "label": "end_nested_if_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_a_x",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_a_x",
       "is_generated": false
     },
     {
       "id": "handler_a_y",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_a_y",
       "is_generated": false
     },
     {
       "id": "handler_b_x",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_b_x",
       "is_generated": false
     },
     {
       "id": "handler_b_y",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_b_y",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_validate",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_validate",
       "is_generated": false
     },
@@ -87,7 +81,7 @@
     },
     {
       "id": "start_nested_if_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_nested_if_flow",
       "is_generated": true
     }
@@ -186,36 +180,6 @@
     {
       "from": "router_nested_if_flow_line_28_seq_5",
       "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_a_x",
-      "to": "end_nested_if_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_a_y",
-      "to": "end_nested_if_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_b_x",
-      "to": "end_nested_if_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_b_y",
-      "to": "end_nested_if_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_finalize",
-      "to": "end_nested_if_flow",
       "label": null,
       "type": "continuation"
     }

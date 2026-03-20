@@ -2,14 +2,13 @@ digraph "resilient_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_resilient_pipeline [label="end_resilient_pipeline", fillcolor=palegreen];
-    handle_known_error [label="handle_known_error", fillcolor=lightblue];
-    handle_unknown_error [label="handle_unknown_error", fillcolor=lightblue];
+    handle_known_error [label="handle_known_error", fillcolor=palegreen];
+    handle_unknown_error [label="handle_unknown_error", fillcolor=palegreen];
     risky_operation [label="risky_operation", fillcolor=lightblue];
     router_resilient_pipeline_line_10_seq [label="router_resilient_pipeline_line_10_seq", fillcolor=wheat];
     router_resilient_pipeline_line_4_except_dispatch_0 [label="router_resilient_pipeline_line_4_except_dispatch_0", fillcolor=wheat];
     router_resilient_pipeline_line_4_try_enter_0 [label="router_resilient_pipeline_line_4_try_enter_0", fillcolor=wheat];
-    router_resilient_pipeline_line_4_try_exit_0 [label="router_resilient_pipeline_line_4_try_exit_0", fillcolor=wheat];
+    router_resilient_pipeline_line_4_try_exit_0 [label="router_resilient_pipeline_line_4_try_exit_0", fillcolor=palegreen];
     router_resilient_pipeline_line_7_seq [label="router_resilient_pipeline_line_7_seq", fillcolor=wheat];
     start_resilient_pipeline [label="start_resilient_pipeline", fillcolor=palegreen];
 
@@ -20,7 +19,4 @@ digraph "resilient_pipeline" {
     risky_operation -> router_resilient_pipeline_line_4_try_exit_0;
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_7_seq [label="'ValueError' in _all_types"];
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_10_seq [label="not ('ValueError' in _all_types)"];
-    handle_known_error -> end_resilient_pipeline;
-    handle_unknown_error -> end_resilient_pipeline;
-    router_resilient_pipeline_line_4_try_exit_0 -> end_resilient_pipeline;
 }

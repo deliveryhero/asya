@@ -117,23 +117,19 @@ def project_with_contexts():
 
 @pytest.fixture()
 def sequential_routers():
-    """Routers for a simple sequential flow: start -> handler_a -> handler_b -> end."""
+    """Routers for a simple sequential flow: start -> handler_a -> handler_b."""
     return [
         Router(
             name="start_my_flow",
             lineno=0,
-            true_branch_actors=["handler_a", "handler_b", "end_my_flow"],
-        ),
-        Router(
-            name="end_my_flow",
-            lineno=0,
+            true_branch_actors=["handler_a", "handler_b"],
         ),
     ]
 
 
 @pytest.fixture()
 def router_code():
-    return "# Auto-generated\ndef start_my_flow(payload):\n    yield payload\n\ndef end_my_flow(payload):\n    yield payload\n"
+    return "# Auto-generated\ndef start_my_flow(payload):\n    yield payload\n"
 
 
 def _make_templater(flow_name, routers, router_code, project, template_path, flow_function=None):

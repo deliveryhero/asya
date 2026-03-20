@@ -2,11 +2,10 @@ digraph "rag_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_rag_pipeline [label="end_rag_pipeline", fillcolor=palegreen];
-    fact_checker [label="fact_checker", fillcolor=lightblue];
+    fact_checker [label="fact_checker", fillcolor=palegreen];
     generator [label="generator", fillcolor=lightblue];
     query_analyzer [label="query_analyzer", fillcolor=lightblue];
-    query_refiner [label="query_refiner", fillcolor=lightblue];
+    query_refiner [label="query_refiner", fillcolor=palegreen];
     relevance_evaluator [label="relevance_evaluator", fillcolor=lightblue];
     retriever [label="retriever", fillcolor=lightblue];
     router_rag_pipeline_line_50_seq_5 [label="router_rag_pipeline_line_50_seq_5", fillcolor=wheat];
@@ -29,6 +28,4 @@ digraph "rag_pipeline" {
     router_rag_pipeline_line_50_seq_5 -> query_analyzer;
     query_analyzer -> router_rag_pipeline_line_56_while_1;
     router_rag_pipeline_line_66_if_3 -> router_rag_pipeline_line_56_while_1;
-    fact_checker -> end_rag_pipeline;
-    query_refiner -> end_rag_pipeline;
 }

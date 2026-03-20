@@ -3,31 +3,25 @@
   "nodes": [
     {
       "id": "call_another_api",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "call_another_api",
       "is_generated": false
     },
     {
       "id": "call_external_api",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "call_external_api",
       "is_generated": false
     },
     {
-      "id": "end_retry_pipeline",
-      "flow_role": "exit",
-      "label": "end_retry_pipeline",
-      "is_generated": true
-    },
-    {
       "id": "log_retry",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "log_retry",
       "is_generated": false
     },
     {
       "id": "prepare_request",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "prepare_request",
       "is_generated": false
     },
@@ -51,7 +45,7 @@
     },
     {
       "id": "router_retry_pipeline_line_18_reraise_0",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_retry_pipeline_line_18_reraise_0",
       "is_generated": true
     },
@@ -63,13 +57,13 @@
     },
     {
       "id": "router_retry_pipeline_line_18_try_exit_0",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_retry_pipeline_line_18_try_exit_0",
       "is_generated": true
     },
     {
       "id": "start_retry_pipeline",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_retry_pipeline",
       "is_generated": true
     }
@@ -132,24 +126,6 @@
     {
       "from": "router_retry_pipeline_line_18_try_enter_0",
       "to": "router_retry_pipeline_line_16_while_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "log_retry",
-      "to": "end_retry_pipeline",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_retry_pipeline_line_18_reraise_0",
-      "to": "end_retry_pipeline",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_retry_pipeline_line_18_try_exit_0",
-      "to": "end_retry_pipeline",
       "label": null,
       "type": "continuation"
     }

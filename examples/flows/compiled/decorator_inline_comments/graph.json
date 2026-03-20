@@ -3,19 +3,13 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "classifier",
       "is_generated": false
     },
     {
-      "id": "end_decorator_inline_comments_flow",
-      "flow_role": "exit",
-      "label": "end_decorator_inline_comments_flow",
-      "is_generated": true
-    },
-    {
       "id": "fast_handler",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "fast_handler",
       "is_generated": false
     },
@@ -33,13 +27,13 @@
     },
     {
       "id": "standard_handler",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "standard_handler",
       "is_generated": false
     },
     {
       "id": "start_decorator_inline_comments_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_decorator_inline_comments_flow",
       "is_generated": true
     }
@@ -72,18 +66,6 @@
     {
       "from": "classifier",
       "to": "router_decorator_inline_comments_flow_line_18_if_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "fast_handler",
-      "to": "end_decorator_inline_comments_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "standard_handler",
-      "to": "end_decorator_inline_comments_flow",
       "label": null,
       "type": "continuation"
     }

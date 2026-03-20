@@ -2,20 +2,14 @@
   "flow_name": "ingester",
   "nodes": [
     {
-      "id": "end_ingester",
-      "flow_role": "exit",
-      "label": "end_ingester",
-      "is_generated": true
-    },
-    {
       "id": "router_ingester_line_181_seq_1",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_ingester_line_181_seq_1",
       "is_generated": true
     },
     {
       "id": "start_ingester",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_ingester",
       "is_generated": true
     }
@@ -26,12 +20,6 @@
       "to": "router_ingester_line_181_seq_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "router_ingester_line_181_seq_1",
-      "to": "end_ingester",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

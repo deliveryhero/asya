@@ -113,32 +113,6 @@ class TestStartRouter:
         assert ".route.next[:0]" in start
 
 
-class TestEndRouter:
-    """End router clears the route."""
-
-    def test_end_router_exists(self):
-        code = _compile("""
-            @flow
-            def my_flow(p: dict) -> dict:
-                p = handler_a(p)
-                p = handler_b(p)
-                return p
-        """)
-        assert "end_my_flow" in _func_names(code)
-
-    def test_end_router_sets_empty_route(self):
-        code = _compile("""
-            @flow
-            def my_flow(p: dict) -> dict:
-                p = handler_a(p)
-                p = handler_b(p)
-                return p
-        """)
-        end = _get_func_source(code, "end_my_flow")
-        assert ".route.next" in end
-        assert "[]" in end
-
-
 class TestSequentialRouters:
     """Mutations create sequence routers."""
 
@@ -438,7 +412,7 @@ class TestAsyncFlows:
         """)
         ast.parse(code)
 
-    def test_async_flow_has_start_end(self):
+    def test_async_flow_has_start(self):
         code = _compile("""
             @flow
             async def my_flow(p: dict) -> dict:
@@ -448,4 +422,3 @@ class TestAsyncFlows:
         """)
         funcs = _func_names(code)
         assert "start_my_flow" in funcs
-        assert "end_my_flow" in funcs

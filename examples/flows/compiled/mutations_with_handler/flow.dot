@@ -2,14 +2,12 @@ digraph "mutations_with_handler_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_mutations_with_handler_flow [label="end_mutations_with_handler_flow", fillcolor=palegreen];
     handler_process [label="handler_process", fillcolor=lightblue];
     router_mutations_with_handler_flow_line_13_seq_2 [label="router_mutations_with_handler_flow_line_13_seq_2", fillcolor=wheat];
-    router_mutations_with_handler_flow_line_17_seq_1 [label="router_mutations_with_handler_flow_line_17_seq_1", fillcolor=wheat];
+    router_mutations_with_handler_flow_line_17_seq_1 [label="router_mutations_with_handler_flow_line_17_seq_1", fillcolor=palegreen];
     start_mutations_with_handler_flow [label="start_mutations_with_handler_flow", fillcolor=palegreen];
 
     start_mutations_with_handler_flow -> router_mutations_with_handler_flow_line_13_seq_2;
     router_mutations_with_handler_flow_line_13_seq_2 -> handler_process;
     handler_process -> router_mutations_with_handler_flow_line_17_seq_1;
-    router_mutations_with_handler_flow_line_17_seq_1 -> end_mutations_with_handler_flow;
 }

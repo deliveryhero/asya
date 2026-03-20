@@ -3,49 +3,43 @@
   "nodes": [
     {
       "id": "accuracy_scorer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "accuracy_scorer",
       "is_generated": false
     },
     {
       "id": "adk_llm_auditor.QualityScorer.aggregate",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "adk_llm_auditor.QualityScorer.aggregate",
       "is_generated": false
     },
     {
       "id": "completeness_scorer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "completeness_scorer",
       "is_generated": false
     },
     {
       "id": "critique",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "critique",
       "is_generated": false
     },
     {
       "id": "deep_reviser",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "deep_reviser",
       "is_generated": false
     },
     {
-      "id": "end_llm_auditor",
-      "flow_role": "exit",
-      "label": "end_llm_auditor",
-      "is_generated": true
-    },
-    {
       "id": "extract_claims",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "extract_claims",
       "is_generated": false
     },
     {
       "id": "fallback_generate",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "fallback_generate",
       "is_generated": false
     },
@@ -63,19 +57,19 @@
     },
     {
       "id": "finalize",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "finalize",
       "is_generated": false
     },
     {
       "id": "llm_generate",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "llm_generate",
       "is_generated": false
     },
     {
       "id": "reviser",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "reviser",
       "is_generated": false
     },
@@ -87,7 +81,7 @@
     },
     {
       "id": "router_llm_auditor_line_42_seq",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_42_seq",
       "is_generated": true
     },
@@ -141,7 +135,7 @@
     },
     {
       "id": "router_llm_auditor_line_71_seq",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_71_seq",
       "is_generated": true
     },
@@ -165,7 +159,7 @@
     },
     {
       "id": "router_llm_auditor_line_87_seq",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_llm_auditor_line_87_seq",
       "is_generated": true
     },
@@ -177,7 +171,7 @@
     },
     {
       "id": "start_llm_auditor",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_llm_auditor",
       "is_generated": true
     }
@@ -384,36 +378,6 @@
     {
       "from": "router_llm_auditor_line_50_try_enter_0",
       "to": "router_llm_auditor_line_46_loop_back_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "fallback_generate",
-      "to": "end_llm_auditor",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "finalize",
-      "to": "end_llm_auditor",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_42_seq",
-      "to": "end_llm_auditor",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_71_seq",
-      "to": "end_llm_auditor",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_87_seq",
-      "to": "end_llm_auditor",
       "label": null,
       "type": "continuation"
     }

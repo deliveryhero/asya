@@ -2,8 +2,7 @@ digraph "decorator_callsite_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_decorator_callsite_flow [label="end_decorator_callsite_flow", fillcolor=palegreen];
-    enricher [label="enricher", fillcolor=lightblue];
+    enricher [label="enricher", fillcolor=palegreen];
     router_decorator_callsite_flow_line_29_seq_1 [label="router_decorator_callsite_flow_line_29_seq_1", fillcolor=wheat];
     start_decorator_callsite_flow [label="start_decorator_callsite_flow", fillcolor=palegreen];
     validator [label="validator", fillcolor=lightblue];
@@ -11,5 +10,4 @@ digraph "decorator_callsite_flow" {
     start_decorator_callsite_flow -> router_decorator_callsite_flow_line_29_seq_1;
     router_decorator_callsite_flow_line_29_seq_1 -> validator;
     validator -> enricher;
-    enricher -> end_decorator_callsite_flow;
 }

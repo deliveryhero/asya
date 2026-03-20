@@ -2,56 +2,50 @@
   "flow_name": "complex_flow",
   "nodes": [
     {
-      "id": "end_complex_flow",
-      "flow_role": "exit",
-      "label": "end_complex_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_check_quality",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_check_quality",
       "is_generated": false
     },
     {
       "id": "handler_enrich_data",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_enrich_data",
       "is_generated": false
     },
     {
       "id": "handler_error",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_error",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_preprocess",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_preprocess",
       "is_generated": false
     },
     {
       "id": "handler_retry_handler",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_retry_handler",
       "is_generated": false
     },
     {
       "id": "handler_transform_batch",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_transform_batch",
       "is_generated": false
     },
     {
       "id": "handler_validate",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_validate",
       "is_generated": false
     },
@@ -93,7 +87,7 @@
     },
     {
       "id": "start_complex_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_complex_flow",
       "is_generated": true
     }
@@ -198,12 +192,6 @@
     {
       "from": "handler_retry_handler",
       "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_error",
-      "to": "end_complex_flow",
       "label": null,
       "type": "continuation"
     }

@@ -1,8 +1,7 @@
 flowchart TD
     %% Flow: parallel_sectioning
 
-    aggregator[aggregator]
-    end_parallel_sectioning([end_parallel_sectioning])
+    aggregator([aggregator])
     entity_recognizer[entity_recognizer]
     fanin_parallel_sectioning_line_48[fanin_parallel_sectioning_line_48]
     preprocessor[preprocessor]
@@ -21,4 +20,3 @@ flowchart TD
     topic_extractor --> fanin_parallel_sectioning_line_48
     router_parallel_sectioning_line_48_fanout_1 --> entity_recognizer
     entity_recognizer --> fanin_parallel_sectioning_line_48
-    aggregator --> end_parallel_sectioning

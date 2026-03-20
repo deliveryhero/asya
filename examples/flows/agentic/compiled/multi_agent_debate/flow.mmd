@@ -5,10 +5,9 @@ flowchart TD
     debater_a[debater_a]
     debater_b[debater_b]
     debater_c[debater_c]
-    end_multi_agent_debate([end_multi_agent_debate])
     fanin_multi_agent_debate_line_57[fanin_multi_agent_debate_line_57]
     fanin_multi_agent_debate_line_74[fanin_multi_agent_debate_line_74]
-    final_judge[final_judge]
+    final_judge([final_judge])
     revise_a[revise_a]
     revise_b[revise_b]
     revise_c[revise_c]
@@ -46,5 +45,3 @@ flowchart TD
     debater_c --> fanin_multi_agent_debate_line_57
     router_multi_agent_debate_line_55_seq_7 --> router_multi_agent_debate_line_57_fanout_6
     router_multi_agent_debate_line_68_if_4 --> router_multi_agent_debate_line_63_while_1
-    fanin_multi_agent_debate_line_74 --> end_multi_agent_debate
-    final_judge --> end_multi_agent_debate

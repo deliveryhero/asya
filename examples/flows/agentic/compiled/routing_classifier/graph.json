@@ -3,37 +3,31 @@
   "nodes": [
     {
       "id": "account_agent",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "account_agent",
       "is_generated": false
     },
     {
       "id": "billing_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "billing_agent",
       "is_generated": false
     },
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "classifier",
       "is_generated": false
     },
     {
-      "id": "end_routing_classifier",
-      "flow_role": "exit",
-      "label": "end_routing_classifier",
-      "is_generated": true
-    },
-    {
       "id": "format_reply",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "format_reply",
       "is_generated": false
     },
     {
       "id": "general_agent",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "general_agent",
       "is_generated": false
     },
@@ -57,13 +51,13 @@
     },
     {
       "id": "start_routing_classifier",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_routing_classifier",
       "is_generated": true
     },
     {
       "id": "technical_agent",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "technical_agent",
       "is_generated": false
     }
@@ -132,24 +126,6 @@
     {
       "from": "router_routing_classifier_line_51_if_1",
       "to": "format_reply",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "account_agent",
-      "to": "end_routing_classifier",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "format_reply",
-      "to": "end_routing_classifier",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "general_agent",
-      "to": "end_routing_classifier",
       "label": null,
       "type": "continuation"
     }

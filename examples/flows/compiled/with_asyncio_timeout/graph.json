@@ -2,20 +2,14 @@
   "flow_name": "document_pipeline",
   "nodes": [
     {
-      "id": "end_document_pipeline",
-      "flow_role": "exit",
-      "label": "end_document_pipeline",
-      "is_generated": true
-    },
-    {
       "id": "language_detector",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "language_detector",
       "is_generated": false
     },
     {
       "id": "ocr_extractor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "ocr_extractor",
       "is_generated": false
     },
@@ -33,25 +27,25 @@
     },
     {
       "id": "router_document_pipeline_line_28_seq_1",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_document_pipeline_line_28_seq_1",
       "is_generated": true
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "sentiment_analyzer",
       "is_generated": false
     },
     {
       "id": "start_document_pipeline",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_document_pipeline",
       "is_generated": true
     },
     {
       "id": "translator",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "translator",
       "is_generated": false
     }
@@ -102,12 +96,6 @@
     {
       "from": "language_detector",
       "to": "router_document_pipeline_line_24_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_document_pipeline_line_28_seq_1",
-      "to": "end_document_pipeline",
       "label": null,
       "type": "continuation"
     }

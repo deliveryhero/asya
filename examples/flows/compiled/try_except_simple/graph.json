@@ -2,14 +2,8 @@
   "flow_name": "order_processing",
   "nodes": [
     {
-      "id": "end_order_processing",
-      "flow_role": "exit",
-      "label": "end_order_processing",
-      "is_generated": true
-    },
-    {
       "id": "notify_rejection",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "notify_rejection",
       "is_generated": false
     },
@@ -21,7 +15,7 @@
     },
     {
       "id": "router_order_processing_line_4_reraise_0",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_order_processing_line_4_reraise_0",
       "is_generated": true
     },
@@ -33,7 +27,7 @@
     },
     {
       "id": "router_order_processing_line_4_try_exit_0",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_order_processing_line_4_try_exit_0",
       "is_generated": true
     },
@@ -45,13 +39,13 @@
     },
     {
       "id": "start_order_processing",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_order_processing",
       "is_generated": true
     },
     {
       "id": "validate_order",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "validate_order",
       "is_generated": false
     }
@@ -92,24 +86,6 @@
       "to": "router_order_processing_line_4_reraise_0",
       "label": "not ('ValueError' in _all_types)",
       "type": "prepend"
-    },
-    {
-      "from": "notify_rejection",
-      "to": "end_order_processing",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_order_processing_line_4_reraise_0",
-      "to": "end_order_processing",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_order_processing_line_4_try_exit_0",
-      "to": "end_order_processing",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

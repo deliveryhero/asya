@@ -1,7 +1,6 @@
 flowchart TD
     %% Flow: multi_stage_flow
 
-    end_multi_stage_flow([end_multi_stage_flow])
     fanin_multi_stage_flow_line_15[fanin_multi_stage_flow_line_15]
     fanin_multi_stage_flow_line_16[fanin_multi_stage_flow_line_16]
     research_agent[research_agent]
@@ -9,7 +8,7 @@ flowchart TD
     router_multi_stage_flow_line_15_fanout_2{{router_multi_stage_flow_line_15_fanout_2}}
     router_multi_stage_flow_line_16_fanout_1{{router_multi_stage_flow_line_16_fanout_1}}
     start_multi_stage_flow([start_multi_stage_flow])
-    summarizer[summarizer]
+    summarizer([summarizer])
 
     start_multi_stage_flow --> router_multi_stage_flow_line_15_fanout_2
     router_multi_stage_flow_line_16_fanout_1 -->|fanout: p['research']| fanin_multi_stage_flow_line_16
@@ -20,4 +19,3 @@ flowchart TD
     fanin_multi_stage_flow_line_15 --> router_multi_stage_flow_line_16_fanout_1
     router_multi_stage_flow_line_15_fanout_2 --> research_agent
     research_agent --> fanin_multi_stage_flow_line_15
-    summarizer --> end_multi_stage_flow

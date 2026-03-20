@@ -3,8 +3,7 @@ digraph "loop_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     check_threshold [label="check_threshold", fillcolor=lightblue];
-    end_loop_flow [label="end_loop_flow", fillcolor=palegreen];
-    finalize_loop [label="finalize_loop", fillcolor=lightblue];
+    finalize_loop [label="finalize_loop", fillcolor=palegreen];
     initialize [label="initialize", fillcolor=lightblue];
     process_abort [label="process_abort", fillcolor=lightblue];
     process_item [label="process_item", fillcolor=lightblue];
@@ -32,5 +31,4 @@ digraph "loop_flow" {
     router_loop_flow_line_16_while_1 -> finalize_loop [label="not (p['iteration'] < p['max_iterations'])"];
     router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
     router_loop_flow_line_20_if_5 -> router_loop_flow_line_16_while_1;
-    finalize_loop -> end_loop_flow;
 }

@@ -2,44 +2,38 @@
   "flow_name": "conditional_nested_flow",
   "nodes": [
     {
-      "id": "end_conditional_nested_flow",
-      "flow_role": "exit",
-      "label": "end_conditional_nested_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_a",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_a",
       "is_generated": false
     },
     {
       "id": "handler_b",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_b",
       "is_generated": false
     },
     {
       "id": "handler_c",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_c",
       "is_generated": false
     },
     {
       "id": "handler_d",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_d",
       "is_generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_validate_input",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_validate_input",
       "is_generated": false
     },
@@ -69,7 +63,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_18_seq_3",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_conditional_nested_flow_line_18_seq_3",
       "is_generated": true
     },
@@ -87,7 +81,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_25_seq_7",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_conditional_nested_flow_line_25_seq_7",
       "is_generated": true
     },
@@ -99,7 +93,7 @@
     },
     {
       "id": "router_conditional_nested_flow_line_29_seq_1",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_conditional_nested_flow_line_29_seq_1",
       "is_generated": true
     },
@@ -111,7 +105,7 @@
     },
     {
       "id": "start_conditional_nested_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_conditional_nested_flow",
       "is_generated": true
     }
@@ -228,30 +222,6 @@
     {
       "from": "router_conditional_nested_flow_line_12_if_9",
       "to": "router_conditional_nested_flow_line_27_seq_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_c",
-      "to": "end_conditional_nested_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_conditional_nested_flow_line_18_seq_3",
-      "to": "end_conditional_nested_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_conditional_nested_flow_line_25_seq_7",
-      "to": "end_conditional_nested_flow",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_conditional_nested_flow_line_29_seq_1",
-      "to": "end_conditional_nested_flow",
       "label": null,
       "type": "continuation"
     }

@@ -1,8 +1,7 @@
 flowchart TD
     %% Flow: while_mutations_in_loop_flow
 
-    end_while_mutations_in_loop_flow([end_while_mutations_in_loop_flow])
-    handler_finalize[handler_finalize]
+    handler_finalize([handler_finalize])
     handler_init[handler_init]
     handler_process[handler_process]
     router_while_mutations_in_loop_flow_line_13_seq_4{{router_while_mutations_in_loop_flow_line_13_seq_4}}
@@ -19,4 +18,3 @@ flowchart TD
     router_while_mutations_in_loop_flow_line_15_while_1 -->|not (p['i'] < p['max_iterations'])| handler_finalize
     router_while_mutations_in_loop_flow_line_13_seq_4 --> router_while_mutations_in_loop_flow_line_15_while_1
     router_while_mutations_in_loop_flow_line_20_seq_2 --> router_while_mutations_in_loop_flow_line_15_while_1
-    handler_finalize --> end_while_mutations_in_loop_flow

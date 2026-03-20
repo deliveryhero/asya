@@ -2,26 +2,20 @@
   "flow_name": "evaluator_optimizer",
   "nodes": [
     {
-      "id": "end_evaluator_optimizer",
-      "flow_role": "exit",
-      "label": "end_evaluator_optimizer",
-      "is_generated": true
-    },
-    {
       "id": "evaluator",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "evaluator",
       "is_generated": false
     },
     {
       "id": "generator",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "generator",
       "is_generated": false
     },
     {
       "id": "polisher",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "polisher",
       "is_generated": false
     },
@@ -57,7 +51,7 @@
     },
     {
       "id": "start_evaluator_optimizer",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_evaluator_optimizer",
       "is_generated": true
     }
@@ -120,12 +114,6 @@
     {
       "from": "router_evaluator_optimizer_line_68_if_3",
       "to": "router_evaluator_optimizer_line_58_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "polisher",
-      "to": "end_evaluator_optimizer",
       "label": null,
       "type": "continuation"
     }

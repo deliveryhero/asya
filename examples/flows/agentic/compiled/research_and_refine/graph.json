@@ -3,25 +3,19 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "critic",
       "is_generated": false
     },
     {
-      "id": "end_research_and_refine",
-      "flow_role": "exit",
-      "label": "end_research_and_refine",
-      "is_generated": true
-    },
-    {
       "id": "refine_query",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "refine_query",
       "is_generated": false
     },
     {
       "id": "researcher",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "researcher",
       "is_generated": false
     },
@@ -57,13 +51,13 @@
     },
     {
       "id": "start_research_and_refine",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_research_and_refine",
       "is_generated": true
     },
     {
       "id": "write_report",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "write_report",
       "is_generated": false
     }
@@ -132,12 +126,6 @@
     {
       "from": "router_research_and_refine_line_55_if_3",
       "to": "router_research_and_refine_line_50_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "write_report",
-      "to": "end_research_and_refine",
       "label": null,
       "type": "continuation"
     }

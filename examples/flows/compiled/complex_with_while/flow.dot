@@ -2,10 +2,9 @@ digraph "complex_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_complex_flow [label="end_complex_flow", fillcolor=palegreen];
     handler_check_quality [label="handler_check_quality", fillcolor=lightblue];
     handler_enrich_data [label="handler_enrich_data", fillcolor=lightblue];
-    handler_error [label="handler_error", fillcolor=lightblue];
+    handler_error [label="handler_error", fillcolor=palegreen];
     handler_finalize [label="handler_finalize", fillcolor=lightblue];
     handler_preprocess [label="handler_preprocess", fillcolor=lightblue];
     handler_retry_handler [label="handler_retry_handler", fillcolor=lightblue];
@@ -36,5 +35,4 @@ digraph "complex_flow" {
     handler_finalize -> router_complex_flow_line_22_while_1;
     router_complex_flow_line_29_if_2 -> router_complex_flow_line_22_while_1;
     handler_retry_handler -> handler_finalize;
-    handler_error -> end_complex_flow;
 }

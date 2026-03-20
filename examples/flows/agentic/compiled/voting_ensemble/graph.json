@@ -3,27 +3,21 @@
   "nodes": [
     {
       "id": "analytical_writer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "analytical_writer",
       "is_generated": false
     },
     {
       "id": "concise_writer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "concise_writer",
       "is_generated": false
     },
     {
       "id": "creative_writer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "creative_writer",
       "is_generated": false
-    },
-    {
-      "id": "end_voting_ensemble",
-      "flow_role": "exit",
-      "label": "end_voting_ensemble",
-      "is_generated": true
     },
     {
       "id": "fanin_voting_ensemble_line_44",
@@ -33,7 +27,7 @@
     },
     {
       "id": "judge",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "judge",
       "is_generated": false
     },
@@ -45,7 +39,7 @@
     },
     {
       "id": "start_voting_ensemble",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_voting_ensemble",
       "is_generated": true
     }
@@ -102,12 +96,6 @@
     {
       "from": "concise_writer",
       "to": "fanin_voting_ensemble_line_44",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "judge",
-      "to": "end_voting_ensemble",
       "label": null,
       "type": "continuation"
     }

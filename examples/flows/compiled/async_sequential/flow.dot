@@ -3,11 +3,9 @@ digraph "llm_auditor_flow" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     critic [label="critic", fillcolor=lightblue];
-    end_llm_auditor_flow [label="end_llm_auditor_flow", fillcolor=palegreen];
-    reviser [label="reviser", fillcolor=lightblue];
+    reviser [label="reviser", fillcolor=palegreen];
     start_llm_auditor_flow [label="start_llm_auditor_flow", fillcolor=palegreen];
 
     start_llm_auditor_flow -> critic;
     critic -> reviser;
-    reviser -> end_llm_auditor_flow;
 }

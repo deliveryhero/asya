@@ -2,7 +2,6 @@ digraph "plan_and_execute" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_plan_and_execute [label="end_plan_and_execute", fillcolor=palegreen];
     executor [label="executor", fillcolor=lightblue];
     planner [label="planner", fillcolor=lightblue];
     re_planner [label="re_planner", fillcolor=lightblue];
@@ -11,7 +10,7 @@ digraph "plan_and_execute" {
     router_plan_and_execute_line_59_if_3 [label="router_plan_and_execute_line_59_if_3", fillcolor=wheat];
     router_plan_and_execute_line_62_seq_1 [label="router_plan_and_execute_line_62_seq_1", fillcolor=wheat];
     start_plan_and_execute [label="start_plan_and_execute", fillcolor=palegreen];
-    synthesizer [label="synthesizer", fillcolor=lightblue];
+    synthesizer [label="synthesizer", fillcolor=palegreen];
 
     start_plan_and_execute -> router_plan_and_execute_line_49_seq_4;
     router_plan_and_execute_line_62_seq_1 -> synthesizer;
@@ -22,5 +21,4 @@ digraph "plan_and_execute" {
     router_plan_and_execute_line_49_seq_4 -> planner;
     planner -> router_plan_and_execute_line_54_while_2;
     re_planner -> router_plan_and_execute_line_54_while_2;
-    synthesizer -> end_plan_and_execute;
 }

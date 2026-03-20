@@ -2,9 +2,8 @@ flowchart TD
     %% Flow: human_in_the_loop
 
     approval_gate[approval_gate]
-    end_human_in_the_loop([end_human_in_the_loop])
     executor[executor]
-    notifier[notifier]
+    notifier([notifier])
     proposal_generator[proposal_generator]
     revision_agent[revision_agent]
     router_human_in_the_loop_line_58_seq_7{{router_human_in_the_loop_line_58_seq_7}}
@@ -30,4 +29,3 @@ flowchart TD
     router_human_in_the_loop_line_58_seq_7 --> router_human_in_the_loop_line_60_while_1
     revision_agent --> router_human_in_the_loop_line_79_if_3
     router_human_in_the_loop_line_70_if_5 --> router_human_in_the_loop_line_60_while_1
-    notifier --> end_human_in_the_loop

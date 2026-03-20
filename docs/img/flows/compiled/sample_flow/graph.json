@@ -2,32 +2,26 @@
   "flow_name": "sample_flow",
   "nodes": [
     {
-      "id": "end_sample_flow",
-      "flow_role": "exit",
-      "label": "end_sample_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_setup",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_setup",
       "is_generated": false
     },
     {
       "id": "handler_type_a",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_type_a",
       "is_generated": false
     },
     {
       "id": "handler_type_b",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_type_b",
       "is_generated": false
     },
@@ -51,7 +45,7 @@
     },
     {
       "id": "start_sample_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_sample_flow",
       "is_generated": true
     }
@@ -102,12 +96,6 @@
     {
       "from": "handler_type_a",
       "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_finalize",
-      "to": "end_sample_flow",
       "label": null,
       "type": "continuation"
     }

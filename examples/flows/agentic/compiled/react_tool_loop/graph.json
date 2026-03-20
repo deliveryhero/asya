@@ -3,31 +3,25 @@
   "nodes": [
     {
       "id": "calculator",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "calculator",
       "is_generated": false
     },
     {
       "id": "code_exec",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "code_exec",
       "is_generated": false
     },
     {
-      "id": "end_react_tool_loop",
-      "flow_role": "exit",
-      "label": "end_react_tool_loop",
-      "is_generated": true
-    },
-    {
       "id": "format_response",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "format_response",
       "is_generated": false
     },
     {
       "id": "llm_reason",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "llm_reason",
       "is_generated": false
     },
@@ -81,13 +75,13 @@
     },
     {
       "id": "start_react_tool_loop",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_react_tool_loop",
       "is_generated": true
     },
     {
       "id": "web_search",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "web_search",
       "is_generated": false
     }
@@ -198,12 +192,6 @@
     {
       "from": "router_react_tool_loop_line_53_if",
       "to": "router_react_tool_loop_line_46_loop_back_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "format_response",
-      "to": "end_react_tool_loop",
       "label": null,
       "type": "continuation"
     }

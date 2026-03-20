@@ -7,16 +7,15 @@ digraph "llm_auditor" {
     completeness_scorer [label="completeness_scorer", fillcolor=lightblue];
     critique [label="critique", fillcolor=lightblue];
     deep_reviser [label="deep_reviser", fillcolor=lightblue];
-    end_llm_auditor [label="end_llm_auditor", fillcolor=palegreen];
     extract_claims [label="extract_claims", fillcolor=lightblue];
-    fallback_generate [label="fallback_generate", fillcolor=lightblue];
+    fallback_generate [label="fallback_generate", fillcolor=palegreen];
     fanin_llm_auditor_line_56 [label="fanin_llm_auditor_line_56", fillcolor=lightblue];
     fanout_llm_auditor_line_56 [label="fanout_llm_auditor_line_56", fillcolor=wheat];
-    finalize [label="finalize", fillcolor=lightblue];
+    finalize [label="finalize", fillcolor=palegreen];
     llm_generate [label="llm_generate", fillcolor=lightblue];
     reviser [label="reviser", fillcolor=lightblue];
     router_llm_auditor_line_41_if [label="router_llm_auditor_line_41_if", fillcolor=wheat];
-    router_llm_auditor_line_42_seq [label="router_llm_auditor_line_42_seq", fillcolor=wheat];
+    router_llm_auditor_line_42_seq [label="router_llm_auditor_line_42_seq", fillcolor=palegreen];
     router_llm_auditor_line_46_loop_back_0 [label="router_llm_auditor_line_46_loop_back_0", fillcolor=wheat];
     router_llm_auditor_line_47_seq [label="router_llm_auditor_line_47_seq", fillcolor=wheat];
     router_llm_auditor_line_50_except_dispatch_0 [label="router_llm_auditor_line_50_except_dispatch_0", fillcolor=wheat];
@@ -25,11 +24,11 @@ digraph "llm_auditor" {
     router_llm_auditor_line_65_if [label="router_llm_auditor_line_65_if", fillcolor=wheat];
     router_llm_auditor_line_66_seq [label="router_llm_auditor_line_66_seq", fillcolor=wheat];
     router_llm_auditor_line_70_if [label="router_llm_auditor_line_70_if", fillcolor=wheat];
-    router_llm_auditor_line_71_seq [label="router_llm_auditor_line_71_seq", fillcolor=wheat];
+    router_llm_auditor_line_71_seq [label="router_llm_auditor_line_71_seq", fillcolor=palegreen];
     router_llm_auditor_line_73_if [label="router_llm_auditor_line_73_if", fillcolor=wheat];
     router_llm_auditor_line_83_if [label="router_llm_auditor_line_83_if", fillcolor=wheat];
     router_llm_auditor_line_84_seq [label="router_llm_auditor_line_84_seq", fillcolor=wheat];
-    router_llm_auditor_line_87_seq [label="router_llm_auditor_line_87_seq", fillcolor=wheat];
+    router_llm_auditor_line_87_seq [label="router_llm_auditor_line_87_seq", fillcolor=palegreen];
     router_llm_auditor_line_90_seq [label="router_llm_auditor_line_90_seq", fillcolor=wheat];
     start_llm_auditor [label="start_llm_auditor", fillcolor=palegreen];
 
@@ -67,9 +66,4 @@ digraph "llm_auditor" {
     router_llm_auditor_line_41_if -> router_llm_auditor_line_42_seq [label="not p.get('claims')"];
     router_llm_auditor_line_41_if -> router_llm_auditor_line_46_loop_back_0 [label="not (not p.get('claims'))"];
     router_llm_auditor_line_50_try_enter_0 -> router_llm_auditor_line_46_loop_back_0;
-    fallback_generate -> end_llm_auditor;
-    finalize -> end_llm_auditor;
-    router_llm_auditor_line_42_seq -> end_llm_auditor;
-    router_llm_auditor_line_71_seq -> end_llm_auditor;
-    router_llm_auditor_line_87_seq -> end_llm_auditor;
 }

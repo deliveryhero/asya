@@ -2,12 +2,11 @@ digraph "test_nested_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_test_nested_flow [label="end_test_nested_flow", fillcolor=palegreen];
-    finalize_result [label="finalize_result", fillcolor=lightblue];
-    route_a_x [label="route_a_x", fillcolor=lightblue];
-    route_a_y [label="route_a_y", fillcolor=lightblue];
-    route_b_x [label="route_b_x", fillcolor=lightblue];
-    route_b_y [label="route_b_y", fillcolor=lightblue];
+    finalize_result [label="finalize_result", fillcolor=palegreen];
+    route_a_x [label="route_a_x", fillcolor=palegreen];
+    route_a_y [label="route_a_y", fillcolor=palegreen];
+    route_b_x [label="route_b_x", fillcolor=palegreen];
+    route_b_y [label="route_b_y", fillcolor=palegreen];
     router_test_nested_flow_line_11_if_3 [label="router_test_nested_flow_line_11_if_3", fillcolor=wheat];
     router_test_nested_flow_line_12_seq_1 [label="router_test_nested_flow_line_12_seq_1", fillcolor=wheat];
     router_test_nested_flow_line_15_seq_2 [label="router_test_nested_flow_line_15_seq_2", fillcolor=wheat];
@@ -34,9 +33,4 @@ digraph "test_nested_flow" {
     router_test_nested_flow_line_15_seq_2 -> finalize_result;
     router_test_nested_flow_line_20_seq_4 -> finalize_result;
     router_test_nested_flow_line_23_seq_5 -> finalize_result;
-    finalize_result -> end_test_nested_flow;
-    route_a_x -> end_test_nested_flow;
-    route_a_y -> end_test_nested_flow;
-    route_b_x -> end_test_nested_flow;
-    route_b_y -> end_test_nested_flow;
 }

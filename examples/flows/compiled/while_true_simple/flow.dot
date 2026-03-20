@@ -2,8 +2,7 @@ digraph "while_true_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_while_true_flow [label="end_while_true_flow", fillcolor=palegreen];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     router_while_true_flow_line_14_while_1 [label="router_while_true_flow_line_14_while_1", fillcolor=wheat];
@@ -16,5 +15,4 @@ digraph "while_true_flow" {
     router_while_true_flow_line_14_while_1 -> handler_process;
     handler_process -> router_while_true_flow_line_16_if_2;
     router_while_true_flow_line_16_if_2 -> router_while_true_flow_line_14_while_1;
-    handler_finalize -> end_while_true_flow;
 }

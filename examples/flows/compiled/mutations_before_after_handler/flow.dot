@@ -2,12 +2,11 @@ digraph "mutations_before_after_handler_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_mutations_before_after_handler_flow [label="end_mutations_before_after_handler_flow", fillcolor=palegreen];
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
     router_mutations_before_after_handler_flow_line_13_seq_3 [label="router_mutations_before_after_handler_flow_line_13_seq_3", fillcolor=wheat];
     router_mutations_before_after_handler_flow_line_15_seq_2 [label="router_mutations_before_after_handler_flow_line_15_seq_2", fillcolor=wheat];
-    router_mutations_before_after_handler_flow_line_17_seq_1 [label="router_mutations_before_after_handler_flow_line_17_seq_1", fillcolor=wheat];
+    router_mutations_before_after_handler_flow_line_17_seq_1 [label="router_mutations_before_after_handler_flow_line_17_seq_1", fillcolor=palegreen];
     start_mutations_before_after_handler_flow [label="start_mutations_before_after_handler_flow", fillcolor=palegreen];
 
     start_mutations_before_after_handler_flow -> router_mutations_before_after_handler_flow_line_13_seq_3;
@@ -15,5 +14,4 @@ digraph "mutations_before_after_handler_flow" {
     handler_b -> router_mutations_before_after_handler_flow_line_17_seq_1;
     router_mutations_before_after_handler_flow_line_13_seq_3 -> handler_a;
     handler_a -> router_mutations_before_after_handler_flow_line_15_seq_2;
-    router_mutations_before_after_handler_flow_line_17_seq_1 -> end_mutations_before_after_handler_flow;
 }

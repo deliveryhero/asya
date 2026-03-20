@@ -2,9 +2,8 @@ flowchart TD
     %% Flow: sequential_pipeline
 
     data_analyst[data_analyst]
-    end_sequential_pipeline([end_sequential_pipeline])
     execution_planner[execution_planner]
-    risk_evaluator[risk_evaluator]
+    risk_evaluator([risk_evaluator])
     start_sequential_pipeline([start_sequential_pipeline])
     trading_analyst[trading_analyst]
 
@@ -12,4 +11,3 @@ flowchart TD
     data_analyst --> trading_analyst
     trading_analyst --> execution_planner
     execution_planner --> risk_evaluator
-    risk_evaluator --> end_sequential_pipeline

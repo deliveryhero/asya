@@ -1,9 +1,8 @@
 flowchart TD
     %% Flow: nested_loop_flow
 
-    end_nested_loop_flow([end_nested_loop_flow])
-    finalize_loop_i[finalize_loop_i]
-    finalize_loop_j[finalize_loop_j]
+    finalize_loop_i([finalize_loop_i])
+    finalize_loop_j([finalize_loop_j])
     initialize[initialize]
     process_item[process_item]
     router_nested_loop_flow_line_15_seq_5{{router_nested_loop_flow_line_15_seq_5}}
@@ -24,5 +23,3 @@ flowchart TD
     router_nested_loop_flow_line_15_seq_5 --> router_nested_loop_flow_line_16_while_1
     process_item --> router_nested_loop_flow_line_19_while_2
     router_nested_loop_flow_line_19_while_2 --> router_nested_loop_flow_line_16_while_1
-    finalize_loop_i --> end_nested_loop_flow
-    finalize_loop_j --> end_nested_loop_flow

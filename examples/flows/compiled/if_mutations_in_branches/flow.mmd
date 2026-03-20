@@ -1,8 +1,7 @@
 flowchart TD
     %% Flow: if_mutations_in_branches_flow
 
-    end_if_mutations_in_branches_flow([end_if_mutations_in_branches_flow])
-    handler_finalize[handler_finalize]
+    handler_finalize([handler_finalize])
     handler_setup[handler_setup]
     handler_type_a[handler_type_a]
     handler_type_b[handler_type_b]
@@ -19,4 +18,3 @@ flowchart TD
     handler_type_b --> router_if_mutations_in_branches_flow_line_20_seq_2
     router_if_mutations_in_branches_flow_line_20_seq_2 --> handler_finalize
     handler_type_a --> handler_finalize
-    handler_finalize --> end_if_mutations_in_branches_flow

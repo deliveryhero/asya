@@ -2,10 +2,9 @@ digraph "evaluator_optimizer" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_evaluator_optimizer [label="end_evaluator_optimizer", fillcolor=palegreen];
     evaluator [label="evaluator", fillcolor=lightblue];
     generator [label="generator", fillcolor=lightblue];
-    polisher [label="polisher", fillcolor=lightblue];
+    polisher [label="polisher", fillcolor=palegreen];
     router_evaluator_optimizer_line_56_seq_5 [label="router_evaluator_optimizer_line_56_seq_5", fillcolor=wheat];
     router_evaluator_optimizer_line_58_while_1 [label="router_evaluator_optimizer_line_58_while_1", fillcolor=wheat];
     router_evaluator_optimizer_line_59_seq_4 [label="router_evaluator_optimizer_line_59_seq_4", fillcolor=wheat];
@@ -23,5 +22,4 @@ digraph "evaluator_optimizer" {
     router_evaluator_optimizer_line_58_while_1 -> router_evaluator_optimizer_line_59_seq_4;
     router_evaluator_optimizer_line_56_seq_5 -> router_evaluator_optimizer_line_58_while_1;
     router_evaluator_optimizer_line_68_if_3 -> router_evaluator_optimizer_line_58_while_1;
-    polisher -> end_evaluator_optimizer;
 }

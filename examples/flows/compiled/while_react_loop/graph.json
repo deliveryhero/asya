@@ -3,13 +3,13 @@
   "nodes": [
     {
       "id": "execute_tool",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "execute_tool",
       "is_generated": false
     },
     {
       "id": "llm_call",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "llm_call",
       "is_generated": false
     },
@@ -27,7 +27,7 @@
     },
     {
       "id": "start_react_agent",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_react_agent",
       "is_generated": true
     }

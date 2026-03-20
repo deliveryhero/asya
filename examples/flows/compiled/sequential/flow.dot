@@ -2,14 +2,12 @@ digraph "sequential_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_sequential_flow [label="end_sequential_flow", fillcolor=palegreen];
     handler_a [label="handler_a", fillcolor=lightblue];
     handler_b [label="handler_b", fillcolor=lightblue];
-    handler_c [label="handler_c", fillcolor=lightblue];
+    handler_c [label="handler_c", fillcolor=palegreen];
     start_sequential_flow [label="start_sequential_flow", fillcolor=palegreen];
 
     start_sequential_flow -> handler_a;
     handler_a -> handler_b;
     handler_b -> handler_c;
-    handler_c -> end_sequential_flow;
 }

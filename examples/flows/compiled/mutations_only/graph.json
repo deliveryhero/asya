@@ -2,20 +2,14 @@
   "flow_name": "mutations_only_flow",
   "nodes": [
     {
-      "id": "end_mutations_only_flow",
-      "flow_role": "exit",
-      "label": "end_mutations_only_flow",
-      "is_generated": true
-    },
-    {
       "id": "router_mutations_only_flow_line_14_seq_1",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_mutations_only_flow_line_14_seq_1",
       "is_generated": true
     },
     {
       "id": "start_mutations_only_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_mutations_only_flow",
       "is_generated": true
     }
@@ -26,12 +20,6 @@
       "to": "router_mutations_only_flow_line_14_seq_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "router_mutations_only_flow_line_14_seq_1",
-      "to": "end_mutations_only_flow",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

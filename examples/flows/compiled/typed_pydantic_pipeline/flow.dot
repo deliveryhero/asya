@@ -2,10 +2,8 @@ digraph "ingester" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_ingester [label="end_ingester", fillcolor=palegreen];
-    router_ingester_line_181_seq_1 [label="router_ingester_line_181_seq_1", fillcolor=wheat];
+    router_ingester_line_181_seq_1 [label="router_ingester_line_181_seq_1", fillcolor=palegreen];
     start_ingester [label="start_ingester", fillcolor=palegreen];
 
     start_ingester -> router_ingester_line_181_seq_1;
-    router_ingester_line_181_seq_1 -> end_ingester;
 }

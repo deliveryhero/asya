@@ -2,9 +2,8 @@ digraph "if_elif_else_flow" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    end_if_elif_else_flow [label="end_if_elif_else_flow", fillcolor=palegreen];
     handler_default [label="handler_default", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=palegreen];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
     handler_validate [label="handler_validate", fillcolor=lightblue];
@@ -21,5 +20,4 @@ digraph "if_elif_else_flow" {
     router_if_elif_else_flow_line_14_if_2 -> router_if_elif_else_flow_line_16_if_1 [label="not (p['type'] == 'A')"];
     handler_type_b -> handler_finalize;
     handler_default -> handler_finalize;
-    handler_finalize -> end_if_elif_else_flow;
 }

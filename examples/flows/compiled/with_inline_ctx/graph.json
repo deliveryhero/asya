@@ -2,20 +2,14 @@
   "flow_name": "order_processing",
   "nodes": [
     {
-      "id": "end_order_processing",
-      "flow_role": "exit",
-      "label": "end_order_processing",
-      "is_generated": true
-    },
-    {
       "id": "fulfillment_handler",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "fulfillment_handler",
       "is_generated": false
     },
     {
       "id": "payment_processor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "payment_processor",
       "is_generated": false
     },
@@ -33,7 +27,7 @@
     },
     {
       "id": "router_order_processing_line_33_seq",
-      "flow_role": "router",
+      "flow_role": "exitpoint",
       "label": "router_order_processing_line_33_seq",
       "is_generated": true
     },
@@ -45,13 +39,13 @@
     },
     {
       "id": "start_order_processing",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_order_processing",
       "is_generated": true
     },
     {
       "id": "validate_order",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "validate_order",
       "is_generated": false
     }
@@ -96,18 +90,6 @@
     {
       "from": "validate_order",
       "to": "router_order_processing_line_30_if",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "fulfillment_handler",
-      "to": "end_order_processing",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_order_processing_line_33_seq",
-      "to": "end_order_processing",
       "label": null,
       "type": "continuation"
     }

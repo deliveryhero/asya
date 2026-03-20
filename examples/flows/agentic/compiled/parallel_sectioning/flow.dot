@@ -2,8 +2,7 @@ digraph "parallel_sectioning" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    aggregator [label="aggregator", fillcolor=lightblue];
-    end_parallel_sectioning [label="end_parallel_sectioning", fillcolor=palegreen];
+    aggregator [label="aggregator", fillcolor=palegreen];
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
     fanin_parallel_sectioning_line_48 [label="fanin_parallel_sectioning_line_48", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
@@ -22,5 +21,4 @@ digraph "parallel_sectioning" {
     topic_extractor -> fanin_parallel_sectioning_line_48;
     router_parallel_sectioning_line_48_fanout_1 -> entity_recognizer;
     entity_recognizer -> fanin_parallel_sectioning_line_48;
-    aggregator -> end_parallel_sectioning;
 }

@@ -2,14 +2,8 @@
   "flow_name": "decorator_definitions_flow",
   "nodes": [
     {
-      "id": "end_decorator_definitions_flow",
-      "flow_role": "exit",
-      "label": "end_decorator_definitions_flow",
-      "is_generated": true
-    },
-    {
       "id": "enrich",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "enrich",
       "is_generated": false
     },
@@ -21,13 +15,13 @@
     },
     {
       "id": "start_decorator_definitions_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_decorator_definitions_flow",
       "is_generated": true
     },
     {
       "id": "validate",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "validate",
       "is_generated": false
     }
@@ -48,12 +42,6 @@
     {
       "from": "validate",
       "to": "enrich",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "enrich",
-      "to": "end_decorator_definitions_flow",
       "label": null,
       "type": "continuation"
     }

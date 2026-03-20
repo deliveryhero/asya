@@ -2,20 +2,14 @@
   "flow_name": "typeddict_pipeline",
   "nodes": [
     {
-      "id": "end_typeddict_pipeline",
-      "flow_role": "exit",
-      "label": "end_typeddict_pipeline",
-      "is_generated": true
-    },
-    {
       "id": "error_handler",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "error_handler",
       "is_generated": false
     },
     {
       "id": "parser",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "parser",
       "is_generated": false
     },
@@ -27,25 +21,25 @@
     },
     {
       "id": "sink_adapter",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "sink_adapter",
       "is_generated": false
     },
     {
       "id": "start_typeddict_pipeline",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_typeddict_pipeline",
       "is_generated": true
     },
     {
       "id": "transformer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "transformer",
       "is_generated": false
     },
     {
       "id": "validator",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "validator",
       "is_generated": false
     }
@@ -86,18 +80,6 @@
       "to": "error_handler",
       "label": "not p.get('valid', True)",
       "type": "set"
-    },
-    {
-      "from": "error_handler",
-      "to": "end_typeddict_pipeline",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "sink_adapter",
-      "to": "end_typeddict_pipeline",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

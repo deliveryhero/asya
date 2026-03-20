@@ -2,14 +2,8 @@
   "flow_name": "analysis_flow",
   "nodes": [
     {
-      "id": "end_analysis_flow",
-      "flow_role": "exit",
-      "label": "end_analysis_flow",
-      "is_generated": true
-    },
-    {
       "id": "entity_recognizer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "entity_recognizer",
       "is_generated": false
     },
@@ -21,7 +15,7 @@
     },
     {
       "id": "merge_analysis",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "merge_analysis",
       "is_generated": false
     },
@@ -33,19 +27,19 @@
     },
     {
       "id": "sentiment_analyzer",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "sentiment_analyzer",
       "is_generated": false
     },
     {
       "id": "start_analysis_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_analysis_flow",
       "is_generated": true
     },
     {
       "id": "topic_extractor",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "topic_extractor",
       "is_generated": false
     }
@@ -102,12 +96,6 @@
     {
       "from": "entity_recognizer",
       "to": "fanin_analysis_flow_line_14",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "merge_analysis",
-      "to": "end_analysis_flow",
       "label": null,
       "type": "continuation"
     }

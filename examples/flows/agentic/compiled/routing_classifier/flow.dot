@@ -2,12 +2,11 @@ digraph "routing_classifier" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    account_agent [label="account_agent", fillcolor=lightblue];
+    account_agent [label="account_agent", fillcolor=palegreen];
     billing_agent [label="billing_agent", fillcolor=lightblue];
     classifier [label="classifier", fillcolor=lightblue];
-    end_routing_classifier [label="end_routing_classifier", fillcolor=palegreen];
-    format_reply [label="format_reply", fillcolor=lightblue];
-    general_agent [label="general_agent", fillcolor=lightblue];
+    format_reply [label="format_reply", fillcolor=palegreen];
+    general_agent [label="general_agent", fillcolor=palegreen];
     router_routing_classifier_line_47_if_3 [label="router_routing_classifier_line_47_if_3", fillcolor=wheat];
     router_routing_classifier_line_49_if_2 [label="router_routing_classifier_line_49_if_2", fillcolor=wheat];
     router_routing_classifier_line_51_if_1 [label="router_routing_classifier_line_51_if_1", fillcolor=wheat];
@@ -25,7 +24,4 @@ digraph "routing_classifier" {
     router_routing_classifier_line_47_if_3 -> router_routing_classifier_line_49_if_2 [label="not (p.get('category') == 'billing')"];
     technical_agent -> format_reply;
     router_routing_classifier_line_51_if_1 -> format_reply;
-    account_agent -> end_routing_classifier;
-    format_reply -> end_routing_classifier;
-    general_agent -> end_routing_classifier;
 }

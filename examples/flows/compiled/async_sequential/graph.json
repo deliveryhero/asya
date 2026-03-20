@@ -3,25 +3,19 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "critic",
       "is_generated": false
     },
     {
-      "id": "end_llm_auditor_flow",
-      "flow_role": "exit",
-      "label": "end_llm_auditor_flow",
-      "is_generated": true
-    },
-    {
       "id": "reviser",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "reviser",
       "is_generated": false
     },
     {
       "id": "start_llm_auditor_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_llm_auditor_flow",
       "is_generated": true
     }
@@ -36,12 +30,6 @@
     {
       "from": "critic",
       "to": "reviser",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "reviser",
-      "to": "end_llm_auditor_flow",
       "label": null,
       "type": "continuation"
     }

@@ -3,9 +3,8 @@ digraph "human_in_the_loop" {
     node [shape=box, style=filled, fontname="Helvetica"];
 
     approval_gate [label="approval_gate", fillcolor=lightblue];
-    end_human_in_the_loop [label="end_human_in_the_loop", fillcolor=palegreen];
     executor [label="executor", fillcolor=lightblue];
-    notifier [label="notifier", fillcolor=lightblue];
+    notifier [label="notifier", fillcolor=palegreen];
     proposal_generator [label="proposal_generator", fillcolor=lightblue];
     revision_agent [label="revision_agent", fillcolor=lightblue];
     router_human_in_the_loop_line_58_seq_7 [label="router_human_in_the_loop_line_58_seq_7", fillcolor=wheat];
@@ -31,5 +30,4 @@ digraph "human_in_the_loop" {
     router_human_in_the_loop_line_58_seq_7 -> router_human_in_the_loop_line_60_while_1;
     revision_agent -> router_human_in_the_loop_line_79_if_3;
     router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_60_while_1;
-    notifier -> end_human_in_the_loop;
 }

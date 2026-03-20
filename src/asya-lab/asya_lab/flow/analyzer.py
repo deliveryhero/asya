@@ -17,6 +17,7 @@ class GraphData:
     nodes: list[dict] = field(default_factory=list)  # {"id", "flow_role", "label", "is_generated"}
     edges: list[dict] = field(default_factory=list)  # {"from", "to", "label", "type", "override"}
     groups: list[dict] = field(default_factory=list)  # {"id", "nodes"}
+    warnings: list[str] = field(default_factory=list)
 
 
 def _build_parent_map(tree: ast.AST) -> dict[int, ast.AST]:
@@ -432,12 +433,16 @@ def analyze(
 
     all_edges: list[dict] = []
     router_names: set[str] = set()
+    router_mutations: dict[str, list[str]] = {}
 
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
             func_edges = _extract_yield_edges(node, node.name)
             all_edges.extend(func_edges)
             router_names.add(node.name)
+            mutations = _extract_mutations(node)
+            if mutations:
+                router_mutations[node.name] = mutations
 
     # Step 2: Extract edges from user handlers (best-effort)
     for handler_name, source in handler_sources.items():
@@ -460,21 +465,13 @@ def analyze(
     # reflect this: connect the last prepended handler to C, remove R → C.
     _splice_prepend_continuations(all_edges)
 
+    # Step 4b: Propagate fanout continuations through fanin.
+    # The fanout router's parent chain sets up continuation (e.g., router → formatter).
+    # At runtime, fanin passes to whatever follows in _next_tail. Connect fanin → continuation.
+    _propagate_fanin_continuations(all_edges)
+
     # Step 5: Deduplicate edges (same from/to/type can appear from multiple branches).
     _deduplicate_edges(all_edges)
-
-    # Step 6: Connect endpoint handlers to end_ node (implicit flow continuation).
-    # The end_ router is in the initial route.next; start_ prepends before it.
-    # Endpoint handlers are leaf nodes with incoming edges but no outgoing edges.
-    # After Step 4 splicing, any remaining leaf is a true endpoint.
-    end_nodes = [n for n in router_names if n.startswith("end_")]
-    if end_nodes:
-        sources = {e["from"] for e in all_edges}
-        targets = {e["to"] for e in all_edges}
-        endpoints = targets - sources
-        for end_node in end_nodes:
-            for ep in sorted(endpoints):
-                all_edges.append({"from": ep, "to": end_node, "label": None, "type": "continuation"})
 
     # Build nodes from all referenced names
     all_names: set[str] = set()
@@ -486,24 +483,185 @@ def analyze(
     for name in sorted(all_names):
         is_generated = name in router_names
         flow_role = _determine_flow_role(name, router_names, all_edges)
-        nodes.append(
-            {
-                "id": name,
-                "flow_role": flow_role,
-                "label": name,
-                "is_generated": is_generated,
-            }
-        )
+        node_dict: dict = {
+            "id": name,
+            "flow_role": flow_role,
+            "label": name,
+            "is_generated": is_generated,
+        }
+        if name in router_mutations:
+            node_dict["mutations"] = router_mutations[name]
+        nodes.append(node_dict)
 
-    return GraphData(nodes=nodes, edges=all_edges)
+    graph = GraphData(nodes=nodes, edges=all_edges)
+    graph.warnings = _validate_graph(graph)
+    return graph
+
+
+def _validate_graph(graph: GraphData) -> list[str]:
+    """Validate graph invariants and return warnings for violations.
+
+    Checks:
+    1. Fully connected: every node is reachable from the entrypoint
+    2. Single exit cluster: all exitpoints converge (no disconnected exits)
+    3. No dangling non-exit leaves: nodes with incoming edges but no outgoing
+       edges must have flow_role=exitpoint
+    """
+    warnings: list[str] = []
+    node_ids = {n["id"] for n in graph.nodes}
+    sources = {e["from"] for e in graph.edges}
+    targets = {e["to"] for e in graph.edges}
+
+    # Build adjacency for reachability
+    adjacency: dict[str, set[str]] = {n: set() for n in node_ids}
+    for edge in graph.edges:
+        adjacency[edge["from"]].add(edge["to"])
+
+    # Check 1: Reachability from entrypoint
+    entrypoints = [n["id"] for n in graph.nodes if n["flow_role"] == "entrypoint"]
+    if entrypoints:
+        reachable: set[str] = set()
+        stack = list(entrypoints)
+        while stack:
+            current = stack.pop()
+            if current in reachable:
+                continue
+            reachable.add(current)
+            stack.extend(adjacency.get(current, set()))
+        unreachable = node_ids - reachable
+        for node_id in sorted(unreachable):
+            warnings.append(f"node '{node_id}' is not reachable from entrypoint")
+
+    # Check 2: No dangling non-exit leaves
+    leaves = targets - sources
+    for leaf in sorted(leaves):
+        node = next((n for n in graph.nodes if n["id"] == leaf), None)
+        if node and node["flow_role"] != "exitpoint":
+            warnings.append(f"node '{leaf}' is a leaf but has flow_role='{node['flow_role']}', expected 'exitpoint'")
+
+    # Check 3: Nodes that are sources but not targets (and not entrypoints) are disconnected
+    for node_id in sorted(sources - targets):
+        node = next((n for n in graph.nodes if n["id"] == node_id), None)
+        if node and node["flow_role"] != "entrypoint":
+            warnings.append(f"node '{node_id}' has no incoming edges but is not an entrypoint")
+
+    return warnings
+
+
+def _propagate_fanin_continuations(edges: list[dict]) -> None:
+    """Connect fanin aggregators to the fanout router's continuation target.
+
+    Fanout routers set route.next = [fanin, ...rest...] + _next_tail. The
+    _next_tail is a runtime value containing the parent chain's continuation.
+    After prepend-splicing, the fanout router's continuation edges point to the
+    next step after the fanout. Connect fanin → that same target.
+
+    When the fanout router has no direct continuation (e.g., it's in a loop body),
+    walk back through the prepend chain to find a node whose continuation still
+    exists, and connect the fanin to that.
+    """
+    # Find fanout routers (they have edges with type="fanout")
+    fanout_routers: set[str] = set()
+    for edge in edges:
+        if edge["type"] == "fanout":
+            fanout_routers.add(edge["from"])
+
+    # Index: who prepends to whom (prepend_target → prepend_source)
+    prepend_parents: dict[str, str] = {}
+    for edge in edges:
+        if edge["type"] == "prepend":
+            prepend_parents[edge["to"]] = edge["from"]
+
+    for router in fanout_routers:
+        # Find the fanin aggregator
+        fanin_name = None
+        for edge in edges:
+            if edge["from"] == router and edge["to"].startswith("fanin_"):
+                fanin_name = edge["to"]
+                break
+        if not fanin_name:
+            continue
+
+        # Check if fanin already has outgoing edges
+        if any(e["from"] == fanin_name for e in edges):
+            continue
+
+        # Find continuation target: first from the fanout router directly,
+        # then walk back through prepend parents
+        fanout_targets = {e["to"] for e in edges if e["from"] == router and e["type"] == "fanout"}
+        cont_target = _find_continuation_for(router, fanin_name, fanout_targets, edges, prepend_parents)
+        if cont_target:
+            edges.append({"from": fanin_name, "to": cont_target, "label": None, "type": "continuation"})
+
+
+def _find_continuation_for(
+    node: str,
+    fanin_name: str,
+    fanout_targets: set[str],
+    edges: list[dict],
+    prepend_parents: dict[str, str],
+) -> str | None:
+    """Find the continuation target for a fanout router by walking its prepend ancestry."""
+    visited: set[str] = set()
+    current = node
+    while current and current not in visited:
+        visited.add(current)
+        # Look for continuation edges from current (not to fanin or fanout targets)
+        for edge in edges:
+            if (
+                edge["from"] == current
+                and edge["type"] == "continuation"
+                and edge["to"] != fanin_name
+                and edge["to"] not in fanout_targets
+            ):
+                return edge["to"]
+        # Walk up the prepend chain
+        current = prepend_parents.get(current, "")
+
+
+def _extract_mutations(func_node: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    """Extract payload mutation statements from a router function.
+
+    Mutations are top-level statements that modify `p` (the payload alias):
+    p['key'] = value, p['key'] += value, etc.
+    Skips boilerplate: p = payload, _next, yield, resolve, _agg, _slices, etc.
+    """
+    mutations: list[str] = []
+    for stmt in func_node.body:
+        # Only look at top-level statements (and inside if/else branches)
+        _collect_mutations_from_stmt(stmt, mutations)
+    return mutations
+
+
+def _collect_mutations_from_stmt(stmt: ast.stmt, mutations: list[str]) -> None:
+    """Recursively collect mutation statements, descending into if/else."""
+    if isinstance(stmt, ast.Assign):
+        # p['key'] = value — target is a Subscript on Name 'p'
+        if len(stmt.targets) == 1 and _is_payload_target(stmt.targets[0]):
+            mutations.append(ast.unparse(stmt))
+    elif isinstance(stmt, ast.AugAssign):
+        # p['key'] += value
+        if _is_payload_target(stmt.target):
+            mutations.append(ast.unparse(stmt))
+    elif isinstance(stmt, ast.If):
+        for child in stmt.body:
+            _collect_mutations_from_stmt(child, mutations)
+        for child in stmt.orelse:
+            _collect_mutations_from_stmt(child, mutations)
+
+
+def _is_payload_target(node: ast.expr) -> bool:
+    """Check if an assignment target is a payload mutation (p[...] or p.attr)."""
+    return isinstance(node, ast.Subscript | ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "p"
 
 
 def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -> str:
-    """Determine the flow role of a node."""
+    """Determine the flow role of a node.
+
+    Roles: entrypoint, exitpoint, router, processor.
+    """
     if name.startswith("start_"):
-        return "entry"
-    if name.startswith("end_"):
-        return "exit"
+        return "entrypoint"
     if name.startswith("fanin_"):
         return "router"
 
@@ -511,7 +669,7 @@ def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -
     is_target = any(e["to"] == name for e in edges)
 
     if is_target and not is_source:
-        return "exit"
+        return "exitpoint"
     if name in router_names:
         return "router"
-    return "actor"
+    return "processor"

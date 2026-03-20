@@ -2,20 +2,14 @@
   "flow_name": "if_empty_branches_flow",
   "nodes": [
     {
-      "id": "end_if_empty_branches_flow",
-      "flow_role": "exit",
-      "label": "end_if_empty_branches_flow",
-      "is_generated": true
-    },
-    {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "flow_role": "exitpoint",
       "label": "handler_finalize",
       "is_generated": false
     },
     {
       "id": "handler_setup",
-      "flow_role": "actor",
+      "flow_role": "processor",
       "label": "handler_setup",
       "is_generated": false
     },
@@ -27,7 +21,7 @@
     },
     {
       "id": "start_if_empty_branches_flow",
-      "flow_role": "entry",
+      "flow_role": "entrypoint",
       "label": "start_if_empty_branches_flow",
       "is_generated": true
     }
@@ -56,12 +50,6 @@
       "to": "handler_finalize",
       "label": "not (p['skip_processing'])",
       "type": "prepend"
-    },
-    {
-      "from": "handler_finalize",
-      "to": "end_if_empty_branches_flow",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

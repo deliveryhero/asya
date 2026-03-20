@@ -1,8 +1,7 @@
 flowchart TD
     %% Flow: sample_flow
 
-    end_sample_flow([end_sample_flow])
-    handler_finalize[handler_finalize]
+    handler_finalize([handler_finalize])
     handler_setup[handler_setup]
     handler_type_a[handler_type_a]
     handler_type_b[handler_type_b]
@@ -19,4 +18,3 @@ flowchart TD
     handler_type_b --> router_sample_flow_line_10_seq_2
     router_sample_flow_line_10_seq_2 --> handler_finalize
     handler_type_a --> handler_finalize
-    handler_finalize --> end_sample_flow
