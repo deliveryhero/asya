@@ -1,6 +1,6 @@
 """Flow compiler public API.
 
-Pipeline: Parse -> CodeGen -> Analyze -> GraphGen
+Pipeline: Parse -> CodeGen -> Manifest -> Analyze -> GraphGen
 """
 
 from __future__ import annotations
@@ -11,13 +11,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from asya_lab.flow.analyzer import GraphData, analyze
-from asya_lab.flow.codegen import CodeGenerator
-from asya_lab.flow.graphgen import to_dot, to_json_string, to_mermaid
+from asya_lab.flow.codegen import ROUTER_PREFIXES, CodeGenerator, CodegenMeta
+from asya_lab.flow.graphgen import to_dot, to_json, to_json_string, to_mermaid
 from asya_lab.flow.parser import FlowParser, ParseResult
+from asya_lab.flow.result_types import ActorInfo, FlowInfo
 
 
 if TYPE_CHECKING:
     from asya_lab.compiler.rules import RuleEngine
+    from asya_lab.config.project import AsyaProject
 
 
 def _calculate_module_path(filename: str) -> str:
@@ -47,10 +49,12 @@ class FlowCompiler:
         verbose: bool = False,
         max_iterations: int = 100,
         rule_engine: RuleEngine | None = None,
+        project: AsyaProject | None = None,
     ):
         self.verbose = verbose
         self.max_iterations = max_iterations
         self._rule_engine: RuleEngine | None = rule_engine
+        self._project = project
         self.warnings: list[str] = []
         self.flow_name: str | None = None
         self.class_methods: set[str] = set()
@@ -60,8 +64,9 @@ class FlowCompiler:
         self._parse_result: ParseResult | None = None
         self._generated_code: str | None = None
         self._graph_data: GraphData | None = None
+        self._codegen_meta: CodegenMeta | None = None
 
-    def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> str:
+    def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> FlowInfo:
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
@@ -78,10 +83,27 @@ class FlowCompiler:
         source_code = source_path.read_text()
         compiled_file = output_path / "routers.py"
         compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
-
         compiled_file.write_text(compiled_code)
 
-        return str(compiled_file)
+        manifests_dir = self._stamp_manifests(output_path)
+        dot, mermaid_content, json_content, svg = self._generate_outputs(output_path)
+
+        flow_function = self.flow_name or source_path.stem
+        flow_name = flow_function.replace("_", "-")
+        actors = self._build_actor_infos()
+
+        return FlowInfo(
+            flow_name=flow_name,
+            flow_function=flow_function,
+            routers_path=compiled_file,
+            manifests_dir=manifests_dir or output_path,
+            graph=to_json(self._graph_data, flow_function) if self._graph_data else {},
+            dot=dot,
+            mermaid=mermaid_content,
+            svg=svg,
+            actors=actors,
+            warnings=list(self.warnings),
+        )
 
     def compile(self, source_code: str, filename: str, output_file: str | None = None) -> str:
         # Step 1: Parse
@@ -92,6 +114,7 @@ class FlowCompiler:
         codegen = CodeGenerator(result, filename, output_file)
         code = codegen.generate()
         self._generated_code = code
+        self._codegen_meta = codegen.get_meta()
 
         # Step 3: Analyze (graph extraction from generated code)
         handler_sources = self._extract_handler_sources(source_code, result.actors)
@@ -183,6 +206,136 @@ class FlowCompiler:
 
     def get_warnings(self) -> list[str]:
         return self.warnings
+
+    def _generate_outputs(self, output_path: Path) -> tuple[str, str, str, str | None]:
+        if not self.flow_name or self._graph_data is None:
+            return "", "", "", None
+
+        dot_content = to_dot(self._graph_data, self.flow_name)
+        mmd_content = to_mermaid(self._graph_data, self.flow_name)
+        json_content = to_json_string(self._graph_data, self.flow_name)
+
+        (output_path / "flow.dot").write_text(dot_content)
+        (output_path / "flow.mmd").write_text(mmd_content)
+        (output_path / "graph.json").write_text(json_content)
+
+        svg_content = self._try_render_svg(output_path)
+        return dot_content, mmd_content, json_content, svg_content
+
+    def _try_render_svg(self, output_path: Path) -> str | None:
+        dot_file = output_path / "flow.dot"
+        svg_file = output_path / "flow.svg"
+        try:
+            import re
+            import subprocess  # nosec B404
+
+            subprocess.run(["dot", "-V"], capture_output=True, check=True)  # nosec B603, B607
+            subprocess.run(  # nosec B603, B607
+                ["dot", "-Tsvg", str(dot_file), "-o", str(svg_file)],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            content = svg_file.read_text()
+            content = re.sub(
+                r"<!-- Generated by graphviz version .+?\n -->",
+                "<!-- Generated by graphviz\n -->",
+                content,
+            )
+            svg_file.write_text(content)
+            return content
+        except (FileNotFoundError, subprocess.CalledProcessError):
+            pass
+        return None
+
+    def _stamp_manifests(self, compiled_dir: Path) -> Path | None:
+        if self._project is None or self._codegen_meta is None:
+            return None
+        if self._codegen_meta.single_actor is not None:
+            return None
+
+        from asya_lab.compiler.templater import ManifestTemplater
+
+        flow_function = self.flow_name
+        if not flow_function:
+            return None
+
+        flow_name = flow_function.replace("_", "-")
+
+        try:
+            manifests_dir = self._project.resolve_path("compiler.manifests") / flow_name
+            templates_dir = self._project.resolve_path("compiler.templates")
+        except KeyError:
+            return None
+
+        router_code = self._generated_code or ""
+        actor_template = templates_dir / "actor.yaml"
+        if not actor_template.exists():
+            return None
+
+        def _opt(name: str) -> Path | None:
+            p = templates_dir / name
+            return p if p.exists() else None
+
+        templater = ManifestTemplater(
+            flow_name=flow_name,
+            flow_function=flow_function,
+            codegen_meta=self._codegen_meta,
+            router_code=router_code,
+            project=self._project,
+            actor_template_path=actor_template,
+            router_template_path=_opt("router.yaml"),
+            configmap_routers_template_path=_opt("configmap_routers.yaml"),
+            kustomization_template_path=_opt("kustomization.yaml"),
+            import_map=self.import_map,
+        )
+        templater.stamp(manifests_dir)
+        return manifests_dir
+
+    def _build_actor_infos(self) -> list[ActorInfo]:
+        if self._codegen_meta is None:
+            return []
+
+        actors = []
+        flow_roles = self._detect_flow_roles()
+
+        for router_name in self._codegen_meta.router_names:
+            k8s_name = router_name.replace("_", "-")
+            actors.append(
+                ActorInfo(
+                    name=k8s_name,
+                    handler=f"routers.{router_name}",
+                    image="",
+                    flow_role=flow_roles.get(router_name, "router"),
+                    is_generated=True,
+                )
+            )
+
+        for handler_name in sorted(self._codegen_meta.all_handler_names):
+            if any(handler_name.startswith(p) for p in ROUTER_PREFIXES):
+                continue
+            k8s_name = handler_name.replace("_", "-")
+            actors.append(
+                ActorInfo(
+                    name=k8s_name,
+                    handler=self.import_map.get(handler_name, handler_name),
+                    image="",
+                    flow_role=flow_roles.get(handler_name, "actor"),
+                )
+            )
+
+        return actors
+
+    def _detect_flow_roles(self) -> dict[str, str]:
+        if self._graph_data is None:
+            return {}
+        roles: dict[str, str] = {}
+        for node in self._graph_data.nodes:
+            node_id = node.get("id", "")
+            role = node.get("flow_role", "")
+            if role:
+                roles[node_id] = role
+        return roles
 
     @staticmethod
     def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:

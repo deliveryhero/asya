@@ -7,6 +7,7 @@ import pytest
 
 from asya_lab.flow import FlowCompiler
 from asya_lab.flow.errors import FlowCompileError
+from asya_lab.flow.result_types import FlowInfo
 
 
 class TestValidate:
@@ -57,11 +58,12 @@ class TestCompileFile:
         output_dir = tmp_path / "output"
 
         compiler = FlowCompiler()
-        result_path = compiler.compile_file(str(source_file), str(output_dir))
+        result = compiler.compile_file(str(source_file), str(output_dir))
 
-        assert Path(result_path).exists()
-        assert Path(result_path).name == "routers.py"
-        assert "def start_flow(" in Path(result_path).read_text()
+        assert isinstance(result, FlowInfo)
+        assert result.routers_path.exists()
+        assert result.routers_path.name == "routers.py"
+        assert "def start_flow(" in result.routers_path.read_text()
 
     def test_compile_file_nonexistent_source(self):
         compiler = FlowCompiler()
@@ -105,11 +107,89 @@ class TestCompileFile:
         output_dir = tmp_path / "nested" / "output"
 
         compiler = FlowCompiler()
-        result_path = compiler.compile_file(str(source_file), str(output_dir))
+        result = compiler.compile_file(str(source_file), str(output_dir))
 
         assert output_dir.exists()
         assert output_dir.is_dir()
-        assert Path(result_path).exists()
+        assert result.routers_path.exists()
+
+
+class TestFlowInfo:
+    """Test FlowInfo returned by compile_file()."""
+
+    def test_compile_file_returns_flow_info(self, tmp_path: Path):
+        source_file = tmp_path / "flow.py"
+        source_file.write_text(textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler_a(p)
+                p = handler_b(p)
+                return p
+        """))
+
+        output_dir = tmp_path / "output"
+
+        compiler = FlowCompiler()
+        result = compiler.compile_file(str(source_file), str(output_dir))
+
+        assert isinstance(result, FlowInfo)
+        assert result.flow_name == "my-flow"
+        assert result.flow_function == "my_flow"
+        assert result.routers_path == output_dir / "routers.py"
+        assert result.routers_path.exists()
+        assert result.manifests_dir == output_dir
+        assert isinstance(result.graph, dict)
+        assert result.dot != ""
+        assert result.mermaid != ""
+        assert isinstance(result.actors, list)
+        assert len(result.actors) > 0
+
+        # Routers should be marked as generated
+        router_actors = [a for a in result.actors if a.is_generated]
+        assert len(router_actors) > 0
+
+        # Non-router actors should have handler names
+        handler_actors = [a for a in result.actors if not a.is_generated]
+        assert len(handler_actors) == 2
+        handler_names = {a.name for a in handler_actors}
+        assert "handler-a" in handler_names
+        assert "handler-b" in handler_names
+
+    def test_flow_info_graph_outputs_written(self, tmp_path: Path):
+        source_file = tmp_path / "flow.py"
+        source_file.write_text(textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+        """))
+
+        output_dir = tmp_path / "output"
+
+        compiler = FlowCompiler()
+        compiler.compile_file(str(source_file), str(output_dir))
+
+        assert (output_dir / "flow.dot").exists()
+        assert (output_dir / "flow.mmd").exists()
+        assert (output_dir / "graph.json").exists()
+
+    def test_flow_info_single_actor_no_manifests(self, tmp_path: Path):
+        """Single-actor flows should not stamp manifests even with a project."""
+        source_file = tmp_path / "flow.py"
+        source_file.write_text(textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+        """))
+
+        output_dir = tmp_path / "output"
+
+        compiler = FlowCompiler()
+        result = compiler.compile_file(str(source_file), str(output_dir))
+
+        # Without a project, manifests_dir falls back to output_dir
+        assert result.manifests_dir == output_dir
 
 
 class TestGeneratePlot:
