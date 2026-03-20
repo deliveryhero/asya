@@ -1,7 +1,8 @@
 ---
-title: Sidecar does not log runtime error content before routing to x-sump
+title: "Sidecar error logging: log runtime error content and distinguish success/error frames"
 priority: 1 # high
 ---
+
 
 ## Bug
 
