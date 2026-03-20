@@ -137,23 +137,6 @@ spec:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: end-test-nested-flow
-  namespace: asya-e2e
-spec:
-  actor: end-test-nested-flow
-  scaling:
-    enabled: true
-    minReplicaCount: 1
-    maxReplicaCount: 5
-    queueLength: 5
-
-  image: IMAGE_PLACEHOLDER
-  imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.end_test_nested_flow
----
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
   name: validate-input
   namespace: asya-e2e
 spec:

@@ -46,7 +46,6 @@ def test_compile_py_file(tmp_path: Path):
     assert result.exit_code == 0, (
         f"stdout: {result.output}\nstderr: {result.stderr if hasattr(result, 'stderr') else ''}"
     )
-    assert "[+] Successfully compiled flow" in result.output
 
     # When -o is given, compiled code goes to the output dir
     routers_file = output_dir / "routers.py"

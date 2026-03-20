@@ -34,7 +34,6 @@ kubectl wait --for=condition=Ready \
   asyncactor/route-a-y \
   asyncactor/route-b-x \
   asyncactor/route-b-y \
-  asyncactor/finalize-result \
-  asyncactor/end-test-nested-flow
+  asyncactor/finalize-result
 
 echo "[+] All flow actors ready"

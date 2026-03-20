@@ -53,8 +53,6 @@ These environment variables allow routers to resolve handler names to actor name
   value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_20_seq_4
 - name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_23_SEQ_5
   value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_23_seq_5
-- name: ASYA_HANDLER_END_TEST_NESTED_FLOW
-  value: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
 {{- end }}
 
 {{/*

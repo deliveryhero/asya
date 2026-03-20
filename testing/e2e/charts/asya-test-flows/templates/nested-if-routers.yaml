@@ -191,27 +191,3 @@ spec:
   handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_23_seq_5
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
----
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: end-test-nested-flow
-  namespace: {{ .Release.Namespace }}
-  labels:
-    {{- include "asya-test-flows.labels" . | nindent 4 }}
-    asya.sh/flow: nested-if
-    asya.sh/actor-type: router
-spec:
-  actor: end-test-nested-flow
-  scaling:
-    enabled: {{ .Values.scaling.enabled }}
-    minReplicaCount: {{ .Values.scaling.minReplicaCount }}
-    maxReplicaCount: {{ .Values.scaling.maxReplicaCount }}
-    pollingInterval: {{ .Values.scaling.pollingInterval }}
-    cooldownPeriod: {{ .Values.scaling.cooldownPeriod }}
-    queueLength: {{ .Values.scaling.queueLength }}
-  image: {{ .Values.workload.image }}
-  imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.end_test_nested_flow
-  env:
-  {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}

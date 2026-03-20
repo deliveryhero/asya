@@ -81,5 +81,4 @@ class TestCodeGeneration:
         code = compiler.compile(source, "test.py")
 
         assert "def start_flow" in code
-        assert "def end_flow" in code
         assert "def resolve" in code

@@ -167,7 +167,7 @@ class TestGeneratePlot:
 
         dot_content = Path(dot_path).read_text()
 
-        assert "end_flow" in dot_content
+        assert "start_flow" in dot_content
         assert 'digraph "flow"' in dot_content
 
 

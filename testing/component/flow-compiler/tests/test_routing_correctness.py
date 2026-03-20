@@ -10,7 +10,7 @@ from asya_lab.flow import FlowCompiler
 from .conftest import _drive_abi, _make_msg_ctx
 
 
-_ROUTER_PREFIXES = ("start_", "end_", "router_", "fanout_", "fanin_")
+_ROUTER_PREFIXES = ("start_", "router_", "fanout_", "fanin_")
 
 
 def _compile_and_exec(source, env_vars=None):
@@ -230,12 +230,11 @@ class TestMutationRouting:
         """)
 
         namespace = _compile_and_exec(source, {"ASYA_HANDLER_HANDLER": "handler"})
-        # Mutation lives in the sequence router, not start_flow
-        seq_name = [n for n in namespace if n.startswith("router_") and "_seq" in n][0]
-        seq_func = namespace[seq_name]
+        # Mutation is merged into start_flow for single-handler flows
+        start_func = namespace["start_flow"]
 
         msg_ctx = _make_msg_ctx()
-        payloads = _drive_abi(seq_func({}), msg_ctx)
+        payloads = _drive_abi(start_func({}), msg_ctx)
         result = payloads[0]
 
         assert result["key"] == "value"
@@ -312,31 +311,6 @@ class TestConvergenceRouting:
         next_actors = msg_ctx["route"]["next"]
         assert "handler-b" in next_actors
         assert "final-handler" in next_actors
-
-
-class TestEndRouter:
-    """Test end router behavior."""
-
-    def test_end_router_returns_message_unchanged(self):
-        source = textwrap.dedent("""
-            @flow
-            def flow(p: dict) -> dict:
-                return p
-        """)
-
-        namespace = _compile_and_exec(source)
-
-        msg_ctx = _make_msg_ctx()
-        payload = {"test": "data"}
-        end_func = namespace["end_flow"]
-        payloads = _drive_abi(end_func(payload), msg_ctx)
-        result = payloads[0]
-
-        assert result == payload
-        assert result["test"] == "data"
-
-        next_actors = msg_ctx["route"]["next"]
-        assert next_actors == []
 
 
 class TestResolveFunction:
