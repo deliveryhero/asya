@@ -4,7 +4,7 @@ This guide covers state proxy configuration at the infrastructure level — how 
 
 ## Overview
 
-The state proxy gives actors persistent state access via standard file operations. Handlers read and write to paths like `/state/checkpoints/model.pt`, and the runtime transparently forwards those operations to a storage backend (S3, Redis, NATS KV, GCS).
+The state proxy gives actors persistent state access via standard file operations. Handlers read and write to paths like `/state/checkpoints/model.pt`, and the runtime transparently forwards those operations to a storage backend (S3, GCS, Redis).
 
 From an infrastructure perspective, enabling state proxy involves:
 
@@ -173,13 +173,77 @@ stateProxy:
 
 **TTL**: Redis does not currently support per-key TTL via the state proxy interface. Set TTLs using Redis server configuration or post-write Lua scripts.
 
+### GCS (Google Cloud Storage)
+
+Two GCS connector variants are available:
+
+| Image suffix | Write mode | Consistency | Use case |
+|--------------|------------|-------------|----------|
+| `gcs-buffered-lww` | buffered | Last-Write-Wins | Single-writer state (checkpoints, configs) |
+| `gcs-buffered-cas` | buffered | Check-And-Set (generation) | Multi-writer state with conflict detection |
+
+#### gcs-buffered-lww
+
+**Consistency**: Last-Write-Wins — no conflict detection. Writes always overwrite.
+
+**Configuration**:
+
+```yaml
+stateProxy:
+- name: context
+  mount:
+    path: /state/context
+  connector:
+    image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-lww:v1.0.0
+    env:
+    - name: STATE_BUCKET
+      value: actor-context
+    - name: STATE_PREFIX
+      value: prod/
+    - name: GCS_PROJECT
+      value: my-gcp-project
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 100m
+        memory: 128Mi
+```
+
+**When to use**: State written by a single actor instance (model weights, checkpoints, configs).
+
+#### gcs-buffered-cas
+
+**Consistency**: Check-And-Set with GCS generation-based conflict detection. On read, the object generation number is cached in memory. On write, `if_generation_match` is used as a precondition. If the object was modified externally since the last read, GCS returns `PreconditionFailed` (412), which the connector maps to `FileExistsError`.
+
+**Configuration**:
+
+```yaml
+stateProxy:
+- name: shared-state
+  mount:
+    path: /state/shared
+  connector:
+    image: ghcr.io/deliveryhero/asya-state-proxy-gcs-buffered-cas:v1.0.0
+    env:
+    - name: STATE_BUCKET
+      value: shared-state
+    - name: GCS_PROJECT
+      value: my-gcp-project
+```
+
+**When to use**: State written by multiple actor replicas where conflicts must be detected.
+
+**Error handling**: Handler code receives `FileExistsError` on CAS conflict. The sidecar handles retries via message requeue with exponential backoff.
+
+**Credential strategy**: In production on GKE, use Workload Identity (no static keys). The `google-cloud-storage` SDK auto-discovers credentials via Application Default Credentials (ADC). For local development and testing, set `GOOGLE_APPLICATION_CREDENTIALS` or `STORAGE_EMULATOR_HOST`.
+
 ### NATS KV
 
-Not yet implemented. Planned connector: `nats-buffered-cas`.
+Not yet implemented. Planned connector: `nats-kv-buffered-cas`.
 
-### GCS
-
-Not yet implemented. Planned connector: `gcs-buffered-lww`.
+NATS JetStream KV provides distributed key-value storage with strong consistency via Raft consensus and revision-based CAS support. See the [NATS KV connector reference](../reference/connectors/nats-kv.md) for planned configuration.
 
 ## IAM and Credentials
 
@@ -394,6 +458,8 @@ spec:
 | `s3-buffered-lww` | Last-Write-Wins | Overwrites silently |
 | `s3-passthrough` | Last-Write-Wins | Overwrites silently |
 | `s3-buffered-cas` | Check-And-Set (ETag) | Raises `FileExistsError` |
+| `gcs-buffered-lww` | Last-Write-Wins | Overwrites silently |
+| `gcs-buffered-cas` | Check-And-Set (generation) | Raises `FileExistsError` |
 | `redis-buffered-cas` | Check-And-Set (WATCH/EXEC) | Raises `FileExistsError` |
 
 ### Last-Write-Wins (LWW)
@@ -421,27 +487,35 @@ Result: "version 2" (last write wins)
 ```python
 import json
 
-# Read-modify-write with CAS
-try:
-    with open("/state/shared/counter.json", "r") as f:
-        counter = json.load(f)
+async def handler(payload):
+    # Read-modify-write with CAS
+    try:
+        with open("/state/shared/counter.json") as f:
+            counter = json.load(f)
+    except FileNotFoundError:
+        counter = {"value": 0}
+
     counter["value"] += 1
+
+    # Write — connector uses cached revision for conditional write.
+    # On conflict, raises FileExistsError; sidecar requeues the message.
     with open("/state/shared/counter.json", "w") as f:
         json.dump(counter, f)
-except FileNotFoundError:
-    # First write
-    with open("/state/shared/counter.json", "w") as f:
-        json.dump({"value": 1}, f)
-except FileExistsError:
-    # CAS conflict — another actor modified the counter
-    # Retry or use a different strategy
-    raise
+
+    return payload
 ```
+
+CAS retries are handled in two layers: the connector retries internally on
+transient conflicts (Layer 1), and the sidecar requeues the message with
+exponential backoff if retries are exhausted (Layer 2). The handler runs again
+from scratch with a fresh read that sees the latest value. Explicit retry
+loops in handler code are not needed.
 
 **CAS granularity**:
 
 - **S3 CAS**: ETag is checked per object. Reading `model.pt` and writing `config.json` does not cause a conflict.
-- **Redis CAS**: WATCH is set per key. Same granularity as S3 CAS.
+- **GCS CAS**: Generation number is checked per blob. Same per-object granularity as S3.
+- **Redis CAS**: WATCH is set per key. Same granularity as S3/GCS CAS.
 
 ## Multiple Mounts
 
@@ -536,10 +610,13 @@ stateProxy:
 | Variable | Connectors | Required | Description |
 |----------|-----------|----------|-------------|
 | `CONNECTOR_SOCKET` | all | ✅ | Unix socket path (set by Crossplane, do not override) |
-| `STATE_BUCKET` | s3-* | ✅ | S3 bucket name |
-| `STATE_PREFIX` | s3-*, redis | ❌ | Key prefix within bucket or namespace |
+| `STATE_BUCKET` | s3-*, gcs-* | ✅ | S3 or GCS bucket name |
+| `STATE_PREFIX` | s3-*, gcs-*, redis | ❌ | Key prefix within bucket or namespace |
 | `AWS_REGION` | s3-* | ❌ | AWS region (default: `us-east-1`) |
 | `AWS_ENDPOINT_URL` | s3-* | ❌ | Custom endpoint for MinIO/LocalStack |
+| `GCS_PROJECT` | gcs-* | ❌ | GCP project ID (auto-detected from credentials) |
+| `STORAGE_EMULATOR_HOST` | gcs-* | ❌ | Override for fake-gcs-server in testing |
+| `STATE_PRESIGN_TTL` | s3-*, gcs-* | ❌ | Presigned/signed URL expiration in seconds (default: `3600`) |
 | `REDIS_URL` | redis-* | ✅ | Redis connection URL (e.g., `redis://localhost:6379/0`) |
 
 **Note**: `CONNECTOR_SOCKET` is set by the Crossplane composition to `/var/run/asya/state/{name}.sock` and should never be overridden.

@@ -1,4 +1,3 @@
-<!-- Type: Usage Guide -->
 # Using the State Proxy
 
 How to read and write persistent state from your actor handlers using standard Python file operations.
@@ -21,13 +20,14 @@ with open("/state/cache/result.json", "w") as f:
     f.write(json.dumps(result))
 ```
 
-Behind the scenes, the Asya runtime intercepts these file operations and forwards them to a storage backend (S3, Redis) via a sidecar connector. Your handler sees a filesystem; the platform stores data in object storage or a key-value store.
+Behind the scenes, the Asya runtime intercepts these file operations and forwards them to a storage backend (S3, GCS, Redis) via a sidecar connector. Your handler sees a filesystem; the platform stores data in object storage or a key-value store. The runtime is a dumb translator — all intelligence (buffering, CAS, retries) lives in the connector sidecar.
 
 **Key benefits**:
 - No imports, no SDK — just standard Python `open()`, `os.stat()`, `os.listdir()`
 - Actors remain stateless Deployments (no StatefulSets, no PVCs)
-- Storage backend is swappable (S3, Redis, GCS) without changing handler code
+- Storage backend is swappable (S3, GCS, Redis) without changing handler code
 - Conflict-free or CAS guarantees depending on connector choice
+- Extended attributes (`os.getxattr`) expose backend metadata (URLs, ETags, TTL)
 
 ---
 
@@ -310,7 +310,7 @@ Asya provides two conflict-resolution strategies via different connector images:
 
 ### Last-Write-Wins (LWW)
 
-Image suffix: `s3-buffered-lww`, `s3-passthrough`
+Image suffix: `s3-buffered-lww`, `s3-passthrough`, `gcs-buffered-lww`
 
 **Behavior**: Writes always overwrite the existing object. No conflict detection.
 
@@ -323,9 +323,9 @@ Image suffix: `s3-buffered-lww`, `s3-passthrough`
 
 ### Check-And-Set (CAS)
 
-Image suffix: `s3-buffered-cas`, `redis-buffered-cas`
+Image suffix: `s3-buffered-cas`, `gcs-buffered-cas`, `redis-buffered-cas`
 
-**Behavior**: On write, the connector checks if the object has changed since the last read. If it has, the write fails with `FileExistsError`.
+**Behavior**: On write, the connector checks if the object has changed since the last read. If it has, the write fails with `FileExistsError`. CAS uses ETag-based conflict detection for S3, generation-based preconditions for GCS, and WATCH/MULTI/EXEC optimistic locking for Redis.
 
 **Use when**:
 - Multiple actor replicas may write to the same key
@@ -336,6 +336,12 @@ Image suffix: `s3-buffered-cas`, `redis-buffered-cas`
 
 **Handler code**:
 
+CAS retries are handled in two layers. The connector retries internally on
+transient conflicts (Layer 1). If retries are exhausted, the sidecar requeues
+the message with exponential backoff (Layer 2), and the handler runs again from
+scratch with a fresh `read()` that sees the latest value. In most cases, your
+handler does not need explicit retry logic:
+
 ```python
 import json
 import os
@@ -343,35 +349,27 @@ import os
 async def update_state_with_cas(payload: dict):
     state_path = "/state/shared/counter.json"
 
-    for attempt in range(3):  # Retry loop
-        try:
-            # Read current state
-            if os.path.exists(state_path):
-                with open(state_path) as f:
-                    state = json.load(f)
-            else:
-                state = {"count": 0}
-
-            # Modify
-            state["count"] += 1
-
-            # Write (fails if modified externally since read)
-            with open(state_path, "w") as f:
-                json.dump(state, f)
-
-            break  # Success
-
-        except FileExistsError:
-            # CAS conflict — retry
-            continue
+    # Read current state (connector caches the revision internally)
+    if os.path.exists(state_path):
+        with open(state_path) as f:
+            state = json.load(f)
     else:
-        raise RuntimeError("Failed to update state after 3 retries")
+        state = {"count": 0}
+
+    # Modify
+    state["count"] += 1
+
+    # Write — connector uses cached revision for conditional write.
+    # On conflict after internal retries, raises FileExistsError (HTTP 409).
+    # The sidecar catches this, nacks the message, and it is retried from scratch.
+    with open(state_path, "w") as f:
+        json.dump(state, f)
 
     payload["new_count"] = state["count"]
     yield payload
 ```
 
-**CAS guarantees**: With `s3-buffered-cas` or `redis-buffered-cas`, concurrent writes to the same key are serialized — one succeeds, others fail with `FileExistsError`. Your handler must retry.
+**CAS guarantees**: With `s3-buffered-cas`, `gcs-buffered-cas`, or `redis-buffered-cas`, concurrent writes to the same key are detected — one succeeds, others trigger connector-internal retries or sidecar-level message requeue.
 
 **LWW behavior**: With `s3-buffered-lww`, the same code would allow concurrent writes — both would succeed, but one would silently overwrite the other.
 
@@ -526,8 +524,11 @@ The state proxy patches Python builtins at the interpreter level. This intercept
 | `os.open()` | Use `builtins.open()` instead |
 | `os.rename()` | Read + write + delete manually |
 | `os.walk()` | Use `os.listdir()` recursively |
-| `pathlib.Path.read_bytes()` | Use `open(path, "rb").read()` |
 | `shutil.copy2()` | Fails on metadata; use `shutil.copyfileobj()` |
+
+Note: `pathlib.Path.open()`, `pathlib.Path.read_bytes()`, and
+`pathlib.Path.exists()` all delegate to `builtins.open` or `os.stat` internally,
+so they work transparently with the state proxy.
 
 ### Filesystem metadata
 
@@ -547,6 +548,69 @@ The state proxy is a **flat key-value store**, not a real filesystem. Paths like
 
 - `os.makedirs()` is a no-op for mount paths
 - `os.listdir()` uses prefix-based listing to simulate directory entries
+
+---
+
+## Extended attributes (xattr)
+
+Connectors expose backend-specific metadata through Python's `os.getxattr`,
+`os.setxattr`, and `os.listxattr` APIs. The runtime intercepts these calls on
+state mount paths and translates them to connector requests.
+
+All Asya xattrs use the `user.asya.{attr}` naming convention:
+
+```python
+import os
+
+async def handler(payload):
+    # Write a file
+    with open("/state/media/report.pdf", "wb") as f:
+        f.write(generate_pdf(payload))
+
+    # Discover available attributes
+    attrs = os.listxattr("/state/media/report.pdf")
+    # ["user.asya.url", "user.asya.presigned_url", "user.asya.etag", ...]
+
+    # Read the external URL (S3 URI or GCS URI)
+    url = os.getxattr("/state/media/report.pdf", "user.asya.url")
+    # b"s3://my-bucket/prefix/media/report.pdf"
+
+    # Read a presigned URL for external access
+    presigned = os.getxattr("/state/media/report.pdf", "user.asya.presigned_url")
+
+    # Set content type (writable attribute)
+    os.setxattr("/state/media/report.pdf", "user.asya.content_type",
+                b"application/pdf")
+
+    return payload
+```
+
+### Available attributes
+
+| Attribute | S3 | GCS | Redis | Access |
+|-----------|-----|-----|-------|--------|
+| `url` | `s3://...` | `gs://...` | - | Read |
+| `presigned_url` / `signed_url` | HTTPS URL | HTTPS URL | - | Read |
+| `etag` / `generation` | Content hash | Generation number | - | Read |
+| `content_type` | MIME type | MIME type | - | Read/Write |
+| `version` / `metageneration` | S3 version ID | Metageneration | - | Read |
+| `storage_class` | Storage tier | Storage tier | - | Read |
+| `ttl` | - | - | Seconds to expiry | Read/Write |
+
+For Redis, set TTL after writing a key:
+
+```python
+import os
+
+async def handler(payload):
+    with open("/state/cache/temp.json", "w") as f:
+        f.write(json.dumps(data))
+
+    # Set TTL to 1 hour
+    os.setxattr("/state/cache/temp.json", "user.asya.ttl", b"3600")
+
+    return payload
+```
 
 ---
 

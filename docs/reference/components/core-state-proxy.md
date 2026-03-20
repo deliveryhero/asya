@@ -9,7 +9,12 @@ write state as if it were a local directory — no SDK, no special imports.
 The runtime patches Python builtins at startup to intercept file operations on
 configured mount paths and translates them to HTTP requests over Unix sockets to
 connector sidecar processes. Each connector adapts those HTTP requests to a
-specific storage backend (S3, Redis).
+specific storage backend (S3, GCS, Redis).
+
+The runtime is a **dumb translator** — it intercepts Python file I/O and forwards
+operations to the proxy. The **proxy is smart** — it decides buffering strategy,
+atomicity guarantees, CAS behavior, and retries. Adding new guarantee types means
+building a new proxy connector, not modifying the runtime.
 
 ## Architecture
 
@@ -145,12 +150,20 @@ handler initialises:
 builtins.open  →  _patched_open
 os.stat        →  _patched_stat
 os.listdir     →  _patched_listdir
+os.scandir     →  _patched_scandir
 os.unlink      →  _patched_unlink
 os.remove      →  _patched_unlink   (alias)
 os.makedirs    →  _patched_makedirs (no-op for mount paths)
+os.listxattr   →  _patched_listxattr
+os.getxattr    →  _patched_getxattr
+os.setxattr    →  _patched_setxattr
 ```
 
 Calls to non-mount paths are forwarded to the original functions unchanged.
+
+`pathlib.Path.open()` delegates to `builtins.open`, and `pathlib.Path.exists()`
+delegates to `os.stat`. Patching the low-level functions catches all high-level
+wrappers including pathlib.
 
 ### Mount resolution
 
@@ -161,24 +174,34 @@ mount's socket path are returned.
 ### Handler usage
 
 ```python
-# Read state (no imports needed)
-with open("/state/weights/model.bin", "rb") as f:
-    weights = f.read()
+import json, os
 
-# Write state
-with open("/state/cache/result.json", "w") as f:
-    f.write(json.dumps(result))
+async def handler(payload):
+    # Read state
+    with open("/state/weights/model.bin", "rb") as f:
+        weights = f.read()
 
-# Check existence
-import os
-if os.path.exists("/state/cache/result.json"):
-    ...
+    # Write state
+    with open("/state/cache/result.json", "w") as f:
+        f.write(json.dumps(result))
 
-# List directory
-files = os.listdir("/state/weights/")
+    # Check existence
+    if os.path.exists("/state/cache/result.json"):
+        ...
 
-# Delete
-os.remove("/state/cache/stale.json")
+    # List directory
+    files = os.listdir("/state/weights/")
+
+    # Delete
+    os.remove("/state/cache/stale.json")
+
+    # Extended attributes (xattr)
+    url = os.getxattr("/state/weights/model.bin", "user.asya.url")
+    attrs = os.listxattr("/state/weights/model.bin")
+    os.setxattr("/state/weights/model.bin", "user.asya.content_type",
+                b"application/octet-stream")
+
+    return payload
 ```
 
 ## Limitations and Compatibility
@@ -192,13 +215,21 @@ means it intercepts **Python-level** file operations but cannot intercept
 | Python API | Patched | Notes |
 |------------|---------|-------|
 | `builtins.open()` | ✅ | Primary file I/O — most libraries use this |
+| `pathlib.Path.open()` | ✅ | Delegates to `builtins.open` internally |
+| `pathlib.Path.read_bytes()` / `read_text()` | ✅ | Delegates to `builtins.open` internally |
+| `pathlib.Path.write_bytes()` / `write_text()` | ✅ | Delegates to `builtins.open` internally |
+| `pathlib.Path.exists()` | ✅ | Delegates to `os.stat` internally |
 | `os.stat()` | ✅ | Returns synthetic `stat_result` (see below) |
 | `os.path.exists()` | ✅ | Works via patched `os.stat()` internally |
 | `os.path.isfile()` / `os.path.isdir()` | ✅ | Works via patched `os.stat()` internally |
 | `os.path.getsize()` | ✅ | Works via patched `os.stat()` internally |
 | `os.listdir()` | ✅ | Lists keys from connector |
+| `os.scandir()` | ✅ | Lists keys from connector with `DirEntry` wrappers |
 | `os.remove()` / `os.unlink()` | ✅ | Deletes key via connector |
 | `os.makedirs()` | ✅ | No-op for mount paths (flat key-value store) |
+| `os.listxattr()` | ✅ | Lists available metadata attributes from connector |
+| `os.getxattr()` | ✅ | Reads metadata attribute from connector |
+| `os.setxattr()` | ✅ | Sets metadata attribute on connector |
 
 ### What is NOT patched
 
@@ -206,12 +237,9 @@ means it intercepts **Python-level** file operations but cannot intercept
 |------------|---------|------------|
 | `os.open()` | ❌ | Use `builtins.open()` instead |
 | `os.rename()` / `os.replace()` | ❌ | Read + write + delete manually |
-| `os.scandir()` | ❌ | Use `os.listdir()` |
 | `os.walk()` | ❌ | Use `os.listdir()` recursively |
 | `os.chmod()` / `os.chown()` | ❌ | Not applicable (no real filesystem) |
 | `mmap.mmap()` | ❌ | Read into `io.BytesIO` instead |
-| `pathlib.Path.open()` | ❌ | Calls `io.open()` internally, not `builtins.open()` |
-| `pathlib.Path.read_bytes()` | ❌ | Use `open(path, "rb")` instead |
 | `shutil.copy2()` | ❌ | Fails copying filesystem metadata |
 
 ### Filesystem metadata
@@ -357,6 +385,9 @@ via `_UnixHTTPClient` (a subclass of `http.client.HTTPConnection`).
 | `HEAD` | `/keys/{key}` | Stat key, returns `Content-Length` and `X-Is-File` headers |
 | `DELETE` | `/keys/{key}` | Delete key |
 | `GET` | `/keys/?prefix=X&delimiter=Y` | List keys under prefix |
+| `GET` | `/meta/{key}` | List available xattr names |
+| `GET` | `/meta/{key}?attr=X` | Read xattr value |
+| `PUT` | `/meta/{key}?attr=X` | Set xattr value (JSON body `{"value": "..."}`) |
 | `GET` | `/healthz` | Liveness check, returns `{"status": "ready"}` |
 
 List response body:
@@ -440,6 +471,32 @@ Write is unconditional for keys that have never been read (new key path).
 Required env: `STATE_BUCKET`. Optional: `STATE_PREFIX`, `AWS_REGION`,
 `AWS_ENDPOINT_URL`.
 
+### gcs-buffered-lww
+
+Image suffix: `gcs-buffered-lww`
+
+Last-Write-Wins semantics for Google Cloud Storage. Writes always overwrite the
+existing blob. No conflict detection. Suitable for state written by a single
+actor instance.
+
+Required env: `STATE_BUCKET`. Optional: `STATE_PREFIX`, `GCS_PROJECT`,
+`STORAGE_EMULATOR_HOST`.
+
+### gcs-buffered-cas
+
+Image suffix: `gcs-buffered-cas`
+
+Check-And-Set with GCS generation-based conflict detection. On read, the object
+generation number is cached in memory. On write, `if_generation_match` is used
+as a precondition. If the object was modified externally since the last read,
+GCS returns `PreconditionFailed` (412), which the connector maps to
+`FileExistsError`.
+
+Write is unconditional for keys that have never been read (new key path).
+
+Required env: `STATE_BUCKET`. Optional: `STATE_PREFIX`, `GCS_PROJECT`,
+`STORAGE_EMULATOR_HOST`.
+
 ### redis-buffered-cas
 
 Image suffix: `redis-buffered-cas`
@@ -450,6 +507,27 @@ and mapped to `FileExistsError`.
 
 Required env: `REDIS_URL` (e.g. `redis://localhost:6379/0`). Optional:
 `STATE_PREFIX`.
+
+## Extended Attributes (xattr)
+
+Connectors expose backend-specific metadata through Python's `os.getxattr`,
+`os.setxattr`, and `os.listxattr` APIs. The runtime intercepts these calls on
+state mount paths and translates them to HTTP requests on the connector's
+`/meta/` endpoints.
+
+All Asya xattrs use the `user.asya.{attr}` naming convention. The runtime strips
+the `user.asya.` prefix before sending to the connector and prepends it when
+returning results from `os.listxattr`.
+
+### Attributes by connector
+
+| Connector | `url` | `presigned_url` / `signed_url` | `etag` / `generation` | `content_type` | `version` | `ttl` |
+|-----------|-------|-------------------------------|----------------------|----------------|-----------|-------|
+| `s3-*` | R | R (`presigned_url`) | R (`etag`) | RW | R | - |
+| `gcs-*` | R | R (`signed_url`) | R (`generation`) | RW | R (`metageneration`) | - |
+| `redis-*` | - | - | - | - | - | RW |
+
+R = read-only, RW = read-write, - = not supported.
 
 ## Error Mapping
 
@@ -483,10 +561,13 @@ except FileNotFoundError:
 | Variable | Connectors | Description |
 |----------|-----------|-------------|
 | `CONNECTOR_SOCKET` | all | Unix socket path (set by Crossplane composition) |
-| `STATE_BUCKET` | s3-* | S3 bucket name |
-| `STATE_PREFIX` | s3-*, redis | Key prefix within bucket or namespace |
+| `STATE_BUCKET` | s3-*, gcs-* | S3 bucket or GCS bucket name |
+| `STATE_PREFIX` | s3-*, gcs-*, redis | Key prefix within bucket or namespace |
 | `AWS_REGION` | s3-* | AWS region (default: `us-east-1`) |
 | `AWS_ENDPOINT_URL` | s3-* | Custom endpoint for MinIO/LocalStack |
+| `GCS_PROJECT` | gcs-* | GCP project ID (auto-detected from credentials) |
+| `STORAGE_EMULATOR_HOST` | gcs-* | Override for fake-gcs-server in testing |
+| `STATE_PRESIGN_TTL` | s3-*, gcs-* | Presigned/signed URL expiration in seconds (default: `3600`) |
 | `REDIS_URL` | redis-* | Redis connection URL |
 
 ## Related Components

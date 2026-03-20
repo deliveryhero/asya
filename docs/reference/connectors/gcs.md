@@ -18,7 +18,7 @@ Google Cloud Storage connector for state proxy.
 | `STATE_BUCKET` | ✅ | GCS bucket name | — |
 | `STATE_PREFIX` | ❌ | Key prefix inside bucket | `""` (root) |
 | `GCS_PROJECT` | ❌ | GCP project ID | Auto-detected from environment |
-| `STORAGE_EMULATOR_HOST` | ❌ | Emulator endpoint for testing (e.g. `localhost:8080`) | — |
+| `STORAGE_EMULATOR_HOST` | ❌ | Emulator endpoint for testing (e.g. `http://fake-gcs:4443`) | — |
 
 **Service account authentication**: Connectors use the Google Cloud SDK's default credential chain (Workload Identity, service account key file via `GOOGLE_APPLICATION_CREDENTIALS`, or compute metadata).
 
@@ -112,20 +112,47 @@ No conflict detection. Concurrent writes to the same blob result in the last wri
 
 ### gcs-buffered-cas
 
-Check-And-Set with generation-based conflict detection. On write, `if_generation_match=0` is used for atomic create-if-absent (generation 0 = object must not exist).
+Check-And-Set with generation-based conflict detection. On `read()`, the
+connector caches the blob's generation number (an int64 that GCS increments on
+every mutation). On `write()`, the connector passes `if_generation_match` with
+the cached generation as a precondition. If the blob was modified externally
+since the last read, GCS returns `PreconditionFailed` (412), which the connector
+maps to `FileExistsError`.
 
-If the object was modified externally since the last read, GCS returns `PreconditionFailed` (412), which the connector maps to `FileExistsError`.
+For keys that have never been read (new key path), the write is unconditional.
+
+For exclusive creates (atomic create-if-absent), the connector uses
+`if_generation_match=0`, which means the object must not already exist.
+
+CAS retries are handled in two layers: the connector retries internally on
+transient conflicts, and the sidecar requeues the message with exponential
+backoff if the connector exhausts its retries. The handler does not need explicit
+retry logic.
 
 **Handler code**:
 
 ```python
-try:
+import json
+
+async def handler(payload):
+    # Read (connector caches generation internally)
+    with open("/state/cache/result.json") as f:
+        data = json.load(f)
+
+    data["count"] += 1
+
+    # Write (connector uses cached generation for conditional write)
     with open("/state/cache/result.json", "w") as f:
-        json.dump(result, f)
-except FileExistsError:
-    # Another process modified the blob since we last read it
-    pass
+        json.dump(data, f)
+
+    return payload
 ```
+
+If the blob was modified between read and write, the connector raises
+`FileExistsError`. Per the ADR on CAS safety, this is safe even across pod
+crashes: a crash before write leaves no state change, a crash during write is
+atomic (succeeds or fails entirely), and a crash after write but before message
+ack triggers a redelivery where CAS detects the version conflict.
 
 ## Write Mode
 
@@ -181,10 +208,10 @@ spec:
 
 ## Storage Emulator (Testing)
 
-For local testing, use the GCS emulator:
+For local testing, use [fake-gcs-server](https://github.com/fsouza/fake-gcs-server):
 
 ```bash
-docker run -p 8080:8080 fsouza/fake-gcs-server -scheme http
+docker run -p 4443:4443 fsouza/fake-gcs-server -scheme http -port 4443
 ```
 
 **Connector configuration**:
@@ -194,15 +221,18 @@ env:
   - name: STATE_BUCKET
     value: test-bucket
   - name: STORAGE_EMULATOR_HOST
-    value: gcs-emulator:8080
+    value: http://fake-gcs:4443
 ```
 
 **Create bucket** via HTTP API:
 
 ```bash
-curl -X POST http://localhost:8080/storage/v1/b \
+curl -X POST 'http://localhost:4443/storage/v1/b?project=test' \
+  -H 'Content-Type: application/json' \
   -d '{"name": "test-bucket"}'
 ```
+
+The `google-cloud-storage` Python SDK supports `STORAGE_EMULATOR_HOST` natively — when set, the client routes all requests to the emulator with no code changes. The emulator supports generation numbers and preconditions (`if_generation_match`), which enables CAS testing.
 
 ## Best Practices
 

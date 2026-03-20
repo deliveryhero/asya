@@ -93,25 +93,36 @@ Uses Redis `WATCH`/`MULTI`/`EXEC` for optimistic locking. On write:
 
 If the key was modified between `WATCH` and `EXEC`, Redis raises `WatchError`, which the connector maps to `FileExistsError`.
 
+CAS retries are handled in two layers: the sidecar requeues the message with
+exponential backoff if the write fails, and the handler runs again from scratch
+with a fresh `read()` that sees the latest value. In most cases, your handler
+does not need explicit retry logic.
+
 **Handler code**:
 
 ```python
-try:
-    with open("/state/cache/counter.txt", "w") as f:
-        f.write(str(new_value))
-except FileExistsError:
-    # Another process modified the key concurrently
-    pass
+import json
+
+async def handler(payload):
+    # Read current value (connector watches the key internally)
+    with open("/state/cache/counter.json") as f:
+        data = json.load(f)
+
+    data["count"] += 1
+
+    # Write — uses WATCH/MULTI/EXEC for CAS.
+    # On conflict, raises FileExistsError; sidecar requeues the message.
+    with open("/state/cache/counter.json", "w") as f:
+        json.dump(data, f)
+
+    return payload
 ```
 
 ### Exclusive Writes
 
-When `exclusive=True` (internal flag, not exposed to handlers), the connector uses `SET NX` (set-if-not-exists) for atomic create-if-absent.
-
-```python
-# This is handled internally by the runtime for first-time writes
-# Handlers do not need to call exclusive mode explicitly
-```
+The connector supports atomic create-if-absent via `SET NX` (set-if-not-exists).
+This is triggered internally by the `If-None-Match: *` HTTP header on PUT requests
+and is not directly exposed to handler code.
 
 ## Write Mode
 
@@ -125,25 +136,30 @@ Uses **buffered** write mode: collects all writes into memory. On `close()`, sen
 
 ## TTL Support (Extended Attributes)
 
-Redis connector supports TTL via extended attributes (xattr emulation).
+Redis connector supports TTL via the extended attributes (xattr) API. The
+runtime uses the `user.asya.{attr}` naming convention — it strips the
+`user.asya.` prefix before forwarding to the connector.
 
 **Set TTL**:
 
 ```python
-import os
+import json, os
 
-# Write key
-with open("/state/cache/temp.json", "w") as f:
-    json.dump(data, f)
+async def handler(payload):
+    # Write key
+    with open("/state/cache/temp.json", "w") as f:
+        json.dump(data, f)
 
-# Set TTL to 3600 seconds (1 hour)
-os.setxattr("/state/cache/temp.json", "user.ttl", b"3600")
+    # Set TTL to 3600 seconds (1 hour)
+    os.setxattr("/state/cache/temp.json", "user.asya.ttl", b"3600")
+
+    return payload
 ```
 
 **Get TTL**:
 
 ```python
-ttl = os.getxattr("/state/cache/temp.json", "user.ttl")
+ttl = os.getxattr("/state/cache/temp.json", "user.asya.ttl")
 print(f"TTL: {ttl.decode()} seconds")
 ```
 
@@ -151,7 +167,7 @@ print(f"TTL: {ttl.decode()} seconds")
 
 - TTL is applied via `EXPIRE` after the key is written
 - Negative TTL values: `-1` = no expiry, `-2` = key does not exist
-- Only `user.ttl` attribute is supported; other xattr names raise `KeyError`
+- Only `ttl` is supported as an extended attribute; other attribute names raise `KeyError`
 
 ## Performance Characteristics
 
@@ -212,7 +228,7 @@ redis://:mypassword@redis-master.default.svc.cluster.local:6379/0
 
 - **Max value size**: Redis default is 512 MB; practical limit is much lower (< 10 MB for performance)
 - **No streaming writes**: Buffered mode only — entire value is buffered in memory before `SET`
-- **CAS on write only**: No ETag or version tracking for reads; conflict detection happens on write
+- **CAS via WATCH**: Redis CAS uses WATCH/MULTI/EXEC optimistic locking, not version/revision tracking. The key is watched at write time; if it changed between watch and exec, the transaction fails with `FileExistsError`
 
 ## Related Documentation
 
