@@ -12,19 +12,14 @@ import dataclasses
 import logging
 import re
 import shutil
-from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.config.project import AsyaProject
-
-
-try:
-    from asya_lab.flow.grouper import Router
-except ModuleNotFoundError:
-    Router = None
+from asya_lab.flow.codegen import ROUTER_PREFIXES, CodegenMeta
+from asya_lab.flow.result_types import ActorInfo
 
 
 def _literal_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
@@ -42,25 +37,8 @@ _Dumper.add_representer(str, _literal_representer)
 
 log = logging.getLogger(__name__)
 
-_ROUTER_PREFIXES = ("start_", "router_", "fanin_")
+_ROUTER_PREFIXES = ROUTER_PREFIXES
 _TEMPLATE_RE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
-
-
-@dataclass
-class ActorInfo:
-    """Collected metadata for a single actor manifest.
-
-    Naming convention:
-      name:    K8s name with hyphens (e.g. "handler-a", "start-my-flow")
-      handler: Python function reference with underscores (e.g. "handler_a", "routers.start_my_flow")
-    """
-
-    name: str
-    handler: str
-    image: str
-    flow_role: str
-    env: list[dict[str, str]] = field(default_factory=list)
-    is_router: bool = False
 
 
 @dataclasses.dataclass(frozen=True)
@@ -114,7 +92,7 @@ class ManifestTemplater:
         *,
         flow_name: str,
         flow_function: str,
-        routers: list[Router],
+        codegen_meta: CodegenMeta,
         router_code: str,
         project: AsyaProject,
         actor_template_path: Path,
@@ -125,7 +103,7 @@ class ManifestTemplater:
     ) -> None:
         self.flow_name = flow_name
         self.flow_function = flow_function
-        self.routers = routers
+        self.codegen_meta = codegen_meta
         self.router_code = router_code
         self.project = project
         self.actor_template_path = actor_template_path
@@ -196,7 +174,7 @@ class ManifestTemplater:
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve {{ key }} placeholders."""
-        if actor.is_router and self.router_template_path and self.router_template_path.exists():
+        if actor.is_generated and self.router_template_path and self.router_template_path.exists():
             template_path = self.router_template_path
         else:
             template_path = self.actor_template_path
@@ -371,21 +349,22 @@ Each overlay builds on top of `common/`.
         handler_actors: dict[str, ActorInfo] = {}
         router_actors: list[ActorInfo] = []
 
-        for router in self.routers:
-            handler_env = self._build_handler_env(router)
+        for router_name in self.codegen_meta.router_names:
+            refs = self.codegen_meta.router_refs.get(router_name, [])
+            handler_env = self._build_handler_env_from_refs(refs)
 
             router_actors.append(
                 ActorInfo(
-                    name=self._to_k8s_name(router.name),
-                    handler=f"routers.{router.name}",
+                    name=self._to_k8s_name(router_name),
+                    handler=f"routers.{router_name}",
                     image=router_image,
-                    flow_role=self._router_flow_role(router.name),
+                    flow_role=self._router_flow_role(router_name),
                     env=handler_env,
-                    is_router=True,
+                    is_generated=True,
                 )
             )
 
-            for actor_name in self._get_referenced_actors(router):
+            for actor_name in refs:
                 if self._is_router_name(actor_name):
                     continue
                 if actor_name not in handler_actors:
@@ -396,7 +375,7 @@ Each overlay builds on top of `common/`.
                         name=k8s_name,
                         handler=handler,
                         image=image,
-                        flow_role="handler",
+                        flow_role="actor",
                     )
 
         return router_actors + list(handler_actors.values())
@@ -406,22 +385,7 @@ Each overlay builds on top of `common/`.
         """Convert Python name (underscores) to K8s name (hyphens)."""
         return name.replace("_", "-")
 
-    def _get_referenced_actors(self, router: Router) -> list[str]:
-        """Get all actor names referenced by a router."""
-        actors = []
-        actors.extend(router.true_branch_actors)
-        actors.extend(router.false_branch_actors)
-        actors.extend(router.finally_actors)
-        actors.extend(router.continuation_actors)
-        if router.exception_handlers:
-            for handler in router.exception_handlers:
-                actors.extend(handler.actors)
-        if router.is_fan_out and router.fan_out_op:
-            for actor_name, _payload_expr in router.fan_out_op.actor_calls:
-                actors.append(actor_name)
-        return actors
-
-    def _build_handler_env(self, router: Router) -> list[dict[str, str]]:
+    def _build_handler_env_from_refs(self, refs: list[str]) -> list[dict[str, str]]:
         """Build ASYA_HANDLER_* env vars for a router actor.
 
         All referenced actors — including other routers — get an env var so the
@@ -431,7 +395,7 @@ Each overlay builds on top of `common/`.
         """
         seen: set[str] = set()
         env: list[dict[str, str]] = []
-        for actor_name in self._get_referenced_actors(router):
+        for actor_name in refs:
             if actor_name in seen:
                 continue
             seen.add(actor_name)
@@ -448,5 +412,5 @@ Each overlay builds on top of `common/`.
 
     def _router_flow_role(self, name: str) -> str:
         if name.startswith("start_"):
-            return "entrypoint"
+            return "entry"
         return "router"
