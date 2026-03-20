@@ -1,7 +1,11 @@
-# asya-playground values for GKE + GCP Pub/Sub (KubeCon demo)
-# Project: foodsci-img-gen-dev-1407-1448, Region: europe-west1
+# asya-playground values for GKE + GCP Pub/Sub
 # Transport: native GCP Pub/Sub (no LocalStack)
 # Auth: GKE Workload Identity for Crossplane + actor pods; JSON key for KEDA
+#
+# Required overrides at install time (via --set or -f):
+#   asya-crossplane.gcpProviderConfig.projectId=<project>
+#   asya-crossplane.sidecar.gcpProjectId=<project>
+#   asya-gateway.transports.pubsub.config.projectId=<project>
 
 global:
   transport: pubsub
@@ -22,6 +26,10 @@ sampleStorage:
 
 enableAsyaCrew: true
 enableAsyaGateway: true
+
+# Monitoring: enable for observability dashboards
+sampleMonitoring:
+  enabled: true
 
 # Lightweight in-cluster PostgreSQL for gateway — no Cloud SQL needed for a demo
 sampleGatewayDb:
@@ -45,8 +53,8 @@ asya-crossplane:
 
   gcpProviderConfig:
     name: default
-    projectId: "<your-gcp-project-id>"
-    # Secret = JSON key (asya-demo-crossplane SA) in crossplane-system/gcp-creds
+    projectId: "" # override at install time
+    # Secret = JSON key in crossplane-system/gcp-creds
     credentialsSource: Secret
     secretRef:
       namespace: crossplane-system
@@ -54,8 +62,7 @@ asya-crossplane:
       key: credentials.json
 
   sidecar:
-    gcpProjectId: "<your-gcp-project-id>"
-    # asya-demo-actor SA key mounted in each actor pod sidecar for Pub/Sub access
+    gcpProjectId: "" # override at install time
     gcpCredsSecret: "asya-actor-creds"
     # Base URL (no /mesh suffix) — sidecar reporter appends /health, /mesh, /mesh/{id}/final
     gatewayURL: "http://asya-gateway-mesh.asya-demo.svc.cluster.local"
@@ -81,9 +88,6 @@ asya-crossplane:
 # Crew: pubsub transport, use asya-actor KSA (bound via Workload Identity)
 # ---------------------------------------------------------------------------
 asya-crew:
-  image:
-    tag: "0.5.5"
-
   x-sink: {}
   x-sump: {}
 
@@ -91,14 +95,18 @@ asya-crew:
     enabled: false
 
 # ---------------------------------------------------------------------------
-# Gateway: LoadBalancer, in-cluster PostgreSQL, text-improver route
+# Gateway: LoadBalancer, in-cluster PostgreSQL, Pub/Sub transport
 # ---------------------------------------------------------------------------
 asya-gateway:
   replicaCount: 1
-  image:
-    tag: "0.5.5"
   service:
     type: LoadBalancer
+
+  transports:
+    pubsub:
+      enabled: true
+      config:
+        projectId: "" # override at install time
 
   externalDatabase:
     host: asya-demo-asya-gateway-postgresql
@@ -107,3 +115,101 @@ asya-gateway:
     username: asya
     existingSecret: asya-gateway-postgresql
     existingSecretKey: password
+
+# ---------------------------------------------------------------------------
+# Monitoring: Prometheus + Grafana
+# ---------------------------------------------------------------------------
+kube-prometheus-stack:
+  fullnameOverride: asya-monitoring
+  cleanPrometheusOperatorObjectNames: true
+
+  prometheus:
+    prometheusSpec:
+      serviceMonitorSelectorNilUsesHelmValues: false
+      podMonitorSelectorNilUsesHelmValues: false
+      retention: 7d
+      retentionSize: 5GB
+      resources:
+        requests:
+          cpu: 200m
+          memory: 512Mi
+        limits:
+          cpu: 1000m
+          memory: 1Gi
+      # Workaround: sidecar containers don't declare containerPort, so PodMonitor
+      # can't match by port. Use raw scrape config with relabeling instead.
+      additionalScrapeConfigs:
+      - job_name: asya-actors
+        kubernetes_sd_configs:
+        - role: pod
+          namespaces:
+            names:
+            - asya-demo
+        relabel_configs:
+        - source_labels: [__meta_kubernetes_pod_label_asya_sh_actor]
+          action: keep
+          regex: .+
+        - source_labels: [__meta_kubernetes_pod_container_name]
+          action: keep
+          regex: asya-sidecar
+        - source_labels: [__address__]
+          action: replace
+          regex: ([^:]+)(?::\d+)?
+          replacement: $1:8080
+          target_label: __address__
+        - source_labels: [__meta_kubernetes_pod_label_asya_sh_actor]
+          target_label: actor
+        - source_labels: [__meta_kubernetes_namespace]
+          target_label: namespace
+        - source_labels: [__meta_kubernetes_pod_name]
+          target_label: pod
+        - source_labels: [__meta_kubernetes_pod_label_asya_sh_flow]
+          target_label: flow
+        - source_labels: [__meta_kubernetes_pod_label_asya_sh_role]
+          target_label: role
+        - source_labels: [__meta_kubernetes_pod_label_asya_sh_generated]
+          target_label: generated
+        scrape_interval: 15s
+        metrics_path: /metrics
+
+  grafana:
+    adminPassword: admin
+    service:
+      type: ClusterIP
+    sidecar:
+      dashboards:
+        enabled: true
+        searchNamespace: ALL
+        label: grafana_dashboard
+        labelValue: "1"
+        folderAnnotation: grafana_folder
+        provider:
+          foldersFromFilesStructure: true
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  alertmanager:
+    enabled: false
+  kubeStateMetrics:
+    enabled: true
+  nodeExporter:
+    enabled: false
+  kubeApiServer:
+    enabled: false
+  kubelet:
+    enabled: false
+  kubeControllerManager:
+    enabled: false
+  coreDns:
+    enabled: false
+  kubeEtcd:
+    enabled: false
+  kubeScheduler:
+    enabled: false
+  kubeProxy:
+    enabled: false

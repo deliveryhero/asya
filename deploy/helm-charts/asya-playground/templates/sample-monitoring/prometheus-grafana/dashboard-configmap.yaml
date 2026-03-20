@@ -11,4 +11,6 @@ metadata:
 data:
   asya-actors-overview.json: |
 {{ .Files.Get "files/asya-actors-overview.json" | indent 4 }}
+  asya-flows-overview.json: |
+{{ .Files.Get "files/asya-flows-overview.json" | indent 4 }}
 {{- end }}

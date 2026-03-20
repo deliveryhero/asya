@@ -126,7 +126,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m]))",
+          "expr": "sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\", status=\"success\"}[5m]))",
           "legendFormat": "{{queue}} processed",
           "refId": "A"
         },
@@ -135,7 +135,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (destination_queue) (rate(asya_actor_messages_sent_total{namespace=~\"$namespace\", destination_queue=~\"$queue\"}[5m]))",
+          "expr": "sum by (destination_queue) (rate(asya_actor_messages_sent_total{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", destination_queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{destination_queue}} sent",
           "refId": "B"
         }
@@ -234,7 +234,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "(sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\", status=\"success\"}[5m])) / (sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))) * 100",
+          "expr": "(sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\", status=\"success\"}[5m])) / (sum by (queue) (rate(asya_actor_messages_processed_total{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\"}[5m])))) * 100",
           "legendFormat": "{{queue}}",
           "refId": "A"
         }
@@ -336,7 +336,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (deployment) (kube_deployment_status_replicas_available{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "expr": "sum by (deployment) (kube_deployment_status_replicas_available{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", deployment=~\"$queue\"})",
           "legendFormat": "{{deployment}}",
           "refId": "A"
         }
@@ -425,7 +425,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (deployment) (kube_deployment_status_replicas_unavailable{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "expr": "sum by (deployment) (kube_deployment_status_replicas_unavailable{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", deployment=~\"$queue\"})",
           "legendFormat": "{{deployment}}",
           "refId": "A"
         }
@@ -514,7 +514,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\", deployment=~\"$queue\"})",
+          "expr": "sum by (deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", deployment=~\"$queue\"})",
           "legendFormat": "{{deployment}}",
           "refId": "A"
         }
@@ -616,7 +616,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_processing_duration_seconds_bucket{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}}",
           "refId": "A"
         }
@@ -705,7 +705,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", queue=~\"$queue\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, queue) (rate(asya_actor_runtime_execution_duration_seconds_bucket{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\"}[5m])))",
           "legendFormat": "{{queue}}",
           "refId": "A"
         }
@@ -807,7 +807,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "sum by (queue, reason) (rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", queue=~\"$queue\"}[5m]))",
+          "expr": "sum by (queue, reason) (rate(asya_actor_messages_failed_total{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", queue=~\"$queue\"}[5m]))",
           "legendFormat": "{{queue}} - {{reason}}",
           "refId": "A"
         }
@@ -909,7 +909,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", direction=\"received\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", direction=\"received\"}[5m])))",
           "legendFormat": "received",
           "refId": "A"
         },
@@ -918,7 +918,7 @@
             "type": "prometheus",
             "uid": "${datasource}"
           },
-          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", direction=\"sent\"}[5m])))",
+          "expr": "histogram_quantile(${percentile}, sum by (le, direction) (rate(asya_actor_message_size_bytes_bucket{namespace=~\"$namespace\", flow=~\"$flow\", generated=~\"$show_generated\", direction=\"sent\"}[5m])))",
           "legendFormat": "sent",
           "refId": "B"
         }
@@ -1224,6 +1224,61 @@
         "skipUrlSync": false,
         "sort": 1,
         "type": "query"
+      },
+      {
+        "current": {
+          "selected": false,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "prometheus",
+          "uid": "${datasource}"
+        },
+        "definition": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Flow",
+        "multi": true,
+        "name": "flow",
+        "options": [],
+        "query": {
+          "qryType": 1,
+          "query": "label_values(asya_actor_messages_received_total{namespace=~\"$namespace\", flow=~\".+\"}, flow)",
+          "refId": "PrometheusVariableQueryEditor-VariableQuery"
+        },
+        "refresh": 2,
+        "regex": "",
+        "skipUrlSync": false,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "Hide generated",
+          "value": ""
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Generated actors",
+        "multi": false,
+        "name": "show_generated",
+        "options": [
+          {
+            "selected": true,
+            "text": "Hide generated",
+            "value": ""
+          },
+          {
+            "selected": false,
+            "text": "Show all",
+            "value": ".*"
+          }
+        ],
+        "query": "Hide generated : , Show all : .*",
+        "skipUrlSync": false,
+        "type": "custom"
       },
       {
         "current": {

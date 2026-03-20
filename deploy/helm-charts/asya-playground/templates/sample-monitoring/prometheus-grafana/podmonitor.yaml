@@ -19,7 +19,7 @@ spec:
     matchNames:
     - {{ .Release.Namespace }}
   podMetricsEndpoints:
-  - port: metrics
+  - targetPort: 8080
     interval: 15s
     path: /metrics
 {{- end }}
