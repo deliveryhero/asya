@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/.worktrees/compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
   - branch:compiler-simplify/gml9.phase-2-orchestrator-interfaces-manifests-cli
+  - pr:339
 dependencies:
   - dlad
 ---
+
 
 
 ## Overview
