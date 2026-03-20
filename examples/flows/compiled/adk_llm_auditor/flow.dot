@@ -40,6 +40,7 @@ digraph "adk_llm_auditor" {
     router_llm_auditor_line_73_if -> critique [label="p['aggregate_score'] >= 70"];
     critique -> reviser;
     reviser -> router_llm_auditor_line_83_if;
+    router_llm_auditor_line_73_if -> critique [label="not (p['aggregate_score'] >= 70)"];
     critique -> deep_reviser;
     deep_reviser -> router_llm_auditor_line_83_if;
     router_llm_auditor_line_84_seq -> router_llm_auditor_line_90_seq;

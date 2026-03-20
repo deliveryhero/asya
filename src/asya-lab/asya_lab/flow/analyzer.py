@@ -383,11 +383,12 @@ def _find_chain_end(node: str, edges: list[dict]) -> str:
 
 
 def _deduplicate_edges(edges: list[dict]) -> None:
-    """Remove duplicate edges with the same from/to/type."""
-    seen: set[tuple[str, str, str]] = set()
+    """Remove truly duplicate edges (same from/to/type/label)."""
+    seen: set[tuple[str, str, str, str | None]] = set()
     i = 0
     while i < len(edges):
-        key = (edges[i]["from"], edges[i]["to"], edges[i]["type"])
+        e = edges[i]
+        key = (e["from"], e["to"], e["type"], e.get("label"))
         if key in seen:
             edges.pop(i)
         else:

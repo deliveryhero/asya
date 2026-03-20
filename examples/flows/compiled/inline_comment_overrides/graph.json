@@ -1,5 +1,5 @@
 {
-  "flow_name": "order_pipeline",
+  "flow_name": "inline_comment_overrides",
   "nodes": [
     {
       "id": "charge_payment",

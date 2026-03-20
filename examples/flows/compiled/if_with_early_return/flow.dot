@@ -1,4 +1,4 @@
-digraph "early_return_flow" {
+digraph "if_with_early_return" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

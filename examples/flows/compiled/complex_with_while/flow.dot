@@ -1,4 +1,4 @@
-digraph "complex_flow" {
+digraph "complex_with_while" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

@@ -1,4 +1,4 @@
-digraph "sequential_flow" {
+digraph "sequential" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

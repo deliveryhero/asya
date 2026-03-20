@@ -1,4 +1,4 @@
-digraph "nested_loop_flow" {
+digraph "while_nested_loop" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

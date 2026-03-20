@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_inside_while_flow",
+  "flow_name": "while_with_if",
   "nodes": [
     {
       "id": "end_if_inside_while_flow",

@@ -1,4 +1,4 @@
-digraph "analysis_flow" {
+digraph "fanout_literal" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

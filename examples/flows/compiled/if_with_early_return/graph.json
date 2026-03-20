@@ -1,5 +1,5 @@
 {
-  "flow_name": "early_return_flow",
+  "flow_name": "if_with_early_return",
   "nodes": [
     {
       "id": "end_early_return_flow",

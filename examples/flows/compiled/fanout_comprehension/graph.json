@@ -1,5 +1,5 @@
 {
-  "flow_name": "research_flow",
+  "flow_name": "fanout_comprehension",
   "nodes": [
     {
       "id": "end_research_flow",

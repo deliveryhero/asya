@@ -1,4 +1,4 @@
-digraph "if_inside_while_flow" {
+digraph "while_with_if" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

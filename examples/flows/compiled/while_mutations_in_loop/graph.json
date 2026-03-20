@@ -1,5 +1,5 @@
 {
-  "flow_name": "while_mutations_in_loop_flow",
+  "flow_name": "while_mutations_in_loop",
   "nodes": [
     {
       "id": "end_while_mutations_in_loop_flow",

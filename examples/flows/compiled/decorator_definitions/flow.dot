@@ -1,4 +1,4 @@
-digraph "decorator_definitions_flow" {
+digraph "decorator_definitions" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

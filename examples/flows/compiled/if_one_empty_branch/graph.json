@@ -1,5 +1,5 @@
 {
-  "flow_name": "if_empty_branches_flow",
+  "flow_name": "if_one_empty_branch",
   "nodes": [
     {
       "id": "end_if_empty_branches_flow",

@@ -1,4 +1,4 @@
-digraph "content_pipeline_flow" {
+digraph "async_conditional" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

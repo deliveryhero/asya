@@ -1,5 +1,5 @@
 {
-  "flow_name": "nested_loop_flow",
+  "flow_name": "while_nested_loop",
   "nodes": [
     {
       "id": "end_nested_loop_flow",

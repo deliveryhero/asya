@@ -1,5 +1,5 @@
 {
-  "flow_name": "conditional_nested_flow",
+  "flow_name": "if_nested",
   "nodes": [
     {
       "id": "end_conditional_nested_flow",

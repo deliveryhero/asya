@@ -1,5 +1,5 @@
 {
-  "flow_name": "loop_flow",
+  "flow_name": "while_loop_processing",
   "nodes": [
     {
       "id": "check_threshold",

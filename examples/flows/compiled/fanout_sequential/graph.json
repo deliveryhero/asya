@@ -1,5 +1,5 @@
 {
-  "flow_name": "multi_stage_flow",
+  "flow_name": "fanout_sequential",
   "nodes": [
     {
       "id": "end_multi_stage_flow",

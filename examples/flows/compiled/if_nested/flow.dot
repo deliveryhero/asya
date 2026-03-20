@@ -1,4 +1,4 @@
-digraph "conditional_nested_flow" {
+digraph "if_nested" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

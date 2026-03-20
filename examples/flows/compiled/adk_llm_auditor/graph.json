@@ -226,6 +226,12 @@
       "type": "continuation"
     },
     {
+      "from": "router_llm_auditor_line_73_if",
+      "to": "critique",
+      "label": "not (p['aggregate_score'] >= 70)",
+      "type": "prepend"
+    },
+    {
       "from": "critique",
       "to": "deep_reviser",
       "label": null,

@@ -1,5 +1,5 @@
 {
-  "flow_name": "typeddict_pipeline",
+  "flow_name": "typed_dict_pipeline",
   "nodes": [
     {
       "id": "end_typeddict_pipeline",

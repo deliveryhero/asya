@@ -1,4 +1,4 @@
-digraph "mutations_only_flow" {
+digraph "mutations_only" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

@@ -1,4 +1,4 @@
-digraph "if_mutations_in_branches_flow" {
+digraph "if_mutations_in_branches" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

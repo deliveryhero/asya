@@ -1,4 +1,4 @@
-digraph "if_no_else_flow" {
+digraph "if_no_else" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
