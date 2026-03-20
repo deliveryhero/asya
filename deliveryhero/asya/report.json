@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "fe986bcb52b117c306743c335a09cc831b5f926c",
+  "commit": "609cd0183df9a107afc2a6177e32bfbd3d965fa3",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -175,7 +175,7 @@
             "end_line": 98,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 0
+            "count": 1
           },
           {
             "type": "statement",
@@ -211,7 +211,7 @@
             "end_line": 109,
             "end_col": 7,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -25436,7 +25436,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 31946,
+    "code": 32078,
     "test": 19909,
     "code_files": [
       {
@@ -26196,6 +26196,13 @@
         "language": "Python"
       },
       {
+        "code": 39,
+        "comment": 41,
+        "blank": 22,
+        "path": "examples/flows/compiled/with_nested_timeout_scopes/routers.py",
+        "language": "Python"
+      },
+      {
         "code": 62,
         "comment": 44,
         "blank": 28,
@@ -26407,7 +26414,7 @@
       },
       {
         "code": 12,
-        "comment": 0,
+        "comment": 1,
         "blank": 0,
         "path": "examples/flows/sample_flow.py",
         "language": "Python"
@@ -26435,7 +26442,7 @@
       },
       {
         "code": 29,
-        "comment": 5,
+        "comment": 6,
         "blank": 9,
         "path": "examples/flows/text_analysis_flow.py",
         "language": "Python"
@@ -26585,6 +26592,13 @@
         "comment": 12,
         "blank": 11,
         "path": "examples/flows/with_inline_ctx.py",
+        "language": "Python"
+      },
+      {
+        "code": 10,
+        "comment": 10,
+        "blank": 9,
+        "path": "examples/flows/with_nested_timeout_scopes.py",
         "language": "Python"
       },
       {
@@ -27078,9 +27092,9 @@
         "language": "Python"
       },
       {
-        "code": 745,
-        "comment": 49,
-        "blank": 146,
+        "code": 768,
+        "comment": 50,
+        "blank": 147,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
         "language": "Python"
       },
@@ -27281,9 +27295,9 @@
         "language": "Python"
       },
       {
-        "code": 162,
-        "comment": 116,
-        "blank": 45,
+        "code": 222,
+        "comment": 165,
+        "blank": 59,
         "path": "src/asya-lab/tests/flow/test_with_parser.py",
         "language": "Python"
       },
@@ -28327,6 +28341,6 @@
       }
     ]
   },
-  "test_execution_time": 351000000000,
-  "timestamp": "2026-03-20T22:42:13.006495299Z"
+  "test_execution_time": 360000000000,
+  "timestamp": "2026-03-20T23:36:00.43672871Z"
 }
