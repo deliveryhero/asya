@@ -4,13 +4,14 @@ templates:
   max_replicas: 5
 
 build:
-- module: "sentiment_actors"
+- module: "analyze"
   image: "tilt-sentiment-actors"
-- module: "summarizer"
+- module: "summarize"
   image: "tilt-summarizer"
-- module: "translator"
+- module: "translate"
   image: "tilt-translator"
 
 compiler:
   routers: "./compiled"
   manifests: ".asya/manifests"
+  templates: ".asya/templates"

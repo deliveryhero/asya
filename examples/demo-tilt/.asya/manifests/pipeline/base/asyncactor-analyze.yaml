@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: analyze
+  namespace: demo-tilt
+  labels:
+    asya.sh/flow: pipeline
+spec:
+  actor: analyze
+  image: tilt-sentiment-actors
+  handler: sentiment_actors.handler.analyze
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

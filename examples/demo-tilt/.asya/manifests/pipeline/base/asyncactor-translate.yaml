@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: translate
+  namespace: demo-tilt
+  labels:
+    asya.sh/flow: pipeline
+    asya.sh/role: end
+spec:
+  actor: translate
+  image: tilt-translator
+  handler: translator.handler.translate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

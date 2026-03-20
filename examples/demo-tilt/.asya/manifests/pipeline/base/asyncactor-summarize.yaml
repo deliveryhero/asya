@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: summarize
+  namespace: demo-tilt
+  labels:
+    asya.sh/flow: pipeline
+spec:
+  actor: summarize
+  image: tilt-summarizer
+  handler: summarizer.handler.summarize
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []
