@@ -3,63 +3,63 @@
   "nodes": [
     {
       "id": "account_agent",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "account_agent",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "billing_agent",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "billing_agent",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "classifier",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "format_reply",
-      "flow_role": "actor",
+      "role": "end",
       "label": "format_reply",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "general_agent",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "general_agent",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_routing_classifier_line_47_if_3",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_routing_classifier_line_47_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_routing_classifier_line_49_if_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_routing_classifier_line_49_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_routing_classifier_line_51_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_routing_classifier_line_51_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_routing_classifier",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_routing_classifier",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "technical_agent",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "technical_agent",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

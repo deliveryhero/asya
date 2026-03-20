@@ -11,9 +11,11 @@ flowchart TD
     reviser --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_llm_auditor_flow start
-    class critic,reviser handler
+    class reviser endnode
+    class critic handler
     class __end__ endpoint

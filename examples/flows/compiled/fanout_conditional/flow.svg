@@ -60,7 +60,7 @@
 <!-- formatter -->
 <g id="node6" class="node">
 <title>formatter</title>
-<polygon fill="lightblue" stroke="black" points="369.5,-102.6 292,-102.6 292,-66.6 369.5,-66.6 369.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="369.5,-102.6 292,-102.6 292,-66.6 369.5,-66.6 369.5,-102.6"/>
 <text text-anchor="middle" x="330.75" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">formatter</text>
 </g>
 <!-- fanin_adaptive_flow_line_17&#45;&gt;formatter -->

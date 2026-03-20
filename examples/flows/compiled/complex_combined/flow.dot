@@ -5,8 +5,8 @@ digraph "complex_combined_flow" {
     { rank=source; start_complex_combined_flow; }
 
     handler_default [label="handler_default", fillcolor=lightblue];
-    handler_error [label="handler_error", fillcolor=lightblue];
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_error [label="handler_error", fillcolor=lightsalmon];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];

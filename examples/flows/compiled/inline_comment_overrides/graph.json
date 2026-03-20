@@ -3,36 +3,36 @@
   "nodes": [
     {
       "id": "charge_payment",
-      "flow_role": "actor",
+      "role": "end",
       "label": "charge_payment",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_order_pipeline_line_32_if_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_order_pipeline_line_32_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_order_pipeline_line_33_seq_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_order_pipeline_line_33_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['status'] = 'rejected'"
       ]
     },
     {
       "id": "start_order_pipeline",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_order_pipeline",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "validate_order",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "validate_order",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

@@ -3,39 +3,39 @@
   "nodes": [
     {
       "id": "handler_error",
-      "flow_role": "actor",
+      "role": "end",
       "label": "handler_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "role": "end",
       "label": "handler_finalize",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_process",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "handler_process",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_validate",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "handler_validate",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_early_return_flow_line_14_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_early_return_flow_line_14_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_early_return_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_early_return_flow",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

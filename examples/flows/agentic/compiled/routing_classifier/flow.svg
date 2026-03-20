@@ -36,7 +36,7 @@
 <!-- format_reply -->
 <g id="node5" class="node">
 <title>format_reply</title>
-<polygon fill="lightblue" stroke="black" points="256.5,-102.6 158.75,-102.6 158.75,-66.6 256.5,-66.6 256.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="256.5,-102.6 158.75,-102.6 158.75,-66.6 256.5,-66.6 256.5,-102.6"/>
 <text text-anchor="middle" x="207.62" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">format_reply</text>
 </g>
 <!-- account_agent&#45;&gt;format_reply -->

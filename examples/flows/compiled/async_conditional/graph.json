@@ -3,51 +3,51 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "classifier",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "generic_processor",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "generic_processor",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "image_processor",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "image_processor",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "quality_check",
-      "flow_role": "actor",
+      "role": "end",
       "label": "quality_check",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_content_pipeline_flow_line_16_if_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_content_pipeline_flow_line_16_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_content_pipeline_flow_line_18_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_content_pipeline_flow_line_18_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_content_pipeline_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_content_pipeline_flow",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "text_processor",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "text_processor",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

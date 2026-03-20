@@ -3,18 +3,18 @@
   "nodes": [
     {
       "id": "router_ingester_line_181_seq_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_ingester_line_181_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"
       ]
     },
     {
       "id": "start_ingester",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_ingester",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

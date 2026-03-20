@@ -48,7 +48,7 @@
 <!-- merge_analysis -->
 <g id="node4" class="node">
 <title>merge_analysis</title>
-<polygon fill="lightblue" stroke="black" points="259,-102.6 144,-102.6 144,-66.6 259,-66.6 259,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="259,-102.6 144,-102.6 144,-66.6 259,-66.6 259,-102.6"/>
 <text text-anchor="middle" x="201.5" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">merge_analysis</text>
 </g>
 <!-- fanin_analysis_flow_line_14&#45;&gt;merge_analysis -->

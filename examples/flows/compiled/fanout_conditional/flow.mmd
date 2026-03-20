@@ -27,12 +27,14 @@ flowchart TD
     formatter --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_adaptive_flow start
+    class formatter endnode
     class router_adaptive_flow_line_16_if_2,router_adaptive_flow_line_17_fanout_1 router
-    class classifier,deep_analyzer,fanin_adaptive_flow_line_17,fast_analyzer,formatter,sequential_analyzer handler
+    class classifier,deep_analyzer,fanin_adaptive_flow_line_17,fast_analyzer,sequential_analyzer handler
     class __end__ endpoint
     linkStyle 7 stroke:#2E8B57
     linkStyle 2 stroke:#7B68EE

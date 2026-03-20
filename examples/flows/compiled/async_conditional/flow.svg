@@ -48,7 +48,7 @@
 <!-- quality_check -->
 <g id="node5" class="node">
 <title>quality_check</title>
-<polygon fill="lightblue" stroke="black" points="290.25,-102.6 188.75,-102.6 188.75,-66.6 290.25,-66.6 290.25,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="290.25,-102.6 188.75,-102.6 188.75,-66.6 290.25,-66.6 290.25,-102.6"/>
 <text text-anchor="middle" x="239.5" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">quality_check</text>
 </g>
 <!-- generic_processor&#45;&gt;quality_check -->

@@ -11,10 +11,10 @@ class TestActorInfo:
             name="handler-a",
             handler="handler_a",
             image="ghcr.io/team/actors:latest",
-            flow_role="actor",
+            role="actor",
         )
         assert actor.name == "handler-a"
-        assert actor.is_generated is False
+        assert actor.generated is False
         assert actor.manifest_path is None
 
     def test_router_actor(self):
@@ -22,14 +22,24 @@ class TestActorInfo:
             name="start-my-flow",
             handler="routers.start_my_flow",
             image="python:3.13-slim",
-            flow_role="start",
-            is_generated=True,
+            role="start",
+            generated=True,
         )
-        assert actor.is_generated is True
-        assert actor.flow_role == "start"
+        assert actor.generated is True
+        assert actor.role == "start"
+
+    def test_end_actor(self):
+        actor = ActorInfo(
+            name="final-step",
+            handler="final_step",
+            image="ghcr.io/team/actors:latest",
+            role="end",
+        )
+        assert actor.role == "end"
+        assert actor.generated is False
 
     def test_env_defaults_to_empty(self):
-        actor = ActorInfo(name="a", handler="a", image="img", flow_role="actor")
+        actor = ActorInfo(name="a", handler="a", image="img", role="actor")
         assert actor.env == []
 
 

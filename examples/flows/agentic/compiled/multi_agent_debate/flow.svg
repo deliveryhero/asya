@@ -115,7 +115,7 @@
 <!-- final_judge -->
 <g id="node8" class="node">
 <title>final_judge</title>
-<polygon fill="lightblue" stroke="black" points="120.88,-182 35.12,-182 35.12,-146 120.88,-146 120.88,-182"/>
+<polygon fill="lightsalmon" stroke="black" points="120.88,-182 35.12,-182 35.12,-146 120.88,-146 120.88,-182"/>
 <text text-anchor="middle" x="78" y="-159.7" font-family="Helvetica,sans-Serif" font-size="14.00">final_judge</text>
 </g>
 <!-- __end__ -->

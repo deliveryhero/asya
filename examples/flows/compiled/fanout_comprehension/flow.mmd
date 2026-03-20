@@ -18,11 +18,13 @@ flowchart TD
     post_processor --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_research_flow start
+    class post_processor endnode
     class router_research_flow_line_15_fanout_1 router
-    class fanin_research_flow_line_15,post_processor,preprocessor,research_agent handler
+    class fanin_research_flow_line_15,preprocessor,research_agent handler
     class __end__ endpoint
     linkStyle 2 stroke:#7B68EE

@@ -55,7 +55,7 @@
 <!-- notifier -->
 <g id="node4" class="node">
 <title>notifier</title>
-<polygon fill="lightblue" stroke="black" points="117.62,-102.6 55.12,-102.6 55.12,-66.6 117.62,-66.6 117.62,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="117.62,-102.6 55.12,-102.6 55.12,-66.6 117.62,-66.6 117.62,-102.6"/>
 <text text-anchor="middle" x="86.38" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">notifier</text>
 </g>
 <!-- executor&#45;&gt;notifier -->

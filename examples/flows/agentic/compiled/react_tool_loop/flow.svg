@@ -63,7 +63,7 @@
 <!-- format_response -->
 <g id="node4" class="node">
 <title>format_response</title>
-<polygon fill="lightblue" stroke="black" points="124.75,-102.6 0,-102.6 0,-66.6 124.75,-66.6 124.75,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="124.75,-102.6 0,-102.6 0,-66.6 124.75,-66.6 124.75,-102.6"/>
 <text text-anchor="middle" x="62.38" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">format_response</text>
 </g>
 <!-- __end__ -->

@@ -36,7 +36,7 @@
 <!-- handler_finalize -->
 <g id="node6" class="node">
 <title>handler_finalize</title>
-<polygon fill="lightblue" stroke="black" points="624.5,-102.6 507.25,-102.6 507.25,-66.6 624.5,-66.6 624.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="624.5,-102.6 507.25,-102.6 507.25,-66.6 624.5,-66.6 624.5,-102.6"/>
 <text text-anchor="middle" x="565.88" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_finalize</text>
 </g>
 <!-- handler_a_x&#45;&gt;handler_finalize -->

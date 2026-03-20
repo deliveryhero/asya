@@ -18,12 +18,14 @@ flowchart TD
     handler_finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_while_true_flow start
+    class handler_finalize endnode
     class router_while_true_flow_line_14_while_1,router_while_true_flow_line_16_if_2 router
-    class handler_finalize,handler_init,handler_process handler
+    class handler_init,handler_process handler
     class __end__ endpoint
     linkStyle 2 stroke:#2E8B57
     linkStyle 5 stroke:#E07040

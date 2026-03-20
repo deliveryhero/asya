@@ -42,7 +42,7 @@
 <!-- handler_c -->
 <g id="node4" class="node">
 <title>handler_c</title>
-<polygon fill="lightblue" stroke="black" points="116.12,-101.6 37.88,-101.6 37.88,-65.6 116.12,-65.6 116.12,-101.6"/>
+<polygon fill="lightsalmon" stroke="black" points="116.12,-101.6 37.88,-101.6 37.88,-65.6 116.12,-65.6 116.12,-101.6"/>
 <text text-anchor="middle" x="77" y="-79.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_c</text>
 </g>
 <!-- handler_b&#45;&gt;handler_c -->

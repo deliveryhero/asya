@@ -31,7 +31,7 @@
 <!-- fact_checker -->
 <g id="node2" class="node">
 <title>fact_checker</title>
-<polygon fill="lightblue" stroke="black" points="376.25,-102.6 280.75,-102.6 280.75,-66.6 376.25,-66.6 376.25,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="376.25,-102.6 280.75,-102.6 280.75,-66.6 376.25,-66.6 376.25,-102.6"/>
 <text text-anchor="middle" x="328.5" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">fact_checker</text>
 </g>
 <!-- __end__ -->

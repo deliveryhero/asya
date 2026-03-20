@@ -3,84 +3,84 @@
   "nodes": [
     {
       "id": "handle_runtime_error",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "handle_runtime_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handle_type_error",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "handle_type_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handle_validation_error",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "handle_validation_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "parse_input",
-      "flow_role": "processor",
+      "role": "processor",
       "label": "parse_input",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_data_pipeline_line_11_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_data_pipeline_line_11_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['error_type'] = 'type_mismatch'"]
     },
     {
       "id": "router_data_pipeline_line_14_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_data_pipeline_line_14_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['error_type'] = 'runtime'"]
     },
     {
       "id": "router_data_pipeline_line_4_except_dispatch_0",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_data_pipeline_line_4_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_data_pipeline_line_4_reraise_0",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "router_data_pipeline_line_4_reraise_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_data_pipeline_line_4_try_enter_0",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_data_pipeline_line_4_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_data_pipeline_line_4_try_exit_0",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "router_data_pipeline_line_4_try_exit_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_data_pipeline_line_8_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_data_pipeline_line_8_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['error_type'] = 'validation'"]
     },
     {
       "id": "start_data_pipeline",
-      "flow_role": "entrypoint",
+      "role": "entrypoint",
       "label": "start_data_pipeline",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "transform_data",
-      "flow_role": "processor",
+      "role": "processor",
       "label": "transform_data",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

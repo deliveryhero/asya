@@ -55,7 +55,7 @@
 <!-- escalate -->
 <g id="node4" class="node">
 <title>escalate</title>
-<polygon fill="lightblue" stroke="black" points="324.62,-319.6 256.12,-319.6 256.12,-283.6 324.62,-283.6 324.62,-319.6"/>
+<polygon fill="lightsalmon" stroke="black" points="324.62,-319.6 256.12,-319.6 256.12,-283.6 324.62,-283.6 324.62,-319.6"/>
 <text text-anchor="middle" x="290.38" y="-297.3" font-family="Helvetica,sans-Serif" font-size="14.00">escalate</text>
 </g>
 <!-- classify&#45;&gt;escalate -->
@@ -81,7 +81,7 @@
 <!-- format_output -->
 <g id="node5" class="node">
 <title>format_output</title>
-<polygon fill="lightblue" stroke="black" points="268.5,-102.6 160.25,-102.6 160.25,-66.6 268.5,-66.6 268.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="268.5,-102.6 160.25,-102.6 160.25,-66.6 268.5,-66.6 268.5,-102.6"/>
 <text text-anchor="middle" x="214.38" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">format_output</text>
 </g>
 <!-- format_output&#45;&gt;__end__ -->

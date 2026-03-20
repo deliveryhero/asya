@@ -48,7 +48,7 @@
 <!-- finalize_loop -->
 <g id="node3" class="node">
 <title>finalize_loop</title>
-<polygon fill="lightblue" stroke="black" points="113.5,-114.6 16.5,-114.6 16.5,-78.6 113.5,-78.6 113.5,-114.6"/>
+<polygon fill="lightsalmon" stroke="black" points="113.5,-114.6 16.5,-114.6 16.5,-78.6 113.5,-78.6 113.5,-114.6"/>
 <text text-anchor="middle" x="65" y="-92.3" font-family="Helvetica,sans-Serif" font-size="14.00">finalize_loop</text>
 </g>
 <!-- __end__ -->

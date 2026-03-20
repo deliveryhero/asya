@@ -30,7 +30,7 @@
 <!-- enrich -->
 <g id="node2" class="node">
 <title>enrich</title>
-<polygon fill="lightblue" stroke="black" points="140.5,-101.6 84.75,-101.6 84.75,-65.6 140.5,-65.6 140.5,-101.6"/>
+<polygon fill="lightsalmon" stroke="black" points="140.5,-101.6 84.75,-101.6 84.75,-65.6 140.5,-65.6 140.5,-101.6"/>
 <text text-anchor="middle" x="112.62" y="-79.3" font-family="Helvetica,sans-Serif" font-size="14.00">enrich</text>
 </g>
 <!-- __end__ -->

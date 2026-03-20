@@ -3,39 +3,39 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "flow_role": "actor",
+      "role": "end",
       "label": "handler_finalize",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_setup",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "handler_setup",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_type_a",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "handler_type_a",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handler_type_b",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "handler_type_b",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_if_mutations_in_branches_flow_line_14_if_3",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_if_mutations_in_branches_flow_line_14_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_if_mutations_in_branches_flow_line_15_seq_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_if_mutations_in_branches_flow_line_15_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['branch'] = 'A'",
         "p['value'] = 100"
@@ -43,9 +43,9 @@
     },
     {
       "id": "router_if_mutations_in_branches_flow_line_20_seq_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_if_mutations_in_branches_flow_line_20_seq_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['branch'] = 'B'",
         "p['value'] = 200"
@@ -53,9 +53,9 @@
     },
     {
       "id": "start_if_mutations_in_branches_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_if_mutations_in_branches_flow",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

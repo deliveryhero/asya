@@ -106,7 +106,7 @@
 <!-- write_report -->
 <g id="node9" class="node">
 <title>write_report</title>
-<polygon fill="lightblue" stroke="black" points="95.5,-102.6 0,-102.6 0,-66.6 95.5,-66.6 95.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="95.5,-102.6 0,-102.6 0,-66.6 95.5,-66.6 95.5,-102.6"/>
 <text text-anchor="middle" x="47.75" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">write_report</text>
 </g>
 <!-- router_research_and_refine_line_55_if_3&#45;&gt;write_report -->

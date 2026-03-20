@@ -36,7 +36,7 @@
 <!-- summarizer -->
 <g id="node5" class="node">
 <title>summarizer</title>
-<polygon fill="lightblue" stroke="black" points="140.5,-102.6 48.75,-102.6 48.75,-66.6 140.5,-66.6 140.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="140.5,-102.6 48.75,-102.6 48.75,-66.6 140.5,-66.6 140.5,-102.6"/>
 <text text-anchor="middle" x="94.62" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">summarizer</text>
 </g>
 <!-- fanin_research_flow_line_7&#45;&gt;summarizer -->

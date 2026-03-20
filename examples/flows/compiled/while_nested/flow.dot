@@ -4,11 +4,11 @@ digraph "while_nested_flow" {
 
     { rank=source; start_while_nested_flow; }
 
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_inner [label="handler_inner", fillcolor=lightblue];
     handler_outer [label="handler_outer", fillcolor=lightblue];
-    handler_outer_end [label="handler_outer_end", fillcolor=lightblue];
+    handler_outer_end [label="handler_outer_end", fillcolor=lightsalmon];
     router_while_nested_flow_line_13_seq_6 [label="router_while_nested_flow_line_13_seq_6\n\np['i'] = 0", fillcolor=wheat];
     router_while_nested_flow_line_14_while_1 [label="router_while_nested_flow_line_14_while_1", fillcolor=wheat];
     router_while_nested_flow_line_15_seq_5 [label="router_while_nested_flow_line_15_seq_5\n\np['i'] += 1", fillcolor=wheat];

@@ -8,7 +8,7 @@ digraph "voting_ensemble" {
     concise_writer [label="concise_writer", fillcolor=lightblue];
     creative_writer [label="creative_writer", fillcolor=lightblue];
     fanin_voting_ensemble_line_44 [label="fanin_voting_ensemble_line_44", fillcolor=lightblue];
-    judge [label="judge", fillcolor=lightblue];
+    judge [label="judge", fillcolor=lightsalmon];
     router_voting_ensemble_line_44_fanout_1 [label="router_voting_ensemble_line_44_fanout_1", fillcolor=wheat];
     start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
 

@@ -3,59 +3,59 @@
   "nodes": [
     {
       "id": "handle_known_error",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "handle_known_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "handle_unknown_error",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "handle_unknown_error",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "risky_operation",
-      "flow_role": "processor",
+      "role": "processor",
       "label": "risky_operation",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_resilient_pipeline_line_10_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_resilient_pipeline_line_10_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['error_type'] = 'unknown'"]
     },
     {
       "id": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_4_try_enter_0",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_resilient_pipeline_line_4_try_enter_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_4_try_exit_0",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "router_resilient_pipeline_line_4_try_exit_0",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_resilient_pipeline_line_7_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_resilient_pipeline_line_7_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['error_type'] = 'known'"]
     },
     {
       "id": "start_resilient_pipeline",
-      "flow_role": "entrypoint",
+      "role": "entrypoint",
       "label": "start_resilient_pipeline",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

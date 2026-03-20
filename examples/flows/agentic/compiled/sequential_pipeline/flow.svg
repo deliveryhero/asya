@@ -48,7 +48,7 @@
 <!-- risk_evaluator -->
 <g id="node4" class="node">
 <title>risk_evaluator</title>
-<polygon fill="lightblue" stroke="black" points="140.5,-101.6 36,-101.6 36,-65.6 140.5,-65.6 140.5,-101.6"/>
+<polygon fill="lightsalmon" stroke="black" points="140.5,-101.6 36,-101.6 36,-65.6 140.5,-65.6 140.5,-101.6"/>
 <text text-anchor="middle" x="88.25" y="-79.3" font-family="Helvetica,sans-Serif" font-size="14.00">risk_evaluator</text>
 </g>
 <!-- execution_planner&#45;&gt;risk_evaluator -->

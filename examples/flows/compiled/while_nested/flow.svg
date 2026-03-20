@@ -30,7 +30,7 @@
 <!-- handler_finalize -->
 <g id="node2" class="node">
 <title>handler_finalize</title>
-<polygon fill="lightblue" stroke="black" points="117.25,-447 0,-447 0,-411 117.25,-411 117.25,-447"/>
+<polygon fill="lightsalmon" stroke="black" points="117.25,-447 0,-447 0,-411 117.25,-411 117.25,-447"/>
 <text text-anchor="middle" x="58.62" y="-424.7" font-family="Helvetica,sans-Serif" font-size="14.00">handler_finalize</text>
 </g>
 <!-- __end__ -->
@@ -98,7 +98,7 @@
 <!-- handler_outer_end -->
 <g id="node6" class="node">
 <title>handler_outer_end</title>
-<polygon fill="lightblue" stroke="black" points="222.62,-121 86.62,-121 86.62,-85 222.62,-85 222.62,-121"/>
+<polygon fill="lightsalmon" stroke="black" points="222.62,-121 86.62,-121 86.62,-85 222.62,-85 222.62,-121"/>
 <text text-anchor="middle" x="154.62" y="-98.7" font-family="Helvetica,sans-Serif" font-size="14.00">handler_outer_end</text>
 </g>
 <!-- handler_outer_end&#45;&gt;__end__ -->

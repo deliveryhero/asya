@@ -6,8 +6,8 @@ digraph "actor_override_flow" {
 
     audit_logger [label="audit_logger", fillcolor=lightblue];
     classify [label="classify", fillcolor=lightblue];
-    escalate [label="escalate", fillcolor=lightblue];
-    format_output [label="format_output", fillcolor=lightblue];
+    escalate [label="escalate", fillcolor=lightsalmon];
+    format_output [label="format_output", fillcolor=lightsalmon];
     router_actor_override_flow_line_25_if_1 [label="router_actor_override_flow_line_25_if_1", fillcolor=wheat];
     start_actor_override_flow [label="start_actor_override_flow", fillcolor=palegreen];
     tool_executor [label="tool_executor", fillcolor=lightblue];

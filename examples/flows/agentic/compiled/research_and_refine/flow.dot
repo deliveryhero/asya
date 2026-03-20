@@ -12,7 +12,7 @@ digraph "research_and_refine" {
     router_research_and_refine_line_55_if_3 [label="router_research_and_refine_line_55_if_3", fillcolor=wheat];
     router_research_and_refine_line_59_if_2 [label="router_research_and_refine_line_59_if_2", fillcolor=wheat];
     start_research_and_refine [label="start_research_and_refine\n\np['iteration'] = 0\np['search_query'] = p.get('question', '')", fillcolor=palegreen];
-    write_report [label="write_report", fillcolor=lightblue];
+    write_report [label="write_report", fillcolor=lightsalmon];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 

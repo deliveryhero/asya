@@ -36,7 +36,7 @@
 <!-- final_assembler -->
 <g id="node8" class="node">
 <title>final_assembler</title>
-<polygon fill="lightblue" stroke="black" points="502.88,-102.6 386.38,-102.6 386.38,-66.6 502.88,-66.6 502.88,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="502.88,-102.6 386.38,-102.6 386.38,-66.6 502.88,-66.6 502.88,-102.6"/>
 <text text-anchor="middle" x="444.62" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">final_assembler</text>
 </g>
 <!-- api_specialist&#45;&gt;final_assembler -->

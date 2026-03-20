@@ -42,7 +42,7 @@
 <!-- handler_true -->
 <g id="node3" class="node">
 <title>handler_true</title>
-<polygon fill="lightblue" stroke="black" points="168.25,-102.6 71.25,-102.6 71.25,-66.6 168.25,-66.6 168.25,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="168.25,-102.6 71.25,-102.6 71.25,-66.6 168.25,-66.6 168.25,-102.6"/>
 <text text-anchor="middle" x="119.75" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_true</text>
 </g>
 <!-- __end__ -->

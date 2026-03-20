@@ -30,7 +30,7 @@
 <!-- reviser -->
 <g id="node3" class="node">
 <title>reviser</title>
-<polygon fill="lightblue" stroke="black" points="109.75,-101.6 51,-101.6 51,-65.6 109.75,-65.6 109.75,-101.6"/>
+<polygon fill="lightsalmon" stroke="black" points="109.75,-101.6 51,-101.6 51,-65.6 109.75,-65.6 109.75,-101.6"/>
 <text text-anchor="middle" x="80.38" y="-79.3" font-family="Helvetica,sans-Serif" font-size="14.00">reviser</text>
 </g>
 <!-- critic&#45;&gt;reviser -->

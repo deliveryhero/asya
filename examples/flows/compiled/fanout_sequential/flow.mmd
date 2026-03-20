@@ -23,11 +23,13 @@ flowchart TD
     summarizer --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_multi_stage_flow start
+    class summarizer endnode
     class router_multi_stage_flow_line_15_fanout_2,router_multi_stage_flow_line_16_fanout_1 router
-    class fanin_multi_stage_flow_line_15,fanin_multi_stage_flow_line_16,research_agent,review_agent,summarizer handler
+    class fanin_multi_stage_flow_line_15,fanin_multi_stage_flow_line_16,research_agent,review_agent handler
     class __end__ endpoint
     linkStyle 1,5 stroke:#7B68EE

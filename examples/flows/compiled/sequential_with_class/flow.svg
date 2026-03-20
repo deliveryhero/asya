@@ -42,7 +42,7 @@
 <!-- sequential_with_class_MLModel_predict -->
 <g id="node3" class="node">
 <title>sequential_with_class_MLModel_predict</title>
-<polygon fill="lightblue" stroke="black" points="165.62,-101.6 42.38,-101.6 42.38,-65.6 165.62,-65.6 165.62,-101.6"/>
+<polygon fill="lightsalmon" stroke="black" points="165.62,-101.6 42.38,-101.6 42.38,-65.6 165.62,-65.6 165.62,-101.6"/>
 <text text-anchor="middle" x="104" y="-79.3" font-family="Helvetica,sans-Serif" font-size="14.00">MLModel.predict</text>
 </g>
 <!-- __end__ -->

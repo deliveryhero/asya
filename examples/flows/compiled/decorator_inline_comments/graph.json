@@ -3,33 +3,33 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "classifier",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "fast_handler",
-      "flow_role": "actor",
+      "role": "end",
       "label": "fast_handler",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_decorator_inline_comments_flow_line_18_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_decorator_inline_comments_flow_line_18_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "standard_handler",
-      "flow_role": "actor",
+      "role": "end",
       "label": "standard_handler",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "start_decorator_inline_comments_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_decorator_inline_comments_flow",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

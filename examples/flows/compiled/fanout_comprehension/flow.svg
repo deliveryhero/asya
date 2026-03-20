@@ -36,7 +36,7 @@
 <!-- post_processor -->
 <g id="node3" class="node">
 <title>post_processor</title>
-<polygon fill="lightblue" stroke="black" points="154.75,-102.6 40.5,-102.6 40.5,-66.6 154.75,-66.6 154.75,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="154.75,-102.6 40.5,-102.6 40.5,-66.6 154.75,-66.6 154.75,-102.6"/>
 <text text-anchor="middle" x="97.62" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">post_processor</text>
 </g>
 <!-- fanin_research_flow_line_15&#45;&gt;post_processor -->

@@ -4,7 +4,7 @@ digraph "parallel_sectioning" {
 
     { rank=source; start_parallel_sectioning; }
 
-    aggregator [label="aggregator", fillcolor=lightblue];
+    aggregator [label="aggregator", fillcolor=lightsalmon];
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
     fanin_parallel_sectioning_line_48 [label="fanin_parallel_sectioning_line_48", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];

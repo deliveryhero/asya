@@ -48,7 +48,7 @@
 <!-- reducer -->
 <g id="node4" class="node">
 <title>reducer</title>
-<polygon fill="lightblue" stroke="black" points="158.12,-102.6 94.12,-102.6 94.12,-66.6 158.12,-66.6 158.12,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="158.12,-102.6 94.12,-102.6 94.12,-66.6 158.12,-66.6 158.12,-102.6"/>
 <text text-anchor="middle" x="126.12" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">reducer</text>
 </g>
 <!-- fanin_map_reduce_line_55&#45;&gt;reducer -->

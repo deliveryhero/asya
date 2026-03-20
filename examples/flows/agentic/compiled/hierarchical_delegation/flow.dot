@@ -10,7 +10,7 @@ digraph "hierarchical_delegation" {
     data_generalist [label="data_generalist", fillcolor=lightblue];
     data_team_lead [label="data_team_lead", fillcolor=lightblue];
     editor [label="editor", fillcolor=lightblue];
-    final_assembler [label="final_assembler", fillcolor=lightblue];
+    final_assembler [label="final_assembler", fillcolor=lightsalmon];
     generalist [label="generalist", fillcolor=lightblue];
     root_agent [label="root_agent", fillcolor=lightblue];
     router_hierarchical_delegation_line_61_if_6 [label="router_hierarchical_delegation_line_61_if_6", fillcolor=wheat];

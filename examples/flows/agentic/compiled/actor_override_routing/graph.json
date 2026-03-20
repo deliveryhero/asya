@@ -3,45 +3,45 @@
   "nodes": [
     {
       "id": "audit_logger",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "audit_logger",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "classify",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "classify",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "escalate",
-      "flow_role": "actor",
+      "role": "end",
       "label": "escalate",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "format_output",
-      "flow_role": "actor",
+      "role": "end",
       "label": "format_output",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_actor_override_flow_line_25_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_actor_override_flow_line_25_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_actor_override_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_actor_override_flow",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "tool_executor",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "tool_executor",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

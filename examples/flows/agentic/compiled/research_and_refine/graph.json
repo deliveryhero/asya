@@ -3,54 +3,54 @@
   "nodes": [
     {
       "id": "critic",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "critic",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "refine_query",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "refine_query",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "researcher",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "researcher",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_research_and_refine_line_50_while_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_research_and_refine_line_50_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_research_and_refine_line_51_seq_4",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_research_and_refine_line_51_seq_4",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
       "id": "router_research_and_refine_line_55_if_3",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_research_and_refine_line_55_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_research_and_refine_line_59_if_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_research_and_refine_line_59_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_research_and_refine",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_research_and_refine",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] = 0",
         "p['search_query'] = p.get('question', '')"
@@ -58,9 +58,9 @@
     },
     {
       "id": "write_report",
-      "flow_role": "actor",
+      "role": "end",
       "label": "write_report",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

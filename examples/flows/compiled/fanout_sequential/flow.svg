@@ -54,7 +54,7 @@
 <!-- summarizer -->
 <g id="node8" class="node">
 <title>summarizer</title>
-<polygon fill="lightblue" stroke="black" points="188.12,-102.6 96.38,-102.6 96.38,-66.6 188.12,-66.6 188.12,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="188.12,-102.6 96.38,-102.6 96.38,-66.6 188.12,-66.6 188.12,-102.6"/>
 <text text-anchor="middle" x="142.25" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">summarizer</text>
 </g>
 <!-- fanin_multi_stage_flow_line_16&#45;&gt;summarizer -->

@@ -3,21 +3,21 @@
   "nodes": [
     {
       "id": "enricher",
-      "flow_role": "actor",
+      "role": "end",
       "label": "enricher",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "start_decorator_callsite_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_decorator_callsite_flow",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "validator",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "validator",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

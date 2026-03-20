@@ -3,21 +3,21 @@
   "nodes": [
     {
       "id": "enrich",
-      "flow_role": "actor",
+      "role": "end",
       "label": "enrich",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "start_decorator_definitions_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_decorator_definitions_flow",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "validate",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "validate",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

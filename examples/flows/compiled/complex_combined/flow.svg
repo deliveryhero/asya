@@ -36,7 +36,7 @@
 <!-- handler_finalize -->
 <g id="node4" class="node">
 <title>handler_finalize</title>
-<polygon fill="lightblue" stroke="black" points="472.5,-102.6 355.25,-102.6 355.25,-66.6 472.5,-66.6 472.5,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="472.5,-102.6 355.25,-102.6 355.25,-66.6 472.5,-66.6 472.5,-102.6"/>
 <text text-anchor="middle" x="413.88" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_finalize</text>
 </g>
 <!-- handler_default&#45;&gt;handler_finalize -->
@@ -48,7 +48,7 @@
 <!-- handler_error -->
 <g id="node3" class="node">
 <title>handler_error</title>
-<polygon fill="lightblue" stroke="black" points="106.38,-672.6 3.38,-672.6 3.38,-636.6 106.38,-636.6 106.38,-672.6"/>
+<polygon fill="lightsalmon" stroke="black" points="106.38,-672.6 3.38,-672.6 3.38,-636.6 106.38,-636.6 106.38,-672.6"/>
 <text text-anchor="middle" x="54.88" y="-650.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_error</text>
 </g>
 <!-- __end__ -->

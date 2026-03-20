@@ -24,7 +24,7 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     exitpoints = [_sanitize_id(nid) for nid in sorted(node_ids - sources) if nid in targets]
 
     # Pin start_ to top
-    start_ids = [_sanitize_id(n["id"]) for n in data.nodes if n["flow_role"] == "start"]
+    start_ids = [_sanitize_id(n["id"]) for n in data.nodes if n["role"] == "start"]
     if start_ids:
         lines.append("    { rank=source; " + "; ".join(start_ids) + "; }")
         lines.append("")
@@ -32,9 +32,11 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
         label = _dot_node_label(node)
-        if node["flow_role"] == "start":
+        if node["role"] == "start":
             lines.append(f'    {nid} [label="{label}", fillcolor=palegreen];')
-        elif node.get("is_generated"):
+        elif node["role"] == "end":
+            lines.append(f'    {nid} [label="{label}", fillcolor=lightsalmon];')
+        elif node.get("generated"):
             lines.append(f'    {nid} [label="{label}", fillcolor=wheat];')
         else:
             lines.append(f'    {nid} [label="{label}", fillcolor=lightblue];')
@@ -107,16 +109,20 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     exitpoints = [_sanitize_id(nid) for nid in sorted(node_ids - sources) if nid in targets]
 
     start_nodes: list[str] = []
+    end_nodes: list[str] = []
     routers: list[str] = []
     handlers: list[str] = []
 
     for node in data.nodes:
         nid = _sanitize_id(node["id"])
         label = _mermaid_node_label(node)
-        if node["flow_role"] == "start":
+        if node["role"] == "start":
             lines.append(f"    {nid}([{label}])")
             start_nodes.append(nid)
-        elif node.get("is_generated"):
+        elif node["role"] == "end":
+            lines.append(f"    {nid}[{label}]")
+            end_nodes.append(nid)
+        elif node.get("generated"):
             lines.append(f"    {nid}{{{{{label}}}}}")
             routers.append(nid)
         else:
@@ -173,11 +179,14 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     # Styling — match DOT color scheme
     lines.append("")
     lines.append("    classDef start fill:#98FB98,stroke:#333")
+    lines.append("    classDef endnode fill:#FFA07A,stroke:#333")
     lines.append("    classDef router fill:#F5DEB3,stroke:#333")
     lines.append("    classDef handler fill:#ADD8E6,stroke:#333")
     lines.append("    classDef endpoint fill:#000,stroke:#333,color:#fff")
     if start_nodes:
         lines.append(f"    class {','.join(start_nodes)} start")
+    if end_nodes:
+        lines.append(f"    class {','.join(end_nodes)} endnode")
     if routers:
         lines.append(f"    class {','.join(routers)} router")
     if handlers:

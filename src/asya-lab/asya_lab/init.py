@@ -28,7 +28,7 @@ metadata:
   namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
-    asya.sh/flow-role: "{{ flow_role }}"
+    asya.sh/flow-role: "{{ role }}"
 spec:
   actor: "{{ actor_name }}"
   image: "{{ image }}"
@@ -47,7 +47,7 @@ metadata:
   namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
-    asya.sh/flow-role: "{{ flow_role }}"
+    asya.sh/flow-role: "{{ role }}"
 spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"

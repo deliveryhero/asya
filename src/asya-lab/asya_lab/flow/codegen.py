@@ -154,7 +154,7 @@ class CodeGenerator:
             # Single-Actor Flow: no router needed
             # The actor below IS the entrypoint; label it in your AsyncActor spec:
             #   asya.sh/flow: {self.flow_name}
-            #   asya.sh/flow-role: entry
+            #   asya.sh/role: entry
             # ======================================================================
 
             FLOW_METADATA = {{
@@ -163,7 +163,7 @@ class CodeGenerator:
                 "actor": {actor.name!r},
                 "labels": {{
                     "asya.sh/flow": "{self.flow_name}",
-                    "asya.sh/flow-role": "start",
+                    "asya.sh/role": "start",
                 }},
             }}
             """

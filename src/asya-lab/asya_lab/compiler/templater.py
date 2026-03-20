@@ -52,7 +52,7 @@ class TemplateContext:
     actor_name: str
     flow_name: str
     flow_function: str
-    flow_role: str
+    role: str
     handler: str
     image: str
 
@@ -100,6 +100,7 @@ class ManifestTemplater:
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
         import_map: dict[str, str] | None = None,
+        flow_roles: dict[str, str] | None = None,
     ) -> None:
         self.flow_name = flow_name
         self.flow_function = flow_function
@@ -111,6 +112,7 @@ class ManifestTemplater:
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
         self.import_map: dict[str, str] = import_map or {}
+        self.flow_roles: dict[str, str] = flow_roles or {}
 
     def stamp(self, output_dir: Path) -> list[str]:
         """Generate kustomize-structured manifests.
@@ -168,13 +170,23 @@ class ManifestTemplater:
         """Stamp a single actor manifest from the template."""
         manifest = self._resolve_template(actor)
 
+        # Replace legacy asya.sh/flow-role with two orthogonal labels:
+        #   asya.sh/role: start|end (only for start/end actors)
+        #   asya.sh/generated: "true" (only for generated routers)
+        labels = manifest.get("metadata", {}).get("labels", {})
+        labels.pop("asya.sh/flow-role", None)
+        if actor.role in ("start", "end"):
+            labels["asya.sh/role"] = actor.role
+        if actor.generated:
+            labels["asya.sh/generated"] = "true"
+
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
         """Load actor template and resolve {{ key }} placeholders."""
-        if actor.is_generated and self.router_template_path and self.router_template_path.exists():
+        if actor.generated and self.router_template_path and self.router_template_path.exists():
             template_path = self.router_template_path
         else:
             template_path = self.actor_template_path
@@ -185,7 +197,7 @@ class ManifestTemplater:
             actor_name=actor.name,
             flow_name=self.flow_name,
             flow_function=self.flow_function,
-            flow_role=actor.flow_role,
+            role=actor.role,
             handler=actor.handler,
             image=actor.image,
         )
@@ -353,14 +365,17 @@ Each overlay builds on top of `common/`.
             refs = self.codegen_meta.router_refs.get(router_name, [])
             handler_env = self._build_handler_env_from_refs(refs)
 
+            # Graph-derived role overrides the naming-convention-based role
+            role = self.flow_roles.get(router_name, self._router_flow_role(router_name))
+
             router_actors.append(
                 ActorInfo(
                     name=self._to_k8s_name(router_name),
                     handler=f"routers.{router_name}",
                     image=router_image,
-                    flow_role=self._router_flow_role(router_name),
+                    role=role,
                     env=handler_env,
-                    is_generated=True,
+                    generated=True,
                 )
             )
 
@@ -371,11 +386,13 @@ Each overlay builds on top of `common/`.
                     image = self.project.resolve_image(actor_name)
                     k8s_name = self._to_k8s_name(actor_name)
                     handler = self.import_map.get(actor_name, actor_name)
+                    # Graph-derived role overrides the default "actor" role
+                    role = self.flow_roles.get(actor_name, "actor")
                     handler_actors[actor_name] = ActorInfo(
                         name=k8s_name,
                         handler=handler,
                         image=image,
-                        flow_role="actor",
+                        role=role,
                     )
 
         return router_actors + list(handler_actors.values())

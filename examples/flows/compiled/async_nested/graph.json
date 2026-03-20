@@ -3,39 +3,39 @@
   "nodes": [
     {
       "id": "auto_approve",
-      "flow_role": "actor",
+      "role": "end",
       "label": "auto_approve",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "detailed_review",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "detailed_review",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "human_review",
-      "flow_role": "actor",
+      "role": "end",
       "label": "human_review",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "initial_review",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "initial_review",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_review_pipeline_flow_line_17_if_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_review_pipeline_flow_line_17_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_review_pipeline_flow",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_review_pipeline_flow",
-      "is_generated": true
+      "generated": true
     }
   ],
   "edges": [

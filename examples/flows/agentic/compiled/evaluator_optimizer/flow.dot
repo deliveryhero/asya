@@ -6,7 +6,7 @@ digraph "evaluator_optimizer" {
 
     evaluator [label="evaluator", fillcolor=lightblue];
     generator [label="generator", fillcolor=lightblue];
-    polisher [label="polisher", fillcolor=lightblue];
+    polisher [label="polisher", fillcolor=lightsalmon];
     router_evaluator_optimizer_line_58_while_1 [label="router_evaluator_optimizer_line_58_while_1", fillcolor=wheat];
     router_evaluator_optimizer_line_59_seq_4 [label="router_evaluator_optimizer_line_59_seq_4\n\np['iteration'] += 1", fillcolor=wheat];
     router_evaluator_optimizer_line_68_if_3 [label="router_evaluator_optimizer_line_68_if_3", fillcolor=wheat];

@@ -6,7 +6,7 @@ digraph "map_reduce" {
 
     chunk_processor [label="chunk_processor", fillcolor=lightblue];
     fanin_map_reduce_line_55 [label="fanin_map_reduce_line_55", fillcolor=lightblue];
-    reducer [label="reducer", fillcolor=lightblue];
+    reducer [label="reducer", fillcolor=lightsalmon];
     router_map_reduce_line_55_fanout_1 [label="router_map_reduce_line_55_fanout_1", fillcolor=wheat];
     splitter [label="splitter", fillcolor=lightblue];
     start_map_reduce [label="start_map_reduce", fillcolor=palegreen];

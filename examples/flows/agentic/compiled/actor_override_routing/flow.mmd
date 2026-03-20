@@ -22,12 +22,14 @@ flowchart TD
     format_output --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_actor_override_flow start
+    class escalate,format_output endnode
     class router_actor_override_flow_line_25_if_1 router
-    class audit_logger,classify,escalate,format_output,tool_executor handler
+    class audit_logger,classify,tool_executor handler
     class __end__ endpoint
     linkStyle 1 stroke:#2E8B57
     linkStyle 3 stroke:#E07040

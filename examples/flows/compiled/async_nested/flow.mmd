@@ -18,12 +18,14 @@ flowchart TD
     human_review --> __end__
 
     classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_review_pipeline_flow start
+    class auto_approve,human_review endnode
     class router_review_pipeline_flow_line_17_if_1 router
-    class auto_approve,detailed_review,human_review,initial_review handler
+    class detailed_review,initial_review handler
     class __end__ endpoint
     linkStyle 2 stroke:#2E8B57
     linkStyle 4 stroke:#E07040

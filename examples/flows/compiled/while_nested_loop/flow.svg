@@ -30,7 +30,7 @@
 <!-- finalize_loop_i -->
 <g id="node2" class="node">
 <title>finalize_loop_i</title>
-<polygon fill="lightblue" stroke="black" points="107.5,-277 0,-277 0,-241 107.5,-241 107.5,-277"/>
+<polygon fill="lightsalmon" stroke="black" points="107.5,-277 0,-277 0,-241 107.5,-241 107.5,-277"/>
 <text text-anchor="middle" x="53.75" y="-254.7" font-family="Helvetica,sans-Serif" font-size="14.00">finalize_loop_i</text>
 </g>
 <!-- __end__ -->
@@ -48,7 +48,7 @@
 <!-- finalize_loop_j -->
 <g id="node3" class="node">
 <title>finalize_loop_j</title>
-<polygon fill="lightblue" stroke="black" points="190.5,-121 83,-121 83,-85 190.5,-85 190.5,-121"/>
+<polygon fill="lightsalmon" stroke="black" points="190.5,-121 83,-121 83,-85 190.5,-85 190.5,-121"/>
 <text text-anchor="middle" x="136.75" y="-98.7" font-family="Helvetica,sans-Serif" font-size="14.00">finalize_loop_j</text>
 </g>
 <!-- finalize_loop_j&#45;&gt;__end__ -->

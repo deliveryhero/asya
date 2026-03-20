@@ -288,6 +288,7 @@ class FlowCompiler:
             configmap_routers_template_path=_opt("configmap_routers.yaml"),
             kustomization_template_path=_opt("kustomization.yaml"),
             import_map=self.import_map,
+            flow_roles=self._detect_flow_roles(),
         )
         templater.stamp(manifests_dir)
         return manifests_dir
@@ -306,8 +307,8 @@ class FlowCompiler:
                     name=k8s_name,
                     handler=f"routers.{router_name}",
                     image="",
-                    flow_role=flow_roles.get(router_name, "router"),
-                    is_generated=True,
+                    role=flow_roles.get(router_name, "router"),
+                    generated=True,
                 )
             )
 
@@ -320,7 +321,7 @@ class FlowCompiler:
                     name=k8s_name,
                     handler=self.import_map.get(handler_name, handler_name),
                     image="",
-                    flow_role=flow_roles.get(handler_name, "actor"),
+                    role=flow_roles.get(handler_name, "actor"),
                 )
             )
 
@@ -332,7 +333,7 @@ class FlowCompiler:
         roles: dict[str, str] = {}
         for node in self._graph_data.nodes:
             node_id = node.get("id", "")
-            role = node.get("flow_role", "")
+            role = node.get("role", "")
             if role:
                 roles[node_id] = role
         return roles

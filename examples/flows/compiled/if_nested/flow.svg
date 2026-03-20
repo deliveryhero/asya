@@ -80,7 +80,7 @@
 <!-- handler_c -->
 <g id="node4" class="node">
 <title>handler_c</title>
-<polygon fill="lightblue" stroke="black" points="616.38,-198.6 538.12,-198.6 538.12,-162.6 616.38,-162.6 616.38,-198.6"/>
+<polygon fill="lightsalmon" stroke="black" points="616.38,-198.6 538.12,-198.6 538.12,-162.6 616.38,-162.6 616.38,-198.6"/>
 <text text-anchor="middle" x="577.25" y="-176.3" font-family="Helvetica,sans-Serif" font-size="14.00">handler_c</text>
 </g>
 <!-- __end__ -->

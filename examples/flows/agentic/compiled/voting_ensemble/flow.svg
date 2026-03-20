@@ -72,7 +72,7 @@
 <!-- judge -->
 <g id="node6" class="node">
 <title>judge</title>
-<polygon fill="lightblue" stroke="black" points="277.88,-102.6 223.88,-102.6 223.88,-66.6 277.88,-66.6 277.88,-102.6"/>
+<polygon fill="lightsalmon" stroke="black" points="277.88,-102.6 223.88,-102.6 223.88,-66.6 277.88,-66.6 277.88,-102.6"/>
 <text text-anchor="middle" x="250.88" y="-80.3" font-family="Helvetica,sans-Serif" font-size="14.00">judge</text>
 </g>
 <!-- fanin_voting_ensemble_line_44&#45;&gt;judge -->

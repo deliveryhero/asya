@@ -30,7 +30,7 @@
 <!-- handler_finalize -->
 <g id="node2" class="node">
 <title>handler_finalize</title>
-<polygon fill="lightblue" stroke="black" points="450.12,-121 332.88,-121 332.88,-85 450.12,-85 450.12,-121"/>
+<polygon fill="lightsalmon" stroke="black" points="450.12,-121 332.88,-121 332.88,-85 450.12,-85 450.12,-121"/>
 <text text-anchor="middle" x="391.5" y="-98.7" font-family="Helvetica,sans-Serif" font-size="14.00">handler_finalize</text>
 </g>
 <!-- __end__ -->

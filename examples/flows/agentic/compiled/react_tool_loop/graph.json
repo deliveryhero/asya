@@ -3,93 +3,93 @@
   "nodes": [
     {
       "id": "calculator",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "calculator",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "code_exec",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "code_exec",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "format_response",
-      "flow_role": "actor",
+      "role": "end",
       "label": "format_response",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "llm_reason",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "llm_reason",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_react_tool_loop_line_48_while_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_48_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_react_tool_loop_line_49_seq_8",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_49_seq_8",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
       "id": "router_react_tool_loop_line_55_if_7",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_55_if_7",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_react_tool_loop_line_61_if_6",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_61_if_6",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['tool_name'] = p['tool_calls'][0]['name']"
       ]
     },
     {
       "id": "router_react_tool_loop_line_63_if_5",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_63_if_5",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_react_tool_loop_line_65_if_4",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_65_if_4",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_react_tool_loop_line_68_seq_3",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_68_seq_3",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['observation'] = 'Unknown tool'"
       ]
     },
     {
       "id": "router_react_tool_loop_line_74_if_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_react_tool_loop_line_74_if_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['messages'] = p.get('messages', [])"
       ]
     },
     {
       "id": "start_react_tool_loop",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_react_tool_loop",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['messages'] = p.get('messages', [])",
         "p['iteration'] = 0"
@@ -97,9 +97,9 @@
     },
     {
       "id": "web_search",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "web_search",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

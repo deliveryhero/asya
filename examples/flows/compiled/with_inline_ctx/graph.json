@@ -3,54 +3,54 @@
   "nodes": [
     {
       "id": "fulfillment_handler",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "fulfillment_handler",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "payment_processor",
-      "flow_role": "processor",
+      "role": "processor",
       "label": "payment_processor",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_order_processing_line_27_with",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_order_processing_line_27_with",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_order_processing_line_30_if",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_order_processing_line_30_if",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_order_processing_line_33_seq",
-      "flow_role": "exitpoint",
+      "role": "exitpoint",
       "label": "router_order_processing_line_33_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['status'] = 'rejected'"]
     },
     {
       "id": "router_order_processing_line_36_seq",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_order_processing_line_36_seq",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['stage'] = 'fulfillment'"]
     },
     {
       "id": "start_order_processing",
-      "flow_role": "entrypoint",
+      "role": "entrypoint",
       "label": "start_order_processing",
-      "is_generated": true,
+      "generated": true,
       "mutations": ["p['stage'] = 'validation'"]
     },
     {
       "id": "validate_order",
-      "flow_role": "processor",
+      "role": "processor",
       "label": "validate_order",
-      "is_generated": false
+      "generated": false
     }
   ],
   "edges": [

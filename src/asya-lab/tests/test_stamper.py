@@ -28,7 +28,7 @@ def template_dir(tmp_path):
             "namespace": "{{ namespace }}",
             "labels": {
                 "asya.sh/flow": "{{ flow_name }}",
-                "asya.sh/flow-role": "{{ flow_role }}",
+                "asya.sh/flow-role": "{{ role }}",
             },
         },
         "spec": {
@@ -179,7 +179,10 @@ class TestBaseLayer:
         assert actor["metadata"]["name"] == "handler-a"
         assert actor["metadata"]["namespace"] == "test-ns"
         assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
-        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "actor"
+        # Middle handler: no asya.sh/role, no asya.sh/generated
+        assert "asya.sh/flow-role" not in actor["metadata"]["labels"]
+        assert "asya.sh/role" not in actor["metadata"]["labels"]
+        assert "asya.sh/generated" not in actor["metadata"]["labels"]
 
     def test_handler_image_is_fully_resolved(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
@@ -198,7 +201,10 @@ class TestBaseLayer:
         actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
-        assert actor["metadata"]["labels"]["asya.sh/flow-role"] == "start"
+        # Start router: has both asya.sh/role and asya.sh/generated
+        assert "asya.sh/flow-role" not in actor["metadata"]["labels"]
+        assert actor["metadata"]["labels"]["asya.sh/role"] == "start"
+        assert actor["metadata"]["labels"]["asya.sh/generated"] == "true"
 
     def test_router_actor_has_handler_env(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
@@ -325,3 +331,83 @@ class TestReturnedFiles:
 
         # common/ should not be in second run's generated list
         assert not any("common/" in g for g in generated)
+
+
+class TestTwoLabelSystem:
+    """Test the asya.sh/role + asya.sh/generated label system.
+
+    The legacy asya.sh/flow-role label is removed from manifests.
+    Two orthogonal labels replace it:
+      asya.sh/role: start|end — only on start/end actors
+      asya.sh/generated: "true" — only on generated routers
+    """
+
+    @pytest.fixture()
+    def conditional_meta(self):
+        """CodegenMeta for: start -> handler_a -> if_router -> handler_b (end) | handler_c (end)."""
+        return CodegenMeta(
+            router_names=["start_my_flow", "router_my_flow_line_5_if_1"],
+            all_handler_names={"handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"},
+            router_refs={
+                "start_my_flow": ["handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"],
+                "router_my_flow_line_5_if_1": ["handler_a", "handler_b", "handler_c"],
+            },
+            single_actor=None,
+        )
+
+    def _load_actor(self, tmp_path, name):
+        return yaml.safe_load((tmp_path / "manifests" / "base" / f"asyncactor-{name}.yaml").read_text())
+
+    def test_start_router_has_role_and_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "start-my-flow")
+        labels = actor["metadata"]["labels"]
+        assert labels["asya.sh/role"] == "start"
+        assert labels["asya.sh/generated"] == "true"
+        assert "asya.sh/flow-role" not in labels
+
+    def test_middle_handler_has_no_role_no_generated(
+        self, tmp_path, sequential_meta, router_code, project, template_dir
+    ):
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "handler-a")
+        labels = actor["metadata"]["labels"]
+        assert "asya.sh/role" not in labels
+        assert "asya.sh/generated" not in labels
+        assert "asya.sh/flow-role" not in labels
+
+    def test_middle_router_has_generated_no_role(self, tmp_path, conditional_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "router-my-flow-line-5-if-1")
+        labels = actor["metadata"]["labels"]
+        assert "asya.sh/role" not in labels
+        assert labels["asya.sh/generated"] == "true"
+        assert "asya.sh/flow-role" not in labels
+
+    def test_end_handler_has_role_no_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
+        """When flow_roles marks an actor as 'end', manifests get asya.sh/role: end."""
+        flow_roles = {"start_my_flow": "start", "handler_a": "actor", "handler_b": "end"}
+        templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
+        templater.flow_roles = flow_roles
+        templater.stamp(tmp_path / "manifests")
+
+        actor = self._load_actor(tmp_path, "handler-b")
+        labels = actor["metadata"]["labels"]
+        assert labels["asya.sh/role"] == "end"
+        assert "asya.sh/generated" not in labels
+        assert "asya.sh/flow-role" not in labels
+
+    def test_all_actors_have_flow_label(self, tmp_path, conditional_meta, router_code, project, template_dir):
+        templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
+        templater.stamp(tmp_path / "manifests")
+
+        base = tmp_path / "manifests" / "base"
+        for path in sorted(base.glob("asyncactor-*.yaml")):
+            actor = yaml.safe_load(path.read_text())
+            assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow", f"{path.name} missing flow label"

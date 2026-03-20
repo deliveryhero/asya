@@ -145,11 +145,11 @@ class TestFlowInfo:
         assert len(result.actors) > 0
 
         # Routers should be marked as generated
-        router_actors = [a for a in result.actors if a.is_generated]
+        router_actors = [a for a in result.actors if a.generated]
         assert len(router_actors) > 0
 
         # Non-router actors should have handler names
-        handler_actors = [a for a in result.actors if not a.is_generated]
+        handler_actors = [a for a in result.actors if not a.generated]
         assert len(handler_actors) == 2
         handler_names = {a.name for a in handler_actors}
         assert "handler-a" in handler_names

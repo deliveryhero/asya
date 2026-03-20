@@ -4,7 +4,7 @@ digraph "sample_flow" {
 
     { rank=source; start_sample_flow; }
 
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_setup [label="handler_setup", fillcolor=lightblue];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];

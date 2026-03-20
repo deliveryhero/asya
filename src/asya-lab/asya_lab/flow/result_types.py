@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import Literal
 
 
-#: Allowed values for ActorInfo.flow_role
-FlowRole = Literal["start", "router", "actor"]
+#: Allowed values for ActorInfo.role
+FlowRole = Literal["start", "end", "router", "actor"]
 
 
 @dataclass
@@ -23,9 +23,9 @@ class ActorInfo:
     name: str
     handler: str
     image: str
-    flow_role: str  # see FlowRole type alias
+    role: str  # see FlowRole type alias
     env: list[dict[str, str]] = field(default_factory=list)
-    is_generated: bool = False
+    generated: bool = False
     manifest_path: Path | None = None
     source_file: str | None = None
     source_line: int | None = None

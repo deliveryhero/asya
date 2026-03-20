@@ -3,81 +3,81 @@
   "nodes": [
     {
       "id": "approval_gate",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "approval_gate",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "executor",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "executor",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "notifier",
-      "flow_role": "actor",
+      "role": "end",
       "label": "notifier",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "proposal_generator",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "proposal_generator",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "revision_agent",
-      "flow_role": "actor",
+      "role": "actor",
       "label": "revision_agent",
-      "is_generated": false
+      "generated": false
     },
     {
       "id": "router_human_in_the_loop_line_60_while_1",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_60_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_61_seq_6",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_61_seq_6",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['attempt'] += 1"
       ]
     },
     {
       "id": "router_human_in_the_loop_line_70_if_5",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_70_if_5",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_75_if_4",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_75_if_4",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_79_if_3",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_79_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_80_seq_2",
-      "flow_role": "router",
+      "role": "router",
       "label": "router_human_in_the_loop_line_80_seq_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['result'] = 'Max revision attempts reached'"
       ]
     },
     {
       "id": "start_human_in_the_loop",
-      "flow_role": "start",
+      "role": "start",
       "label": "start_human_in_the_loop",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['attempt'] = 0"
       ]
