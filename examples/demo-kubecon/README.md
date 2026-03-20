@@ -47,7 +47,7 @@ Same code, same results.
 ## Step 2: Compile to actor graph
 
 ```bash
-uv run asya compile src/demo_flows/text_improver.py --plot
+uv run asya flow compile src/demo_flows/text_improver.py --plot
 ```
 
 Output paths are configured in `.asya/config.yaml`:

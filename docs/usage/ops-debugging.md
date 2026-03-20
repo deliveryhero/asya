@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 
 # How to Debug an Envelope
 

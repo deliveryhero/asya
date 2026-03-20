@@ -124,10 +124,9 @@ For keys that have never been read (new key path), the write is unconditional.
 For exclusive creates (atomic create-if-absent), the connector uses
 `if_generation_match=0`, which means the object must not already exist.
 
-CAS retries are handled in two layers: the connector retries internally on
-transient conflicts, and the sidecar requeues the message with exponential
-backoff if the connector exhausts its retries. The handler does not need explicit
-retry logic.
+On a CAS conflict (`FileExistsError`), the sidecar requeues the message with
+exponential backoff, and the handler runs again from scratch with a fresh read.
+The handler does not need explicit retry logic.
 
 **Handler code**:
 

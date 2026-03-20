@@ -248,9 +248,9 @@ PGPASSWORD=asya-password psql -h localhost -p 5432 -U asya -d asya_gateway
 -- List all tables
 \dt
 
--- Check jobs table
-SELECT * FROM jobs LIMIT 10;
+-- Check tasks table
+SELECT * FROM tasks LIMIT 10;
 
--- Check job_updates table
-SELECT * FROM job_updates LIMIT 10;
+-- Check task_updates table
+SELECT * FROM task_updates LIMIT 10;
 ```

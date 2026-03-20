@@ -207,7 +207,7 @@ re-dispatches to the mesh — continuing from where the pipeline stopped.
 
 ### Gateway Routes (asya-gateway)
 
-Three fixed namespaces (optional `ASYA_BASE_PREFIX` prepended to all):
+Three fixed namespaces (planned `ASYA_BASE_PREFIX`, not yet implemented, would be prepended to all):
 
 | Namespace | Audience | Purpose |
 |---|---|---|
@@ -220,7 +220,7 @@ Special root routes (unaffected by base prefix):
 - `/health` — K8s liveness/readiness probe
 
 A2A task state mapping: `pending` → `submitted`, `running` → `working`, `succeeded` → `completed`,
-`paused` → `input_required`, `failed` → `failed`, `canceled` → `canceled`.
+`paused` → `input_required`, `failed` → `failed`, `canceled` → `canceled`, `auth_required` → `auth_required`.
 
 ## AI Automation Policies
 

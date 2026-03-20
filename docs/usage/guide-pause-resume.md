@@ -1,4 +1,3 @@
-<!-- Type: Usage Guide -->
 
 # Pause/Resume: Human-in-the-Loop
 

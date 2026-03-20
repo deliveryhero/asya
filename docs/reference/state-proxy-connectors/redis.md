@@ -93,10 +93,10 @@ Uses Redis `WATCH`/`MULTI`/`EXEC` for optimistic locking. On write:
 
 If the key was modified between `WATCH` and `EXEC`, Redis raises `WatchError`, which the connector maps to `FileExistsError`.
 
-CAS retries are handled in two layers: the sidecar requeues the message with
-exponential backoff if the write fails, and the handler runs again from scratch
-with a fresh `read()` that sees the latest value. In most cases, your handler
-does not need explicit retry logic.
+CAS retries are handled by the sidecar: on a CAS conflict (`FileExistsError`),
+the sidecar requeues the message with exponential backoff, and the handler runs
+again from scratch with a fresh `read()` that sees the latest value. In most
+cases, your handler does not need explicit retry logic.
 
 **Handler code**:
 
@@ -228,7 +228,7 @@ redis://:mypassword@redis-master.default.svc.cluster.local:6379/0
 
 - **Max value size**: Redis default is 512 MB; practical limit is much lower (< 10 MB for performance)
 - **No streaming writes**: Buffered mode only — entire value is buffered in memory before `SET`
-- **CAS via WATCH**: Redis CAS uses WATCH/MULTI/EXEC optimistic locking, not version/revision tracking. The key is watched at write time; if it changed between watch and exec, the transaction fails with `FileExistsError`
+- **CAS via WATCH**: Redis CAS uses WATCH/MULTI/EXEC optimistic locking, not version/revision tracking. The key is watched at write time; if it changed between watch and exec, the transaction fails with `FileExistsError`. This gives Redis CAS a narrower conflict detection window than S3/GCS CAS: Redis WATCH is called inside `write()` itself, so only modifications between WATCH and EXEC are caught — not between `read()` and `write()`. For S3/GCS, the ETag or generation from `read()` is cached and verified at `write()` time, covering the full read-modify-write span
 
 ## Related Documentation
 

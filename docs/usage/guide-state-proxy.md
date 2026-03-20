@@ -336,11 +336,10 @@ Image suffix: `s3-buffered-cas`, `gcs-buffered-cas`, `redis-buffered-cas`
 
 **Handler code**:
 
-CAS retries are handled in two layers. The connector retries internally on
-transient conflicts (Layer 1). If retries are exhausted, the sidecar requeues
-the message with exponential backoff (Layer 2), and the handler runs again from
-scratch with a fresh `read()` that sees the latest value. In most cases, your
-handler does not need explicit retry logic:
+CAS retries are handled by the sidecar. On a CAS conflict (`FileExistsError`),
+the sidecar requeues the message with exponential backoff, and the handler runs
+again from scratch with a fresh `read()` that sees the latest value. In most
+cases, your handler does not need explicit retry logic:
 
 ```python
 import json
@@ -360,7 +359,7 @@ async def update_state_with_cas(payload: dict):
     state["count"] += 1
 
     # Write — connector uses cached revision for conditional write.
-    # On conflict after internal retries, raises FileExistsError (HTTP 409).
+    # On conflict, raises FileExistsError (HTTP 409).
     # The sidecar catches this, nacks the message, and it is retried from scratch.
     with open(state_path, "w") as f:
         json.dump(state, f)
@@ -369,7 +368,7 @@ async def update_state_with_cas(payload: dict):
     yield payload
 ```
 
-**CAS guarantees**: With `s3-buffered-cas`, `gcs-buffered-cas`, or `redis-buffered-cas`, concurrent writes to the same key are detected — one succeeds, others trigger connector-internal retries or sidecar-level message requeue.
+**CAS guarantees**: With `s3-buffered-cas`, `gcs-buffered-cas`, or `redis-buffered-cas`, concurrent writes to the same key are detected — one succeeds, others raise `FileExistsError` and the sidecar requeues the message.
 
 **LWW behavior**: With `s3-buffered-lww`, the same code would allow concurrent writes — both would succeed, but one would silently overwrite the other.
 
@@ -590,12 +589,16 @@ async def handler(payload):
 | Attribute | S3 | GCS | Redis | Access |
 |-----------|-----|-----|-------|--------|
 | `url` | `s3://...` | `gs://...` | - | Read |
-| `presigned_url` / `signed_url` | HTTPS URL | HTTPS URL | - | Read |
+| `presigned_url` (S3) / `signed_url` (GCS) | HTTPS URL | HTTPS URL | - | Read |
 | `etag` / `generation` | Content hash | Generation number | - | Read |
 | `content_type` | MIME type | MIME type | - | Read/Write |
 | `version` / `metageneration` | S3 version ID | Metageneration | - | Read |
 | `storage_class` | Storage tier | Storage tier | - | Read |
 | `ttl` | - | - | Seconds to expiry | Read/Write |
+
+**Note**: The presigned URL attribute name differs between backends: use
+`user.asya.presigned_url` for S3 connectors and `user.asya.signed_url` for GCS
+connectors.
 
 For Redis, set TTL after writing a key:
 

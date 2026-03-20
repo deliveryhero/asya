@@ -1,4 +1,3 @@
-<!-- Type: How-to -->
 # Setup Guide: Pause/Resume Infrastructure
 
 This guide shows how to deploy and configure the pause/resume infrastructure for human-in-the-loop workflows.

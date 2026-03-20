@@ -150,7 +150,6 @@ handler initialises:
 builtins.open  →  _patched_open
 os.stat        →  _patched_stat
 os.listdir     →  _patched_listdir
-os.scandir     →  _patched_scandir
 os.unlink      →  _patched_unlink
 os.remove      →  _patched_unlink   (alias)
 os.makedirs    →  _patched_makedirs (no-op for mount paths)
@@ -224,7 +223,6 @@ means it intercepts **Python-level** file operations but cannot intercept
 | `os.path.isfile()` / `os.path.isdir()` | ✅ | Works via patched `os.stat()` internally |
 | `os.path.getsize()` | ✅ | Works via patched `os.stat()` internally |
 | `os.listdir()` | ✅ | Lists keys from connector |
-| `os.scandir()` | ✅ | Lists keys from connector with `DirEntry` wrappers |
 | `os.remove()` / `os.unlink()` | ✅ | Deletes key via connector |
 | `os.makedirs()` | ✅ | No-op for mount paths (flat key-value store) |
 | `os.listxattr()` | ✅ | Lists available metadata attributes from connector |
@@ -235,6 +233,7 @@ means it intercepts **Python-level** file operations but cannot intercept
 
 | Python API | Patched | Workaround |
 |------------|---------|------------|
+| `os.scandir()` | ❌ | Use `os.listdir()` instead |
 | `os.open()` | ❌ | Use `builtins.open()` instead |
 | `os.rename()` / `os.replace()` | ❌ | Read + write + delete manually |
 | `os.walk()` | ❌ | Use `os.listdir()` recursively |
@@ -430,12 +429,18 @@ All connectors implement the `StateProxyConnector` abstract base class
 ```python
 class StateProxyConnector(ABC):
     def read(self, key: str) -> BinaryIO: ...
-    def write(self, key: str, data: BinaryIO, size: int | None = None) -> None: ...
+    def write(self, key: str, data: BinaryIO, size: int | None = None, *, exclusive: bool = False) -> None: ...
     def exists(self, key: str) -> bool: ...
     def stat(self, key: str) -> KeyMeta | None: ...
     def list(self, key_prefix: str, delimiter: str = "/") -> ListResult: ...
     def delete(self, key: str) -> None: ...
 ```
+
+When `exclusive=True`, the write succeeds only if the key does not already exist
+(atomic create-if-absent). If the key is present, the connector raises
+`FileExistsError`. The runtime triggers exclusive writes when the HTTP PUT
+request includes an `If-None-Match: *` header, which corresponds to opening a
+file with mode `"x"` in Python (`open(path, "x")`).
 
 ### s3-buffered-lww
 

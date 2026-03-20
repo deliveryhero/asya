@@ -171,7 +171,7 @@ stateProxy:
 
 **When to use**: Low-latency state access with TTL support (session data, ephemeral state).
 
-**TTL**: Redis does not currently support per-key TTL via the state proxy interface. Set TTLs using Redis server configuration or post-write Lua scripts.
+**TTL**: Redis supports per-key TTL via the extended attributes (xattr) API. After writing a key, set its TTL with `os.setxattr(path, "user.asya.ttl", b"3600")` (value in seconds). Read the remaining TTL with `os.getxattr(path, "user.asya.ttl")`. See the [usage guide](../usage/guide-state-proxy.md#extended-attributes-xattr) for examples.
 
 ### GCS (Google Cloud Storage)
 
@@ -243,7 +243,7 @@ stateProxy:
 
 Not yet implemented. Planned connector: `nats-kv-buffered-cas`.
 
-NATS JetStream KV provides distributed key-value storage with strong consistency via Raft consensus and revision-based CAS support. See the [NATS KV connector reference](../reference/connectors/nats-kv.md) for planned configuration.
+NATS JetStream KV provides distributed key-value storage with strong consistency via Raft consensus and revision-based CAS support. See the [NATS KV connector reference](../reference/state-proxy-connectors/nats-kv.md) for planned configuration.
 
 ## IAM and Credentials
 
@@ -505,11 +505,10 @@ async def handler(payload):
     return payload
 ```
 
-CAS retries are handled in two layers: the connector retries internally on
-transient conflicts (Layer 1), and the sidecar requeues the message with
-exponential backoff if retries are exhausted (Layer 2). The handler runs again
-from scratch with a fresh read that sees the latest value. Explicit retry
-loops in handler code are not needed.
+CAS retries are handled by the sidecar: on a CAS conflict (`FileExistsError`),
+the sidecar requeues the message with exponential backoff, and the handler runs
+again from scratch with a fresh `read()` that sees the latest value. Explicit
+retry loops in handler code are not needed.
 
 **CAS granularity**:
 

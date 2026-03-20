@@ -24,7 +24,7 @@ Pluggable message queue backends.
 
 Pluggable state proxy storage backends.
 
-- **[Connectors index](connectors/README.md)**
+- **[State Proxy Connectors](state-proxy-connectors/README.md)**
 
 ## Cross-cutting
 
