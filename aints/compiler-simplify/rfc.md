@@ -318,7 +318,7 @@ result.warnings          # list[str]
 result.actors[0].name           # "handler-a" (K8s name, hyphens)
 result.actors[0].handler        # "handler_a.classify" (in-container path)
 result.actors[0].image          # "ghcr.io/team/actors:latest"
-result.actors[0].flow_role      # "entry" | "exit" | "entryexit" | "router" | "actor"
+result.actors[0].flow_role      # "start" | "router" | "actor"
 result.actors[0].env            # [{"name": "KEY", "value": "val"}]
 result.actors[0].is_generated   # True for routers, False for user handlers
 result.actors[0].manifest_path  # Path to base/ manifest YAML
@@ -373,7 +373,7 @@ pure graph-theoretical labels with no semantic interpretation.
   "nodes": [
     {
       "id": "handler-a",
-      "flow_role": "entry",
+      "flow_role": "start",
       "label": "handler_a.classify",
       "image": "ghcr.io/team/actors:latest",
       "sources": {
@@ -416,29 +416,27 @@ the same vocabulary:
 
 | Value | Meaning |
 |---|---|
-| `entry` | First actor in the flow (receives initial message from gateway) |
-| `exit` | Last actor before return (reports completion to gateway) |
-| `entryexit` | Single-actor flow: both entry and exit |
-| `router` | Generated router (control flow, conditions, mutations) |
-| `actor` | Regular actor without special role |
+| `start` | Flow entrypoint (receives initial message from gateway). Always a generated `start_*` router. Exactly one per flow. |
+| `router` | Other generated routers (conditionals, loops, fanout) |
+| `actor` | Regular user handler |
 
-One actor can logically have multiple roles, but `asya.sh/flow-role`
-is a single-valued K8s label. `entry` takes precedence: if an actor
-is both entry and exit, use `entryexit`. The label value must be
+Exactly one `start` per flow. The `start_*` router function name
+matches the label value. Exit detection is not a deployment concern —
+x-sink handles completion reporting. The label value must be
 implemented in the XRD.
 
-### Entrypoint and exitpoint detection
+### Start detection
 
-The compiler detects entry and exit points automatically:
+The compiler marks exactly one actor as the flow entrypoint:
 
-- **Entrypoint**: the first user actor called in the flow. If the flow
-  starts with `p = await handler_a(p)`, then `handler_a` IS the entry
-  point — no separate start router generated. Always exactly one
-  entrypoint per flow.
+- **Start**: the generated `start_*` router. The gateway sends
+  initial messages here. Always exactly one per flow.
+  The `start_*` function name aligns with `flow_role: start`.
 
-- **Exitpoint**: the last actor before each `return`. A flow with
-  multiple return statements (e.g., in branches) has multiple exit
-  points. No separate end router generated if the last actor can
+- **Exit detection removed**: not a deployment concern. The sidecar
+  routes to x-sink when `route.next` is empty, and x-sink reports
+  completion to the gateway. No `flow_role` label needed for exit
+  actors. The graph renderer derives exit nodes from topology (nodes
   serve as exit.
 
 This eliminates empty start/end routers (aint `20c9`).
@@ -977,9 +975,10 @@ async def simple(p):
     return p
 ```
 
-`classify` is both entrypoint and exitpoint: `flow_role: entryexit`.
+`classify` is the only actor: `flow_role: actor`.
 No router generated. No `is_generated` actors. Manifest has label
-`asya.sh/flow-role: entryexit`.
+`asya.sh/flow-role: actor`. The gateway sends directly to this actor
+(no start router needed for single-actor flows).
 
 ### Multiple exitpoints
 
@@ -994,9 +993,9 @@ async def branching(p):
     return p               # exitpoint 2
 ```
 
-Both `fast_handler` and `postprocess` are exitpoints. In graph.json,
-both have `"flow_role": "exit"`. The entrypoint is whichever actor
-the flow calls first (before the if/else — may be a router).
+Both `fast_handler` and `postprocess` are terminal actors (`flow_role: actor`).
+The graph renderer derives exit nodes from topology (no outgoing edges
+except to `__end__`). The start router receives the initial message.
 
 ### External package handler
 
@@ -1078,8 +1077,8 @@ Wire into `asya serve` REST API.
   and the yield analyzer (how to resolve dynamic routing targets).
 
 - **aint `20c9` (empty start/end routers)**: Addressed by smart
-  entrypoint/exitpoint detection. First user actor becomes entrypoint,
-  last actors before return become exitpoints.
+  start detection. The generated `start_*` router is labeled
+  `flow_role: start`. Exit detection removed (x-sink handles completion).
 
 - **aint `w1br` (@flow and @unfold)**: Flow composition (inline expansion)
   replaces the need for a separate `@unfold` marker. Calling a `@flow`
@@ -1090,8 +1089,7 @@ Wire into `asya serve` REST API.
   consumes FlowInfo, serves it via REST.
 
 - **XRD changes needed**: `asya.sh/flow-role` label vocabulary
-  (`entry`/`exit`/`entryexit`/`router`/`actor`) needs XRD-level
-  validation support.
+  (`start`/`router`/`actor`) needs XRD-level validation support.
 
 ## What disappears
 
@@ -1137,8 +1135,8 @@ Wire into `asya serve` REST API.
    traitlet sync vs. kernel extension).
 
 4. **XRD label validation**: The `asya.sh/flow-role` vocabulary
-   (`entry`/`exit`/`entryexit`/`router`/`actor`) needs to be
-   implemented in the XRD's CEL validation rules.
+   (`start`/`router`/`actor`) needs to be implemented in the XRD's
+   CEL validation rules.
 
 5. **graph.json stability**: Should graph.json have a version field
    for forward compatibility as the schema evolves?
