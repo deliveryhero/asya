@@ -29,14 +29,14 @@ spec:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: fanout-research-flow-l2
+  name: router-research-flow-line-7-fanout-1
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: research-flow
     asya.sh/actor-type: router
 spec:
-  actor: fanout-research-flow-l2
+  actor: router-research-flow-line-7-fanout-1
 
 
   scaling:
@@ -49,6 +49,6 @@ spec:
 
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.research_flow.compiled.routers.fanout_research_flow_line_7
+  handler: asya_testing.flows.research_flow.compiled.routers.router_research_flow_line_7_fanout_1
   env:
   {{- include "asya-test-flows.research-flow-handler-env" . | nindent 2 }}

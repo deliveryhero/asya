@@ -1,0 +1,56 @@
+{
+  "flow_name": "if_no_else_flow",
+  "nodes": [
+    {
+      "id": "handler_setup",
+      "flow_role": "processor",
+      "label": "handler_setup",
+      "is_generated": false
+    },
+    {
+      "id": "handler_true",
+      "flow_role": "exitpoint",
+      "label": "handler_true",
+      "is_generated": false
+    },
+    {
+      "id": "router_if_no_else_flow_line_14_if_1",
+      "flow_role": "router",
+      "label": "router_if_no_else_flow_line_14_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_if_no_else_flow",
+      "flow_role": "entrypoint",
+      "label": "start_if_no_else_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_if_no_else_flow",
+      "to": "handler_setup",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "handler_setup",
+      "to": "router_if_no_else_flow_line_14_if_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_if_no_else_flow_line_14_if_1",
+      "to": "handler_true",
+      "label": "p['condition']",
+      "type": "prepend"
+    },
+    {
+      "from": "router_if_no_else_flow_line_14_if_1",
+      "to": "handler_true",
+      "label": "else",
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

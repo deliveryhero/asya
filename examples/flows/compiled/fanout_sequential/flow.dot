@@ -1,27 +1,28 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "multi_stage_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_multi_stage_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_multi_stage_flow(p)</i></td></tr></table>>];
-  fanout_multi_stage_flow_line_16 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_multi_stage_flow_line_16(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for r in p['research']</td></tr></table>>];
-  fanout_multi_stage_flow_line_15 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_multi_stage_flow_line_15(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:comprehension]</b></td></tr><tr><td bgcolor="mediumpurple3" align="left">for t in p['topics']</td></tr></table>>];
-  end_multi_stage_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_multi_stage_flow(p)</i></td></tr></table>>];
-  fanin_multi_stage_flow_line_15 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_multi_stage_flow_line_15(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  fanin_multi_stage_flow_line_16 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_multi_stage_flow_line_16(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  research_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = research_agent(p)</i></td></tr></table>>];
-  review_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = review_agent(p)</i></td></tr></table>>];
-  summarizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = summarizer(p)</i></td></tr></table>>];
+    { rank=source; start_multi_stage_flow; }
 
-  fanin_multi_stage_flow_line_15 -> fanout_multi_stage_flow_line_16;
-  fanin_multi_stage_flow_line_16 -> summarizer;
-  fanout_multi_stage_flow_line_15 -> fanin_multi_stage_flow_line_15 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  fanout_multi_stage_flow_line_15 -> research_agent [color=mediumpurple4, label="slice 1..N\n(per t)", style=bold];
-  fanout_multi_stage_flow_line_16 -> fanin_multi_stage_flow_line_16 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  fanout_multi_stage_flow_line_16 -> review_agent [color=mediumpurple4, label="slice 1..N\n(per r)", style=bold];
-  research_agent -> fanin_multi_stage_flow_line_15 [color=slateblue4, style=dashed];
-  review_agent -> fanin_multi_stage_flow_line_16 [color=slateblue4, style=dashed];
-  start_multi_stage_flow -> fanout_multi_stage_flow_line_15;
-  summarizer -> end_multi_stage_flow;
+    fanin_multi_stage_flow_line_15 [label="fanin_multi_stage_flow_line_15", fillcolor=lightblue];
+    fanin_multi_stage_flow_line_16 [label="fanin_multi_stage_flow_line_16", fillcolor=lightblue];
+    research_agent [label="research_agent", fillcolor=lightblue];
+    review_agent [label="review_agent", fillcolor=lightblue];
+    router_multi_stage_flow_line_15_fanout_2 [label="router_multi_stage_flow_line_15_fanout_2", fillcolor=wheat];
+    router_multi_stage_flow_line_16_fanout_1 [label="router_multi_stage_flow_line_16_fanout_1", fillcolor=wheat];
+    start_multi_stage_flow [label="start_multi_stage_flow", fillcolor=palegreen];
+    summarizer [label="summarizer", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_multi_stage_flow -> router_multi_stage_flow_line_15_fanout_2;
+    router_multi_stage_flow_line_16_fanout_1 -> fanin_multi_stage_flow_line_16 [label="fanout: p['research']", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_multi_stage_flow_line_16 -> summarizer;
+    router_multi_stage_flow_line_16_fanout_1 -> review_agent;
+    review_agent -> fanin_multi_stage_flow_line_16;
+    router_multi_stage_flow_line_15_fanout_2 -> fanin_multi_stage_flow_line_15 [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_multi_stage_flow_line_15 -> router_multi_stage_flow_line_16_fanout_1;
+    router_multi_stage_flow_line_15_fanout_2 -> research_agent;
+    research_agent -> fanin_multi_stage_flow_line_15;
+    summarizer -> __end__;
 }

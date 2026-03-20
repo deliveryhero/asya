@@ -1,0 +1,80 @@
+{
+  "flow_name": "map_reduce",
+  "nodes": [
+    {
+      "id": "chunk_processor",
+      "flow_role": "processor",
+      "label": "chunk_processor",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_map_reduce_line_55",
+      "flow_role": "router",
+      "label": "fanin_map_reduce_line_55",
+      "is_generated": false
+    },
+    {
+      "id": "reducer",
+      "flow_role": "exitpoint",
+      "label": "reducer",
+      "is_generated": false
+    },
+    {
+      "id": "router_map_reduce_line_55_fanout_1",
+      "flow_role": "router",
+      "label": "router_map_reduce_line_55_fanout_1",
+      "is_generated": true
+    },
+    {
+      "id": "splitter",
+      "flow_role": "processor",
+      "label": "splitter",
+      "is_generated": false
+    },
+    {
+      "id": "start_map_reduce",
+      "flow_role": "entrypoint",
+      "label": "start_map_reduce",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_map_reduce",
+      "to": "splitter",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "splitter",
+      "to": "router_map_reduce_line_55_fanout_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_map_reduce_line_55_fanout_1",
+      "to": "fanin_map_reduce_line_55",
+      "label": "fanout: p['chunks']",
+      "type": "set"
+    },
+    {
+      "from": "fanin_map_reduce_line_55",
+      "to": "reducer",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_map_reduce_line_55_fanout_1",
+      "to": "chunk_processor",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "chunk_processor",
+      "to": "fanin_map_reduce_line_55",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

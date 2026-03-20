@@ -1,0 +1,19 @@
+flowchart TD
+    %% Flow: decorator_definitions_flow
+
+    enrich[enrich]
+    start_decorator_definitions_flow([start_decorator_definitions_flow])
+    validate[validate]
+    __end__((( )))
+
+    start_decorator_definitions_flow --> validate
+    validate --> enrich
+    enrich --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_decorator_definitions_flow entrypoint
+    class enrich,validate handler
+    class __end__ endpoint

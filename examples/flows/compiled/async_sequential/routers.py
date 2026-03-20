@@ -21,11 +21,6 @@ async def start_llm_auditor_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def end_llm_auditor_flow(payload: dict):
-    """Exitpoint for flow 'llm_auditor_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

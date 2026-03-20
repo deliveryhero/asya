@@ -1,0 +1,38 @@
+{
+  "flow_name": "decorator_definitions_flow",
+  "nodes": [
+    {
+      "id": "enrich",
+      "flow_role": "exitpoint",
+      "label": "enrich",
+      "is_generated": false
+    },
+    {
+      "id": "start_decorator_definitions_flow",
+      "flow_role": "entrypoint",
+      "label": "start_decorator_definitions_flow",
+      "is_generated": true
+    },
+    {
+      "id": "validate",
+      "flow_role": "processor",
+      "label": "validate",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_decorator_definitions_flow",
+      "to": "validate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate",
+      "to": "enrich",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

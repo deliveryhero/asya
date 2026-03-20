@@ -1,40 +1,41 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "orchestrator_workers" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_orchestrator_workers [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_orchestrator_workers(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr><tr><td bgcolor="white" align="left">p['worker_results'] = []</td></tr></table>>];
-  router_orchestrator_workers_line_69_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_69_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('next_action') == 'write'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_orchestrator_workers_line_67_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_67_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('next_action') == 'analyze'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_orchestrator_workers_line_72_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_72_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &gt;= 10</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_orchestrator_workers_line_65_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_65_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('next_action') == 'research'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_orchestrator_workers_line_62_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_62_…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('is_complete')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_orchestrator_workers_line_58_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_58_…(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
-  router_orchestrator_workers_line_57_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_orchestrator_workers_line_57_…(p)</i></td></tr></table>>];
-  end_orchestrator_workers [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_orchestrator_workers(p)</i></td></tr></table>>];
-  analysis_worker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await analysis_worker(p)</i></td></tr></table>>];
-  data_worker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await data_worker(p)</i></td></tr></table>>];
-  orchestrator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await orchestrator(p)</i></td></tr></table>>];
-  synthesizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await synthesizer(p)</i></td></tr></table>>];
-  writing_worker [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await writing_worker(p)</i></td></tr></table>>];
+    { rank=source; start_orchestrator_workers; }
 
-  analysis_worker -> router_orchestrator_workers_line_72_if;
-  data_worker -> router_orchestrator_workers_line_72_if;
-  orchestrator -> router_orchestrator_workers_line_62_if;
-  router_orchestrator_workers_line_57_loop_back_0 -> router_orchestrator_workers_line_58_seq [constraint=false];
-  router_orchestrator_workers_line_58_seq -> orchestrator;
-  router_orchestrator_workers_line_62_if -> router_orchestrator_workers_line_65_if [label="F", color=indianred4];
-  router_orchestrator_workers_line_62_if -> synthesizer [label="T", color=darkseagreen4];
-  router_orchestrator_workers_line_65_if -> data_worker [label="T", color=darkseagreen4];
-  router_orchestrator_workers_line_65_if -> router_orchestrator_workers_line_67_if [label="F", color=indianred4];
-  router_orchestrator_workers_line_67_if -> analysis_worker [label="T", color=darkseagreen4];
-  router_orchestrator_workers_line_67_if -> router_orchestrator_workers_line_69_if [label="F", color=indianred4];
-  router_orchestrator_workers_line_69_if -> router_orchestrator_workers_line_72_if [label="F", color=indianred4];
-  router_orchestrator_workers_line_69_if -> writing_worker [label="T", color=darkseagreen4];
-  router_orchestrator_workers_line_72_if -> router_orchestrator_workers_line_57_loop_back_0 [label="F", color=indianred4];
-  router_orchestrator_workers_line_72_if -> synthesizer [label="T", color=darkseagreen4];
-  start_orchestrator_workers -> router_orchestrator_workers_line_57_loop_back_0;
-  synthesizer -> end_orchestrator_workers;
-  writing_worker -> router_orchestrator_workers_line_72_if;
+    analysis_worker [label="analysis_worker", fillcolor=lightblue];
+    data_worker [label="data_worker", fillcolor=lightblue];
+    orchestrator [label="orchestrator", fillcolor=lightblue];
+    router_orchestrator_workers_line_57_while_1 [label="router_orchestrator_workers_line_57_while_1", fillcolor=wheat];
+    router_orchestrator_workers_line_58_seq_7 [label="router_orchestrator_workers_line_58_seq_7\n\np['iteration'] += 1", fillcolor=wheat];
+    router_orchestrator_workers_line_62_if_6 [label="router_orchestrator_workers_line_62_if_6", fillcolor=wheat];
+    router_orchestrator_workers_line_65_if_5 [label="router_orchestrator_workers_line_65_if_5", fillcolor=wheat];
+    router_orchestrator_workers_line_67_if_4 [label="router_orchestrator_workers_line_67_if_4", fillcolor=wheat];
+    router_orchestrator_workers_line_69_if_3 [label="router_orchestrator_workers_line_69_if_3", fillcolor=wheat];
+    router_orchestrator_workers_line_72_if_2 [label="router_orchestrator_workers_line_72_if_2", fillcolor=wheat];
+    start_orchestrator_workers [label="start_orchestrator_workers\n\np['iteration'] = 0\np['worker_results'] = []", fillcolor=palegreen];
+    synthesizer [label="synthesizer", fillcolor=lightblue];
+    writing_worker [label="writing_worker", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_orchestrator_workers -> router_orchestrator_workers_line_57_while_1;
+    router_orchestrator_workers_line_72_if_2 -> synthesizer [label="p['iteration'] >= 10", color="#2E8B57", fontcolor="#2E8B57"];
+    router_orchestrator_workers_line_69_if_3 -> writing_worker [label="p.get('next_action') == 'write'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_orchestrator_workers_line_67_if_4 -> analysis_worker [label="p.get('next_action') == 'analyze'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_orchestrator_workers_line_67_if_4 -> router_orchestrator_workers_line_69_if_3 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_orchestrator_workers_line_65_if_5 -> data_worker [label="p.get('next_action') == 'research'", color="#2E8B57", fontcolor="#2E8B57"];
+    data_worker -> router_orchestrator_workers_line_72_if_2;
+    router_orchestrator_workers_line_65_if_5 -> router_orchestrator_workers_line_67_if_4 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_orchestrator_workers_line_62_if_6 -> router_orchestrator_workers_line_65_if_5 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_orchestrator_workers_line_62_if_6 -> synthesizer [label="p.get('is_complete')", color="#2E8B57", fontcolor="#2E8B57"];
+    router_orchestrator_workers_line_58_seq_7 -> orchestrator;
+    orchestrator -> router_orchestrator_workers_line_62_if_6;
+    router_orchestrator_workers_line_57_while_1 -> router_orchestrator_workers_line_58_seq_7;
+    analysis_worker -> router_orchestrator_workers_line_72_if_2;
+    writing_worker -> router_orchestrator_workers_line_72_if_2;
+    router_orchestrator_workers_line_72_if_2 -> router_orchestrator_workers_line_57_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_orchestrator_workers_line_69_if_3 -> router_orchestrator_workers_line_57_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    synthesizer -> __end__;
 }

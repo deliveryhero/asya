@@ -1,0 +1,216 @@
+{
+  "flow_name": "react_tool_loop",
+  "nodes": [
+    {
+      "id": "calculator",
+      "flow_role": "processor",
+      "label": "calculator",
+      "is_generated": false
+    },
+    {
+      "id": "code_exec",
+      "flow_role": "processor",
+      "label": "code_exec",
+      "is_generated": false
+    },
+    {
+      "id": "format_response",
+      "flow_role": "exitpoint",
+      "label": "format_response",
+      "is_generated": false
+    },
+    {
+      "id": "llm_reason",
+      "flow_role": "processor",
+      "label": "llm_reason",
+      "is_generated": false
+    },
+    {
+      "id": "router_react_tool_loop_line_48_while_1",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_48_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_49_seq_8",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_49_seq_8",
+      "is_generated": true,
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
+    },
+    {
+      "id": "router_react_tool_loop_line_55_if_7",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_55_if_7",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_61_if_6",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_61_if_6",
+      "is_generated": true,
+      "mutations": [
+        "p['tool_name'] = p['tool_calls'][0]['name']"
+      ]
+    },
+    {
+      "id": "router_react_tool_loop_line_63_if_5",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_63_if_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_65_if_4",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_65_if_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_react_tool_loop_line_68_seq_3",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_68_seq_3",
+      "is_generated": true,
+      "mutations": [
+        "p['observation'] = 'Unknown tool'"
+      ]
+    },
+    {
+      "id": "router_react_tool_loop_line_74_if_2",
+      "flow_role": "router",
+      "label": "router_react_tool_loop_line_74_if_2",
+      "is_generated": true,
+      "mutations": [
+        "p['messages'] = p.get('messages', [])"
+      ]
+    },
+    {
+      "id": "start_react_tool_loop",
+      "flow_role": "entrypoint",
+      "label": "start_react_tool_loop",
+      "is_generated": true,
+      "mutations": [
+        "p['messages'] = p.get('messages', [])",
+        "p['iteration'] = 0"
+      ]
+    },
+    {
+      "id": "web_search",
+      "flow_role": "processor",
+      "label": "web_search",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_react_tool_loop",
+      "to": "router_react_tool_loop_line_48_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_74_if_2",
+      "to": "format_response",
+      "label": "p['iteration'] >= 10",
+      "type": "set"
+    },
+    {
+      "from": "router_react_tool_loop_line_65_if_4",
+      "to": "calculator",
+      "label": "p['tool_name'] == 'calculator'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_65_if_4",
+      "to": "router_react_tool_loop_line_68_seq_3",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_63_if_5",
+      "to": "code_exec",
+      "label": "p['tool_name'] == 'code_exec'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_63_if_5",
+      "to": "router_react_tool_loop_line_65_if_4",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_61_if_6",
+      "to": "web_search",
+      "label": "p['tool_name'] == 'web_search'",
+      "type": "prepend"
+    },
+    {
+      "from": "web_search",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_61_if_6",
+      "to": "router_react_tool_loop_line_63_if_5",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_55_if_7",
+      "to": "router_react_tool_loop_line_61_if_6",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_react_tool_loop_line_55_if_7",
+      "to": "format_response",
+      "label": "not p.get('tool_calls')",
+      "type": "set"
+    },
+    {
+      "from": "router_react_tool_loop_line_49_seq_8",
+      "to": "llm_reason",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "llm_reason",
+      "to": "router_react_tool_loop_line_55_if_7",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_48_while_1",
+      "to": "router_react_tool_loop_line_49_seq_8",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "code_exec",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "calculator",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_68_seq_3",
+      "to": "router_react_tool_loop_line_74_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_react_tool_loop_line_74_if_2",
+      "to": "router_react_tool_loop_line_48_while_1",
+      "label": "else",
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

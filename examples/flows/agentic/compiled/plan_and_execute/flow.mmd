@@ -1,0 +1,34 @@
+flowchart TD
+    %% Flow: plan_and_execute
+
+    executor[executor]
+    planner[planner]
+    re_planner[re_planner]
+    router_plan_and_execute_line_54_while_2{{router_plan_and_execute_line_54_while_2}}
+    router_plan_and_execute_line_59_if_3{{"router_plan_and_execute_line_59_if_3<br/><br/>p['current_step'] += 1"}}
+    router_plan_and_execute_line_62_seq_1{{"router_plan_and_execute_line_62_seq_1<br/><br/>p['completed'] = True"}}
+    start_plan_and_execute(["start_plan_and_execute<br/><br/>p['current_step'] = 0<br/>p['step_results'] = []"])
+    synthesizer[synthesizer]
+    __end__((( )))
+
+    start_plan_and_execute --> planner
+    planner --> router_plan_and_execute_line_54_while_2
+    router_plan_and_execute_line_62_seq_1 --> synthesizer
+    router_plan_and_execute_line_59_if_3 -->|"p['current_step'] < len(p.get('plan', []))"| re_planner
+    router_plan_and_execute_line_54_while_2 -->|"p['current_step'] < len(p.get('plan', []))"| executor
+    executor --> router_plan_and_execute_line_59_if_3
+    router_plan_and_execute_line_54_while_2 -->|"else"| router_plan_and_execute_line_62_seq_1
+    re_planner --> router_plan_and_execute_line_54_while_2
+    router_plan_and_execute_line_59_if_3 -->|"else"| router_plan_and_execute_line_54_while_2
+    synthesizer --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_plan_and_execute entrypoint
+    class router_plan_and_execute_line_54_while_2,router_plan_and_execute_line_59_if_3,router_plan_and_execute_line_62_seq_1 router
+    class executor,planner,re_planner,synthesizer handler
+    class __end__ endpoint
+    linkStyle 3,4 stroke:#2E8B57
+    linkStyle 6,8 stroke:#E07040

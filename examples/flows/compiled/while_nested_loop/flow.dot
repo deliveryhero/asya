@@ -1,31 +1,33 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "nested_loop_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_nested_loop_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_nested_loop_flow(p)</i></td></tr></table>>];
-  router_nested_loop_flow_line_20_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_nested_loop_flow_line_20_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['j'] += 1</td></tr></table>>];
-  router_nested_loop_flow_line_19_while_1 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_nested_loop_flow_line_19_while_1(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['j'] &lt; p['max_j']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_nested_loop_flow_line_17_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_nested_loop_flow_line_17_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] += 1</td></tr><tr><td bgcolor="white" align="left">p['j'] = 0</td></tr></table>>];
-  router_nested_loop_flow_line_16_while_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_nested_loop_flow_line_16_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['i'] &lt; p['max_i']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_nested_loop_flow_line_15_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_nested_loop_flow_line_15_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['i'] = 0</td></tr></table>>];
-  end_nested_loop_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_nested_loop_flow(p)</i></td></tr></table>>];
-  finalize_loop_i [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize_loop_i(p)</i></td></tr></table>>];
-  finalize_loop_j [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize_loop_j(p)</i></td></tr></table>>];
-  initialize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = initialize(p)</i></td></tr></table>>];
-  process_item [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_item(p)</i></td></tr></table>>];
+    { rank=source; start_nested_loop_flow; }
 
-  finalize_loop_i -> end_nested_loop_flow;
-  finalize_loop_j -> router_nested_loop_flow_line_16_while_0 [constraint=false];
-  initialize -> router_nested_loop_flow_line_15_seq;
-  process_item -> router_nested_loop_flow_line_19_while_1 [constraint=false];
-  router_nested_loop_flow_line_15_seq -> router_nested_loop_flow_line_16_while_0;
-  router_nested_loop_flow_line_16_while_0 -> finalize_loop_i [label="F", color=indianred4];
-  router_nested_loop_flow_line_16_while_0 -> router_nested_loop_flow_line_17_seq [label="T", color=darkseagreen4];
-  router_nested_loop_flow_line_17_seq -> router_nested_loop_flow_line_19_while_1;
-  router_nested_loop_flow_line_19_while_1 -> finalize_loop_j [label="F", color=indianred4];
-  router_nested_loop_flow_line_19_while_1 -> router_nested_loop_flow_line_20_seq [label="T", color=darkseagreen4];
-  router_nested_loop_flow_line_20_seq -> process_item;
-  start_nested_loop_flow -> initialize;
+    finalize_loop_i [label="finalize_loop_i", fillcolor=lightblue];
+    finalize_loop_j [label="finalize_loop_j", fillcolor=lightblue];
+    initialize [label="initialize", fillcolor=lightblue];
+    process_item [label="process_item", fillcolor=lightblue];
+    router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5\n\np['i'] = 0", fillcolor=wheat];
+    router_nested_loop_flow_line_16_while_1 [label="router_nested_loop_flow_line_16_while_1", fillcolor=wheat];
+    router_nested_loop_flow_line_17_seq_4 [label="router_nested_loop_flow_line_17_seq_4\n\np['i'] += 1\np['j'] = 0", fillcolor=wheat];
+    router_nested_loop_flow_line_19_while_2 [label="router_nested_loop_flow_line_19_while_2", fillcolor=wheat];
+    router_nested_loop_flow_line_20_seq_3 [label="router_nested_loop_flow_line_20_seq_3\n\np['j'] += 1", fillcolor=wheat];
+    start_nested_loop_flow [label="start_nested_loop_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_nested_loop_flow -> initialize;
+    initialize -> router_nested_loop_flow_line_15_seq_5;
+    router_nested_loop_flow_line_20_seq_3 -> process_item;
+    router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_20_seq_3 [label="p['j'] < p['max_j']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_nested_loop_flow_line_19_while_2 -> finalize_loop_j [label="else", color="#D35400", fontcolor="#D35400"];
+    router_nested_loop_flow_line_17_seq_4 -> router_nested_loop_flow_line_19_while_2;
+    router_nested_loop_flow_line_16_while_1 -> router_nested_loop_flow_line_17_seq_4 [label="p['i'] < p['max_i']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_nested_loop_flow_line_16_while_1 -> finalize_loop_i [label="else", color="#D35400", fontcolor="#D35400"];
+    router_nested_loop_flow_line_15_seq_5 -> router_nested_loop_flow_line_16_while_1;
+    process_item -> router_nested_loop_flow_line_19_while_2;
+    router_nested_loop_flow_line_20_seq_3 -> router_nested_loop_flow_line_16_while_1;
+    finalize_loop_i -> __end__;
+    finalize_loop_j -> __end__;
 }

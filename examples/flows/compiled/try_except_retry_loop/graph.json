@@ -1,0 +1,142 @@
+{
+  "flow_name": "try_except_retry_loop",
+  "nodes": [
+    {
+      "id": "call_another_api",
+      "flow_role": "processor",
+      "label": "call_another_api",
+      "is_generated": false
+    },
+    {
+      "id": "call_external_api",
+      "flow_role": "processor",
+      "label": "call_external_api",
+      "is_generated": false
+    },
+    {
+      "id": "log_retry",
+      "flow_role": "exitpoint",
+      "label": "log_retry",
+      "is_generated": false
+    },
+    {
+      "id": "prepare_request",
+      "flow_role": "processor",
+      "label": "prepare_request",
+      "is_generated": false
+    },
+    {
+      "id": "router_retry_pipeline_line_16_while_0",
+      "flow_role": "router",
+      "label": "router_retry_pipeline_line_16_while_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_retry_pipeline_line_17_seq",
+      "flow_role": "router",
+      "label": "router_retry_pipeline_line_17_seq",
+      "is_generated": true,
+      "mutations": ["p['attempt'] += 1"]
+    },
+    {
+      "id": "router_retry_pipeline_line_18_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_retry_pipeline_line_18_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_retry_pipeline_line_18_reraise_0",
+      "flow_role": "exitpoint",
+      "label": "router_retry_pipeline_line_18_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_retry_pipeline_line_18_try_enter_0",
+      "flow_role": "router",
+      "label": "router_retry_pipeline_line_18_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_retry_pipeline_line_18_try_exit_0",
+      "flow_role": "exitpoint",
+      "label": "router_retry_pipeline_line_18_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "start_retry_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_retry_pipeline",
+      "is_generated": true,
+      "mutations": ["p['attempt'] = 0"]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_retry_pipeline",
+      "to": "prepare_request",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "prepare_request",
+      "to": "router_retry_pipeline_line_16_while_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_retry_pipeline_line_18_try_enter_0",
+      "to": "call_external_api",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "call_external_api",
+      "to": "call_another_api",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_18_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_retry_pipeline_line_18_except_dispatch_0",
+      "to": "log_retry",
+      "label": "'ConnectionError' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_retry_pipeline_line_18_except_dispatch_0",
+      "to": "router_retry_pipeline_line_18_reraise_0",
+      "label": "not ('ValueError' in _all_types)",
+      "type": "prepend"
+    },
+    {
+      "from": "router_retry_pipeline_line_17_seq",
+      "to": "router_retry_pipeline_line_18_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_retry_pipeline_line_16_while_0",
+      "to": "router_retry_pipeline_line_17_seq",
+      "label": "p['attempt'] < 3",
+      "type": "prepend"
+    },
+    {
+      "from": "router_retry_pipeline_line_18_try_enter_0",
+      "to": "router_retry_pipeline_line_16_while_0",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": [],
+  "warnings": [
+    "node 'log_retry' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_reraise_0' is not reachable from entrypoint",
+    "node 'router_retry_pipeline_line_18_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
+}

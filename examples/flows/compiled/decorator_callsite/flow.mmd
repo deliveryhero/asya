@@ -1,0 +1,19 @@
+flowchart TD
+    %% Flow: decorator_callsite_flow
+
+    enricher[enricher]
+    start_decorator_callsite_flow([start_decorator_callsite_flow])
+    validator[validator]
+    __end__((( )))
+
+    start_decorator_callsite_flow --> validator
+    validator --> enricher
+    enricher --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_decorator_callsite_flow entrypoint
+    class enricher,validator handler
+    class __end__ endpoint

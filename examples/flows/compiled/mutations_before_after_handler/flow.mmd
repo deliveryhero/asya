@@ -1,0 +1,24 @@
+flowchart TD
+    %% Flow: mutations_before_after_handler_flow
+
+    handler_a[handler_a]
+    handler_b[handler_b]
+    router_mutations_before_after_handler_flow_line_15_seq_2{{"router_mutations_before_after_handler_flow_line_15_seq_2<br/><br/>p['step'] = 2"}}
+    router_mutations_before_after_handler_flow_line_17_seq_1{{"router_mutations_before_after_handler_flow_line_17_seq_1<br/><br/>p['step'] = 3"}}
+    start_mutations_before_after_handler_flow(["start_mutations_before_after_handler_flow<br/><br/>p['step'] = 1"])
+    __end__((( )))
+
+    start_mutations_before_after_handler_flow --> handler_a
+    handler_a --> router_mutations_before_after_handler_flow_line_15_seq_2
+    router_mutations_before_after_handler_flow_line_15_seq_2 --> handler_b
+    handler_b --> router_mutations_before_after_handler_flow_line_17_seq_1
+    router_mutations_before_after_handler_flow_line_17_seq_1 --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_mutations_before_after_handler_flow entrypoint
+    class router_mutations_before_after_handler_flow_line_15_seq_2,router_mutations_before_after_handler_flow_line_17_seq_1 router
+    class handler_a,handler_b handler
+    class __end__ endpoint

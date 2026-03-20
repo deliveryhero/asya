@@ -1,0 +1,29 @@
+flowchart TD
+    %% Flow: try_except_retry_loop
+
+    call_another_api[call_another_api]
+    call_external_api[call_external_api]
+    log_retry[log_retry]
+    prepare_request[prepare_request]
+    router_retry_pipeline_line_16_while_0{{router_retry_pipeline_line_16_while_0}}
+    router_retry_pipeline_line_17_seq{{"router_retry_pipeline_line_17_seq<br/><br/>p['attempt'] += 1"}}
+    router_retry_pipeline_line_18_except_dispatch_0{{router_retry_pipeline_line_18_except_dispatch_0}}
+    router_retry_pipeline_line_18_reraise_0{{router_retry_pipeline_line_18_reraise_0}}
+    router_retry_pipeline_line_18_try_enter_0{{router_retry_pipeline_line_18_try_enter_0}}
+    router_retry_pipeline_line_18_try_exit_0{{router_retry_pipeline_line_18_try_exit_0}}
+    start_retry_pipeline(["start_retry_pipeline<br/><br/>p['attempt'] = 0"])
+    __end__((( )))
+
+    start_retry_pipeline --> prepare_request
+    prepare_request --> router_retry_pipeline_line_16_while_0
+    router_retry_pipeline_line_18_try_enter_0 --> call_external_api
+    call_external_api --> call_another_api
+    call_another_api --> router_retry_pipeline_line_18_try_exit_0
+    router_retry_pipeline_line_18_except_dispatch_0 -->|'ConnectionError' in _all_types| log_retry
+    router_retry_pipeline_line_18_except_dispatch_0 -->|not ('ValueError' in _all_types)| router_retry_pipeline_line_18_reraise_0
+    router_retry_pipeline_line_17_seq --> router_retry_pipeline_line_18_try_enter_0
+    router_retry_pipeline_line_16_while_0 -->|p['attempt'] < 3| router_retry_pipeline_line_17_seq
+    router_retry_pipeline_line_18_try_enter_0 --> router_retry_pipeline_line_16_while_0
+    log_retry --> __end__
+    router_retry_pipeline_line_18_reraise_0 --> __end__
+    router_retry_pipeline_line_18_try_exit_0 --> __end__

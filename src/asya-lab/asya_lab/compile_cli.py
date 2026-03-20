@@ -39,6 +39,7 @@ def _compile_flow_file(
     plot_format: str,
     verbose: bool,
     force: bool,
+    strict: bool = False,
 ) -> None:
     """Compile a flow from a .py source file."""
     from asya_lab.flow_cli import _stamp_manifests
@@ -77,26 +78,33 @@ def _compile_flow_file(
     compiled_file = compiled_dir / "routers.py"
     compiled_file.write_text(compiled_code)
 
-    click.echo(f"[+] Successfully compiled flow to: {compiled_file}")
-    click.echo(f"[+] Using flow name '{flow_name}'")
+    if verbose:
+        click.echo(f"[+] Compiled flow to: {compiled_file}")
+        click.echo(f"[+] Flow name: '{flow_name}'")
 
-    actor = compiler.single_actor_name
-    if actor is not None:
-        click.echo("[+] Single-actor flow detected: no router actor needed")
-        click.echo(f"[+] Apply these labels to actor '{actor}':")
-        click.echo(f"[+]   asya.sh/flow: {flow_name}")
-        click.echo("[+]   asya.sh/flow-role: entrypoint")
+        actor = compiler.single_actor_name
+        if actor is not None:
+            click.echo("[+] Single-actor flow: no router actor needed")
 
     if plot:
         try:
             dot_file, plot_path = compiler.generate_plot(str(compiled_dir), plot_format=plot_format)
-            click.echo(f"[+] Generated graphviz dot file: {dot_file}")
-            if plot_path:
-                click.echo(f"[+] Generated graphviz {plot_format} plot: {plot_path}")
+            if verbose:
+                click.echo(f"[+] Generated: {dot_file}")
+                if plot_path:
+                    click.echo(f"[+] Generated: {plot_path}")
         except (ImportError, RuntimeError) as e:
-            click.echo(f"[!] Warning: {e}", err=True)
+            click.echo(f"[!] {e}", err=True)
         except Exception as e:
-            click.echo(f"[!] Warning: Failed to generate plot: {e}", err=True)
+            click.echo(f"[!] Failed to generate plot: {e}", err=True)
+
+    warnings = compiler.get_warnings()
+    if warnings:
+        for w in warnings:
+            click.echo(f"[!] {w}", err=True)
+        if strict:
+            click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
+            sys.exit(1)
 
     manifests_dir = output_dir if output_dir else None
     _stamp_manifests(compiler, target, str(compiled_dir), manifests_dir, verbose)
@@ -146,7 +154,8 @@ def _recompile_kebab_target(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--force", is_flag=True, help="Overwrite without checking git status")
-def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force):
+@click.option("--strict", is_flag=True, help="Treat warnings as errors")
+def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, force, strict):
     """Compile a flow or actor into Kubernetes manifests.
 
     TARGET can be:
@@ -158,7 +167,7 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
     """
     try:
         if target.source is not None:
-            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force)
+            _compile_flow_file(str(target.source), flow_name, output_dir, plot, plot_format, verbose, force, strict)
         else:
             _recompile_kebab_target(target.name, output_dir, verbose)
     except FlowCompileError as e:

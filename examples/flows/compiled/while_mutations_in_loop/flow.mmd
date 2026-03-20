@@ -1,0 +1,33 @@
+flowchart TD
+    %% Flow: while_mutations_in_loop_flow
+
+    handler_finalize[handler_finalize]
+    handler_init[handler_init]
+    handler_process[handler_process]
+    router_while_mutations_in_loop_flow_line_13_seq_4{{"router_while_mutations_in_loop_flow_line_13_seq_4<br/><br/>p['i'] = 0<br/>p['sum'] = 0"}}
+    router_while_mutations_in_loop_flow_line_15_while_1{{router_while_mutations_in_loop_flow_line_15_while_1}}
+    router_while_mutations_in_loop_flow_line_16_seq_3{{"router_while_mutations_in_loop_flow_line_16_seq_3<br/><br/>p['i'] += 1<br/>p['sum'] += p['i']<br/>p['step'] = p['i']"}}
+    router_while_mutations_in_loop_flow_line_20_seq_2{{"router_while_mutations_in_loop_flow_line_20_seq_2<br/><br/>p['processed'] = True"}}
+    start_while_mutations_in_loop_flow([start_while_mutations_in_loop_flow])
+    __end__((( )))
+
+    start_while_mutations_in_loop_flow --> handler_init
+    handler_init --> router_while_mutations_in_loop_flow_line_13_seq_4
+    router_while_mutations_in_loop_flow_line_16_seq_3 --> handler_process
+    handler_process --> router_while_mutations_in_loop_flow_line_20_seq_2
+    router_while_mutations_in_loop_flow_line_15_while_1 -->|"p['i'] < p['max_iterations']"| router_while_mutations_in_loop_flow_line_16_seq_3
+    router_while_mutations_in_loop_flow_line_15_while_1 -->|"else"| handler_finalize
+    router_while_mutations_in_loop_flow_line_13_seq_4 --> router_while_mutations_in_loop_flow_line_15_while_1
+    router_while_mutations_in_loop_flow_line_20_seq_2 --> router_while_mutations_in_loop_flow_line_15_while_1
+    handler_finalize --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_while_mutations_in_loop_flow entrypoint
+    class router_while_mutations_in_loop_flow_line_13_seq_4,router_while_mutations_in_loop_flow_line_15_while_1,router_while_mutations_in_loop_flow_line_16_seq_3,router_while_mutations_in_loop_flow_line_20_seq_2 router
+    class handler_finalize,handler_init,handler_process handler
+    class __end__ endpoint
+    linkStyle 4 stroke:#2E8B57
+    linkStyle 5 stroke:#E07040

@@ -1,0 +1,110 @@
+{
+  "flow_name": "content_pipeline_flow",
+  "nodes": [
+    {
+      "id": "classifier",
+      "flow_role": "processor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
+      "id": "generic_processor",
+      "flow_role": "processor",
+      "label": "generic_processor",
+      "is_generated": false
+    },
+    {
+      "id": "image_processor",
+      "flow_role": "processor",
+      "label": "image_processor",
+      "is_generated": false
+    },
+    {
+      "id": "quality_check",
+      "flow_role": "exitpoint",
+      "label": "quality_check",
+      "is_generated": false
+    },
+    {
+      "id": "router_content_pipeline_flow_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_content_pipeline_flow_line_16_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_content_pipeline_flow_line_18_if_1",
+      "flow_role": "router",
+      "label": "router_content_pipeline_flow_line_18_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "start_content_pipeline_flow",
+      "flow_role": "entrypoint",
+      "label": "start_content_pipeline_flow",
+      "is_generated": true
+    },
+    {
+      "id": "text_processor",
+      "flow_role": "processor",
+      "label": "text_processor",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_content_pipeline_flow",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_content_pipeline_flow_line_16_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_18_if_1",
+      "to": "image_processor",
+      "label": "p['content_type'] == 'image'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_18_if_1",
+      "to": "generic_processor",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_16_if_2",
+      "to": "text_processor",
+      "label": "p['content_type'] == 'text'",
+      "type": "prepend"
+    },
+    {
+      "from": "text_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_16_if_2",
+      "to": "router_content_pipeline_flow_line_18_if_1",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "image_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "generic_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

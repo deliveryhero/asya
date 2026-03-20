@@ -8,18 +8,19 @@ Uses AsyncGenerator to yield intermediate results.
 Reference: https://github.com/google/adk-samples/tree/main/python/agents/llm-auditor
 """
 
-from collections.abc import AsyncGenerator
+from asya_lab.flow import flow
 
 
-async def agent_with_tools(state: dict) -> AsyncGenerator[dict, None]:
+@flow
+async def agent_with_tools(state: dict) -> dict:
     state["messages"] = state.get("messages", [])
     while True:
         state = await llm_call(state)
         if state.get("tool_calls"):
             state = await execute_tool(state)
         else:
-            yield {"type": "result", **state}
-            return
+            break
+    return state
 
 
 async def llm_call(state: dict) -> dict:
@@ -27,6 +28,7 @@ async def llm_call(state: dict) -> dict:
     return state
 
 
+@actor
 async def execute_tool(state: dict) -> dict:
     """Execute tool calls requested by the LLM."""
     return state

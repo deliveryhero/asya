@@ -4,8 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import FanOutCall
-from asya_lab.flow.parser import FlowParser
+from asya_lab.flow.parser import FanOut, FlowParser
 
 from .test_helpers import contains_with_either_quotes
 
@@ -23,11 +22,13 @@ class TestListComprehensionFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "comprehension"
         assert len(fanout.actor_calls) == 1
@@ -47,11 +48,13 @@ class TestListComprehensionFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "comprehension"
         assert len(fanout.actor_calls) == 1
@@ -72,11 +75,13 @@ class TestListComprehensionFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "comprehension"
         assert len(fanout.actor_calls) == 1
@@ -95,10 +100,12 @@ class TestListComprehensionFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.pattern == "comprehension"
         assert fanout.actor_calls[0][0] == "research_agent"
 
@@ -112,10 +119,12 @@ class TestListComprehensionFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.lineno == 4
 
     def test_reject_nested_comprehensions(self):
@@ -175,11 +184,13 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/result"
         assert fanout.pattern == "literal"
         assert len(fanout.actor_calls) == 3
@@ -202,10 +213,12 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert contains_with_either_quotes(fanout.actor_calls[0][1], 'p["x"]')
         assert contains_with_either_quotes(fanout.actor_calls[1][1], 'p["y"]')
 
@@ -222,10 +235,12 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.pattern == "literal"
         assert len(fanout.actor_calls) == 2
         assert fanout.actor_calls[0][0] == "sentiment_analyzer"
@@ -257,9 +272,11 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
@@ -275,9 +292,11 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
@@ -292,9 +311,11 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
@@ -309,9 +330,11 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
@@ -329,10 +352,12 @@ class TestListLiteralFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.lineno == 4
 
 
@@ -349,11 +374,13 @@ class TestAsyncioGatherFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "gather"
         assert len(fanout.actor_calls) == 1
@@ -377,11 +404,13 @@ class TestAsyncioGatherFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "gather"
         assert len(fanout.actor_calls) == 3
@@ -414,10 +443,12 @@ class TestAsyncioGatherFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.lineno == 4
 
     def test_parse_list_wrapped_gather_with_explicit_args(self):
@@ -433,11 +464,13 @@ class TestAsyncioGatherFanOut:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/analysis"
         assert fanout.pattern == "gather"
         assert len(fanout.actor_calls) == 3
@@ -454,11 +487,13 @@ class TestAsyncioGatherFanOut:
                 return p
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "gather"
         assert fanout.actor_calls[0][0] == "agent"
@@ -475,11 +510,13 @@ class TestAsyncioGatherFanOut:
                 return state
         """)
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.pattern == "gather"
         assert len(fanout.actor_calls) == 1
@@ -503,9 +540,11 @@ class TestFanOutTargetKey:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], FanOutCall)
+        ops = result.operations
+
+        assert isinstance(ops[0], FanOut)
         assert ops[0].target_key == "/results"
 
     def test_nested_key(self):
@@ -518,9 +557,11 @@ class TestFanOutTargetKey:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], FanOutCall)
+        ops = result.operations
+
+        assert isinstance(ops[0], FanOut)
         assert ops[0].target_key == "/output/results"
 
     def test_target_key_from_list_literal(self):
@@ -533,9 +574,11 @@ class TestFanOutTargetKey:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], FanOutCall)
+        ops = result.operations
+
+        assert isinstance(ops[0], FanOut)
         assert ops[0].target_key == "/analysis"
 
 
@@ -553,9 +596,11 @@ class TestNonPayloadSubscriptNotFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation
 
         # cache["items"] roots at cache, not p - should be a Mutation
         assert isinstance(ops[0], Mutation)
@@ -570,10 +615,12 @@ class TestNonPayloadSubscriptNotFanOut:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         # p["config"]["items"] roots at p - IS a fan-out
-        assert isinstance(ops[0], FanOutCall)
+        assert isinstance(ops[0], FanOut)
         assert ops[0].target_key == "/config/items"
 
 
@@ -592,14 +639,16 @@ class TestFanOutWithOtherOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import ActorCall, Return
+        ops = result.operations
+
+        from asya_lab.flow.parser import ActorCall, Return
 
         assert len(ops) == 4
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "preprocessor"
-        assert isinstance(ops[1], FanOutCall)
+        assert isinstance(ops[1], FanOut)
         assert isinstance(ops[2], ActorCall)
         assert ops[2].name == "postprocessor"
         assert isinstance(ops[3], Return)
@@ -616,13 +665,15 @@ class TestFanOutWithOtherOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import Mutation, Return
+        ops = result.operations
+
+        from asya_lab.flow.parser import Mutation, Return
 
         assert len(ops) == 4
         assert isinstance(ops[0], Mutation)
-        assert isinstance(ops[1], FanOutCall)
+        assert isinstance(ops[1], FanOut)
         assert isinstance(ops[2], Mutation)
         assert isinstance(ops[3], Return)
 
@@ -639,14 +690,16 @@ class TestFanOutWithOtherOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        from asya_lab.flow.ir import ActorCall, Condition, Return
+        ops = result.operations
+
+        from asya_lab.flow.parser import ActorCall, Conditional, Return
 
         assert len(ops) == 2
         cond = ops[0]
-        assert isinstance(cond, Condition)
-        assert isinstance(cond.true_branch[0], FanOutCall)
+        assert isinstance(cond, Conditional)
+        assert isinstance(cond.true_branch[0], FanOut)
         assert isinstance(cond.false_branch[0], ActorCall)
         assert isinstance(ops[1], Return)
 
@@ -661,12 +714,14 @@ class TestFanOutWithOtherOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 3
-        assert isinstance(ops[0], FanOutCall)
+        assert isinstance(ops[0], FanOut)
         assert ops[0].target_key == "/research"
-        assert isinstance(ops[1], FanOutCall)
+        assert isinstance(ops[1], FanOut)
         assert ops[1].target_key == "/reviews"
 
 
@@ -683,10 +738,12 @@ class TestFanOutParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/results"
         assert fanout.iterable is not None
         assert contains_with_either_quotes(fanout.iterable, 'p["items"]')
@@ -701,10 +758,12 @@ class TestFanOutParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         fanout = ops[0]
-        assert isinstance(fanout, FanOutCall)
+        assert isinstance(fanout, FanOut)
         assert fanout.target_key == "/result"
         assert contains_with_either_quotes(fanout.actor_calls[0][1], 'p["x"]')
         assert contains_with_either_quotes(fanout.actor_calls[1][1], 'p["y"]')

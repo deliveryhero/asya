@@ -1,0 +1,43 @@
+flowchart TD
+    %% Flow: human_in_the_loop
+
+    approval_gate[approval_gate]
+    executor[executor]
+    notifier[notifier]
+    proposal_generator[proposal_generator]
+    revision_agent[revision_agent]
+    router_human_in_the_loop_line_60_while_1{{router_human_in_the_loop_line_60_while_1}}
+    router_human_in_the_loop_line_61_seq_6{{"router_human_in_the_loop_line_61_seq_6<br/><br/>p['attempt'] += 1"}}
+    router_human_in_the_loop_line_70_if_5{{router_human_in_the_loop_line_70_if_5}}
+    router_human_in_the_loop_line_75_if_4{{router_human_in_the_loop_line_75_if_4}}
+    router_human_in_the_loop_line_79_if_3{{router_human_in_the_loop_line_79_if_3}}
+    router_human_in_the_loop_line_80_seq_2{{"router_human_in_the_loop_line_80_seq_2<br/><br/>p['result'] = 'Max revision attempts reached'"}}
+    start_human_in_the_loop(["start_human_in_the_loop<br/><br/>p['attempt'] = 0"])
+    __end__((( )))
+
+    start_human_in_the_loop --> router_human_in_the_loop_line_60_while_1
+    router_human_in_the_loop_line_80_seq_2 --> notifier
+    router_human_in_the_loop_line_79_if_3 -->|"p['attempt'] >= 3"| router_human_in_the_loop_line_80_seq_2
+    router_human_in_the_loop_line_75_if_4 -->|"p.get('approval') == 'rejected'"| revision_agent
+    router_human_in_the_loop_line_70_if_5 -->|"else"| router_human_in_the_loop_line_75_if_4
+    router_human_in_the_loop_line_70_if_5 -->|"p.get('approval') in ('approved', 'modified')"| executor
+    executor --> notifier
+    router_human_in_the_loop_line_61_seq_6 --> proposal_generator
+    proposal_generator --> approval_gate
+    approval_gate --> router_human_in_the_loop_line_70_if_5
+    router_human_in_the_loop_line_60_while_1 --> router_human_in_the_loop_line_61_seq_6
+    revision_agent --> router_human_in_the_loop_line_79_if_3
+    router_human_in_the_loop_line_79_if_3 -->|"else"| router_human_in_the_loop_line_60_while_1
+    router_human_in_the_loop_line_75_if_4 -->|"else"| router_human_in_the_loop_line_60_while_1
+    notifier --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_human_in_the_loop entrypoint
+    class router_human_in_the_loop_line_60_while_1,router_human_in_the_loop_line_61_seq_6,router_human_in_the_loop_line_70_if_5,router_human_in_the_loop_line_75_if_4,router_human_in_the_loop_line_79_if_3,router_human_in_the_loop_line_80_seq_2 router
+    class approval_gate,executor,notifier,proposal_generator,revision_agent handler
+    class __end__ endpoint
+    linkStyle 2,3,5 stroke:#2E8B57
+    linkStyle 4,12,13 stroke:#E07040

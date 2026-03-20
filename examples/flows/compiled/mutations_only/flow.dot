@@ -1,11 +1,14 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "mutations_only_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_mutations_only_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_mutations_only_flow(p)</i></td></tr><tr><td bgcolor="white" align="left">p['step'] = 1</td></tr><tr><td bgcolor="white" align="left">p['x'] = 10</td></tr><tr><td bgcolor="white" align="left">p['y'] = 20</td></tr><tr><td bgcolor="white" align="left">p['x'] += p['y']</td></tr><tr><td bgcolor="white" align="left">p['z'] = p['x'] + 30</td></tr></table>>];
-  end_mutations_only_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_mutations_only_flow(p)</i></td></tr></table>>];
+    { rank=source; start_mutations_only_flow; }
 
-  start_mutations_only_flow -> end_mutations_only_flow;
+    router_mutations_only_flow_line_14_seq_1 [label="router_mutations_only_flow_line_14_seq_1\n\np['step'] = 1\np['x'] = 10\np['y'] = 20\np['x'] += p['y']\np['z'] = p['x'] + 30", fillcolor=wheat];
+    start_mutations_only_flow [label="start_mutations_only_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_mutations_only_flow -> router_mutations_only_flow_line_14_seq_1;
+    router_mutations_only_flow_line_14_seq_1 -> __end__;
 }

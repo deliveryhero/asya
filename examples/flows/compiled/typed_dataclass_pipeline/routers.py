@@ -23,11 +23,6 @@ async def start_typed_dataclass_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def end_typed_dataclass_pipeline(payload: dict):
-    """Exitpoint for flow 'typed_dataclass_pipeline'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

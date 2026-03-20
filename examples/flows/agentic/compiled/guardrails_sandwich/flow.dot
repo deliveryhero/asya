@@ -1,28 +1,29 @@
-digraph flow {
-  rankdir=TB;
-  compound=true;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "guardrails_sandwich" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_guardrails_sandwich [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_guardrails_sandwich(p)</i></td></tr></table>>];
-  end_guardrails_sandwich [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_guardrails_sandwich(p)</i></td></tr></table>>];
-  safe_fallback [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await safe_fallback(p)</i></td></tr></table>>];
-  subgraph cluster_try_0 {
-    style=dashed;
-    color="snow4";
-    fontname="Courier";
-    fontsize=10;
-    label="try";
-    core_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await core_agent(p)</i></td></tr></table>>];
-    input_validator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await input_validator(p)</i></td></tr></table>>];
-    output_validator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await output_validator(p)</i></td></tr></table>>];
-  }
+    { rank=source; start_guardrails_sandwich; }
 
-  core_agent -> output_validator;
-  input_validator -> core_agent;
-  output_validator -> end_guardrails_sandwich;
-  output_validator -> safe_fallback [ltail=cluster_try_0, color=snow4, style=dashed, label="except Exception", constraint=false];
-  safe_fallback -> end_guardrails_sandwich;
-  start_guardrails_sandwich -> input_validator;
+    core_agent [label="core_agent", fillcolor=lightblue];
+    input_validator [label="input_validator", fillcolor=lightblue];
+    output_validator [label="output_validator", fillcolor=lightblue];
+    router_guardrails_sandwich_line_47_except_dispatch_0 [label="router_guardrails_sandwich_line_47_except_dispatch_0", fillcolor=wheat];
+    router_guardrails_sandwich_line_47_reraise_0 [label="router_guardrails_sandwich_line_47_reraise_0", fillcolor=wheat];
+    router_guardrails_sandwich_line_47_try_enter_0 [label="router_guardrails_sandwich_line_47_try_enter_0", fillcolor=wheat];
+    router_guardrails_sandwich_line_47_try_exit_0 [label="router_guardrails_sandwich_line_47_try_exit_0", fillcolor=wheat];
+    safe_fallback [label="safe_fallback", fillcolor=lightblue];
+    start_guardrails_sandwich [label="start_guardrails_sandwich", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_guardrails_sandwich -> router_guardrails_sandwich_line_47_try_enter_0;
+    router_guardrails_sandwich_line_47_try_enter_0 -> input_validator;
+    input_validator -> core_agent;
+    core_agent -> output_validator;
+    output_validator -> router_guardrails_sandwich_line_47_try_exit_0;
+    router_guardrails_sandwich_line_47_except_dispatch_0 -> safe_fallback [label="'Exception' in _all_types"];
+    router_guardrails_sandwich_line_47_except_dispatch_0 -> router_guardrails_sandwich_line_47_reraise_0 [label="not ('Exception' in _all_types)"];
+    router_guardrails_sandwich_line_47_reraise_0 -> __end__;
+    router_guardrails_sandwich_line_47_try_exit_0 -> __end__;
+    safe_fallback -> __end__;
 }

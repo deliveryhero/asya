@@ -1,0 +1,206 @@
+{
+  "flow_name": "test_nested_flow",
+  "nodes": [
+    {
+      "id": "finalize_result",
+      "flow_role": "exitpoint",
+      "label": "finalize_result",
+      "is_generated": false
+    },
+    {
+      "id": "route_a_x",
+      "flow_role": "processor",
+      "label": "route_a_x",
+      "is_generated": false
+    },
+    {
+      "id": "route_a_y",
+      "flow_role": "processor",
+      "label": "route_a_y",
+      "is_generated": false
+    },
+    {
+      "id": "route_b_x",
+      "flow_role": "processor",
+      "label": "route_b_x",
+      "is_generated": false
+    },
+    {
+      "id": "route_b_y",
+      "flow_role": "processor",
+      "label": "route_b_y",
+      "is_generated": false
+    },
+    {
+      "id": "router_test_nested_flow_line_11_if_3",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_11_if_3",
+      "is_generated": true,
+      "mutations": [
+        "p['path'] = 'A'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_12_seq_1",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_12_seq_1",
+      "is_generated": true,
+      "mutations": [
+        "p['route'] = 'A-X'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_15_seq_2",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_15_seq_2",
+      "is_generated": true,
+      "mutations": [
+        "p['route'] = 'A-Y'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_19_if_6",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_19_if_6",
+      "is_generated": true,
+      "mutations": [
+        "p['path'] = 'B'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_20_seq_4",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_20_seq_4",
+      "is_generated": true,
+      "mutations": [
+        "p['route'] = 'B-X'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_23_seq_5",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_23_seq_5",
+      "is_generated": true,
+      "mutations": [
+        "p['route'] = 'B-Y'"
+      ]
+    },
+    {
+      "id": "router_test_nested_flow_line_9_if_7",
+      "flow_role": "router",
+      "label": "router_test_nested_flow_line_9_if_7",
+      "is_generated": true
+    },
+    {
+      "id": "start_test_nested_flow",
+      "flow_role": "entrypoint",
+      "label": "start_test_nested_flow",
+      "is_generated": true
+    },
+    {
+      "id": "validate_input",
+      "flow_role": "processor",
+      "label": "validate_input",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_test_nested_flow",
+      "to": "validate_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_input",
+      "to": "router_test_nested_flow_line_9_if_7",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_test_nested_flow_line_12_seq_1",
+      "to": "route_a_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_15_seq_2",
+      "to": "route_a_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_11_if_3",
+      "to": "router_test_nested_flow_line_12_seq_1",
+      "label": "p['level2'] == 'X'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_11_if_3",
+      "to": "router_test_nested_flow_line_15_seq_2",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_20_seq_4",
+      "to": "route_b_x",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_23_seq_5",
+      "to": "route_b_y",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_19_if_6",
+      "to": "router_test_nested_flow_line_20_seq_4",
+      "label": "p['level2'] == 'X'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_19_if_6",
+      "to": "router_test_nested_flow_line_23_seq_5",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "router_test_nested_flow_line_11_if_3",
+      "label": "p['level1'] == 'A'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_test_nested_flow_line_9_if_7",
+      "to": "router_test_nested_flow_line_19_if_6",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "route_a_x",
+      "to": "finalize_result",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_a_y",
+      "to": "finalize_result",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_b_x",
+      "to": "finalize_result",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_b_y",
+      "to": "finalize_result",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

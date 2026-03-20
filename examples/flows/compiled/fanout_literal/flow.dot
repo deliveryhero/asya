@@ -1,26 +1,27 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "analysis_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_analysis_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_analysis_flow(p)</i></td></tr></table>>];
-  fanout_analysis_flow_line_14 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanout_analysis_flow_line_14(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:literal]</b></td></tr></table>>];
-  end_analysis_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_analysis_flow(p)</i></td></tr></table>>];
-  entity_recognizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = entity_recognizer(p)</i></td></tr></table>>];
-  fanin_analysis_flow_line_14 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fanin_analysis_flow_line_14(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  merge_analysis [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = merge_analysis(p)</i></td></tr></table>>];
-  sentiment_analyzer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = sentiment_analyzer(p)</i></td></tr></table>>];
-  topic_extractor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = topic_extractor(p)</i></td></tr></table>>];
+    { rank=source; start_analysis_flow; }
 
-  entity_recognizer -> fanin_analysis_flow_line_14 [color=slateblue4, style=dashed];
-  fanin_analysis_flow_line_14 -> merge_analysis;
-  fanout_analysis_flow_line_14 -> entity_recognizer [color=mediumpurple4, label="slice 3", style=bold];
-  fanout_analysis_flow_line_14 -> fanin_analysis_flow_line_14 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  fanout_analysis_flow_line_14 -> sentiment_analyzer [color=mediumpurple4, label="slice 1", style=bold];
-  fanout_analysis_flow_line_14 -> topic_extractor [color=mediumpurple4, label="slice 2", style=bold];
-  merge_analysis -> end_analysis_flow;
-  sentiment_analyzer -> fanin_analysis_flow_line_14 [color=slateblue4, style=dashed];
-  start_analysis_flow -> fanout_analysis_flow_line_14;
-  topic_extractor -> fanin_analysis_flow_line_14 [color=slateblue4, style=dashed];
+    entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
+    fanin_analysis_flow_line_14 [label="fanin_analysis_flow_line_14", fillcolor=lightblue];
+    merge_analysis [label="merge_analysis", fillcolor=lightblue];
+    router_analysis_flow_line_14_fanout_1 [label="router_analysis_flow_line_14_fanout_1", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
+    start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
+    topic_extractor [label="topic_extractor", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
+    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_analysis_flow_line_14 -> merge_analysis;
+    router_analysis_flow_line_14_fanout_1 -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_analysis_flow_line_14;
+    router_analysis_flow_line_14_fanout_1 -> topic_extractor;
+    topic_extractor -> fanin_analysis_flow_line_14;
+    router_analysis_flow_line_14_fanout_1 -> entity_recognizer;
+    entity_recognizer -> fanin_analysis_flow_line_14;
+    merge_analysis -> __end__;
 }

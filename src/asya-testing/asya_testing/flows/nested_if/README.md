@@ -31,18 +31,17 @@ else:
 
 ## Actors Deployed
 
-15 AsyncActors total (deployed via `asya-test-flows` Helm chart):
+14 AsyncActors total (deployed via `asya-test-flows` Helm chart):
 
 **Routers** (VFS mode):
 - start-test-nested-flow
-- router-test-nested-flow-line-4-if
-- router-test-nested-flow-line-6-if
-- router-test-nested-flow-line-14-if
-- router-test-nested-flow-line-7-seq
-- router-test-nested-flow-line-10-seq
-- router-test-nested-flow-line-15-seq
-- router-test-nested-flow-line-18-seq
-- end-test-nested-flow
+- router-test-nested-flow-line-9-if-7
+- router-test-nested-flow-line-11-if-3
+- router-test-nested-flow-line-12-seq-1
+- router-test-nested-flow-line-15-seq-2
+- router-test-nested-flow-line-19-if-6
+- router-test-nested-flow-line-20-seq-4
+- router-test-nested-flow-line-23-seq-5
 
 **Handlers** (payload mode):
 - validate-input

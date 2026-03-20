@@ -18,11 +18,11 @@ import copy
 async def start_voting_ensemble(payload: dict):
     """Entrypoint for flow 'voting_ensemble'"""
     _next = []
-    _next.append(resolve("fanout_voting_ensemble_line_44"))
+    _next.append(resolve("router_voting_ensemble_line_44_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_voting_ensemble_line_44(payload: dict):
+async def router_voting_ensemble_line_44_fanout_1(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 44)"""
     p = payload
 
@@ -53,11 +53,6 @@ async def fanout_voting_ensemble_line_44(payload: dict):
         yield "SET", ".route.next", [_actor, _agg]
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
-
-async def end_voting_ensemble(payload: dict):
-    """Exitpoint for flow 'voting_ensemble'"""
-    yield "SET", ".route.next", []
-    yield payload
 
 
 # ======================================================================

@@ -1,0 +1,50 @@
+{
+  "flow_name": "class_instantiation_flow",
+  "nodes": [
+    {
+      "id": "sequential_with_class.DataPreprocessor.clean",
+      "flow_role": "processor",
+      "label": "sequential_with_class.DataPreprocessor.clean",
+      "is_generated": false
+    },
+    {
+      "id": "sequential_with_class.MLModel.predict",
+      "flow_role": "exitpoint",
+      "label": "sequential_with_class.MLModel.predict",
+      "is_generated": false
+    },
+    {
+      "id": "start_class_instantiation_flow",
+      "flow_role": "entrypoint",
+      "label": "start_class_instantiation_flow",
+      "is_generated": true
+    },
+    {
+      "id": "transformation",
+      "flow_role": "processor",
+      "label": "transformation",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_class_instantiation_flow",
+      "to": "sequential_with_class.DataPreprocessor.clean",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "sequential_with_class.DataPreprocessor.clean",
+      "to": "transformation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "transformation",
+      "to": "sequential_with_class.MLModel.predict",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

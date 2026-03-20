@@ -1,0 +1,62 @@
+{
+  "flow_name": "typed_dataclass_pipeline",
+  "nodes": [
+    {
+      "id": "classifier",
+      "flow_role": "processor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
+      "id": "enricher",
+      "flow_role": "processor",
+      "label": "enricher",
+      "is_generated": false
+    },
+    {
+      "id": "extractor",
+      "flow_role": "processor",
+      "label": "extractor",
+      "is_generated": false
+    },
+    {
+      "id": "formatter",
+      "flow_role": "exitpoint",
+      "label": "formatter",
+      "is_generated": false
+    },
+    {
+      "id": "start_typed_dataclass_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_typed_dataclass_pipeline",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_typed_dataclass_pipeline",
+      "to": "extractor",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "extractor",
+      "to": "classifier",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "classifier",
+      "to": "enricher",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "enricher",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

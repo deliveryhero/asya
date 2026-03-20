@@ -1,0 +1,65 @@
+{
+  "flow_name": "order_pipeline",
+  "nodes": [
+    {
+      "id": "charge_payment",
+      "flow_role": "exitpoint",
+      "label": "charge_payment",
+      "is_generated": false
+    },
+    {
+      "id": "router_order_pipeline_line_32_if_2",
+      "flow_role": "router",
+      "label": "router_order_pipeline_line_32_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_pipeline_line_33_seq_1",
+      "flow_role": "exitpoint",
+      "label": "router_order_pipeline_line_33_seq_1",
+      "is_generated": true,
+      "mutations": [
+        "p['status'] = 'rejected'"
+      ]
+    },
+    {
+      "id": "start_order_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_order_pipeline",
+      "is_generated": true
+    },
+    {
+      "id": "validate_order",
+      "flow_role": "processor",
+      "label": "validate_order",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_order_pipeline",
+      "to": "validate_order",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_order",
+      "to": "router_order_pipeline_line_32_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_order_pipeline_line_32_if_2",
+      "to": "charge_payment",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_pipeline_line_32_if_2",
+      "to": "router_order_pipeline_line_33_seq_1",
+      "label": "p.get('fraud_score', 0) > 0.8",
+      "type": "set"
+    }
+  ],
+  "groups": []
+}

@@ -1,0 +1,56 @@
+flowchart TD
+    %% Flow: conditional_nested_flow
+
+    handler_a[handler_a]
+    handler_b[handler_b]
+    handler_c[handler_c]
+    handler_d[handler_d]
+    handler_finalize[handler_finalize]
+    handler_validate_input[handler_validate_input]
+    router_conditional_nested_flow_line_10_seq_10{{"router_conditional_nested_flow_line_10_seq_10<br/><br/>p['x'] += 1"}}
+    router_conditional_nested_flow_line_12_if_9{{router_conditional_nested_flow_line_12_if_9}}
+    router_conditional_nested_flow_line_15_if_6{{"router_conditional_nested_flow_line_15_if_6<br/><br/>p['x'] += 2"}}
+    router_conditional_nested_flow_line_16_seq_4{{"router_conditional_nested_flow_line_16_seq_4<br/><br/>p['x'] += 3"}}
+    router_conditional_nested_flow_line_18_seq_3{{"router_conditional_nested_flow_line_18_seq_3<br/><br/>p['x'] += 4"}}
+    router_conditional_nested_flow_line_20_seq_5{{"router_conditional_nested_flow_line_20_seq_5<br/><br/>p['x'] += 5"}}
+    router_conditional_nested_flow_line_23_seq_8{{"router_conditional_nested_flow_line_23_seq_8<br/><br/>p['x'] += 6"}}
+    router_conditional_nested_flow_line_25_seq_7{{"router_conditional_nested_flow_line_25_seq_7<br/><br/>p['x'] += 7"}}
+    router_conditional_nested_flow_line_27_seq_2{{"router_conditional_nested_flow_line_27_seq_2<br/><br/>p['x'] += 8"}}
+    router_conditional_nested_flow_line_29_seq_1{{"router_conditional_nested_flow_line_29_seq_1<br/><br/>p['x'] += 9<br/>p['x'] *= 10"}}
+    router_conditional_nested_flow_line_9_if_11{{"router_conditional_nested_flow_line_9_if_11<br/><br/>p['x'] = 1"}}
+    start_conditional_nested_flow([start_conditional_nested_flow])
+    __end__((( )))
+
+    start_conditional_nested_flow --> handler_validate_input
+    handler_validate_input --> router_conditional_nested_flow_line_9_if_11
+    router_conditional_nested_flow_line_27_seq_2 --> handler_finalize
+    handler_finalize --> router_conditional_nested_flow_line_29_seq_1
+    router_conditional_nested_flow_line_16_seq_4 --> handler_b
+    handler_b --> router_conditional_nested_flow_line_18_seq_3
+    router_conditional_nested_flow_line_20_seq_5 --> handler_c
+    router_conditional_nested_flow_line_15_if_6 -->|"p['x'] > 2"| router_conditional_nested_flow_line_16_seq_4
+    router_conditional_nested_flow_line_15_if_6 -->|"else"| router_conditional_nested_flow_line_20_seq_5
+    router_conditional_nested_flow_line_23_seq_8 --> handler_d
+    handler_d --> router_conditional_nested_flow_line_25_seq_7
+    router_conditional_nested_flow_line_12_if_9 -->|"p['x'] > 2"| handler_b
+    handler_b --> router_conditional_nested_flow_line_15_if_6
+    router_conditional_nested_flow_line_12_if_9 -->|"else"| router_conditional_nested_flow_line_23_seq_8
+    router_conditional_nested_flow_line_10_seq_10 --> handler_a
+    handler_a --> router_conditional_nested_flow_line_12_if_9
+    router_conditional_nested_flow_line_9_if_11 -->|"p['a'] == 'A'"| router_conditional_nested_flow_line_10_seq_10
+    router_conditional_nested_flow_line_9_if_11 -->|"else"| router_conditional_nested_flow_line_27_seq_2
+    router_conditional_nested_flow_line_18_seq_3 --> router_conditional_nested_flow_line_27_seq_2
+    router_conditional_nested_flow_line_25_seq_7 --> router_conditional_nested_flow_line_27_seq_2
+    handler_c --> __end__
+    router_conditional_nested_flow_line_29_seq_1 --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_conditional_nested_flow entrypoint
+    class router_conditional_nested_flow_line_10_seq_10,router_conditional_nested_flow_line_12_if_9,router_conditional_nested_flow_line_15_if_6,router_conditional_nested_flow_line_16_seq_4,router_conditional_nested_flow_line_18_seq_3,router_conditional_nested_flow_line_20_seq_5,router_conditional_nested_flow_line_23_seq_8,router_conditional_nested_flow_line_25_seq_7,router_conditional_nested_flow_line_27_seq_2,router_conditional_nested_flow_line_29_seq_1,router_conditional_nested_flow_line_9_if_11 router
+    class handler_a,handler_b,handler_c,handler_d,handler_finalize,handler_validate_input handler
+    class __end__ endpoint
+    linkStyle 7,11,16 stroke:#2E8B57
+    linkStyle 8,13,17 stroke:#E07040

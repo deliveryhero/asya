@@ -1,0 +1,34 @@
+flowchart TD
+    %% Flow: parallel_sectioning
+
+    aggregator[aggregator]
+    entity_recognizer[entity_recognizer]
+    fanin_parallel_sectioning_line_48[fanin_parallel_sectioning_line_48]
+    preprocessor[preprocessor]
+    router_parallel_sectioning_line_48_fanout_1{{router_parallel_sectioning_line_48_fanout_1}}
+    sentiment_analyzer[sentiment_analyzer]
+    start_parallel_sectioning([start_parallel_sectioning])
+    topic_extractor[topic_extractor]
+    __end__((( )))
+
+    start_parallel_sectioning --> preprocessor
+    preprocessor --> router_parallel_sectioning_line_48_fanout_1
+    router_parallel_sectioning_line_48_fanout_1 -->|"fanout"| fanin_parallel_sectioning_line_48
+    fanin_parallel_sectioning_line_48 --> aggregator
+    router_parallel_sectioning_line_48_fanout_1 --> sentiment_analyzer
+    sentiment_analyzer --> fanin_parallel_sectioning_line_48
+    router_parallel_sectioning_line_48_fanout_1 --> topic_extractor
+    topic_extractor --> fanin_parallel_sectioning_line_48
+    router_parallel_sectioning_line_48_fanout_1 --> entity_recognizer
+    entity_recognizer --> fanin_parallel_sectioning_line_48
+    aggregator --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_parallel_sectioning entrypoint
+    class router_parallel_sectioning_line_48_fanout_1 router
+    class aggregator,entity_recognizer,fanin_parallel_sectioning_line_48,preprocessor,sentiment_analyzer,topic_extractor handler
+    class __end__ endpoint
+    linkStyle 2 stroke:#7B68EE

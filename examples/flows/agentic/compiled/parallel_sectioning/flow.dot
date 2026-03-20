@@ -1,28 +1,29 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "parallel_sectioning" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_parallel_sectioning(p)</i></td></tr></table>>];
-  fanout_parallel_sectioning_line_48 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await fanout_parallel_sectioning_line_48(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:gather]</b></td></tr></table>>];
-  end_parallel_sectioning [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_parallel_sectioning(p)</i></td></tr></table>>];
-  aggregator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await aggregator(p)</i></td></tr></table>>];
-  entity_recognizer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await entity_recognizer(p)</i></td></tr></table>>];
-  fanin_parallel_sectioning_line_48 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await fanin_parallel_sectioning_line_48(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  preprocessor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await preprocessor(p)</i></td></tr></table>>];
-  sentiment_analyzer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await sentiment_analyzer(p)</i></td></tr></table>>];
-  topic_extractor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await topic_extractor(p)</i></td></tr></table>>];
+    { rank=source; start_parallel_sectioning; }
 
-  aggregator -> end_parallel_sectioning;
-  entity_recognizer -> fanin_parallel_sectioning_line_48 [color=slateblue4, style=dashed];
-  fanin_parallel_sectioning_line_48 -> aggregator;
-  fanout_parallel_sectioning_line_48 -> entity_recognizer [color=mediumpurple4, label="slice 3", style=bold];
-  fanout_parallel_sectioning_line_48 -> fanin_parallel_sectioning_line_48 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  fanout_parallel_sectioning_line_48 -> sentiment_analyzer [color=mediumpurple4, label="slice 1", style=bold];
-  fanout_parallel_sectioning_line_48 -> topic_extractor [color=mediumpurple4, label="slice 2", style=bold];
-  preprocessor -> fanout_parallel_sectioning_line_48;
-  sentiment_analyzer -> fanin_parallel_sectioning_line_48 [color=slateblue4, style=dashed];
-  start_parallel_sectioning -> preprocessor;
-  topic_extractor -> fanin_parallel_sectioning_line_48 [color=slateblue4, style=dashed];
+    aggregator [label="aggregator", fillcolor=lightblue];
+    entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
+    fanin_parallel_sectioning_line_48 [label="fanin_parallel_sectioning_line_48", fillcolor=lightblue];
+    preprocessor [label="preprocessor", fillcolor=lightblue];
+    router_parallel_sectioning_line_48_fanout_1 [label="router_parallel_sectioning_line_48_fanout_1", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
+    start_parallel_sectioning [label="start_parallel_sectioning", fillcolor=palegreen];
+    topic_extractor [label="topic_extractor", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_parallel_sectioning -> preprocessor;
+    preprocessor -> router_parallel_sectioning_line_48_fanout_1;
+    router_parallel_sectioning_line_48_fanout_1 -> fanin_parallel_sectioning_line_48 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_parallel_sectioning_line_48 -> aggregator;
+    router_parallel_sectioning_line_48_fanout_1 -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_parallel_sectioning_line_48;
+    router_parallel_sectioning_line_48_fanout_1 -> topic_extractor;
+    topic_extractor -> fanin_parallel_sectioning_line_48;
+    router_parallel_sectioning_line_48_fanout_1 -> entity_recognizer;
+    entity_recognizer -> fanin_parallel_sectioning_line_48;
+    aggregator -> __end__;
 }

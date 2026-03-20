@@ -4,8 +4,17 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.ir import ActorCall, Break, Condition, Continue, Mutation, Return, WhileLoop
-from asya_lab.flow.parser import VALID_PARAM_NAMES, FlowParser
+from asya_lab.flow.parser import (
+    VALID_PARAM_NAMES,
+    ActorCall,
+    Break,
+    Conditional,
+    Continue,
+    FlowParser,
+    Loop,
+    Mutation,
+    Return,
+)
 
 from .test_helpers import contains_with_either_quotes
 
@@ -22,8 +31,8 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_detects_flow_with_payload_parameter(self):
         source = textwrap.dedent(
@@ -34,8 +43,8 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_rejects_function_without_return_annotation(self):
         source = textwrap.dedent(
@@ -96,8 +105,8 @@ class TestFlowFunctionDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
 
 class TestActorCallParsing:
@@ -113,7 +122,9 @@ class TestActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -132,7 +143,9 @@ class TestActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 4
         assert all(isinstance(op, ActorCall | Return) for op in ops)
@@ -150,7 +163,9 @@ class TestActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -209,7 +224,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], Mutation)
@@ -228,7 +245,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         mutations = [op for op in ops if isinstance(op, Mutation)]
         assert len(mutations) == 3
@@ -246,7 +265,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["nested"]["key"]')
@@ -261,7 +282,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
@@ -280,7 +303,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         mutations = [op for op in ops if isinstance(op, Mutation)]
         assert len(mutations) == 4
@@ -296,7 +321,9 @@ class TestMutationParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["result"]')
@@ -318,10 +345,12 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
-        assert isinstance(ops[0], Condition)
+        assert isinstance(ops[0], Conditional)
         assert contains_with_either_quotes(ops[0].test, 'p["condition"]')
         assert len(ops[0].true_branch) == 1
         assert len(ops[0].false_branch) == 1
@@ -339,9 +368,11 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         assert len(ops[0].true_branch) == 1
         assert len(ops[0].false_branch) == 0
 
@@ -360,13 +391,15 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         assert contains_with_either_quotes(ops[0].test, 'p["x"] == "A"')
         assert len(ops[0].true_branch) == 1
         assert len(ops[0].false_branch) == 1
-        assert isinstance(ops[0].false_branch[0], Condition)
+        assert isinstance(ops[0].false_branch[0], Conditional)
 
     def test_parse_nested_if(self):
         source = textwrap.dedent(
@@ -384,12 +417,14 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         assert contains_with_either_quotes(ops[0].test, 'p["outer"]')
         assert len(ops[0].true_branch) == 1
-        assert isinstance(ops[0].true_branch[0], Condition)
+        assert isinstance(ops[0].true_branch[0], Conditional)
         assert contains_with_either_quotes(ops[0].true_branch[0].test, 'p["inner"]')
 
     def test_parse_if_with_mutations_in_branches(self):
@@ -407,10 +442,12 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         cond = ops[0]
-        assert isinstance(cond, Condition)
+        assert isinstance(cond, Conditional)
         assert len(cond.true_branch) == 2
         assert isinstance(cond.true_branch[0], Mutation)
         assert isinstance(cond.true_branch[1], ActorCall)
@@ -431,9 +468,11 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         cond = ops[0]
         assert len(cond.true_branch) == 0
         assert len(cond.false_branch) == 1
@@ -449,9 +488,11 @@ class TestConditionalParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         cond = ops[0]
         assert ">" in cond.test and "<" in cond.test and "and" in cond.test
 
@@ -471,7 +512,9 @@ class TestMixedOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 4
         assert isinstance(ops[0], Mutation)
@@ -490,7 +533,9 @@ class TestMixedOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], ActorCall)
         assert isinstance(ops[1], Mutation)
@@ -509,7 +554,9 @@ class TestMixedOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert isinstance(ops[1], ActorCall)
@@ -531,10 +578,12 @@ class TestMixedOperations:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
-        assert isinstance(ops[1], Condition)
+        assert isinstance(ops[1], Conditional)
 
 
 class TestClassInstantiation:
@@ -551,7 +600,11 @@ class TestClassInstantiation:
             """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, operations = parser.parse()
+        result = parser.parse()
+
+        flow_name = result.flow_name
+
+        operations = result.operations
 
         assert flow_name == "flow"
         assert len(operations) == 2
@@ -572,7 +625,8 @@ class TestClassInstantiation:
             """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, operations = parser.parse()
+        result = parser.parse()
+        operations = result.operations
 
         assert len(operations) == 3
         assert isinstance(operations[0], ActorCall)
@@ -628,7 +682,8 @@ class TestClassInstantiation:
             """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, operations = parser.parse()
+        result = parser.parse()
+        operations = result.operations
 
         assert len(operations) == 4
         assert isinstance(operations[0], ActorCall)
@@ -668,7 +723,9 @@ class TestEdgeCases:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 1
         assert isinstance(ops[0], Return)
@@ -729,7 +786,9 @@ class TestEdgeCases:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 1
         assert isinstance(ops[0], Return)
@@ -747,7 +806,9 @@ class TestEdgeCases:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert all(hasattr(op, "lineno") for op in ops)
         assert all(op.lineno > 0 for op in ops)
@@ -775,11 +836,13 @@ class TestComplexFlows:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
-        assert isinstance(ops[0].true_branch[0], Condition)
-        assert isinstance(ops[0].true_branch[0].true_branch[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
+        assert isinstance(ops[0].true_branch[0], Conditional)
+        assert isinstance(ops[0].true_branch[0].true_branch[0], Conditional)
 
     def test_parse_multiple_conditionals_sequential(self):
         source = textwrap.dedent(
@@ -799,9 +862,11 @@ class TestComplexFlows:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        conditions = [op for op in ops if isinstance(op, Condition)]
+        ops = result.operations
+
+        conditions = [op for op in ops if isinstance(op, Conditional)]
         assert len(conditions) == 3
 
     def test_parse_early_return_pattern(self):
@@ -816,9 +881,11 @@ class TestComplexFlows:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         assert isinstance(ops[0].true_branch[0], Return)
         assert isinstance(ops[1], ActorCall)
         assert isinstance(ops[2], Return)
@@ -836,15 +903,17 @@ class TestComplexFlows:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         cond = ops[0]
         assert len(cond.true_branch) == 0
         assert len(cond.false_branch) == 0
 
 
-class TestWhileLoopParsing:
+class TestLoopParsing:
     """Test parsing of while loop statements."""
 
     def test_simple_while_with_condition(self):
@@ -858,10 +927,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
-        assert isinstance(ops[0], WhileLoop)
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
         assert loop.test is not None
         assert contains_with_either_quotes(loop.test, 'p["i"] < 10')
@@ -882,14 +953,16 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
         assert loop.test is None
         assert len(loop.body) == 2
         assert isinstance(loop.body[0], ActorCall)
-        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1], Conditional)
         assert isinstance(loop.body[1].true_branch[0], Break)
 
     def test_while_with_break(self):
@@ -905,12 +978,14 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
         cond = loop.body[1]
-        assert isinstance(cond, Condition)
+        assert isinstance(cond, Conditional)
         assert isinstance(cond.true_branch[0], Break)
 
     def test_while_with_continue(self):
@@ -927,12 +1002,14 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
         assert isinstance(loop.body[0], Mutation)
-        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1], Conditional)
         assert isinstance(loop.body[1].true_branch[0], Continue)
         assert isinstance(loop.body[2], ActorCall)
 
@@ -952,16 +1029,18 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert len(loop.body) == 4
         assert isinstance(loop.body[0], Mutation)
-        assert isinstance(loop.body[1], Condition)
+        assert isinstance(loop.body[1], Conditional)
         assert isinstance(loop.body[1].true_branch[0], Continue)
         assert isinstance(loop.body[2], ActorCall)
-        assert isinstance(loop.body[3], Condition)
+        assert isinstance(loop.body[3], Conditional)
         assert isinstance(loop.body[3].true_branch[0], Break)
 
     def test_while_with_mutations_in_body(self):
@@ -978,10 +1057,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert isinstance(loop.body[0], Mutation)
         assert isinstance(loop.body[1], Mutation)
         assert isinstance(loop.body[2], ActorCall)
@@ -1001,12 +1082,14 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert len(loop.body) == 1
-        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0], Conditional)
         assert isinstance(loop.body[0].true_branch[0], ActorCall)
         assert isinstance(loop.body[0].false_branch[0], ActorCall)
 
@@ -1022,12 +1105,14 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         outer = ops[0]
-        assert isinstance(outer, WhileLoop)
+        assert isinstance(outer, Loop)
         inner = outer.body[0]
-        assert isinstance(inner, WhileLoop)
+        assert isinstance(inner, Loop)
         assert isinstance(inner.body[0], ActorCall)
 
     def test_while_with_code_before_and_after(self):
@@ -1045,12 +1130,14 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler_init"
         assert isinstance(ops[1], Mutation)
-        assert isinstance(ops[2], WhileLoop)
+        assert isinstance(ops[2], Loop)
         assert isinstance(ops[3], ActorCall)
         assert ops[3].name == "handler_finalize"
         assert isinstance(ops[4], Return)
@@ -1066,9 +1153,11 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         assert ops[0].lineno == 4
 
     def test_break_preserves_lineno(self):
@@ -1083,11 +1172,13 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
-        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0], Conditional)
         brk = loop.body[0].true_branch[0]
         assert isinstance(brk, Break)
         assert brk.lineno == 6
@@ -1104,11 +1195,13 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
-        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0], Conditional)
         cont = loop.body[0].true_branch[0]
         assert isinstance(cont, Continue)
         assert cont.lineno == 6
@@ -1124,10 +1217,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert len(loop.body) == 0
 
     def test_while_with_complex_condition(self):
@@ -1141,10 +1236,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert loop.test is not None
         assert "and" in loop.test
         assert "10" in loop.test
@@ -1160,10 +1257,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert loop.test is not None
         assert "not" in loop.test
 
@@ -1178,10 +1277,12 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert loop.test is not None
         assert "get" in loop.test
 
@@ -1198,16 +1299,18 @@ class TestWhileLoopParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         cond = loop.body[1]
-        assert isinstance(cond, Condition)
+        assert isinstance(cond, Conditional)
         assert isinstance(cond.true_branch[0], Return)
 
 
-class TestWhileLoopErrors:
+class TestLoopErrors:
     """Test error handling for while loop parsing."""
 
     def test_break_outside_loop_rejected(self):
@@ -1307,10 +1410,12 @@ class TestWhileLoopErrors:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert isinstance(ops[0], WhileLoop)
+        result = parser.parse()
+
+        ops = result.operations
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
-        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0], Conditional)
         cond = loop.body[0]
         assert isinstance(cond.true_branch[0], Break)
 
@@ -1328,10 +1433,12 @@ class TestWhileLoopErrors:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
-        assert isinstance(ops[0], WhileLoop)
+        result = parser.parse()
+
+        ops = result.operations
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
-        assert isinstance(loop.body[0], Condition)
+        assert isinstance(loop.body[0], Conditional)
         assert isinstance(loop.body[0].true_branch[0], Continue)
 
     def test_while_only_mutations_in_body(self):
@@ -1345,10 +1452,12 @@ class TestWhileLoopErrors:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         loop = ops[0]
-        assert isinstance(loop, WhileLoop)
+        assert isinstance(loop, Loop)
         assert len(loop.body) == 1
         assert isinstance(loop.body[0], Mutation)
 
@@ -1364,9 +1473,11 @@ class TestWhileLoopErrors:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], WhileLoop)
+        ops = result.operations
+
+        assert isinstance(ops[0], Loop)
         loop = ops[0]
         assert isinstance(loop.body[0], ActorCall)
         assert "Processor.run" in loop.body[0].name
@@ -1384,8 +1495,8 @@ class TestAsyncFlowDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_detects_async_flow_with_payload_parameter(self):
         source = textwrap.dedent(
@@ -1396,8 +1507,8 @@ class TestAsyncFlowDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_detects_async_flow_with_state_parameter(self):
         source = textwrap.dedent(
@@ -1408,8 +1519,8 @@ class TestAsyncFlowDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_async_flow_skips_non_matching_functions(self):
         source = textwrap.dedent(
@@ -1423,8 +1534,8 @@ class TestAsyncFlowDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "my_flow"
+        result = parser.parse()
+        assert result.flow_name == "my_flow"
 
     def test_prefers_first_valid_function_sync_or_async(self):
         source = textwrap.dedent(
@@ -1438,8 +1549,8 @@ class TestAsyncFlowDetection:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, _ = parser.parse()
-        assert flow_name == "sync_flow"
+        result = parser.parse()
+        assert result.flow_name == "sync_flow"
 
 
 class TestAwaitActorCallParsing:
@@ -1455,7 +1566,9 @@ class TestAwaitActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 2
         assert isinstance(ops[0], ActorCall)
@@ -1474,7 +1587,9 @@ class TestAwaitActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 4
         assert isinstance(ops[0], ActorCall) and ops[0].name == "handler_a"
@@ -1496,11 +1611,13 @@ class TestAwaitActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "classifier"
-        assert isinstance(ops[1], Condition)
+        assert isinstance(ops[1], Conditional)
         assert isinstance(ops[1].true_branch[0], ActorCall)
         assert ops[1].true_branch[0].name == "text_handler"
         assert isinstance(ops[1].false_branch[0], ActorCall)
@@ -1517,7 +1634,9 @@ class TestAwaitActorCallParsing:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert len(ops) == 3
         assert isinstance(ops[0], ActorCall) and ops[0].name == "sync_handler"
@@ -1553,7 +1672,9 @@ class TestStateParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["key"]')
@@ -1571,9 +1692,11 @@ class TestStateParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
 
-        assert isinstance(ops[0], Condition)
+        ops = result.operations
+
+        assert isinstance(ops[0], Conditional)
         assert contains_with_either_quotes(ops[0].test, 'p["type"]')
 
     def test_state_augmented_assignment_normalized(self):
@@ -1586,7 +1709,9 @@ class TestStateParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["counter"]')
@@ -1605,12 +1730,16 @@ class TestStateParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        flow_name, ops = parser.parse()
+        result = parser.parse()
+
+        flow_name = result.flow_name
+
+        ops = result.operations
 
         assert flow_name == "my_flow"
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "classifier"
-        assert isinstance(ops[1], Condition)
+        assert isinstance(ops[1], Conditional)
         assert contains_with_either_quotes(ops[1].test, 'p["content_type"]')
         assert isinstance(ops[1].true_branch[0], ActorCall)
         assert ops[1].true_branch[0].name == "text_processor"
@@ -1627,7 +1756,9 @@ class TestStateParameterNormalization:
         """
         )
         parser = FlowParser(source, "test.py")
-        _, ops = parser.parse()
+        result = parser.parse()
+
+        ops = result.operations
 
         assert isinstance(ops[0], Mutation)
         assert contains_with_either_quotes(ops[0].code, 'p["key"]')

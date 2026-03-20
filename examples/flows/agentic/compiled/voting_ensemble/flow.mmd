@@ -1,0 +1,32 @@
+flowchart TD
+    %% Flow: voting_ensemble
+
+    analytical_writer[analytical_writer]
+    concise_writer[concise_writer]
+    creative_writer[creative_writer]
+    fanin_voting_ensemble_line_44[fanin_voting_ensemble_line_44]
+    judge[judge]
+    router_voting_ensemble_line_44_fanout_1{{router_voting_ensemble_line_44_fanout_1}}
+    start_voting_ensemble([start_voting_ensemble])
+    __end__((( )))
+
+    start_voting_ensemble --> router_voting_ensemble_line_44_fanout_1
+    router_voting_ensemble_line_44_fanout_1 -->|"fanout"| fanin_voting_ensemble_line_44
+    fanin_voting_ensemble_line_44 --> judge
+    router_voting_ensemble_line_44_fanout_1 --> creative_writer
+    creative_writer --> fanin_voting_ensemble_line_44
+    router_voting_ensemble_line_44_fanout_1 --> analytical_writer
+    analytical_writer --> fanin_voting_ensemble_line_44
+    router_voting_ensemble_line_44_fanout_1 --> concise_writer
+    concise_writer --> fanin_voting_ensemble_line_44
+    judge --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_voting_ensemble entrypoint
+    class router_voting_ensemble_line_44_fanout_1 router
+    class analytical_writer,concise_writer,creative_writer,fanin_voting_ensemble_line_44,judge handler
+    class __end__ endpoint
+    linkStyle 1 stroke:#7B68EE

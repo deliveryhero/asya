@@ -22,11 +22,6 @@ async def start_class_instantiation_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def end_class_instantiation_flow(payload: dict):
-    """Exitpoint for flow 'class_instantiation_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

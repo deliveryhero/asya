@@ -1,0 +1,98 @@
+{
+  "flow_name": "document_pipeline",
+  "nodes": [
+    {
+      "id": "language_detector",
+      "flow_role": "processor",
+      "label": "language_detector",
+      "is_generated": false
+    },
+    {
+      "id": "ocr_extractor",
+      "flow_role": "processor",
+      "label": "ocr_extractor",
+      "is_generated": false
+    },
+    {
+      "id": "router_document_pipeline_line_24_if_2",
+      "flow_role": "router",
+      "label": "router_document_pipeline_line_24_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_document_pipeline_line_28_seq_1",
+      "flow_role": "exitpoint",
+      "label": "router_document_pipeline_line_28_seq_1",
+      "is_generated": true,
+      "mutations": [
+        "p['status'] = 'done'"
+      ]
+    },
+    {
+      "id": "sentiment_analyzer",
+      "flow_role": "processor",
+      "label": "sentiment_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "start_document_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_document_pipeline",
+      "is_generated": true,
+      "mutations": [
+        "p['status'] = 'processing'"
+      ]
+    },
+    {
+      "id": "translator",
+      "flow_role": "processor",
+      "label": "translator",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_document_pipeline",
+      "to": "ocr_extractor",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "ocr_extractor",
+      "to": "language_detector",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "language_detector",
+      "to": "router_document_pipeline_line_24_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "translator",
+      "label": "p.get('language') != 'en'",
+      "type": "prepend"
+    },
+    {
+      "from": "translator",
+      "to": "sentiment_analyzer",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "sentiment_analyzer",
+      "to": "router_document_pipeline_line_28_seq_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_document_pipeline_line_24_if_2",
+      "to": "sentiment_analyzer",
+      "label": "else",
+      "type": "prepend"
+    }
+  ],
+  "groups": []
+}

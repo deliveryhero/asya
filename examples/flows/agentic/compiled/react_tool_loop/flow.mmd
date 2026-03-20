@@ -1,0 +1,49 @@
+flowchart TD
+    %% Flow: react_tool_loop
+
+    calculator[calculator]
+    code_exec[code_exec]
+    format_response[format_response]
+    llm_reason[llm_reason]
+    router_react_tool_loop_line_48_while_1{{router_react_tool_loop_line_48_while_1}}
+    router_react_tool_loop_line_49_seq_8{{"router_react_tool_loop_line_49_seq_8<br/><br/>p['iteration'] += 1"}}
+    router_react_tool_loop_line_55_if_7{{router_react_tool_loop_line_55_if_7}}
+    router_react_tool_loop_line_61_if_6{{"router_react_tool_loop_line_61_if_6<br/><br/>p['tool_name'] = p['tool_calls'][0]['name']"}}
+    router_react_tool_loop_line_63_if_5{{router_react_tool_loop_line_63_if_5}}
+    router_react_tool_loop_line_65_if_4{{router_react_tool_loop_line_65_if_4}}
+    router_react_tool_loop_line_68_seq_3{{"router_react_tool_loop_line_68_seq_3<br/><br/>p['observation'] = 'Unknown tool'"}}
+    router_react_tool_loop_line_74_if_2{{"router_react_tool_loop_line_74_if_2<br/><br/>p['messages'] = p.get('messages', [])"}}
+    start_react_tool_loop(["start_react_tool_loop<br/><br/>p['messages'] = p.get('messages', [])<br/>p['iteration'] = 0"])
+    web_search[web_search]
+    __end__((( )))
+
+    start_react_tool_loop --> router_react_tool_loop_line_48_while_1
+    router_react_tool_loop_line_74_if_2 -->|"p['iteration'] >= 10"| format_response
+    router_react_tool_loop_line_65_if_4 -->|"p['tool_name'] == 'calculator'"| calculator
+    router_react_tool_loop_line_65_if_4 -->|"else"| router_react_tool_loop_line_68_seq_3
+    router_react_tool_loop_line_63_if_5 -->|"p['tool_name'] == 'code_exec'"| code_exec
+    router_react_tool_loop_line_63_if_5 -->|"else"| router_react_tool_loop_line_65_if_4
+    router_react_tool_loop_line_61_if_6 -->|"p['tool_name'] == 'web_search'"| web_search
+    web_search --> router_react_tool_loop_line_74_if_2
+    router_react_tool_loop_line_61_if_6 -->|"else"| router_react_tool_loop_line_63_if_5
+    router_react_tool_loop_line_55_if_7 -->|"else"| router_react_tool_loop_line_61_if_6
+    router_react_tool_loop_line_55_if_7 -->|"not p.get('tool_calls')"| format_response
+    router_react_tool_loop_line_49_seq_8 --> llm_reason
+    llm_reason --> router_react_tool_loop_line_55_if_7
+    router_react_tool_loop_line_48_while_1 --> router_react_tool_loop_line_49_seq_8
+    code_exec --> router_react_tool_loop_line_74_if_2
+    calculator --> router_react_tool_loop_line_74_if_2
+    router_react_tool_loop_line_68_seq_3 --> router_react_tool_loop_line_74_if_2
+    router_react_tool_loop_line_74_if_2 -->|"else"| router_react_tool_loop_line_48_while_1
+    format_response --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_react_tool_loop entrypoint
+    class router_react_tool_loop_line_48_while_1,router_react_tool_loop_line_49_seq_8,router_react_tool_loop_line_55_if_7,router_react_tool_loop_line_61_if_6,router_react_tool_loop_line_63_if_5,router_react_tool_loop_line_65_if_4,router_react_tool_loop_line_68_seq_3,router_react_tool_loop_line_74_if_2 router
+    class calculator,code_exec,format_response,llm_reason,web_search handler
+    class __end__ endpoint
+    linkStyle 1,2,4,6,10 stroke:#2E8B57
+    linkStyle 3,5,8,9,17 stroke:#E07040

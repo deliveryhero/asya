@@ -1,0 +1,28 @@
+flowchart TD
+    %% Flow: map_reduce
+
+    chunk_processor[chunk_processor]
+    fanin_map_reduce_line_55[fanin_map_reduce_line_55]
+    reducer[reducer]
+    router_map_reduce_line_55_fanout_1{{router_map_reduce_line_55_fanout_1}}
+    splitter[splitter]
+    start_map_reduce([start_map_reduce])
+    __end__((( )))
+
+    start_map_reduce --> splitter
+    splitter --> router_map_reduce_line_55_fanout_1
+    router_map_reduce_line_55_fanout_1 -->|"fanout: p['chunks']"| fanin_map_reduce_line_55
+    fanin_map_reduce_line_55 --> reducer
+    router_map_reduce_line_55_fanout_1 --> chunk_processor
+    chunk_processor --> fanin_map_reduce_line_55
+    reducer --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_map_reduce entrypoint
+    class router_map_reduce_line_55_fanout_1 router
+    class chunk_processor,fanin_map_reduce_line_55,reducer,splitter handler
+    class __end__ endpoint
+    linkStyle 2 stroke:#7B68EE

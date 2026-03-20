@@ -1,0 +1,29 @@
+flowchart TD
+    %% Flow: early_return_flow
+
+    handler_error[handler_error]
+    handler_finalize[handler_finalize]
+    handler_process[handler_process]
+    handler_validate[handler_validate]
+    router_early_return_flow_line_14_if_1{{router_early_return_flow_line_14_if_1}}
+    start_early_return_flow([start_early_return_flow])
+    __end__((( )))
+
+    start_early_return_flow --> handler_validate
+    handler_validate --> router_early_return_flow_line_14_if_1
+    router_early_return_flow_line_14_if_1 -->|"else"| handler_process
+    handler_process --> handler_finalize
+    router_early_return_flow_line_14_if_1 -->|"not p['valid']"| handler_error
+    handler_error --> __end__
+    handler_finalize --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_early_return_flow entrypoint
+    class router_early_return_flow_line_14_if_1 router
+    class handler_error,handler_finalize,handler_process,handler_validate handler
+    class __end__ endpoint
+    linkStyle 4 stroke:#2E8B57
+    linkStyle 2 stroke:#E07040

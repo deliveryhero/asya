@@ -1,0 +1,34 @@
+flowchart TD
+    %% Flow: try_except_multiple_handlers
+
+    handle_runtime_error[handle_runtime_error]
+    handle_type_error[handle_type_error]
+    handle_validation_error[handle_validation_error]
+    parse_input[parse_input]
+    router_data_pipeline_line_11_seq{{"router_data_pipeline_line_11_seq<br/><br/>p['error_type'] = 'type_mismatch'"}}
+    router_data_pipeline_line_14_seq{{"router_data_pipeline_line_14_seq<br/><br/>p['error_type'] = 'runtime'"}}
+    router_data_pipeline_line_4_except_dispatch_0{{router_data_pipeline_line_4_except_dispatch_0}}
+    router_data_pipeline_line_4_reraise_0{{router_data_pipeline_line_4_reraise_0}}
+    router_data_pipeline_line_4_try_enter_0{{router_data_pipeline_line_4_try_enter_0}}
+    router_data_pipeline_line_4_try_exit_0{{router_data_pipeline_line_4_try_exit_0}}
+    router_data_pipeline_line_8_seq{{"router_data_pipeline_line_8_seq<br/><br/>p['error_type'] = 'validation'"}}
+    start_data_pipeline([start_data_pipeline])
+    transform_data[transform_data]
+    __end__((( )))
+
+    start_data_pipeline --> router_data_pipeline_line_4_try_enter_0
+    router_data_pipeline_line_8_seq --> handle_validation_error
+    router_data_pipeline_line_11_seq --> handle_type_error
+    router_data_pipeline_line_14_seq --> handle_runtime_error
+    router_data_pipeline_line_4_try_enter_0 --> parse_input
+    parse_input --> transform_data
+    transform_data --> router_data_pipeline_line_4_try_exit_0
+    router_data_pipeline_line_4_except_dispatch_0 -->|'ValueError' in _all_types| router_data_pipeline_line_8_seq
+    router_data_pipeline_line_4_except_dispatch_0 -->|'TypeError' in _all_types| router_data_pipeline_line_11_seq
+    router_data_pipeline_line_4_except_dispatch_0 -->|'RuntimeError' in _all_types| router_data_pipeline_line_14_seq
+    router_data_pipeline_line_4_except_dispatch_0 -->|not ('RuntimeError' in _all_types)| router_data_pipeline_line_4_reraise_0
+    handle_runtime_error --> __end__
+    handle_type_error --> __end__
+    handle_validation_error --> __end__
+    router_data_pipeline_line_4_reraise_0 --> __end__
+    router_data_pipeline_line_4_try_exit_0 --> __end__

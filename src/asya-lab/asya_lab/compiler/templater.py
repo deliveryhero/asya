@@ -19,7 +19,12 @@ import yaml
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.config.project import AsyaProject
-from asya_lab.flow.grouper import Router
+
+
+try:
+    from asya_lab.flow.grouper import Router
+except ModuleNotFoundError:
+    Router = None
 
 
 def _literal_representer(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
@@ -37,7 +42,7 @@ _Dumper.add_representer(str, _literal_representer)
 
 log = logging.getLogger(__name__)
 
-_ROUTER_PREFIXES = ("start_", "end_", "router_", "except_", "loop_", "fanout_")
+_ROUTER_PREFIXES = ("start_", "router_", "fanin_")
 _TEMPLATE_RE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 
 
@@ -444,6 +449,4 @@ Each overlay builds on top of `common/`.
     def _router_flow_role(self, name: str) -> str:
         if name.startswith("start_"):
             return "entrypoint"
-        if name.startswith("end_"):
-            return "exitpoint"
         return "router"

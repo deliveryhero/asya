@@ -17,29 +17,22 @@ async def start_if_else_simple_flow(payload: dict):
     """Entrypoint for flow 'if_else_simple_flow'"""
     _next = []
     _next.append(resolve("handler_setup"))
-    _next.append(resolve("router_if_else_simple_flow_line_14_if"))
+    _next.append(resolve("router_if_else_simple_flow_line_14_if_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_else_simple_flow_line_14_if(payload: dict):
+async def router_if_else_simple_flow_line_14_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['type'] == 'A':
-        yield "SET", ".route.next", [resolve("handler_type_a"), resolve("handler_finalize")]
-        yield p
-        return
+        _next.append(resolve("handler_type_a"))
+        _next.append(resolve("handler_finalize"))
     else:
-        yield "SET", ".route.next", [resolve("handler_type_b"), resolve("handler_finalize")]
-        yield p
-        return
+        _next.append(resolve("handler_type_b"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def end_if_else_simple_flow(payload: dict):
-    """Exitpoint for flow 'if_else_simple_flow'"""
-    yield "SET", ".route.next", []
     yield payload
 
 

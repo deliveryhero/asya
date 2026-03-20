@@ -10,9 +10,14 @@ import click
 import yaml
 
 from asya_lab.cli_types import ASYA_REF, AsyaRef
-from asya_lab.compiler.templater import _Dumper
 from asya_lab.config.discovery import BASE_DIR, find_asya_dir
 from asya_lab.config.project import AsyaProject
+
+
+def _get_dumper() -> type:
+    from asya_lab.compiler.templater import _Dumper
+
+    return _Dumper
 
 
 def _load_project() -> AsyaProject:
@@ -106,7 +111,7 @@ def _build_flow_config(
 
 def _build_configmap(flow_name: str, namespace: str, flow_data: dict) -> dict:
     """Build the gateway-flows ConfigMap manifest."""
-    flow_yaml = yaml.dump(flow_data, Dumper=_Dumper, default_flow_style=False, sort_keys=False)
+    flow_yaml = yaml.dump(flow_data, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False)
     return {
         "apiVersion": "v1",
         "kind": "ConfigMap",
@@ -148,7 +153,7 @@ def _update_kustomization_add(base_dir: Path, resource: str) -> None:
         resources.append(resource)
         resources.sort()
         kust["resources"] = resources
-        kust_path.write_text(yaml.dump(kust, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
+        kust_path.write_text(yaml.dump(kust, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False))
 
 
 def _update_kustomization_remove(base_dir: Path, resource: str) -> None:
@@ -162,7 +167,7 @@ def _update_kustomization_remove(base_dir: Path, resource: str) -> None:
     if resource in resources:
         resources.remove(resource)
         kust["resources"] = resources
-        kust_path.write_text(yaml.dump(kust, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
+        kust_path.write_text(yaml.dump(kust, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False))
 
 
 def _resolve_input_schema(schema_inline: str | None, schema_file: str | None) -> dict | None:
@@ -253,7 +258,7 @@ def expose(
     configmap = _build_configmap(flow_name, namespace, flow_data)
 
     cm_path = base_dir / CONFIGMAP_FILENAME
-    cm_path.write_text(yaml.dump(configmap, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
+    cm_path.write_text(yaml.dump(configmap, Dumper=_get_dumper(), default_flow_style=False, sort_keys=False))
     click.echo(f"[+] Created {cm_path}")
 
     _update_kustomization_add(base_dir, CONFIGMAP_FILENAME)

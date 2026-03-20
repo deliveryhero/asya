@@ -1,0 +1,143 @@
+{
+  "flow_name": "try_except_finally",
+  "nodes": [
+    {
+      "id": "acquire_resource",
+      "flow_role": "processor",
+      "label": "acquire_resource",
+      "is_generated": false
+    },
+    {
+      "id": "finalize",
+      "flow_role": "exitpoint",
+      "label": "finalize",
+      "is_generated": false
+    },
+    {
+      "id": "handle_failure",
+      "flow_role": "exitpoint",
+      "label": "handle_failure",
+      "is_generated": false
+    },
+    {
+      "id": "process_with_resource",
+      "flow_role": "processor",
+      "label": "process_with_resource",
+      "is_generated": false
+    },
+    {
+      "id": "release_resource",
+      "flow_role": "processor",
+      "label": "release_resource",
+      "is_generated": false
+    },
+    {
+      "id": "router_resource_pipeline_line_5_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_resource_pipeline_line_5_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_resource_pipeline_line_5_reraise_0",
+      "flow_role": "exitpoint",
+      "label": "router_resource_pipeline_line_5_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_resource_pipeline_line_5_try_enter_0",
+      "flow_role": "router",
+      "label": "router_resource_pipeline_line_5_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_resource_pipeline_line_5_try_exit_0",
+      "flow_role": "router",
+      "label": "router_resource_pipeline_line_5_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_resource_pipeline_line_9_seq",
+      "flow_role": "router",
+      "label": "router_resource_pipeline_line_9_seq",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'failed'"]
+    },
+    {
+      "id": "start_resource_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_resource_pipeline",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'started'"]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_resource_pipeline",
+      "to": "router_resource_pipeline_line_5_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_resource_pipeline_line_9_seq",
+      "to": "handle_failure",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_try_enter_0",
+      "to": "acquire_resource",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "acquire_resource",
+      "to": "process_with_resource",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "process_with_resource",
+      "to": "router_resource_pipeline_line_5_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_try_exit_0",
+      "to": "release_resource",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "release_resource",
+      "to": "finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_except_dispatch_0",
+      "to": "release_resource",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_except_dispatch_0",
+      "to": "router_resource_pipeline_line_9_seq",
+      "label": "'RuntimeError' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_except_dispatch_0",
+      "to": "router_resource_pipeline_line_5_reraise_0",
+      "label": "not ('RuntimeError' in _all_types)",
+      "type": "prepend"
+    }
+  ],
+  "groups": [],
+  "warnings": [
+    "node 'handle_failure' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_reraise_0' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_9_seq' is not reachable from entrypoint",
+    "node 'router_resource_pipeline_line_5_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "flow_name": "research_and_refine",
+  "nodes": [
+    {
+      "id": "critic",
+      "flow_role": "processor",
+      "label": "critic",
+      "is_generated": false
+    },
+    {
+      "id": "refine_query",
+      "flow_role": "processor",
+      "label": "refine_query",
+      "is_generated": false
+    },
+    {
+      "id": "researcher",
+      "flow_role": "processor",
+      "label": "researcher",
+      "is_generated": false
+    },
+    {
+      "id": "router_research_and_refine_line_50_while_1",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_50_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_51_seq_4",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_51_seq_4",
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
+    },
+    {
+      "id": "router_research_and_refine_line_55_if_3",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_55_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_research_and_refine_line_59_if_2",
+      "flow_role": "router",
+      "label": "router_research_and_refine_line_59_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "start_research_and_refine",
+      "flow_role": "entrypoint",
+      "label": "start_research_and_refine",
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['search_query'] = p.get('question', '')"]
+    },
+    {
+      "id": "write_report",
+      "flow_role": "exitpoint",
+      "label": "write_report",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_research_and_refine",
+      "to": "router_research_and_refine_line_50_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_59_if_2",
+      "to": "write_report",
+      "label": "p['iteration'] >= 5",
+      "type": "set"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
+      "to": "refine_query",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "refine_query",
+      "to": "router_research_and_refine_line_59_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_research_and_refine_line_55_if_3",
+      "to": "write_report",
+      "label": "not p.get('gaps') or p.get('quality_score', 0) >= 85",
+      "type": "set"
+    },
+    {
+      "from": "router_research_and_refine_line_51_seq_4",
+      "to": "researcher",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "researcher",
+      "to": "critic",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "critic",
+      "to": "router_research_and_refine_line_55_if_3",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_research_and_refine_line_50_while_1",
+      "to": "router_research_and_refine_line_51_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_and_refine_line_59_if_2",
+      "to": "router_research_and_refine_line_50_while_1",
+      "label": "else",
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

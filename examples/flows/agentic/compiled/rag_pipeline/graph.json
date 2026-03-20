@@ -1,0 +1,152 @@
+{
+  "flow_name": "rag_pipeline",
+  "nodes": [
+    {
+      "id": "fact_checker",
+      "flow_role": "exitpoint",
+      "label": "fact_checker",
+      "is_generated": false
+    },
+    {
+      "id": "generator",
+      "flow_role": "processor",
+      "label": "generator",
+      "is_generated": false
+    },
+    {
+      "id": "query_analyzer",
+      "flow_role": "processor",
+      "label": "query_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "query_refiner",
+      "flow_role": "processor",
+      "label": "query_refiner",
+      "is_generated": false
+    },
+    {
+      "id": "relevance_evaluator",
+      "flow_role": "processor",
+      "label": "relevance_evaluator",
+      "is_generated": false
+    },
+    {
+      "id": "retriever",
+      "flow_role": "processor",
+      "label": "retriever",
+      "is_generated": false
+    },
+    {
+      "id": "router_rag_pipeline_line_56_while_1",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_56_while_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_rag_pipeline_line_57_seq_4",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_57_seq_4",
+      "is_generated": true,
+      "mutations": [
+        "p['retrieval_attempts'] += 1"
+      ]
+    },
+    {
+      "id": "router_rag_pipeline_line_66_if_3",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_66_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "router_rag_pipeline_line_70_if_2",
+      "flow_role": "router",
+      "label": "router_rag_pipeline_line_70_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "start_rag_pipeline",
+      "flow_role": "entrypoint",
+      "label": "start_rag_pipeline",
+      "is_generated": true,
+      "mutations": [
+        "p['retrieval_attempts'] = 0"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_rag_pipeline",
+      "to": "query_analyzer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "query_analyzer",
+      "to": "router_rag_pipeline_line_56_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_rag_pipeline_line_70_if_2",
+      "to": "query_refiner",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_70_if_2",
+      "to": "generator",
+      "label": "p['retrieval_attempts'] >= 3",
+      "type": "set"
+    },
+    {
+      "from": "generator",
+      "to": "fact_checker",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_rag_pipeline_line_66_if_3",
+      "to": "router_rag_pipeline_line_70_if_2",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_rag_pipeline_line_66_if_3",
+      "to": "generator",
+      "label": "p.get('is_sufficient')",
+      "type": "set"
+    },
+    {
+      "from": "router_rag_pipeline_line_57_seq_4",
+      "to": "retriever",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "retriever",
+      "to": "relevance_evaluator",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "relevance_evaluator",
+      "to": "router_rag_pipeline_line_66_if_3",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_rag_pipeline_line_56_while_1",
+      "to": "router_rag_pipeline_line_57_seq_4",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "query_refiner",
+      "to": "router_rag_pipeline_line_56_while_1",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

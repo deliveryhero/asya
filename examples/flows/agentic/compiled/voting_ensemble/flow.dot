@@ -1,26 +1,27 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "voting_ensemble" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_voting_ensemble [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_voting_ensemble(p)</i></td></tr></table>>];
-  fanout_voting_ensemble_line_44 [fillcolor="lightblue", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await fanout_voting_ensemble_line_44(p)</i></td></tr><tr><td bgcolor="mediumpurple2" align="center"><b>[fan-out:gather]</b></td></tr></table>>];
-  end_voting_ensemble [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_voting_ensemble(p)</i></td></tr></table>>];
-  analytical_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await analytical_writer(p)</i></td></tr></table>>];
-  concise_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await concise_writer(p)</i></td></tr></table>>];
-  creative_writer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await creative_writer(p)</i></td></tr></table>>];
-  fanin_voting_ensemble_line_44 [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await fanin_voting_ensemble_line_44(p)</i></td></tr><tr><td bgcolor="mediumpurple1" align="center"><b>[fan-in]</b></td></tr></table>>];
-  judge [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await judge(p)</i></td></tr></table>>];
+    { rank=source; start_voting_ensemble; }
 
-  analytical_writer -> fanin_voting_ensemble_line_44 [color=slateblue4, style=dashed];
-  concise_writer -> fanin_voting_ensemble_line_44 [color=slateblue4, style=dashed];
-  creative_writer -> fanin_voting_ensemble_line_44 [color=slateblue4, style=dashed];
-  fanin_voting_ensemble_line_44 -> judge;
-  fanout_voting_ensemble_line_44 -> analytical_writer [color=mediumpurple4, label="slice 2", style=bold];
-  fanout_voting_ensemble_line_44 -> concise_writer [color=mediumpurple4, label="slice 3", style=bold];
-  fanout_voting_ensemble_line_44 -> creative_writer [color=mediumpurple4, label="slice 1", style=bold];
-  fanout_voting_ensemble_line_44 -> fanin_voting_ensemble_line_44 [color=mediumpurple4, label="slice 0\n(parent)", style=dashed];
-  judge -> end_voting_ensemble;
-  start_voting_ensemble -> fanout_voting_ensemble_line_44;
+    analytical_writer [label="analytical_writer", fillcolor=lightblue];
+    concise_writer [label="concise_writer", fillcolor=lightblue];
+    creative_writer [label="creative_writer", fillcolor=lightblue];
+    fanin_voting_ensemble_line_44 [label="fanin_voting_ensemble_line_44", fillcolor=lightblue];
+    judge [label="judge", fillcolor=lightblue];
+    router_voting_ensemble_line_44_fanout_1 [label="router_voting_ensemble_line_44_fanout_1", fillcolor=wheat];
+    start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_voting_ensemble -> router_voting_ensemble_line_44_fanout_1;
+    router_voting_ensemble_line_44_fanout_1 -> fanin_voting_ensemble_line_44 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_voting_ensemble_line_44 -> judge;
+    router_voting_ensemble_line_44_fanout_1 -> creative_writer;
+    creative_writer -> fanin_voting_ensemble_line_44;
+    router_voting_ensemble_line_44_fanout_1 -> analytical_writer;
+    analytical_writer -> fanin_voting_ensemble_line_44;
+    router_voting_ensemble_line_44_fanout_1 -> concise_writer;
+    concise_writer -> fanin_voting_ensemble_line_44;
+    judge -> __end__;
 }

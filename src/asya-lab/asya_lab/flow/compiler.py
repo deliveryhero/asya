@@ -1,15 +1,19 @@
-"""Flow compiler public API."""
+"""Flow compiler public API.
+
+Pipeline: Parse -> CodeGen -> Analyze -> GraphGen
+"""
 
 from __future__ import annotations
 
+import ast
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from asya_lab.flow.analyzer import GraphData, analyze
 from asya_lab.flow.codegen import CodeGenerator
-from asya_lab.flow.dotgen import DotGenerator
-from asya_lab.flow.grouper import DEFAULT_MAX_LOOP_ITERATIONS, OperationGrouper, Router
-from asya_lab.flow.parser import FlowParser
+from asya_lab.flow.graphgen import to_dot, to_json_string, to_mermaid
+from asya_lab.flow.parser import FlowParser, ParseResult
 
 
 if TYPE_CHECKING:
@@ -17,28 +21,23 @@ if TYPE_CHECKING:
 
 
 def _calculate_module_path(filename: str) -> str:
-    """
-    Calculate Python module path from filename.
+    """Calculate Python module path from filename.
 
     Converts /path/to/my_project/handlers/processor.py to my_project.handlers.processor
     Uses PYTHONPATH or current working directory as the base.
     """
     filepath = Path(filename).resolve()
 
-    # Try to find the module root by looking for common markers
     python_paths = [Path(p).resolve() for p in os.environ.get("PYTHONPATH", "").split(":") if p]
 
-    # Check if file is under any PYTHONPATH
     for python_path in python_paths:
         try:
             rel_path = filepath.relative_to(python_path)
-            # Convert path to module notation
             parts = [*list(rel_path.parts[:-1]), rel_path.stem]
             return ".".join(parts)
         except ValueError:
             continue
 
-    # Fallback: use filename without extension as module name
     return filepath.stem
 
 
@@ -46,7 +45,7 @@ class FlowCompiler:
     def __init__(
         self,
         verbose: bool = False,
-        max_iterations: int = DEFAULT_MAX_LOOP_ITERATIONS,
+        max_iterations: int = 100,
         rule_engine: RuleEngine | None = None,
     ):
         self.verbose = verbose
@@ -54,11 +53,13 @@ class FlowCompiler:
         self._rule_engine: RuleEngine | None = rule_engine
         self.warnings: list[str] = []
         self.flow_name: str | None = None
-        self.routers: list[Router] = []
         self.class_methods: set[str] = set()
         self.is_async: bool = False
         self.import_map: dict[str, str] = {}
         self.module_constants: list[str] = []
+        self._parse_result: ParseResult | None = None
+        self._generated_code: str | None = None
+        self._graph_data: GraphData | None = None
 
     def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> str:
         source_path = Path(source_file)
@@ -83,34 +84,48 @@ class FlowCompiler:
         return str(compiled_file)
 
     def compile(self, source_code: str, filename: str, output_file: str | None = None) -> str:
-        flow_name, operations = self._parse(source_code, filename)
-        units = self._group(flow_name, operations)
-        code = self._generate(flow_name, units, filename, output_file)
+        # Step 1: Parse
+        result = self._parse(source_code, filename)
+        self._parse_result = result
 
-        self.flow_name = flow_name
-        self.routers = units
+        # Step 2: CodeGen
+        codegen = CodeGenerator(result, filename, output_file)
+        code = codegen.generate()
+        self._generated_code = code
+
+        # Step 3: Analyze (graph extraction from generated code)
+        handler_sources = self._extract_handler_sources(source_code, result.actors)
+        self._graph_data = analyze(code, handler_sources)
+        self.warnings.extend(self._graph_data.warnings)
+
+        self.flow_name = result.flow_name
 
         return code
 
     def validate(self, source_code: str, filename: str) -> None:
         self._parse(source_code, filename)
 
-    def generate_plot(self, output_dir: str, plot_width: int = 50, plot_format: str = "svg") -> tuple[str, str | None]:
-        if not self.flow_name or not self.routers:
+    def generate_plot(
+        self,
+        output_dir: str,
+        plot_format: str = "svg",
+    ) -> tuple[str, str | None]:
+        if not self.flow_name or self._graph_data is None:
             raise RuntimeError("Must compile flow before generating plot")
 
-        generator = DotGenerator(
-            self.flow_name,
-            self.routers,
-            step_width=plot_width,
-            class_methods=self.class_methods,
-            is_async=self.is_async,
-        )
-        dot_content = generator.generate()
+        dot_content = to_dot(self._graph_data, self.flow_name)
+        mmd_content = to_mermaid(self._graph_data, self.flow_name)
+        json_content = to_json_string(self._graph_data, self.flow_name)
 
         output_path = Path(output_dir)
         dot_file = output_path / "flow.dot"
         dot_file.write_text(dot_content)
+
+        mmd_file = output_path / "flow.mmd"
+        mmd_file.write_text(mmd_content)
+
+        json_file = output_path / "graph.json"
+        json_file.write_text(json_content)
 
         output_path_str = None
         try:
@@ -128,6 +143,16 @@ class FlowCompiler:
             )
 
             if result.returncode == 0:
+                # Strip graphviz version comment to avoid SVG oscillation across versions
+                import re
+
+                svg_content = output_file.read_text()
+                svg_content = re.sub(
+                    r"<!-- Generated by graphviz version .+?\n -->",
+                    "<!-- Generated by graphviz\n -->",
+                    svg_content,
+                )
+                output_file.write_text(svg_content)
                 output_path_str = str(output_file)
             else:
                 raise RuntimeError(f"graphviz dot failed: {result.stderr}")
@@ -144,41 +169,47 @@ class FlowCompiler:
 
     @property
     def single_actor_name(self) -> str | None:
-        """Returns the actor name if this is a single-actor flow, else None.
+        """Returns the actor name if this is a single-actor flow, else None."""
+        if self._parse_result is None:
+            return None
+        from asya_lab.flow.parser import ActorCall, Return
 
-        A single-actor flow compiles to FLOW_METADATA only (no router functions).
-        The returned name is the actor that should carry flow entrypoint labels.
-        """
-        if len(self.routers) != 2:
-            return None
-        start, end = self.routers
-        if not start.name.startswith("start_") or not end.name.startswith("end_"):
-            return None
-        if start.mutations or start.condition or start.is_fan_out or start.is_loop_back or start.is_try_enter:
-            return None
-        non_end = [a for a in start.true_branch_actors if not a.startswith("end_")]
-        if len(non_end) != 1:
-            return None
-        return non_end[0]
+        ops = self._parse_result.operations
+        actor_calls = [op for op in ops if isinstance(op, ActorCall)]
+        non_actor = [op for op in ops if not isinstance(op, ActorCall | Return)]
+        if len(actor_calls) == 1 and len(non_actor) == 0:
+            return actor_calls[0].name
+        return None
 
     def get_warnings(self) -> list[str]:
         return self.warnings
 
-    def _parse(self, source_code: str, filename: str):
+    @staticmethod
+    def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:
+        """Extract source code of handler functions referenced by the flow.
+
+        Enables the analyzer to discover override edges (yield SET routes)
+        defined inside actor handlers, not just in generated routers.
+        """
+        if not actor_names:
+            return {}
+        try:
+            tree = ast.parse(source_code)
+        except SyntaxError:
+            return {}
+        names = set(actor_names)
+        result: dict[str, str] = {}
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef) and node.name in names:
+                result[node.name] = ast.unparse(node)
+        return result
+
+    def _parse(self, source_code: str, filename: str) -> ParseResult:
         module_path = _calculate_module_path(filename)
         parser = FlowParser(source_code, filename, module_path, rule_engine=self._rule_engine)
-        flow_name, operations = parser.parse()
-        # Store metadata for later use by DotGenerator
-        self.class_methods = parser.get_class_methods()
-        self.is_async = parser.is_async
-        self.import_map = parser.get_import_map()
-        self.module_constants = parser.get_module_constants()
-        return flow_name, operations
-
-    def _group(self, flow_name: str, operations):
-        grouper = OperationGrouper(flow_name, operations, max_iterations=self.max_iterations)
-        return grouper.group()
-
-    def _generate(self, flow_name: str, units, filename: str, output_file: str | None = None):
-        generator = CodeGenerator(flow_name, units, filename, output_file, module_constants=self.module_constants)
-        return generator.generate()
+        result = parser.parse()
+        self.class_methods = result.class_methods
+        self.is_async = result.is_async
+        self.import_map = result.import_map
+        self.module_constants = result.constants
+        return result

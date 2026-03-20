@@ -1,0 +1,35 @@
+flowchart TD
+    %% Flow: research_agent
+
+    calculator[calculator]
+    code_executor[code_executor]
+    llm_call[llm_call]
+    router_research_agent_line_15_while_1{{router_research_agent_line_15_while_1}}
+    router_research_agent_line_17_if_4{{router_research_agent_line_17_if_4}}
+    router_research_agent_line_19_if_3{{router_research_agent_line_19_if_3}}
+    router_research_agent_line_21_if_2{{router_research_agent_line_21_if_2}}
+    start_research_agent(["start_research_agent<br/><br/>p['messages'] = p.get('messages', [])"])
+    web_search[web_search]
+
+    start_research_agent --> router_research_agent_line_15_while_1
+    router_research_agent_line_21_if_2 -->|"p.get('tool_name') == 'code_exec'"| code_executor
+    router_research_agent_line_19_if_3 -->|"p.get('tool_name') == 'calculator'"| calculator
+    router_research_agent_line_19_if_3 -->|"else"| router_research_agent_line_21_if_2
+    router_research_agent_line_17_if_4 -->|"p.get('tool_name') == 'search'"| web_search
+    router_research_agent_line_17_if_4 -->|"else"| router_research_agent_line_19_if_3
+    router_research_agent_line_15_while_1 --> llm_call
+    llm_call --> router_research_agent_line_17_if_4
+    web_search --> router_research_agent_line_15_while_1
+    calculator --> router_research_agent_line_15_while_1
+    code_executor --> router_research_agent_line_15_while_1
+    router_research_agent_line_21_if_2 -->|"else"| router_research_agent_line_15_while_1
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_research_agent entrypoint
+    class router_research_agent_line_15_while_1,router_research_agent_line_17_if_4,router_research_agent_line_19_if_3,router_research_agent_line_21_if_2 router
+    class calculator,code_executor,llm_call,web_search handler
+    linkStyle 1,2,4 stroke:#2E8B57
+    linkStyle 3,5,11 stroke:#E07040

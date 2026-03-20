@@ -1,0 +1,110 @@
+{
+  "flow_name": "guardrails_sandwich",
+  "nodes": [
+    {
+      "id": "core_agent",
+      "flow_role": "processor",
+      "label": "core_agent",
+      "is_generated": false
+    },
+    {
+      "id": "input_validator",
+      "flow_role": "processor",
+      "label": "input_validator",
+      "is_generated": false
+    },
+    {
+      "id": "output_validator",
+      "flow_role": "processor",
+      "label": "output_validator",
+      "is_generated": false
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_reraise_0",
+      "flow_role": "exitpoint",
+      "label": "router_guardrails_sandwich_line_47_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_try_enter_0",
+      "flow_role": "router",
+      "label": "router_guardrails_sandwich_line_47_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_guardrails_sandwich_line_47_try_exit_0",
+      "flow_role": "exitpoint",
+      "label": "router_guardrails_sandwich_line_47_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "safe_fallback",
+      "flow_role": "exitpoint",
+      "label": "safe_fallback",
+      "is_generated": false
+    },
+    {
+      "id": "start_guardrails_sandwich",
+      "flow_role": "entrypoint",
+      "label": "start_guardrails_sandwich",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_guardrails_sandwich",
+      "to": "router_guardrails_sandwich_line_47_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_try_enter_0",
+      "to": "input_validator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "input_validator",
+      "to": "core_agent",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "core_agent",
+      "to": "output_validator",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "output_validator",
+      "to": "router_guardrails_sandwich_line_47_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "to": "safe_fallback",
+      "label": "'Exception' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "to": "router_guardrails_sandwich_line_47_reraise_0",
+      "label": "not ('Exception' in _all_types)",
+      "type": "prepend"
+    }
+  ],
+  "groups": [],
+  "warnings": [
+    "node 'router_guardrails_sandwich_line_47_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_guardrails_sandwich_line_47_reraise_0' is not reachable from entrypoint",
+    "node 'safe_fallback' is not reachable from entrypoint",
+    "node 'router_guardrails_sandwich_line_47_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
+}

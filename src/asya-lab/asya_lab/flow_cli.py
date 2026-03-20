@@ -14,21 +14,25 @@ def _stamp_manifests(
     compiler: FlowCompiler, flow_file: str, output_dir: str, manifests_dir: str | None, verbose: bool
 ) -> None:
     """Stamp kustomize-structured manifests after flow compilation."""
-    from asya_lab.compiler.templater import ManifestTemplater
+    try:
+        from asya_lab.compiler.templater import ManifestTemplater
+    except (ImportError, ModuleNotFoundError):
+        click.echo("[!] Manifest stamping unavailable (grouper module removed in Phase 1)", err=True)
+        return
     from asya_lab.config.discovery import find_asya_dir
     from asya_lab.config.project import AsyaProject
 
     source_path = Path(flow_file).resolve()
     asya_dir = find_asya_dir(source_path.parent)
     if asya_dir is None:
-        click.echo("[!] No .asya/ directory found; skipping manifest stamping", err=True)
-        click.echo("[!] Run 'asya init' to create one", err=True)
+        if verbose:
+            click.echo("[.] No .asya/ directory found; skipping manifest stamping", err=True)
         return
 
     template_path = asya_dir / "compiler" / "templates" / "actor.yaml"
     if not template_path.exists():
-        click.echo(f"[!] Actor template not found: {template_path}", err=True)
-        click.echo("[!] Run 'asya init' to create one; skipping manifest stamping", err=True)
+        if verbose:
+            click.echo("[.] Actor template not found; skipping manifest stamping", err=True)
         return
 
     # Naming convention (see rfc.md section 7.4):
@@ -63,7 +67,7 @@ def _stamp_manifests(
     templater = ManifestTemplater(
         flow_name=flow_name,
         flow_function=flow_function,
-        routers=compiler.routers,
+        routers=compiler.routers,  # type: ignore[attr-defined]
         router_code=router_code,
         project=project,
         actor_template_path=template_path,
@@ -83,8 +87,9 @@ def _stamp_manifests(
 @click.command("validate")
 @click.argument("flow_file")
 @click.option("--verbose", "-v", is_flag=True, help="Show verbose output")
-def validate(flow_file, verbose):
-    """Validate flow without compiling."""
+@click.option("--strict", is_flag=True, help="Treat warnings as errors")
+def validate(flow_file, verbose, strict):
+    """Validate flow by compiling and checking graph invariants."""
     try:
         compiler = FlowCompiler(verbose=verbose)
 
@@ -94,15 +99,17 @@ def validate(flow_file, verbose):
             sys.exit(1)
 
         source_code = source_path.read_text()
-        compiler.validate(source_code, str(source_path))
+        compiler.compile(source_code, str(source_path))
 
         click.echo(f"[+] Flow is valid: {flow_file}")
 
         warnings = compiler.get_warnings()
         if warnings:
-            click.echo("\nWarnings:", err=True)
-            for warning in warnings:
-                click.echo(f"\n{warning}", err=True)
+            for w in warnings:
+                click.echo(f"[!] {w}", err=True)
+            if strict:
+                click.echo(f"[-] {len(warnings)} warning(s) in --strict mode", err=True)
+                sys.exit(1)
 
     except FlowCompileError as e:
         click.echo("[-] Validation failed:\n", err=True)

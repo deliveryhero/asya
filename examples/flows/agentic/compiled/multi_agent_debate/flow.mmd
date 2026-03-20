@@ -1,0 +1,60 @@
+flowchart TD
+    %% Flow: multi_agent_debate
+
+    convergence_checker[convergence_checker]
+    debater_a[debater_a]
+    debater_b[debater_b]
+    debater_c[debater_c]
+    fanin_multi_agent_debate_line_57[fanin_multi_agent_debate_line_57]
+    fanin_multi_agent_debate_line_74[fanin_multi_agent_debate_line_74]
+    final_judge[final_judge]
+    revise_a[revise_a]
+    revise_b[revise_b]
+    revise_c[revise_c]
+    router_multi_agent_debate_line_57_fanout_6{{router_multi_agent_debate_line_57_fanout_6}}
+    router_multi_agent_debate_line_63_while_1{{router_multi_agent_debate_line_63_while_1}}
+    router_multi_agent_debate_line_64_seq_5{{"router_multi_agent_debate_line_64_seq_5<br/><br/>p['round'] += 1"}}
+    router_multi_agent_debate_line_68_if_4{{router_multi_agent_debate_line_68_if_4}}
+    router_multi_agent_debate_line_71_if_3{{router_multi_agent_debate_line_71_if_3}}
+    router_multi_agent_debate_line_74_fanout_2{{router_multi_agent_debate_line_74_fanout_2}}
+    start_multi_agent_debate(["start_multi_agent_debate<br/><br/>p['round'] = 0"])
+    __end__((( )))
+
+    start_multi_agent_debate --> router_multi_agent_debate_line_57_fanout_6
+    router_multi_agent_debate_line_74_fanout_2 -->|"fanout"| fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_a
+    revise_a --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_b
+    revise_b --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_74_fanout_2 --> revise_c
+    revise_c --> fanin_multi_agent_debate_line_74
+    router_multi_agent_debate_line_71_if_3 -->|"else"| router_multi_agent_debate_line_74_fanout_2
+    router_multi_agent_debate_line_71_if_3 -->|"p['round'] >= 3"| final_judge
+    router_multi_agent_debate_line_68_if_4 -->|"else"| router_multi_agent_debate_line_71_if_3
+    router_multi_agent_debate_line_68_if_4 -->|"p.get('converged')"| final_judge
+    router_multi_agent_debate_line_64_seq_5 --> convergence_checker
+    convergence_checker --> router_multi_agent_debate_line_68_if_4
+    router_multi_agent_debate_line_63_while_1 --> router_multi_agent_debate_line_64_seq_5
+    router_multi_agent_debate_line_57_fanout_6 -->|"fanout"| fanin_multi_agent_debate_line_57
+    fanin_multi_agent_debate_line_57 --> router_multi_agent_debate_line_63_while_1
+    router_multi_agent_debate_line_57_fanout_6 --> debater_a
+    debater_a --> fanin_multi_agent_debate_line_57
+    router_multi_agent_debate_line_57_fanout_6 --> debater_b
+    debater_b --> fanin_multi_agent_debate_line_57
+    router_multi_agent_debate_line_57_fanout_6 --> debater_c
+    debater_c --> fanin_multi_agent_debate_line_57
+    router_multi_agent_debate_line_74_fanout_2 --> router_multi_agent_debate_line_63_while_1
+    fanin_multi_agent_debate_line_74 --> router_multi_agent_debate_line_63_while_1
+    final_judge --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_multi_agent_debate entrypoint
+    class router_multi_agent_debate_line_57_fanout_6,router_multi_agent_debate_line_63_while_1,router_multi_agent_debate_line_64_seq_5,router_multi_agent_debate_line_68_if_4,router_multi_agent_debate_line_71_if_3,router_multi_agent_debate_line_74_fanout_2 router
+    class convergence_checker,debater_a,debater_b,debater_c,fanin_multi_agent_debate_line_57,fanin_multi_agent_debate_line_74,final_judge,revise_a,revise_b,revise_c handler
+    class __end__ endpoint
+    linkStyle 9,11 stroke:#2E8B57
+    linkStyle 1,15 stroke:#7B68EE
+    linkStyle 8,10 stroke:#E07040

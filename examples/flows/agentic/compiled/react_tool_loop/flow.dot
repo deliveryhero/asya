@@ -1,42 +1,43 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "react_tool_loop" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_react_tool_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_react_tool_loop(p)</i></td></tr><tr><td bgcolor="white" align="left">p['messages'] = p.get('messages', [])</td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr></table>>];
-  router_react_tool_loop_line_66_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_66_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['observation'] = 'Unknown tool'</td></tr></table>>];
-  router_react_tool_loop_line_63_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_63_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['tool_name'] == 'calculator'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_react_tool_loop_line_61_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_61_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['tool_name'] == 'code_exec'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_react_tool_loop_line_72_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_72_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['messages'] = p.get('messages', [])</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &gt;= 10</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_react_tool_loop_line_59_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_59_if(p)</i></td></tr><tr><td bgcolor="white" align="left">p['tool_name'] = p['tool_calls'][0]['name']</td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['tool_name'] == 'web_search'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_react_tool_loop_line_53_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_53_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> not p.get('tool_calls')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_react_tool_loop_line_47_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_47_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
-  router_react_tool_loop_line_46_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_react_tool_loop_line_46_loop_…(p)</i></td></tr></table>>];
-  end_react_tool_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_react_tool_loop(p)</i></td></tr></table>>];
-  calculator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await calculator(p)</i></td></tr></table>>];
-  code_exec [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await code_exec(p)</i></td></tr></table>>];
-  format_response [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await format_response(p)</i></td></tr></table>>];
-  llm_reason [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await llm_reason(p)</i></td></tr></table>>];
-  web_search [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await web_search(p)</i></td></tr></table>>];
+    { rank=source; start_react_tool_loop; }
 
-  calculator -> router_react_tool_loop_line_72_if;
-  code_exec -> router_react_tool_loop_line_72_if;
-  format_response -> end_react_tool_loop;
-  llm_reason -> router_react_tool_loop_line_53_if;
-  router_react_tool_loop_line_46_loop_back_0 -> router_react_tool_loop_line_47_seq [constraint=false];
-  router_react_tool_loop_line_47_seq -> llm_reason;
-  router_react_tool_loop_line_53_if -> format_response [label="T", color=darkseagreen4];
-  router_react_tool_loop_line_53_if -> router_react_tool_loop_line_59_if [label="F", color=indianred4];
-  router_react_tool_loop_line_59_if -> router_react_tool_loop_line_61_if [label="F", color=indianred4];
-  router_react_tool_loop_line_59_if -> web_search [label="T", color=darkseagreen4];
-  router_react_tool_loop_line_61_if -> code_exec [label="T", color=darkseagreen4];
-  router_react_tool_loop_line_61_if -> router_react_tool_loop_line_63_if [label="F", color=indianred4];
-  router_react_tool_loop_line_63_if -> calculator [label="T", color=darkseagreen4];
-  router_react_tool_loop_line_63_if -> router_react_tool_loop_line_66_seq [label="F", color=indianred4];
-  router_react_tool_loop_line_66_seq -> router_react_tool_loop_line_72_if;
-  router_react_tool_loop_line_72_if -> format_response [label="T", color=darkseagreen4];
-  router_react_tool_loop_line_72_if -> router_react_tool_loop_line_46_loop_back_0 [label="F", color=indianred4];
-  start_react_tool_loop -> router_react_tool_loop_line_46_loop_back_0;
-  web_search -> router_react_tool_loop_line_72_if;
+    calculator [label="calculator", fillcolor=lightblue];
+    code_exec [label="code_exec", fillcolor=lightblue];
+    format_response [label="format_response", fillcolor=lightblue];
+    llm_reason [label="llm_reason", fillcolor=lightblue];
+    router_react_tool_loop_line_48_while_1 [label="router_react_tool_loop_line_48_while_1", fillcolor=wheat];
+    router_react_tool_loop_line_49_seq_8 [label="router_react_tool_loop_line_49_seq_8\n\np['iteration'] += 1", fillcolor=wheat];
+    router_react_tool_loop_line_55_if_7 [label="router_react_tool_loop_line_55_if_7", fillcolor=wheat];
+    router_react_tool_loop_line_61_if_6 [label="router_react_tool_loop_line_61_if_6\n\np['tool_name'] = p['tool_calls'][0]['name']", fillcolor=wheat];
+    router_react_tool_loop_line_63_if_5 [label="router_react_tool_loop_line_63_if_5", fillcolor=wheat];
+    router_react_tool_loop_line_65_if_4 [label="router_react_tool_loop_line_65_if_4", fillcolor=wheat];
+    router_react_tool_loop_line_68_seq_3 [label="router_react_tool_loop_line_68_seq_3\n\np['observation'] = 'Unknown tool'", fillcolor=wheat];
+    router_react_tool_loop_line_74_if_2 [label="router_react_tool_loop_line_74_if_2\n\np['messages'] = p.get('messages', [])", fillcolor=wheat];
+    start_react_tool_loop [label="start_react_tool_loop\n\np['messages'] = p.get('messages', [])\np['iteration'] = 0", fillcolor=palegreen];
+    web_search [label="web_search", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_react_tool_loop -> router_react_tool_loop_line_48_while_1;
+    router_react_tool_loop_line_74_if_2 -> format_response [label="p['iteration'] >= 10", color="#2E8B57", fontcolor="#2E8B57"];
+    router_react_tool_loop_line_65_if_4 -> calculator [label="p['tool_name'] == 'calculator'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_react_tool_loop_line_65_if_4 -> router_react_tool_loop_line_68_seq_3 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_react_tool_loop_line_63_if_5 -> code_exec [label="p['tool_name'] == 'code_exec'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_react_tool_loop_line_63_if_5 -> router_react_tool_loop_line_65_if_4 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_react_tool_loop_line_61_if_6 -> web_search [label="p['tool_name'] == 'web_search'", color="#2E8B57", fontcolor="#2E8B57"];
+    web_search -> router_react_tool_loop_line_74_if_2;
+    router_react_tool_loop_line_61_if_6 -> router_react_tool_loop_line_63_if_5 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_react_tool_loop_line_55_if_7 -> router_react_tool_loop_line_61_if_6 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_react_tool_loop_line_55_if_7 -> format_response [label="not p.get('tool_calls')", color="#2E8B57", fontcolor="#2E8B57"];
+    router_react_tool_loop_line_49_seq_8 -> llm_reason;
+    llm_reason -> router_react_tool_loop_line_55_if_7;
+    router_react_tool_loop_line_48_while_1 -> router_react_tool_loop_line_49_seq_8;
+    code_exec -> router_react_tool_loop_line_74_if_2;
+    calculator -> router_react_tool_loop_line_74_if_2;
+    router_react_tool_loop_line_68_seq_3 -> router_react_tool_loop_line_74_if_2;
+    router_react_tool_loop_line_74_if_2 -> router_react_tool_loop_line_48_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    format_response -> __end__;
 }

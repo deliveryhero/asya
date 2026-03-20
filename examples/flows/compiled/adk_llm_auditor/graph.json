@@ -1,0 +1,399 @@
+{
+  "flow_name": "adk_llm_auditor",
+  "nodes": [
+    {
+      "id": "accuracy_scorer",
+      "flow_role": "processor",
+      "label": "accuracy_scorer",
+      "is_generated": false
+    },
+    {
+      "id": "adk_llm_auditor.QualityScorer.aggregate",
+      "flow_role": "processor",
+      "label": "adk_llm_auditor.QualityScorer.aggregate",
+      "is_generated": false
+    },
+    {
+      "id": "completeness_scorer",
+      "flow_role": "processor",
+      "label": "completeness_scorer",
+      "is_generated": false
+    },
+    {
+      "id": "critique",
+      "flow_role": "processor",
+      "label": "critique",
+      "is_generated": false
+    },
+    {
+      "id": "deep_reviser",
+      "flow_role": "processor",
+      "label": "deep_reviser",
+      "is_generated": false
+    },
+    {
+      "id": "extract_claims",
+      "flow_role": "processor",
+      "label": "extract_claims",
+      "is_generated": false
+    },
+    {
+      "id": "fallback_generate",
+      "flow_role": "exitpoint",
+      "label": "fallback_generate",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_llm_auditor_line_56",
+      "flow_role": "router",
+      "label": "fanin_llm_auditor_line_56",
+      "is_generated": false
+    },
+    {
+      "id": "fanout_llm_auditor_line_56",
+      "flow_role": "router",
+      "label": "fanout_llm_auditor_line_56",
+      "is_generated": true
+    },
+    {
+      "id": "finalize",
+      "flow_role": "exitpoint",
+      "label": "finalize",
+      "is_generated": false
+    },
+    {
+      "id": "llm_generate",
+      "flow_role": "processor",
+      "label": "llm_generate",
+      "is_generated": false
+    },
+    {
+      "id": "reviser",
+      "flow_role": "processor",
+      "label": "reviser",
+      "is_generated": false
+    },
+    {
+      "id": "router_llm_auditor_line_41_if",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_41_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_42_seq",
+      "flow_role": "exitpoint",
+      "label": "router_llm_auditor_line_42_seq",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'no_claims'"]
+    },
+    {
+      "id": "router_llm_auditor_line_46_loop_back_0",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_46_loop_back_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_47_seq",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_47_seq",
+      "is_generated": true,
+      "mutations": ["p['iteration'] += 1"]
+    },
+    {
+      "id": "router_llm_auditor_line_50_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_50_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_50_try_enter_0",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_50_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_50_try_exit_0",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_50_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_65_if",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_65_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_66_seq",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_66_seq",
+      "is_generated": true,
+      "mutations": ["p['prev_score'] = p['aggregate_score']"]
+    },
+    {
+      "id": "router_llm_auditor_line_70_if",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_70_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_71_seq",
+      "flow_role": "exitpoint",
+      "label": "router_llm_auditor_line_71_seq",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'approved'"]
+    },
+    {
+      "id": "router_llm_auditor_line_73_if",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_73_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_83_if",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_83_if",
+      "is_generated": true
+    },
+    {
+      "id": "router_llm_auditor_line_84_seq",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_84_seq",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'max_iterations'"]
+    },
+    {
+      "id": "router_llm_auditor_line_87_seq",
+      "flow_role": "exitpoint",
+      "label": "router_llm_auditor_line_87_seq",
+      "is_generated": true,
+      "mutations": ["p['prev_score'] = p['aggregate_score']"]
+    },
+    {
+      "id": "router_llm_auditor_line_90_seq",
+      "flow_role": "router",
+      "label": "router_llm_auditor_line_90_seq",
+      "is_generated": true,
+      "mutations": ["p['partial'] = False"]
+    },
+    {
+      "id": "start_llm_auditor",
+      "flow_role": "entrypoint",
+      "label": "start_llm_auditor",
+      "is_generated": true,
+      "mutations": ["p['iteration'] = 0", "p['status'] = 'started'", "p['partial'] = True"]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_llm_auditor",
+      "to": "extract_claims",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "extract_claims",
+      "to": "router_llm_auditor_line_41_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_llm_auditor_line_90_seq",
+      "to": "finalize",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_66_seq",
+      "to": "router_llm_auditor_line_46_loop_back_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_73_if",
+      "to": "critique",
+      "label": "p['aggregate_score'] >= 70",
+      "type": "prepend"
+    },
+    {
+      "from": "critique",
+      "to": "reviser",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "reviser",
+      "to": "router_llm_auditor_line_83_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_llm_auditor_line_73_if",
+      "to": "critique",
+      "label": "not (p['aggregate_score'] >= 70)",
+      "type": "prepend"
+    },
+    {
+      "from": "critique",
+      "to": "deep_reviser",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "deep_reviser",
+      "to": "router_llm_auditor_line_83_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_llm_auditor_line_84_seq",
+      "to": "router_llm_auditor_line_90_seq",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_83_if",
+      "to": "router_llm_auditor_line_84_seq",
+      "label": "p['iteration'] >= p.get('max_iterations', 5)",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_83_if",
+      "to": "router_llm_auditor_line_87_seq",
+      "label": "not (p['iteration'] >= p.get('max_iterations', 5))",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_70_if",
+      "to": "router_llm_auditor_line_71_seq",
+      "label": "p['aggregate_score'] >= 90",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_70_if",
+      "to": "router_llm_auditor_line_73_if",
+      "label": "not (p['aggregate_score'] >= 90)",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_65_if",
+      "to": "router_llm_auditor_line_66_seq",
+      "label": "p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_65_if",
+      "to": "router_llm_auditor_line_70_if",
+      "label": "not (p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70)",
+      "type": "prepend"
+    },
+    {
+      "from": "fanout_llm_auditor_line_56",
+      "to": "fanin_llm_auditor_line_56",
+      "label": "fanout",
+      "type": "set"
+    },
+    {
+      "from": "fanin_llm_auditor_line_56",
+      "to": "adk_llm_auditor.QualityScorer.aggregate",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "adk_llm_auditor.QualityScorer.aggregate",
+      "to": "router_llm_auditor_line_65_if",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanout_llm_auditor_line_56",
+      "to": "accuracy_scorer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "accuracy_scorer",
+      "to": "fanin_llm_auditor_line_56",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanout_llm_auditor_line_56",
+      "to": "completeness_scorer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "completeness_scorer",
+      "to": "fanin_llm_auditor_line_56",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_llm_auditor_line_50_try_enter_0",
+      "to": "llm_generate",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "llm_generate",
+      "to": "router_llm_auditor_line_50_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_llm_auditor_line_50_try_exit_0",
+      "to": "fanout_llm_auditor_line_56",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_50_except_dispatch_0",
+      "to": "fanout_llm_auditor_line_56",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_50_except_dispatch_0",
+      "to": "fallback_generate",
+      "label": "True",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_47_seq",
+      "to": "router_llm_auditor_line_50_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_46_loop_back_0",
+      "to": "router_llm_auditor_line_47_seq",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_41_if",
+      "to": "router_llm_auditor_line_42_seq",
+      "label": "not p.get('claims')",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_41_if",
+      "to": "router_llm_auditor_line_46_loop_back_0",
+      "label": "not (not p.get('claims'))",
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_auditor_line_50_try_enter_0",
+      "to": "router_llm_auditor_line_46_loop_back_0",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": [],
+  "warnings": [
+    "node 'fallback_generate' is not reachable from entrypoint",
+    "node 'router_llm_auditor_line_50_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_llm_auditor_line_50_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
+}

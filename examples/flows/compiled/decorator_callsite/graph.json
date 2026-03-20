@@ -1,0 +1,38 @@
+{
+  "flow_name": "decorator_callsite_flow",
+  "nodes": [
+    {
+      "id": "enricher",
+      "flow_role": "exitpoint",
+      "label": "enricher",
+      "is_generated": false
+    },
+    {
+      "id": "start_decorator_callsite_flow",
+      "flow_role": "entrypoint",
+      "label": "start_decorator_callsite_flow",
+      "is_generated": true
+    },
+    {
+      "id": "validator",
+      "flow_role": "processor",
+      "label": "validator",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_decorator_callsite_flow",
+      "to": "validator",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validator",
+      "to": "enricher",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

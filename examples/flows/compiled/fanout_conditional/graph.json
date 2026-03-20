@@ -1,0 +1,134 @@
+{
+  "flow_name": "adaptive_flow",
+  "nodes": [
+    {
+      "id": "classifier",
+      "flow_role": "processor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
+      "id": "deep_analyzer",
+      "flow_role": "processor",
+      "label": "deep_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "fanin_adaptive_flow_line_17",
+      "flow_role": "router",
+      "label": "fanin_adaptive_flow_line_17",
+      "is_generated": false
+    },
+    {
+      "id": "fast_analyzer",
+      "flow_role": "processor",
+      "label": "fast_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "formatter",
+      "flow_role": "exitpoint",
+      "label": "formatter",
+      "is_generated": false
+    },
+    {
+      "id": "router_adaptive_flow_line_16_if_2",
+      "flow_role": "router",
+      "label": "router_adaptive_flow_line_16_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_adaptive_flow_line_17_fanout_1",
+      "flow_role": "router",
+      "label": "router_adaptive_flow_line_17_fanout_1",
+      "is_generated": true
+    },
+    {
+      "id": "sequential_analyzer",
+      "flow_role": "processor",
+      "label": "sequential_analyzer",
+      "is_generated": false
+    },
+    {
+      "id": "start_adaptive_flow",
+      "flow_role": "entrypoint",
+      "label": "start_adaptive_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_adaptive_flow",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_adaptive_flow_line_16_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_adaptive_flow_line_17_fanout_1",
+      "to": "fanin_adaptive_flow_line_17",
+      "label": "fanout",
+      "type": "set"
+    },
+    {
+      "from": "router_adaptive_flow_line_17_fanout_1",
+      "to": "fast_analyzer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "fast_analyzer",
+      "to": "fanin_adaptive_flow_line_17",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_adaptive_flow_line_17_fanout_1",
+      "to": "deep_analyzer",
+      "label": null,
+      "type": "fanout"
+    },
+    {
+      "from": "deep_analyzer",
+      "to": "fanin_adaptive_flow_line_17",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "router_adaptive_flow_line_17_fanout_1",
+      "label": "p['parallel']",
+      "type": "prepend"
+    },
+    {
+      "from": "router_adaptive_flow_line_17_fanout_1",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_adaptive_flow_line_16_if_2",
+      "to": "sequential_analyzer",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "sequential_analyzer",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanin_adaptive_flow_line_17",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

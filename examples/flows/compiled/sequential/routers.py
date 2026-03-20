@@ -22,11 +22,6 @@ async def start_sequential_flow(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def end_sequential_flow(payload: dict):
-    """Exitpoint for flow 'sequential_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
-
 
 # ======================================================================
 # Handler Resolution

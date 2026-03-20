@@ -1,24 +1,25 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "document_pipeline" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_document_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_document_pipeline(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'processing'</td></tr></table>>];
-  router_document_pipeline_line_28_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_document_pipeline_line_28_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'done'</td></tr></table>>];
-  router_document_pipeline_line_24_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_document_pipeline_line_24_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('language') != 'en'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_document_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_document_pipeline(p)</i></td></tr></table>>];
-  language_detector [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await language_detector(p)</i></td></tr></table>>];
-  ocr_extractor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await ocr_extractor(p)</i></td></tr></table>>];
-  sentiment_analyzer [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await sentiment_analyzer(p)</i></td></tr></table>>];
-  translator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await translator(p)</i></td></tr></table>>];
+    { rank=source; start_document_pipeline; }
 
-  language_detector -> router_document_pipeline_line_24_if;
-  ocr_extractor -> language_detector;
-  router_document_pipeline_line_24_if -> sentiment_analyzer [label="F", color=indianred4];
-  router_document_pipeline_line_24_if -> translator [label="T", color=darkseagreen4];
-  router_document_pipeline_line_28_seq -> end_document_pipeline;
-  sentiment_analyzer -> router_document_pipeline_line_28_seq;
-  start_document_pipeline -> ocr_extractor;
-  translator -> sentiment_analyzer;
+    language_detector [label="language_detector", fillcolor=lightblue];
+    ocr_extractor [label="ocr_extractor", fillcolor=lightblue];
+    router_document_pipeline_line_24_if_2 [label="router_document_pipeline_line_24_if_2", fillcolor=wheat];
+    router_document_pipeline_line_28_seq_1 [label="router_document_pipeline_line_28_seq_1\n\np['status'] = 'done'", fillcolor=wheat];
+    sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
+    start_document_pipeline [label="start_document_pipeline\n\np['status'] = 'processing'", fillcolor=palegreen];
+    translator [label="translator", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_document_pipeline -> ocr_extractor;
+    ocr_extractor -> language_detector;
+    language_detector -> router_document_pipeline_line_24_if_2;
+    router_document_pipeline_line_24_if_2 -> translator [label="p.get('language') != 'en'", color="#2E8B57", fontcolor="#2E8B57"];
+    translator -> sentiment_analyzer;
+    sentiment_analyzer -> router_document_pipeline_line_28_seq_1;
+    router_document_pipeline_line_24_if_2 -> sentiment_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
+    router_document_pipeline_line_28_seq_1 -> __end__;
 }

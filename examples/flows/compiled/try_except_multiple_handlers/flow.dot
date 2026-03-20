@@ -1,38 +1,39 @@
-digraph flow {
-  rankdir=TB;
-  compound=true;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "try_except_multiple_handlers" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_data_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_data_pipeline(p)</i></td></tr></table>>];
-  router_data_pipeline_line_8_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_8_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'validation'</td></tr></table>>];
-  router_data_pipeline_line_11_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_11_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'type_mismatch'</td></tr></table>>];
-  router_data_pipeline_line_14_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_data_pipeline_line_14_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['error_type'] = 'runtime'</td></tr></table>>];
-  end_data_pipeline [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_data_pipeline(p)</i></td></tr></table>>];
-  handle_runtime_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_runtime_error(p)</i></td></tr></table>>];
-  handle_type_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_type_error(p)</i></td></tr></table>>];
-  handle_validation_error [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = handle_validation_error(p)</i></td></tr></table>>];
-  subgraph cluster_try_0 {
-    style=dashed;
-    color="snow4";
-    fontname="Courier";
-    fontsize=10;
-    label="try";
-    parse_input [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = parse_input(p)</i></td></tr></table>>];
-    transform_data [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = transform_data(p)</i></td></tr></table>>];
-  }
+    { rank=source; start_data_pipeline; }
 
-  handle_runtime_error -> end_data_pipeline;
-  handle_type_error -> end_data_pipeline;
-  handle_validation_error -> end_data_pipeline;
-  parse_input -> transform_data;
-  router_data_pipeline_line_11_seq -> handle_type_error;
-  router_data_pipeline_line_14_seq -> handle_runtime_error;
-  router_data_pipeline_line_8_seq -> handle_validation_error;
-  start_data_pipeline -> parse_input;
-  transform_data -> end_data_pipeline;
-  transform_data -> router_data_pipeline_line_11_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except TypeError", constraint=false];
-  transform_data -> router_data_pipeline_line_14_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except RuntimeError", constraint=false];
-  transform_data -> router_data_pipeline_line_8_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
+    handle_runtime_error [label="handle_runtime_error", fillcolor=lightblue];
+    handle_type_error [label="handle_type_error", fillcolor=lightblue];
+    handle_validation_error [label="handle_validation_error", fillcolor=lightblue];
+    parse_input [label="parse_input", fillcolor=lightblue];
+    router_data_pipeline_line_11_seq [label="router_data_pipeline_line_11_seq\n\np['error_type'] = 'type_mismatch'", fillcolor=wheat];
+    router_data_pipeline_line_14_seq [label="router_data_pipeline_line_14_seq\n\np['error_type'] = 'runtime'", fillcolor=wheat];
+    router_data_pipeline_line_4_except_dispatch_0 [label="router_data_pipeline_line_4_except_dispatch_0", fillcolor=wheat];
+    router_data_pipeline_line_4_reraise_0 [label="router_data_pipeline_line_4_reraise_0", fillcolor=wheat];
+    router_data_pipeline_line_4_try_enter_0 [label="router_data_pipeline_line_4_try_enter_0", fillcolor=wheat];
+    router_data_pipeline_line_4_try_exit_0 [label="router_data_pipeline_line_4_try_exit_0", fillcolor=wheat];
+    router_data_pipeline_line_8_seq [label="router_data_pipeline_line_8_seq\n\np['error_type'] = 'validation'", fillcolor=wheat];
+    start_data_pipeline [label="start_data_pipeline", fillcolor=palegreen];
+    transform_data [label="transform_data", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_data_pipeline -> router_data_pipeline_line_4_try_enter_0;
+    router_data_pipeline_line_8_seq -> handle_validation_error;
+    router_data_pipeline_line_11_seq -> handle_type_error;
+    router_data_pipeline_line_14_seq -> handle_runtime_error;
+    router_data_pipeline_line_4_try_enter_0 -> parse_input;
+    parse_input -> transform_data;
+    transform_data -> router_data_pipeline_line_4_try_exit_0;
+    router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_8_seq [label="'ValueError' in _all_types"];
+    router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_11_seq [label="'TypeError' in _all_types"];
+    router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_14_seq [label="'RuntimeError' in _all_types"];
+    router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_4_reraise_0 [label="not ('RuntimeError' in _all_types)"];
+    handle_runtime_error -> __end__;
+    handle_type_error -> __end__;
+    handle_validation_error -> __end__;
+    router_data_pipeline_line_4_reraise_0 -> __end__;
+    router_data_pipeline_line_4_try_exit_0 -> __end__;
 }

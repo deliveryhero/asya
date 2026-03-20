@@ -1,0 +1,254 @@
+{
+  "flow_name": "hierarchical_delegation",
+  "nodes": [
+    {
+      "id": "api_specialist",
+      "flow_role": "processor",
+      "label": "api_specialist",
+      "is_generated": false
+    },
+    {
+      "id": "content_generalist",
+      "flow_role": "processor",
+      "label": "content_generalist",
+      "is_generated": false
+    },
+    {
+      "id": "content_team_lead",
+      "flow_role": "processor",
+      "label": "content_team_lead",
+      "is_generated": false
+    },
+    {
+      "id": "data_generalist",
+      "flow_role": "processor",
+      "label": "data_generalist",
+      "is_generated": false
+    },
+    {
+      "id": "data_team_lead",
+      "flow_role": "processor",
+      "label": "data_team_lead",
+      "is_generated": false
+    },
+    {
+      "id": "editor",
+      "flow_role": "processor",
+      "label": "editor",
+      "is_generated": false
+    },
+    {
+      "id": "final_assembler",
+      "flow_role": "exitpoint",
+      "label": "final_assembler",
+      "is_generated": false
+    },
+    {
+      "id": "generalist",
+      "flow_role": "processor",
+      "label": "generalist",
+      "is_generated": false
+    },
+    {
+      "id": "root_agent",
+      "flow_role": "processor",
+      "label": "root_agent",
+      "is_generated": false
+    },
+    {
+      "id": "router_hierarchical_delegation_line_61_if_6",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_61_if_6",
+      "is_generated": true
+    },
+    {
+      "id": "router_hierarchical_delegation_line_65_if_2",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_65_if_2",
+      "is_generated": true
+    },
+    {
+      "id": "router_hierarchical_delegation_line_67_if_1",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_67_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "router_hierarchical_delegation_line_72_if_5",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_72_if_5",
+      "is_generated": true
+    },
+    {
+      "id": "router_hierarchical_delegation_line_76_if_4",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_76_if_4",
+      "is_generated": true
+    },
+    {
+      "id": "router_hierarchical_delegation_line_78_if_3",
+      "flow_role": "router",
+      "label": "router_hierarchical_delegation_line_78_if_3",
+      "is_generated": true
+    },
+    {
+      "id": "sql_specialist",
+      "flow_role": "processor",
+      "label": "sql_specialist",
+      "is_generated": false
+    },
+    {
+      "id": "start_hierarchical_delegation",
+      "flow_role": "entrypoint",
+      "label": "start_hierarchical_delegation",
+      "is_generated": true
+    },
+    {
+      "id": "writer",
+      "flow_role": "processor",
+      "label": "writer",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_hierarchical_delegation",
+      "to": "root_agent",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "root_agent",
+      "to": "router_hierarchical_delegation_line_61_if_6",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_67_if_1",
+      "to": "api_specialist",
+      "label": "p.get('subtask') == 'api'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_67_if_1",
+      "to": "data_generalist",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_65_if_2",
+      "to": "sql_specialist",
+      "label": "p.get('subtask') == 'sql'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_65_if_2",
+      "to": "router_hierarchical_delegation_line_67_if_1",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_78_if_3",
+      "to": "editor",
+      "label": "p.get('subtask') == 'edit'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_78_if_3",
+      "to": "content_generalist",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_76_if_4",
+      "to": "writer",
+      "label": "p.get('subtask') == 'write'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_76_if_4",
+      "to": "router_hierarchical_delegation_line_78_if_3",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_72_if_5",
+      "to": "content_team_lead",
+      "label": "p.get('domain') == 'content'",
+      "type": "prepend"
+    },
+    {
+      "from": "content_team_lead",
+      "to": "router_hierarchical_delegation_line_76_if_4",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_72_if_5",
+      "to": "generalist",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_61_if_6",
+      "to": "data_team_lead",
+      "label": "p.get('domain') == 'data'",
+      "type": "prepend"
+    },
+    {
+      "from": "data_team_lead",
+      "to": "router_hierarchical_delegation_line_65_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_hierarchical_delegation_line_61_if_6",
+      "to": "router_hierarchical_delegation_line_72_if_5",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "sql_specialist",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "generalist",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "api_specialist",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "data_generalist",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "writer",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "editor",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "content_generalist",
+      "to": "final_assembler",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

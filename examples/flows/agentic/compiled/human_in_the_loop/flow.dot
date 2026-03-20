@@ -1,36 +1,37 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "human_in_the_loop" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_human_in_the_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_human_in_the_loop(p)</i></td></tr><tr><td bgcolor="white" align="left">p['attempt'] = 0</td></tr></table>>];
-  router_human_in_the_loop_line_75_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_75_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('approval') == 'rejected'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_human_in_the_loop_line_80_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_80_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['result'] = 'Max revision attempts reached'</td></tr></table>>];
-  router_human_in_the_loop_line_79_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_79_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['attempt'] &gt;= 3</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_human_in_the_loop_line_70_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_70_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('approval') in ('approved', 'modified')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_human_in_the_loop_line_61_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_61_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['attempt'] += 1</td></tr></table>>];
-  router_human_in_the_loop_line_60_loop_back_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_human_in_the_loop_line_60_loo…(p)</i></td></tr></table>>];
-  end_human_in_the_loop [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_human_in_the_loop(p)</i></td></tr></table>>];
-  approval_gate [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await approval_gate(p)</i></td></tr></table>>];
-  executor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await executor(p)</i></td></tr></table>>];
-  notifier [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await notifier(p)</i></td></tr></table>>];
-  proposal_generator [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await proposal_generator(p)</i></td></tr></table>>];
-  revision_agent [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await revision_agent(p)</i></td></tr></table>>];
+    { rank=source; start_human_in_the_loop; }
 
-  approval_gate -> router_human_in_the_loop_line_70_if;
-  executor -> notifier;
-  notifier -> end_human_in_the_loop;
-  proposal_generator -> approval_gate;
-  revision_agent -> router_human_in_the_loop_line_79_if;
-  router_human_in_the_loop_line_60_loop_back_0 -> router_human_in_the_loop_line_61_seq [constraint=false];
-  router_human_in_the_loop_line_61_seq -> proposal_generator;
-  router_human_in_the_loop_line_70_if -> executor [label="T", color=darkseagreen4];
-  router_human_in_the_loop_line_70_if -> router_human_in_the_loop_line_75_if [label="F", color=indianred4];
-  router_human_in_the_loop_line_75_if -> revision_agent [label="T", color=darkseagreen4];
-  router_human_in_the_loop_line_75_if -> router_human_in_the_loop_line_79_if [label="F", color=indianred4];
-  router_human_in_the_loop_line_79_if -> router_human_in_the_loop_line_60_loop_back_0 [label="F", color=indianred4];
-  router_human_in_the_loop_line_79_if -> router_human_in_the_loop_line_80_seq [label="T", color=darkseagreen4];
-  router_human_in_the_loop_line_80_seq -> notifier;
-  start_human_in_the_loop -> router_human_in_the_loop_line_60_loop_back_0;
+    approval_gate [label="approval_gate", fillcolor=lightblue];
+    executor [label="executor", fillcolor=lightblue];
+    notifier [label="notifier", fillcolor=lightblue];
+    proposal_generator [label="proposal_generator", fillcolor=lightblue];
+    revision_agent [label="revision_agent", fillcolor=lightblue];
+    router_human_in_the_loop_line_60_while_1 [label="router_human_in_the_loop_line_60_while_1", fillcolor=wheat];
+    router_human_in_the_loop_line_61_seq_6 [label="router_human_in_the_loop_line_61_seq_6\n\np['attempt'] += 1", fillcolor=wheat];
+    router_human_in_the_loop_line_70_if_5 [label="router_human_in_the_loop_line_70_if_5", fillcolor=wheat];
+    router_human_in_the_loop_line_75_if_4 [label="router_human_in_the_loop_line_75_if_4", fillcolor=wheat];
+    router_human_in_the_loop_line_79_if_3 [label="router_human_in_the_loop_line_79_if_3", fillcolor=wheat];
+    router_human_in_the_loop_line_80_seq_2 [label="router_human_in_the_loop_line_80_seq_2\n\np['result'] = 'Max revision attempts reached'", fillcolor=wheat];
+    start_human_in_the_loop [label="start_human_in_the_loop\n\np['attempt'] = 0", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_human_in_the_loop -> router_human_in_the_loop_line_60_while_1;
+    router_human_in_the_loop_line_80_seq_2 -> notifier;
+    router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_80_seq_2 [label="p['attempt'] >= 3", color="#2E8B57", fontcolor="#2E8B57"];
+    router_human_in_the_loop_line_75_if_4 -> revision_agent [label="p.get('approval') == 'rejected'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_human_in_the_loop_line_70_if_5 -> router_human_in_the_loop_line_75_if_4 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_line_70_if_5 -> executor [label="p.get('approval') in ('approved', 'modified')", color="#2E8B57", fontcolor="#2E8B57"];
+    executor -> notifier;
+    router_human_in_the_loop_line_61_seq_6 -> proposal_generator;
+    proposal_generator -> approval_gate;
+    approval_gate -> router_human_in_the_loop_line_70_if_5;
+    router_human_in_the_loop_line_60_while_1 -> router_human_in_the_loop_line_61_seq_6;
+    revision_agent -> router_human_in_the_loop_line_79_if_3;
+    router_human_in_the_loop_line_79_if_3 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_line_75_if_4 -> router_human_in_the_loop_line_60_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    notifier -> __end__;
 }

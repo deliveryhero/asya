@@ -1,0 +1,21 @@
+flowchart TD
+    %% Flow: class_instantiation_flow
+
+    sequential_with_class_DataPreprocessor_clean[DataPreprocessor.clean]
+    sequential_with_class_MLModel_predict[MLModel.predict]
+    start_class_instantiation_flow([start_class_instantiation_flow])
+    transformation[transformation]
+    __end__((( )))
+
+    start_class_instantiation_flow --> sequential_with_class_DataPreprocessor_clean
+    sequential_with_class_DataPreprocessor_clean --> transformation
+    transformation --> sequential_with_class_MLModel_predict
+    sequential_with_class_MLModel_predict --> __end__
+
+    classDef entrypoint fill:#98FB98,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_class_instantiation_flow entrypoint
+    class sequential_with_class_DataPreprocessor_clean,sequential_with_class_MLModel_predict,transformation handler
+    class __end__ endpoint

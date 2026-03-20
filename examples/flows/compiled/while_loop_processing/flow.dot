@@ -1,38 +1,39 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "loop_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_loop_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_loop_flow(p)</i></td></tr></table>>];
-  router_loop_flow_line_23_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_23_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['abort'] = 2</td></tr></table>>];
-  router_loop_flow_line_21_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_21_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['abort'] = 1</td></tr></table>>];
-  router_loop_flow_line_27_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_27_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['threshold_met']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>pass</b></font></td></tr></table></td></tr></table>>];
-  router_loop_flow_line_20_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_20_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('skip_threshold_check')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_loop_flow_line_17_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_17_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] += 1</td></tr></table>>];
-  router_loop_flow_line_16_while_0 [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_16_while_0(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['iteration'] &lt; p['max_iterations']</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_loop_flow_line_15_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_loop_flow_line_15_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['iteration'] = 0</td></tr></table>>];
-  end_loop_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_loop_flow(p)</i></td></tr></table>>];
-  check_threshold [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = check_threshold(p)</i></td></tr></table>>];
-  finalize_loop [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = finalize_loop(p)</i></td></tr></table>>];
-  initialize [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = initialize(p)</i></td></tr></table>>];
-  process_abort [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_abort(p)</i></td></tr></table>>];
-  process_item [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = process_item(p)</i></td></tr></table>>];
+    { rank=source; start_loop_flow; }
 
-  check_threshold -> router_loop_flow_line_27_if;
-  finalize_loop -> end_loop_flow;
-  initialize -> router_loop_flow_line_15_seq;
-  process_abort -> router_loop_flow_line_23_seq;
-  process_item -> router_loop_flow_line_20_if;
-  router_loop_flow_line_15_seq -> router_loop_flow_line_16_while_0;
-  router_loop_flow_line_16_while_0 -> finalize_loop [label="F", color=indianred4];
-  router_loop_flow_line_16_while_0 -> router_loop_flow_line_17_seq [label="T", color=darkseagreen4];
-  router_loop_flow_line_17_seq -> process_item;
-  router_loop_flow_line_20_if -> check_threshold [label="F", color=indianred4];
-  router_loop_flow_line_20_if -> router_loop_flow_line_21_seq [label="T", color=darkseagreen4];
-  router_loop_flow_line_21_seq -> process_abort;
-  router_loop_flow_line_23_seq -> router_loop_flow_line_16_while_0;
-  router_loop_flow_line_27_if -> finalize_loop [label="T", color=darkseagreen4];
-  router_loop_flow_line_27_if -> router_loop_flow_line_16_while_0 [label="F", color=indianred4, constraint=false];
-  start_loop_flow -> initialize;
+    check_threshold [label="check_threshold", fillcolor=lightblue];
+    finalize_loop [label="finalize_loop", fillcolor=lightblue];
+    initialize [label="initialize", fillcolor=lightblue];
+    process_abort [label="process_abort", fillcolor=lightblue];
+    process_item [label="process_item", fillcolor=lightblue];
+    router_loop_flow_line_15_seq_7 [label="router_loop_flow_line_15_seq_7\n\np['iteration'] = 0", fillcolor=wheat];
+    router_loop_flow_line_16_while_1 [label="router_loop_flow_line_16_while_1", fillcolor=wheat];
+    router_loop_flow_line_17_seq_6 [label="router_loop_flow_line_17_seq_6\n\np['iteration'] += 1", fillcolor=wheat];
+    router_loop_flow_line_20_if_5 [label="router_loop_flow_line_20_if_5", fillcolor=wheat];
+    router_loop_flow_line_21_seq_4 [label="router_loop_flow_line_21_seq_4\n\np['abort'] = 1", fillcolor=wheat];
+    router_loop_flow_line_23_seq_3 [label="router_loop_flow_line_23_seq_3\n\np['abort'] = 2", fillcolor=wheat];
+    router_loop_flow_line_27_if_2 [label="router_loop_flow_line_27_if_2", fillcolor=wheat];
+    start_loop_flow [label="start_loop_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_loop_flow -> initialize;
+    initialize -> router_loop_flow_line_15_seq_7;
+    router_loop_flow_line_27_if_2 -> finalize_loop [label="p['threshold_met']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_loop_flow_line_23_seq_3 -> router_loop_flow_line_16_while_1;
+    router_loop_flow_line_21_seq_4 -> process_abort;
+    process_abort -> router_loop_flow_line_23_seq_3;
+    router_loop_flow_line_20_if_5 -> router_loop_flow_line_21_seq_4 [label="p.get('skip_threshold_check')", color="#2E8B57", fontcolor="#2E8B57"];
+    router_loop_flow_line_20_if_5 -> check_threshold [label="else", color="#D35400", fontcolor="#D35400"];
+    check_threshold -> router_loop_flow_line_27_if_2;
+    router_loop_flow_line_17_seq_6 -> process_item;
+    process_item -> router_loop_flow_line_20_if_5;
+    router_loop_flow_line_16_while_1 -> router_loop_flow_line_17_seq_6 [label="p['iteration'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_loop_flow_line_16_while_1 -> finalize_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_loop_flow_line_15_seq_7 -> router_loop_flow_line_16_while_1;
+    router_loop_flow_line_27_if_2 -> router_loop_flow_line_16_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    finalize_loop -> __end__;
 }

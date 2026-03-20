@@ -1,26 +1,27 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "with_inline_ctx" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_processing(p)</i></td></tr><tr><td bgcolor="white" align="left">p['stage'] = 'validation'</td></tr></table>>];
-  router_order_processing_line_33_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_33_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'rejected'</td></tr></table>>];
-  router_order_processing_line_36_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_36_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['stage'] = 'fulfillment'</td></tr></table>>];
-  router_order_processing_line_30_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_30_if(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p.get('valid')</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_order_processing_line_27_with [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_27_with(p)</i></td></tr></table>>];
-  end_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_processing(p)</i></td></tr></table>>];
-  fulfillment_handler [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = fulfillment_handler(p)</i></td></tr></table>>];
-  payment_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = payment_processor(p)</i></td></tr></table>>];
-  validate_order [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = validate_order(p)</i></td></tr></table>>];
+    { rank=source; start_order_processing; }
 
-  fulfillment_handler -> end_order_processing;
-  payment_processor -> router_order_processing_line_36_seq;
-  router_order_processing_line_27_with -> validate_order;
-  router_order_processing_line_30_if -> payment_processor [label="T", color=darkseagreen4];
-  router_order_processing_line_30_if -> router_order_processing_line_33_seq [label="F", color=indianred4];
-  router_order_processing_line_33_seq -> end_order_processing;
-  router_order_processing_line_36_seq -> fulfillment_handler;
-  start_order_processing -> router_order_processing_line_27_with;
-  validate_order -> router_order_processing_line_30_if;
+    fulfillment_handler [label="fulfillment_handler", fillcolor=lightblue];
+    payment_processor [label="payment_processor", fillcolor=lightblue];
+    router_order_processing_line_27_with [label="router_order_processing_line_27_with", fillcolor=wheat];
+    router_order_processing_line_30_if [label="router_order_processing_line_30_if", fillcolor=wheat];
+    router_order_processing_line_33_seq [label="router_order_processing_line_33_seq\n\np['status'] = 'rejected'", fillcolor=wheat];
+    router_order_processing_line_36_seq [label="router_order_processing_line_36_seq\n\np['stage'] = 'fulfillment'", fillcolor=wheat];
+    start_order_processing [label="start_order_processing\n\np['stage'] = 'validation'", fillcolor=palegreen];
+    validate_order [label="validate_order", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_order_processing -> router_order_processing_line_27_with;
+    router_order_processing_line_36_seq -> fulfillment_handler;
+    router_order_processing_line_30_if -> payment_processor [label="p.get('valid')"];
+    payment_processor -> router_order_processing_line_36_seq;
+    router_order_processing_line_30_if -> router_order_processing_line_33_seq [label="not (p.get('valid'))"];
+    router_order_processing_line_27_with -> validate_order;
+    validate_order -> router_order_processing_line_30_if;
+    fulfillment_handler -> __end__;
+    router_order_processing_line_33_seq -> __end__;
 }

@@ -1,0 +1,62 @@
+{
+  "flow_name": "decorator_inline_comments_flow",
+  "nodes": [
+    {
+      "id": "classifier",
+      "flow_role": "processor",
+      "label": "classifier",
+      "is_generated": false
+    },
+    {
+      "id": "fast_handler",
+      "flow_role": "exitpoint",
+      "label": "fast_handler",
+      "is_generated": false
+    },
+    {
+      "id": "router_decorator_inline_comments_flow_line_18_if_1",
+      "flow_role": "router",
+      "label": "router_decorator_inline_comments_flow_line_18_if_1",
+      "is_generated": true
+    },
+    {
+      "id": "standard_handler",
+      "flow_role": "exitpoint",
+      "label": "standard_handler",
+      "is_generated": false
+    },
+    {
+      "id": "start_decorator_inline_comments_flow",
+      "flow_role": "entrypoint",
+      "label": "start_decorator_inline_comments_flow",
+      "is_generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_decorator_inline_comments_flow",
+      "to": "classifier",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_decorator_inline_comments_flow_line_18_if_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "to": "fast_handler",
+      "label": "p['category'] == 'priority'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "to": "standard_handler",
+      "label": "else",
+      "type": "prepend"
+    }
+  ],
+  "groups": []
+}

@@ -1,26 +1,27 @@
-digraph flow {
-  rankdir=TB;
-  compound=true;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "try_except_simple" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = start_order_processing(p)</i></td></tr></table>>];
-  router_order_processing_line_7_seq [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = router_order_processing_line_7_seq(p)</i></td></tr><tr><td bgcolor="white" align="left">p['status'] = 'invalid'</td></tr></table>>];
-  end_order_processing [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = end_order_processing(p)</i></td></tr></table>>];
-  notify_rejection [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = notify_rejection(p)</i></td></tr></table>>];
-  subgraph cluster_try_0 {
-    style=dashed;
-    color="snow4";
-    fontname="Courier";
-    fontsize=10;
-    label="try";
-    validate_order [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = validate_order(p)</i></td></tr></table>>];
-  }
+    { rank=source; start_order_processing; }
 
-  notify_rejection -> end_order_processing;
-  router_order_processing_line_7_seq -> notify_rejection;
-  start_order_processing -> validate_order;
-  validate_order -> end_order_processing;
-  validate_order -> router_order_processing_line_7_seq [ltail=cluster_try_0, color=snow4, style=dashed, label="except ValueError", constraint=false];
+    notify_rejection [label="notify_rejection", fillcolor=lightblue];
+    router_order_processing_line_4_except_dispatch_0 [label="router_order_processing_line_4_except_dispatch_0", fillcolor=wheat];
+    router_order_processing_line_4_reraise_0 [label="router_order_processing_line_4_reraise_0", fillcolor=wheat];
+    router_order_processing_line_4_try_enter_0 [label="router_order_processing_line_4_try_enter_0", fillcolor=wheat];
+    router_order_processing_line_4_try_exit_0 [label="router_order_processing_line_4_try_exit_0", fillcolor=wheat];
+    router_order_processing_line_7_seq [label="router_order_processing_line_7_seq\n\np['status'] = 'invalid'", fillcolor=wheat];
+    start_order_processing [label="start_order_processing", fillcolor=palegreen];
+    validate_order [label="validate_order", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_order_processing -> router_order_processing_line_4_try_enter_0;
+    router_order_processing_line_7_seq -> notify_rejection;
+    router_order_processing_line_4_try_enter_0 -> validate_order;
+    validate_order -> router_order_processing_line_4_try_exit_0;
+    router_order_processing_line_4_except_dispatch_0 -> router_order_processing_line_7_seq [label="'ValueError' in _all_types"];
+    router_order_processing_line_4_except_dispatch_0 -> router_order_processing_line_4_reraise_0 [label="not ('ValueError' in _all_types)"];
+    notify_rejection -> __end__;
+    router_order_processing_line_4_reraise_0 -> __end__;
+    router_order_processing_line_4_try_exit_0 -> __end__;
 }

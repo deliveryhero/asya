@@ -17,11 +17,11 @@ async def start_nested_loop_flow(payload: dict):
     """Entrypoint for flow 'nested_loop_flow'"""
     _next = []
     _next.append(resolve("initialize"))
-    _next.append(resolve("router_nested_loop_flow_line_15_seq"))
+    _next.append(resolve("router_nested_loop_flow_line_15_seq_5"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_loop_flow_line_20_seq(payload: dict):
+async def router_nested_loop_flow_line_20_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,37 +31,39 @@ async def router_nested_loop_flow_line_20_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_loop_flow_line_19_while_1(payload: dict):
+async def router_nested_loop_flow_line_19_while_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['j'] < p['max_j']:
-        _next.append(resolve("router_nested_loop_flow_line_20_seq"))
-        _next.append(resolve("router_nested_loop_flow_line_19_while_1"))
+        _next.append(resolve("router_nested_loop_flow_line_20_seq_3"))
+        _next.append(resolve("router_nested_loop_flow_line_19_while_2"))
     else:
-        _next.append(resolve("finalize_loop_j"))
+        yield "SET", ".route.next", [resolve("finalize_loop_j")]
+        yield p
+        return
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_loop_flow_line_17_seq(payload: dict):
+async def router_nested_loop_flow_line_17_seq_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['i'] += 1
     p['j'] = 0
-    _next.append(resolve("router_nested_loop_flow_line_19_while_1"))
+    _next.append(resolve("router_nested_loop_flow_line_19_while_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_loop_flow_line_16_while_0(payload: dict):
+async def router_nested_loop_flow_line_16_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['i'] < p['max_i']:
-        _next.append(resolve("router_nested_loop_flow_line_17_seq"))
-        _next.append(resolve("router_nested_loop_flow_line_16_while_0"))
+        _next.append(resolve("router_nested_loop_flow_line_17_seq_4"))
+        _next.append(resolve("router_nested_loop_flow_line_16_while_1"))
     else:
         yield "SET", ".route.next", [resolve("finalize_loop_i")]
         yield p
@@ -70,19 +72,14 @@ async def router_nested_loop_flow_line_16_while_0(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_loop_flow_line_15_seq(payload: dict):
+async def router_nested_loop_flow_line_15_seq_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['i'] = 0
-    _next.append(resolve("router_nested_loop_flow_line_16_while_0"))
+    _next.append(resolve("router_nested_loop_flow_line_16_while_1"))
 
     yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def end_nested_loop_flow(payload: dict):
-    """Exitpoint for flow 'nested_loop_flow'"""
-    yield "SET", ".route.next", []
     yield payload
 
 

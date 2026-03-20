@@ -18,11 +18,11 @@ import copy
 async def start_analysis_flow(payload: dict):
     """Entrypoint for flow 'analysis_flow'"""
     _next = []
-    _next.append(resolve("fanout_analysis_flow_line_14"))
+    _next.append(resolve("router_analysis_flow_line_14_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def fanout_analysis_flow_line_14(payload: dict):
+async def router_analysis_flow_line_14_fanout_1(payload: dict):
     """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
     p = payload
 
@@ -53,11 +53,6 @@ async def fanout_analysis_flow_line_14(payload: dict):
         yield "SET", ".route.next", [_actor, _agg]
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
-
-async def end_analysis_flow(payload: dict):
-    """Exitpoint for flow 'analysis_flow'"""
-    yield "SET", ".route.next", []
-    yield payload
 
 
 # ======================================================================

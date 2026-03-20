@@ -1,0 +1,100 @@
+{
+  "flow_name": "try_except_simple",
+  "nodes": [
+    {
+      "id": "notify_rejection",
+      "flow_role": "exitpoint",
+      "label": "notify_rejection",
+      "is_generated": false
+    },
+    {
+      "id": "router_order_processing_line_4_except_dispatch_0",
+      "flow_role": "router",
+      "label": "router_order_processing_line_4_except_dispatch_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_reraise_0",
+      "flow_role": "exitpoint",
+      "label": "router_order_processing_line_4_reraise_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_try_enter_0",
+      "flow_role": "router",
+      "label": "router_order_processing_line_4_try_enter_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_4_try_exit_0",
+      "flow_role": "exitpoint",
+      "label": "router_order_processing_line_4_try_exit_0",
+      "is_generated": true
+    },
+    {
+      "id": "router_order_processing_line_7_seq",
+      "flow_role": "router",
+      "label": "router_order_processing_line_7_seq",
+      "is_generated": true,
+      "mutations": ["p['status'] = 'invalid'"]
+    },
+    {
+      "id": "start_order_processing",
+      "flow_role": "entrypoint",
+      "label": "start_order_processing",
+      "is_generated": true
+    },
+    {
+      "id": "validate_order",
+      "flow_role": "processor",
+      "label": "validate_order",
+      "is_generated": false
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_order_processing",
+      "to": "router_order_processing_line_4_try_enter_0",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_7_seq",
+      "to": "notify_rejection",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_4_try_enter_0",
+      "to": "validate_order",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_order",
+      "to": "router_order_processing_line_4_try_exit_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_order_processing_line_4_except_dispatch_0",
+      "to": "router_order_processing_line_7_seq",
+      "label": "'ValueError' in _all_types",
+      "type": "prepend"
+    },
+    {
+      "from": "router_order_processing_line_4_except_dispatch_0",
+      "to": "router_order_processing_line_4_reraise_0",
+      "label": "not ('ValueError' in _all_types)",
+      "type": "prepend"
+    }
+  ],
+  "groups": [],
+  "warnings": [
+    "node 'notify_rejection' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_except_dispatch_0' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_reraise_0' is not reachable from entrypoint",
+    "node 'router_order_processing_line_7_seq' is not reachable from entrypoint",
+    "node 'router_order_processing_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
+  ]
+}

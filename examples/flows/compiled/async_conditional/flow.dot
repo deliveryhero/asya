@@ -1,27 +1,28 @@
-digraph flow {
-  rankdir=TB;
-  graph [fontname="Courier", fontsize=10];
-  node [fontname="Courier", fontsize=10, shape=box, style="filled,rounded", margin="0.2"];
-  edge [fontname="Courier", fontsize=10];
+digraph "content_pipeline_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
 
-  start_content_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await start_content_pipeline_flow(p)</i></td></tr></table>>];
-  router_content_pipeline_flow_line_18_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_18…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'image'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  router_content_pipeline_flow_line_16_if [fillcolor="wheat", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await router_content_pipeline_flow_line_16…(p)</i></td></tr><tr><td bgcolor="lightyellow"><b>if</b> p['content_type'] == 'text'</td></tr><tr><td><table border="0" cellspacing="0" cellpadding="4"><tr><td bgcolor="darkseagreen4"><font color="white"><b>TRUE</b></font></td><td bgcolor="indianred4"><font color="white"><b>FALSE</b></font></td></tr></table></td></tr></table>>];
-  end_content_pipeline_flow [fillcolor="lightgreen", group="main", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await end_content_pipeline_flow(p)</i></td></tr></table>>];
-  classifier [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await classifier(p)</i></td></tr></table>>];
-  generic_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await generic_processor(p)</i></td></tr></table>>];
-  image_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await image_processor(p)</i></td></tr></table>>];
-  quality_check [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await quality_check(p)</i></td></tr></table>>];
-  text_processor [fillcolor="lightblue", label=<<table border="0" cellspacing="0" cellpadding="6" cellborder="1"><tr><td bgcolor="white" align="center"><i>p = await text_processor(p)</i></td></tr></table>>];
+    { rank=source; start_content_pipeline_flow; }
 
-  classifier -> router_content_pipeline_flow_line_16_if;
-  generic_processor -> quality_check;
-  image_processor -> quality_check;
-  quality_check -> end_content_pipeline_flow;
-  router_content_pipeline_flow_line_16_if -> router_content_pipeline_flow_line_18_if [label="F", color=indianred4];
-  router_content_pipeline_flow_line_16_if -> text_processor [label="T", color=darkseagreen4];
-  router_content_pipeline_flow_line_18_if -> generic_processor [label="F", color=indianred4];
-  router_content_pipeline_flow_line_18_if -> image_processor [label="T", color=darkseagreen4];
-  start_content_pipeline_flow -> classifier;
-  text_processor -> quality_check;
+    classifier [label="classifier", fillcolor=lightblue];
+    generic_processor [label="generic_processor", fillcolor=lightblue];
+    image_processor [label="image_processor", fillcolor=lightblue];
+    quality_check [label="quality_check", fillcolor=lightblue];
+    router_content_pipeline_flow_line_16_if_2 [label="router_content_pipeline_flow_line_16_if_2", fillcolor=wheat];
+    router_content_pipeline_flow_line_18_if_1 [label="router_content_pipeline_flow_line_18_if_1", fillcolor=wheat];
+    start_content_pipeline_flow [label="start_content_pipeline_flow", fillcolor=palegreen];
+    text_processor [label="text_processor", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_content_pipeline_flow -> classifier;
+    classifier -> router_content_pipeline_flow_line_16_if_2;
+    router_content_pipeline_flow_line_18_if_1 -> image_processor [label="p['content_type'] == 'image'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_content_pipeline_flow_line_18_if_1 -> generic_processor [label="else", color="#D35400", fontcolor="#D35400"];
+    router_content_pipeline_flow_line_16_if_2 -> text_processor [label="p['content_type'] == 'text'", color="#2E8B57", fontcolor="#2E8B57"];
+    text_processor -> quality_check;
+    router_content_pipeline_flow_line_16_if_2 -> router_content_pipeline_flow_line_18_if_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    image_processor -> quality_check;
+    generic_processor -> quality_check;
+    quality_check -> __end__;
 }
