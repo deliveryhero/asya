@@ -1,7 +1,10 @@
 ---
 title: "Compiler rules: extend WhereNode with append-to and value for policies+rules XR fields"
 priority: 2 # medium
+tags:
+  - integrate-into:gml9
 ---
+
 
 ## Context
 
