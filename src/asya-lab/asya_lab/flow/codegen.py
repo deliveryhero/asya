@@ -25,6 +25,9 @@ from asya_lab.flow.parser import (
 )
 
 
+ROUTER_PREFIXES = ("start_", "router_", "fanin_")
+
+
 @dataclass
 class _LoopCtx:
     """Context passed through recursion for break/continue resolution."""
@@ -42,6 +45,16 @@ class _RouterFunc:
     # For seq routers only — enables merging into start_
     seq_mutations: list[Mutation] | None = None
     seq_chain: list[str] | None = None
+
+
+@dataclass
+class CodegenMeta:
+    """Metadata about generated code, used by manifest templater."""
+
+    router_names: list[str]
+    all_handler_names: set[str]
+    router_refs: dict[str, list[str]]  # router_name -> list of referenced actor names
+    single_actor: str | None  # set for single-actor flows
 
 
 class CodeGenerator:
@@ -91,6 +104,35 @@ class CodeGenerator:
         parts.append(self._generate_resolve_function())
 
         return "\n".join(parts)
+
+    def get_meta(self) -> CodegenMeta:
+        """Return metadata about the generated code."""
+        if self._is_single_actor_flow():
+            actor = next(op for op in self.result.operations if isinstance(op, ActorCall))
+            return CodegenMeta(
+                router_names=[],
+                all_handler_names=set(),
+                router_refs={},
+                single_actor=actor.name,
+            )
+
+        start_name = f"start_{self.flow_name}"
+        router_names = [start_name]
+        for rf in self._functions:
+            router_names.append(rf.name)
+
+        all_handlers = set(self._all_handlers)
+        # Conservative: each router gets refs to ALL handlers.
+        # The resolve() function uses env-var lookup at runtime, so
+        # each router pod needs all handler mappings available.
+        router_refs = {rname: sorted(all_handlers) for rname in router_names}
+
+        return CodegenMeta(
+            router_names=router_names,
+            all_handler_names=all_handlers,
+            router_refs=router_refs,
+            single_actor=None,
+        )
 
     # -- Single-actor optimization --
 
