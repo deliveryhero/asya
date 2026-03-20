@@ -164,6 +164,12 @@
       "to": "end_rag_pipeline",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "query_refiner",
+      "to": "end_rag_pipeline",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

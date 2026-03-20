@@ -1,4 +1,4 @@
-digraph "try_except_retry_loop" {
+digraph "retry_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -24,7 +24,8 @@ digraph "try_except_retry_loop" {
     router_retry_pipeline_line_18_except_dispatch_0 -> router_retry_pipeline_line_18_reraise_0 [label="not ('ValueError' in _all_types)"];
     router_retry_pipeline_line_17_seq -> router_retry_pipeline_line_18_try_enter_0;
     router_retry_pipeline_line_16_while_0 -> router_retry_pipeline_line_17_seq [label="p['attempt'] < 3"];
-    router_retry_pipeline_line_16_while_0 -> end_retry_pipeline [label="not (p['attempt'] < 3)", style=dashed];
     router_retry_pipeline_line_18_try_enter_0 -> router_retry_pipeline_line_16_while_0;
+    log_retry -> end_retry_pipeline;
+    router_retry_pipeline_line_18_reraise_0 -> end_retry_pipeline;
     router_retry_pipeline_line_18_try_exit_0 -> end_retry_pipeline;
 }

@@ -22,13 +22,11 @@ digraph "complex_flow" {
     start_complex_flow -> handler_preprocess;
     handler_preprocess -> handler_validate;
     handler_validate -> router_complex_flow_line_15_if_6;
-    router_complex_flow_line_29_if_2 -> end_complex_flow [label="p['quality_score'] >= 50", style=dashed];
     router_complex_flow_line_26_if_3 -> router_complex_flow_line_22_while_1 [label="p['quality_score'] < 20"];
     router_complex_flow_line_26_if_3 -> router_complex_flow_line_29_if_2 [label="not (p['quality_score'] < 20)"];
     router_complex_flow_line_22_while_1 -> handler_transform_batch [label="p.get('batch_count', 0) < p.get('max_batches', 3)"];
     handler_transform_batch -> handler_check_quality;
     handler_check_quality -> router_complex_flow_line_26_if_3;
-    router_complex_flow_line_22_while_1 -> end_complex_flow [label="not (p.get('batch_count', 0) < p.get('max_batches', 3))", style=dashed];
     router_complex_flow_line_32_if_4 -> handler_retry_handler [label="p.get('requires_retry')"];
     router_complex_flow_line_19_if_5 -> handler_enrich_data [label="p.get('needs_enrichment')"];
     handler_enrich_data -> router_complex_flow_line_22_while_1;

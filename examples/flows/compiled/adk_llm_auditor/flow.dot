@@ -1,4 +1,4 @@
-digraph "adk_llm_auditor" {
+digraph "llm_auditor" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

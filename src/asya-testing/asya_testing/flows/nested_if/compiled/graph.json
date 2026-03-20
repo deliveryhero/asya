@@ -194,6 +194,30 @@
       "to": "end_test_nested_flow",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "route_a_x",
+      "to": "end_test_nested_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_a_y",
+      "to": "end_test_nested_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_b_x",
+      "to": "end_test_nested_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "route_b_y",
+      "to": "end_test_nested_flow",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

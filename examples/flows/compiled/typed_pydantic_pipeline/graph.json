@@ -31,7 +31,7 @@
       "from": "router_ingester_line_181_seq_1",
       "to": "end_ingester",
       "label": null,
-      "type": "abort"
+      "type": "continuation"
     }
   ],
   "groups": []

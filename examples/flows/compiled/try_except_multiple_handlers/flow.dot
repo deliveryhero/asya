@@ -1,4 +1,4 @@
-digraph "try_except_multiple_handlers" {
+digraph "data_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -28,5 +28,9 @@ digraph "try_except_multiple_handlers" {
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_11_seq [label="'TypeError' in _all_types"];
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_14_seq [label="'RuntimeError' in _all_types"];
     router_data_pipeline_line_4_except_dispatch_0 -> router_data_pipeline_line_4_reraise_0 [label="not ('RuntimeError' in _all_types)"];
+    handle_runtime_error -> end_data_pipeline;
+    handle_type_error -> end_data_pipeline;
+    handle_validation_error -> end_data_pipeline;
+    router_data_pipeline_line_4_reraise_0 -> end_data_pipeline;
     router_data_pipeline_line_4_try_exit_0 -> end_data_pipeline;
 }

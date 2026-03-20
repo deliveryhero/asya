@@ -2,12 +2,6 @@
   "flow_name": "react_agent",
   "nodes": [
     {
-      "id": "end_react_agent",
-      "flow_role": "exit",
-      "label": "end_react_agent",
-      "is_generated": true
-    },
-    {
       "id": "execute_tool",
       "flow_role": "actor",
       "label": "execute_tool",
@@ -50,12 +44,6 @@
       "to": "execute_tool",
       "label": "p.get('tool_calls')",
       "type": "prepend"
-    },
-    {
-      "from": "router_react_agent_line_16_if_2",
-      "to": "end_react_agent",
-      "label": "not (p.get('tool_calls'))",
-      "type": "abort"
     },
     {
       "from": "router_react_agent_line_14_while_1",

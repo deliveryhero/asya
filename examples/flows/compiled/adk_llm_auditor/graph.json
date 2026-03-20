@@ -1,5 +1,5 @@
 {
-  "flow_name": "adk_llm_auditor",
+  "flow_name": "llm_auditor",
   "nodes": [
     {
       "id": "accuracy_scorer",

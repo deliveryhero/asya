@@ -1,4 +1,4 @@
-digraph "try_except_simple" {
+digraph "order_processing" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -18,5 +18,7 @@ digraph "try_except_simple" {
     validate_order -> router_order_processing_line_4_try_exit_0;
     router_order_processing_line_4_except_dispatch_0 -> router_order_processing_line_7_seq [label="'ValueError' in _all_types"];
     router_order_processing_line_4_except_dispatch_0 -> router_order_processing_line_4_reraise_0 [label="not ('ValueError' in _all_types)"];
+    notify_rejection -> end_order_processing;
+    router_order_processing_line_4_reraise_0 -> end_order_processing;
     router_order_processing_line_4_try_exit_0 -> end_order_processing;
 }

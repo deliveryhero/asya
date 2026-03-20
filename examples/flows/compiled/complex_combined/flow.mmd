@@ -40,4 +40,7 @@ flowchart TD
     router_complex_combined_flow_line_21_while_1 --> handler_finalize
     handler_type_a --> handler_finalize
     router_complex_combined_flow_line_34_if_5 --> handler_finalize
+    handler_default --> end_complex_combined_flow
+    handler_error --> end_complex_combined_flow
     handler_finalize --> end_complex_combined_flow
+    handler_type_b --> end_complex_combined_flow

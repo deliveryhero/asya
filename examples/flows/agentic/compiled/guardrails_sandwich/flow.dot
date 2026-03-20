@@ -20,5 +20,7 @@ digraph "guardrails_sandwich" {
     output_validator -> router_guardrails_sandwich_line_47_try_exit_0;
     router_guardrails_sandwich_line_47_except_dispatch_0 -> safe_fallback [label="'Exception' in _all_types"];
     router_guardrails_sandwich_line_47_except_dispatch_0 -> router_guardrails_sandwich_line_47_reraise_0 [label="not ('Exception' in _all_types)"];
+    router_guardrails_sandwich_line_47_reraise_0 -> end_guardrails_sandwich;
     router_guardrails_sandwich_line_47_try_exit_0 -> end_guardrails_sandwich;
+    safe_fallback -> end_guardrails_sandwich;
 }

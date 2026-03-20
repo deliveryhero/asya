@@ -224,33 +224,14 @@ def _extract_yield_edges(func_node: ast.AST, handler_name: str) -> list[dict]:
         elif isinstance(targets_node, ast.Name) and targets_node.id == "_next":
             # Variable reference: each branch is a sequential chain
             if not append_chains:
-                if edge_type == "set":
-                    condition = _find_enclosing_condition(parent_map, node)
-                    edges.append(
-                        {
-                            "from": handler_name,
-                            "to": "__terminal__",
-                            "label": condition,
-                            "type": "abort",
-                        }
-                    )
+                pass  # Empty route list = leaf node, no edge needed
             else:
                 for chain in append_chains:
                     names = [t[0] for t in chain]
                     condition = chain[0][1]
                     edges.extend(_chain_to_edges(handler_name, names, condition, edge_type))
         elif isinstance(targets_node, ast.List) and not targets_node.elts:
-            # yield "SET", ".route.next", [] -> abort/terminal
-            if edge_type == "set":
-                condition = _find_enclosing_condition(parent_map, node)
-                edges.append(
-                    {
-                        "from": handler_name,
-                        "to": "__terminal__",
-                        "label": condition,
-                        "type": "abort",
-                    }
-                )
+            pass  # Empty route list = leaf node, no edge needed
 
     # Fanout slice edges: router → each slice actor → aggregator
     if slice_targets:
@@ -484,41 +465,22 @@ def analyze(
 
     # Step 6: Connect endpoint handlers to end_ node (implicit flow continuation).
     # The end_ router is in the initial route.next; start_ prepends before it.
-    # Endpoint handlers are leaf nodes that sit at the end of continuation chains
-    # (e.g., handler_finalize), not intermediate dispatch targets (e.g., handler_type_b).
+    # Endpoint handlers are leaf nodes with incoming edges but no outgoing edges.
+    # After Step 4 splicing, any remaining leaf is a true endpoint.
     end_nodes = [n for n in router_names if n.startswith("end_")]
     if end_nodes:
         sources = {e["from"] for e in all_edges}
-        targets = {e["to"] for e in all_edges if e["to"] != "__terminal__"}
-        leaf_handlers = targets - sources
-        # Prefer leaf handlers that are continuation targets (final chain steps)
-        continuation_targets = {e["to"] for e in all_edges if e["type"] == "continuation"}
-        endpoints = leaf_handlers & continuation_targets
-        if not endpoints:
-            # Simple flows with no continuation edges — all leaves are endpoints
-            endpoints = leaf_handlers
+        targets = {e["to"] for e in all_edges}
+        endpoints = targets - sources
         for end_node in end_nodes:
             for ep in sorted(endpoints):
                 all_edges.append({"from": ep, "to": end_node, "label": None, "type": "continuation"})
-
-    # Step 7: Replace __terminal__ with end_ node.
-    # Abort edges (route.next = []) are semantically "flow ends here". When an
-    # end_ node exists, point aborts at it instead of the invisible __terminal__
-    # sentinel. Skip the end_ node's own abort (it IS the exit).
-    if end_nodes:
-        end_node = end_nodes[0]
-        all_edges = [
-            {**e, "to": end_node} if e["to"] == "__terminal__" and e["from"] != end_node else e for e in all_edges
-        ]
-        # Remove end_ self-abort — it's the exit, not an error
-        all_edges = [e for e in all_edges if not (e["from"] == end_node and e["to"] == "__terminal__")]
 
     # Build nodes from all referenced names
     all_names: set[str] = set()
     for edge in all_edges:
         all_names.add(edge["from"])
-        if edge["to"] != "__terminal__":
-            all_names.add(edge["to"])
+        all_names.add(edge["to"])
 
     nodes = []
     for name in sorted(all_names):
@@ -545,12 +507,11 @@ def _determine_flow_role(name: str, router_names: set[str], edges: list[dict]) -
     if name.startswith("fanin_"):
         return "router"
 
-    # Check if it's a target of any edge but not a source -> could be exit
     is_source = any(e["from"] == name for e in edges)
     is_target = any(e["to"] == name for e in edges)
 
     if is_target and not is_source:
-        return "actor"
+        return "exit"
     if name in router_names:
         return "router"
     return "actor"

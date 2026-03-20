@@ -14,4 +14,5 @@ flowchart TD
     router_review_pipeline_flow_line_17_if_1 -->|p['score'] < 0.5| detailed_review
     detailed_review --> human_review
     router_review_pipeline_flow_line_17_if_1 -->|not (p['score'] < 0.5)| auto_approve
+    auto_approve --> end_review_pipeline_flow
     human_review --> end_review_pipeline_flow

@@ -30,8 +30,6 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     lines.append("")
 
     for edge in data.edges:
-        if edge["to"] == "__terminal__":
-            continue
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
         attrs = []
@@ -77,8 +75,6 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     lines.append("")
 
     for edge in data.edges:
-        if edge["to"] == "__terminal__":
-            continue
         src = _sanitize_id(edge["from"])
         dst = _sanitize_id(edge["to"])
         label = edge.get("label", "")

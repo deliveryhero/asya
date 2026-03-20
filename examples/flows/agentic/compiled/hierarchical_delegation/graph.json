@@ -238,7 +238,37 @@
       "type": "continuation"
     },
     {
+      "from": "api_specialist",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "content_generalist",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "data_generalist",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "editor",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "final_assembler",
+      "to": "end_hierarchical_delegation",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "writer",
       "to": "end_hierarchical_delegation",
       "label": null,
       "type": "continuation"

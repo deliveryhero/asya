@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_multiple_handlers",
+  "flow_name": "data_pipeline",
   "nodes": [
     {
       "id": "end_data_pipeline",
@@ -51,7 +51,7 @@
     },
     {
       "id": "router_data_pipeline_line_4_reraise_0",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_data_pipeline_line_4_reraise_0",
       "is_generated": true
     },
@@ -152,6 +152,30 @@
       "to": "router_data_pipeline_line_4_reraise_0",
       "label": "not ('RuntimeError' in _all_types)",
       "type": "prepend"
+    },
+    {
+      "from": "handle_runtime_error",
+      "to": "end_data_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handle_type_error",
+      "to": "end_data_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handle_validation_error",
+      "to": "end_data_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_data_pipeline_line_4_reraise_0",
+      "to": "end_data_pipeline",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_data_pipeline_line_4_try_exit_0",

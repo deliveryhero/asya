@@ -118,12 +118,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_complex_combined_flow_line_29_if_2",
-      "to": "end_complex_combined_flow",
-      "label": "p['stop_early']",
-      "type": "abort"
-    },
-    {
       "from": "router_complex_combined_flow_line_24_if_3",
       "to": "router_complex_combined_flow_line_21_while_1",
       "label": "p['skip_even'] and p['i'] % 2 == 0",
@@ -146,12 +140,6 @@
       "to": "router_complex_combined_flow_line_24_if_3",
       "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
-    },
-    {
-      "from": "router_complex_combined_flow_line_21_while_1",
-      "to": "end_complex_combined_flow",
-      "label": "not (p['i'] < p['max_iterations'])",
-      "type": "abort"
     },
     {
       "from": "router_complex_combined_flow_line_20_seq_4",
@@ -232,7 +220,25 @@
       "type": "continuation"
     },
     {
+      "from": "handler_default",
+      "to": "end_complex_combined_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_error",
+      "to": "end_complex_combined_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "handler_finalize",
+      "to": "end_complex_combined_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handler_type_b",
       "to": "end_complex_combined_flow",
       "label": null,
       "type": "continuation"

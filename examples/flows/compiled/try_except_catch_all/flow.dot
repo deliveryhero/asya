@@ -1,4 +1,4 @@
-digraph "try_except_catch_all" {
+digraph "resilient_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -20,5 +20,7 @@ digraph "try_except_catch_all" {
     risky_operation -> router_resilient_pipeline_line_4_try_exit_0;
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_7_seq [label="'ValueError' in _all_types"];
     router_resilient_pipeline_line_4_except_dispatch_0 -> router_resilient_pipeline_line_10_seq [label="not ('ValueError' in _all_types)"];
+    handle_known_error -> end_resilient_pipeline;
+    handle_unknown_error -> end_resilient_pipeline;
     router_resilient_pipeline_line_4_try_exit_0 -> end_resilient_pipeline;
 }

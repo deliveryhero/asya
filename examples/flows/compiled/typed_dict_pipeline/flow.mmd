@@ -16,4 +16,5 @@ flowchart TD
     router_typeddict_pipeline_line_77_if_1 -->|not (not p.get('valid', True))| transformer
     transformer --> sink_adapter
     router_typeddict_pipeline_line_77_if_1 -->|not p.get('valid', True)| error_handler
+    error_handler --> end_typeddict_pipeline
     sink_adapter --> end_typeddict_pipeline

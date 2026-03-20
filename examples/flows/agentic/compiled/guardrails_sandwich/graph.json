@@ -33,7 +33,7 @@
     },
     {
       "id": "router_guardrails_sandwich_line_47_reraise_0",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_guardrails_sandwich_line_47_reraise_0",
       "is_generated": true
     },
@@ -106,7 +106,19 @@
       "type": "prepend"
     },
     {
+      "from": "router_guardrails_sandwich_line_47_reraise_0",
+      "to": "end_guardrails_sandwich",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "router_guardrails_sandwich_line_47_try_exit_0",
+      "to": "end_guardrails_sandwich",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "safe_fallback",
       "to": "end_guardrails_sandwich",
       "label": null,
       "type": "continuation"

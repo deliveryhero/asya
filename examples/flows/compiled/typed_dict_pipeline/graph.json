@@ -88,6 +88,12 @@
       "type": "set"
     },
     {
+      "from": "error_handler",
+      "to": "end_typeddict_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "sink_adapter",
       "to": "end_typeddict_pipeline",
       "label": null,

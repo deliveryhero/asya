@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_simple",
+  "flow_name": "order_processing",
   "nodes": [
     {
       "id": "end_order_processing",
@@ -21,7 +21,7 @@
     },
     {
       "id": "router_order_processing_line_4_reraise_0",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_order_processing_line_4_reraise_0",
       "is_generated": true
     },
@@ -92,6 +92,18 @@
       "to": "router_order_processing_line_4_reraise_0",
       "label": "not ('ValueError' in _all_types)",
       "type": "prepend"
+    },
+    {
+      "from": "notify_rejection",
+      "to": "end_order_processing",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_order_processing_line_4_reraise_0",
+      "to": "end_order_processing",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_order_processing_line_4_try_exit_0",

@@ -1,4 +1,4 @@
-digraph "with_inline_ctx" {
+digraph "order_processing" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 

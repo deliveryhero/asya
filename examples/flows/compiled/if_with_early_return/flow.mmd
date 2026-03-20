@@ -14,4 +14,5 @@ flowchart TD
     router_early_return_flow_line_14_if_1 -->|not (not p['valid'])| handler_process
     handler_process --> handler_finalize
     router_early_return_flow_line_14_if_1 -->|not p['valid']| handler_error
+    handler_error --> end_early_return_flow
     handler_finalize --> end_early_return_flow

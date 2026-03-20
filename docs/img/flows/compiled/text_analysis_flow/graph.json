@@ -88,12 +88,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_text_analysis_flow_line_20_seq_1",
-      "to": "end_text_analysis_flow",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_text_analysis_flow_line_13_if_3",
       "to": "spanish_sentiment",
       "label": "p['language'] == 'es'",
@@ -138,6 +132,12 @@
     {
       "from": "router_text_analysis_flow_line_16_seq_2",
       "to": "extract_entities",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_text_analysis_flow_line_20_seq_1",
+      "to": "end_text_analysis_flow",
       "label": null,
       "type": "continuation"
     }

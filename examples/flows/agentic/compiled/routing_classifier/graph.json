@@ -136,7 +136,19 @@
       "type": "continuation"
     },
     {
+      "from": "account_agent",
+      "to": "end_routing_classifier",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "format_reply",
+      "to": "end_routing_classifier",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "general_agent",
       "to": "end_routing_classifier",
       "label": null,
       "type": "continuation"

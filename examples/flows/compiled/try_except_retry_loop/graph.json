@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_retry_loop",
+  "flow_name": "retry_pipeline",
   "nodes": [
     {
       "id": "call_another_api",
@@ -51,7 +51,7 @@
     },
     {
       "id": "router_retry_pipeline_line_18_reraise_0",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_retry_pipeline_line_18_reraise_0",
       "is_generated": true
     },
@@ -130,14 +130,20 @@
       "type": "prepend"
     },
     {
-      "from": "router_retry_pipeline_line_16_while_0",
-      "to": "end_retry_pipeline",
-      "label": "not (p['attempt'] < 3)",
-      "type": "abort"
-    },
-    {
       "from": "router_retry_pipeline_line_18_try_enter_0",
       "to": "router_retry_pipeline_line_16_while_0",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "log_retry",
+      "to": "end_retry_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_retry_pipeline_line_18_reraise_0",
+      "to": "end_retry_pipeline",
       "label": null,
       "type": "continuation"
     },

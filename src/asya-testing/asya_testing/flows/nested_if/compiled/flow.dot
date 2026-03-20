@@ -35,4 +35,8 @@ digraph "test_nested_flow" {
     router_test_nested_flow_line_20_seq_4 -> finalize_result;
     router_test_nested_flow_line_23_seq_5 -> finalize_result;
     finalize_result -> end_test_nested_flow;
+    route_a_x -> end_test_nested_flow;
+    route_a_y -> end_test_nested_flow;
+    route_b_x -> end_test_nested_flow;
+    route_b_y -> end_test_nested_flow;
 }

@@ -76,6 +76,12 @@
       "type": "prepend"
     },
     {
+      "from": "auto_approve",
+      "to": "end_review_pipeline_flow",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "human_review",
       "to": "end_review_pipeline_flow",
       "label": null,

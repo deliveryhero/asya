@@ -1,4 +1,4 @@
-digraph "try_except_finally" {
+digraph "resource_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
@@ -26,4 +26,6 @@ digraph "try_except_finally" {
     router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_9_seq [label="'RuntimeError' in _all_types"];
     router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_5_reraise_0 [label="not ('RuntimeError' in _all_types)"];
     finalize -> end_resource_pipeline;
+    handle_failure -> end_resource_pipeline;
+    router_resource_pipeline_line_5_reraise_0 -> end_resource_pipeline;
 }

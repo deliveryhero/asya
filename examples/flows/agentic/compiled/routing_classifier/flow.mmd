@@ -24,4 +24,6 @@ flowchart TD
     router_routing_classifier_line_47_if_3 -->|not (p.get('category') == 'billing')| router_routing_classifier_line_49_if_2
     technical_agent --> format_reply
     router_routing_classifier_line_51_if_1 --> format_reply
+    account_agent --> end_routing_classifier
     format_reply --> end_routing_classifier
+    general_agent --> end_routing_classifier

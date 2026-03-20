@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_finally",
+  "flow_name": "resource_pipeline",
   "nodes": [
     {
       "id": "acquire_resource",
@@ -45,7 +45,7 @@
     },
     {
       "id": "router_resource_pipeline_line_5_reraise_0",
-      "flow_role": "actor",
+      "flow_role": "router",
       "label": "router_resource_pipeline_line_5_reraise_0",
       "is_generated": true
     },
@@ -137,6 +137,18 @@
     },
     {
       "from": "finalize",
+      "to": "end_resource_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handle_failure",
+      "to": "end_resource_pipeline",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_resource_pipeline_line_5_reraise_0",
       "to": "end_resource_pipeline",
       "label": null,
       "type": "continuation"

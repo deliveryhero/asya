@@ -15,5 +15,6 @@ digraph "review_pipeline_flow" {
     router_review_pipeline_flow_line_17_if_1 -> detailed_review [label="p['score'] < 0.5"];
     detailed_review -> human_review;
     router_review_pipeline_flow_line_17_if_1 -> auto_approve [label="not (p['score'] < 0.5)"];
+    auto_approve -> end_review_pipeline_flow;
     human_review -> end_review_pipeline_flow;
 }

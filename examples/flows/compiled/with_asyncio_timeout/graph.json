@@ -1,5 +1,5 @@
 {
-  "flow_name": "with_asyncio_timeout",
+  "flow_name": "document_pipeline",
   "nodes": [
     {
       "id": "end_document_pipeline",
@@ -64,12 +64,6 @@
       "type": "prepend"
     },
     {
-      "from": "router_document_pipeline_line_28_seq_1",
-      "to": "end_document_pipeline",
-      "label": null,
-      "type": "abort"
-    },
-    {
       "from": "router_document_pipeline_line_24_if_2",
       "to": "translator",
       "label": "p.get('language') != 'en'",
@@ -108,6 +102,12 @@
     {
       "from": "language_detector",
       "to": "router_document_pipeline_line_24_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_document_pipeline_line_28_seq_1",
+      "to": "end_document_pipeline",
       "label": null,
       "type": "continuation"
     }

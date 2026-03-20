@@ -272,6 +272,12 @@
       "to": "end_multi_agent_debate",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "final_judge",
+      "to": "end_multi_agent_debate",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

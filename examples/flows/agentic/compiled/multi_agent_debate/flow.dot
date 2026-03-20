@@ -48,4 +48,5 @@ digraph "multi_agent_debate" {
     router_multi_agent_debate_line_55_seq_7 -> router_multi_agent_debate_line_57_fanout_6;
     router_multi_agent_debate_line_68_if_4 -> router_multi_agent_debate_line_63_while_1;
     fanin_multi_agent_debate_line_74 -> end_multi_agent_debate;
+    final_judge -> end_multi_agent_debate;
 }

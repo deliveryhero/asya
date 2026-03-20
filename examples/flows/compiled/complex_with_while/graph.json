@@ -118,12 +118,6 @@
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_29_if_2",
-      "to": "end_complex_flow",
-      "label": "p['quality_score'] >= 50",
-      "type": "abort"
-    },
-    {
       "from": "router_complex_flow_line_26_if_3",
       "to": "router_complex_flow_line_22_while_1",
       "label": "p['quality_score'] < 20",
@@ -152,12 +146,6 @@
       "to": "router_complex_flow_line_26_if_3",
       "label": null,
       "type": "continuation"
-    },
-    {
-      "from": "router_complex_flow_line_22_while_1",
-      "to": "end_complex_flow",
-      "label": "not (p.get('batch_count', 0) < p.get('max_batches', 3))",
-      "type": "abort"
     },
     {
       "from": "router_complex_flow_line_32_if_4",

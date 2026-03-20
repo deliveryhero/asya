@@ -31,7 +31,7 @@
       "from": "router_mutations_only_flow_line_14_seq_1",
       "to": "end_mutations_only_flow",
       "label": null,
-      "type": "abort"
+      "type": "continuation"
     }
   ],
   "groups": []

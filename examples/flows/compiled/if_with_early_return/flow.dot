@@ -15,5 +15,6 @@ digraph "early_return_flow" {
     router_early_return_flow_line_14_if_1 -> handler_process [label="not (not p['valid'])"];
     handler_process -> handler_finalize;
     router_early_return_flow_line_14_if_1 -> handler_error [label="not p['valid']"];
+    handler_error -> end_early_return_flow;
     handler_finalize -> end_early_return_flow;
 }
