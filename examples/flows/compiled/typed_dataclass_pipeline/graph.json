@@ -3,33 +3,26 @@
   "nodes": [
     {
       "id": "classifier",
-      "flow_role": "processor",
-      "label": "classifier",
-      "is_generated": false
+      "label": "classifier"
     },
     {
       "id": "enricher",
-      "flow_role": "processor",
-      "label": "enricher",
-      "is_generated": false
+      "label": "enricher"
     },
     {
       "id": "extractor",
-      "flow_role": "processor",
-      "label": "extractor",
-      "is_generated": false
+      "label": "extractor"
     },
     {
       "id": "formatter",
-      "flow_role": "exitpoint",
       "label": "formatter",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "start_typed_dataclass_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_typed_dataclass_pipeline",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

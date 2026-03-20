@@ -5,9 +5,9 @@ digraph "decorator_inline_comments_flow" {
     { rank=source; start_decorator_inline_comments_flow; }
 
     classifier [label="classifier", fillcolor=lightblue];
-    fast_handler [label="fast_handler", fillcolor=lightblue];
+    fast_handler [label="fast_handler", fillcolor=lightsalmon];
     router_decorator_inline_comments_flow_line_18_if_1 [label="router_decorator_inline_comments_flow_line_18_if_1", fillcolor=wheat];
-    standard_handler [label="standard_handler", fillcolor=lightblue];
+    standard_handler [label="standard_handler", fillcolor=lightsalmon];
     start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];

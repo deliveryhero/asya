@@ -7,7 +7,7 @@ digraph "content_pipeline_flow" {
     classifier [label="classifier", fillcolor=lightblue];
     generic_processor [label="generic_processor", fillcolor=lightblue];
     image_processor [label="image_processor", fillcolor=lightblue];
-    quality_check [label="quality_check", fillcolor=lightblue];
+    quality_check [label="quality_check", fillcolor=lightsalmon];
     router_content_pipeline_flow_line_16_if_2 [label="router_content_pipeline_flow_line_16_if_2", fillcolor=wheat];
     router_content_pipeline_flow_line_18_if_1 [label="router_content_pipeline_flow_line_18_if_1", fillcolor=wheat];
     start_content_pipeline_flow [label="start_content_pipeline_flow", fillcolor=palegreen];

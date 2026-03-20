@@ -6,7 +6,7 @@ digraph "sequential_pipeline" {
 
     data_analyst [label="data_analyst", fillcolor=lightblue];
     execution_planner [label="execution_planner", fillcolor=lightblue];
-    risk_evaluator [label="risk_evaluator", fillcolor=lightblue];
+    risk_evaluator [label="risk_evaluator", fillcolor=lightsalmon];
     start_sequential_pipeline [label="start_sequential_pipeline", fillcolor=palegreen];
     trading_analyst [label="trading_analyst", fillcolor=lightblue];
 

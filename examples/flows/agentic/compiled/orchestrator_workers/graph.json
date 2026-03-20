@@ -3,72 +3,59 @@
   "nodes": [
     {
       "id": "analysis_worker",
-      "flow_role": "processor",
-      "label": "analysis_worker",
-      "is_generated": false
+      "label": "analysis_worker"
     },
     {
       "id": "data_worker",
-      "flow_role": "processor",
-      "label": "data_worker",
-      "is_generated": false
+      "label": "data_worker"
     },
     {
       "id": "orchestrator",
-      "flow_role": "processor",
-      "label": "orchestrator",
-      "is_generated": false
+      "label": "orchestrator"
     },
     {
       "id": "router_orchestrator_workers_line_57_while_1",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_57_while_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_orchestrator_workers_line_58_seq_7",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_58_seq_7",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
       "id": "router_orchestrator_workers_line_62_if_6",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_62_if_6",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_orchestrator_workers_line_65_if_5",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_65_if_5",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_orchestrator_workers_line_67_if_4",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_67_if_4",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_orchestrator_workers_line_69_if_3",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_69_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_orchestrator_workers_line_72_if_2",
-      "flow_role": "router",
       "label": "router_orchestrator_workers_line_72_if_2",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_orchestrator_workers",
-      "flow_role": "entrypoint",
       "label": "start_orchestrator_workers",
-      "is_generated": true,
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['iteration'] = 0",
         "p['worker_results'] = []"
@@ -76,15 +63,12 @@
     },
     {
       "id": "synthesizer",
-      "flow_role": "exitpoint",
       "label": "synthesizer",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "writing_worker",
-      "flow_role": "processor",
-      "label": "writing_worker",
-      "is_generated": false
+      "label": "writing_worker"
     }
   ],
   "edges": [

@@ -4,8 +4,8 @@ digraph "nested_loop_flow" {
 
     { rank=source; start_nested_loop_flow; }
 
-    finalize_loop_i [label="finalize_loop_i", fillcolor=lightblue];
-    finalize_loop_j [label="finalize_loop_j", fillcolor=lightblue];
+    finalize_loop_i [label="finalize_loop_i", fillcolor=lightsalmon];
+    finalize_loop_j [label="finalize_loop_j", fillcolor=lightsalmon];
     initialize [label="initialize", fillcolor=lightblue];
     process_item [label="process_item", fillcolor=lightblue];
     router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5\n\np['i'] = 0", fillcolor=wheat];

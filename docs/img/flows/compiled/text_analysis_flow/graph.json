@@ -3,69 +3,55 @@
   "nodes": [
     {
       "id": "clean_text",
-      "flow_role": "processor",
-      "label": "clean_text",
-      "is_generated": false
+      "label": "clean_text"
     },
     {
       "id": "english_sentiment",
-      "flow_role": "processor",
-      "label": "english_sentiment",
-      "is_generated": false
+      "label": "english_sentiment"
     },
     {
       "id": "extract_entities",
-      "flow_role": "processor",
-      "label": "extract_entities",
-      "is_generated": false
+      "label": "extract_entities"
     },
     {
       "id": "router_text_analysis_flow_line_11_if_4",
-      "flow_role": "router",
       "label": "router_text_analysis_flow_line_11_if_4",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_text_analysis_flow_line_13_if_3",
-      "flow_role": "router",
       "label": "router_text_analysis_flow_line_13_if_3",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "router_text_analysis_flow_line_16_seq_2",
-      "flow_role": "router",
       "label": "router_text_analysis_flow_line_16_seq_2",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['sentiment'] = 'neutral'"
       ]
     },
     {
       "id": "router_text_analysis_flow_line_20_seq_1",
-      "flow_role": "exitpoint",
       "label": "router_text_analysis_flow_line_20_seq_1",
-      "is_generated": true,
+      "generated": true,
       "mutations": [
         "p['extracted'] = True"
       ]
     },
     {
       "id": "spanish_sentiment",
-      "flow_role": "processor",
-      "label": "spanish_sentiment",
-      "is_generated": false
+      "label": "spanish_sentiment"
     },
     {
       "id": "start_text_analysis_flow",
-      "flow_role": "entrypoint",
       "label": "start_text_analysis_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "tokenize",
-      "flow_role": "processor",
-      "label": "tokenize",
-      "is_generated": false
+      "label": "tokenize"
     }
   ],
   "edges": [

@@ -4,7 +4,7 @@ digraph "while_mutations_in_loop_flow" {
 
     { rank=source; start_while_mutations_in_loop_flow; }
 
-    handler_finalize [label="handler_finalize", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
     router_while_mutations_in_loop_flow_line_13_seq_4 [label="router_while_mutations_in_loop_flow_line_13_seq_4\n\np['i'] = 0\np['sum'] = 0", fillcolor=wheat];

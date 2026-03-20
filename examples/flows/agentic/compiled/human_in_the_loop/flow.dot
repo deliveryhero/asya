@@ -6,7 +6,7 @@ digraph "human_in_the_loop" {
 
     approval_gate [label="approval_gate", fillcolor=lightblue];
     executor [label="executor", fillcolor=lightblue];
-    notifier [label="notifier", fillcolor=lightblue];
+    notifier [label="notifier", fillcolor=lightsalmon];
     proposal_generator [label="proposal_generator", fillcolor=lightblue];
     revision_agent [label="revision_agent", fillcolor=lightblue];
     router_human_in_the_loop_line_60_while_1 [label="router_human_in_the_loop_line_60_while_1", fillcolor=wheat];

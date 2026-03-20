@@ -3,33 +3,26 @@
   "nodes": [
     {
       "id": "data_analyst",
-      "flow_role": "processor",
-      "label": "data_analyst",
-      "is_generated": false
+      "label": "data_analyst"
     },
     {
       "id": "execution_planner",
-      "flow_role": "processor",
-      "label": "execution_planner",
-      "is_generated": false
+      "label": "execution_planner"
     },
     {
       "id": "risk_evaluator",
-      "flow_role": "exitpoint",
       "label": "risk_evaluator",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "start_sequential_pipeline",
-      "flow_role": "entrypoint",
       "label": "start_sequential_pipeline",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     },
     {
       "id": "trading_analyst",
-      "flow_role": "processor",
-      "label": "trading_analyst",
-      "is_generated": false
+      "label": "trading_analyst"
     }
   ],
   "edges": [

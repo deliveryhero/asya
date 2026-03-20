@@ -6,7 +6,7 @@ digraph "analysis_flow" {
 
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
     fanin_analysis_flow_line_14 [label="fanin_analysis_flow_line_14", fillcolor=lightblue];
-    merge_analysis [label="merge_analysis", fillcolor=lightblue];
+    merge_analysis [label="merge_analysis", fillcolor=lightsalmon];
     router_analysis_flow_line_14_fanout_1 [label="router_analysis_flow_line_14_fanout_1", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];

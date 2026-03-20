@@ -3,39 +3,32 @@
   "nodes": [
     {
       "id": "auto_approve",
-      "flow_role": "exitpoint",
       "label": "auto_approve",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "detailed_review",
-      "flow_role": "processor",
-      "label": "detailed_review",
-      "is_generated": false
+      "label": "detailed_review"
     },
     {
       "id": "human_review",
-      "flow_role": "exitpoint",
       "label": "human_review",
-      "is_generated": false
+      "role": "end"
     },
     {
       "id": "initial_review",
-      "flow_role": "processor",
-      "label": "initial_review",
-      "is_generated": false
+      "label": "initial_review"
     },
     {
       "id": "router_review_pipeline_flow_line_17_if_1",
-      "flow_role": "router",
       "label": "router_review_pipeline_flow_line_17_if_1",
-      "is_generated": true
+      "generated": true
     },
     {
       "id": "start_review_pipeline_flow",
-      "flow_role": "entrypoint",
       "label": "start_review_pipeline_flow",
-      "is_generated": true
+      "role": "start",
+      "generated": true
     }
   ],
   "edges": [

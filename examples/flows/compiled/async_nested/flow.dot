@@ -4,9 +4,9 @@ digraph "review_pipeline_flow" {
 
     { rank=source; start_review_pipeline_flow; }
 
-    auto_approve [label="auto_approve", fillcolor=lightblue];
+    auto_approve [label="auto_approve", fillcolor=lightsalmon];
     detailed_review [label="detailed_review", fillcolor=lightblue];
-    human_review [label="human_review", fillcolor=lightblue];
+    human_review [label="human_review", fillcolor=lightsalmon];
     initial_review [label="initial_review", fillcolor=lightblue];
     router_review_pipeline_flow_line_17_if_1 [label="router_review_pipeline_flow_line_17_if_1", fillcolor=wheat];
     start_review_pipeline_flow [label="start_review_pipeline_flow", fillcolor=palegreen];

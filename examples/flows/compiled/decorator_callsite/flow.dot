@@ -4,7 +4,7 @@ digraph "decorator_callsite_flow" {
 
     { rank=source; start_decorator_callsite_flow; }
 
-    enricher [label="enricher", fillcolor=lightblue];
+    enricher [label="enricher", fillcolor=lightsalmon];
     start_decorator_callsite_flow [label="start_decorator_callsite_flow", fillcolor=palegreen];
     validator [label="validator", fillcolor=lightblue];
 
