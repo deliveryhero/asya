@@ -104,7 +104,7 @@ class ParseResult:
     is_async: bool = False
     class_methods: set[str] = field(default_factory=set)
     import_map: dict[str, str] = field(default_factory=dict)
-    groups: list[dict] = field(default_factory=list)  # {"id": flow_name, "actors": [names]}
+    groups: list[dict] = field(default_factory=list)  # {"id": flow_name, "nodes": [actor_names]}
 
 
 # ---------------------------------------------------------------------------
@@ -667,7 +667,7 @@ class FlowParser:
             self._groups.append(
                 {
                     "id": func_name,
-                    "actors": group_actors,
+                    "nodes": group_actors,
                 }
             )
 
