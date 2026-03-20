@@ -1,0 +1,2146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        // for search plugin notably
+        const base_url = "https://asya.sh/docs/";
+    </script>
+    <script>
+    const darkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    darkTheme.onchange = (e) => {
+        if (e.matches) {
+            document.documentElement.classList.add("dark")
+            localStorage.theme = 'dark';
+        } else {
+            document.documentElement.classList.remove("dark")
+            localStorage.removeItem("theme")
+        }
+    };
+
+    // On page load. Priotiry to lcaolStorage
+    if (localStorage.theme === "dark") {
+        document.documentElement.classList.add("dark")
+    } else if (localStorage.theme === "light") {
+        document.documentElement.classList.remove("dark")
+    } else if (darkTheme.matches) {
+        document.documentElement.classList.add("dark")
+    } else {
+        document.documentElement.classList.remove("dark")
+    }
+
+    // set the layout based on localStorage
+    document.documentElement.classList.add(localStorage.getItem("html-layout") || "layout-fixed");
+</script>
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Flow DSL - Asya</title>
+    
+
+
+<title>Flow DSL</title>
+
+
+
+
+
+
+
+
+
+<link rel="canonical" href="https://asya.sh/docs/reference/specs/flow-dsl/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="Flow DSL">
+
+
+
+
+
+<meta property="og:url" content="https://asya.sh/docs/reference/specs/flow-dsl/">
+
+
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="Flow DSL">
+
+
+
+
+
+
+<!-- JSON-LD Structured Data -->
+
+
+
+    <link rel="icon" href="../../../website/img/favicon.svg">
+
+    <link href="../../../css/base.css" rel="stylesheet">
+    <link href="../../../css/geist.css" rel="stylesheet">
+
+    
+    <link href="../../../website/stylesheets/extra.css" rel="stylesheet">
+
+    
+
+    <script src="../../../js/callbacks.js"></script>
+
+    
+
+    
+
+    
+
+</head>
+
+<body
+    class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+    <div id="inner-body" class="bg-background relative z-10 flex min-h-svh flex-col">
+        <header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+    <div class="container-wrapper 3xl:fixed:px-0 px-6">
+        <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+            <button id="menu-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)"
+                class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden"
+                type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-«Rmplb»"
+                data-state="closed">
+                <div class="relative flex h-8 w-4 items-center justify-center">
+                    <div class="relative size-4">
+                        <!-- 16px x 16px -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="0" x2="16" y1="5" y2="5"
+                                class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" />
+                            <line x1="0" x2="16" y1="11" y2="11"
+                                class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
+                        </svg>
+                    </div>
+
+                    <span class="sr-only">Toggle Menu</span>
+                </div>
+                <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+            </button>
+            <a data-slot="button"
+                class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
+                href="https://asya.sh/docs/">
+                <span class="size-8 flex flex-row justify-center items-center">
+                    
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+    class="size-5">
+    <rect width="256" height="256" fill="none"></rect>
+    <line x1="208" y1="128" x2="128" y2="208" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="32"></line>
+    <line x1="192" y1="40" x2="40" y2="192" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="32"></line>
+</svg>
+
+
+                </span>
+
+                
+                <h1 class="pr-2">Asya</h1>
+                
+            </a>
+            
+            <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+                <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+                    <button data-slot="dialog-trigger" onclick="onSearchBarClick(event)"
+    class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-secondary/80 px-4 py-2 has-[&gt;svg]:px-3 bg-surface text-surface-foreground/60 dark:bg-card relative h-8 w-full justify-start pl-2.5 font-normal shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64"
+    type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-«R66plb»" data-state="closed">
+    <span class="text-muted-foreground hidden lg:inline-flex">Search documentation...</span>
+    <span class="text-muted-foreground inline-flex lg:hidden">Search...</span>
+    <div class="absolute top-1.5 right-1.5 hidden gap-1 sm:flex">
+        <kbd
+            class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3">Ctrl</kbd><kbd
+            class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3 aspect-square">K</kbd>
+    </div>
+</button>
+<dialog id="search-dialog" onclick="onSearchDialogClick(event)"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0">
+    <div class="w-lg gap-4">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-search size-4 shrink-0 opacity-50">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input data-slot="command-input"
+                    class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Search documentation..." cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true"
+                    aria-controls="radix-«r1t6»" aria-labelledby="radix-«r1t7»" id="radix-«r1t8»" type="text" value=""
+                    aria-activedescendant="radix-«r1th»" oninput="onInputHandler(event)">
+            </div>
+        </div>
+        <div id="mkdocs-search-results">
+            <!-- search results go there -->
+        </div>
+    </div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+                </div>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block">
+                </div>
+                <a target="_blank" rel="noreferrer" data-slot="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none"
+                    href="https://github.com/deliveryhero/asya">
+                    <svg viewBox="0 0 438.549 438.549">
+                        <path fill="currentColor"
+                            d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z">
+                        </path>
+                    </svg>
+                    
+                    <span id="stargazers" class="text-muted-foreground w-8 text-xs tabular-nums" onload="test()">
+                    </span>
+                    
+                </a>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden">
+                </div>
+                <button data-slot="button"
+                    class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden"
+                    title="Toggle layout" onclick="toggleLayout(event)">
+                    <span class="sr-only">Toggle layout</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-gallery-horizontal">
+                        <path d="M2 3v18"></path>
+                        <rect width="12" height="18" x="6" y="3" rx="2"></rect>
+                        <path d="M22 3v18"></path>
+                    </svg>
+                </button>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+                </div>
+                <button data-slot="button"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8"
+                    title="Toggle theme" onclick="onThemeSwitch(event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-4.5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+                        <path d="M12 3l0 18"></path>
+                        <path d="M12 9l4.65 -4.65"></path>
+                        <path d="M12 14.3l7.37 -7.37"></path>
+                        <path d="M12 19.6l8.85 -8.85"></path>
+                    </svg>
+                    <span class="sr-only">Toggle theme</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+        <main class="flex flex-1 flex-col">
+            <div class="container-wrapper flex flex-1 flex-col px-2">
+                <div data-slot="sidebar-wrapper" style="--sidebar-width: 16rem; --sidebar-width-icon: 3rem;"
+                    class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]">
+                    <div data-slot="sidebar"
+                        class="text-sidebar-foreground w-(--sidebar-width) flex-col sticky top-[calc(var(--header-height)+1px)] z-30 hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] bg-transparent lg:flex">
+                        <div data-slot="sidebar-content" data-sidebar="content"
+                            class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden no-scrollbar px-2 pb-12">
+                            <div class="h-(--top-spacing) shrink-0"></div>
+                            <div view-transition-name="sidebar" data-slot="sidebar-group" data-sidebar="group"
+    class="relative flex w-full min-w-0 flex-col p-2 no-scrollbar">
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Home
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                
+            </ul>
+        </div>
+    </div>
+    
+
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            UNDERSTAND</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/motivation/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Motivation
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/concepts/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Core Concepts
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/architecture/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Architecture
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            USAGE</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/usage/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            SETUP</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/setup/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            REFERENCE</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/env-vars/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Environment Variables
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            CONTRIBUTING</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-a2a/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing A2A
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-state-proxy/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing State Proxy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-transport/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing Transports
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+
+
+    
+</div>
+                        </div>
+                    </div>
+                    <div class="h-full w-full">
+                        <div data-slot="docs" class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full">
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                <article class="w-full" view-transition-name="page">
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1
+          class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
+        >
+          Flow DSL
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          
+<button onclick="fetch(`https://asya.sh/docs/reference/specs/flow-dsl.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+        data-slot="button" 
+        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
+    <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"></path><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+</svg>
+<span class="max-md:hidden">Copy Page</span>
+</button> 
+          
+          <a
+            data-slot="button"
+            id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/reference/specs/abi-protocol/"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">Previous</span>
+          </a>
+           
+          
+          <a
+            data-slot="button"
+            id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/reference/specs/error-handling/"
+          >
+            <span class="sr-only">Next</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
+          
+        </div>
+      </div>
+      
+    </div>
+    <div class="flex justify-end items-center">
+       
+    </div>
+  </div>
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <p>Syntax rules, IR specification, compiler stages, and generated router tables
+for the Flow DSL.</p>
+<p>For background on why the Flow DSL exists, the router problem it solves,
+and how CPS compilation works, see
+<a href="../../components/lab-flow-compiler/">Flow Compiler Architecture</a>.</p>
+<hr />
+<h2 id="what-is-the-flow-dsl">What is the Flow DSL?<a class="headerlink" href="#what-is-the-flow-dsl" title="Permanent link">&para;</a></h2>
+<p>The Flow DSL is a Python-based language for describing how actors are
+connected. You write a function that looks like ordinary sequential Python
+code. The compiler transforms it into a network of <strong>router actors</strong> that
+steer messages through your pipeline at runtime.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">review_pipeline</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">classify</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;urgent&quot;</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">escalate</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">standard_review</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">notify</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>This compiles into four router actors that handle sequencing, branching,
+and merging. You deploy the routers alongside your handler actors
+(<code>classify</code>, <code>escalate</code>, <code>standard_review</code>, <code>notify</code>) and Asya runs the
+pipeline.</p>
+<p><strong>There is no <code>AsyncFlow</code> CRD.</strong> A flow is a group of <code>AsyncActor</code>
+resources linked by the <code>asya.sh/flow</code> label. The compiler sets this
+label (along with <code>asya.sh/flow-role</code> to distinguish <code>entrypoint</code>,
+<code>router</code>, and <code>processor</code> actors) on every generated manifest. Query all
+actors in a flow with <code>kubectl get asya -l asya.sh/flow=&lt;name&gt;</code>. The
+actor remains the single Kubernetes primitive — flows are a labeling
+convention on top of it.</p>
+<hr />
+<h2 id="writing-flows">Writing flows<a class="headerlink" href="#writing-flows" title="Permanent link">&para;</a></h2>
+<h3 id="function-signature">Function signature<a class="headerlink" href="#function-signature" title="Permanent link">&para;</a></h3>
+<p>A flow is a single Python function with a <code>dict</code> parameter and <code>dict</code>
+return type:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="c1"># ... pipeline logic ...</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>The function can be <code>def</code> (sync) or <code>async def</code>. Async is recommended —
+it matches the mental model of <code>await</code> as a message hop.</p>
+<h3 id="actor-calls">Actor calls<a class="headerlink" href="#actor-calls" title="Permanent link">&para;</a></h3>
+<p>Call a handler actor by assigning its result back to the state variable:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">validate</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>           <span class="c1"># function handler</span>
+<span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>      <span class="c1"># class method handler</span>
+</code></pre></div>
+<p>Each call compiles to a route entry. The handler function itself is NOT
+included in the flow file — it's deployed as a separate actor. The name
+in the flow (<code>validate</code>) is mapped to an actor name at deployment time
+via environment variables.</p>
+<p><strong>Rules:</strong>
+- Must pass the state variable as the only argument
+- Must assign the result back to the state variable
+- Class instantiation must use only default arguments</p>
+<h3 id="payload-mutations">Payload mutations<a class="headerlink" href="#payload-mutations" title="Permanent link">&para;</a></h3>
+<p>Modify payload fields inline:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;processing&quot;</span>
+<span class="n">state</span><span class="p">[</span><span class="s2">&quot;count&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+<span class="n">state</span><span class="p">[</span><span class="s2">&quot;metadata&quot;</span><span class="p">][</span><span class="s2">&quot;source&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;api&quot;</span>
+</code></pre></div>
+<p>Mutations compile into router actors that modify the payload before
+forwarding. Consecutive mutations are batched into a single router.</p>
+<h3 id="conditionals">Conditionals<a class="headerlink" href="#conditionals" title="Permanent link">&para;</a></h3>
+<p>Branch on payload values:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;express&quot;</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">express_handler</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="k">elif</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;bulk&quot;</span><span class="p">:</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;batch_size&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">100</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">bulk_handler</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">standard_handler</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</code></pre></div>
+<p>Each branch compiles to a conditional router that rewrites <code>route.next</code>
+based on the condition. After the branches rejoin, execution continues
+with the next statement.</p>
+<h3 id="early-returns">Early returns<a class="headerlink" href="#early-returns" title="Permanent link">&para;</a></h3>
+<p>Exit the flow before the end:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;skip&quot;</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">state</span>        <span class="c1"># pipeline ends here, message goes to x-sink</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">process</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<p>An early <code>return</code> compiles to a router that clears <code>route.next</code>, causing
+the sidecar to route the message to <code>x-sink</code> (the terminal actor).</p>
+<h3 id="loops">Loops<a class="headerlink" href="#loops" title="Permanent link">&para;</a></h3>
+<p>Iterate with <code>while</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="k">while</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">try_operation</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">state</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;success&quot;</span><span class="p">):</span>
+        <span class="k">break</span>
+</code></pre></div>
+<p>The compiler generates a loop-back router that re-inserts the loop body
+actors into <code>route.next</code> on each iteration. A guard prevents infinite
+loops (configurable via <code>--max-iterations</code>, default 100).</p>
+<p><code>while True:</code> with <code>break</code> is supported for indefinite loops:</p>
+<div class="highlight"><pre><span></span><code><span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">poll_status</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;complete&quot;</span><span class="p">:</span>
+        <span class="k">break</span>
+</code></pre></div>
+<h3 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
+<p>Catch and recover from actor failures:</p>
+<div class="highlight"><pre><span></span><code><span class="k">try</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">risky_operation</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">another_step</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
+    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;fallback&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">retry_handler</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+    <span class="k">pass</span>            <span class="c1"># swallow and continue</span>
+</code></pre></div>
+<p>The compiler generates try-enter, try-exit, except-dispatch, and reraise
+routers. When an actor inside the <code>try</code> block fails, the sidecar stamps
+the error type and MRO onto <code>status.error</code>, and the except-dispatch
+router matches it against the handler clauses.</p>
+<p>Unmatched exceptions propagate to <code>x-sump</code> (the error sink).</p>
+<h3 id="fan-out-parallel-execution">Fan-out (parallel execution)<a class="headerlink" href="#fan-out-parallel-execution" title="Permanent link">&para;</a></h3>
+<p>Dispatch work to multiple actors in parallel:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+    <span class="n">analyzer_a</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+    <span class="n">analyzer_b</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+    <span class="n">analyzer_c</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;text&quot;</span><span class="p">]),</span>
+<span class="p">]</span>
+<span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">merge_results</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+</code></pre></div>
+<p>The compiler generates both a fan-out and a corresponding fan-in router to handle this. The fan-out router dispatches work to <code>analyzer_a</code>, <code>analyzer_b</code>, <code>and analyzer_c</code> in parallel. A hidden fan-in router then acts as an aggregator, collecting the results from all analyzers and placing them into <code>state["results"]</code>. Once all results are collected, the flow proceeds to the next step, <code>await merge_results(state)</code>, which can then operate on the aggregated data.</p>
+<hr />
+<h2 id="what-you-cannot-write-in-a-flow">What you cannot write in a flow<a class="headerlink" href="#what-you-cannot-write-in-a-flow" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Why not</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>for x in items:</code></td>
+<td><code>for</code> loops not yet supported</td>
+<td>Use <code>while</code> with an index</td>
+</tr>
+<tr>
+<td><code>result = a(b(state))</code></td>
+<td>Nested calls not allowed</td>
+<td>Assign to state sequentially</td>
+</tr>
+<tr>
+<td><code>x, y = handler(state)</code></td>
+<td>Multiple assignment targets</td>
+<td>Use single state variable</td>
+</tr>
+<tr>
+<td><code>MyClass(param=value)</code></td>
+<td>Instantiation with arguments not supported</td>
+<td>Instantiate with <code>MyClass()</code> and rely on default <code>__init__</code> arguments.</td>
+</tr>
+<tr>
+<td><code>yield</code> / <code>yield from</code></td>
+<td>Flows don't produce events</td>
+<td>Use ABI yields inside actor handlers</td>
+</tr>
+<tr>
+<td><code>import</code> / <code>global</code></td>
+<td>Flows are pure control flow</td>
+<td>Put logic in actor handlers</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="compilation">Compilation<a class="headerlink" href="#compilation" title="Permanent link">&para;</a></h2>
+<h3 id="what-the-compiler-does">What the compiler does<a class="headerlink" href="#what-the-compiler-does" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>Flow source (.py)
+    │
+    ▼
+  Parser ──→ validates syntax, extracts IR operations
+    │
+    ▼
+  Grouper ──→ groups operations into routers, optimizes
+    │
+    ▼
+  CodeGen ──→ generates router Python code
+    │
+    ▼
+  routers.py + flow.dot (optional diagram)
+</code></pre></div>
+<h3 id="compiler-commands">Compiler commands<a class="headerlink" href="#compiler-commands" title="Permanent link">&para;</a></h3>
+<p><strong>Compile:</strong>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>pipeline.py<span class="w"> </span>--output-dir<span class="w"> </span>compiled/<span class="w"> </span>--plot<span class="w"> </span>--verbose
+</code></pre></div></p>
+<p><strong>Validate only (no code generation):</strong>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>validate<span class="w"> </span>pipeline.py
+</code></pre></div></p>
+<p><strong>Options:</strong>
+- <code>--output-dir</code> — where to write generated files
+- <code>--plot</code> — generate Graphviz DOT and PNG flow diagrams
+- <code>--plot-width N</code> — label width in diagrams (default: 50)
+- <code>--max-iterations N</code> — loop iteration guard (default: 100)
+- <code>--overwrite</code> — overwrite existing files
+- <code>--verbose</code> — detailed output</p>
+<h3 id="generated-files">Generated files<a class="headerlink" href="#generated-files" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>routers.py</code></td>
+<td>Router functions + <code>resolve()</code> handler resolution</td>
+</tr>
+<tr>
+<td><code>flow.dot</code></td>
+<td>Graphviz diagram source (with <code>--plot</code>)</td>
+</tr>
+<tr>
+<td><code>flow.svg</code></td>
+<td>Visual flow diagram (with <code>--plot</code>)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="router-naming">Router naming<a class="headerlink" href="#router-naming" title="Permanent link">&para;</a></h3>
+<p>Generated routers have predictable names tied to source line numbers:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Name pattern</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_{flow}</code></td>
+<td>Entry point</td>
+</tr>
+<tr>
+<td><code>end_{flow}</code></td>
+<td>Exit point</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_if</code></td>
+<td>Conditional branch at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_seq</code></td>
+<td>Sequential mutations at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_while_0</code></td>
+<td>Loop control at line N</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
+<h3 id="1-write-the-flow">1. Write the flow<a class="headerlink" href="#1-write-the-flow" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># sentiment_pipeline.py</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">sentiment_pipeline</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">preprocess</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">analyze_sentiment</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;sentiment&quot;</span><span class="p">][</span><span class="s2">&quot;score&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mf">0.3</span><span class="p">:</span>
+        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">flag_for_review</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+
+    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">store_result</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">state</span>
+</code></pre></div>
+<h3 id="2-compile">2. Compile<a class="headerlink" href="#2-compile" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>asya<span class="w"> </span>flow<span class="w"> </span>compile<span class="w"> </span>sentiment_pipeline.py<span class="w"> </span>-o<span class="w"> </span>compiled/
+</code></pre></div>
+<h3 id="3-deploy-router-actors">3. Deploy router actors<a class="headerlink" href="#3-deploy-router-actors" title="Permanent link">&para;</a></h3>
+<p>Each generated router is deployed as an AsyncActor. Router actors need
+the <code>ASYA_HANDLER_*</code> environment variables to resolve handler names to
+actor names:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.dev/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">start-sentiment-pipeline</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-routers:latest</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">compiled.routers.start_sentiment_pipeline</span>
+<span class="w">  </span><span class="nt">env</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_PREPROCESS</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;handlers.preprocess&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_ANALYZE_SENTIMENT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;handlers.analyze_sentiment&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_FLAG_FOR_REVIEW</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;handlers.flag_for_review&quot;</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASYA_HANDLER_STORE_RESULT</span>
+<span class="w">      </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;handlers.store_result&quot;</span>
+</code></pre></div>
+<h3 id="4-deploy-handler-actors">4. Deploy handler actors<a class="headerlink" href="#4-deploy-handler-actors" title="Permanent link">&para;</a></h3>
+<p>Each handler is its own AsyncActor with its own image, scaling, and
+resources:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.dev/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">analyze-sentiment</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">image</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">sentiment-model:latest</span>
+<span class="w">  </span><span class="nt">handler</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">handlers.analyze_sentiment</span>
+<span class="w">  </span><span class="nt">scaling</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">minReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0</span>
+<span class="w">    </span><span class="nt">maxReplicaCount</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10</span>
+<span class="w">  </span><span class="nt">resources</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">requests</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">nvidia.com/gpu</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+</code></pre></div>
+<h3 id="5-send-a-message">5. Send a message<a class="headerlink" href="#5-send-a-message" title="Permanent link">&para;</a></h3>
+<p>The entry point is the start router's queue. Messages entering
+<code>start-sentiment-pipeline</code> flow through the entire pipeline automatically.</p>
+<h3 id="handler-resolution">Handler resolution<a class="headerlink" href="#handler-resolution" title="Permanent link">&para;</a></h3>
+<p>At runtime, the <code>resolve()</code> function in <code>routers.py</code> maps handler names
+from the flow source to actor names using environment variables:</p>
+<div class="highlight"><pre><span></span><code>Environment variable             Handler name              Actor name
+────────────────────────────────  ────────────────────────  ──────────────────
+ASYA_HANDLER_ANALYZE_SENTIMENT   handlers.analyze_sentiment  analyze-sentiment
+</code></pre></div>
+<p>The mapping is flexible — any unambiguous suffix of the handler name works:</p>
+<div class="highlight"><pre><span></span><code><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;analyze_sentiment&quot;</span><span class="p">)</span>                    <span class="c1"># shortest suffix</span>
+<span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handlers.analyze_sentiment&quot;</span><span class="p">)</span>           <span class="c1"># full path</span>
+</code></pre></div>
+<hr />
+<h2 id="stage-1-parser-ast-ir">Stage 1: Parser (AST → IR)<a class="headerlink" href="#stage-1-parser-ast-ir" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/parser.py</code></p>
+<p>The parser walks the flow function's AST and produces a flat list of IR
+operations. It handles flow function discovery, parameter normalization, and
+statement classification.</p>
+<h3 id="flow-function-discovery">Flow function discovery<a class="headerlink" href="#flow-function-discovery" title="Permanent link">&para;</a></h3>
+<p>The parser scans top-level function definitions for one matching the flow
+signature: a function with a single <code>dict</code>-typed parameter and <code>dict</code> return
+type.</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>  <span class="c1"># matches</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>           <span class="c1"># matches (sync)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">helper</span><span class="p">(</span><span class="n">x</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>              <span class="c1"># does not match</span>
+</code></pre></div>
+<p>The parameter name (<code>state</code>, <code>p</code>, <code>payload</code>) is normalized to <code>p</code> internally
+via <code>_ParamNormalizer</code>, so all downstream IR uses <code>p</code> consistently.</p>
+<h3 id="import-map">Import map<a class="headerlink" href="#import-map" title="Permanent link">&para;</a></h3>
+<p>The parser collects all <code>import</code> and <code>from...import</code> statements from the
+module into a <code>{bare_name: qualified_name}</code> map:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">tenacity</span><span class="w"> </span><span class="kn">import</span> <span class="n">retry</span><span class="p">,</span> <span class="n">stop_after_attempt</span>
+<span class="c1"># produces: {&quot;retry&quot;: &quot;tenacity.retry&quot;, &quot;stop_after_attempt&quot;: &quot;tenacity.stop_after_attempt&quot;}</span>
+</code></pre></div>
+<p>This map is passed to the value extractor so positional arguments of bare
+function calls can be resolved via <code>inspect.signature</code> on the qualified name.</p>
+<h3 id="statement-classification">Statement classification<a class="headerlink" href="#statement-classification" title="Permanent link">&para;</a></h3>
+<p>Each statement in the flow function body maps to one IR node type:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Python construct</th>
+<th>IR type</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>p = handler(p)</code></td>
+<td><code>ActorCall</code></td>
+<td>Route to named handler actor</td>
+</tr>
+<tr>
+<td><code>p = await handler(p)</code></td>
+<td><code>ActorCall</code></td>
+<td>Unwrap await, same as above</td>
+</tr>
+<tr>
+<td><code>p["key"] = value</code></td>
+<td><code>Mutation</code></td>
+<td>Inline payload transformation</td>
+</tr>
+<tr>
+<td><code>p["key"] += 1</code></td>
+<td><code>Mutation</code></td>
+<td>Augmented assignment</td>
+</tr>
+<tr>
+<td><code>if cond: ... else: ...</code></td>
+<td><code>Condition</code></td>
+<td>Branches parsed recursively</td>
+</tr>
+<tr>
+<td><code>while cond: ...</code></td>
+<td><code>WhileLoop</code></td>
+<td>Loop with optional condition</td>
+</tr>
+<tr>
+<td><code>while True: ...</code></td>
+<td><code>WhileLoop(test=None)</code></td>
+<td>Guarded at runtime</td>
+</tr>
+<tr>
+<td><code>try: ... except: ...</code></td>
+<td><code>TryExcept</code></td>
+<td>Exception routing</td>
+</tr>
+<tr>
+<td><code>p["r"] = [a(x), b(y)]</code></td>
+<td><code>FanOutCall(literal)</code></td>
+<td>Parallel dispatch</td>
+</tr>
+<tr>
+<td><code>p["r"] = [a(x) for x in items]</code></td>
+<td><code>FanOutCall(comprehension)</code></td>
+<td>Iterated fan-out</td>
+</tr>
+<tr>
+<td><code>p["r"] = await asyncio.gather(...)</code></td>
+<td><code>FanOutCall(gather)</code></td>
+<td>Concurrent gather</td>
+</tr>
+<tr>
+<td><code>break</code></td>
+<td><code>Break</code></td>
+<td>Exit loop</td>
+</tr>
+<tr>
+<td><code>continue</code></td>
+<td><code>Continue</code></td>
+<td>Jump to loop start</td>
+</tr>
+<tr>
+<td><code>return state</code></td>
+<td><code>Return</code></td>
+<td>Early exit</td>
+</tr>
+<tr>
+<td><code>raise</code></td>
+<td><code>Raise</code></td>
+<td>Re-raise in except block</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="rules-engine-integration">Rules engine integration<a class="headerlink" href="#rules-engine-integration" title="Permanent link">&para;</a></h3>
+<p>When classifying a symbol (e.g. <code>tenacity.retry</code>, <code>handler_a</code>), the parser
+consults the rules engine:</p>
+<ol>
+<li>Check for <code># asya: &lt;action&gt;</code> inline comment override (highest priority)</li>
+<li>If no override and a rules engine is configured, call
+   <code>engine.classify(symbol, module_path=...)</code></li>
+<li>Based on the result:</li>
+<li><code>ACTOR</code> / <code>UNFOLD</code> / <code>FLOW</code> → <code>ActorCall</code> (separate actor)</li>
+<li><code>INLINE</code> → <code>InlineCode</code> (inlined into router)</li>
+<li><code>CONFIG</code> → <code>InlineCode</code> with extracted values from the where-tree</li>
+<li>No engine → all calls become <code>ActorCall</code> (backwards compatible)</li>
+</ol>
+<p>For <code>CONFIG</code> rules with <code>where:</code> trees, the parser calls
+<code>ValueExtractor.extract(call_node, rule)</code> to pull spec values and stores them
+in <code>InlineCode.extracted_values</code>.</p>
+<h2 id="rules-engine-ast-level-classification">Rules engine (AST-level classification)<a class="headerlink" href="#rules-engine-ast-level-classification" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/rules.py</code></p>
+<p>The rules engine classifies Python symbols against an ordered list of compiler
+rules using a most-specific-wins strategy.</p>
+<h3 id="treatas-classifications">TreatAs classifications<a class="headerlink" href="#treatas-classifications" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+<th>IR result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor</code></td>
+<td>Separate actor, route through queue</td>
+<td><code>ActorCall</code></td>
+</tr>
+<tr>
+<td><code>unfold</code></td>
+<td>Recursively compile (same-package helper)</td>
+<td><code>ActorCall</code> (future: inline expansion)</td>
+</tr>
+<tr>
+<td><code>flow</code></td>
+<td>Embedded sub-flow</td>
+<td><code>ActorCall</code> (future: flow composition)</td>
+</tr>
+<tr>
+<td><code>inline</code></td>
+<td>Inline code into router body</td>
+<td><code>InlineCode</code></td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>Extract configuration values</td>
+<td><code>InlineCode</code> + <code>extracted_values</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="matching-tiers">Matching tiers<a class="headerlink" href="#matching-tiers" title="Permanent link">&para;</a></h3>
+<p>Rules are matched against symbols with four tiers (lower = more specific = wins):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>Pattern</th>
+<th>Example</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>Exact</td>
+<td><code>"tenacity.retry"</code></td>
+<td><code>tenacity.retry</code> only</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Prefix wildcard</td>
+<td><code>"tenacity.*"</code></td>
+<td><code>tenacity.retry</code>, <code>tenacity.stop</code>, ...</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Same-package dot</td>
+<td><code>"."</code></td>
+<td>Bare symbols in same root package</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Global wildcard</td>
+<td><code>"*"</code></td>
+<td>Everything</td>
+</tr>
+</tbody>
+</table></div>
+<p>Within tier 1, longer prefixes win (<code>"tenacity.stop.*"</code> beats <code>"tenacity.*"</code>).</p>
+<h3 id="default-rules">Default rules<a class="headerlink" href="#default-rules" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w">    </span><span class="c1"># same-package symbols</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unfold</span>
+
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*&quot;</span><span class="w">    </span><span class="c1"># everything else</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">inline</span>
+</code></pre></div>
+<p>Without user rules, bare symbols (same-package) are unfolded and dotted
+symbols (external) are inlined.</p>
+<h3 id="user-rules">User rules<a class="headerlink" href="#user-rules" title="Permanent link">&para;</a></h3>
+<p>Loaded from <code>.asya/config.compiler.rules.yaml</code>. User rules prepend to defaults,
+so exact matches (tier 0) override wildcards:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;max_attempt_number&quot;</span><span class="p p-Indicator">}</span>
+<span class="w">          </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.retry.maxAttempts</span>
+</code></pre></div>
+<h3 id="inline-comment-override">Inline comment override<a class="headerlink" href="#inline-comment-override" title="Permanent link">&para;</a></h3>
+<p>The highest-priority classification is the <code># asya: &lt;action&gt;</code> inline comment:</p>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">external</span><span class="o">.</span><span class="n">lib</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: actor   — forces actor regardless of rules</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">local_helper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline  — forces inline regardless of rules</span>
+</code></pre></div>
+<h2 id="value-extractor-ast-level-extraction">Value extractor (AST-level extraction)<a class="headerlink" href="#value-extractor-ast-level-extraction" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/extractor.py</code></p>
+<p>The extractor pulls spec values from <code>ast.Call</code> nodes guided by <code>where:</code> trees
+in compiler rules. It produces <code>{spec_path: value}</code> dicts that the compiler
+writes into AsyncActor manifests.</p>
+<h3 id="argument-binding">Argument binding<a class="headerlink" href="#argument-binding" title="Permanent link">&para;</a></h3>
+<p>Call arguments are bound to parameter names:</p>
+<ol>
+<li><strong>Keywords</strong>: always known (<code>func(delay=30)</code> → <code>{"delay": 30}</code>)</li>
+<li><strong>Positional + <code>ParamSpec</code></strong>: rule declares both bindings
+   (<code>param: {arg: 0, kwarg: "delay"}</code> → try kwarg first, then index)</li>
+<li><strong>Positional + <code>inspect.signature</code></strong>: import the function at compile time
+   and read its signature</li>
+<li><strong>Positional fallback</strong>: use index as string key (<code>"0"</code>, <code>"1"</code>, ...)</li>
+</ol>
+<h3 id="where-tree-walking">Where-tree walking<a class="headerlink" href="#where-tree-walking" title="Permanent link">&para;</a></h3>
+<p>The <code>where:</code> tree is walked recursively:</p>
+<ul>
+<li><strong>Terminal node</strong> (<code>param</code> + <code>assign-to</code>): extract value from bound arg,
+  store at spec path</li>
+<li><strong>Non-terminal node</strong> (<code>param</code> + <code>where</code>): bound arg is itself a Call or
+  BinOp; bind its args and recurse into children</li>
+<li><strong>Match-only node</strong> (<code>match</code> + <code>where</code>, no <code>param</code>): discriminator — only
+  recurse if the current AST call's function name matches <code>match</code></li>
+<li><strong>BinOp flattening</strong>: <code>a() | b() | c()</code> flattened into three calls, each
+  walked independently (tenacity's pipe combinator)</li>
+</ul>
+<h3 id="paramspec">ParamSpec<a class="headerlink" href="#paramspec" title="Permanent link">&para;</a></h3>
+<p>Rules can declare both positional and keyword bindings:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;name&quot;</span><span class="p p-Indicator">,</span><span class="nt"> type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;str&quot;</span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<p>The extractor tries <code>kwarg</code> first (always known from keyword args), then falls
+back to positional <code>arg</code> index. The <code>type</code> field is metadata for future
+validation.</p>
+<h3 id="static-value-extraction">Static value extraction<a class="headerlink" href="#static-value-extraction" title="Permanent link">&para;</a></h3>
+<p>The extractor handles these AST expression types:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>AST type</th>
+<th>Example</th>
+<th>Extracted value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ast.Constant</code></td>
+<td><code>30</code>, <code>"hello"</code>, <code>True</code></td>
+<td>Literal value</td>
+</tr>
+<tr>
+<td><code>ast.Name</code></td>
+<td><code>ValueError</code></td>
+<td>Identifier string</td>
+</tr>
+<tr>
+<td><code>ast.Tuple</code></td>
+<td><code>(ValueError, TypeError)</code></td>
+<td>Comma-joined string</td>
+</tr>
+<tr>
+<td><code>ast.UnaryOp(USub)</code></td>
+<td><code>-5</code></td>
+<td>Negated number</td>
+</tr>
+<tr>
+<td>Complex expressions</td>
+<td><code>foo()</code>, <code>x + y</code></td>
+<td><code>None</code> (not extractable)</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="ir-specification">IR specification<a class="headerlink" href="#ir-specification" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/ir.py</code></p>
+<p>All IR nodes inherit from <code>IROperation(lineno: int)</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Actor invocation — routed through a queue to a separate actor</span>
+<span class="n">ActorCall</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">treat_as</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span>
+
+<span class="c1"># Inline code — executed inside the router function body</span>
+<span class="n">InlineCode</span><span class="p">(</span><span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">extracted_values</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">object</span><span class="p">])</span>
+
+<span class="c1"># Payload mutation — modifies payload fields inline</span>
+<span class="n">Mutation</span><span class="p">(</span><span class="n">code</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+
+<span class="c1"># Control flow</span>
+<span class="n">Condition</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">true_branch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">],</span> <span class="n">false_branch</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>
+<span class="n">WhileLoop</span><span class="p">(</span><span class="n">test</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>    <span class="c1"># None = while True</span>
+<span class="n">Break</span><span class="p">()</span>
+<span class="n">Continue</span><span class="p">()</span>
+<span class="n">Return</span><span class="p">()</span>
+
+<span class="c1"># Error handling</span>
+<span class="n">TryExcept</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">],</span> <span class="n">handlers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">ExceptHandler</span><span class="p">],</span> <span class="n">finally_body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>
+<span class="n">ExceptHandler</span><span class="p">(</span><span class="n">error_types</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">body</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">IROperation</span><span class="p">])</span>   <span class="c1"># None = bare except</span>
+<span class="n">Raise</span><span class="p">()</span>
+
+<span class="c1"># Parallel execution</span>
+<span class="n">FanOutCall</span><span class="p">(</span><span class="n">target_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pattern</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">actor_calls</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]],</span>
+           <span class="n">iter_var</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">iterable</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span>
+</code></pre></div>
+<p>The IR is a flat tree: <code>Condition</code>, <code>WhileLoop</code>, and <code>TryExcept</code> contain nested
+operation lists in their branches, but there is no separate "block" concept.
+The grouper walks this tree to produce routers.</p>
+<h2 id="stage-2-grouper-ir-routers">Stage 2: Grouper (IR → Routers)<a class="headerlink" href="#stage-2-grouper-ir-routers" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/grouper.py</code></p>
+<p>The grouper transforms the flat IR operation list into a list of <code>Router</code>
+execution units. Each router becomes a separate async function in the
+generated code.</p>
+<h3 id="what-is-a-router">What is a Router?<a class="headerlink" href="#what-is-a-router" title="Permanent link">&para;</a></h3>
+<p>A <code>Router</code> is an execution unit with:</p>
+<ul>
+<li><strong>Mutations</strong>: payload transformations executed inline (fused from
+  consecutive <code>Mutation</code> / <code>InlineCode</code> IR nodes)</li>
+<li><strong>Routing decision</strong>: conditional branch, loop-back, exception dispatch</li>
+<li><strong>Continuation</strong>: list of downstream actor names to visit next</li>
+</ul>
+<p>Key fields:</p>
+<div class="highlight"><pre><span></span><code><span class="n">Router</span><span class="p">:</span>
+  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>                              <span class="c1"># e.g. &quot;router_my_flow_line_5_if&quot;</span>
+  <span class="n">mutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Mutation</span><span class="p">]</span>              <span class="c1"># inline payload edits</span>
+  <span class="n">condition</span><span class="p">:</span> <span class="n">Condition</span> <span class="o">|</span> <span class="kc">None</span>            <span class="c1"># if-test (None = unconditional)</span>
+  <span class="n">true_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>          <span class="c1"># actors if condition true</span>
+  <span class="n">false_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>         <span class="c1"># actors if condition false</span>
+  <span class="n">is_loop_back</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># re-inserts loop body actors</span>
+  <span class="n">guard_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>             <span class="c1"># max iterations (while True guard)</span>
+  <span class="n">is_try_enter</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># sets _on_error header</span>
+  <span class="n">is_try_exit</span><span class="p">:</span> <span class="nb">bool</span>                      <span class="c1"># clears _on_error on success</span>
+  <span class="n">is_except_dispatch</span><span class="p">:</span> <span class="nb">bool</span>               <span class="c1"># matches error type, routes to handler</span>
+  <span class="n">is_reraise</span><span class="p">:</span> <span class="nb">bool</span>                       <span class="c1"># raises for unhandled exceptions</span>
+  <span class="n">is_fan_out</span><span class="p">:</span> <span class="nb">bool</span>
+  <span class="n">fan_out_op</span><span class="p">:</span> <span class="n">FanOutCall</span> <span class="o">|</span> <span class="kc">None</span>
+</code></pre></div>
+<h3 id="grouping-rules">Grouping rules<a class="headerlink" href="#grouping-rules" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Mutation fusion</strong>: consecutive mutations are batched into the next
+   router's <code>mutations</code> list — no separate actor for mutations</li>
+<li><strong>Condition</strong>: creates a conditional router; branches processed recursively
+   with convergence labels for rejoin points</li>
+<li><strong>WhileLoop</strong>: <code>while True</code> creates a self-referencing loop-back router
+   with max-iterations guard; <code>while cond</code> creates a condition router with
+   self-reference in the true branch</li>
+<li><strong>TryExcept</strong>: creates four routers: try-enter (set <code>_on_error</code> header),
+   try-exit (clear header on success), except-dispatch (match error type via
+   MRO), reraise (unhandled)</li>
+<li><strong>FanOut</strong>: creates a fan-out router + aggregator reference</li>
+</ol>
+<h3 id="convergence-resolution">Convergence resolution<a class="headerlink" href="#convergence-resolution" title="Permanent link">&para;</a></h3>
+<p>Branches (if/else, try/except) must reconverge. The grouper uses placeholder
+labels (<code>CONVERGENCE_0</code>, <code>LOOP_EXIT_0</code>, etc.) during grouping, then resolves
+them to actual actor names in a final pass.</p>
+<h3 id="optimization">Optimization<a class="headerlink" href="#optimization" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Start router merger</strong>: if the first router after <code>start_</code> only has
+  mutations (no branching), merge into <code>start_</code> to save one actor hop</li>
+</ul>
+<h2 id="stage-3-code-generator-routers-code">Stage 3: Code generator (Routers → Code)<a class="headerlink" href="#stage-3-code-generator-routers-code" title="Permanent link">&para;</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/codegen.py</code></p>
+<p>The code generator emits Python source from the router list. Each router
+becomes an <code>async def</code> function using the ABI yield protocol.</p>
+<h3 id="generated-router-types">Generated router types<a class="headerlink" href="#generated-router-types" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Router type</th>
+<th>Generated behavior</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Start</td>
+<td>Apply mutations, <code>SET .route.next[:0]</code> to prepend downstream actors</td>
+</tr>
+<tr>
+<td>Conditional</td>
+<td><code>if condition:</code> branch, append actors to <code>_next</code> list</td>
+</tr>
+<tr>
+<td>Loop-back</td>
+<td>Re-insert loop body actors; for <code>while True</code>: check iteration guard via <code>.route.prev</code> count</td>
+</tr>
+<tr>
+<td>Try-enter</td>
+<td><code>SET .headers._on_error</code> to except-dispatch router name</td>
+</tr>
+<tr>
+<td>Try-exit</td>
+<td>Clear <code>_on_error</code> header; chain finally + continuation actors</td>
+</tr>
+<tr>
+<td>Except-dispatch</td>
+<td>Read <code>.status.error.type</code> + <code>.status.error.mro</code>, match handlers</td>
+</tr>
+<tr>
+<td>Reraise</td>
+<td>Raise <code>RuntimeError</code> for unhandled exceptions</td>
+</tr>
+<tr>
+<td>Fan-out</td>
+<td>Emit N+1 messages: parent + N sub-agents with <code>x-asya-fan-in</code> headers</td>
+</tr>
+<tr>
+<td>End</td>
+<td><code>SET .route.next</code> to <code>[]</code> (pipeline completion)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="handler-resolution_1">Handler resolution<a class="headerlink" href="#handler-resolution_1" title="Permanent link">&para;</a></h3>
+<p>The generated <code>resolve()</code> function maps handler names from the flow source to
+actor names using <code>ASYA_HANDLER_*</code> environment variables:</p>
+<div class="highlight"><pre><span></span><code>ASYA_HANDLER_ANALYZE_SENTIMENT=&quot;handlers.analyze_sentiment&quot;
+</code></pre></div>
+<p>Resolution uses suffix matching — any unambiguous suffix works:</p>
+<div class="highlight"><pre><span></span><code><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;analyze_sentiment&quot;</span><span class="p">)</span>              <span class="c1"># shortest suffix</span>
+<span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handlers.analyze_sentiment&quot;</span><span class="p">)</span>     <span class="c1"># full path</span>
+</code></pre></div>
+<p>Ambiguous matches raise an error listing candidates.</p>
+<h3 id="single-actor-flows">Single-actor flows<a class="headerlink" href="#single-actor-flows" title="Permanent link">&para;</a></h3>
+<p>When a flow has exactly one actor call and no branching, the code generator
+emits a <code>FLOW_METADATA</code> constant instead of router functions:</p>
+<div class="highlight"><pre><span></span><code><span class="n">FLOW_METADATA</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">&quot;flow_name&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;single-actor&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;actor&quot;</span><span class="p">:</span> <span class="s2">&quot;handler_name&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;asya.sh/flow&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span> <span class="s2">&quot;asya.sh/role&quot;</span><span class="p">:</span> <span class="s2">&quot;start&quot;</span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="router-naming-convention">Router naming convention<a class="headerlink" href="#router-naming-convention" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>start_{flow}</code></td>
+<td>Entry point</td>
+</tr>
+<tr>
+<td><code>end_{flow}</code></td>
+<td>Exit point</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_if</code></td>
+<td>Conditional at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_seq</code></td>
+<td>Sequential mutations at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_while_{id}</code></td>
+<td>Loop condition check</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_loop_back_{id}</code></td>
+<td>Loop re-insertion</td>
+</tr>
+<tr>
+<td><code>fanout_{flow}_line_{N}</code></td>
+<td>Fan-out dispatch</td>
+</tr>
+<tr>
+<td><code>fanin_{flow}_line_{N}</code></td>
+<td>Fan-out aggregator</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_try_enter_{id}</code></td>
+<td>Try entry</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_try_exit_{id}</code></td>
+<td>Try success path</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_except_dispatch_{id}</code></td>
+<td>Exception dispatch</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_reraise_{id}</code></td>
+<td>Unhandled exception</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="future-adapter-generation">Future: adapter generation<a class="headerlink" href="#future-adapter-generation" title="Permanent link">&para;</a></h2>
+<p>When a flow calls a decorated function (e.g. <code>@tool(...)</code>) that doesn't
+conform to the <code>dict -&gt; dict</code> actor protocol, the compiler will generate
+an adapter handler. See aint [ch0h] for the full design.</p>
+<p>The adapter shape is inferred from the call site, not from templates:</p>
+<div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">greet_user</span><span class="p">(</span><span class="n">state</span><span class="p">[</span><span class="s2">&quot;tool_call&quot;</span><span class="p">][</span><span class="s2">&quot;args&quot;</span><span class="p">])</span>  <span class="c1"># asya: actor</span>
+</code></pre></div>
+<p>The parser extracts input/output paths from the AST and stores them on the
+<code>ActorCall</code> IR node. The code generator reads these IR fields and emits the
+adapter — it never touches AST nodes directly.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Concern</th>
+<th>Layer</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Decorator pattern matching</td>
+<td>Rules (AST)</td>
+<td>Needs symbol names</td>
+</tr>
+<tr>
+<td>Parameter extraction</td>
+<td>Extractor (AST)</td>
+<td>Needs <code>ast.Call</code> arg binding</td>
+</tr>
+<tr>
+<td>Input/output path inference</td>
+<td>Parser (AST → IR)</td>
+<td>Needs <code>ast.Subscript</code> chains</td>
+</tr>
+<tr>
+<td>"Needs adapter?" decision</td>
+<td>IR</td>
+<td><code>input_path is not None</code> on <code>ActorCall</code></td>
+</tr>
+<tr>
+<td>Adapter code emission</td>
+<td>Codegen (IR → Code)</td>
+<td>Reads IR fields only</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
+<ul>
+<li><a href="../../components/lab-flow-compiler/">Flow Compiler Architecture</a> — why the Flow DSL
+  exists, the router problem, CPS model, and design principles</li>
+<li><a href="../abi-protocol/">ABI Protocol Reference</a> —
+  yield-based metadata access used by generated routers and user handlers</li>
+</ul>
+  </div>
+</article>
+                                <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
+        href="/docs/reference/specs/abi-protocol/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-left ">
+            <path d="M5 12l14 0"></path>
+            <path d="M5 12l6 6"></path>
+            <path d="M5 12l6 -6"></path>
+        </svg>
+        <span class="max-[500px]:hidden">ABI Protocol</span>
+    </a>
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
+        href="/docs/reference/specs/error-handling/">
+        <span class="max-[500px]:hidden">Error Handling</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right ">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
+    
+</div>
+                                <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href="../../..">
+                        
+                        Home
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">UNDERSTAND</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../motivation/">
+                            
+                            Motivation
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../concepts/">
+                            
+                            Core Concepts
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../architecture/">
+                            
+                            Architecture
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">USAGE</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../usage/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">SETUP</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../setup/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">REFERENCE</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../env-vars/">
+                            
+                            Environment Variables
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">CONTRIBUTING</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-a2a/">
+                            
+                            Testing A2A
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-state-proxy/">
+                            
+                            Testing State Proxy
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-transport/">
+                            
+                            Testing Transports
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            </div>
+                            <div
+                                class="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                <div view-transition-name="toc" class="no-scrollbar overflow-y-auto px-8">
+    <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+        <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+        
+        
+        
+        
+        <a href="#what-is-the-flow-dsl"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            What is the Flow DSL?
+        </a>
+        
+
+        
+        <a href="#writing-flows"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Writing flows
+        </a>
+        
+        
+        <a href="#function-signature"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Function signature
+        </a>
+        
+        <a href="#actor-calls"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Actor calls
+        </a>
+        
+        <a href="#payload-mutations"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Payload mutations
+        </a>
+        
+        <a href="#conditionals"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Conditionals
+        </a>
+        
+        <a href="#early-returns"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Early returns
+        </a>
+        
+        <a href="#loops"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Loops
+        </a>
+        
+        <a href="#error-handling"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Error handling
+        </a>
+        
+        <a href="#fan-out-parallel-execution"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Fan-out (parallel execution)
+        </a>
+        
+        
+
+        
+        <a href="#what-you-cannot-write-in-a-flow"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            What you cannot write in a flow
+        </a>
+        
+
+        
+        <a href="#compilation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Compilation
+        </a>
+        
+        
+        <a href="#what-the-compiler-does"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            What the compiler does
+        </a>
+        
+        <a href="#compiler-commands"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Compiler commands
+        </a>
+        
+        <a href="#generated-files"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Generated files
+        </a>
+        
+        <a href="#router-naming"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Router naming
+        </a>
+        
+        
+
+        
+        <a href="#deployment"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Deployment
+        </a>
+        
+        
+        <a href="#1-write-the-flow"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            1. Write the flow
+        </a>
+        
+        <a href="#2-compile"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            2. Compile
+        </a>
+        
+        <a href="#3-deploy-router-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            3. Deploy router actors
+        </a>
+        
+        <a href="#4-deploy-handler-actors"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            4. Deploy handler actors
+        </a>
+        
+        <a href="#5-send-a-message"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            5. Send a message
+        </a>
+        
+        <a href="#handler-resolution"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Handler resolution
+        </a>
+        
+        
+
+        
+        <a href="#stage-1-parser-ast-ir"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Stage 1: Parser (AST → IR)
+        </a>
+        
+        
+        <a href="#flow-function-discovery"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Flow function discovery
+        </a>
+        
+        <a href="#import-map"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Import map
+        </a>
+        
+        <a href="#statement-classification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Statement classification
+        </a>
+        
+        <a href="#rules-engine-integration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Rules engine integration
+        </a>
+        
+        
+
+        
+        <a href="#rules-engine-ast-level-classification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Rules engine (AST-level classification)
+        </a>
+        
+        
+        <a href="#treatas-classifications"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            TreatAs classifications
+        </a>
+        
+        <a href="#matching-tiers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Matching tiers
+        </a>
+        
+        <a href="#default-rules"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Default rules
+        </a>
+        
+        <a href="#user-rules"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            User rules
+        </a>
+        
+        <a href="#inline-comment-override"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Inline comment override
+        </a>
+        
+        
+
+        
+        <a href="#value-extractor-ast-level-extraction"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Value extractor (AST-level extraction)
+        </a>
+        
+        
+        <a href="#argument-binding"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Argument binding
+        </a>
+        
+        <a href="#where-tree-walking"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Where-tree walking
+        </a>
+        
+        <a href="#paramspec"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            ParamSpec
+        </a>
+        
+        <a href="#static-value-extraction"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Static value extraction
+        </a>
+        
+        
+
+        
+        <a href="#ir-specification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            IR specification
+        </a>
+        
+
+        
+        <a href="#stage-2-grouper-ir-routers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Stage 2: Grouper (IR → Routers)
+        </a>
+        
+        
+        <a href="#what-is-a-router"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            What is a Router?
+        </a>
+        
+        <a href="#grouping-rules"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Grouping rules
+        </a>
+        
+        <a href="#convergence-resolution"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Convergence resolution
+        </a>
+        
+        <a href="#optimization"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Optimization
+        </a>
+        
+        
+
+        
+        <a href="#stage-3-code-generator-routers-code"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Stage 3: Code generator (Routers → Code)
+        </a>
+        
+        
+        <a href="#generated-router-types"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Generated router types
+        </a>
+        
+        <a href="#handler-resolution_1"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Handler resolution
+        </a>
+        
+        <a href="#single-actor-flows"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Single-actor flows
+        </a>
+        
+        <a href="#router-naming-convention"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Router naming convention
+        </a>
+        
+        
+
+        
+        <a href="#future-adapter-generation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Future: adapter generation
+        </a>
+        
+
+        
+        <a href="#see-also"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            See also
+        </a>
+        
+
+        
+        
+        
+        
+
+    </div>
+    <div class="h-12"></div>
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer view-transition-name="footer"
+    class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+    <div class="container-wrapper px-4 xl:px-6">
+        <div class="flex h-(--footer-height) items-center justify-between">
+            <div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+            </div>
+        </div>
+    </div>
+</footer>
+    </div>
+     
+
+<script src="../../../website/js/search-bridge.js"></script>
+
+     
+
+<script src="../../../search/main.js"></script>
+
+
+    
+
+    <script src="../../../js/copy-button.js"></script>
+    <script>updatePygmentsStylesheet();</script>
+    
+    <script>fetchStargazers("https://github.com/deliveryhero/asya");</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"],
+      }
+    }
+  ]
+}
+</script>
+</body>
+
+</html>

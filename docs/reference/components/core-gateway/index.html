@@ -1,0 +1,1694 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script>
+        // for search plugin notably
+        const base_url = "https://asya.sh/docs/";
+    </script>
+    <script>
+    const darkTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    darkTheme.onchange = (e) => {
+        if (e.matches) {
+            document.documentElement.classList.add("dark")
+            localStorage.theme = 'dark';
+        } else {
+            document.documentElement.classList.remove("dark")
+            localStorage.removeItem("theme")
+        }
+    };
+
+    // On page load. Priotiry to lcaolStorage
+    if (localStorage.theme === "dark") {
+        document.documentElement.classList.add("dark")
+    } else if (localStorage.theme === "light") {
+        document.documentElement.classList.remove("dark")
+    } else if (darkTheme.matches) {
+        document.documentElement.classList.add("dark")
+    } else {
+        document.documentElement.classList.remove("dark")
+    }
+
+    // set the layout based on localStorage
+    document.documentElement.classList.add(localStorage.getItem("html-layout") || "layout-fixed");
+</script>
+
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gateway - Asya</title>
+    
+
+
+<title>Gateway</title>
+
+
+
+
+
+
+
+
+
+<link rel="canonical" href="https://asya.sh/docs/reference/components/core-gateway/">
+
+
+<!-- Open Graph (Facebook, LinkedIn) -->
+
+<meta property="og:title" content="Gateway">
+
+
+
+
+
+<meta property="og:url" content="https://asya.sh/docs/reference/components/core-gateway/">
+
+
+
+
+
+
+<!-- Twitter Card -->
+
+<meta name="twitter:title" content="Gateway">
+
+
+
+
+
+
+<!-- JSON-LD Structured Data -->
+
+
+
+    <link rel="icon" href="../../../website/img/favicon.svg">
+
+    <link href="../../../css/base.css" rel="stylesheet">
+    <link href="../../../css/geist.css" rel="stylesheet">
+
+    
+    <link href="../../../website/stylesheets/extra.css" rel="stylesheet">
+
+    
+
+    <script src="../../../js/callbacks.js"></script>
+
+    
+
+    
+
+    
+
+</head>
+
+<body
+    class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
+    <div id="inner-body" class="bg-background relative z-10 flex min-h-svh flex-col">
+        <header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+    <div class="container-wrapper 3xl:fixed:px-0 px-6">
+        <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
+            <button id="menu-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)"
+                class="group whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:text-accent-foreground px-4 py-2 has-[&gt;svg]:px-3 extend-touch-target h-8 touch-manipulation items-center justify-start gap-2.5 !p-0 hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 active:bg-transparent dark:hover:bg-transparent flex lg:hidden"
+                type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-«Rmplb»"
+                data-state="closed">
+                <div class="relative flex h-8 w-4 items-center justify-center">
+                    <div class="relative size-4">
+                        <!-- 16px x 16px -->
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="0" x2="16" y1="5" y2="5"
+                                class="group-data-[state=open]:translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:rotate-45 transition-all duration-300 origin-center" />
+                            <line x1="0" x2="16" y1="11" y2="11"
+                                class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
+                        </svg>
+                    </div>
+
+                    <span class="sr-only">Toggle Menu</span>
+                </div>
+                <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
+            </button>
+            <a data-slot="button"
+                class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
+                href="https://asya.sh/docs/">
+                <span class="size-8 flex flex-row justify-center items-center">
+                    
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
+    class="size-5">
+    <rect width="256" height="256" fill="none"></rect>
+    <line x1="208" y1="128" x2="128" y2="208" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="32"></line>
+    <line x1="192" y1="40" x2="40" y2="192" fill="none" stroke="currentColor" stroke-linecap="round"
+        stroke-linejoin="round" stroke-width="32"></line>
+</svg>
+
+
+                </span>
+
+                
+                <h1 class="pr-2">Asya</h1>
+                
+            </a>
+            
+            <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
+                <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
+                    <button data-slot="dialog-trigger" onclick="onSearchBarClick(event)"
+    class="inline-flex items-center gap-2 whitespace-nowrap rounded-md text-sm transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-secondary/80 px-4 py-2 has-[&gt;svg]:px-3 bg-surface text-surface-foreground/60 dark:bg-card relative h-8 w-full justify-start pl-2.5 font-normal shadow-none sm:pr-12 md:w-40 lg:w-56 xl:w-64"
+    type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="radix-«R66plb»" data-state="closed">
+    <span class="text-muted-foreground hidden lg:inline-flex">Search documentation...</span>
+    <span class="text-muted-foreground inline-flex lg:hidden">Search...</span>
+    <div class="absolute top-1.5 right-1.5 hidden gap-1 sm:flex">
+        <kbd
+            class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3">Ctrl</kbd><kbd
+            class="bg-background text-muted-foreground pointer-events-none flex h-5 items-center justify-center gap-1 rounded border px-1 font-sans text-[0.7rem] font-medium select-none [&amp;_svg:not([class*='size-'])]:size-3 aspect-square">K</kbd>
+    </div>
+</button>
+<dialog id="search-dialog" onclick="onSearchDialogClick(event)"
+    class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-background rounded-lg shadow-lg border overflow-hidden p-0">
+    <div class="w-lg gap-4">
+        <div class="flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground">
+            <div data-slot="command-input-wrapper" class="flex h-9 items-center gap-2 border-b px-3"><svg
+                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                    class="lucide lucide-search size-4 shrink-0 opacity-50">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                </svg>
+                <input data-slot="command-input"
+                    class="placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Search documentation..." cmdk-input="" autocomplete="off" autocorrect="off"
+                    spellcheck="false" aria-autocomplete="list" role="combobox" aria-expanded="true"
+                    aria-controls="radix-«r1t6»" aria-labelledby="radix-«r1t7»" id="radix-«r1t8»" type="text" value=""
+                    aria-activedescendant="radix-«r1th»" oninput="onInputHandler(event)">
+            </div>
+        </div>
+        <div id="mkdocs-search-results">
+            <!-- search results go there -->
+        </div>
+    </div>
+</dialog>
+<script>
+    document.removeEventListener("keydown", searchShortcutHandler);
+    document.addEventListener("keydown", searchShortcutHandler);
+</script>
+                </div>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px ml-2 hidden lg:block">
+                </div>
+                <a target="_blank" rel="noreferrer" data-slot="button"
+                    class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 h-8 shadow-none"
+                    href="https://github.com/deliveryhero/asya">
+                    <svg viewBox="0 0 438.549 438.549">
+                        <path fill="currentColor"
+                            d="M409.132 114.573c-19.608-33.596-46.205-60.194-79.798-79.8-33.598-19.607-70.277-29.408-110.063-29.408-39.781 0-76.472 9.804-110.063 29.408-33.596 19.605-60.192 46.204-79.8 79.8C9.803 148.168 0 184.854 0 224.63c0 47.78 13.94 90.745 41.827 128.906 27.884 38.164 63.906 64.572 108.063 79.227 5.14.954 8.945.283 11.419-1.996 2.475-2.282 3.711-5.14 3.711-8.562 0-.571-.049-5.708-.144-15.417a2549.81 2549.81 0 01-.144-25.406l-6.567 1.136c-4.187.767-9.469 1.092-15.846 1-6.374-.089-12.991-.757-19.842-1.999-6.854-1.231-13.229-4.086-19.13-8.559-5.898-4.473-10.085-10.328-12.56-17.556l-2.855-6.57c-1.903-4.374-4.899-9.233-8.992-14.559-4.093-5.331-8.232-8.945-12.419-10.848l-1.999-1.431c-1.332-.951-2.568-2.098-3.711-3.429-1.142-1.331-1.997-2.663-2.568-3.997-.572-1.335-.098-2.43 1.427-3.289 1.525-.859 4.281-1.276 8.28-1.276l5.708.853c3.807.763 8.516 3.042 14.133 6.851 5.614 3.806 10.229 8.754 13.846 14.842 4.38 7.806 9.657 13.754 15.846 17.847 6.184 4.093 12.419 6.136 18.699 6.136 6.28 0 11.704-.476 16.274-1.423 4.565-.952 8.848-2.383 12.847-4.285 1.713-12.758 6.377-22.559 13.988-29.41-10.848-1.14-20.601-2.857-29.264-5.14-8.658-2.286-17.605-5.996-26.835-11.14-9.235-5.137-16.896-11.516-22.985-19.126-6.09-7.614-11.088-17.61-14.987-29.979-3.901-12.374-5.852-26.648-5.852-42.826 0-23.035 7.52-42.637 22.557-58.817-7.044-17.318-6.379-36.732 1.997-58.24 5.52-1.715 13.706-.428 24.554 3.853 10.85 4.283 18.794 7.952 23.84 10.994 5.046 3.041 9.089 5.618 12.135 7.708 17.705-4.947 35.976-7.421 54.818-7.421s37.117 2.474 54.823 7.421l10.849-6.849c7.419-4.57 16.18-8.758 26.262-12.565 10.088-3.805 17.802-4.853 23.134-3.138 8.562 21.509 9.325 40.922 2.279 58.24 15.036 16.18 22.559 35.787 22.559 58.817 0 16.178-1.958 30.497-5.853 42.966-3.9 12.471-8.941 22.457-15.125 29.979-6.191 7.521-13.901 13.85-23.131 18.986-9.232 5.14-18.182 8.85-26.84 11.136-8.662 2.286-18.415 4.004-29.263 5.146 9.894 8.562 14.842 22.077 14.842 40.539v60.237c0 3.422 1.19 6.279 3.572 8.562 2.379 2.279 6.136 2.95 11.276 1.995 44.163-14.653 80.185-41.062 108.068-79.226 27.88-38.161 41.825-81.126 41.825-128.906-.01-39.771-9.818-76.454-29.414-110.049z">
+                        </path>
+                    </svg>
+                    
+                    <span id="stargazers" class="text-muted-foreground w-8 text-xs tabular-nums" onload="test()">
+                    </span>
+                    
+                </a>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px 3xl:flex hidden">
+                </div>
+                <button data-slot="button"
+                    class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 size-8 3xl:flex hidden"
+                    title="Toggle layout" onclick="toggleLayout(event)">
+                    <span class="sr-only">Toggle layout</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="lucide lucide-gallery-horizontal">
+                        <path d="M2 3v18"></path>
+                        <rect width="12" height="18" x="6" y="3" rx="2"></rect>
+                        <path d="M22 3v18"></path>
+                    </svg>
+                </button>
+                <div data-orientation="vertical" role="none" data-slot="separator"
+                    class="bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px">
+                </div>
+                <button data-slot="button"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8"
+                    title="Toggle theme" onclick="onThemeSwitch(event)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="size-4.5">
+                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
+                        <path d="M12 3l0 18"></path>
+                        <path d="M12 9l4.65 -4.65"></path>
+                        <path d="M12 14.3l7.37 -7.37"></path>
+                        <path d="M12 19.6l8.85 -8.85"></path>
+                    </svg>
+                    <span class="sr-only">Toggle theme</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</header>
+        <main class="flex flex-1 flex-col">
+            <div class="container-wrapper flex flex-1 flex-col px-2">
+                <div data-slot="sidebar-wrapper" style="--sidebar-width: 16rem; --sidebar-width-icon: 3rem;"
+                    class="group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex w-full 3xl:fixed:container 3xl:fixed:px-3 min-h-min flex-1 items-start px-0 [--sidebar-width:220px] [--top-spacing:0] lg:grid lg:grid-cols-[var(--sidebar-width)_minmax(0,1fr)] lg:[--sidebar-width:240px] lg:[--top-spacing:calc(var(--spacing)*4)]">
+                    <div data-slot="sidebar"
+                        class="text-sidebar-foreground w-(--sidebar-width) flex-col sticky top-[calc(var(--header-height)+1px)] z-30 hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] bg-transparent lg:flex">
+                        <div data-slot="sidebar-content" data-sidebar="content"
+                            class="flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden no-scrollbar px-2 pb-12">
+                            <div class="h-(--top-spacing) shrink-0"></div>
+                            <div view-transition-name="sidebar" data-slot="sidebar-group" data-sidebar="group"
+    class="relative flex w-full min-w-0 flex-col p-2 no-scrollbar">
+    
+
+    
+    
+    
+
+    
+
+    
+    
+
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Home
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                
+            </ul>
+        </div>
+    </div>
+    
+
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            UNDERSTAND</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/motivation/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Motivation
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/concepts/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Core Concepts
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/architecture/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Architecture
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            USAGE</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/usage/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            SETUP</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/setup/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            REFERENCE</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/reference/env-vars/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Environment Variables
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+    
+    <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-2">
+        <div data-slot="sidebar-group-label" data-sidebar="group-label"
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 [&amp;&gt;svg]:size-4 [&amp;&gt;svg]:shrink-0 group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0 text-muted-foreground font-medium">
+            CONTRIBUTING</div>
+        <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
+            <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Overview
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-a2a/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing A2A
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-state-proxy/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing State Proxy
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+                <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
+        data-size="default" href="/docs/contributing/testing-transport/"
+        class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
+
+        
+        Testing Transports
+        
+
+        
+
+        
+
+        
+    </a>
+</li>
+                
+            </ul>
+        </div>
+    </div>
+    
+    
+
+
+    
+</div>
+                        </div>
+                    </div>
+                    <div class="h-full w-full">
+                        <div data-slot="docs" class="flex items-stretch text-[1.05rem] sm:text-[15px] xl:w-full">
+                            <div class="flex min-w-0 flex-1 flex-col">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                <article class="w-full" view-transition-name="page">
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1
+          class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
+        >
+          Gateway
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          
+<button onclick="fetch(`https://asya.sh/docs/reference/components/core-gateway.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+        data-slot="button" 
+        class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
+    <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"></path><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
+</svg>
+<span class="max-md:hidden">Copy Page</span>
+</button> 
+          
+          <a
+            data-slot="button"
+            id="previous-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/reference/components/core-runtime/"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-left"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M5 12l6 6"></path>
+              <path d="M5 12l6 -6"></path>
+            </svg>
+            <span class="sr-only">Previous</span>
+          </a>
+           
+          
+          <a
+            data-slot="button"
+            id="next-button"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
+            href="/docs/reference/components/core-crew/"
+          >
+            <span class="sr-only">Next</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              class="tabler-icon tabler-icon-arrow-right"
+            >
+              <path d="M5 12l14 0"></path>
+              <path d="M13 18l6 -6"></path>
+              <path d="M13 6l6 6"></path>
+            </svg>
+          </a>
+          
+        </div>
+      </div>
+      
+    </div>
+    <div class="flex justify-end items-center">
+       
+    </div>
+  </div>
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    <h2 id="responsibilities">Responsibilities<a class="headerlink" href="#responsibilities" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Expose MCP-compliant HTTP API</li>
+<li>Create tasks from HTTP requests</li>
+<li>Track task status in PostgreSQL</li>
+<li>Stream progress updates via Server-Sent Events (SSE)</li>
+<li>Receive status reports from crew actors</li>
+</ul>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Client calls MCP tool via HTTP POST</li>
+<li>Gateway creates task with unique ID</li>
+<li>Gateway stores task in PostgreSQL (status: <code>pending</code>)</li>
+<li>Gateway sends envelope to first actor's queue</li>
+<li>Crew actors (<code>x-sink</code>, <code>x-sump</code>) report final task status</li>
+<li>Client polls or streams task status updates via SSE</li>
+</ol>
+<h2 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">&para;</a></h2>
+<p>The gateway binary supports three modes via <code>ASYA_GATEWAY_MODE</code>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Mode</th>
+<th>Routes</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>api</code></td>
+<td>A2A, MCP, OAuth, health</td>
+<td>External-facing; behind Ingress</td>
+</tr>
+<tr>
+<td><code>mesh</code></td>
+<td>Mesh routes, health</td>
+<td>Internal-only; ClusterIP, no Ingress</td>
+</tr>
+<tr>
+<td><code>testing</code></td>
+<td>All routes</td>
+<td>Local development and integration tests</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="state-ownership">State ownership<a class="headerlink" href="#state-ownership" title="Permanent link">&para;</a></h3>
+<p>The gateway uses two independent state stores with clearly separated ownership:</p>
+<div class="highlight"><pre><span></span><code>                        ┌─────────────────────────────┐
+                        │   gateway-flows ConfigMap   │
+                        │   (flows.yaml — K8s object) │
+                        └──────────────┬──────────────┘
+                                       │ polls every 10 s
+                                       │ (toolstore.Watch)
+                        ┌──────────────▼──────────────┐
+   external client ───► │        api pod              │
+   MCP / A2A / OAuth    │  - MCP dispatch             │
+                        │  - A2A routing              │
+                        │  - agent card               │
+                        └──────────────┬──────────────┘
+                                       │ sends envelope
+                                       ▼
+                                  actor queue
+                                       │
+                                       ▼
+                                  actor pod
+                                       │ POST /mesh/{id}/…
+                        ┌──────────────▼──────────────┐
+                        │        mesh pod             │
+                        │  - progress callbacks       │
+                        │  - final status             │
+                        │  - SSE fan-out              │
+                        └──────────────┬──────────────┘
+                                       │ reads / writes
+                        ┌──────────────▼──────────────┐
+                        │        PostgreSQL           │
+                        │  tasks, task_updates        │
+                        │  oauth_clients, tokens      │
+                        └─────────────────────────────┘
+                                       ▲
+                        ───────────────┘
+                        api pod also reads/writes
+                        (task creation, OAuth, GetTask)
+</code></pre></div>
+<p><strong>ConfigMap</strong> (<code>gateway-flows</code>) — routing configuration:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th></th>
+<th>api pod</th>
+<th>mesh pod</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Mounts ConfigMap</td>
+<td>✅ (<code>ASYA_CONFIG_PATH</code>)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Hot-reloads on change</td>
+<td>✅ every 10 s (default)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Uses for dispatch</td>
+<td>✅ MCP + A2A + agent card</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<p>The ConfigMap is the source of truth for <em>what flows exist</em>. It is seeded by
+Helm at deploy time and can be patched at runtime (e.g., via <code>kubectl patch</code> or
+<code>asya mcp expose</code>) without a pod restart.</p>
+<p><strong>PostgreSQL</strong> — task and auth state:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th></th>
+<th>api pod</th>
+<th>mesh pod</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Creates tasks</td>
+<td>✅ (on MCP/A2A call)</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Writes progress</td>
+<td>❌</td>
+<td>✅ (via <code>/mesh/{id}/progress</code>)</td>
+</tr>
+<tr>
+<td>Writes final status</td>
+<td>❌</td>
+<td>✅ (via <code>/mesh/{id}/final</code>)</td>
+</tr>
+<tr>
+<td>Reads task state</td>
+<td>✅ (GetTask, SSE, OAuth)</td>
+<td>✅ (SSE stream)</td>
+</tr>
+<tr>
+<td>Stores OAuth clients/tokens</td>
+<td>✅ (when OAuth enabled)</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table></div>
+<p>Both pods connect to the <strong>same</strong> PostgreSQL instance. PostgreSQL is the shared
+coordination point: the api pod creates a task record, then mesh pod workers
+update it as actors report progress.</p>
+<p>Production deployments use <strong>two Helm releases</strong> from the same chart:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># External-facing API gateway (with Ingress)</span>
+helm<span class="w"> </span>install<span class="w"> </span>asya-gateway<span class="w"> </span>deploy/helm-charts/asya-gateway/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span><span class="nv">mode</span><span class="o">=</span>api<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>gateway-values.yaml
+
+<span class="c1"># Internal mesh gateway (ClusterIP only, no Ingress)</span>
+helm<span class="w"> </span>install<span class="w"> </span>asya-gateway-mesh<span class="w"> </span>deploy/helm-charts/asya-gateway/<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--set<span class="w"> </span><span class="nv">mode</span><span class="o">=</span>mesh<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-f<span class="w"> </span>gateway-mesh-values.yaml
+</code></pre></div>
+<p>Both releases share the same container image and PostgreSQL database. Sidecars
+and crew actors reach the mesh deployment via in-cluster DNS:
+<code>asya-gateway-mesh.&lt;namespace&gt;.svc.cluster.local</code>.</p>
+<p><strong>Gateway is stateful</strong>: Requires PostgreSQL database for task tracking and
+(when OAuth is enabled) for OAuth client/token storage.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Configured via Helm values. Key sections:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># gateway-values.yaml</span>
+<span class="nt">mode</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api</span><span class="w">  </span><span class="c1"># api | mesh | testing</span>
+<span class="nt">config</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">sqsRegion</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;us-east-1&quot;</span>
+<span class="w">  </span><span class="nt">postgresHost</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;postgres.default.svc.cluster.local&quot;</span>
+<span class="w">  </span><span class="nt">postgresDatabase</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;asya_gateway&quot;</span>
+<span class="w">  </span><span class="nt">postgresPasswordSecretRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgres-secret</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
+<p>Tool/skill registration is <strong>ConfigMap-backed</strong>: flows are declared in
+<code>flows.yaml</code>, mounted into the api pod, and hot-reloaded every 10 seconds (configurable via <code>ASYA_CONFIG_POLL_INTERVAL</code>) by a
+polling watcher (<code>toolstore.Watch</code>). Updating the ConfigMap is the only way to
+add, change, or remove an exposed tool or A2A skill — no restart is needed.</p>
+<p>The Helm chart creates an empty <code>gateway-flows</code> ConfigMap. After deployment,
+flows are registered by patching the ConfigMap (e.g., via <code>asya flow expose</code>
+or <code>kubectl patch</code>). No Helm upgrade is needed.</p>
+<h2 id="api-endpoints">API Endpoints<a class="headerlink" href="#api-endpoints" title="Permanent link">&para;</a></h2>
+<p><strong>See</strong>: <a href="../../specs/gateway-api/">Gateway API spec</a> for the full API reference with complete request/response schemas for all routes.</p>
+<p>Routes are split across the two deployments.</p>
+<h3 id="external-api-routes-mode-api">External API routes (<code>mode: api</code>)<a class="headerlink" href="#external-api-routes-mode-api" title="Permanent link">&para;</a></h3>
+<h4 id="mcp-endpoints">MCP endpoints<a class="headerlink" href="#mcp-endpoints" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/mcp<span class="w">        </span><span class="c1"># MCP Streamable HTTP transport (recommended)</span>
+GET<span class="w">  </span>/mcp/sse<span class="w">    </span><span class="c1"># MCP SSE transport (for clients that require SSE)</span>
+POST<span class="w"> </span>/tools/call<span class="w"> </span><span class="c1"># MCP tool invocation (REST convenience path)</span>
+</code></pre></div>
+<p>Both <code>/mcp</code> and <code>/mcp/sse</code> are active transports — neither is deprecated. Use
+whichever your MCP client supports.</p>
+<div class="highlight"><pre><span></span><code>GET<span class="w">  </span>/.well-known/agent.json<span class="w">   </span><span class="c1"># A2A Agent Card (public, no auth)</span>
+POST<span class="w"> </span>/a2a/<span class="w">                     </span><span class="c1"># A2A JSON-RPC endpoint</span>
+</code></pre></div>
+<p>OAuth 2.1 endpoints (when <code>ASYA_MCP_OAUTH_ENABLED=true</code>):</p>
+<div class="highlight"><pre><span></span><code>GET<span class="w">  </span>/.well-known/oauth-protected-resource<span class="w">    </span><span class="c1"># RFC 9728 resource metadata</span>
+GET<span class="w">  </span>/.well-known/oauth-authorization-server<span class="w">  </span><span class="c1"># RFC 8414 server metadata</span>
+POST<span class="w"> </span>/oauth/register<span class="w">                          </span><span class="c1"># Dynamic Client Registration</span>
+GET<span class="w">  </span>/oauth/authorize<span class="w">                         </span><span class="c1"># Authorization Code endpoint</span>
+POST<span class="w"> </span>/oauth/token<span class="w">                             </span><span class="c1"># Token exchange and refresh</span>
+</code></pre></div>
+<h3 id="mesh-routes-mode-mesh">Mesh routes (<code>mode: mesh</code>)<a class="headerlink" href="#mesh-routes-mode-mesh" title="Permanent link">&para;</a></h3>
+<p>Called exclusively by sidecars and crew actors within the cluster.</p>
+<h4 id="call-tool-rest-external-api-mode">Call Tool (REST, external api mode)<a class="headerlink" href="#call-tool-rest-external-api-mode" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/tools/call
+Content-Type:<span class="w"> </span>application/json
+
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;name&quot;</span>:<span class="w"> </span><span class="s2">&quot;text-processor&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;arguments&quot;</span>:<span class="w"> </span><span class="o">{</span>
+<span class="w">    </span><span class="s2">&quot;text&quot;</span>:<span class="w"> </span><span class="s2">&quot;Hello world&quot;</span>,
+<span class="w">    </span><span class="s2">&quot;model&quot;</span>:<span class="w"> </span><span class="s2">&quot;gpt-4&quot;</span>
+<span class="w">  </span><span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+<p>Response (MCP CallToolResult):
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;content&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;text&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;text&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;{\&quot;task_id\&quot;:\&quot;5e6fdb2d...\&quot;,\&quot;message\&quot;:\&quot;Task created successfully\&quot;,\&quot;status_url\&quot;:\&quot;/mesh/5e6fdb2d...\&quot;,\&quot;stream_url\&quot;:\&quot;/mesh/5e6fdb2d.../stream\&quot;}&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">],</span>
+<span class="w">  </span><span class="nt">&quot;isError&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<p>See <a href="../../specs/envelope/">Envelope Protocol</a> for more details on task statuses.</p>
+<h4 id="get-task-status">Get Task Status<a class="headerlink" href="#get-task-status" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/tasks/<span class="o">{</span>id<span class="o">}</span>
+</code></pre></div>
+<p>Response:
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;id&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;5e6fdb2d-1d6b-4e91-baef-73e825434e7b&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;succeeded&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;message&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Task completed successfully&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;response&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Processed: Hello world&quot;</span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;progress_percent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">100</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;current_actor_idx&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">2</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;current_actor_name&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;postprocess&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;actors_completed&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;total_actors&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">3</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;created_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;updated_at&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:01:30Z&quot;</span>
+<span class="p">}</span>
+</code></pre></div></p>
+<h4 id="stream-task-updates-sse">Stream Task Updates (SSE)<a class="headerlink" href="#stream-task-updates-sse" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/stream
+Accept:<span class="w"> </span>text/event-stream
+</code></pre></div>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Sends historical updates first (no missed progress)</li>
+<li>Streams real-time updates as they occur</li>
+<li>Keepalive comments every 15 seconds</li>
+<li>Auto-closes on final status (<code>succeeded</code> or <code>failed</code>)</li>
+</ul>
+<p>Stream events (TaskUpdate):
+<div class="highlight"><pre><span></span><code>event: update
+data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;running&quot;,&quot;progress_percent&quot;:10,&quot;current_actor_idx&quot;:0,&quot;actor_state&quot;:&quot;received&quot;,&quot;actor&quot;:&quot;preprocess&quot;,&quot;actors&quot;:[&quot;preprocess&quot;,&quot;infer&quot;,&quot;post&quot;],&quot;message&quot;:&quot;Actor preprocess: received&quot;,&quot;timestamp&quot;:&quot;2025-11-18T12:00:15Z&quot;}
+
+event: update
+data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;running&quot;,&quot;progress_percent&quot;:33,&quot;current_actor_idx&quot;:0,&quot;actor_state&quot;:&quot;completed&quot;,&quot;actor&quot;:&quot;preprocess&quot;,&quot;actors&quot;:[&quot;preprocess&quot;,&quot;infer&quot;,&quot;post&quot;],&quot;message&quot;:&quot;Actor preprocess: completed&quot;,&quot;timestamp&quot;:&quot;2025-11-18T12:00:20Z&quot;}
+
+event: update
+data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;running&quot;,&quot;progress_percent&quot;:66,&quot;current_actor_idx&quot;:1,&quot;actor_state&quot;:&quot;completed&quot;,&quot;actor&quot;:&quot;infer&quot;,&quot;actors&quot;:[&quot;preprocess&quot;,&quot;infer&quot;,&quot;post&quot;],&quot;message&quot;:&quot;Actor infer: completed&quot;,&quot;timestamp&quot;:&quot;2025-11-18T12:01:00Z&quot;}
+
+event: update
+data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&quot;,&quot;progress_percent&quot;:100,&quot;result&quot;:{...},&quot;message&quot;:&quot;Task completed successfully&quot;,&quot;timestamp&quot;:&quot;2025-11-18T12:01:30Z&quot;}
+</code></pre></div></p>
+<p><strong>TaskUpdate fields</strong>:</p>
+<ul>
+<li><code>id</code>: Task ID</li>
+<li><code>status</code>: Task status (<code>pending</code>, <code>running</code>, <code>succeeded</code>, <code>failed</code>)</li>
+<li><code>progress_percent</code>: Progress 0-100 (omitted if not a progress update)</li>
+<li><code>current_actor_idx</code>: Current actor index (0-based, omitted for final states)</li>
+<li><code>actor_state</code>: Actor processing state (<code>received</code>, <code>processing</code>, <code>completed</code>)</li>
+<li><code>actor</code>: Current actor name (omitted for final states)</li>
+<li><code>actors</code>: Full route (may be modified via VFS)</li>
+<li><code>message</code>: Human-readable status message</li>
+<li><code>result</code>: Final result (only for <code>succeeded</code> status)</li>
+<li><code>error</code>: Error message (only for <code>failed</code> status)</li>
+<li><code>timestamp</code>: When this update occurred</li>
+</ul>
+<h4 id="check-task-active">Check Task Active<a class="headerlink" href="#check-task-active" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/active
+</code></pre></div>
+<p><strong>Used by</strong>: Actors to verify task hasn't timed out</p>
+<p>Response (active):
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">}</span>
+</code></pre></div></p>
+<p>Response (inactive - HTTP 410 Gone):
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;active&quot;</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">}</span>
+</code></pre></div></p>
+<h3 id="mesh-endpoints-sidecarcrew-mode-mesh">Mesh endpoints (Sidecar/Crew, <code>mode: mesh</code>)<a class="headerlink" href="#mesh-endpoints-sidecarcrew-mode-mesh" title="Permanent link">&para;</a></h3>
+<h4 id="report-progress">Report Progress<a class="headerlink" href="#report-progress" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/progress
+Content-Type:<span class="w"> </span>application/json
+
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;actors&quot;</span>:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;prep&quot;</span>,<span class="w"> </span><span class="s2">&quot;infer&quot;</span>,<span class="w"> </span><span class="s2">&quot;post&quot;</span><span class="o">]</span>,
+<span class="w">  </span><span class="s2">&quot;current_actor_idx&quot;</span>:<span class="w"> </span><span class="m">0</span>,
+<span class="w">  </span><span class="s2">&quot;status&quot;</span>:<span class="w"> </span><span class="s2">&quot;completed&quot;</span>
+<span class="o">}</span>
+</code></pre></div>
+<p><strong>Called by</strong>: Sidecars at three points per actor (<code>received</code>, <code>processing</code>, <code>completed</code>)</p>
+<p><strong>Progress formula</strong>: <code>(actor_idx * 100 + status_weight) / total_actors</code>
+- <code>received</code> = 10, <code>processing</code> = 50, <code>completed</code> = 100</p>
+<p><strong>Unknown task IDs</strong>: Progress updates for tasks not found in the store are
+silently accepted (200 OK). This is expected for direct-SQS envelopes that bypass
+gateway task creation. Infrastructure errors (e.g., database failures) still
+return 500.</p>
+<p>Response:
+<div class="highlight"><pre><span></span><code><span class="p">{</span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;ok&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;progress_percent&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">33.3</span><span class="p">}</span>
+</code></pre></div></p>
+<h4 id="report-final-status">Report Final Status<a class="headerlink" href="#report-final-status" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/mesh/<span class="o">{</span>id<span class="o">}</span>/final
+Content-Type:<span class="w"> </span>application/json
+
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;id&quot;</span>:<span class="w"> </span><span class="s2">&quot;task-123&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;status&quot;</span>:<span class="w"> </span><span class="s2">&quot;succeeded&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;result&quot;</span>:<span class="w"> </span><span class="o">{</span>...<span class="o">}</span>
+<span class="o">}</span>
+</code></pre></div>
+<p><strong>Called by</strong>: <code>x-sink</code> (success) or <code>x-sump</code> (failure) crew actors</p>
+<h4 id="create-fanout-task">Create Fanout Task<a class="headerlink" href="#create-fanout-task" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code>POST<span class="w"> </span>/tasks
+Content-Type:<span class="w"> </span>application/json
+
+<span class="o">{</span>
+<span class="w">  </span><span class="s2">&quot;id&quot;</span>:<span class="w"> </span><span class="s2">&quot;task-123-1&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;parent_id&quot;</span>:<span class="w"> </span><span class="s2">&quot;task-123&quot;</span>,
+<span class="w">  </span><span class="s2">&quot;actors&quot;</span>:<span class="w"> </span><span class="o">[</span><span class="s2">&quot;prep&quot;</span>,<span class="w"> </span><span class="s2">&quot;infer&quot;</span><span class="o">]</span>,
+<span class="w">  </span><span class="s2">&quot;current&quot;</span>:<span class="w"> </span><span class="m">1</span>
+<span class="o">}</span>
+</code></pre></div>
+<p><strong>Called by</strong>: Sidecars when runtime returns array (fan-out)</p>
+<p><strong>Fanout ID semantics</strong>:</p>
+<ul>
+<li>Index 0: Original ID (<code>task-123</code>)</li>
+<li>Index 1+: Suffixed (<code>task-123-1</code>, <code>task-123-2</code>)</li>
+<li>All children have <code>parent_id</code> for traceability</li>
+</ul>
+<h3 id="health-check">Health Check<a class="headerlink" href="#health-check" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>GET<span class="w"> </span>/health
+</code></pre></div>
+<p>Response: <code>OK</code></p>
+<h2 id="flow-examples">Flow Examples<a class="headerlink" href="#flow-examples" title="Permanent link">&para;</a></h2>
+<p>Flows are declared in <code>flows.yaml</code> (mounted as a ConfigMap). Each entry is a
+<code>FlowConfig</code> that maps a name to an actor pipeline and declares whether it is
+exposed as an MCP tool, an A2A skill, or both.</p>
+<p><strong>Single-actor MCP tool</strong>:
+<div class="highlight"><pre><span></span><code><span class="nt">flows</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello</span>
+<span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hello-actor</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Say hello</span>
+<span class="w">  </span><span class="nt">mcp</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">inputSchema</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">who</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Name to greet</span>
+<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">who</span><span class="p p-Indicator">]</span>
+</code></pre></div></p>
+<p><strong>Multi-actor pipeline exposed as both MCP and A2A</strong>:
+<div class="highlight"><pre><span></span><code><span class="nt">flows</span><span class="p">:</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">image-enhance</span>
+<span class="w">  </span><span class="nt">entrypoint</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">download-image</span>
+<span class="w">  </span><span class="nt">route_next</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">enhance</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">upload</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Enhance image quality</span>
+<span class="w">  </span><span class="nt">timeout</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">120</span>
+<span class="w">  </span><span class="nt">mcp</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">inputSchema</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">object</span>
+<span class="w">      </span><span class="nt">properties</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">image_url</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">URL of image to enhance</span>
+<span class="w">        </span><span class="nt">quality</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">string</span>
+<span class="w">          </span><span class="nt">description</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Target</span><span class="nv"> </span><span class="s">quality:</span><span class="nv"> </span><span class="s">low</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">medium</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">high&quot;</span>
+<span class="w">      </span><span class="nt">required</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">image_url</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">a2a</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+</code></pre></div></p>
+<p><strong>Fields</strong>:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>✅</td>
+<td>Unique flow name; becomes the MCP tool name and A2A skill name</td>
+</tr>
+<tr>
+<td><code>entrypoint</code></td>
+<td>✅</td>
+<td>First actor in the pipeline (queue name without <code>asya-&lt;ns&gt;-</code> prefix)</td>
+</tr>
+<tr>
+<td><code>route_next</code></td>
+<td>❌</td>
+<td>Ordered list of subsequent actors</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>❌</td>
+<td>Human-readable description surfaced in tool/skill listings</td>
+</tr>
+<tr>
+<td><code>timeout</code></td>
+<td>❌</td>
+<td>Max seconds to wait for completion (default: no limit)</td>
+</tr>
+<tr>
+<td><code>mcp</code></td>
+<td>❌</td>
+<td>Present → exposed as MCP tool; <code>inputSchema</code> is the JSON Schema for arguments</td>
+</tr>
+<tr>
+<td><code>a2a</code></td>
+<td>❌</td>
+<td>Present → exposed as A2A skill</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="authentication-security">Authentication &amp; Security<a class="headerlink" href="#authentication-security" title="Permanent link">&para;</a></h2>
+<p>The gateway implements protocol-native authentication on external routes and
+network-level isolation for mesh routes. No auth code runs on mesh routes —
+they are unreachable from outside the cluster by design.</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Route group</th>
+<th>Auth mechanism</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A2A (<code>/a2a/</code>)</td>
+<td>API key (<code>X-API-Key</code>) or JWT Bearer — configured via <code>ASYA_A2A_*</code> env vars</td>
+</tr>
+<tr>
+<td>MCP (<code>/mcp</code>, <code>/mcp/sse</code>, <code>/tools/call</code>)</td>
+<td>API key Bearer or OAuth 2.1 token — configured via <code>ASYA_MCP_*</code> env vars</td>
+</tr>
+<tr>
+<td>Mesh (<code>/mesh/…</code>)</td>
+<td>None — ClusterIP only, unreachable externally</td>
+</tr>
+<tr>
+<td>Well-known + health</td>
+<td>Always public</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="a2a-authentication">A2A Authentication<a class="headerlink" href="#a2a-authentication" title="Permanent link">&para;</a></h3>
+<p>Two schemes are supported with OR semantics — a request is authenticated if
+either check passes:</p>
+<p><strong>API Key</strong></p>
+<div class="highlight"><pre><span></span><code>X-API-Key: &lt;value&gt;
+</code></pre></div>
+<p>Configured via <code>ASYA_A2A_API_KEY</code>. When set, the header value must match
+exactly (constant-time comparison).</p>
+<p><strong>JWT Bearer</strong></p>
+<div class="highlight"><pre><span></span><code>Authorization: Bearer &lt;JWT&gt;
+</code></pre></div>
+<p>Configured via <code>ASYA_A2A_JWT_JWKS_URL</code> + <code>ASYA_A2A_JWT_ISSUER</code> +
+<code>ASYA_A2A_JWT_AUDIENCE</code>. The gateway fetches the JWKS from the configured URL
+and validates the token signature, issuer, and audience claims.</p>
+<p>When neither <code>ASYA_A2A_API_KEY</code> nor <code>ASYA_A2A_JWT_JWKS_URL</code> is set, A2A auth
+is disabled (all requests pass). This is the default for local development.</p>
+<p>The public Agent Card at <code>/.well-known/agent.json</code> advertises the configured
+schemes. Authenticated clients access only their own tasks — the gateway must
+not reveal the existence of tasks belonging to other clients.</p>
+<h3 id="mcp-authentication">MCP Authentication<a class="headerlink" href="#mcp-authentication" title="Permanent link">&para;</a></h3>
+<p>MCP auth is applied to <code>/mcp</code>, <code>/mcp/sse</code>, and <code>/tools/call</code>. Two modes are
+mutually exclusive:</p>
+<p><strong>API Key (simple, non-spec-compliant)</strong></p>
+<div class="highlight"><pre><span></span><code>Authorization: Bearer &lt;static-key&gt;
+</code></pre></div>
+<p>Set <code>ASYA_MCP_API_KEY</code> to a shared secret. Suitable for internal tooling
+(<code>asya-lab</code> CLI, known MCP hosts) where full OAuth is not needed.</p>
+<p>When <code>ASYA_MCP_API_KEY</code> is empty, MCP auth is disabled.</p>
+<p><strong>OAuth 2.1 (full MCP spec compliance)</strong></p>
+<p>Set <code>ASYA_MCP_OAUTH_ENABLED=true</code> plus <code>ASYA_MCP_OAUTH_ISSUER</code> and
+<code>ASYA_MCP_OAUTH_SECRET</code>. The gateway acts as its own authorization server,
+issuing HMAC-SHA256 JWTs. PostgreSQL is required (<code>ASYA_DATABASE_URL</code>).</p>
+<p>Scopes (issued but not yet enforced per-endpoint):</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Scope</th>
+<th>Intended permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mcp:invoke</code></td>
+<td>Call tools, send messages</td>
+</tr>
+<tr>
+<td><code>mcp:read</code></td>
+<td>List tools, read task state</td>
+</tr>
+</tbody>
+</table></div>
+<p>Scopes are issued into access tokens and stored in the database. However,
+<code>MCPAuthMiddleware</code> currently only validates that a token is authentic (signature,
+<code>iss</code>, <code>aud</code>, <code>exp</code>) — it does <strong>not</strong> check that the token's scope is sufficient
+for the specific operation being requested.</p>
+<p>OAuth 2.1 endpoints (when <code>ASYA_MCP_OAUTH_ENABLED=true</code>):</p>
+<div class="highlight"><pre><span></span><code>GET<span class="w">  </span>/.well-known/oauth-protected-resource<span class="w">    </span><span class="c1"># RFC 9728 resource metadata</span>
+GET<span class="w">  </span>/.well-known/oauth-authorization-server<span class="w">  </span><span class="c1"># RFC 8414 server metadata</span>
+POST<span class="w"> </span>/oauth/register<span class="w">                          </span><span class="c1"># Dynamic Client Registration</span>
+GET<span class="w">  </span>/oauth/authorize<span class="w">                         </span><span class="c1"># Authorization Code endpoint</span>
+POST<span class="w"> </span>/oauth/token<span class="w">                             </span><span class="c1"># Token exchange and refresh</span>
+</code></pre></div>
+<p>PKCE (<code>code_challenge_method=S256</code>) is required for all clients.</p>
+<p>Dynamic Client Registration (<code>/oauth/register</code>) is public by default. To restrict
+it, set <code>ASYA_MCP_OAUTH_REGISTRATION_TOKEN</code> — callers must then supply
+<code>Authorization: Bearer &lt;registration-token&gt;</code> to register.</p>
+<h3 id="mesh-security">Mesh Security<a class="headerlink" href="#mesh-security" title="Permanent link">&para;</a></h3>
+<p>Mesh routes carry no authentication code. Security is enforced at the network
+layer:</p>
+<ul>
+<li><code>asya-gateway-mesh</code> K8s Service is <code>ClusterIP</code> — no Ingress, no NodePort.
+  It is physically unreachable from outside the cluster.</li>
+<li>Sidecars and crew actors reach it via in-cluster DNS:
+  <code>asya-gateway-mesh.&lt;namespace&gt;.svc.cluster.local</code>.</li>
+</ul>
+<p>For defence in depth, add a K8s NetworkPolicy restricting ingress to actor pods:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">networking.k8s.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">NetworkPolicy</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gateway-mesh-ingress</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">podSelector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya-gateway-mesh</span>
+<span class="w">  </span><span class="nt">ingress</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">from</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">podSelector</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">matchLabels</span><span class="p">:</span>
+<span class="w">              </span><span class="nt">asya.sh/component</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actor</span>
+<span class="w">      </span><span class="nt">ports</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">port</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">8080</span>
+</code></pre></div>
+<p>Alternatively, enable a service mesh (Istio/Linkerd) for automatic mTLS between
+all pods with zero Asya code changes.</p>
+<h3 id="environment-variables">Environment Variables<a class="headerlink" href="#environment-variables" title="Permanent link">&para;</a></h3>
+<p>All auth-related environment variables:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Default</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ASYA_GATEWAY_MODE</code></td>
+<td>—</td>
+<td>Yes</td>
+<td><code>api</code>, <code>mesh</code>, or <code>testing</code></td>
+</tr>
+<tr>
+<td><code>ASYA_DATABASE_URL</code></td>
+<td><code>""</code></td>
+<td>For OAuth 2.1</td>
+<td>PostgreSQL DSN; required when <code>ASYA_MCP_OAUTH_ENABLED=true</code></td>
+</tr>
+<tr>
+<td><strong>A2A</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_API_KEY</code></td>
+<td><code>""</code></td>
+<td>No</td>
+<td>Static API key; auth disabled when empty</td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_JWT_JWKS_URL</code></td>
+<td><code>""</code></td>
+<td>No</td>
+<td>JWKS endpoint URL for JWT validation</td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_JWT_ISSUER</code></td>
+<td><code>""</code></td>
+<td>With JWKS</td>
+<td>Expected <code>iss</code> claim</td>
+</tr>
+<tr>
+<td><code>ASYA_A2A_JWT_AUDIENCE</code></td>
+<td><code>""</code></td>
+<td>With JWKS</td>
+<td>Expected <code>aud</code> claim</td>
+</tr>
+<tr>
+<td><strong>MCP Phase 2</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_API_KEY</code></td>
+<td><code>""</code></td>
+<td>No</td>
+<td>Static Bearer token; auth disabled when empty</td>
+</tr>
+<tr>
+<td><strong>MCP Phase 3 (OAuth 2.1)</strong></td>
+<td></td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_OAUTH_ENABLED</code></td>
+<td><code>false</code></td>
+<td>No</td>
+<td>Set to <code>true</code> to enable OAuth 2.1</td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_OAUTH_ISSUER</code></td>
+<td><code>""</code></td>
+<td>Yes (OAuth)</td>
+<td>Issuer URL embedded in tokens and metadata</td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_OAUTH_SECRET</code></td>
+<td><code>""</code></td>
+<td>Yes (OAuth)</td>
+<td>HMAC-SHA256 signing key for access tokens</td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_OAUTH_TOKEN_TTL</code></td>
+<td><code>3600</code></td>
+<td>No</td>
+<td>Access token lifetime in seconds</td>
+</tr>
+<tr>
+<td><code>ASYA_MCP_OAUTH_REGISTRATION_TOKEN</code></td>
+<td><code>""</code></td>
+<td>No</td>
+<td>Bearer token protecting <code>/oauth/register</code>; empty = open</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="using-mcp-tools">Using MCP tools<a class="headerlink" href="#using-mcp-tools" title="Permanent link">&para;</a></h2>
+<p><strong>See</strong>: <a href="../../../setup/start-quickstart/">Quickstart</a> for instructions how to test MCP locally.</p>
+<h2 id="deployment-helm-charts">Deployment Helm Charts<a class="headerlink" href="#deployment-helm-charts" title="Permanent link">&para;</a></h2>
+<p><strong>See</strong>: <a href="../../../setup/guide-gateway/">Gateway Setup Guide</a> for gateway chart details.</p>
+  </div>
+</article>
+                                <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
+        href="/docs/reference/components/core-runtime/">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-left ">
+            <path d="M5 12l14 0"></path>
+            <path d="M5 12l6 6"></path>
+            <path d="M5 12l6 -6"></path>
+        </svg>
+        <span class="max-[500px]:hidden">Runtime</span>
+    </a>
+    
+    
+    <a data-slot="button"
+        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
+        href="/docs/reference/components/core-crew/">
+        <span class="max-[500px]:hidden">Crew</span>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-right ">
+            <path d="M5 12l14 0"></path>
+            <path d="M13 18l6 -6"></path>
+            <path d="M13 6l6 6"></path>
+        </svg>
+    </a>
+    
+</div>
+                                <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
+            
+            
+            
+
+            
+            <div class="flex flex-col gap-4">
+                <div class="text-muted-foreground text-sm font-medium">Menu</div>
+                <div class="flex flex-col gap-3">
+                    
+                    <a class="text-2xl font-medium" href="../../..">
+                        
+                        Home
+                        
+                    </a>
+                    
+                </div>
+            </div>
+            
+
+            
+            <div class="flex flex-col gap-8">
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">UNDERSTAND</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../motivation/">
+                            
+                            Motivation
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../concepts/">
+                            
+                            Core Concepts
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../architecture/">
+                            
+                            Architecture
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">USAGE</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../usage/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">SETUP</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../setup/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">REFERENCE</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../env-vars/">
+                            
+                            Environment Variables
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+                <div class="flex flex-col gap-4">
+                    <div class="text-muted-foreground text-sm font-medium">CONTRIBUTING</div>
+                    
+                    <div class="flex flex-col gap-3">
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/">
+                            
+                            Overview
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-a2a/">
+                            
+                            Testing A2A
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-state-proxy/">
+                            
+                            Testing State Proxy
+                            
+                        </a>
+                        
+                        <a class="text-2xl font-medium" href="../../../contributing/testing-transport/">
+                            
+                            Testing Transports
+                            
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+                
+            </div>
+            
+            
+
+        </div>
+    </div>
+</dialog>
+                            </div>
+                            <div
+                                class="sticky top-[calc(var(--header-height)+1px)] z-30 ml-auto hidden h-[calc(100svh-var(--header-height)-var(--footer-height))] w-72 flex-col gap-4 overflow-hidden overscroll-none pb-8 xl:flex">
+                                <div class="h-(--top-spacing) shrink-0"></div>
+                                <div view-transition-name="toc" class="no-scrollbar overflow-y-auto px-8">
+    <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
+        <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
+        
+        
+        
+        
+        <a href="#responsibilities"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Responsibilities
+        </a>
+        
+
+        
+        <a href="#how-it-works"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            How It Works
+        </a>
+        
+
+        
+        <a href="#deployment"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Deployment
+        </a>
+        
+        
+        <a href="#state-ownership"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            State ownership
+        </a>
+        
+        
+
+        
+        <a href="#configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Configuration
+        </a>
+        
+
+        
+        <a href="#api-endpoints"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            API Endpoints
+        </a>
+        
+        
+        <a href="#external-api-routes-mode-api"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            External API routes (mode: api)
+        </a>
+        
+        <a href="#mesh-routes-mode-mesh"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Mesh routes (mode: mesh)
+        </a>
+        
+        <a href="#mesh-endpoints-sidecarcrew-mode-mesh"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Mesh endpoints (Sidecar/Crew, mode: mesh)
+        </a>
+        
+        <a href="#health-check"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Health Check
+        </a>
+        
+        
+
+        
+        <a href="#flow-examples"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Flow Examples
+        </a>
+        
+
+        
+        <a href="#authentication-security"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Authentication &amp; Security
+        </a>
+        
+        
+        <a href="#a2a-authentication"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            A2A Authentication
+        </a>
+        
+        <a href="#mcp-authentication"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            MCP Authentication
+        </a>
+        
+        <a href="#mesh-security"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Mesh Security
+        </a>
+        
+        <a href="#environment-variables"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Environment Variables
+        </a>
+        
+        
+
+        
+        <a href="#using-mcp-tools"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Using MCP tools
+        </a>
+        
+
+        
+        <a href="#deployment-helm-charts"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Deployment Helm Charts
+        </a>
+        
+
+        
+        
+        
+        
+
+    </div>
+    <div class="h-12"></div>
+</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        <footer view-transition-name="footer"
+    class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
+    <div class="container-wrapper px-4 xl:px-6">
+        <div class="flex h-(--footer-height) items-center justify-between">
+            <div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
+                
+                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
+                <a href="https://github.com/asiffer">@asiffer</a>
+            </div>
+        </div>
+    </div>
+</footer>
+    </div>
+     
+
+<script src="../../../website/js/search-bridge.js"></script>
+
+     
+
+<script src="../../../search/main.js"></script>
+
+
+    
+
+    <script src="../../../js/copy-button.js"></script>
+    <script>updatePygmentsStylesheet();</script>
+    
+    <script>fetchStargazers("https://github.com/deliveryhero/asya");</script>
+    
+    
+    
+    <script type="speculationrules">
+{
+  "prerender": [
+    {
+      "where": {
+          "selector_matches": ["#next-button", "#previous-button"],
+      }
+    }
+  ]
+}
+</script>
+</body>
+
+</html>

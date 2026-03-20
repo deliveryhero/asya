@@ -5,6 +5,10 @@
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
+         <loc>https://asya.sh/docs/architecture/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
          <loc>https://asya.sh/docs/concepts/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
@@ -13,191 +17,251 @@
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/</loc>
+         <loc>https://asya.sh/docs/contributing/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-actor/</loc>
+         <loc>https://asya.sh/docs/contributing/testing-a2a/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-crew/</loc>
+         <loc>https://asya.sh/docs/contributing/testing-state-proxy/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-crossplane/</loc>
+         <loc>https://asya.sh/docs/contributing/testing-transport/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-flow/</loc>
+         <loc>https://asya.sh/docs/reference/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-gateway/</loc>
+         <loc>https://asya.sh/docs/reference/env-vars/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-lab/</loc>
+         <loc>https://asya.sh/docs/reference/components/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-runtime/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-actor/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-sidecar/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-crew/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/asya-state-proxy/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-crossplane/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/autoscaling/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-gateway/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/observability/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-runtime/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/protocols/actor-actor/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-sidecar/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/protocols/sidecar-runtime/</loc>
+         <loc>https://asya.sh/docs/reference/components/core-state-proxy/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/transports/</loc>
+         <loc>https://asya.sh/docs/reference/components/lab-cli/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/transports/rabbitmq/</loc>
+         <loc>https://asya.sh/docs/reference/components/lab-flow-compiler/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/transports/socket/</loc>
+         <loc>https://asya.sh/docs/reference/specs/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/architecture/transports/sqs/</loc>
+         <loc>https://asya.sh/docs/reference/specs/abi-protocol/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/features/resiliency/</loc>
+         <loc>https://asya.sh/docs/reference/specs/asyncactor-crd/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/features/task-pause/</loc>
+         <loc>https://asya.sh/docs/reference/specs/envelope/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/img/flows/</loc>
+         <loc>https://asya.sh/docs/reference/specs/error-handling/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/install/aws-eks/</loc>
+         <loc>https://asya.sh/docs/reference/specs/flow-dsl/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/install/gcp-gke/</loc>
+         <loc>https://asya.sh/docs/reference/specs/gateway-api/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/install/helm-charts/</loc>
+         <loc>https://asya.sh/docs/reference/specs/sidecar-runtime/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/install/local-kind/</loc>
+         <loc>https://asya.sh/docs/reference/state-proxy-connectors/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/</loc>
+         <loc>https://asya.sh/docs/reference/state-proxy-connectors/gcs/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/actor-flavors/</loc>
+         <loc>https://asya.sh/docs/reference/state-proxy-connectors/nats-kv/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/crew-checkpointer/</loc>
+         <loc>https://asya.sh/docs/reference/state-proxy-connectors/redis/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/crew-termination/</loc>
+         <loc>https://asya.sh/docs/reference/state-proxy-connectors/s3/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/gateway-api-spec/</loc>
+         <loc>https://asya.sh/docs/reference/transports/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/gateway-security/</loc>
+         <loc>https://asya.sh/docs/reference/transports/pubsub/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/resiliency/</loc>
+         <loc>https://asya.sh/docs/reference/transports/rabbitmq/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/testing-a2a/</loc>
+         <loc>https://asya.sh/docs/reference/transports/socket/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/testing-state-proxy/</loc>
+         <loc>https://asya.sh/docs/reference/transports/sqs/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/internal/testing-transport/</loc>
+         <loc>https://asya.sh/docs/setup/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/mkdocs/README-mkdocs-shadcn-patch/</loc>
+         <loc>https://asya.sh/docs/setup/guide-actor-flavors/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/operate/monitoring/</loc>
+         <loc>https://asya.sh/docs/setup/guide-autoscaling/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/operate/scaling/</loc>
+         <loc>https://asya.sh/docs/setup/guide-gateway/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/operate/troubleshooting/</loc>
+         <loc>https://asya.sh/docs/setup/guide-helm-charts/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/operate/upgrades/</loc>
+         <loc>https://asya.sh/docs/setup/guide-pause-resume/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/quickstart/</loc>
+         <loc>https://asya.sh/docs/setup/guide-retries/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/quickstart/usage/</loc>
+         <loc>https://asya.sh/docs/setup/guide-state-proxy/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/reference/abi-protocol/</loc>
+         <loc>https://asya.sh/docs/setup/guide-timeouts/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/reference/flow-dsl/</loc>
+         <loc>https://asya.sh/docs/setup/ops-observability/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/tutorials/actor-flavors/</loc>
+         <loc>https://asya.sh/docs/setup/ops-troubleshooting/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/tutorials/actor-handler-adapter-pattern/</loc>
+         <loc>https://asya.sh/docs/setup/ops-upgrades/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/tutorials/agentic-patterns/</loc>
+         <loc>https://asya.sh/docs/setup/start-aws-eks/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/setup/start-gcp-gke/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/setup/start-quickstart/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-actor-flavors/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-agentic-patterns/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-handler-patterns/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-pause-resume/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-state-proxy/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-streaming/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/guide-timeouts/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/ops-debugging/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/start-first-actor-mesh/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/start-first-actor/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/usage/start-first-flow/</loc>
+         <lastmod>2026-03-20</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/website/</loc>
          <lastmod>2026-03-20</lastmod>
     </url>
 </urlset>
