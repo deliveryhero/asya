@@ -78,8 +78,8 @@ hierarchical inheritance.
 
 Flat dict of module prefixes to images with longest-prefix match.
 
-- **Partially viable**: simple concept, but still a central config that
-  doesn't self-describe the project structure.
+- **Partially viable**: simple concept, but extremely hard to config and use,
+still a central config that doesn't self-describe the project structure.
 
 ---
 
@@ -88,6 +88,7 @@ Flat dict of module prefixes to images with longest-prefix match.
 ### 3.1 Core Insight
 
 The handler-to-image mapping is fundamentally a build system concern.
+
 Build tools already answer "which source directories produce which
 images." Instead of reinventing this mapping, asya should read it from
 the project's build configuration.
