@@ -476,6 +476,7 @@ Retry with delay requires the transport to support `SendWithDelay`. Currently:
 | Transport | Retry with delay |
 |---|---|
 | SQS | ✅ Supported |
+| Pub/Sub | ✅ Supported |
 | RabbitMQ | ❌ Not supported — policy exhausts on first retry attempt, envelope goes to x-sink |
 
 Non-retryable patterns (policies with `maxAttempts=1`) and `onExhausted` routing work on all transports since they do not require delayed sends.
