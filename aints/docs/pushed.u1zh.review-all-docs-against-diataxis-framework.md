@@ -428,7 +428,6 @@ spec:
 
 Deploy Asya on your cluster, configure transports, monitor and scale.
 [Set up Asya](setup/README.md)
-```
 
 ### Content migration map
 
