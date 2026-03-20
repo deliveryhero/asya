@@ -25,7 +25,7 @@ When `infer` finishes, the sidecar reads `route.next`, sends the envelope to `po
 
 This is choreography over orchestration. The failure domain of each actor is exactly one queue. A crashed actor doesn't stall others — messages accumulate until replicas come back. Each actor scales based purely on its own queue depth.
 
-![Asya actor mesh](img/actor-mesh.png)
+![Asya actor mesh](website/img/actor-mesh.png)
 
 ## What Asya Is
 
@@ -63,3 +63,35 @@ It is **not** a model serving platform, a training framework, a CI/CD system, or
 
 Asya integrates with LLM serving tools (KAITO, LLM-d) via HTTP calls from actors — it is the pipeline
 layer around them, not a replacement.
+
+## Choreography vs Orchestration: The Trade-offs
+
+Choreography is not universally better than orchestration. The choice depends on the workload.
+
+### Complexity Comparison
+
+| Concern | Orchestration | Choreography (Asya) |
+|---------|--------------|---------------------|
+| Adding a new step | Change the orchestrator's DAG definition | Deploy a new actor; update the route in the envelope or flow config |
+| Debugging a failure | Read the orchestrator's execution log | Trace the envelope by `trace_id` across actor logs |
+| Scaling a bottleneck | Scale the orchestrator + the bottleneck worker | Scale only the bottleneck actor (independent KEDA trigger) |
+| Handling a crash | Orchestrator must checkpoint and resume | Queue redelivers the message; actor is stateless |
+| Global visibility | Orchestrator has a complete view of all workflows | Aggregate from per-actor metrics and logs |
+
+### Where orchestration might be better
+
+- **Simple workflows** with 2-3 steps that rarely change — the overhead of queues and sidecars is not justified
+- **Strong consistency requirements** where you need exactly-once semantics and transactional guarantees across steps
+- **Tight request-response latency** under 100ms — queue overhead adds 10-500ms per hop
+- **Small-scale deployments** that do not need per-component scaling
+
+### The debuggability question
+
+A common concern with choreography is debuggability. Asya addresses this with:
+
+1. **Envelope IDs and trace IDs** propagated through all actors
+2. **Progress reporting** from sidecars to the gateway at three points per actor
+3. **Prometheus metrics** for per-actor throughput, latency, and error rates
+4. **x-sink / x-sump** — all envelopes end at one of two known destinations
+
+The trade-off is real: you lose the single-pane-of-glass that an orchestrator provides. You gain independent failure domains and scaling.

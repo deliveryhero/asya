@@ -1,105 +1,89 @@
-<!-- Type: Explanation -->
-# Asya🎭 Documentation
+# Asya Documentation
 
-Meet Asya🎭 - a new open-source Kubernetes-native **async actor framework** for orchestrating AI/ML workloads at scale.
+Asya is an open-source Kubernetes-native **async actor framework** for orchestrating AI/ML workloads at scale.
 
-GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryhero/asya) ⭐
+GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryhero/asya)
 
-<img src="./img/logo_colored_with_borders.png" alt="Asya" width="280"/>
+<img src="website/img/logo_colored_with_borders.png" alt="Asya" width="280"/>
+
+## Build AI Actors
+
+```python
+def handler(payload):
+    result = my_model.predict(payload["input"])
+    return {"prediction": result}
+```
+
+Write a Python function, deploy as a Kubernetes actor, chain into meshes.
+**[Start building ->](usage/README.md)**
+
+## Run the Platform
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-model
+spec:
+  image: my-model:latest
+  handler: handler.py
+  scaling:
+    queueLength: 5
+```
+
+Deploy Asya on your cluster, configure transports, monitor and scale.
+**[Set up Asya ->](setup/README.md)**
+
+---
 
 ## Start Here
 
 | I want to... | Start with |
 |---|---|
 | Understand what Asya is | [Motivation](motivation.md) then [Core Concepts](concepts.md) |
-| Get a local cluster running | [Quickstart Setup](quickstart/README.md) |
-| Build my first actor | [Tutorial: First Actor](tutorials/first-actor.md) |
-| Chain actors into a pipeline | [Tutorial: First Pipeline](tutorials/first-pipeline.md) |
-| Write a Flow DSL pipeline | [Tutorial: First Flow](tutorials/first-flow.md) |
-| Deploy to production | [AWS EKS](install/aws-eks.md) or [GCP GKE](install/gcp-gke.md) |
-| Look up configuration | [Reference](#reference) section below |
-| Understand design decisions | [Explanation](#explanation) section below |
+| Get a local cluster running | [Quickstart](setup/start-quickstart.md) |
+| Build my first actor | [First Actor](usage/start-first-actor.md) |
+| Chain actors into a mesh | [First Actor Mesh](usage/start-first-actor-mesh.md) |
+| Write a Flow DSL | [First Flow](usage/start-first-flow.md) |
+| Deploy to production | [AWS EKS](setup/start-aws-eks.md) or [GCP GKE](setup/start-gcp-gke.md) |
+| Look up configuration | [Reference](reference/README.md) |
 
-## Documentation Structure
+## Documentation Map
 
-### Tutorials
+### Concepts
 
-Learn by doing — step-by-step guides with verifiable outcomes.
+- **[Motivation](motivation.md)** — Why async choreography over centralized orchestration
+- **[Core Concepts](concepts.md)** — Actor mesh, envelope, sidecar, runtime, crew, flow DSL, gateway
+- **[Architecture](architecture.md)** — System design, component interactions, sync gateway
 
-- **[First Actor](tutorials/first-actor.md)** - Build, deploy, and test a minimal actor
-- **[First Pipeline](tutorials/first-pipeline.md)** - Chain two actors and trace envelope routing
-- **[First Flow](tutorials/first-flow.md)** - Write a Flow DSL file, compile, and deploy
-- **[Pause/Resume](tutorials/pause-resume.md)** - Add human-in-the-loop to a pipeline
-- **[Actor Handler Adapter Pattern](tutorials/actor-handler-adapter-pattern.md)** - Wrap third-party models with a clean handler interface
-- **[Actor Flavors](tutorials/actor-flavors.md)** - Type-aware merge and actor variant configuration
-- **[Agentic Patterns](tutorials/agentic-patterns.md)** - Fan-out, dynamic routing, streaming, pause/resume
+### Usage (Actor Authors)
 
-### How-to Guides
+Build, compose, and debug actors. **[Full index ->](usage/README.md)**
 
-Task-oriented — practical steps to achieve a specific goal.
+- [First Actor](usage/start-first-actor.md) | [First Mesh](usage/start-first-actor-mesh.md) | [First Flow](usage/start-first-flow.md)
+- [Handler Patterns](usage/guide-handler-patterns.md) | [Agentic Patterns](usage/guide-agentic-patterns.md) | [Streaming](usage/guide-streaming.md)
+- [Pause/Resume](usage/guide-pause-resume.md) | [State Proxy](usage/guide-state-proxy.md) | [Timeouts](usage/guide-timeouts.md)
 
-- **[Add a New Actor](howto/add-new-actor.md)** - Write handler, create manifest, deploy, verify
-- **[Debug an Envelope](howto/debug-envelope.md)** - Trace envelopes through the mesh
-- **[Configure Retries](howto/configure-retries.md)** - Set up retry policies and error matching
-- **[Set Up Pause/Resume](howto/setup-pause-resume.md)** - Route configuration for human-in-the-loop
-- **[Configure Autoscaling](howto/configure-autoscaling.md)** - KEDA per-actor queue-depth scaling
-- **[Register Gateway Tools](howto/register-gateway-tools.md)** - ConfigMap-based tool registration
+### Setup (Platform Engineers)
 
-### Architecture
-- **[Overview](architecture/README.md)** - System design and component interactions
-  - [Actors](architecture/asya-actor.md) - Stateless workloads with message-based communication
-  - [Sidecar](architecture/asya-sidecar.md) - Message routing and transport management
-  - [Runtime](architecture/asya-runtime.md) - User code execution environment
-  - [Crossplane Compositions](architecture/asya-crossplane.md) - Declarative resource management
-  - [Gateway](architecture/asya-gateway.md) - MCP / A2A / HTTP bridge to the async mesh
-  - [Crew](architecture/asya-crew.md) - Built-in system actors (x-sink, x-sump, x-pause, x-resume)
-  - [Flow Compiler](architecture/asya-flow.md) - How Flow DSL transforms Python into actor networks
-  - [State Proxy](architecture/asya-state-proxy.md) - Virtual persistent state for stateless actors
-  - [CLI Tools](reference/cli.md) - `asya flow`, `asya mcp`, `asya build`, `asya k`
-  - [Autoscaling](howto/configure-autoscaling.md) - KEDA per-actor queue-depth scaling
-  - [Observability](architecture/observability.md) - Metrics, tracing, Prometheus/Grafana
-- **Protocols**
-  - [Actor-Actor](architecture/protocols/actor-actor.md) - Envelope spec and payload enrichment
-  - [Sidecar-Runtime](architecture/protocols/sidecar-runtime.md) - Unix socket ABI between sidecar and runtime
-- **Transports**
-  - [SQS](architecture/transports/sqs.md) - AWS SQS / LocalStack configuration
-  - [RabbitMQ](architecture/transports/rabbitmq.md) - RabbitMQ configuration
-  - [All transports](architecture/transports/README.md) - Transport comparison and selection
+Deploy, configure, and operate. **[Full index ->](setup/README.md)**
+
+- [Quickstart](setup/start-quickstart.md) | [AWS EKS](setup/start-aws-eks.md) | [GCP GKE](setup/start-gcp-gke.md)
+- [Helm Charts](setup/guide-helm-charts.md) | [Autoscaling](setup/guide-autoscaling.md) | [Gateway](setup/guide-gateway.md)
+- [Monitoring](setup/ops-monitoring.md) | [Troubleshooting](setup/ops-troubleshooting.md) | [Upgrades](setup/ops-upgrades.md)
 
 ### Reference
 
-Accurate technical descriptions — specs, configuration tables, API surfaces.
+Technical specifications shared by both audiences. **[Full index ->](reference/README.md)**
 
-- **[ABI Yield Protocol](reference/abi-protocol.md)** - Generator handler yield forms (GET, SET, FLY)
-- **[Flow DSL](reference/flow-dsl.md)** - Flow DSL syntax, supported constructs, and compilation rules
-- **[AsyncActor CRD](reference/asyncactor-crd.md)** - Full CRD field reference
-- **[Environment Variables](reference/env-vars.md)** - Consolidated env var reference across all components
-- **[CLI Reference](reference/cli.md)** - `asya flow`, `asya mcp`, `asya build`, `asya k`
-- **[Agentic Cheatsheet](reference/agentic-cheatsheet.md)** - ADK-to-Asya pattern mapping
-- **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
+- **Components**: [Sidecar](reference/components/core-sidecar.md) | [Runtime](reference/components/core-runtime.md) | [Gateway](reference/components/core-gateway.md) | [Crew](reference/components/core-crew.md) | [Crossplane](reference/components/core-crossplane.md) | [Flow Compiler](reference/components/lab-flow-compiler.md) | [CLI](reference/components/lab-cli.md)
+- **Specs**: [Envelope](reference/specs/envelope.md) | [ABI Protocol](reference/specs/abi-protocol.md) | [Flow DSL](reference/specs/flow-dsl.md) | [Gateway API](reference/specs/gateway-api.md) | [CRD](reference/specs/asyncactor-crd.md)
+- **Transports**: [SQS](reference/transports/sqs.md) | [RabbitMQ](reference/transports/rabbitmq.md) | [Overview](reference/transports/README.md)
+- [Environment Variables](reference/env-vars.md)
 
-### Explanation
+### Contributing
 
-Understanding-oriented — design rationale and background context.
-
-- **[Motivation](motivation.md)** - Why async choreography over centralized orchestration
-- **[Core Concepts](concepts.md)** - Envelope, actor, sidecar, runtime, crew, flow DSL, gateway
-- **[Choreography vs Orchestration](explanation/choreography-vs-orchestration.md)** - Trade-offs and when to use each
-- **[Envelope Design](explanation/envelope-design.md)** - Why route.prev/curr/next, immutable IDs, opaque payload
-- **[Flow Compilation](explanation/flow-compilation.md)** - How the compiler transforms Python to CPS message chains
-- **[Agentic Design](explanation/agentic-design.md)** - How Asya maps to agentic patterns
-
-### Installation
-- **[Local Kind](install/local-kind.md)** - Local development cluster setup
-- **[AWS EKS](install/aws-eks.md)** - Production deployment on AWS
-- **[GCP GKE](install/gcp-gke.md)** - Production deployment on GCP
-- **[Helm Charts](install/helm-charts.md)** - Chart configuration reference
-
-### Operations
-- **[Scaling](howto/configure-autoscaling.md)** - KEDA config, GPU workloads, cost optimization
-- **[Monitoring](operate/monitoring.md)** - Dashboards, alerts, metrics
-- **[Troubleshooting](operate/troubleshooting.md)** - Common issues and solutions
-- **[Upgrades](operate/upgrades.md)** - Version upgrade procedures
+- **[Test Strategy](contributing/README.md)** — Transport, state proxy, and A2A test guides
 
 ## Quick Links
 

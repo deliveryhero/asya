@@ -13,9 +13,34 @@ through message queues and scale independently from zero based on queue depth.
 
 ## 1. Create a Kind cluster (local K8s)
 
+### Quick Start (Default Configuration)
+
 ```bash
 kind create cluster --name asya-quickstart
 ```
+
+### Advanced Configuration (with Port Mapping)
+
+For exposing services via NodePort, create a Kind cluster with port mappings:
+
+```yaml
+# kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 8080
+    protocol: TCP
+```
+
+```bash
+kind create cluster --name asya-quickstart --config kind-config.yaml
+```
+
+This maps the cluster's NodePort 30080 to your local port 8080, allowing you to access services at `http://localhost:8080`.
 
 ## 2. Install Crossplane
 
@@ -214,6 +239,100 @@ helm uninstall asya -n asya-demo
 kind delete cluster --name asya-quickstart
 ```
 
+## Alternative: Manual Installation
+
+For more control over the installation process or to use different infrastructure backends:
+
+### Using E2E Test Infrastructure
+
+The E2E test infrastructure provides a complete development environment:
+
+```bash
+cd testing/e2e
+
+# Deploy RabbitMQ + MinIO stack
+make up PROFILE=rabbitmq-minio
+
+# Or deploy AWS-style stack (LocalStack SQS + S3)
+make up PROFILE=sqs-s3
+```
+
+**Includes**: Kind cluster, KEDA, Crossplane, RabbitMQ/SQS, MinIO/S3, PostgreSQL, gateway, crew actors, and test actors.
+
+See `testing/e2e/README.md` for details.
+
+### Manual Component Installation
+
+1. **Install KEDA**:
+```bash
+helm repo add kedacore https://kedacore.github.io/charts
+helm install keda kedacore/keda --namespace keda --create-namespace
+```
+
+2. **Install RabbitMQ**:
+```bash
+helm upgrade --install asya-rabbitmq testing/e2e/charts/rabbitmq \
+  --namespace asya-e2e --create-namespace
+
+kubectl wait --for=condition=ready pod -l app=rabbitmq \
+  -n asya-e2e --timeout=300s
+```
+
+3. **Install MinIO**:
+```bash
+helm upgrade --install minio testing/e2e/charts/minio \
+  --namespace asya-e2e --create-namespace
+```
+
+The chart automatically creates the `asya-results` and `asya-errors` buckets.
+
+4. **Install Asya Gateway** (requires PostgreSQL):
+```bash
+helm upgrade --install asya-gateway-postgresql testing/e2e/charts/postgres \
+  --namespace asya-e2e --create-namespace
+
+cat > gateway-values.yaml <<'EOF'
+config:
+  postgresHost: asya-gateway-postgresql.asya-e2e.svc.cluster.local
+  postgresDatabase: asya_gateway
+  postgresUsername: postgres
+  postgresPassword: postgres
+
+routes:
+  tools:
+  - name: hello
+    description: Hello actor
+    parameters:
+      who:
+        type: string
+        required: true
+    route: [hello-actor]
+EOF
+
+helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+  -n asya-e2e --create-namespace \
+  -f gateway-values.yaml
+```
+
+5. **Install Crew Actors**:
+```bash
+cat > crew-values.yaml <<'EOF'
+x-sink:
+  enabled: true
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
+
+x-sump:
+  enabled: true
+  env:
+    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
+EOF
+
+helm install asya-crew deploy/helm-charts/asya-crew/ \
+  --namespace asya-e2e \
+  -f crew-values.yaml
+```
+
 ---
 
 ## What's next?
@@ -259,6 +378,20 @@ Delete the pod to trigger re-creation from the updated Crossplane composition:
 
 ```bash
 kubectl delete pod -n asya-demo -l asya.sh/actor=hello
+```
+
+### RabbitMQ connection errors (manual installations)
+
+Check sidecar logs:
+```bash
+kubectl logs -l asya.sh/actor=hello-actor -c asya-sidecar -n asya-e2e
+```
+
+### Queue not created (manual installations)
+
+```bash
+kubectl describe asyncactor <actor-name>
+kubectl get sqsqueue <queue-name> -o yaml
 ```
 
 </details>

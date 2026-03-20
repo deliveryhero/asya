@@ -1,14 +1,120 @@
-<!-- Type: Tutorial -->
-# The Adapter Pattern
+<!-- Type: Usage Guide -->
+# Actor Handler Patterns
 
-Asya actors speak one protocol: `dict → dict`. Your domain code speaks something
-richer — typed models, dataclasses, Pydantic schemas, or arbitrary function
-signatures. The **adapter pattern** bridges the two in plain Python, with no
-framework magic.
+This guide covers practical patterns for writing Asya actor handlers: from basic
+function handlers to advanced generator adapters, the adapter pattern for typed
+domain code, and step-by-step deployment of new actors.
 
 ---
 
-## Why explicit adapters
+## Handler protocol: dict → dict
+
+Every Asya actor handler speaks one protocol: `dict → dict`. Your handler
+receives the envelope payload as a dictionary, processes it, and returns a
+(possibly enriched) dictionary. That's the entire contract.
+
+Two handler forms are supported:
+
+1. **Function handler** — returns the payload directly
+2. **Generator handler** — yields the payload and optionally uses the ABI protocol
+   for routing control, metadata access, and streaming
+
+Both forms can be sync or async. Both can be standalone functions or class
+methods.
+
+---
+
+## Handler types
+
+### Function handler
+
+The simplest form: a function that takes a dict and returns a dict.
+
+```python
+# file: handlers/echo.py
+
+def process(payload: dict) -> dict:
+    payload["greeting"] = f"Hello, {payload.get('name', 'world')}!"
+    return payload
+```
+
+Async version:
+
+```python
+async def process(payload: dict) -> dict:
+    result = await some_async_operation(payload["input"])
+    payload["output"] = result
+    return payload
+```
+
+**When to use**: simple transformations that don't need routing control or
+metadata access.
+
+### Generator handler
+
+Use a generator when you need to:
+- Read envelope metadata (route, headers, ID)
+- Modify routing dynamically (conditional routing, fan-out)
+- Stream tokens upstream (FLY events for SSE clients)
+
+```python
+# file: handlers/router.py
+
+async def process(payload: dict):
+    # Read where the envelope came from
+    prev = yield "GET", ".route.prev"
+
+    # Conditionally re-route
+    if payload.get("needs_review"):
+        yield "SET", ".route.next", ["reviewer"]
+
+    payload["processed"] = True
+    yield payload
+```
+
+**ABI verbs**: `GET`, `SET`, `DEL`, `FLY`. See [ABI Protocol
+Reference](../reference/abi-protocol.md) for full details.
+
+**When to use**: routing decisions, streaming, metadata inspection.
+
+### Class-based handler
+
+Use a class when your handler needs one-time initialization (model loading,
+connection pooling).
+
+```python
+class InferenceActor:
+    def __init__(self, model_path: str = "/models/default"):
+        # __init__ is always synchronous — blocking I/O is fine here
+        self.model = load_model(model_path)
+
+    async def process(self, payload: dict) -> dict:
+        result = await self.model.predict(payload["input"])
+        payload["output"] = result
+        return payload
+```
+
+Configure via `ASYA_HANDLER`:
+
+```yaml
+env:
+  - name: ASYA_HANDLER
+    value: "myapp.handlers.InferenceActor.process"
+```
+
+The runtime instantiates `InferenceActor()` once at startup. All `__init__`
+parameters must have defaults.
+
+---
+
+## The adapter pattern
+
+Your domain code often speaks something richer than `dict → dict` — typed models,
+dataclasses, Pydantic schemas, or arbitrary function signatures. The **adapter
+pattern** bridges the protocol and your domain types in plain Python, with no
+framework magic.
+
+### Why explicit adapters
 
 The actor protocol is intentionally minimal. Every envelope carries a `payload`
 dict and a `route`. Your handler receives the dict, transforms it, and returns
@@ -488,20 +594,205 @@ in one process. The behavior is identical because adapters are pure Python.
 
 ---
 
+## Deploying a new actor
+
+This section walks through the full lifecycle: writing the handler, packaging it,
+creating the AsyncActor manifest, deploying, and verifying.
+
+### Prerequisites
+
+- A running Asya cluster with Crossplane and KEDA installed
+- `kubectl` configured to reach the cluster
+- A container image with your handler code (or a base Python image for inline handlers)
+
+### Step 1: Build the container image
+
+Package the handler into a container image. The handler file must be importable
+by the Python runtime.
+
+```dockerfile
+FROM python:3.13-slim
+WORKDIR /app
+COPY handlers/ /app/handlers/
+# Install any dependencies your handler needs
+# RUN pip install requests
+```
+
+```bash
+docker build -t my-registry/echo-actor:v1 .
+docker push my-registry/echo-actor:v1
+```
+
+If your handler has no dependencies beyond the standard library, you can use
+`python:3.13-slim` directly as the image and mount the handler via a ConfigMap.
+
+### Step 2: Create the AsyncActor manifest
+
+Create a YAML manifest declaring the actor. Three fields are required: `actor`,
+`image`, and `handler`.
+
+```yaml
+# file: echo-actor.yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: echo-actor
+  namespace: my-project
+spec:
+  actor: echo-actor
+  image: my-registry/echo-actor:v1
+  handler: handlers.echo.process
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+```
+
+**Key fields**:
+
+| Field | Purpose |
+|-------|---------|
+| `spec.actor` | Logical identity; determines queue name (`asya-<namespace>-<actor>`) |
+| `spec.image` | Container image containing your handler code |
+| `spec.handler` | Python import path: `module.function` or `module.Class.method` |
+
+**Reference**: [AsyncActor CRD Reference](../reference/asyncactor-crd.md) for all
+available fields.
+
+#### Optional: configure autoscaling
+
+```yaml
+spec:
+  scaling:
+    enabled: true
+    minReplicaCount: 0    # scale to zero when idle
+    maxReplicaCount: 10
+    queueLength: 5        # target messages per replica
+```
+
+#### Optional: add environment variables
+
+```yaml
+spec:
+  env:
+  - name: MODEL_PATH
+    value: "/models/my-model"
+  - name: ASYA_LOG_LEVEL
+    value: "DEBUG"
+```
+
+### Step 3: Deploy
+
+```bash
+kubectl apply -f echo-actor.yaml
+```
+
+Crossplane creates three resources:
+1. A message queue (`asya-my-project-echo-actor`)
+2. A Deployment (with sidecar and runtime containers)
+3. A KEDA ScaledObject (if scaling is enabled)
+
+### Step 4: Verify
+
+#### Check the actor status
+
+```bash
+kubectl get asyncactors -n my-project
+```
+
+Expected output:
+```
+NAME         ACTOR        STATUS   READY   REPLICAS   AGE
+echo-actor   echo-actor   Ready    1       1          30s
+```
+
+#### Check pod logs
+
+```bash
+# Runtime container logs (your handler)
+kubectl logs -n my-project deployment/echo-actor -c asya-runtime
+
+# Sidecar logs (queue polling, routing)
+kubectl logs -n my-project deployment/echo-actor -c asya-sidecar
+```
+
+#### Send a test envelope
+
+If you have the gateway deployed, invoke the actor through an MCP tool or send a
+message directly to the queue. To test the runtime directly:
+
+```bash
+kubectl exec -n my-project deployment/echo-actor -c asya-runtime -- \
+  curl --unix-socket /var/run/asya/asya-runtime.sock \
+  -X POST http://localhost/invoke \
+  -H "Content-Type: application/json" \
+  -d '{"id":"test-1","route":{"prev":[],"curr":"echo-actor","next":[]},"payload":{"name":"Asya"}}'
+```
+
+Expected response:
+```json
+{"frames":[{"payload":{"name":"Asya","greeting":"Hello, Asya!"},"route":{"prev":["echo-actor"],"curr":"","next":[]},"headers":{}}]}
+```
+
+#### Check x-sink for results
+
+After processing, successful envelopes arrive in the `x-sink` actor. Check its
+logs for the final payload:
+
+```bash
+kubectl logs -n my-project deployment/x-sink -c asya-runtime
+```
+
+### Chaining actors into a pipeline
+
+To create a multi-actor pipeline, deploy each actor separately and define the
+route when sending the initial envelope. The route tells the sidecar where to
+forward the envelope after each actor finishes.
+
+Example: `preprocess -> inference -> postprocess`
+
+1. Deploy all three actors (each with its own AsyncActor manifest)
+2. Send an envelope with the full route:
+
+```json
+{
+  "id": "pipeline-1",
+  "route": {
+    "prev": [],
+    "curr": "preprocess",
+    "next": ["inference", "postprocess"]
+  },
+  "payload": {"text": "Hello world"}
+}
+```
+
+The sidecar advances the route automatically. When `postprocess` finishes with an
+empty `route.next`, the envelope is routed to `x-sink`.
+
+To register this pipeline as a gateway tool, see [How to Register Tools in the
+Gateway](register-gateway-tools.md).
+
+---
+
 ## Summary
 
 | Pattern | Use when |
 |---------|----------|
-| Function adapter | Simple `dict → dict` transformation with typed domain types |
-| Generator adapter | Need streaming (FLY), routing control (SET), or metadata reads (GET) |
-| Class adapter | One-time initialization (model loading, connection pool) |
+| Function handler | Simple `dict → dict` transformation |
+| Generator handler | Need streaming (FLY), routing control (SET), or metadata reads (GET) |
+| Class handler | One-time initialization (model loading, connection pool) |
+| Function adapter | Wrap typed domain functions in protocol handlers |
+| Generator adapter | Wrap domain logic that needs ABI protocol features |
 | Typed outputs | Store pydantic/dataclass results in state — runtime serializes automatically |
 | Reconstruct on input | Use `Model.model_validate(state["field"])` when domain fn needs typed args |
 
-The adapter is the thin boundary between the Asya protocol and your code.
-Keep it small — ideally 5–15 lines — and put your real logic in the domain
-function it wraps. That keeps your business logic framework-independent,
-testable anywhere Python runs, and easy to understand.
+The adapter is the thin boundary between the Asya protocol and your code. Keep it
+small — ideally 5–15 lines — and put your real logic in the domain function it
+wraps. That keeps your business logic framework-independent, testable anywhere
+Python runs, and easy to understand.
 
 ---
 
@@ -509,7 +800,10 @@ testable anywhere Python runs, and easy to understand.
 
 - [ABI Protocol Reference](../reference/abi-protocol.md) — full verb reference,
   path syntax, testing helpers
-- [Architecture: Runtime](../architecture/asya-runtime.md) — handler types,
-  async support, configuration
+- [Architecture: Runtime](../architecture/asya-runtime.md) — handler types, async
+  support, configuration
 - [Architecture: Actor Envelope](../architecture/protocols/actor-actor.md) —
   envelope structure and routing
+- [How to Debug an Envelope](../howto/debug-envelope.md) — trace envelopes
+  through the mesh
+- [AsyncActor CRD Reference](../reference/asyncactor-crd.md) — all spec fields
