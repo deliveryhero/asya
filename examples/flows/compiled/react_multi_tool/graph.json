@@ -3,50 +3,40 @@
   "nodes": [
     {
       "id": "calculator",
-      "role": "actor",
-      "label": "calculator",
-      "generated": false
+      "label": "calculator"
     },
     {
       "id": "code_executor",
-      "role": "actor",
-      "label": "code_executor",
-      "generated": false
+      "label": "code_executor"
     },
     {
       "id": "llm_call",
-      "role": "actor",
-      "label": "llm_call",
-      "generated": false
+      "label": "llm_call"
     },
     {
       "id": "router_research_agent_line_15_while_1",
-      "role": "router",
       "label": "router_research_agent_line_15_while_1",
       "generated": true
     },
     {
       "id": "router_research_agent_line_17_if_4",
-      "role": "router",
       "label": "router_research_agent_line_17_if_4",
       "generated": true
     },
     {
       "id": "router_research_agent_line_19_if_3",
-      "role": "router",
       "label": "router_research_agent_line_19_if_3",
       "generated": true
     },
     {
       "id": "router_research_agent_line_21_if_2",
-      "role": "router",
       "label": "router_research_agent_line_21_if_2",
       "generated": true
     },
     {
       "id": "start_research_agent",
-      "role": "start",
       "label": "start_research_agent",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['messages'] = p.get('messages', [])"
@@ -54,9 +44,7 @@
     },
     {
       "id": "web_search",
-      "role": "actor",
-      "label": "web_search",
-      "generated": false
+      "label": "web_search"
     }
   ],
   "edges": [

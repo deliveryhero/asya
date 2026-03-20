@@ -3,31 +3,23 @@
   "nodes": [
     {
       "id": "executor",
-      "role": "actor",
-      "label": "executor",
-      "generated": false
+      "label": "executor"
     },
     {
       "id": "planner",
-      "role": "actor",
-      "label": "planner",
-      "generated": false
+      "label": "planner"
     },
     {
       "id": "re_planner",
-      "role": "actor",
-      "label": "re_planner",
-      "generated": false
+      "label": "re_planner"
     },
     {
       "id": "router_plan_and_execute_line_54_while_2",
-      "role": "router",
       "label": "router_plan_and_execute_line_54_while_2",
       "generated": true
     },
     {
       "id": "router_plan_and_execute_line_59_if_3",
-      "role": "router",
       "label": "router_plan_and_execute_line_59_if_3",
       "generated": true,
       "mutations": [
@@ -36,7 +28,6 @@
     },
     {
       "id": "router_plan_and_execute_line_62_seq_1",
-      "role": "router",
       "label": "router_plan_and_execute_line_62_seq_1",
       "generated": true,
       "mutations": [
@@ -45,8 +36,8 @@
     },
     {
       "id": "start_plan_and_execute",
-      "role": "start",
       "label": "start_plan_and_execute",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['current_step'] = 0",
@@ -55,9 +46,8 @@
     },
     {
       "id": "synthesizer",
-      "role": "end",
       "label": "synthesizer",
-      "generated": false
+      "role": "end"
     }
   ],
   "edges": [

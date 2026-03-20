@@ -3,37 +3,27 @@
   "nodes": [
     {
       "id": "finalize_result",
-      "role": "end",
       "label": "finalize_result",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "route_a_x",
-      "role": "actor",
-      "label": "route_a_x",
-      "generated": false
+      "label": "route_a_x"
     },
     {
       "id": "route_a_y",
-      "role": "actor",
-      "label": "route_a_y",
-      "generated": false
+      "label": "route_a_y"
     },
     {
       "id": "route_b_x",
-      "role": "actor",
-      "label": "route_b_x",
-      "generated": false
+      "label": "route_b_x"
     },
     {
       "id": "route_b_y",
-      "role": "actor",
-      "label": "route_b_y",
-      "generated": false
+      "label": "route_b_y"
     },
     {
       "id": "router_test_nested_flow_line_11_if_3",
-      "role": "router",
       "label": "router_test_nested_flow_line_11_if_3",
       "generated": true,
       "mutations": [
@@ -42,7 +32,6 @@
     },
     {
       "id": "router_test_nested_flow_line_12_seq_1",
-      "role": "router",
       "label": "router_test_nested_flow_line_12_seq_1",
       "generated": true,
       "mutations": [
@@ -51,7 +40,6 @@
     },
     {
       "id": "router_test_nested_flow_line_15_seq_2",
-      "role": "router",
       "label": "router_test_nested_flow_line_15_seq_2",
       "generated": true,
       "mutations": [
@@ -60,7 +48,6 @@
     },
     {
       "id": "router_test_nested_flow_line_19_if_6",
-      "role": "router",
       "label": "router_test_nested_flow_line_19_if_6",
       "generated": true,
       "mutations": [
@@ -69,7 +56,6 @@
     },
     {
       "id": "router_test_nested_flow_line_20_seq_4",
-      "role": "router",
       "label": "router_test_nested_flow_line_20_seq_4",
       "generated": true,
       "mutations": [
@@ -78,7 +64,6 @@
     },
     {
       "id": "router_test_nested_flow_line_23_seq_5",
-      "role": "router",
       "label": "router_test_nested_flow_line_23_seq_5",
       "generated": true,
       "mutations": [
@@ -87,21 +72,18 @@
     },
     {
       "id": "router_test_nested_flow_line_9_if_7",
-      "role": "router",
       "label": "router_test_nested_flow_line_9_if_7",
       "generated": true
     },
     {
       "id": "start_test_nested_flow",
-      "role": "start",
       "label": "start_test_nested_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "validate_input",
-      "role": "actor",
-      "label": "validate_input",
-      "generated": false
+      "label": "validate_input"
     }
   ],
   "edges": [

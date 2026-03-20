@@ -3,26 +3,21 @@
   "nodes": [
     {
       "id": "handler_a",
-      "role": "actor",
-      "label": "handler_a",
-      "generated": false
+      "label": "handler_a"
     },
     {
       "id": "handler_b",
-      "role": "actor",
-      "label": "handler_b",
-      "generated": false
+      "label": "handler_b"
     },
     {
       "id": "handler_c",
-      "role": "end",
       "label": "handler_c",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_sequential_flow",
-      "role": "start",
       "label": "start_sequential_flow",
+      "role": "start",
       "generated": true
     }
   ],

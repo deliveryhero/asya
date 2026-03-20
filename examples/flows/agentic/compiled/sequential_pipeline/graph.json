@@ -3,33 +3,26 @@
   "nodes": [
     {
       "id": "data_analyst",
-      "role": "actor",
-      "label": "data_analyst",
-      "generated": false
+      "label": "data_analyst"
     },
     {
       "id": "execution_planner",
-      "role": "actor",
-      "label": "execution_planner",
-      "generated": false
+      "label": "execution_planner"
     },
     {
       "id": "risk_evaluator",
-      "role": "end",
       "label": "risk_evaluator",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_sequential_pipeline",
-      "role": "start",
       "label": "start_sequential_pipeline",
+      "role": "start",
       "generated": true
     },
     {
       "id": "trading_analyst",
-      "role": "actor",
-      "label": "trading_analyst",
-      "generated": false
+      "label": "trading_analyst"
     }
   ],
   "edges": [

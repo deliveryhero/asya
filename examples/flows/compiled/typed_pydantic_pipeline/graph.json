@@ -3,7 +3,6 @@
   "nodes": [
     {
       "id": "router_ingester_line_181_seq_1",
-      "role": "router",
       "label": "router_ingester_line_181_seq_1",
       "generated": true,
       "mutations": [
@@ -12,8 +11,8 @@
     },
     {
       "id": "start_ingester",
-      "role": "start",
       "label": "start_ingester",
+      "role": "start",
       "generated": true
     }
   ],

@@ -3,31 +3,23 @@
   "nodes": [
     {
       "id": "handler_check",
-      "role": "actor",
-      "label": "handler_check",
-      "generated": false
+      "label": "handler_check"
     },
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_init",
-      "role": "actor",
-      "label": "handler_init",
-      "generated": false
+      "label": "handler_init"
     },
     {
       "id": "handler_process",
-      "role": "actor",
-      "label": "handler_process",
-      "generated": false
+      "label": "handler_process"
     },
     {
       "id": "router_while_break_continue_flow_line_13_seq_5",
-      "role": "router",
       "label": "router_while_break_continue_flow_line_13_seq_5",
       "generated": true,
       "mutations": [
@@ -36,13 +28,11 @@
     },
     {
       "id": "router_while_break_continue_flow_line_14_while_1",
-      "role": "router",
       "label": "router_while_break_continue_flow_line_14_while_1",
       "generated": true
     },
     {
       "id": "router_while_break_continue_flow_line_15_seq_4",
-      "role": "router",
       "label": "router_while_break_continue_flow_line_15_seq_4",
       "generated": true,
       "mutations": [
@@ -51,20 +41,18 @@
     },
     {
       "id": "router_while_break_continue_flow_line_17_if_3",
-      "role": "router",
       "label": "router_while_break_continue_flow_line_17_if_3",
       "generated": true
     },
     {
       "id": "router_while_break_continue_flow_line_20_if_2",
-      "role": "router",
       "label": "router_while_break_continue_flow_line_20_if_2",
       "generated": true
     },
     {
       "id": "start_while_break_continue_flow",
-      "role": "start",
       "label": "start_while_break_continue_flow",
+      "role": "start",
       "generated": true
     }
   ],

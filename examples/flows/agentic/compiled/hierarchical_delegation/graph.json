@@ -3,111 +3,84 @@
   "nodes": [
     {
       "id": "api_specialist",
-      "role": "actor",
-      "label": "api_specialist",
-      "generated": false
+      "label": "api_specialist"
     },
     {
       "id": "content_generalist",
-      "role": "actor",
-      "label": "content_generalist",
-      "generated": false
+      "label": "content_generalist"
     },
     {
       "id": "content_team_lead",
-      "role": "actor",
-      "label": "content_team_lead",
-      "generated": false
+      "label": "content_team_lead"
     },
     {
       "id": "data_generalist",
-      "role": "actor",
-      "label": "data_generalist",
-      "generated": false
+      "label": "data_generalist"
     },
     {
       "id": "data_team_lead",
-      "role": "actor",
-      "label": "data_team_lead",
-      "generated": false
+      "label": "data_team_lead"
     },
     {
       "id": "editor",
-      "role": "actor",
-      "label": "editor",
-      "generated": false
+      "label": "editor"
     },
     {
       "id": "final_assembler",
-      "role": "end",
       "label": "final_assembler",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "generalist",
-      "role": "actor",
-      "label": "generalist",
-      "generated": false
+      "label": "generalist"
     },
     {
       "id": "root_agent",
-      "role": "actor",
-      "label": "root_agent",
-      "generated": false
+      "label": "root_agent"
     },
     {
       "id": "router_hierarchical_delegation_line_61_if_6",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_61_if_6",
       "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_65_if_2",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_65_if_2",
       "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_67_if_1",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_67_if_1",
       "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_72_if_5",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_72_if_5",
       "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_76_if_4",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_76_if_4",
       "generated": true
     },
     {
       "id": "router_hierarchical_delegation_line_78_if_3",
-      "role": "router",
       "label": "router_hierarchical_delegation_line_78_if_3",
       "generated": true
     },
     {
       "id": "sql_specialist",
-      "role": "actor",
-      "label": "sql_specialist",
-      "generated": false
+      "label": "sql_specialist"
     },
     {
       "id": "start_hierarchical_delegation",
-      "role": "start",
       "label": "start_hierarchical_delegation",
+      "role": "start",
       "generated": true
     },
     {
       "id": "writer",
-      "role": "actor",
-      "label": "writer",
-      "generated": false
+      "label": "writer"
     }
   ],
   "edges": [

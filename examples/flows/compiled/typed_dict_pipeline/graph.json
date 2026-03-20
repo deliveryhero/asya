@@ -3,45 +3,36 @@
   "nodes": [
     {
       "id": "error_handler",
-      "role": "end",
       "label": "error_handler",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "parser",
-      "role": "actor",
-      "label": "parser",
-      "generated": false
+      "label": "parser"
     },
     {
       "id": "router_typeddict_pipeline_line_77_if_1",
-      "role": "router",
       "label": "router_typeddict_pipeline_line_77_if_1",
       "generated": true
     },
     {
       "id": "sink_adapter",
-      "role": "end",
       "label": "sink_adapter",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_typeddict_pipeline",
-      "role": "start",
       "label": "start_typeddict_pipeline",
+      "role": "start",
       "generated": true
     },
     {
       "id": "transformer",
-      "role": "actor",
-      "label": "transformer",
-      "generated": false
+      "label": "transformer"
     },
     {
       "id": "validator",
-      "role": "actor",
-      "label": "validator",
-      "generated": false
+      "label": "validator"
     }
   ],
   "edges": [

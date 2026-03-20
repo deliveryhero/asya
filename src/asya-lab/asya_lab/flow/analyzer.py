@@ -567,10 +567,12 @@ def analyze(
         flow_role = _determine_flow_role(name, router_names, all_edges)
         node_dict: dict = {
             "id": name,
-            "role": flow_role,
             "label": name,
-            "generated": generated,
         }
+        if flow_role in ("start", "end"):
+            node_dict["role"] = flow_role
+        if generated:
+            node_dict["generated"] = True
         if name in router_mutations:
             node_dict["mutations"] = router_mutations[name]
         nodes.append(node_dict)
@@ -600,7 +602,7 @@ def _validate_graph(graph: GraphData) -> list[str]:
         adjacency[edge["from"]].add(edge["to"])
 
     # Check 1: Reachability from start node
-    start_nodes = [n["id"] for n in graph.nodes if n["role"] == "start"]
+    start_nodes = [n["id"] for n in graph.nodes if n.get("role") == "start"]
     if start_nodes:
         reachable: set[str] = set()
         stack = list(start_nodes)
@@ -617,7 +619,7 @@ def _validate_graph(graph: GraphData) -> list[str]:
     # Check 2: Nodes that are sources but not targets (and not start nodes) are disconnected
     for node_id in sorted(sources - targets):
         node = next((n for n in graph.nodes if n["id"] == node_id), None)
-        if node and node["role"] != "start":
+        if node and node.get("role") != "start":
             warnings.append(f"node '{node_id}' has no incoming edges but is not an entry")
 
     # Check 4: Every if router must have both a conditional and an else edge

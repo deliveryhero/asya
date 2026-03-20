@@ -3,45 +3,35 @@
   "nodes": [
     {
       "id": "entity_recognizer",
-      "role": "actor",
-      "label": "entity_recognizer",
-      "generated": false
+      "label": "entity_recognizer"
     },
     {
       "id": "fanin_analysis_flow_line_14",
-      "role": "router",
-      "label": "fanin_analysis_flow_line_14",
-      "generated": false
+      "label": "fanin_analysis_flow_line_14"
     },
     {
       "id": "merge_analysis",
-      "role": "end",
       "label": "merge_analysis",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_analysis_flow_line_14_fanout_1",
-      "role": "router",
       "label": "router_analysis_flow_line_14_fanout_1",
       "generated": true
     },
     {
       "id": "sentiment_analyzer",
-      "role": "actor",
-      "label": "sentiment_analyzer",
-      "generated": false
+      "label": "sentiment_analyzer"
     },
     {
       "id": "start_analysis_flow",
-      "role": "start",
       "label": "start_analysis_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "topic_extractor",
-      "role": "actor",
-      "label": "topic_extractor",
-      "generated": false
+      "label": "topic_extractor"
     }
   ],
   "edges": [

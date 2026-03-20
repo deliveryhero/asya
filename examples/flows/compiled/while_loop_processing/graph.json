@@ -3,37 +3,27 @@
   "nodes": [
     {
       "id": "check_threshold",
-      "role": "actor",
-      "label": "check_threshold",
-      "generated": false
+      "label": "check_threshold"
     },
     {
       "id": "finalize_loop",
-      "role": "end",
       "label": "finalize_loop",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "initialize",
-      "role": "actor",
-      "label": "initialize",
-      "generated": false
+      "label": "initialize"
     },
     {
       "id": "process_abort",
-      "role": "actor",
-      "label": "process_abort",
-      "generated": false
+      "label": "process_abort"
     },
     {
       "id": "process_item",
-      "role": "actor",
-      "label": "process_item",
-      "generated": false
+      "label": "process_item"
     },
     {
       "id": "router_loop_flow_line_15_seq_7",
-      "role": "router",
       "label": "router_loop_flow_line_15_seq_7",
       "generated": true,
       "mutations": [
@@ -42,13 +32,11 @@
     },
     {
       "id": "router_loop_flow_line_16_while_1",
-      "role": "router",
       "label": "router_loop_flow_line_16_while_1",
       "generated": true
     },
     {
       "id": "router_loop_flow_line_17_seq_6",
-      "role": "router",
       "label": "router_loop_flow_line_17_seq_6",
       "generated": true,
       "mutations": [
@@ -57,13 +45,11 @@
     },
     {
       "id": "router_loop_flow_line_20_if_5",
-      "role": "router",
       "label": "router_loop_flow_line_20_if_5",
       "generated": true
     },
     {
       "id": "router_loop_flow_line_21_seq_4",
-      "role": "router",
       "label": "router_loop_flow_line_21_seq_4",
       "generated": true,
       "mutations": [
@@ -72,7 +58,6 @@
     },
     {
       "id": "router_loop_flow_line_23_seq_3",
-      "role": "router",
       "label": "router_loop_flow_line_23_seq_3",
       "generated": true,
       "mutations": [
@@ -81,14 +66,13 @@
     },
     {
       "id": "router_loop_flow_line_27_if_2",
-      "role": "router",
       "label": "router_loop_flow_line_27_if_2",
       "generated": true
     },
     {
       "id": "start_loop_flow",
-      "role": "start",
       "label": "start_loop_flow",
+      "role": "start",
       "generated": true
     }
   ],

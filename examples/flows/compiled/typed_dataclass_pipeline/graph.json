@@ -3,32 +3,25 @@
   "nodes": [
     {
       "id": "classifier",
-      "role": "actor",
-      "label": "classifier",
-      "generated": false
+      "label": "classifier"
     },
     {
       "id": "enricher",
-      "role": "actor",
-      "label": "enricher",
-      "generated": false
+      "label": "enricher"
     },
     {
       "id": "extractor",
-      "role": "actor",
-      "label": "extractor",
-      "generated": false
+      "label": "extractor"
     },
     {
       "id": "formatter",
-      "role": "end",
       "label": "formatter",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_typed_dataclass_pipeline",
-      "role": "start",
       "label": "start_typed_dataclass_pipeline",
+      "role": "start",
       "generated": true
     }
   ],

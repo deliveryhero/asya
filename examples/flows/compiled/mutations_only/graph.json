@@ -3,7 +3,6 @@
   "nodes": [
     {
       "id": "router_mutations_only_flow_line_14_seq_1",
-      "role": "router",
       "label": "router_mutations_only_flow_line_14_seq_1",
       "generated": true,
       "mutations": [
@@ -16,8 +15,8 @@
     },
     {
       "id": "start_mutations_only_flow",
-      "role": "start",
       "label": "start_mutations_only_flow",
+      "role": "start",
       "generated": true
     }
   ],

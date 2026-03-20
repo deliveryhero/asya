@@ -28,7 +28,7 @@ def template_dir(tmp_path):
             "namespace": "{{ namespace }}",
             "labels": {
                 "asya.sh/flow": "{{ flow_name }}",
-                "asya.sh/flow-role": "{{ role }}",
+                "asya.sh/role": "{{ role }}",
             },
         },
         "spec": {
@@ -56,7 +56,7 @@ def template_dir(tmp_path):
             },
         },
     }
-    (templates_dir / "configmap_routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
+    (templates_dir / "configmap-routers.yaml").write_text(yaml.dump(configmap_template, sort_keys=False))
 
     kustomization_template = {
         "apiVersion": "kustomize.config.k8s.io/v1beta1",
@@ -137,7 +137,7 @@ def _make_templater(flow_name, codegen_meta, router_code, project, template_path
         project=project,
         actor_template_path=template_path,
         router_template_path=router_template if router_template.exists() else None,
-        configmap_routers_template_path=templates_dir / "configmap_routers.yaml",
+        configmap_routers_template_path=templates_dir / "configmap-routers.yaml",
         kustomization_template_path=templates_dir / "kustomization.yaml",
     )
 

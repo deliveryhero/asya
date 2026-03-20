@@ -3,13 +3,10 @@
   "nodes": [
     {
       "id": "handler_process",
-      "role": "actor",
-      "label": "handler_process",
-      "generated": false
+      "label": "handler_process"
     },
     {
       "id": "router_mutations_with_handler_flow_line_17_seq_1",
-      "role": "router",
       "label": "router_mutations_with_handler_flow_line_17_seq_1",
       "generated": true,
       "mutations": [
@@ -18,8 +15,8 @@
     },
     {
       "id": "start_mutations_with_handler_flow",
-      "role": "start",
       "label": "start_mutations_with_handler_flow",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['initialized'] = True",

@@ -3,38 +3,30 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_setup",
-      "role": "actor",
-      "label": "handler_setup",
-      "generated": false
+      "label": "handler_setup"
     },
     {
       "id": "handler_type_a",
-      "role": "actor",
-      "label": "handler_type_a",
-      "generated": false
+      "label": "handler_type_a"
     },
     {
       "id": "handler_type_b",
-      "role": "actor",
-      "label": "handler_type_b",
-      "generated": false
+      "label": "handler_type_b"
     },
     {
       "id": "router_if_else_simple_flow_line_14_if_1",
-      "role": "router",
       "label": "router_if_else_simple_flow_line_14_if_1",
       "generated": true
     },
     {
       "id": "start_if_else_simple_flow",
-      "role": "start",
       "label": "start_if_else_simple_flow",
+      "role": "start",
       "generated": true
     }
   ],

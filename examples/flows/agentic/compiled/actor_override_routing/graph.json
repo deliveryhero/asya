@@ -3,45 +3,36 @@
   "nodes": [
     {
       "id": "audit_logger",
-      "role": "actor",
-      "label": "audit_logger",
-      "generated": false
+      "label": "audit_logger"
     },
     {
       "id": "classify",
-      "role": "actor",
-      "label": "classify",
-      "generated": false
+      "label": "classify"
     },
     {
       "id": "escalate",
-      "role": "end",
       "label": "escalate",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "format_output",
-      "role": "end",
       "label": "format_output",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_actor_override_flow_line_25_if_1",
-      "role": "router",
       "label": "router_actor_override_flow_line_25_if_1",
       "generated": true
     },
     {
       "id": "start_actor_override_flow",
-      "role": "start",
       "label": "start_actor_override_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "tool_executor",
-      "role": "actor",
-      "label": "tool_executor",
-      "generated": false
+      "label": "tool_executor"
     }
   ],
   "edges": [

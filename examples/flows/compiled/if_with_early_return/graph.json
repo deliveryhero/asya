@@ -3,38 +3,31 @@
   "nodes": [
     {
       "id": "handler_error",
-      "role": "end",
       "label": "handler_error",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_process",
-      "role": "actor",
-      "label": "handler_process",
-      "generated": false
+      "label": "handler_process"
     },
     {
       "id": "handler_validate",
-      "role": "actor",
-      "label": "handler_validate",
-      "generated": false
+      "label": "handler_validate"
     },
     {
       "id": "router_early_return_flow_line_14_if_1",
-      "role": "router",
       "label": "router_early_return_flow_line_14_if_1",
       "generated": true
     },
     {
       "id": "start_early_return_flow",
-      "role": "start",
       "label": "start_early_return_flow",
+      "role": "start",
       "generated": true
     }
   ],

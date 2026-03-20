@@ -3,44 +3,34 @@
   "nodes": [
     {
       "id": "analytical_writer",
-      "role": "actor",
-      "label": "analytical_writer",
-      "generated": false
+      "label": "analytical_writer"
     },
     {
       "id": "concise_writer",
-      "role": "actor",
-      "label": "concise_writer",
-      "generated": false
+      "label": "concise_writer"
     },
     {
       "id": "creative_writer",
-      "role": "actor",
-      "label": "creative_writer",
-      "generated": false
+      "label": "creative_writer"
     },
     {
       "id": "fanin_voting_ensemble_line_44",
-      "role": "router",
-      "label": "fanin_voting_ensemble_line_44",
-      "generated": false
+      "label": "fanin_voting_ensemble_line_44"
     },
     {
       "id": "judge",
-      "role": "end",
       "label": "judge",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_voting_ensemble_line_44_fanout_1",
-      "role": "router",
       "label": "router_voting_ensemble_line_44_fanout_1",
       "generated": true
     },
     {
       "id": "start_voting_ensemble",
-      "role": "start",
       "label": "start_voting_ensemble",
+      "role": "start",
       "generated": true
     }
   ],

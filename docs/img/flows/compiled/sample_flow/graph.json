@@ -3,31 +3,23 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_setup",
-      "role": "actor",
-      "label": "handler_setup",
-      "generated": false
+      "label": "handler_setup"
     },
     {
       "id": "handler_type_a",
-      "role": "actor",
-      "label": "handler_type_a",
-      "generated": false
+      "label": "handler_type_a"
     },
     {
       "id": "handler_type_b",
-      "role": "actor",
-      "label": "handler_type_b",
-      "generated": false
+      "label": "handler_type_b"
     },
     {
       "id": "router_sample_flow_line_10_seq_2",
-      "role": "router",
       "label": "router_sample_flow_line_10_seq_2",
       "generated": true,
       "mutations": [
@@ -36,13 +28,11 @@
     },
     {
       "id": "router_sample_flow_line_5_if_3",
-      "role": "router",
       "label": "router_sample_flow_line_5_if_3",
       "generated": true
     },
     {
       "id": "router_sample_flow_line_6_seq_1",
-      "role": "router",
       "label": "router_sample_flow_line_6_seq_1",
       "generated": true,
       "mutations": [
@@ -51,8 +41,8 @@
     },
     {
       "id": "start_sample_flow",
-      "role": "start",
       "label": "start_sample_flow",
+      "role": "start",
       "generated": true
     }
   ],

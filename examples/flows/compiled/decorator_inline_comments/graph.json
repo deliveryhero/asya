@@ -3,32 +3,27 @@
   "nodes": [
     {
       "id": "classifier",
-      "role": "actor",
-      "label": "classifier",
-      "generated": false
+      "label": "classifier"
     },
     {
       "id": "fast_handler",
-      "role": "end",
       "label": "fast_handler",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_decorator_inline_comments_flow_line_18_if_1",
-      "role": "router",
       "label": "router_decorator_inline_comments_flow_line_18_if_1",
       "generated": true
     },
     {
       "id": "standard_handler",
-      "role": "end",
       "label": "standard_handler",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_decorator_inline_comments_flow",
-      "role": "start",
       "label": "start_decorator_inline_comments_flow",
+      "role": "start",
       "generated": true
     }
   ],

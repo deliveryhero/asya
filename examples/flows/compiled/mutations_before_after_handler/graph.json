@@ -3,19 +3,14 @@
   "nodes": [
     {
       "id": "handler_a",
-      "role": "actor",
-      "label": "handler_a",
-      "generated": false
+      "label": "handler_a"
     },
     {
       "id": "handler_b",
-      "role": "actor",
-      "label": "handler_b",
-      "generated": false
+      "label": "handler_b"
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_15_seq_2",
-      "role": "router",
       "label": "router_mutations_before_after_handler_flow_line_15_seq_2",
       "generated": true,
       "mutations": [
@@ -24,7 +19,6 @@
     },
     {
       "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "role": "router",
       "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
       "generated": true,
       "mutations": [
@@ -33,8 +27,8 @@
     },
     {
       "id": "start_mutations_before_after_handler_flow",
-      "role": "start",
       "label": "start_mutations_before_after_handler_flow",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['step'] = 1"

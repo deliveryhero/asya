@@ -3,33 +3,27 @@
   "nodes": [
     {
       "id": "fanin_research_flow_line_7",
-      "role": "router",
-      "label": "fanin_research_flow_line_7",
-      "generated": false
+      "label": "fanin_research_flow_line_7"
     },
     {
       "id": "research_agent",
-      "role": "actor",
-      "label": "research_agent",
-      "generated": false
+      "label": "research_agent"
     },
     {
       "id": "router_research_flow_line_7_fanout_1",
-      "role": "router",
       "label": "router_research_flow_line_7_fanout_1",
       "generated": true
     },
     {
       "id": "start_research_flow",
-      "role": "start",
       "label": "start_research_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "summarizer",
-      "role": "end",
       "label": "summarizer",
-      "generated": false
+      "role": "end"
     }
   ],
   "edges": [

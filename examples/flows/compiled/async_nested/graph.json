@@ -3,38 +3,31 @@
   "nodes": [
     {
       "id": "auto_approve",
-      "role": "end",
       "label": "auto_approve",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "detailed_review",
-      "role": "actor",
-      "label": "detailed_review",
-      "generated": false
+      "label": "detailed_review"
     },
     {
       "id": "human_review",
-      "role": "end",
       "label": "human_review",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "initial_review",
-      "role": "actor",
-      "label": "initial_review",
-      "generated": false
+      "label": "initial_review"
     },
     {
       "id": "router_review_pipeline_flow_line_17_if_1",
-      "role": "router",
       "label": "router_review_pipeline_flow_line_17_if_1",
       "generated": true
     },
     {
       "id": "start_review_pipeline_flow",
-      "role": "start",
       "label": "start_review_pipeline_flow",
+      "role": "start",
       "generated": true
     }
   ],

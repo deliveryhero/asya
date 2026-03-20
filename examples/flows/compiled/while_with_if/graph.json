@@ -3,31 +3,23 @@
   "nodes": [
     {
       "id": "handler_even",
-      "role": "actor",
-      "label": "handler_even",
-      "generated": false
+      "label": "handler_even"
     },
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_init",
-      "role": "actor",
-      "label": "handler_init",
-      "generated": false
+      "label": "handler_init"
     },
     {
       "id": "handler_odd",
-      "role": "actor",
-      "label": "handler_odd",
-      "generated": false
+      "label": "handler_odd"
     },
     {
       "id": "router_if_inside_while_flow_line_13_seq_3",
-      "role": "router",
       "label": "router_if_inside_while_flow_line_13_seq_3",
       "generated": true,
       "mutations": [
@@ -36,13 +28,11 @@
     },
     {
       "id": "router_if_inside_while_flow_line_14_while_1",
-      "role": "router",
       "label": "router_if_inside_while_flow_line_14_while_1",
       "generated": true
     },
     {
       "id": "router_if_inside_while_flow_line_16_if_2",
-      "role": "router",
       "label": "router_if_inside_while_flow_line_16_if_2",
       "generated": true,
       "mutations": [
@@ -51,8 +41,8 @@
     },
     {
       "id": "start_if_inside_while_flow",
-      "role": "start",
       "label": "start_if_inside_while_flow",
+      "role": "start",
       "generated": true
     }
   ],

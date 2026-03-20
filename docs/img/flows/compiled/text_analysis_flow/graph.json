@@ -3,37 +3,28 @@
   "nodes": [
     {
       "id": "clean_text",
-      "role": "actor",
-      "label": "clean_text",
-      "generated": false
+      "label": "clean_text"
     },
     {
       "id": "english_sentiment",
-      "role": "actor",
-      "label": "english_sentiment",
-      "generated": false
+      "label": "english_sentiment"
     },
     {
       "id": "extract_entities",
-      "role": "actor",
-      "label": "extract_entities",
-      "generated": false
+      "label": "extract_entities"
     },
     {
       "id": "router_text_analysis_flow_line_11_if_4",
-      "role": "router",
       "label": "router_text_analysis_flow_line_11_if_4",
       "generated": true
     },
     {
       "id": "router_text_analysis_flow_line_13_if_3",
-      "role": "router",
       "label": "router_text_analysis_flow_line_13_if_3",
       "generated": true
     },
     {
       "id": "router_text_analysis_flow_line_16_seq_2",
-      "role": "router",
       "label": "router_text_analysis_flow_line_16_seq_2",
       "generated": true,
       "mutations": [
@@ -42,7 +33,6 @@
     },
     {
       "id": "router_text_analysis_flow_line_20_seq_1",
-      "role": "router",
       "label": "router_text_analysis_flow_line_20_seq_1",
       "generated": true,
       "mutations": [
@@ -51,21 +41,17 @@
     },
     {
       "id": "spanish_sentiment",
-      "role": "actor",
-      "label": "spanish_sentiment",
-      "generated": false
+      "label": "spanish_sentiment"
     },
     {
       "id": "start_text_analysis_flow",
-      "role": "start",
       "label": "start_text_analysis_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "tokenize",
-      "role": "actor",
-      "label": "tokenize",
-      "generated": false
+      "label": "tokenize"
     }
   ],
   "edges": [

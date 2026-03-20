@@ -3,49 +3,36 @@
   "nodes": [
     {
       "id": "fact_checker",
-      "role": "end",
       "label": "fact_checker",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "generator",
-      "role": "actor",
-      "label": "generator",
-      "generated": false
+      "label": "generator"
     },
     {
       "id": "query_analyzer",
-      "role": "actor",
-      "label": "query_analyzer",
-      "generated": false
+      "label": "query_analyzer"
     },
     {
       "id": "query_refiner",
-      "role": "actor",
-      "label": "query_refiner",
-      "generated": false
+      "label": "query_refiner"
     },
     {
       "id": "relevance_evaluator",
-      "role": "actor",
-      "label": "relevance_evaluator",
-      "generated": false
+      "label": "relevance_evaluator"
     },
     {
       "id": "retriever",
-      "role": "actor",
-      "label": "retriever",
-      "generated": false
+      "label": "retriever"
     },
     {
       "id": "router_rag_pipeline_line_56_while_1",
-      "role": "router",
       "label": "router_rag_pipeline_line_56_while_1",
       "generated": true
     },
     {
       "id": "router_rag_pipeline_line_57_seq_4",
-      "role": "router",
       "label": "router_rag_pipeline_line_57_seq_4",
       "generated": true,
       "mutations": [
@@ -54,20 +41,18 @@
     },
     {
       "id": "router_rag_pipeline_line_66_if_3",
-      "role": "router",
       "label": "router_rag_pipeline_line_66_if_3",
       "generated": true
     },
     {
       "id": "router_rag_pipeline_line_70_if_2",
-      "role": "router",
       "label": "router_rag_pipeline_line_70_if_2",
       "generated": true
     },
     {
       "id": "start_rag_pipeline",
-      "role": "start",
       "label": "start_rag_pipeline",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['retrieval_attempts'] = 0"

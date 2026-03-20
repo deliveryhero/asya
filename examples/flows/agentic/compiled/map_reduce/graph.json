@@ -3,38 +3,30 @@
   "nodes": [
     {
       "id": "chunk_processor",
-      "role": "actor",
-      "label": "chunk_processor",
-      "generated": false
+      "label": "chunk_processor"
     },
     {
       "id": "fanin_map_reduce_line_55",
-      "role": "router",
-      "label": "fanin_map_reduce_line_55",
-      "generated": false
+      "label": "fanin_map_reduce_line_55"
     },
     {
       "id": "reducer",
-      "role": "end",
       "label": "reducer",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_map_reduce_line_55_fanout_1",
-      "role": "router",
       "label": "router_map_reduce_line_55_fanout_1",
       "generated": true
     },
     {
       "id": "splitter",
-      "role": "actor",
-      "label": "splitter",
-      "generated": false
+      "label": "splitter"
     },
     {
       "id": "start_map_reduce",
-      "role": "start",
       "label": "start_map_reduce",
+      "role": "start",
       "generated": true
     }
   ],

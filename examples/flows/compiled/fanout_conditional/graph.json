@@ -3,56 +3,43 @@
   "nodes": [
     {
       "id": "classifier",
-      "role": "actor",
-      "label": "classifier",
-      "generated": false
+      "label": "classifier"
     },
     {
       "id": "deep_analyzer",
-      "role": "actor",
-      "label": "deep_analyzer",
-      "generated": false
+      "label": "deep_analyzer"
     },
     {
       "id": "fanin_adaptive_flow_line_17",
-      "role": "router",
-      "label": "fanin_adaptive_flow_line_17",
-      "generated": false
+      "label": "fanin_adaptive_flow_line_17"
     },
     {
       "id": "fast_analyzer",
-      "role": "actor",
-      "label": "fast_analyzer",
-      "generated": false
+      "label": "fast_analyzer"
     },
     {
       "id": "formatter",
-      "role": "end",
       "label": "formatter",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_adaptive_flow_line_16_if_2",
-      "role": "router",
       "label": "router_adaptive_flow_line_16_if_2",
       "generated": true
     },
     {
       "id": "router_adaptive_flow_line_17_fanout_1",
-      "role": "router",
       "label": "router_adaptive_flow_line_17_fanout_1",
       "generated": true
     },
     {
       "id": "sequential_analyzer",
-      "role": "actor",
-      "label": "sequential_analyzer",
-      "generated": false
+      "label": "sequential_analyzer"
     },
     {
       "id": "start_adaptive_flow",
-      "role": "start",
       "label": "start_adaptive_flow",
+      "role": "start",
       "generated": true
     }
   ],

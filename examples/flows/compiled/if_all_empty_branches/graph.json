@@ -3,26 +3,22 @@
   "nodes": [
     {
       "id": "handler_finalize",
-      "role": "end",
       "label": "handler_finalize",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "handler_setup",
-      "role": "actor",
-      "label": "handler_setup",
-      "generated": false
+      "label": "handler_setup"
     },
     {
       "id": "router_if_empty_branches_flow_line_14_if_1",
-      "role": "router",
       "label": "router_if_empty_branches_flow_line_14_if_1",
       "generated": true
     },
     {
       "id": "start_if_empty_branches_flow",
-      "role": "start",
       "label": "start_if_empty_branches_flow",
+      "role": "start",
       "generated": true
     }
   ],

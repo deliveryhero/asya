@@ -3,27 +3,22 @@
   "nodes": [
     {
       "id": "sequential_with_class.DataPreprocessor.clean",
-      "role": "actor",
-      "label": "sequential_with_class.DataPreprocessor.clean",
-      "generated": false
+      "label": "sequential_with_class.DataPreprocessor.clean"
     },
     {
       "id": "sequential_with_class.MLModel.predict",
-      "role": "end",
       "label": "sequential_with_class.MLModel.predict",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_class_instantiation_flow",
-      "role": "start",
       "label": "start_class_instantiation_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "transformation",
-      "role": "actor",
-      "label": "transformation",
-      "generated": false
+      "label": "transformation"
     }
   ],
   "edges": [

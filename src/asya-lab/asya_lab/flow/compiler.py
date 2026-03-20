@@ -285,7 +285,7 @@ class FlowCompiler:
             project=self._project,
             actor_template_path=actor_template,
             router_template_path=_opt("router.yaml"),
-            configmap_routers_template_path=_opt("configmap_routers.yaml"),
+            configmap_routers_template_path=_opt("configmap-routers.yaml"),
             kustomization_template_path=_opt("kustomization.yaml"),
             import_map=self.import_map,
             flow_roles=self._detect_flow_roles(),

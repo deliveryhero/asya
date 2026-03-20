@@ -3,43 +3,32 @@
   "nodes": [
     {
       "id": "approval_gate",
-      "role": "actor",
-      "label": "approval_gate",
-      "generated": false
+      "label": "approval_gate"
     },
     {
       "id": "executor",
-      "role": "actor",
-      "label": "executor",
-      "generated": false
+      "label": "executor"
     },
     {
       "id": "notifier",
-      "role": "end",
       "label": "notifier",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "proposal_generator",
-      "role": "actor",
-      "label": "proposal_generator",
-      "generated": false
+      "label": "proposal_generator"
     },
     {
       "id": "revision_agent",
-      "role": "actor",
-      "label": "revision_agent",
-      "generated": false
+      "label": "revision_agent"
     },
     {
       "id": "router_human_in_the_loop_line_60_while_1",
-      "role": "router",
       "label": "router_human_in_the_loop_line_60_while_1",
       "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_61_seq_6",
-      "role": "router",
       "label": "router_human_in_the_loop_line_61_seq_6",
       "generated": true,
       "mutations": [
@@ -48,25 +37,21 @@
     },
     {
       "id": "router_human_in_the_loop_line_70_if_5",
-      "role": "router",
       "label": "router_human_in_the_loop_line_70_if_5",
       "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_75_if_4",
-      "role": "router",
       "label": "router_human_in_the_loop_line_75_if_4",
       "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_79_if_3",
-      "role": "router",
       "label": "router_human_in_the_loop_line_79_if_3",
       "generated": true
     },
     {
       "id": "router_human_in_the_loop_line_80_seq_2",
-      "role": "router",
       "label": "router_human_in_the_loop_line_80_seq_2",
       "generated": true,
       "mutations": [
@@ -75,8 +60,8 @@
     },
     {
       "id": "start_human_in_the_loop",
-      "role": "start",
       "label": "start_human_in_the_loop",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['attempt'] = 0"

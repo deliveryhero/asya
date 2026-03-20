@@ -28,7 +28,7 @@ metadata:
   namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
-    asya.sh/flow-role: "{{ role }}"
+    asya.sh/role: "{{ role }}"
 spec:
   actor: "{{ actor_name }}"
   image: "{{ image }}"
@@ -47,7 +47,7 @@ metadata:
   namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
-    asya.sh/flow-role: "{{ role }}"
+    asya.sh/role: "{{ role }}"
 spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"
@@ -138,7 +138,7 @@ def init_project(
     if not router_template.exists():
         router_template.write_text(_ROUTER_TEMPLATE)
 
-    configmap_template = templates_dir / "configmap_routers.yaml"
+    configmap_template = templates_dir / "configmap-routers.yaml"
     if not configmap_template.exists():
         configmap_template.write_text(_CONFIGMAP_TEMPLATE)
 

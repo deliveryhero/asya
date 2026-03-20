@@ -3,63 +3,49 @@
   "nodes": [
     {
       "id": "account_agent",
-      "role": "actor",
-      "label": "account_agent",
-      "generated": false
+      "label": "account_agent"
     },
     {
       "id": "billing_agent",
-      "role": "actor",
-      "label": "billing_agent",
-      "generated": false
+      "label": "billing_agent"
     },
     {
       "id": "classifier",
-      "role": "actor",
-      "label": "classifier",
-      "generated": false
+      "label": "classifier"
     },
     {
       "id": "format_reply",
-      "role": "end",
       "label": "format_reply",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "general_agent",
-      "role": "actor",
-      "label": "general_agent",
-      "generated": false
+      "label": "general_agent"
     },
     {
       "id": "router_routing_classifier_line_47_if_3",
-      "role": "router",
       "label": "router_routing_classifier_line_47_if_3",
       "generated": true
     },
     {
       "id": "router_routing_classifier_line_49_if_2",
-      "role": "router",
       "label": "router_routing_classifier_line_49_if_2",
       "generated": true
     },
     {
       "id": "router_routing_classifier_line_51_if_1",
-      "role": "router",
       "label": "router_routing_classifier_line_51_if_1",
       "generated": true
     },
     {
       "id": "start_routing_classifier",
-      "role": "start",
       "label": "start_routing_classifier",
+      "role": "start",
       "generated": true
     },
     {
       "id": "technical_agent",
-      "role": "actor",
-      "label": "technical_agent",
-      "generated": false
+      "label": "technical_agent"
     }
   ],
   "edges": [

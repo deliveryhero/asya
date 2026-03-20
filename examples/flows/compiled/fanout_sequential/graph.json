@@ -3,51 +3,40 @@
   "nodes": [
     {
       "id": "fanin_multi_stage_flow_line_15",
-      "role": "router",
-      "label": "fanin_multi_stage_flow_line_15",
-      "generated": false
+      "label": "fanin_multi_stage_flow_line_15"
     },
     {
       "id": "fanin_multi_stage_flow_line_16",
-      "role": "router",
-      "label": "fanin_multi_stage_flow_line_16",
-      "generated": false
+      "label": "fanin_multi_stage_flow_line_16"
     },
     {
       "id": "research_agent",
-      "role": "actor",
-      "label": "research_agent",
-      "generated": false
+      "label": "research_agent"
     },
     {
       "id": "review_agent",
-      "role": "actor",
-      "label": "review_agent",
-      "generated": false
+      "label": "review_agent"
     },
     {
       "id": "router_multi_stage_flow_line_15_fanout_2",
-      "role": "router",
       "label": "router_multi_stage_flow_line_15_fanout_2",
       "generated": true
     },
     {
       "id": "router_multi_stage_flow_line_16_fanout_1",
-      "role": "router",
       "label": "router_multi_stage_flow_line_16_fanout_1",
       "generated": true
     },
     {
       "id": "start_multi_stage_flow",
-      "role": "start",
       "label": "start_multi_stage_flow",
+      "role": "start",
       "generated": true
     },
     {
       "id": "summarizer",
-      "role": "end",
       "label": "summarizer",
-      "generated": false
+      "role": "end"
     }
   ],
   "edges": [

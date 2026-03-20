@@ -3,25 +3,19 @@
   "nodes": [
     {
       "id": "language_detector",
-      "role": "actor",
-      "label": "language_detector",
-      "generated": false
+      "label": "language_detector"
     },
     {
       "id": "ocr_extractor",
-      "role": "actor",
-      "label": "ocr_extractor",
-      "generated": false
+      "label": "ocr_extractor"
     },
     {
       "id": "router_document_pipeline_line_24_if_2",
-      "role": "router",
       "label": "router_document_pipeline_line_24_if_2",
       "generated": true
     },
     {
       "id": "router_document_pipeline_line_28_seq_1",
-      "role": "router",
       "label": "router_document_pipeline_line_28_seq_1",
       "generated": true,
       "mutations": [
@@ -30,14 +24,12 @@
     },
     {
       "id": "sentiment_analyzer",
-      "role": "actor",
-      "label": "sentiment_analyzer",
-      "generated": false
+      "label": "sentiment_analyzer"
     },
     {
       "id": "start_document_pipeline",
-      "role": "start",
       "label": "start_document_pipeline",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['status'] = 'processing'"
@@ -45,9 +37,7 @@
     },
     {
       "id": "translator",
-      "role": "actor",
-      "label": "translator",
-      "generated": false
+      "label": "translator"
     }
   ],
   "edges": [

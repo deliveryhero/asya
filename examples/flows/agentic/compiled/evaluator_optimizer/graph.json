@@ -3,31 +3,24 @@
   "nodes": [
     {
       "id": "evaluator",
-      "role": "actor",
-      "label": "evaluator",
-      "generated": false
+      "label": "evaluator"
     },
     {
       "id": "generator",
-      "role": "actor",
-      "label": "generator",
-      "generated": false
+      "label": "generator"
     },
     {
       "id": "polisher",
-      "role": "end",
       "label": "polisher",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "router_evaluator_optimizer_line_58_while_1",
-      "role": "router",
       "label": "router_evaluator_optimizer_line_58_while_1",
       "generated": true
     },
     {
       "id": "router_evaluator_optimizer_line_59_seq_4",
-      "role": "router",
       "label": "router_evaluator_optimizer_line_59_seq_4",
       "generated": true,
       "mutations": [
@@ -36,20 +29,18 @@
     },
     {
       "id": "router_evaluator_optimizer_line_68_if_3",
-      "role": "router",
       "label": "router_evaluator_optimizer_line_68_if_3",
       "generated": true
     },
     {
       "id": "router_evaluator_optimizer_line_72_if_2",
-      "role": "router",
       "label": "router_evaluator_optimizer_line_72_if_2",
       "generated": true
     },
     {
       "id": "start_evaluator_optimizer",
-      "role": "start",
       "label": "start_evaluator_optimizer",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['iteration'] = 0"

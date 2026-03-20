@@ -3,79 +3,57 @@
   "nodes": [
     {
       "id": "convergence_checker",
-      "role": "actor",
-      "label": "convergence_checker",
-      "generated": false
+      "label": "convergence_checker"
     },
     {
       "id": "debater_a",
-      "role": "actor",
-      "label": "debater_a",
-      "generated": false
+      "label": "debater_a"
     },
     {
       "id": "debater_b",
-      "role": "actor",
-      "label": "debater_b",
-      "generated": false
+      "label": "debater_b"
     },
     {
       "id": "debater_c",
-      "role": "actor",
-      "label": "debater_c",
-      "generated": false
+      "label": "debater_c"
     },
     {
       "id": "fanin_multi_agent_debate_line_57",
-      "role": "router",
-      "label": "fanin_multi_agent_debate_line_57",
-      "generated": false
+      "label": "fanin_multi_agent_debate_line_57"
     },
     {
       "id": "fanin_multi_agent_debate_line_74",
-      "role": "router",
-      "label": "fanin_multi_agent_debate_line_74",
-      "generated": false
+      "label": "fanin_multi_agent_debate_line_74"
     },
     {
       "id": "final_judge",
-      "role": "end",
       "label": "final_judge",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "revise_a",
-      "role": "actor",
-      "label": "revise_a",
-      "generated": false
+      "label": "revise_a"
     },
     {
       "id": "revise_b",
-      "role": "actor",
-      "label": "revise_b",
-      "generated": false
+      "label": "revise_b"
     },
     {
       "id": "revise_c",
-      "role": "actor",
-      "label": "revise_c",
-      "generated": false
+      "label": "revise_c"
     },
     {
       "id": "router_multi_agent_debate_line_57_fanout_6",
-      "role": "router",
       "label": "router_multi_agent_debate_line_57_fanout_6",
       "generated": true
     },
     {
       "id": "router_multi_agent_debate_line_63_while_1",
-      "role": "router",
       "label": "router_multi_agent_debate_line_63_while_1",
       "generated": true
     },
     {
       "id": "router_multi_agent_debate_line_64_seq_5",
-      "role": "router",
       "label": "router_multi_agent_debate_line_64_seq_5",
       "generated": true,
       "mutations": [
@@ -84,26 +62,23 @@
     },
     {
       "id": "router_multi_agent_debate_line_68_if_4",
-      "role": "router",
       "label": "router_multi_agent_debate_line_68_if_4",
       "generated": true
     },
     {
       "id": "router_multi_agent_debate_line_71_if_3",
-      "role": "router",
       "label": "router_multi_agent_debate_line_71_if_3",
       "generated": true
     },
     {
       "id": "router_multi_agent_debate_line_74_fanout_2",
-      "role": "router",
       "label": "router_multi_agent_debate_line_74_fanout_2",
       "generated": true
     },
     {
       "id": "start_multi_agent_debate",
-      "role": "start",
       "label": "start_multi_agent_debate",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['round'] = 0"

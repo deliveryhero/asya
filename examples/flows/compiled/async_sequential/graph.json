@@ -3,20 +3,17 @@
   "nodes": [
     {
       "id": "critic",
-      "role": "actor",
-      "label": "critic",
-      "generated": false
+      "label": "critic"
     },
     {
       "id": "reviser",
-      "role": "end",
       "label": "reviser",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_llm_auditor_flow",
-      "role": "start",
       "label": "start_llm_auditor_flow",
+      "role": "start",
       "generated": true
     }
   ],

@@ -3,32 +3,26 @@
   "nodes": [
     {
       "id": "execute_tool",
-      "role": "actor",
-      "label": "execute_tool",
-      "generated": false
+      "label": "execute_tool"
     },
     {
       "id": "llm_call",
-      "role": "actor",
-      "label": "llm_call",
-      "generated": false
+      "label": "llm_call"
     },
     {
       "id": "router_react_agent_line_14_while_1",
-      "role": "router",
       "label": "router_react_agent_line_14_while_1",
       "generated": true
     },
     {
       "id": "router_react_agent_line_16_if_2",
-      "role": "router",
       "label": "router_react_agent_line_16_if_2",
       "generated": true
     },
     {
       "id": "start_react_agent",
-      "role": "start",
       "label": "start_react_agent",
+      "role": "start",
       "generated": true
     }
   ],
