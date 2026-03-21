@@ -49,7 +49,7 @@ class TemplateContext:
     Config values from `templates:` and CLI args are merged separately.
     """
 
-    actor_name: str
+    actor_name: str  # used for both metadata.name and spec.actor (usually same value)
     flow_name: str
     flow_function: str
     role: str
@@ -367,12 +367,11 @@ Each overlay builds on top of `common/`.
         if not self.codegen_meta.actor_retry_rules:
             return
 
-        # Reverse K8s name to Python name (the key used in actor_retry_rules)
-        # Strip actor- prefix if present (handler actors get actor- prefix in K8s name)
-        k8s_name = actor.name
-        if k8s_name.startswith("actor-"):
-            k8s_name = k8s_name[len("actor-") :]
-        actor_python_name = k8s_name.replace("-", "_")
+        # Strip actor- prefix to get the Python function name (the key in actor_retry_rules)
+        name = actor.name
+        if name.startswith("actor-"):
+            name = name[len("actor-"):]
+        actor_python_name = name.replace("-", "_")
         rules = self.codegen_meta.actor_retry_rules.get(actor_python_name, [])
         if not rules:
             return
