@@ -1,131 +1,127 @@
-# Architecture Overview
+# Architecture
 
-Asya is a Kubernetes-native async actor framework with pluggable components for AI/ML orchestration.
+Asya is a Kubernetes-native async actor mesh. All components are designed around one
+principle: **the message knows the way**.
 
-## System Architecture
+## Actor Mesh
 
-```mermaid
-graph LR
-    Client([Client])
+<a href="/docs/website/img/actor-mesh.png" target="_blank" title="Click to view full size">
+<img src="/docs/website/img/actor-mesh.png" width="100%" style="cursor: zoom-in;" alt="Actor Mesh: gateway, queues, actors with independent KEDA scaling, sink/DLQ"/>
+</a>
 
-    subgraph "Asya Framework"
-        Gateway[Gateway<br/>MCP API]
-        Crossplane[Crossplane<br/>Compositions]
-    end
+*Actors communicate through queues. Each message carries its own route. Each actor scales independently via KEDA.*
 
-    subgraph "Your Actors"
-        A1[Actor Pod 1<br/>sidecar + runtime]
-        A2[Actor Pod 2<br/>sidecar + runtime]
-        A3[Actor Pod N<br/>sidecar + runtime]
-    end
+## Actor Pod Anatomy
 
-    subgraph "Infrastructure"
-        MQ[Message Queue<br/>RabbitMQ/SQS]
-        KEDA[KEDA<br/>autoscaler]
-    end
+<a href="/docs/website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+<img src="/docs/website/img/actor-anatomy.png" width="100%" style="cursor: zoom-in;" alt="Actor pod internals: sidecar, runtime, state proxy, gateway interaction"/>
+</a>
 
-    Client -->|HTTP| Gateway
-    Gateway -->|task| MQ
-    MQ -->|messages| A1
-    A1 -->|results| MQ
-    MQ -->|messages| A2
-    A2 -->|results| MQ
-    MQ -->|messages| A3
-
-    Crossplane -.->|deploys| A1
-    Crossplane -.->|deploys| A2
-    Crossplane -.->|deploys| A3
-    KEDA -.->|scales| A1
-    KEDA -.->|scales| A2
-    KEDA -.->|scales| A3
-
-    style Gateway fill:#e1f5ff
-    style Crossplane fill:#fff3cd
-    style A1 fill:#d4edda
-    style A2 fill:#d4edda
-    style A3 fill:#d4edda
-```
+*Every actor pod has a sidecar (Go) for queue polling and routing, a runtime (Python) for your handler, and an optional state proxy for virtual persistent memory.*
 
 ## Core Components
 
-### Framework Components
+### Actor Pod (your workload)
 
-- **[Crossplane Compositions](reference/components/core-crossplane.md)**: Declarative infrastructure compositions that create AsyncActor workloads, queues, render the sidecar inline, and configure KEDA autoscaling
-- **[Gateway](reference/components/core-gateway.md)**: Optional MCP/A2A HTTP gateway for task submission, SSE streaming, and status tracking
-- **[CLI](reference/components/lab-cli.md)**: Command-line tool for interacting with the gateway (MCP client)
+Each actor pod has two injected containers:
 
-### Actor Components
+- **[Sidecar](reference/components/core-sidecar.md)** (Go) — queue polling, envelope routing, retries, progress reporting, metrics
+- **[Runtime](reference/components/core-runtime.md)** (Python) — loads your handler, executes per envelope, communicates via Unix socket
 
-Each actor pod contains two containers:
+Your handler sees only `dict -> dict`. The envelope structure, queue mechanics, and
+routing are invisible to it.
 
-- **[Sidecar](reference/components/core-sidecar.md)**: Handles queue consumption, message routing, retries, progress reporting (Go)
-- **[Runtime](reference/components/core-runtime.md)**: Executes your Python handler via Unix socket, handles OOM recovery (Python)
+<img src="/docs/website/img/actor-anatomy.png" width="100%" alt="Actor pod anatomy: sidecar + runtime + optional state proxy"/>
 
-### System Actors
+### Gateway (optional)
 
-- **[Crew Actors](reference/components/core-crew.md)**: Special actors with reserved roles (`x-sink`, `x-sump`, `x-pause`, `x-resume`) for result persistence, error handling, and human-in-the-loop
+The [gateway](reference/components/core-gateway.md) bridges synchronous HTTP with the async mesh:
 
-### Infrastructure
+| Mode | Audience | Endpoints |
+|------|----------|-----------|
+| **api** | External clients | `/a2a/` (agents), `/mcp` (tools), `/.well-known/agent.json` |
+| **mesh** | Sidecars (internal) | `/mesh` (progress, FLY events, final results) |
 
-- **[Message Queues](reference/transports/README.md)**: Pluggable transports (SQS, RabbitMQ, GCP Pub/Sub)
-- **[KEDA](setup/guide-autoscaling.md)**: Monitors queue depth, scales actors 0-N based on workload
-- **[Observability](setup/ops-observability.md)**: Prometheus metrics, structured logging
+Both modes share PostgreSQL for task state. The gateway translates between HTTP
+request/response and the fire-and-forget queue-based mesh.
 
-## Sync Gateway
+### Crossplane Compositions
 
-The gateway bridges the synchronous HTTP world with the asynchronous actor mesh. It operates in two deployment modes:
+[Crossplane](reference/components/core-crossplane.md) manages the declarative lifecycle of actors. Each `AsyncActor` CRD creates:
 
-- **api mode** (`asya-gateway-api`): Handles external-facing A2A and MCP protocol endpoints. Clients submit tasks and receive results via blocking wait or SSE streaming.
-- **mesh mode** (`asya-gateway-mesh`): Handles internal mesh callbacks from sidecars — progress updates, FLY events, final results. Unreachable externally by network topology.
+1. **Message queue** (SQS, RabbitMQ, or Pub/Sub)
+2. **Deployment** with sidecar + runtime containers rendered inline
+3. **KEDA ScaledObject** watching queue depth
 
-Both modes share the same PostgreSQL database for task state. The gateway translates between synchronous HTTP semantics and the fire-and-forget nature of the queue-based mesh.
+Deleting an `AsyncActor` cascades to all three. No orphaned queues.
+
+### Crew (system actors)
+
+[Crew actors](reference/components/core-crew.md) handle framework-level concerns:
+
+| Actor | Role |
+|-------|------|
+| `x-sink` | Persists successful results, reports completion to gateway |
+| `x-sump` | Terminal error collection, metrics, DLQ |
+| `x-pause` | Checkpoints envelope to S3 for human-in-the-loop |
+| `x-resume` | Restores checkpointed envelope, re-injects into mesh |
+
+### State Proxy (optional)
+
+The [state proxy](reference/components/core-state-proxy.md) gives actors virtual persistent
+memory. Actors read/write `/state/...` paths using standard file I/O — the proxy
+translates to S3, GCS, Redis, or NATS KV.
+
+### Flow Compiler (build-time tool)
+
+The [flow compiler](reference/components/lab-flow-compiler.md) transforms Python control
+flow (`if/else`, `while`, `asyncio.gather`) into flat actor execution graphs. Purely
+additive — generates standard `AsyncActor` manifests.
 
 ## Message Flow
 
-1. **Client** sends request to Gateway (or directly to queue)
-2. **Gateway** creates task, routes to first actor's queue
-3. **Sidecar** consumes message from queue
-4. **Sidecar** forwards message to Runtime via Unix socket
-5. **Runtime** executes your Python handler, returns result
-6. **Sidecar** routes result to next actor's queue (or `x-sink`/`x-sump`)
-7. Repeat steps 3-6 for each actor in the route
-8. **Crew actor** (`x-sink` or `x-sump`) persists final result, reports status to gateway
+1. **Client** sends HTTP request to Gateway (or enqueues directly)
+2. **Gateway** creates task, injects envelope into first actor's queue
+3. **Sidecar** consumes envelope from queue
+4. **Sidecar** forwards payload to Runtime via Unix socket
+5. **Runtime** executes your handler, returns result
+6. **Sidecar** advances the route, sends envelope to next actor's queue
+7. Repeat 3-6 for each actor in `route.next`
+8. **x-sink** persists final result, reports status to gateway
+9. **Gateway** delivers result to client (blocking wait or SSE stream)
 
-**Key insight**: `Queue -> Sidecar -> Your Code -> Sidecar -> Next Queue`
-
-## Actor Lifecycle
-
-1. User creates AsyncActor CRD
-2. Crossplane Composition reconciles:
-   - Creates queue (`asya-{namespace}-{actor_name}`)
-   - Creates Deployment with sidecar + runtime containers
-   - Creates KEDA ScaledObject (if scaling enabled)
-3. KEDA monitors queue depth, scales pods 0-N
-4. Sidecar consumes messages, routes to runtime
-5. Runtime executes handler, returns results
-6. Sidecar routes results to next queue
-
-## Protocols
-
-- **[Envelope Spec](reference/specs/envelope.md)**: Message structure, routing, status tracking
-- **[Sidecar-Runtime](reference/specs/sidecar-runtime.md)**: Unix socket communication, framing protocol, error handling
-- **[Gateway API](reference/specs/gateway-api.md)**: Full HTTP API reference (A2A, MCP, mesh, OAuth)
-- **[ABI Protocol](reference/specs/abi-protocol.md)**: Generator handler yield forms (GET, SET, DEL, FLY)
+**The core loop**: `Queue -> Sidecar -> Your Code -> Sidecar -> Next Queue`
 
 ## Deployment Patterns
 
-**AWS (SQS + S3)**:
+### AWS (SQS + S3)
 
 - Crossplane creates SQS queues via AWS Provider
-- Actors use IAM roles (IRSA/Pod Identity) for queue access
+- IAM via IRSA or Pod Identity for queue/S3 access
 - Results stored in S3
-- KEDA uses CloudWatch metrics
+- KEDA scales via SQS queue depth metrics
+- See: [AWS EKS Guide](setup/start-aws-eks.md)
 
-**Self-hosted (RabbitMQ + MinIO)**:
+### GCP (Pub/Sub + GCS)
 
-- Crossplane creates RabbitMQ queues via custom provider
-- Actors use username/password from secrets
-- Results stored in MinIO (S3-compatible)
-- KEDA uses RabbitMQ API
+- Crossplane creates Pub/Sub subscriptions via GCP Provider
+- IAM via Workload Identity for Pub/Sub/GCS access
+- Results stored in GCS
+- KEDA scales via Pub/Sub subscription metrics
+- See: [GCP GKE Guide](setup/start-gcp-gke.md)
 
-**See**: Installation Guides ([AWS EKS](setup/start-aws-eks.md), [GCP GKE](setup/start-gcp-gke.md), [Local Kind](setup/start-quickstart.md)) for detailed deployment instructions.
+### Local / Self-hosted (RabbitMQ + MinIO)
+
+- RabbitMQ or LocalStack SQS for transport
+- MinIO (S3-compatible) for storage
+- Username/password auth from K8s secrets
+- See: [Quickstart](setup/start-quickstart.md)
+
+## Protocols
+
+- **[Envelope](reference/specs/envelope.md)** — message structure, routing (`prev/curr/next`), status
+- **[Sidecar-Runtime](reference/specs/sidecar-runtime.md)** — Unix socket framing, error handling
+- **[Gateway API](reference/specs/gateway-api.md)** — A2A, MCP, mesh HTTP endpoints
+- **[ABI Protocol](reference/specs/abi-protocol.md)** — generator yield forms (GET, SET, FLY)
+- **[AsyncActor CRD](reference/specs/asyncactor-crd.md)** — full manifest reference
+- **[Flow DSL](reference/specs/flow-dsl.md)** — flow compilation semantics

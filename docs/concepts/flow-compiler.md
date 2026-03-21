@@ -58,16 +58,15 @@ Flows compile to standard actors, but the compiler enforces **1:1 payload
 mapping** — each actor call takes one payload and returns one payload. This
 keeps the compiled graph predictable and debuggable.
 
-For advanced patterns that break this contract, use standalone generator actors
-directly:
+For advanced patterns that break this contract, use standalone generator actors directly:
 
 | Pattern | Flow | Standalone actor |
 |---------|------|-----------------|
 | Sequential, branching, loops | ✅ | ✅ |
 | Early return | ✅ | ✅ |
 | Fan-out / fan-in | ✅ | ✅ |
-| Fire-and-forget fan-out (multiple yields) | use standalone | ✅ |
-| Streaming events (FLY) | use standalone | ✅ |
+| Fire-and-forget fan-out (multiple yields) | use actor | ✅ |
+| Streaming events (FLY) | use actor | ✅ |
 
 ## Purely additive
 

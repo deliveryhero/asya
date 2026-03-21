@@ -100,26 +100,6 @@ sub-100ms latency, small-scale deployments.
 **Use Asya for**: multi-step AI/ML pipelines, bursty GPU workloads, agentic patterns
 with dynamic routing, cost-sensitive deployments that need scale-to-zero.
 
-## How Asya Implements Choreography on Kubernetes
-
-Each `AsyncActor` CRD creates three Kubernetes resources:
-
-1. **Message queue** (SQS, RabbitMQ, or Pub/Sub) — the actor's inbox
-2. **Deployment** — the actor pod with sidecar injected by Crossplane
-3. **KEDA ScaledObject** — autoscaler watching the queue depth
-
-<a href="/docs/website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
-</a>
-
-*Click the diagram to view full size.*
-
-The sidecar handles all infrastructure: queue polling, envelope routing, retries,
-metrics, and transport abstraction. Your handler sees only `dict -> dict`.
-
-Deleting an `AsyncActor` cascades to all three resources. No orphaned queues,
-no dangling deployments.
-
 ## Further Reading
 
 - **[Core Concepts](README.md)** — envelope, actor, sidecar, routing
