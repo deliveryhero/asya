@@ -45,16 +45,16 @@ logic, timeouts, and error routing were infrastructure concerns, not application
 This is the actor mesh: **flatten the entire pipeline into independent actors connected
 through queues**.
 
+<p align="center">
+  <img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
+</p>
 <div align="center">
-<img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
-<br>
-<p><strong>Each actor:</strong></p>
-  <ul style="display: inline-block; text-align: left;">
-    <li>Has its own queue (SQS, RabbitMQ, Pub/Sub)</li>
-    <li>Scales independently from 0 to N via KEDA</li>
-    <li>Fails independently — a crashed actor doesn't stall others</li>
-    <li>Runs a pure Python function — no retry logic, no queue client, no SDK</li>
-  </ul>
+| Each actor: |
+| :--- |
+| • Has its own queue (SQS, RabbitMQ, Pub/Sub) |
+| • Scales independently from 0 to N via KEDA |
+| • Fails independently — a crashed actor doesn't stall others |
+| • Runs a pure Python function — no retry logic, no queue client, no SDK |
 </div>
 
 
