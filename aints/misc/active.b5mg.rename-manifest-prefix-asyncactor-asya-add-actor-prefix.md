@@ -1,7 +1,12 @@
 ---
 title: "Rename manifest prefix asyncactor to asya, add actor- prefix to handler names"
 priority: 3 # low
+assignee: Artem Yushkovskiy
+tags:
+  - worktree:.worktrees/misc/b5mg.rename-manifest-prefix-asyncactor-asya-add-actor-prefix
+  - branch:misc/b5mg.rename-manifest-prefix-asyncactor-asya-add-actor-prefix
 ---
+
 
 ## Context
 
