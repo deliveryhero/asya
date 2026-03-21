@@ -135,8 +135,6 @@ nav:
     - vs KAgent: comparisons/vs-kagent.md
     - vs Ray Serve: comparisons/vs-ray-serve.md
     - vs Kubeflow Pipelines: comparisons/vs-kubeflow-pipelines.md
-- Architecture: architecture.md
-- Motivation: motivation.md
 plugins:
 - shadcn/search:
     prebuild_index: python
