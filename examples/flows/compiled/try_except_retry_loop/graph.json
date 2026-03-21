@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_retry_loop",
+  "flow_name": "retry_pipeline",
   "nodes": [
     {
       "id": "call_another_api",
@@ -19,48 +19,36 @@
       "label": "prepare_request"
     },
     {
-      "id": "router_retry_pipeline_line_16_while_0",
-      "label": "router_retry_pipeline_line_16_while_0",
+      "id": "router_retry_pipeline_line_16_while_1",
+      "label": "router_retry_pipeline_line_16_while_1",
       "generated": true
     },
     {
-      "id": "router_retry_pipeline_line_17_seq",
-      "label": "router_retry_pipeline_line_17_seq",
+      "id": "router_retry_pipeline_line_17_seq_4",
+      "label": "router_retry_pipeline_line_17_seq_4",
+      "generated": true,
       "mutations": [
         "p['attempt'] += 1"
-      ],
+      ]
+    },
+    {
+      "id": "router_retry_pipeline_line_21_except_2",
+      "label": "router_retry_pipeline_line_21_except_2",
       "generated": true
     },
     {
-      "id": "router_retry_pipeline_line_18_except_dispatch_0",
-      "label": "router_retry_pipeline_line_18_except_dispatch_0",
-      "generated": true
-    },
-    {
-      "id": "router_retry_pipeline_line_18_reraise_0",
-      "label": "router_retry_pipeline_line_18_reraise_0",
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_retry_pipeline_line_18_try_enter_0",
-      "label": "router_retry_pipeline_line_18_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_retry_pipeline_line_18_try_exit_0",
-      "label": "router_retry_pipeline_line_18_try_exit_0",
-      "role": "end",
+      "id": "router_retry_pipeline_line_23_except_3",
+      "label": "router_retry_pipeline_line_23_except_3",
       "generated": true
     },
     {
       "id": "start_retry_pipeline",
       "label": "start_retry_pipeline",
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['attempt'] = 0"
-      ],
-      "role": "start",
-      "generated": true
+      ]
     }
   ],
   "edges": [
@@ -72,12 +60,18 @@
     },
     {
       "from": "prepare_request",
-      "to": "router_retry_pipeline_line_16_while_0",
+      "to": "router_retry_pipeline_line_16_while_1",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_retry_pipeline_line_18_try_enter_0",
+      "from": "router_retry_pipeline_line_21_except_2",
+      "to": "log_retry",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_retry_pipeline_line_17_seq_4",
       "to": "call_external_api",
       "label": null,
       "type": "prepend"
@@ -89,47 +83,41 @@
       "type": "continuation"
     },
     {
-      "from": "call_another_api",
-      "to": "router_retry_pipeline_line_18_try_exit_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_retry_pipeline_line_18_except_dispatch_0",
-      "to": "log_retry",
-      "label": "'ConnectionError' in _all_types",
-      "type": "prepend"
-    },
-    {
-      "from": "router_retry_pipeline_line_18_except_dispatch_0",
-      "to": "router_retry_pipeline_line_18_reraise_0",
-      "label": "not ('ValueError' in _all_types)",
-      "type": "prepend"
-    },
-    {
-      "from": "router_retry_pipeline_line_17_seq",
-      "to": "router_retry_pipeline_line_18_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_retry_pipeline_line_16_while_0",
-      "to": "router_retry_pipeline_line_17_seq",
+      "from": "router_retry_pipeline_line_16_while_1",
+      "to": "router_retry_pipeline_line_17_seq_4",
       "label": "p['attempt'] < 3",
       "type": "prepend"
     },
     {
-      "from": "router_retry_pipeline_line_18_try_enter_0",
-      "to": "router_retry_pipeline_line_16_while_0",
+      "from": "call_external_api",
+      "to": "router_retry_pipeline_line_21_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "call_external_api",
+      "to": "router_retry_pipeline_line_23_except_3",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_21_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_23_except_3",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_16_while_1",
       "label": null,
       "type": "continuation"
     }
   ],
-  "groups": [],
-  "warnings": [
-    "node 'log_retry' is not reachable from entrypoint",
-    "node 'router_retry_pipeline_line_18_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_retry_pipeline_line_18_reraise_0' is not reachable from entrypoint",
-    "node 'router_retry_pipeline_line_18_except_dispatch_0' has no incoming edges but is not an entrypoint"
-  ]
+  "groups": []
 }

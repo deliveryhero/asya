@@ -1,0 +1,31 @@
+digraph "ingestion_pipeline" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_ingestion_pipeline; }
+
+    fetch_data [label="fetch_data", fillcolor=lightblue];
+    parse_data [label="parse_data", fillcolor=lightblue];
+    queue_for_retry [label="queue_for_retry", fillcolor=lightsalmon];
+    reject_input [label="reject_input", fillcolor=lightsalmon];
+    router_ingestion_pipeline_line_15_except_2 [label="router_ingestion_pipeline_line_15_except_2", fillcolor=wheat];
+    router_ingestion_pipeline_line_16_seq_1 [label="router_ingestion_pipeline_line_16_seq_1\n\np['retry_reason'] = 'transient'", fillcolor=wheat];
+    router_ingestion_pipeline_line_18_except_4 [label="router_ingestion_pipeline_line_18_except_4", fillcolor=wheat];
+    router_ingestion_pipeline_line_19_seq_3 [label="router_ingestion_pipeline_line_19_seq_3\n\np['status'] = 'bad_input'", fillcolor=wheat];
+    start_ingestion_pipeline [label="start_ingestion_pipeline", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_ingestion_pipeline -> fetch_data;
+    fetch_data -> parse_data;
+    router_ingestion_pipeline_line_16_seq_1 -> queue_for_retry;
+    router_ingestion_pipeline_line_15_except_2 -> router_ingestion_pipeline_line_16_seq_1;
+    router_ingestion_pipeline_line_19_seq_3 -> reject_input;
+    router_ingestion_pipeline_line_18_except_4 -> router_ingestion_pipeline_line_19_seq_3;
+    fetch_data -> router_ingestion_pipeline_line_15_except_2 [label="ConnectionError, TimeoutError", color="#DC143C", fontcolor="#DC143C"];
+    fetch_data -> router_ingestion_pipeline_line_18_except_4 [label="ValueError, KeyError", color="#DC143C", fontcolor="#DC143C"];
+    parse_data -> router_ingestion_pipeline_line_15_except_2 [label="ConnectionError, TimeoutError", color="#DC143C", fontcolor="#DC143C"];
+    parse_data -> router_ingestion_pipeline_line_18_except_4 [label="ValueError, KeyError", color="#DC143C", fontcolor="#DC143C"];
+    queue_for_retry -> __end__;
+    reject_input -> __end__;
+}

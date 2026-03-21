@@ -1,0 +1,27 @@
+digraph "llm_pipeline" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_llm_pipeline; }
+
+    call_fallback_llm [label="call_fallback_llm", fillcolor=lightsalmon];
+    call_llm [label="call_llm", fillcolor=lightblue];
+    notify_admin [label="notify_admin", fillcolor=lightsalmon];
+    router_llm_pipeline_line_15_except_2 [label="router_llm_pipeline_line_15_except_2", fillcolor=wheat];
+    router_llm_pipeline_line_16_seq_1 [label="router_llm_pipeline_line_16_seq_1\n\np['fallback'] = True", fillcolor=wheat];
+    router_llm_pipeline_line_18_except_4 [label="router_llm_pipeline_line_18_except_4", fillcolor=wheat];
+    router_llm_pipeline_line_19_seq_3 [label="router_llm_pipeline_line_19_seq_3\n\np['status'] = 'auth_failed'", fillcolor=wheat];
+    start_llm_pipeline [label="start_llm_pipeline\n\np['model'] = 'gpt-4'", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_llm_pipeline -> call_llm;
+    router_llm_pipeline_line_16_seq_1 -> call_fallback_llm;
+    router_llm_pipeline_line_15_except_2 -> router_llm_pipeline_line_16_seq_1;
+    router_llm_pipeline_line_19_seq_3 -> notify_admin;
+    router_llm_pipeline_line_18_except_4 -> router_llm_pipeline_line_19_seq_3;
+    call_llm -> router_llm_pipeline_line_15_except_2 [label="openai.RateLimitError", color="#DC143C", fontcolor="#DC143C"];
+    call_llm -> router_llm_pipeline_line_18_except_4 [label="openai.AuthenticationError", color="#DC143C", fontcolor="#DC143C"];
+    call_fallback_llm -> __end__;
+    notify_admin -> __end__;
+}

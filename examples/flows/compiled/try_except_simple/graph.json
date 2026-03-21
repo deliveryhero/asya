@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_simple",
+  "flow_name": "order_processing",
   "nodes": [
     {
       "id": "notify_rejection",
@@ -7,34 +7,17 @@
       "role": "end"
     },
     {
-      "id": "router_order_processing_line_4_except_dispatch_0",
-      "label": "router_order_processing_line_4_except_dispatch_0",
+      "id": "router_order_processing_line_6_except_2",
+      "label": "router_order_processing_line_6_except_2",
       "generated": true
     },
     {
-      "id": "router_order_processing_line_4_reraise_0",
-      "label": "router_order_processing_line_4_reraise_0",
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_order_processing_line_4_try_enter_0",
-      "label": "router_order_processing_line_4_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_order_processing_line_4_try_exit_0",
-      "label": "router_order_processing_line_4_try_exit_0",
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_order_processing_line_7_seq",
-      "label": "router_order_processing_line_7_seq",
+      "id": "router_order_processing_line_7_seq_1",
+      "label": "router_order_processing_line_7_seq_1",
+      "generated": true,
       "mutations": [
         "p['status'] = 'invalid'"
-      ],
-      "generated": true
+      ]
     },
     {
       "id": "start_order_processing",
@@ -50,47 +33,28 @@
   "edges": [
     {
       "from": "start_order_processing",
-      "to": "router_order_processing_line_4_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_order_processing_line_7_seq",
-      "to": "notify_rejection",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_order_processing_line_4_try_enter_0",
       "to": "validate_order",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "validate_order",
-      "to": "router_order_processing_line_4_try_exit_0",
+      "from": "router_order_processing_line_7_seq_1",
+      "to": "notify_rejection",
       "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_order_processing_line_4_except_dispatch_0",
-      "to": "router_order_processing_line_7_seq",
-      "label": "'ValueError' in _all_types",
       "type": "prepend"
     },
     {
-      "from": "router_order_processing_line_4_except_dispatch_0",
-      "to": "router_order_processing_line_4_reraise_0",
-      "label": "not ('ValueError' in _all_types)",
-      "type": "prepend"
+      "from": "router_order_processing_line_6_except_2",
+      "to": "router_order_processing_line_7_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "validate_order",
+      "to": "router_order_processing_line_6_except_2",
+      "label": "ValueError",
+      "type": "error"
     }
   ],
-  "groups": [],
-  "warnings": [
-    "node 'notify_rejection' is not reachable from entrypoint",
-    "node 'router_order_processing_line_4_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_order_processing_line_4_reraise_0' is not reachable from entrypoint",
-    "node 'router_order_processing_line_7_seq' is not reachable from entrypoint",
-    "node 'router_order_processing_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
-  ]
+  "groups": []
 }

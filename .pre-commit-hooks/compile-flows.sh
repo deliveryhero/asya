@@ -53,8 +53,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     flow_name="$(basename "$flow_file" .py)"
     [[ "$flow_name" == "__init__" ]] && continue
 
-    # Flows requiring unsupported syntax (try/except, inline with)
-    [[ "$flow_name" == try_except_* ]] && continue
+    # Flows requiring unsupported syntax (inline with)
     [[ "$flow_name" == with_inline_ctx ]] && continue
     [[ "$flow_name" == adk_llm_auditor ]] && continue
     [[ "$flow_name" == guardrails_sandwich ]] && continue

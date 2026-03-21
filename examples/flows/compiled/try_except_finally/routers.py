@@ -15,14 +15,17 @@ Regenerate by running: asya flow compile try_except_finally.py
 
 async def start_resource_pipeline(payload: dict):
     """Entrypoint for flow 'resource_pipeline'"""
-    _next = []
     p = payload
+    _next = []
     p['status'] = 'started'
-    _next.append(resolve("router_resource_pipeline_line_5_try_enter_0"))
+    _next.append(resolve("acquire_resource"))
+    _next.append(resolve("process_with_resource"))
+    _next.append(resolve("release_resource"))
+    _next.append(resolve("finalize"))
     yield "SET", ".route.next[:0]", _next
-    yield p
+    yield payload
 
-async def router_resource_pipeline_line_9_seq(payload: dict):
+async def router_resource_pipeline_line_9_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,57 +35,9 @@ async def router_resource_pipeline_line_9_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_5_try_enter_0(payload: dict):
-    """Try-enter router: sets _on_error header and inserts try body"""
-    _next = []
-    yield "SET", ".headers._on_error", resolve("router_resource_pipeline_line_5_except_dispatch_0")
-    _next.append(resolve("acquire_resource"))
-    _next.append(resolve("process_with_resource"))
-    _next.append(resolve("router_resource_pipeline_line_5_try_exit_0"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_resource_pipeline_line_5_try_exit_0(payload: dict):
-    """Try-exit router: clears _on_error header (success path)"""
-    _next = []
-    headers = yield "GET", ".headers"
-    if "_on_error" in headers:
-        yield "DEL", ".headers._on_error"
-    _next.append(resolve("release_resource"))
-    _next.append(resolve("finalize"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_resource_pipeline_line_5_except_dispatch_0(payload: dict):
-    """Except-dispatch router: matches error type and routes to handler"""
-    p = payload
-    _next = []
-    _error_type = yield "GET", ".status.error.type"
-    _error_mro = yield "GET", ".status.error.mro"
-    _all_types = [_error_type] + _error_mro
-
-    if "RuntimeError" in _all_types:
-        yield "DEL", ".status.error"
-        _next.append(resolve("router_resource_pipeline_line_9_seq"))
-    else:
-        _next.append(resolve("router_resource_pipeline_line_5_reraise_0"))
-    _next.append(resolve("release_resource"))
-    _next.append(resolve("finalize"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_resource_pipeline_line_5_reraise_0(payload: dict):
-    """Reraise router: raises RuntimeError for unhandled exceptions"""
-    _error_type = yield "GET", ".status.error.type"
-    _error_msg = yield "GET", ".status.error.message"
-    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
-
-async def end_resource_pipeline(payload: dict):
-    """Exitpoint for flow 'resource_pipeline'"""
-    yield "SET", ".route.next", []
+async def router_resource_pipeline_line_8_except_2(payload: dict):
+    """Router for error handling (except clause)"""
+    yield "SET", ".route.next", [resolve('router_resource_pipeline_line_9_seq_1'), resolve('release_resource'), resolve('finalize')]
     yield payload
 
 

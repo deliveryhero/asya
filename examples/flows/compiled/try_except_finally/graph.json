@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_finally",
+  "flow_name": "resource_pipeline",
   "nodes": [
     {
       "id": "acquire_resource",
@@ -12,8 +12,7 @@
     },
     {
       "id": "handle_failure",
-      "label": "handle_failure",
-      "role": "end"
+      "label": "handle_failure"
     },
     {
       "id": "process_with_resource",
@@ -24,59 +23,31 @@
       "label": "release_resource"
     },
     {
-      "id": "router_resource_pipeline_line_5_except_dispatch_0",
-      "label": "router_resource_pipeline_line_5_except_dispatch_0",
+      "id": "router_resource_pipeline_line_8_except_2",
+      "label": "router_resource_pipeline_line_8_except_2",
       "generated": true
     },
     {
-      "id": "router_resource_pipeline_line_5_reraise_0",
-      "label": "router_resource_pipeline_line_5_reraise_0",
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_resource_pipeline_line_5_try_enter_0",
-      "label": "router_resource_pipeline_line_5_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_resource_pipeline_line_5_try_exit_0",
-      "label": "router_resource_pipeline_line_5_try_exit_0",
-      "generated": true
-    },
-    {
-      "id": "router_resource_pipeline_line_9_seq",
-      "label": "router_resource_pipeline_line_9_seq",
+      "id": "router_resource_pipeline_line_9_seq_1",
+      "label": "router_resource_pipeline_line_9_seq_1",
+      "generated": true,
       "mutations": [
         "p['status'] = 'failed'"
-      ],
-      "generated": true
+      ]
     },
     {
       "id": "start_resource_pipeline",
       "label": "start_resource_pipeline",
+      "role": "start",
+      "generated": true,
       "mutations": [
         "p['status'] = 'started'"
-      ],
-      "role": "start",
-      "generated": true
+      ]
     }
   ],
   "edges": [
     {
       "from": "start_resource_pipeline",
-      "to": "router_resource_pipeline_line_5_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resource_pipeline_line_9_seq",
-      "to": "handle_failure",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resource_pipeline_line_5_try_enter_0",
       "to": "acquire_resource",
       "label": null,
       "type": "prepend"
@@ -89,15 +60,9 @@
     },
     {
       "from": "process_with_resource",
-      "to": "router_resource_pipeline_line_5_try_exit_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_resource_pipeline_line_5_try_exit_0",
       "to": "release_resource",
       "label": null,
-      "type": "prepend"
+      "type": "continuation"
     },
     {
       "from": "release_resource",
@@ -106,30 +71,35 @@
       "type": "continuation"
     },
     {
-      "from": "router_resource_pipeline_line_5_except_dispatch_0",
-      "to": "release_resource",
+      "from": "router_resource_pipeline_line_9_seq_1",
+      "to": "handle_failure",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_resource_pipeline_line_5_except_dispatch_0",
-      "to": "router_resource_pipeline_line_9_seq",
-      "label": "'RuntimeError' in _all_types",
-      "type": "prepend"
+      "from": "router_resource_pipeline_line_8_except_2",
+      "to": "router_resource_pipeline_line_9_seq_1",
+      "label": null,
+      "type": "set"
     },
     {
-      "from": "router_resource_pipeline_line_5_except_dispatch_0",
-      "to": "router_resource_pipeline_line_5_reraise_0",
-      "label": "not ('RuntimeError' in _all_types)",
-      "type": "prepend"
+      "from": "acquire_resource",
+      "to": "router_resource_pipeline_line_8_except_2",
+      "label": "RuntimeError",
+      "type": "error"
+    },
+    {
+      "from": "process_with_resource",
+      "to": "router_resource_pipeline_line_8_except_2",
+      "label": "RuntimeError",
+      "type": "error"
+    },
+    {
+      "from": "handle_failure",
+      "to": "release_resource",
+      "label": null,
+      "type": "continuation"
     }
   ],
-  "groups": [],
-  "warnings": [
-    "node 'handle_failure' is not reachable from entrypoint",
-    "node 'router_resource_pipeline_line_5_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_resource_pipeline_line_5_reraise_0' is not reachable from entrypoint",
-    "node 'router_resource_pipeline_line_9_seq' is not reachable from entrypoint",
-    "node 'router_resource_pipeline_line_5_except_dispatch_0' has no incoming edges but is not an entrypoint"
-  ]
+  "groups": []
 }

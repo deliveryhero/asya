@@ -1,29 +1,35 @@
 flowchart TD
-    %% Flow: try_except_finally
+    %% Flow: resource_pipeline
 
     acquire_resource[acquire_resource]
     finalize[finalize]
     handle_failure[handle_failure]
     process_with_resource[process_with_resource]
     release_resource[release_resource]
-    router_resource_pipeline_line_5_except_dispatch_0{{router_resource_pipeline_line_5_except_dispatch_0}}
-    router_resource_pipeline_line_5_reraise_0{{router_resource_pipeline_line_5_reraise_0}}
-    router_resource_pipeline_line_5_try_enter_0{{router_resource_pipeline_line_5_try_enter_0}}
-    router_resource_pipeline_line_5_try_exit_0{{router_resource_pipeline_line_5_try_exit_0}}
-    router_resource_pipeline_line_9_seq{{"router_resource_pipeline_line_9_seq<br/><br/>p['status'] = 'failed'"}}
+    router_resource_pipeline_line_8_except_2{{router_resource_pipeline_line_8_except_2}}
+    router_resource_pipeline_line_9_seq_1{{"router_resource_pipeline_line_9_seq_1<br/><br/>p['status'] = 'failed'"}}
     start_resource_pipeline(["start_resource_pipeline<br/><br/>p['status'] = 'started'"])
     __end__((( )))
 
-    start_resource_pipeline --> router_resource_pipeline_line_5_try_enter_0
-    router_resource_pipeline_line_9_seq --> handle_failure
-    router_resource_pipeline_line_5_try_enter_0 --> acquire_resource
+    start_resource_pipeline --> acquire_resource
     acquire_resource --> process_with_resource
-    process_with_resource --> router_resource_pipeline_line_5_try_exit_0
-    router_resource_pipeline_line_5_try_exit_0 --> release_resource
+    process_with_resource --> release_resource
     release_resource --> finalize
-    router_resource_pipeline_line_5_except_dispatch_0 --> release_resource
-    router_resource_pipeline_line_5_except_dispatch_0 -->|'RuntimeError' in _all_types| router_resource_pipeline_line_9_seq
-    router_resource_pipeline_line_5_except_dispatch_0 -->|not ('RuntimeError' in _all_types)| router_resource_pipeline_line_5_reraise_0
+    router_resource_pipeline_line_9_seq_1 --> handle_failure
+    router_resource_pipeline_line_8_except_2 --> router_resource_pipeline_line_9_seq_1
+    acquire_resource -->|"RuntimeError"| router_resource_pipeline_line_8_except_2
+    process_with_resource -->|"RuntimeError"| router_resource_pipeline_line_8_except_2
+    handle_failure --> release_resource
     finalize --> __end__
-    handle_failure --> __end__
-    router_resource_pipeline_line_5_reraise_0 --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_resource_pipeline start
+    class finalize endnode
+    class router_resource_pipeline_line_8_except_2,router_resource_pipeline_line_9_seq_1 router
+    class acquire_resource,handle_failure,process_with_resource,release_resource handler
+    class __end__ endpoint
+    linkStyle 6,7 stroke:#DC143C
