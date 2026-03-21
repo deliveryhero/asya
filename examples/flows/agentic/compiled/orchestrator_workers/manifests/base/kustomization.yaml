@@ -1,0 +1,18 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-analysis-worker.yaml
+- asyncactor-data-worker.yaml
+- asyncactor-orchestrator.yaml
+- asyncactor-router-orchestrator-workers-line-53-seq-8.yaml
+- asyncactor-router-orchestrator-workers-line-56-while-1.yaml
+- asyncactor-router-orchestrator-workers-line-57-seq-7.yaml
+- asyncactor-router-orchestrator-workers-line-61-if-6.yaml
+- asyncactor-router-orchestrator-workers-line-64-if-5.yaml
+- asyncactor-router-orchestrator-workers-line-66-if-4.yaml
+- asyncactor-router-orchestrator-workers-line-68-if-3.yaml
+- asyncactor-router-orchestrator-workers-line-71-if-2.yaml
+- asyncactor-start-orchestrator-workers.yaml
+- asyncactor-synthesizer.yaml
+- asyncactor-writing-worker.yaml
+- configmap-routers.yaml

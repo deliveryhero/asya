@@ -1,0 +1,12 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-router-nested-if-flow-line-13-if-7.yaml
+- asyncactor-router-nested-if-flow-line-15-if-3.yaml
+- asyncactor-router-nested-if-flow-line-16-seq-1.yaml
+- asyncactor-router-nested-if-flow-line-19-seq-2.yaml
+- asyncactor-router-nested-if-flow-line-23-if-6.yaml
+- asyncactor-router-nested-if-flow-line-24-seq-4.yaml
+- asyncactor-router-nested-if-flow-line-27-seq-5.yaml
+- asyncactor-start-nested-if-flow.yaml
+- configmap-routers.yaml

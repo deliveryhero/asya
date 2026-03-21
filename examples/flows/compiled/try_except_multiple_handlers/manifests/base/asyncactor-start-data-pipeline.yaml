@@ -24,11 +24,11 @@ spec:
     value: handle_validation_error
   - name: ASYA_HANDLER_PARSE_INPUT
     value: parse_input
-  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_11_SEQ_3
-    value: routers.router_data_pipeline_line_11_seq_3
-  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_14_SEQ_5
-    value: routers.router_data_pipeline_line_14_seq_5
-  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_8_SEQ_1
-    value: routers.router_data_pipeline_line_8_seq_1
+  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_10_SEQ_1
+    value: routers.router_data_pipeline_line_10_seq_1
+  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_13_SEQ_3
+    value: routers.router_data_pipeline_line_13_seq_3
+  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_16_SEQ_5
+    value: routers.router_data_pipeline_line_16_seq_5
   - name: ASYA_HANDLER_TRANSFORM_DATA
     value: transform_data

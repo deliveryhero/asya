@@ -1,18 +1,13 @@
 flowchart TD
     %% Flow: react_agent
 
-    execute_tool[execute_tool]
-    llm_call[llm_call]
-    router_react_agent_line_14_while_1{{router_react_agent_line_14_while_1}}
-    router_react_agent_line_16_if_2{{router_react_agent_line_16_if_2}}
+    router_react_agent_line_13_while_1{{router_react_agent_line_13_while_1}}
+    router_react_agent_line_15_if_2{{router_react_agent_line_15_if_2}}
     start_react_agent([start_react_agent])
 
-    start_react_agent --> router_react_agent_line_14_while_1
-    router_react_agent_line_16_if_2 -->|"p.get('tool_calls')"| execute_tool
-    router_react_agent_line_14_while_1 --> llm_call
-    llm_call --> router_react_agent_line_16_if_2
-    execute_tool --> router_react_agent_line_14_while_1
-    router_react_agent_line_16_if_2 -->|"else"| router_react_agent_line_14_while_1
+    start_react_agent --> router_react_agent_line_13_while_1
+    router_react_agent_line_13_while_1 --> router_react_agent_line_15_if_2
+    router_react_agent_line_15_if_2 --> router_react_agent_line_13_while_1
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -20,7 +15,4 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_react_agent start
-    class router_react_agent_line_14_while_1,router_react_agent_line_16_if_2 router
-    class execute_tool,llm_call handler
-    linkStyle 1 stroke:#2E8B57
-    linkStyle 5 stroke:#E07040
+    class router_react_agent_line_13_while_1,router_react_agent_line_15_if_2 router

@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: reducer
+  namespace: default
+  labels:
+    asya.sh/flow: map-reduce
+    asya.sh/role: end
+spec:
+  actor: reducer
+  image: examples.asya.sh/reducer:latest
+  handler: reducer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

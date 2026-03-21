@@ -3,12 +3,11 @@ If-elif-else chain.
 
 Tests multi-branch conditional routing.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def if_elif_else_flow(p: dict) -> dict:
     p = handler_validate(p)
     if p["type"] == "A":

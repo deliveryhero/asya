@@ -37,12 +37,11 @@ Note on control flow: The while loop, quality threshold check, and break
 are pure state transformations -- they compile into router actors. Only the
 function calls (researcher, critic, etc.) become real deployed actors.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def research_and_refine(state: dict) -> dict:
     state["iteration"] = 0
     state["search_query"] = state.get("question", "")
@@ -69,6 +68,7 @@ async def research_and_refine(state: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 async def researcher(state: dict) -> dict:
     """LLM+tools actor: execute queries, extract findings.
 
@@ -81,6 +81,7 @@ async def researcher(state: dict) -> dict:
     ...  # LLM call with search tools: query, extract, cite
 
 
+@actor
 async def critic(state: dict) -> dict:
     """LLM actor: evaluate research quality and identify gaps.
 
@@ -95,6 +96,7 @@ async def critic(state: dict) -> dict:
     ...  # LLM call: assess coverage, score quality, list gaps
 
 
+@actor
 async def refine_query(state: dict) -> dict:
     """LLM actor: produce improved search queries based on gaps.
 
@@ -108,6 +110,7 @@ async def refine_query(state: dict) -> dict:
     ...  # LLM call: gaps -> refined search queries
 
 
+@actor
 async def write_report(state: dict) -> dict:
     """LLM actor: synthesize findings into a structured report.
 

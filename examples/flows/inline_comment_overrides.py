@@ -18,7 +18,7 @@ Priority order:
   3. Default resolution
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow
@@ -38,6 +38,7 @@ def order_pipeline(p: dict) -> dict:
 
 
 # Helper functions — deployed as actors or inlined depending on the directive
+
 
 def normalize_keys(p: dict) -> dict:
     """Normalize payload keys to lowercase — runs inline in the router."""

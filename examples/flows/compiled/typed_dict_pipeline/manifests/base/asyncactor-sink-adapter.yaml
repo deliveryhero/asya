@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: sink-adapter
+  namespace: default
+  labels:
+    asya.sh/flow: typeddict-pipeline
+    asya.sh/role: end
+spec:
+  actor: sink-adapter
+  image: examples.asya.sh/sink-adapter:latest
+  handler: sink_adapter
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

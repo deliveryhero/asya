@@ -22,7 +22,7 @@ spec:
     value: call_llm
   - name: ASYA_HANDLER_NOTIFY_ADMIN
     value: notify_admin
-  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_16_SEQ_1
-    value: routers.router_llm_pipeline_line_16_seq_1
-  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_19_SEQ_3
-    value: routers.router_llm_pipeline_line_19_seq_3
+  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_17_SEQ_1
+    value: routers.router_llm_pipeline_line_17_seq_1
+  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_20_SEQ_3
+    value: routers.router_llm_pipeline_line_20_seq_3

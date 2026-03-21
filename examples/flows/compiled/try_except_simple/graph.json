@@ -7,13 +7,13 @@
       "role": "end"
     },
     {
-      "id": "router_order_processing_line_6_except_2",
-      "label": "router_order_processing_line_6_except_2",
+      "id": "router_order_processing_line_8_except_2",
+      "label": "router_order_processing_line_8_except_2",
       "generated": true
     },
     {
-      "id": "router_order_processing_line_7_seq_1",
-      "label": "router_order_processing_line_7_seq_1",
+      "id": "router_order_processing_line_9_seq_1",
+      "label": "router_order_processing_line_9_seq_1",
       "generated": true,
       "mutations": [
         "p['status'] = 'invalid'"
@@ -38,20 +38,20 @@
       "type": "prepend"
     },
     {
-      "from": "router_order_processing_line_7_seq_1",
+      "from": "router_order_processing_line_9_seq_1",
       "to": "notify_rejection",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_order_processing_line_6_except_2",
-      "to": "router_order_processing_line_7_seq_1",
+      "from": "router_order_processing_line_8_except_2",
+      "to": "router_order_processing_line_9_seq_1",
       "label": null,
       "type": "set"
     },
     {
       "from": "validate_order",
-      "to": "router_order_processing_line_6_except_2",
+      "to": "router_order_processing_line_8_except_2",
       "label": "ValueError",
       "type": "error"
     }

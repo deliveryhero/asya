@@ -26,10 +26,10 @@ spec:
     value: process_bank_transfer
   - name: ASYA_HANDLER_RECORD_TRANSACTION
     value: record_transaction
-  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_16_IF_3
-    value: routers.router_payment_flow_line_16_if_3
-  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_22_SEQ_1
-    value: routers.router_payment_flow_line_22_seq_1
+  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_17_IF_3
+    value: routers.router_payment_flow_line_17_if_3
+  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_23_SEQ_1
+    value: routers.router_payment_flow_line_23_seq_1
   - name: ASYA_HANDLER_SEND_RECEIPT
     value: send_receipt
   - name: ASYA_HANDLER_VALIDATE_PAYMENT

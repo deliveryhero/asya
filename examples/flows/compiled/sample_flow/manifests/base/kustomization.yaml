@@ -5,8 +5,8 @@ resources:
 - asyncactor-handler-setup.yaml
 - asyncactor-handler-type-a.yaml
 - asyncactor-handler-type-b.yaml
-- asyncactor-router-sample-flow-line-11-seq-2.yaml
-- asyncactor-router-sample-flow-line-6-if-3.yaml
-- asyncactor-router-sample-flow-line-7-seq-1.yaml
+- asyncactor-router-sample-flow-line-10-seq-1.yaml
+- asyncactor-router-sample-flow-line-14-seq-2.yaml
+- asyncactor-router-sample-flow-line-9-if-3.yaml
 - asyncactor-start-sample-flow.yaml
 - configmap-routers.yaml

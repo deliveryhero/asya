@@ -36,11 +36,11 @@ Payload contract:
   state["response"]   - SearchResponse serialized as dict on wire
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
+from _asya_utils import flow
 from pydantic import BaseModel
-from asya_lab.flow import flow
 
 
 # =============================================================================
@@ -99,7 +99,7 @@ def retrieve(query: str, top_k: int = 10) -> list[Candidate]:
                 for h in hits
             ]
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     docs = [
         ("Actor mesh enables event-driven AI workloads on Kubernetes.", "docs/architecture.md"),
         ("KEDA autoscaling allows scale-to-zero for idle actors.", "docs/scaling.md"),
@@ -107,10 +107,7 @@ def retrieve(query: str, top_k: int = 10) -> list[Candidate]:
         ("The sidecar is rendered inline into actor pods by Crossplane compositions.", "docs/crossplane.md"),
         ("Crossplane compositions manage queue lifecycle declaratively.", "docs/crossplane.md"),
     ]
-    return [
-        Candidate(id=uuid4(), text=text, source=src, created_at=now)
-        for text, src in docs[:top_k]
-    ]
+    return [Candidate(id=uuid4(), text=text, source=src, created_at=now) for text, src in docs[:top_k]]
 
 
 def score(query: str, candidates: list[Candidate]) -> list[ScoredCandidate]:
@@ -155,7 +152,7 @@ def generate_response(ranked: RankedResults) -> SearchResponse:
     return SearchResponse(
         request_id=uuid4(),
         ranked=ranked,
-        generated_at=datetime.now(timezone.utc),
+        generated_at=datetime.now(UTC),
     )
 
 
@@ -174,8 +171,6 @@ def generate_response(ranked: RankedResults) -> SearchResponse:
 
 
 @flow
-
-
 def ingester(state: dict) -> dict:
     # Extract primitives, call domain fn, store typed result (serialized on forward)
     state["candidates"] = retrieve(state["query"], state.get("top_k", 10))

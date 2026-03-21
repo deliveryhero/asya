@@ -19,11 +19,11 @@ async def start_research_and_refine(payload: dict):
     _next = []
     p['iteration'] = 0
     p['search_query'] = p.get('question', '')
-    _next.append(resolve("router_research_and_refine_line_50_while_1"))
+    _next.append(resolve("router_research_and_refine_line_49_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_59_if_2(payload: dict):
+async def router_research_and_refine_line_58_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -37,7 +37,7 @@ async def router_research_and_refine_line_59_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_55_if_3(payload: dict):
+async def router_research_and_refine_line_54_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,29 +47,29 @@ async def router_research_and_refine_line_55_if_3(payload: dict):
         return
     else:
         _next.append(resolve("refine_query"))
-        _next.append(resolve("router_research_and_refine_line_59_if_2"))
+        _next.append(resolve("router_research_and_refine_line_58_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_51_seq_4(payload: dict):
+async def router_research_and_refine_line_50_seq_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("researcher"))
     _next.append(resolve("critic"))
-    _next.append(resolve("router_research_and_refine_line_55_if_3"))
+    _next.append(resolve("router_research_and_refine_line_54_if_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_and_refine_line_50_while_1(payload: dict):
+async def router_research_and_refine_line_49_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_research_and_refine_line_51_seq_4"))
-    _next.append(resolve("router_research_and_refine_line_50_while_1"))
+    _next.append(resolve("router_research_and_refine_line_50_seq_4"))
+    _next.append(resolve("router_research_and_refine_line_49_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

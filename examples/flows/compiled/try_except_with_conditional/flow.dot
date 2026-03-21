@@ -9,9 +9,9 @@ digraph "payment_flow" {
     notify_payment_failure [label="notify_payment_failure", fillcolor=lightblue];
     process_bank_transfer [label="process_bank_transfer", fillcolor=lightblue];
     record_transaction [label="record_transaction", fillcolor=lightblue];
-    router_payment_flow_line_16_if_3 [label="router_payment_flow_line_16_if_3", fillcolor=wheat];
-    router_payment_flow_line_21_except_2 [label="router_payment_flow_line_21_except_2", fillcolor=wheat];
-    router_payment_flow_line_22_seq_1 [label="router_payment_flow_line_22_seq_1\n\np['status'] = 'payment_failed'", fillcolor=wheat];
+    router_payment_flow_line_17_if_3 [label="router_payment_flow_line_17_if_3", fillcolor=wheat];
+    router_payment_flow_line_22_except_2 [label="router_payment_flow_line_22_except_2", fillcolor=wheat];
+    router_payment_flow_line_23_seq_1 [label="router_payment_flow_line_23_seq_1\n\np['status'] = 'payment_failed'", fillcolor=wheat];
     send_receipt [label="send_receipt", fillcolor=lightsalmon];
     start_payment_flow [label="start_payment_flow", fillcolor=palegreen];
     validate_payment [label="validate_payment", fillcolor=lightblue];
@@ -19,17 +19,17 @@ digraph "payment_flow" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_payment_flow -> validate_payment;
-    validate_payment -> router_payment_flow_line_16_if_3;
+    validate_payment -> router_payment_flow_line_17_if_3;
     audit_log -> send_receipt;
-    router_payment_flow_line_22_seq_1 -> notify_payment_failure;
-    router_payment_flow_line_21_except_2 -> router_payment_flow_line_22_seq_1;
-    router_payment_flow_line_16_if_3 -> charge_card [label="p['method'] == 'card'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_payment_flow_line_23_seq_1 -> notify_payment_failure;
+    router_payment_flow_line_22_except_2 -> router_payment_flow_line_23_seq_1;
+    router_payment_flow_line_17_if_3 -> charge_card [label="p['method'] == 'card'", color="#2E8B57", fontcolor="#2E8B57"];
     charge_card -> record_transaction;
-    router_payment_flow_line_16_if_3 -> process_bank_transfer [label="else", color="#D35400", fontcolor="#D35400"];
+    router_payment_flow_line_17_if_3 -> process_bank_transfer [label="else", color="#D35400", fontcolor="#D35400"];
     process_bank_transfer -> record_transaction;
-    charge_card -> router_payment_flow_line_21_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    process_bank_transfer -> router_payment_flow_line_21_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    record_transaction -> router_payment_flow_line_21_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    charge_card -> router_payment_flow_line_22_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    process_bank_transfer -> router_payment_flow_line_22_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    record_transaction -> router_payment_flow_line_22_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     record_transaction -> audit_log;
     notify_payment_failure -> audit_log;
     send_receipt -> __end__;

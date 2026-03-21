@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: researcher
+  namespace: default
+  labels:
+    asya.sh/flow: research-and-refine
+spec:
+  actor: researcher
+  image: examples.asya.sh/researcher:latest
+  handler: researcher
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

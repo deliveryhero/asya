@@ -24,9 +24,9 @@ spec:
     value: handler_type_a
   - name: ASYA_HANDLER_HANDLER_TYPE_B
     value: handler_type_b
-  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_11_SEQ_2
-    value: routers.router_sample_flow_line_11_seq_2
-  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_6_IF_3
-    value: routers.router_sample_flow_line_6_if_3
-  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_7_SEQ_1
-    value: routers.router_sample_flow_line_7_seq_1
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_10_SEQ_1
+    value: routers.router_sample_flow_line_10_seq_1
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_14_SEQ_2
+    value: routers.router_sample_flow_line_14_seq_2
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_9_IF_3
+    value: routers.router_sample_flow_line_9_if_3

@@ -11,12 +11,11 @@ per-actor timeouts.
 Compile with:
     asya flow compile with_nested_timeout_scopes.py --output-dir compiled/
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 async def ingestion_pipeline(p: dict) -> dict:
     async with asyncio.timeout(60):
         p = data_fetcher(p)

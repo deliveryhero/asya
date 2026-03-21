@@ -2,8 +2,8 @@
   "flow_name": "class_instantiation_flow",
   "nodes": [
     {
-      "id": "router_class_instantiation_flow_line_18_seq_1",
-      "label": "router_class_instantiation_flow_line_18_seq_1",
+      "id": "router_class_instantiation_flow_line_17_seq_1",
+      "label": "router_class_instantiation_flow_line_17_seq_1",
       "generated": true
     },
     {
@@ -16,7 +16,7 @@
   "edges": [
     {
       "from": "start_class_instantiation_flow",
-      "to": "router_class_instantiation_flow_line_18_seq_1",
+      "to": "router_class_instantiation_flow_line_17_seq_1",
       "label": null,
       "type": "prepend"
     }

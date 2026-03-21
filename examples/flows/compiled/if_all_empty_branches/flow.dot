@@ -4,16 +4,11 @@ digraph "if_empty_branches_flow" {
 
     { rank=source; start_if_empty_branches_flow; }
 
-    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
-    handler_setup [label="handler_setup", fillcolor=lightblue];
-    router_if_empty_branches_flow_line_14_if_1 [label="router_if_empty_branches_flow_line_14_if_1", fillcolor=wheat];
+    router_if_empty_branches_flow_line_13_if_1 [label="router_if_empty_branches_flow_line_13_if_1", fillcolor=wheat];
     start_if_empty_branches_flow [label="start_if_empty_branches_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_if_empty_branches_flow -> handler_setup;
-    handler_setup -> router_if_empty_branches_flow_line_14_if_1;
-    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="p['skip_processing']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_if_empty_branches_flow_line_14_if_1 -> handler_finalize [label="else", color="#D35400", fontcolor="#D35400"];
-    handler_finalize -> __end__;
+    start_if_empty_branches_flow -> router_if_empty_branches_flow_line_13_if_1;
+    router_if_empty_branches_flow_line_13_if_1 -> __end__;
 }

@@ -26,5 +26,5 @@ spec:
     value: process_with_resource
   - name: ASYA_HANDLER_RELEASE_RESOURCE
     value: release_resource
-  - name: ASYA_HANDLER_ROUTER_RESOURCE_PIPELINE_LINE_9_SEQ_1
-    value: routers.router_resource_pipeline_line_9_seq_1
+  - name: ASYA_HANDLER_ROUTER_RESOURCE_PIPELINE_LINE_11_SEQ_1
+    value: routers.router_resource_pipeline_line_11_seq_1

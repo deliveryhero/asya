@@ -4,7 +4,8 @@ Try-except with fully-qualified exception types.
 Demonstrates catching vendor-specific errors by FQN (e.g. openai.RateLimitError).
 The sidecar matches FQN types exactly against the error's module.class path.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow

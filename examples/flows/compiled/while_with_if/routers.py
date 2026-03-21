@@ -15,9 +15,10 @@ Regenerate by running: asya flow compile while_with_if.py
 
 async def start_if_inside_while_flow(payload: dict):
     """Entrypoint for flow 'if_inside_while_flow'"""
+    p = payload
     _next = []
-    _next.append(resolve("handler_init"))
-    _next.append(resolve("router_if_inside_while_flow_line_13_seq_3"))
+    p['i'] = 0
+    _next.append(resolve("router_if_inside_while_flow_line_14_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -27,9 +28,9 @@ async def router_if_inside_while_flow_line_16_if_2(payload: dict):
     _next = []
     p['i'] += 1
     if p['i'] % 2 == 0:
-        _next.append(resolve("handler_even"))
+        pass
     else:
-        _next.append(resolve("handler_odd"))
+        pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -42,19 +43,8 @@ async def router_if_inside_while_flow_line_14_while_1(payload: dict):
         _next.append(resolve("router_if_inside_while_flow_line_16_if_2"))
         _next.append(resolve("router_if_inside_while_flow_line_14_while_1"))
     else:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
         yield p
         return
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_if_inside_while_flow_line_13_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['i'] = 0
-    _next.append(resolve("router_if_inside_while_flow_line_14_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

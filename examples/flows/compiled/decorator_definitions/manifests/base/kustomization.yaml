@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-enrich.yaml
+- asyncactor-router-decorator-definitions-flow-line-27-seq-1.yaml
+- asyncactor-start-decorator-definitions-flow.yaml
+- asyncactor-validate.yaml
+- configmap-routers.yaml

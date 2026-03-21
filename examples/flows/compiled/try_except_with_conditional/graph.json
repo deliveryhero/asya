@@ -22,18 +22,18 @@
       "label": "record_transaction"
     },
     {
-      "id": "router_payment_flow_line_16_if_3",
-      "label": "router_payment_flow_line_16_if_3",
+      "id": "router_payment_flow_line_17_if_3",
+      "label": "router_payment_flow_line_17_if_3",
       "generated": true
     },
     {
-      "id": "router_payment_flow_line_21_except_2",
-      "label": "router_payment_flow_line_21_except_2",
+      "id": "router_payment_flow_line_22_except_2",
+      "label": "router_payment_flow_line_22_except_2",
       "generated": true
     },
     {
-      "id": "router_payment_flow_line_22_seq_1",
-      "label": "router_payment_flow_line_22_seq_1",
+      "id": "router_payment_flow_line_23_seq_1",
+      "label": "router_payment_flow_line_23_seq_1",
       "generated": true,
       "mutations": [
         "p['status'] = 'payment_failed'"
@@ -64,7 +64,7 @@
     },
     {
       "from": "validate_payment",
-      "to": "router_payment_flow_line_16_if_3",
+      "to": "router_payment_flow_line_17_if_3",
       "label": null,
       "type": "continuation"
     },
@@ -75,19 +75,19 @@
       "type": "continuation"
     },
     {
-      "from": "router_payment_flow_line_22_seq_1",
+      "from": "router_payment_flow_line_23_seq_1",
       "to": "notify_payment_failure",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_payment_flow_line_21_except_2",
-      "to": "router_payment_flow_line_22_seq_1",
+      "from": "router_payment_flow_line_22_except_2",
+      "to": "router_payment_flow_line_23_seq_1",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_payment_flow_line_16_if_3",
+      "from": "router_payment_flow_line_17_if_3",
       "to": "charge_card",
       "label": "p['method'] == 'card'",
       "type": "prepend"
@@ -99,7 +99,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_payment_flow_line_16_if_3",
+      "from": "router_payment_flow_line_17_if_3",
       "to": "process_bank_transfer",
       "label": "else",
       "type": "prepend"
@@ -112,19 +112,19 @@
     },
     {
       "from": "charge_card",
-      "to": "router_payment_flow_line_21_except_2",
+      "to": "router_payment_flow_line_22_except_2",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "process_bank_transfer",
-      "to": "router_payment_flow_line_21_except_2",
+      "to": "router_payment_flow_line_22_except_2",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "record_transaction",
-      "to": "router_payment_flow_line_21_except_2",
+      "to": "router_payment_flow_line_22_except_2",
       "label": "ValueError",
       "type": "error"
     },

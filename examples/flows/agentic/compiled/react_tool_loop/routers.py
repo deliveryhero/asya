@@ -19,11 +19,11 @@ async def start_react_tool_loop(payload: dict):
     _next = []
     p['messages'] = p.get('messages', [])
     p['iteration'] = 0
-    _next.append(resolve("router_react_tool_loop_line_48_while_1"))
+    _next.append(resolve("router_react_tool_loop_line_49_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_74_if_2(payload: dict):
+async def router_react_tool_loop_line_75_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -38,7 +38,7 @@ async def router_react_tool_loop_line_74_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_68_seq_3(payload: dict):
+async def router_react_tool_loop_line_69_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,46 +47,46 @@ async def router_react_tool_loop_line_68_seq_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_65_if_4(payload: dict):
+async def router_react_tool_loop_line_66_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['tool_name'] == 'calculator':
         _next.append(resolve("calculator"))
     else:
-        _next.append(resolve("router_react_tool_loop_line_68_seq_3"))
+        _next.append(resolve("router_react_tool_loop_line_69_seq_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_63_if_5(payload: dict):
+async def router_react_tool_loop_line_64_if_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['tool_name'] == 'code_exec':
         _next.append(resolve("code_exec"))
     else:
-        _next.append(resolve("router_react_tool_loop_line_65_if_4"))
+        _next.append(resolve("router_react_tool_loop_line_66_if_4"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_61_if_6(payload: dict):
+async def router_react_tool_loop_line_62_if_6(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['tool_name'] = p['tool_calls'][0]['name']
     if p['tool_name'] == 'web_search':
         _next.append(resolve("web_search"))
-        _next.append(resolve("router_react_tool_loop_line_74_if_2"))
+        _next.append(resolve("router_react_tool_loop_line_75_if_2"))
     else:
-        _next.append(resolve("router_react_tool_loop_line_63_if_5"))
-        _next.append(resolve("router_react_tool_loop_line_74_if_2"))
+        _next.append(resolve("router_react_tool_loop_line_64_if_5"))
+        _next.append(resolve("router_react_tool_loop_line_75_if_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_55_if_7(payload: dict):
+async def router_react_tool_loop_line_56_if_7(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -95,28 +95,28 @@ async def router_react_tool_loop_line_55_if_7(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_react_tool_loop_line_61_if_6"))
+        _next.append(resolve("router_react_tool_loop_line_62_if_6"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_49_seq_8(payload: dict):
+async def router_react_tool_loop_line_50_seq_8(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("llm_reason"))
-    _next.append(resolve("router_react_tool_loop_line_55_if_7"))
+    _next.append(resolve("router_react_tool_loop_line_56_if_7"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_tool_loop_line_48_while_1(payload: dict):
+async def router_react_tool_loop_line_49_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_react_tool_loop_line_49_seq_8"))
-    _next.append(resolve("router_react_tool_loop_line_48_while_1"))
+    _next.append(resolve("router_react_tool_loop_line_50_seq_8"))
+    _next.append(resolve("router_react_tool_loop_line_49_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

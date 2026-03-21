@@ -6,9 +6,9 @@ resources:
 - asyncactor-notify-payment-failure.yaml
 - asyncactor-process-bank-transfer.yaml
 - asyncactor-record-transaction.yaml
-- asyncactor-router-payment-flow-line-16-if-3.yaml
-- asyncactor-router-payment-flow-line-21-except-2.yaml
-- asyncactor-router-payment-flow-line-22-seq-1.yaml
+- asyncactor-router-payment-flow-line-17-if-3.yaml
+- asyncactor-router-payment-flow-line-22-except-2.yaml
+- asyncactor-router-payment-flow-line-23-seq-1.yaml
 - asyncactor-send-receipt.yaml
 - asyncactor-start-payment-flow.yaml
 - asyncactor-validate-payment.yaml

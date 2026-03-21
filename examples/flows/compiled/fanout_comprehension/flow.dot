@@ -4,20 +4,16 @@ digraph "research_flow" {
 
     { rank=source; start_research_flow; }
 
-    fanin_research_flow_line_15 [label="fanin_research_flow_line_15", fillcolor=lightblue];
-    post_processor [label="post_processor", fillcolor=lightsalmon];
-    preprocessor [label="preprocessor", fillcolor=lightblue];
+    fanin_research_flow_line_14 [label="fanin_research_flow_line_14", fillcolor=lightblue];
     research_agent [label="research_agent", fillcolor=lightblue];
-    router_research_flow_line_15_fanout_1 [label="router_research_flow_line_15_fanout_1", fillcolor=wheat];
+    router_research_flow_line_14_fanout_1 [label="router_research_flow_line_14_fanout_1", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_research_flow -> preprocessor;
-    preprocessor -> router_research_flow_line_15_fanout_1;
-    router_research_flow_line_15_fanout_1 -> fanin_research_flow_line_15 [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_research_flow_line_15 -> post_processor;
-    router_research_flow_line_15_fanout_1 -> research_agent;
-    research_agent -> fanin_research_flow_line_15;
-    post_processor -> __end__;
+    start_research_flow -> router_research_flow_line_14_fanout_1;
+    router_research_flow_line_14_fanout_1 -> fanin_research_flow_line_14 [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
+    router_research_flow_line_14_fanout_1 -> research_agent;
+    research_agent -> fanin_research_flow_line_14;
+    fanin_research_flow_line_14 -> __end__;
 }

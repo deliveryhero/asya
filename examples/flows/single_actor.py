@@ -11,12 +11,11 @@ becomes the flow entrypoint and should carry these Kubernetes labels:
 This eliminates a redundant actor hop compared to wrapping the actor
 in a start router that only prepends it to the route.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def single_actor_flow(p: dict) -> dict:
     p = document_processor(p)
     return p

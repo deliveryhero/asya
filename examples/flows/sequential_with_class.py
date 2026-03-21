@@ -3,12 +3,11 @@ Class instantiation example.
 
 Tests instantiating classes and calling their methods.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def class_instantiation_flow(p: dict) -> dict:
     # Instantiate processors
     preprocessor = DataPreprocessor()

@@ -18,18 +18,18 @@ import copy
 async def start_analysis_flow(payload: dict):
     """Entrypoint for flow 'analysis_flow'"""
     _next = []
-    _next.append(resolve("router_analysis_flow_line_14_fanout_1"))
+    _next.append(resolve("router_analysis_flow_line_13_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_analysis_flow_line_14_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
+async def router_analysis_flow_line_13_fanout_1(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 13)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_analysis_flow_line_14")
+    _agg = resolve("fanin_analysis_flow_line_13")
 
     _slices = []
     _slices.append((resolve("sentiment_analyzer"), p['text']))
@@ -45,7 +45,7 @@ async def router_analysis_flow_line_14_fanout_1(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("merge_analysis")] + _next_tail
+    yield "SET", ".route.next", [_agg] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

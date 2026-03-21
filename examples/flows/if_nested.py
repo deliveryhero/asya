@@ -1,7 +1,7 @@
-from asya_lab.flow import flow
+from _asya_utils import actor, flow
+
 
 @flow
-
 def conditional_nested_flow(p: dict) -> dict:
     p = handler_validate_input(p)
 
@@ -31,30 +31,37 @@ def conditional_nested_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_validate_input(p: dict) -> dict:
     ...
     return p
 
 
+@actor
 def handler_a(p: dict) -> dict:
     ...
     return p
 
 
+@actor
 def handler_b(p: dict) -> dict:
     ...
     return p
 
 
+@actor
 def handler_c(p: dict) -> dict:
     ...
     return p
 
+
+@actor
 def handler_d(p: dict) -> dict:
     ...
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     ...
     return p

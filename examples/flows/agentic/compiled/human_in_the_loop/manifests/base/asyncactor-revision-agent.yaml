@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: revision-agent
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+spec:
+  actor: revision-agent
+  image: examples.asya.sh/revision-agent:latest
+  handler: revision_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -16,18 +16,18 @@ spec:
   env: []
   resiliency:
     policies:
-      try_except_line_13_0:
+      try_except_line_14_0:
         maxAttempts: 1
         thenRoute:
-        - router-llm-pipeline-line-15-except-2
-      try_except_line_13_1:
+        - router-llm-pipeline-line-16-except-2
+      try_except_line_14_1:
         maxAttempts: 1
         thenRoute:
-        - router-llm-pipeline-line-18-except-4
+        - router-llm-pipeline-line-19-except-4
     rules:
     - errors:
       - openai.RateLimitError
-      policy: try_except_line_13_0
+      policy: try_except_line_14_0
     - errors:
       - openai.AuthenticationError
-      policy: try_except_line_13_1
+      policy: try_except_line_14_1

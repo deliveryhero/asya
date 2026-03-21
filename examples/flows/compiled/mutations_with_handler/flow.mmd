@@ -1,14 +1,12 @@
 flowchart TD
     %% Flow: mutations_with_handler_flow
 
-    handler_process[handler_process]
-    router_mutations_with_handler_flow_line_17_seq_1{{"router_mutations_with_handler_flow_line_17_seq_1<br/><br/>p['finalized'] = True"}}
-    start_mutations_with_handler_flow(["start_mutations_with_handler_flow<br/><br/>p['initialized'] = True<br/>p['step'] = 1<br/>p['count'] = 0"])
+    router_mutations_with_handler_flow_line_12_seq_1{{"router_mutations_with_handler_flow_line_12_seq_1<br/><br/>p['initialized'] = True<br/>p['step'] = 1<br/>p['count'] = 0<br/>p['finalized'] = True"}}
+    start_mutations_with_handler_flow([start_mutations_with_handler_flow])
     __end__((( )))
 
-    start_mutations_with_handler_flow --> handler_process
-    handler_process --> router_mutations_with_handler_flow_line_17_seq_1
-    router_mutations_with_handler_flow_line_17_seq_1 --> __end__
+    start_mutations_with_handler_flow --> router_mutations_with_handler_flow_line_12_seq_1
+    router_mutations_with_handler_flow_line_12_seq_1 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -16,6 +14,5 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_mutations_with_handler_flow start
-    class router_mutations_with_handler_flow_line_17_seq_1 router
-    class handler_process handler
+    class router_mutations_with_handler_flow_line_12_seq_1 router
     class __end__ endpoint

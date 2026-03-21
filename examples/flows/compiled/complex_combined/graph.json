@@ -2,79 +2,49 @@
   "flow_name": "complex_combined_flow",
   "nodes": [
     {
-      "id": "handler_default",
-      "label": "handler_default"
-    },
-    {
-      "id": "handler_error",
-      "label": "handler_error",
-      "role": "end"
-    },
-    {
-      "id": "handler_finalize",
-      "label": "handler_finalize",
-      "role": "end"
-    },
-    {
-      "id": "handler_init",
-      "label": "handler_init"
-    },
-    {
-      "id": "handler_process",
-      "label": "handler_process"
-    },
-    {
-      "id": "handler_type_a",
-      "label": "handler_type_a"
-    },
-    {
-      "id": "handler_type_b",
-      "label": "handler_type_b"
-    },
-    {
-      "id": "router_complex_combined_flow_line_15_if_8",
-      "label": "router_complex_combined_flow_line_15_if_8",
+      "id": "router_complex_combined_flow_line_14_if_8",
+      "label": "router_complex_combined_flow_line_14_if_8",
       "generated": true
     },
     {
-      "id": "router_complex_combined_flow_line_19_if_7",
-      "label": "router_complex_combined_flow_line_19_if_7",
+      "id": "router_complex_combined_flow_line_18_if_7",
+      "label": "router_complex_combined_flow_line_18_if_7",
       "generated": true
     },
     {
-      "id": "router_complex_combined_flow_line_20_seq_4",
-      "label": "router_complex_combined_flow_line_20_seq_4",
+      "id": "router_complex_combined_flow_line_19_seq_4",
+      "label": "router_complex_combined_flow_line_19_seq_4",
       "generated": true,
       "mutations": [
         "p['i'] = 0"
       ]
     },
     {
-      "id": "router_complex_combined_flow_line_21_while_1",
-      "label": "router_complex_combined_flow_line_21_while_1",
+      "id": "router_complex_combined_flow_line_20_while_1",
+      "label": "router_complex_combined_flow_line_20_while_1",
       "generated": true
     },
     {
-      "id": "router_complex_combined_flow_line_24_if_3",
-      "label": "router_complex_combined_flow_line_24_if_3",
+      "id": "router_complex_combined_flow_line_23_if_3",
+      "label": "router_complex_combined_flow_line_23_if_3",
       "generated": true,
       "mutations": [
         "p['i'] += 1"
       ]
     },
     {
-      "id": "router_complex_combined_flow_line_29_if_2",
-      "label": "router_complex_combined_flow_line_29_if_2",
+      "id": "router_complex_combined_flow_line_28_if_2",
+      "label": "router_complex_combined_flow_line_28_if_2",
       "generated": true
     },
     {
-      "id": "router_complex_combined_flow_line_32_if_6",
-      "label": "router_complex_combined_flow_line_32_if_6",
+      "id": "router_complex_combined_flow_line_31_if_6",
+      "label": "router_complex_combined_flow_line_31_if_6",
       "generated": true
     },
     {
-      "id": "router_complex_combined_flow_line_34_if_5",
-      "label": "router_complex_combined_flow_line_34_if_5",
+      "id": "router_complex_combined_flow_line_33_if_5",
+      "label": "router_complex_combined_flow_line_33_if_5",
       "generated": true
     },
     {
@@ -87,133 +57,61 @@
   "edges": [
     {
       "from": "start_complex_combined_flow",
-      "to": "handler_init",
+      "to": "router_complex_combined_flow_line_14_if_8",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "handler_init",
-      "to": "router_complex_combined_flow_line_15_if_8",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_complex_combined_flow_line_29_if_2",
-      "to": "handler_finalize",
-      "label": "p['stop_early']",
-      "type": "set"
-    },
-    {
-      "from": "router_complex_combined_flow_line_24_if_3",
-      "to": "router_complex_combined_flow_line_21_while_1",
+      "from": "router_complex_combined_flow_line_23_if_3",
+      "to": "router_complex_combined_flow_line_20_while_1",
       "label": "p['skip_even'] and p['i'] % 2 == 0",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_24_if_3",
-      "to": "handler_process",
+      "from": "router_complex_combined_flow_line_23_if_3",
+      "to": "router_complex_combined_flow_line_28_if_2",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "handler_process",
-      "to": "router_complex_combined_flow_line_29_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_complex_combined_flow_line_21_while_1",
-      "to": "router_complex_combined_flow_line_24_if_3",
+      "from": "router_complex_combined_flow_line_20_while_1",
+      "to": "router_complex_combined_flow_line_23_if_3",
       "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_21_while_1",
-      "to": "handler_finalize",
-      "label": "else",
-      "type": "set"
-    },
-    {
-      "from": "router_complex_combined_flow_line_20_seq_4",
-      "to": "router_complex_combined_flow_line_21_while_1",
+      "from": "router_complex_combined_flow_line_19_seq_4",
+      "to": "router_complex_combined_flow_line_20_while_1",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_34_if_5",
-      "to": "handler_type_b",
-      "label": "p['type'] == 'B'",
-      "type": "prepend"
-    },
-    {
-      "from": "router_complex_combined_flow_line_34_if_5",
-      "to": "handler_default",
+      "from": "router_complex_combined_flow_line_31_if_6",
+      "to": "router_complex_combined_flow_line_33_if_5",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_32_if_6",
-      "to": "handler_type_a",
-      "label": "p['type'] == 'A'",
-      "type": "prepend"
-    },
-    {
-      "from": "router_complex_combined_flow_line_32_if_6",
-      "to": "router_complex_combined_flow_line_34_if_5",
-      "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "router_complex_combined_flow_line_19_if_7",
-      "to": "router_complex_combined_flow_line_20_seq_4",
+      "from": "router_complex_combined_flow_line_18_if_7",
+      "to": "router_complex_combined_flow_line_19_seq_4",
       "label": "p['needs_loop']",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_19_if_7",
-      "to": "router_complex_combined_flow_line_32_if_6",
+      "from": "router_complex_combined_flow_line_18_if_7",
+      "to": "router_complex_combined_flow_line_31_if_6",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_15_if_8",
-      "to": "router_complex_combined_flow_line_19_if_7",
+      "from": "router_complex_combined_flow_line_14_if_8",
+      "to": "router_complex_combined_flow_line_18_if_7",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_combined_flow_line_15_if_8",
-      "to": "handler_error",
-      "label": "not p['valid']",
-      "type": "set"
-    },
-    {
-      "from": "router_complex_combined_flow_line_29_if_2",
-      "to": "router_complex_combined_flow_line_21_while_1",
-      "label": "else",
-      "type": "continuation"
-    },
-    {
-      "from": "handler_type_a",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_type_b",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_default",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_complex_combined_flow_line_24_if_3",
-      "to": "handler_finalize",
+      "from": "router_complex_combined_flow_line_28_if_2",
+      "to": "router_complex_combined_flow_line_20_while_1",
       "label": null,
       "type": "continuation"
     }

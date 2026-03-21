@@ -38,12 +38,11 @@ Payload contract:
   state["exec_plan"]       - execution plan (set by execution_planner)
   state["risk_assessment"] - risk evaluation (set by risk_evaluator)
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def sequential_pipeline(state: dict) -> dict:
     # Each agent enriches the payload with its analysis
     state = await data_analyst(state)
@@ -56,6 +55,7 @@ async def sequential_pipeline(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def data_analyst(state: dict) -> dict:
     """LLM actor: research market data for the given topic.
 
@@ -85,6 +85,7 @@ async def data_analyst(state: dict) -> dict:
     return state
 
 
+@actor
 async def trading_analyst(state: dict) -> dict:
     """LLM actor: generate trading strategies based on market data.
 
@@ -129,6 +130,7 @@ async def trading_analyst(state: dict) -> dict:
     return state
 
 
+@actor
 async def execution_planner(state: dict) -> dict:
     """LLM actor: create implementation plan for chosen strategies.
 
@@ -169,6 +171,7 @@ async def execution_planner(state: dict) -> dict:
     return state
 
 
+@actor
 async def risk_evaluator(state: dict) -> dict:
     """LLM actor: comprehensive risk assessment.
 

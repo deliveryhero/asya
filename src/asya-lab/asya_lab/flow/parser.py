@@ -371,12 +371,6 @@ class FlowParser:
             raise FlowCompileError(
                 f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have exactly one parameter"
             )
-        arg = func.args.args[0]
-        if arg.arg not in VALID_PARAM_NAMES:
-            raise FlowCompileError(
-                f"{self.filename}:{func.lineno}: @flow function '{func.name}' parameter must be "
-                f"one of {VALID_PARAM_NAMES}, got '{arg.arg}'"
-            )
         if not func.returns:
             raise FlowCompileError(
                 f"{self.filename}:{func.lineno}: @flow function '{func.name}' must have a return type annotation"
@@ -651,18 +645,30 @@ class FlowParser:
             self._actors.append(func_name)
             return [ActorCall(lineno=lineno, name=func_name)]
 
+        # Functions with @actor decorator are not inlined — treat as actor calls.
+        # @flow and @unfold ARE meant to be inlined, so skip those.
+        _INLINE_DECORATORS = {"flow", "unfold"}
+        if not required and func_node.decorator_list:
+            for dec in func_node.decorator_list:
+                dec_name = None
+                if isinstance(dec, ast.Name):
+                    dec_name = dec.id
+                elif isinstance(dec, ast.Attribute):
+                    dec_name = ast.unparse(dec)
+                if dec_name and dec_name in self._known_wrappers and dec_name not in _INLINE_DECORATORS:
+                    self._actors.append(func_name)
+                    return [ActorCall(lineno=lineno, name=func_name)]
+
         # Validate signature
         if len(func_node.args.args) != 1:
+            if not required:
+                self._actors.append(func_name)
+                return [ActorCall(lineno=lineno, name=func_name)]
             raise FlowCompileError(
                 f"{self.filename}:{func_node.lineno}: Function '{func_name}' must have "
                 f"exactly one parameter for flow composition"
             )
         param_name = func_node.args.args[0].arg
-        if param_name not in VALID_PARAM_NAMES:
-            raise FlowCompileError(
-                f"{self.filename}:{func_node.lineno}: Function '{func_name}' parameter must be "
-                f"one of {VALID_PARAM_NAMES}, got '{param_name}'"
-            )
 
         import copy
 
@@ -905,6 +911,8 @@ class FlowParser:
 
     def _parse_expr(self, stmt: ast.Expr) -> list[Operation]:
         value = stmt.value
+        if isinstance(value, ast.Constant) and isinstance(value.value, (str, type(...))):
+            return []  # docstring or Ellipsis — skip
         if isinstance(value, ast.Yield | ast.YieldFrom):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions")
         if isinstance(value, ast.Await):

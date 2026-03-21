@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile typed_pydantic_pipeline.py
 async def start_ingester(payload: dict):
     """Entrypoint for flow 'ingester'"""
     _next = []
-    _next.append(resolve("router_ingester_line_181_seq_1"))
+    _next.append(resolve("router_ingester_line_176_seq_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_ingester_line_181_seq_1(payload: dict):
+async def router_ingester_line_176_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['candidates'] = retrieve(p['query'], p.get('top_k', 10))

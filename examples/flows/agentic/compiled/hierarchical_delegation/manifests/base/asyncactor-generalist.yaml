@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: generalist
+  namespace: default
+  labels:
+    asya.sh/flow: hierarchical-delegation
+spec:
+  actor: generalist
+  image: examples.asya.sh/generalist:latest
+  handler: generalist
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

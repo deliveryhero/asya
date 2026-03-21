@@ -4,10 +4,10 @@ resources:
 - asyncactor-call-fallback-llm.yaml
 - asyncactor-call-llm.yaml
 - asyncactor-notify-admin.yaml
-- asyncactor-router-llm-pipeline-line-12-seq-5.yaml
-- asyncactor-router-llm-pipeline-line-15-except-2.yaml
-- asyncactor-router-llm-pipeline-line-16-seq-1.yaml
-- asyncactor-router-llm-pipeline-line-18-except-4.yaml
-- asyncactor-router-llm-pipeline-line-19-seq-3.yaml
+- asyncactor-router-llm-pipeline-line-13-seq-5.yaml
+- asyncactor-router-llm-pipeline-line-16-except-2.yaml
+- asyncactor-router-llm-pipeline-line-17-seq-1.yaml
+- asyncactor-router-llm-pipeline-line-19-except-4.yaml
+- asyncactor-router-llm-pipeline-line-20-seq-3.yaml
 - asyncactor-start-llm-pipeline.yaml
 - configmap-routers.yaml

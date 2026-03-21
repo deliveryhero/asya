@@ -18,39 +18,36 @@ async def start_retry_pipeline(payload: dict):
     p = payload
     _next = []
     p['attempt'] = 0
-    _next.append(resolve("prepare_request"))
-    _next.append(resolve("router_retry_pipeline_line_16_while_1"))
+    _next.append(resolve("router_retry_pipeline_line_15_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_21_except_2(payload: dict):
-    """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('log_retry')]
-    yield payload
-
-async def router_retry_pipeline_line_23_except_3(payload: dict):
+async def router_retry_pipeline_line_20_except_2(payload: dict):
     """Router for error handling (except clause)"""
     yield "SET", ".route.next", []
     yield payload
 
-async def router_retry_pipeline_line_17_seq_4(payload: dict):
+async def router_retry_pipeline_line_22_except_3(payload: dict):
+    """Router for error handling (except clause)"""
+    yield "SET", ".route.next", []
+    yield payload
+
+async def router_retry_pipeline_line_16_seq_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['attempt'] += 1
-    _next.append(resolve("call_external_api"))
-    _next.append(resolve("call_another_api"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_retry_pipeline_line_16_while_1(payload: dict):
+async def router_retry_pipeline_line_15_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['attempt'] < 3:
-        _next.append(resolve("router_retry_pipeline_line_17_seq_4"))
-        _next.append(resolve("router_retry_pipeline_line_16_while_1"))
+        _next.append(resolve("router_retry_pipeline_line_16_seq_4"))
+        _next.append(resolve("router_retry_pipeline_line_15_while_1"))
     else:
         yield p
         return

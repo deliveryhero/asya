@@ -20,7 +20,7 @@ async def start_order_processing(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_7_seq_1(payload: dict):
+async def router_order_processing_line_9_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -30,9 +30,9 @@ async def router_order_processing_line_7_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_6_except_2(payload: dict):
+async def router_order_processing_line_8_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_order_processing_line_7_seq_1')]
+    yield "SET", ".route.next", [resolve('router_order_processing_line_9_seq_1')]
     yield payload
 
 

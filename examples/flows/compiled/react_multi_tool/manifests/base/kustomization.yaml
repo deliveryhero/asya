@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-router-research-agent-line-14-seq-5.yaml
+- asyncactor-router-research-agent-line-15-while-1.yaml
+- asyncactor-router-research-agent-line-17-if-4.yaml
+- asyncactor-router-research-agent-line-19-if-3.yaml
+- asyncactor-router-research-agent-line-21-if-2.yaml
+- asyncactor-start-research-agent.yaml
+- configmap-routers.yaml

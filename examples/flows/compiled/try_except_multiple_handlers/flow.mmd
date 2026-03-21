@@ -5,30 +5,30 @@ flowchart TD
     handle_type_error[handle_type_error]
     handle_validation_error[handle_validation_error]
     parse_input[parse_input]
-    router_data_pipeline_line_10_except_4{{router_data_pipeline_line_10_except_4}}
-    router_data_pipeline_line_11_seq_3{{"router_data_pipeline_line_11_seq_3<br/><br/>p['error_type'] = 'type_mismatch'"}}
-    router_data_pipeline_line_13_except_6{{router_data_pipeline_line_13_except_6}}
-    router_data_pipeline_line_14_seq_5{{"router_data_pipeline_line_14_seq_5<br/><br/>p['error_type'] = 'runtime'"}}
-    router_data_pipeline_line_7_except_2{{router_data_pipeline_line_7_except_2}}
-    router_data_pipeline_line_8_seq_1{{"router_data_pipeline_line_8_seq_1<br/><br/>p['error_type'] = 'validation'"}}
+    router_data_pipeline_line_10_seq_1{{"router_data_pipeline_line_10_seq_1<br/><br/>p['error_type'] = 'validation'"}}
+    router_data_pipeline_line_12_except_4{{router_data_pipeline_line_12_except_4}}
+    router_data_pipeline_line_13_seq_3{{"router_data_pipeline_line_13_seq_3<br/><br/>p['error_type'] = 'type_mismatch'"}}
+    router_data_pipeline_line_15_except_6{{router_data_pipeline_line_15_except_6}}
+    router_data_pipeline_line_16_seq_5{{"router_data_pipeline_line_16_seq_5<br/><br/>p['error_type'] = 'runtime'"}}
+    router_data_pipeline_line_9_except_2{{router_data_pipeline_line_9_except_2}}
     start_data_pipeline([start_data_pipeline])
     transform_data[transform_data]
     __end__((( )))
 
     start_data_pipeline --> parse_input
     parse_input --> transform_data
-    router_data_pipeline_line_8_seq_1 --> handle_validation_error
-    router_data_pipeline_line_7_except_2 --> router_data_pipeline_line_8_seq_1
-    router_data_pipeline_line_11_seq_3 --> handle_type_error
-    router_data_pipeline_line_10_except_4 --> router_data_pipeline_line_11_seq_3
-    router_data_pipeline_line_14_seq_5 --> handle_runtime_error
-    router_data_pipeline_line_13_except_6 --> router_data_pipeline_line_14_seq_5
-    parse_input -->|"ValueError"| router_data_pipeline_line_7_except_2
-    parse_input -->|"TypeError"| router_data_pipeline_line_10_except_4
-    parse_input -->|"RuntimeError"| router_data_pipeline_line_13_except_6
-    transform_data -->|"ValueError"| router_data_pipeline_line_7_except_2
-    transform_data -->|"TypeError"| router_data_pipeline_line_10_except_4
-    transform_data -->|"RuntimeError"| router_data_pipeline_line_13_except_6
+    router_data_pipeline_line_10_seq_1 --> handle_validation_error
+    router_data_pipeline_line_9_except_2 --> router_data_pipeline_line_10_seq_1
+    router_data_pipeline_line_13_seq_3 --> handle_type_error
+    router_data_pipeline_line_12_except_4 --> router_data_pipeline_line_13_seq_3
+    router_data_pipeline_line_16_seq_5 --> handle_runtime_error
+    router_data_pipeline_line_15_except_6 --> router_data_pipeline_line_16_seq_5
+    parse_input -->|"ValueError"| router_data_pipeline_line_9_except_2
+    parse_input -->|"TypeError"| router_data_pipeline_line_12_except_4
+    parse_input -->|"RuntimeError"| router_data_pipeline_line_15_except_6
+    transform_data -->|"ValueError"| router_data_pipeline_line_9_except_2
+    transform_data -->|"TypeError"| router_data_pipeline_line_12_except_4
+    transform_data -->|"RuntimeError"| router_data_pipeline_line_15_except_6
     handle_runtime_error --> __end__
     handle_type_error --> __end__
     handle_validation_error --> __end__
@@ -40,7 +40,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_data_pipeline start
     class handle_runtime_error,handle_type_error,handle_validation_error endnode
-    class router_data_pipeline_line_10_except_4,router_data_pipeline_line_11_seq_3,router_data_pipeline_line_13_except_6,router_data_pipeline_line_14_seq_5,router_data_pipeline_line_7_except_2,router_data_pipeline_line_8_seq_1 router
+    class router_data_pipeline_line_10_seq_1,router_data_pipeline_line_12_except_4,router_data_pipeline_line_13_seq_3,router_data_pipeline_line_15_except_6,router_data_pipeline_line_16_seq_5,router_data_pipeline_line_9_except_2 router
     class parse_input,transform_data handler
     class __end__ endpoint
     linkStyle 8,9,10,11,12,13 stroke:#DC143C

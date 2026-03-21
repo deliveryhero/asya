@@ -5,9 +5,9 @@ resources:
 - asyncactor-parse-data.yaml
 - asyncactor-queue-for-retry.yaml
 - asyncactor-reject-input.yaml
-- asyncactor-router-ingestion-pipeline-line-15-except-2.yaml
-- asyncactor-router-ingestion-pipeline-line-16-seq-1.yaml
-- asyncactor-router-ingestion-pipeline-line-18-except-4.yaml
-- asyncactor-router-ingestion-pipeline-line-19-seq-3.yaml
+- asyncactor-router-ingestion-pipeline-line-16-except-2.yaml
+- asyncactor-router-ingestion-pipeline-line-17-seq-1.yaml
+- asyncactor-router-ingestion-pipeline-line-19-except-4.yaml
+- asyncactor-router-ingestion-pipeline-line-20-seq-3.yaml
 - asyncactor-start-ingestion-pipeline.yaml
 - configmap-routers.yaml

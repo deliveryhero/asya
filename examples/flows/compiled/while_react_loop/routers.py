@@ -16,16 +16,16 @@ Regenerate by running: asya flow compile while_react_loop.py
 async def start_react_agent(payload: dict):
     """Entrypoint for flow 'react_agent'"""
     _next = []
-    _next.append(resolve("router_react_agent_line_14_while_1"))
+    _next.append(resolve("router_react_agent_line_13_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_agent_line_16_if_2(payload: dict):
+async def router_react_agent_line_15_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('tool_calls'):
-        _next.append(resolve("execute_tool"))
+        pass
     else:
         yield p
         return
@@ -33,13 +33,12 @@ async def router_react_agent_line_16_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_react_agent_line_14_while_1(payload: dict):
+async def router_react_agent_line_13_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("llm_call"))
-    _next.append(resolve("router_react_agent_line_16_if_2"))
-    _next.append(resolve("router_react_agent_line_14_while_1"))
+    _next.append(resolve("router_react_agent_line_15_if_2"))
+    _next.append(resolve("router_react_agent_line_13_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

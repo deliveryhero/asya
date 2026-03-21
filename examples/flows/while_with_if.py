@@ -4,7 +4,7 @@ If inside while loop.
 Tests conditional branching within iteration.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

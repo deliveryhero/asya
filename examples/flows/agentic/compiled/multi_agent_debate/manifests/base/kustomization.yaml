@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-convergence-checker.yaml
+- asyncactor-debater-a.yaml
+- asyncactor-debater-b.yaml
+- asyncactor-debater-c.yaml
+- asyncactor-final-judge.yaml
+- asyncactor-revise-a.yaml
+- asyncactor-revise-b.yaml
+- asyncactor-revise-c.yaml
+- asyncactor-router-multi-agent-debate-line-54-seq-7.yaml
+- asyncactor-router-multi-agent-debate-line-56-fanout-6.yaml
+- asyncactor-router-multi-agent-debate-line-64-while-1.yaml
+- asyncactor-router-multi-agent-debate-line-65-seq-5.yaml
+- asyncactor-router-multi-agent-debate-line-69-if-4.yaml
+- asyncactor-router-multi-agent-debate-line-72-if-3.yaml
+- asyncactor-router-multi-agent-debate-line-75-fanout-2.yaml
+- asyncactor-start-multi-agent-debate.yaml
+- configmap-routers.yaml

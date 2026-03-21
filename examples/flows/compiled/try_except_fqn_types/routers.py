@@ -22,7 +22,7 @@ async def start_llm_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_pipeline_line_16_seq_1(payload: dict):
+async def router_llm_pipeline_line_17_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,12 +32,12 @@ async def router_llm_pipeline_line_16_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_pipeline_line_15_except_2(payload: dict):
+async def router_llm_pipeline_line_16_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_llm_pipeline_line_16_seq_1')]
+    yield "SET", ".route.next", [resolve('router_llm_pipeline_line_17_seq_1')]
     yield payload
 
-async def router_llm_pipeline_line_19_seq_3(payload: dict):
+async def router_llm_pipeline_line_20_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,9 +47,9 @@ async def router_llm_pipeline_line_19_seq_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_llm_pipeline_line_18_except_4(payload: dict):
+async def router_llm_pipeline_line_19_except_4(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_llm_pipeline_line_19_seq_3')]
+    yield "SET", ".route.next", [resolve('router_llm_pipeline_line_20_seq_3')]
     yield payload
 
 

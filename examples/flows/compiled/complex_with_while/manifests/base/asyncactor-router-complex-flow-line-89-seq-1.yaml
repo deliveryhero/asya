@@ -1,0 +1,45 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-complex-flow-line-89-seq-1
+  namespace: default
+  labels:
+    asya.sh/flow: complex-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-complex-flow-line-89-seq-1
+  image: python:3.13-slim
+  handler: routers.router_complex_flow_line_89_seq_1
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_15_IF_14
+    value: routers.router_complex_flow_line_15_if_14
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_19_IF_12
+    value: routers.router_complex_flow_line_19_if_12
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_22_WHILE_2
+    value: routers.router_complex_flow_line_22_while_2
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_26_IF_4
+    value: routers.router_complex_flow_line_26_if_4
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_29_IF_3
+    value: routers.router_complex_flow_line_29_if_3
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_32_IF_11
+    value: routers.router_complex_flow_line_32_if_11
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_53_SEQ_7
+    value: routers.router_complex_flow_line_53_seq_7
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_59_IF_6
+    value: routers.router_complex_flow_line_59_if_6
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_60_SEQ_5
+    value: routers.router_complex_flow_line_60_seq_5
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_75_IF_10
+    value: routers.router_complex_flow_line_75_if_10
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_76_SEQ_9
+    value: routers.router_complex_flow_line_76_seq_9
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_77_SEQ_8
+    value: routers.router_complex_flow_line_77_seq_8
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_83_SEQ_13
+    value: routers.router_complex_flow_line_83_seq_13
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_89_SEQ_1
+    value: routers.router_complex_flow_line_89_seq_1

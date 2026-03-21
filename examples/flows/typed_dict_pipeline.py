@@ -19,8 +19,9 @@ Payload contract:
   p["output"]      - SinkPayload TypedDict (set by sink_adapter)
 """
 
-from typing import List, TypedDict
-from asya_lab.flow import flow
+from typing import TypedDict
+
+from _asya_utils import actor, flow
 
 
 # ---------------------------------------------------------------------------
@@ -36,15 +37,15 @@ class Section(TypedDict):
 
 class ParsedDoc(TypedDict):
     title: str
-    sections: List[Section]
+    sections: list[Section]
     author: str
     language: str
 
 
 class ValidationResult(TypedDict):
     valid: bool
-    errors: List[str]
-    warnings: List[str]
+    errors: list[str]
+    warnings: list[str]
     section_count: int
 
 
@@ -69,8 +70,6 @@ class SinkPayload(TypedDict):
 
 
 @flow
-
-
 def typeddict_pipeline(p: dict) -> dict:
     p = parser(p)
     p = validator(p)
@@ -87,6 +86,7 @@ def typeddict_pipeline(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 def parser(p: dict) -> dict:
     """Parsing actor: convert raw input to structured ParsedDoc TypedDict.
 
@@ -121,6 +121,7 @@ def parser(p: dict) -> dict:
     return p
 
 
+@actor
 def validator(p: dict) -> dict:
     """Validation actor: check parsed document against schema rules.
 
@@ -159,12 +160,14 @@ def validator(p: dict) -> dict:
     return p
 
 
+@actor
 def error_handler(p: dict) -> dict:
     """Error actor: handle invalid documents."""
     p["error"] = f"Validation failed: {p.get('validation', {}).get('errors', [])}"
     return p
 
 
+@actor
 def transformer(p: dict) -> dict:
     """Transform actor: flatten parsed sections into a single document.
 
@@ -199,6 +202,7 @@ def transformer(p: dict) -> dict:
     return p
 
 
+@actor
 def sink_adapter(p: dict) -> dict:
     """Sink adapter actor: wrap transformed document for downstream consumption.
 

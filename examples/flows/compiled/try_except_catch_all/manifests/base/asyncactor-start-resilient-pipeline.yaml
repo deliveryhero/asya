@@ -16,7 +16,13 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
-  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_10_SEQ_3
-    value: routers.router_resilient_pipeline_line_10_seq_3
-  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_7_SEQ_1
-    value: routers.router_resilient_pipeline_line_7_seq_1
+  - name: ASYA_HANDLER_HANDLE_KNOWN_ERROR
+    value: handle_known_error
+  - name: ASYA_HANDLER_HANDLE_UNKNOWN_ERROR
+    value: handle_unknown_error
+  - name: ASYA_HANDLER_RISKY_OPERATION
+    value: risky_operation
+  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_12_SEQ_3
+    value: routers.router_resilient_pipeline_line_12_seq_3
+  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_9_SEQ_1
+    value: routers.router_resilient_pipeline_line_9_seq_1

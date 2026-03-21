@@ -20,18 +20,18 @@ async def start_multi_agent_debate(payload: dict):
     p = payload
     _next = []
     p['round'] = 0
-    _next.append(resolve("router_multi_agent_debate_line_57_fanout_6"))
+    _next.append(resolve("router_multi_agent_debate_line_56_fanout_6"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_agent_debate_line_74_fanout_2(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 74)"""
+async def router_multi_agent_debate_line_75_fanout_2(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 75)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_agent_debate_line_74")
+    _agg = resolve("fanin_multi_agent_debate_line_75")
 
     _slices = []
     _slices.append((resolve("revise_a"), p))
@@ -56,7 +56,7 @@ async def router_multi_agent_debate_line_74_fanout_2(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def router_multi_agent_debate_line_71_if_3(payload: dict):
+async def router_multi_agent_debate_line_72_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -65,12 +65,12 @@ async def router_multi_agent_debate_line_71_if_3(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_multi_agent_debate_line_74_fanout_2"))
+        _next.append(resolve("router_multi_agent_debate_line_75_fanout_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_agent_debate_line_68_if_4(payload: dict):
+async def router_multi_agent_debate_line_69_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -79,40 +79,40 @@ async def router_multi_agent_debate_line_68_if_4(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_multi_agent_debate_line_71_if_3"))
+        _next.append(resolve("router_multi_agent_debate_line_72_if_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_agent_debate_line_64_seq_5(payload: dict):
+async def router_multi_agent_debate_line_65_seq_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['round'] += 1
     _next.append(resolve("convergence_checker"))
-    _next.append(resolve("router_multi_agent_debate_line_68_if_4"))
+    _next.append(resolve("router_multi_agent_debate_line_69_if_4"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_agent_debate_line_63_while_1(payload: dict):
+async def router_multi_agent_debate_line_64_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_multi_agent_debate_line_64_seq_5"))
-    _next.append(resolve("router_multi_agent_debate_line_63_while_1"))
+    _next.append(resolve("router_multi_agent_debate_line_65_seq_5"))
+    _next.append(resolve("router_multi_agent_debate_line_64_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_agent_debate_line_57_fanout_6(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 57)"""
+async def router_multi_agent_debate_line_56_fanout_6(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 56)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_agent_debate_line_57")
+    _agg = resolve("fanin_multi_agent_debate_line_56")
 
     _slices = []
     _slices.append((resolve("debater_a"), p['question']))
@@ -128,7 +128,7 @@ async def router_multi_agent_debate_line_57_fanout_6(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("router_multi_agent_debate_line_63_while_1")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("router_multi_agent_debate_line_64_while_1")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

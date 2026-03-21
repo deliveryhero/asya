@@ -1,9 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-resilient-pipeline-line-10-seq-3.yaml
-- asyncactor-router-resilient-pipeline-line-6-except-2.yaml
-- asyncactor-router-resilient-pipeline-line-7-seq-1.yaml
-- asyncactor-router-resilient-pipeline-line-9-except-4.yaml
+- asyncactor-handle-known-error.yaml
+- asyncactor-handle-unknown-error.yaml
+- asyncactor-risky-operation.yaml
+- asyncactor-router-resilient-pipeline-line-11-except-4.yaml
+- asyncactor-router-resilient-pipeline-line-12-seq-3.yaml
+- asyncactor-router-resilient-pipeline-line-8-except-2.yaml
+- asyncactor-router-resilient-pipeline-line-9-seq-1.yaml
 - asyncactor-start-resilient-pipeline.yaml
 - configmap-routers.yaml

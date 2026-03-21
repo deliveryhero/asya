@@ -18,7 +18,6 @@ import copy
 async def start_async_research_flow(payload: dict):
     """Entrypoint for flow 'async_research_flow'"""
     _next = []
-    _next.append(resolve("preprocessor"))
     _next.append(resolve("router_async_research_flow_line_16_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -45,7 +44,7 @@ async def router_async_research_flow_line_16_fanout_1(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("postprocessor")] + _next_tail
+    yield "SET", ".route.next", [_agg] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

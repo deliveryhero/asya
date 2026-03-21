@@ -15,9 +15,10 @@ Regenerate by running: asya flow compile while_with_continue.py
 
 async def start_while_with_continue_flow(payload: dict):
     """Entrypoint for flow 'while_with_continue_flow'"""
+    p = payload
     _next = []
-    _next.append(resolve("handler_init"))
-    _next.append(resolve("router_while_with_continue_flow_line_13_seq_3"))
+    p['i'] = 0
+    _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -29,7 +30,7 @@ async def router_while_with_continue_flow_line_16_if_2(payload: dict):
     if p['skip_iteration']:
         _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
     else:
-        _next.append(resolve("handler_process"))
+        pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -42,19 +43,8 @@ async def router_while_with_continue_flow_line_14_while_1(payload: dict):
         _next.append(resolve("router_while_with_continue_flow_line_16_if_2"))
         _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
     else:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
         yield p
         return
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_while_with_continue_flow_line_13_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['i'] = 0
-    _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

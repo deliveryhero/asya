@@ -21,7 +21,7 @@ async def start_data_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_8_seq_1(payload: dict):
+async def router_data_pipeline_line_10_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -31,12 +31,12 @@ async def router_data_pipeline_line_8_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_7_except_2(payload: dict):
+async def router_data_pipeline_line_9_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_8_seq_1')]
+    yield "SET", ".route.next", [resolve('router_data_pipeline_line_10_seq_1')]
     yield payload
 
-async def router_data_pipeline_line_11_seq_3(payload: dict):
+async def router_data_pipeline_line_13_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -46,12 +46,12 @@ async def router_data_pipeline_line_11_seq_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_10_except_4(payload: dict):
+async def router_data_pipeline_line_12_except_4(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_11_seq_3')]
+    yield "SET", ".route.next", [resolve('router_data_pipeline_line_13_seq_3')]
     yield payload
 
-async def router_data_pipeline_line_14_seq_5(payload: dict):
+async def router_data_pipeline_line_16_seq_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -61,9 +61,9 @@ async def router_data_pipeline_line_14_seq_5(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_13_except_6(payload: dict):
+async def router_data_pipeline_line_15_except_6(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_14_seq_5')]
+    yield "SET", ".route.next", [resolve('router_data_pipeline_line_16_seq_5')]
     yield payload
 
 

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: writer
+  namespace: default
+  labels:
+    asya.sh/flow: hierarchical-delegation
+spec:
+  actor: writer
+  image: examples.asya.sh/writer:latest
+  handler: writer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

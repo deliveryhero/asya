@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: evaluator
+  namespace: default
+  labels:
+    asya.sh/flow: evaluator-optimizer
+spec:
+  actor: evaluator
+  image: examples.asya.sh/evaluator:latest
+  handler: evaluator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

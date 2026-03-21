@@ -1,4 +1,6 @@
-from asya_lab.flow import flow
+from _asya_utils import flow, actor
+
+
 @flow
 def resilient_pipeline(p: dict) -> dict:
     try:
@@ -12,11 +14,16 @@ def resilient_pipeline(p: dict) -> dict:
     return p
 
 
+@actor
 def risky_operation(p):
     return p
 
+
+@actor
 def handle_known_error(p):
     return p
 
+
+@actor
 def handle_unknown_error(p):
     return p

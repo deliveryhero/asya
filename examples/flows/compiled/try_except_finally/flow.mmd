@@ -6,8 +6,8 @@ flowchart TD
     handle_failure[handle_failure]
     process_with_resource[process_with_resource]
     release_resource[release_resource]
-    router_resource_pipeline_line_8_except_2{{router_resource_pipeline_line_8_except_2}}
-    router_resource_pipeline_line_9_seq_1{{"router_resource_pipeline_line_9_seq_1<br/><br/>p['status'] = 'failed'"}}
+    router_resource_pipeline_line_10_except_2{{router_resource_pipeline_line_10_except_2}}
+    router_resource_pipeline_line_11_seq_1{{"router_resource_pipeline_line_11_seq_1<br/><br/>p['status'] = 'failed'"}}
     start_resource_pipeline(["start_resource_pipeline<br/><br/>p['status'] = 'started'"])
     __end__((( )))
 
@@ -15,10 +15,10 @@ flowchart TD
     acquire_resource --> process_with_resource
     process_with_resource --> release_resource
     release_resource --> finalize
-    router_resource_pipeline_line_9_seq_1 --> handle_failure
-    router_resource_pipeline_line_8_except_2 --> router_resource_pipeline_line_9_seq_1
-    acquire_resource -->|"RuntimeError"| router_resource_pipeline_line_8_except_2
-    process_with_resource -->|"RuntimeError"| router_resource_pipeline_line_8_except_2
+    router_resource_pipeline_line_11_seq_1 --> handle_failure
+    router_resource_pipeline_line_10_except_2 --> router_resource_pipeline_line_11_seq_1
+    acquire_resource -->|"RuntimeError"| router_resource_pipeline_line_10_except_2
+    process_with_resource -->|"RuntimeError"| router_resource_pipeline_line_10_except_2
     handle_failure --> release_resource
     finalize --> __end__
 
@@ -29,7 +29,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_resource_pipeline start
     class finalize endnode
-    class router_resource_pipeline_line_8_except_2,router_resource_pipeline_line_9_seq_1 router
+    class router_resource_pipeline_line_10_except_2,router_resource_pipeline_line_11_seq_1 router
     class acquire_resource,handle_failure,process_with_resource,release_resource handler
     class __end__ endpoint
     linkStyle 6,7 stroke:#DC143C

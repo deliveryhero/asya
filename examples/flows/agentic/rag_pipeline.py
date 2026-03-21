@@ -40,12 +40,11 @@ Payload contract:
   state["answer"]       - generated answer
   state["citations"]    - source citations
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def rag_pipeline(state: dict) -> dict:
     state["retrieval_attempts"] = 0
 
@@ -85,6 +84,7 @@ async def rag_pipeline(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def query_analyzer(state: dict) -> dict:
     """LLM actor: analyze and decompose the user's question.
 
@@ -103,6 +103,7 @@ async def query_analyzer(state: dict) -> dict:
     return state
 
 
+@actor
 async def retriever(state: dict) -> dict:
     """Tool actor: search knowledge base for relevant documents.
 
@@ -147,6 +148,7 @@ async def retriever(state: dict) -> dict:
     return state
 
 
+@actor
 async def relevance_evaluator(state: dict) -> dict:
     """LLM actor: judge whether retrieved documents are sufficient.
 
@@ -164,6 +166,7 @@ async def relevance_evaluator(state: dict) -> dict:
     return state
 
 
+@actor
 async def query_refiner(state: dict) -> dict:
     """LLM actor: rewrite the search query for better retrieval.
 
@@ -180,6 +183,7 @@ async def query_refiner(state: dict) -> dict:
     return state
 
 
+@actor
 async def generator(state: dict) -> dict:
     """LLM actor: generate answer grounded in retrieved context.
 
@@ -200,6 +204,7 @@ async def generator(state: dict) -> dict:
     return state
 
 
+@actor
 async def fact_checker(state: dict) -> dict:
     """LLM actor: verify generated answer against source documents.
 

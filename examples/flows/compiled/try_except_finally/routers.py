@@ -25,7 +25,7 @@ async def start_resource_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_9_seq_1(payload: dict):
+async def router_resource_pipeline_line_11_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,9 +35,9 @@ async def router_resource_pipeline_line_9_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_8_except_2(payload: dict):
+async def router_resource_pipeline_line_10_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_resource_pipeline_line_9_seq_1'), resolve('release_resource'), resolve('finalize')]
+    yield "SET", ".route.next", [resolve('router_resource_pipeline_line_11_seq_1'), resolve('release_resource'), resolve('finalize')]
     yield payload
 
 

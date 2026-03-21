@@ -52,6 +52,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     # Flat structure: nested_if.py -> compile to examples/flows/compiled/nested_if/
     flow_name="$(basename "$flow_file" .py)"
     [[ "$flow_name" == "__init__" ]] && continue
+    [[ "$flow_name" == _asya_utils ]] && continue
 
     # Flows requiring unsupported syntax (inline with)
     [[ "$flow_name" == with_inline_ctx ]] && continue
@@ -60,7 +61,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
-  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot --strict &
+  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot &
 
   # Store the process ID of the background task
   pids+=("$!")

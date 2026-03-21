@@ -2,24 +2,22 @@ flowchart TD
     %% Flow: analysis_flow
 
     entity_recognizer[entity_recognizer]
-    fanin_analysis_flow_line_14[fanin_analysis_flow_line_14]
-    merge_analysis[merge_analysis]
-    router_analysis_flow_line_14_fanout_1{{router_analysis_flow_line_14_fanout_1}}
+    fanin_analysis_flow_line_13[fanin_analysis_flow_line_13]
+    router_analysis_flow_line_13_fanout_1{{router_analysis_flow_line_13_fanout_1}}
     sentiment_analyzer[sentiment_analyzer]
     start_analysis_flow([start_analysis_flow])
     topic_extractor[topic_extractor]
     __end__((( )))
 
-    start_analysis_flow --> router_analysis_flow_line_14_fanout_1
-    router_analysis_flow_line_14_fanout_1 -->|"fanout"| fanin_analysis_flow_line_14
-    fanin_analysis_flow_line_14 --> merge_analysis
-    router_analysis_flow_line_14_fanout_1 --> sentiment_analyzer
-    sentiment_analyzer --> fanin_analysis_flow_line_14
-    router_analysis_flow_line_14_fanout_1 --> topic_extractor
-    topic_extractor --> fanin_analysis_flow_line_14
-    router_analysis_flow_line_14_fanout_1 --> entity_recognizer
-    entity_recognizer --> fanin_analysis_flow_line_14
-    merge_analysis --> __end__
+    start_analysis_flow --> router_analysis_flow_line_13_fanout_1
+    router_analysis_flow_line_13_fanout_1 -->|"fanout"| fanin_analysis_flow_line_13
+    router_analysis_flow_line_13_fanout_1 --> sentiment_analyzer
+    sentiment_analyzer --> fanin_analysis_flow_line_13
+    router_analysis_flow_line_13_fanout_1 --> topic_extractor
+    topic_extractor --> fanin_analysis_flow_line_13
+    router_analysis_flow_line_13_fanout_1 --> entity_recognizer
+    entity_recognizer --> fanin_analysis_flow_line_13
+    fanin_analysis_flow_line_13 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -27,8 +25,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_analysis_flow start
-    class merge_analysis endnode
-    class router_analysis_flow_line_14_fanout_1 router
-    class entity_recognizer,fanin_analysis_flow_line_14,sentiment_analyzer,topic_extractor handler
+    class router_analysis_flow_line_13_fanout_1 router
+    class entity_recognizer,fanin_analysis_flow_line_13,sentiment_analyzer,topic_extractor handler
     class __end__ endpoint
     linkStyle 1 stroke:#7B68EE

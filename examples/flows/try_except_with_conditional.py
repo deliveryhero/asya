@@ -6,7 +6,8 @@ of the if/else are protected by the same try/except block, and the
 finally block runs regardless of which branch was taken or whether
 an error occurred.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: analytical-writer
+  namespace: default
+  labels:
+    asya.sh/flow: voting-ensemble
+spec:
+  actor: analytical-writer
+  image: examples.asya.sh/analytical-writer:latest
+  handler: analytical_writer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

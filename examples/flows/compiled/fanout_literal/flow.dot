@@ -5,23 +5,21 @@ digraph "analysis_flow" {
     { rank=source; start_analysis_flow; }
 
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
-    fanin_analysis_flow_line_14 [label="fanin_analysis_flow_line_14", fillcolor=lightblue];
-    merge_analysis [label="merge_analysis", fillcolor=lightsalmon];
-    router_analysis_flow_line_14_fanout_1 [label="router_analysis_flow_line_14_fanout_1", fillcolor=wheat];
+    fanin_analysis_flow_line_13 [label="fanin_analysis_flow_line_13", fillcolor=lightblue];
+    router_analysis_flow_line_13_fanout_1 [label="router_analysis_flow_line_13_fanout_1", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_analysis_flow [label="start_analysis_flow", fillcolor=palegreen];
     topic_extractor [label="topic_extractor", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_analysis_flow -> router_analysis_flow_line_14_fanout_1;
-    router_analysis_flow_line_14_fanout_1 -> fanin_analysis_flow_line_14 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_analysis_flow_line_14 -> merge_analysis;
-    router_analysis_flow_line_14_fanout_1 -> sentiment_analyzer;
-    sentiment_analyzer -> fanin_analysis_flow_line_14;
-    router_analysis_flow_line_14_fanout_1 -> topic_extractor;
-    topic_extractor -> fanin_analysis_flow_line_14;
-    router_analysis_flow_line_14_fanout_1 -> entity_recognizer;
-    entity_recognizer -> fanin_analysis_flow_line_14;
-    merge_analysis -> __end__;
+    start_analysis_flow -> router_analysis_flow_line_13_fanout_1;
+    router_analysis_flow_line_13_fanout_1 -> fanin_analysis_flow_line_13 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    router_analysis_flow_line_13_fanout_1 -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_analysis_flow_line_13;
+    router_analysis_flow_line_13_fanout_1 -> topic_extractor;
+    topic_extractor -> fanin_analysis_flow_line_13;
+    router_analysis_flow_line_13_fanout_1 -> entity_recognizer;
+    entity_recognizer -> fanin_analysis_flow_line_13;
+    fanin_analysis_flow_line_13 -> __end__;
 }

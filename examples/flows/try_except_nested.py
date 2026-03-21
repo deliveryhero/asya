@@ -15,7 +15,8 @@ Error routing:
   transform_data     → ConnectionError → handle_connection_error
   cleanup runs always (finally)
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow

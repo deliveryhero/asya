@@ -7,25 +7,25 @@ flowchart TD
     query_refiner[query_refiner]
     relevance_evaluator[relevance_evaluator]
     retriever[retriever]
-    router_rag_pipeline_line_56_while_1{{router_rag_pipeline_line_56_while_1}}
-    router_rag_pipeline_line_57_seq_4{{"router_rag_pipeline_line_57_seq_4<br/><br/>p['retrieval_attempts'] += 1"}}
-    router_rag_pipeline_line_66_if_3{{router_rag_pipeline_line_66_if_3}}
-    router_rag_pipeline_line_70_if_2{{router_rag_pipeline_line_70_if_2}}
+    router_rag_pipeline_line_55_while_1{{router_rag_pipeline_line_55_while_1}}
+    router_rag_pipeline_line_56_seq_4{{"router_rag_pipeline_line_56_seq_4<br/><br/>p['retrieval_attempts'] += 1"}}
+    router_rag_pipeline_line_65_if_3{{router_rag_pipeline_line_65_if_3}}
+    router_rag_pipeline_line_69_if_2{{router_rag_pipeline_line_69_if_2}}
     start_rag_pipeline(["start_rag_pipeline<br/><br/>p['retrieval_attempts'] = 0"])
     __end__((( )))
 
     start_rag_pipeline --> query_analyzer
-    query_analyzer --> router_rag_pipeline_line_56_while_1
-    router_rag_pipeline_line_70_if_2 -->|"else"| query_refiner
-    router_rag_pipeline_line_70_if_2 -->|"p['retrieval_attempts'] >= 3"| generator
+    query_analyzer --> router_rag_pipeline_line_55_while_1
+    router_rag_pipeline_line_69_if_2 -->|"else"| query_refiner
+    router_rag_pipeline_line_69_if_2 -->|"p['retrieval_attempts'] >= 3"| generator
     generator --> fact_checker
-    router_rag_pipeline_line_66_if_3 -->|"else"| router_rag_pipeline_line_70_if_2
-    router_rag_pipeline_line_66_if_3 -->|"p.get('is_sufficient')"| generator
-    router_rag_pipeline_line_57_seq_4 --> retriever
+    router_rag_pipeline_line_65_if_3 -->|"else"| router_rag_pipeline_line_69_if_2
+    router_rag_pipeline_line_65_if_3 -->|"p.get('is_sufficient')"| generator
+    router_rag_pipeline_line_56_seq_4 --> retriever
     retriever --> relevance_evaluator
-    relevance_evaluator --> router_rag_pipeline_line_66_if_3
-    router_rag_pipeline_line_56_while_1 --> router_rag_pipeline_line_57_seq_4
-    query_refiner --> router_rag_pipeline_line_56_while_1
+    relevance_evaluator --> router_rag_pipeline_line_65_if_3
+    router_rag_pipeline_line_55_while_1 --> router_rag_pipeline_line_56_seq_4
+    query_refiner --> router_rag_pipeline_line_55_while_1
     fact_checker --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -35,7 +35,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_rag_pipeline start
     class fact_checker endnode
-    class router_rag_pipeline_line_56_while_1,router_rag_pipeline_line_57_seq_4,router_rag_pipeline_line_66_if_3,router_rag_pipeline_line_70_if_2 router
+    class router_rag_pipeline_line_55_while_1,router_rag_pipeline_line_56_seq_4,router_rag_pipeline_line_65_if_3,router_rag_pipeline_line_69_if_2 router
     class generator,query_analyzer,query_refiner,relevance_evaluator,retriever handler
     class __end__ endpoint
     linkStyle 3,6 stroke:#2E8B57

@@ -16,11 +16,11 @@ spec:
   env: []
   resiliency:
     policies:
-      try_except_line_4_0:
+      try_except_line_6_0:
         maxAttempts: 1
         thenRoute:
-        - router-order-processing-line-6-except-2
+        - router-order-processing-line-8-except-2
     rules:
     - errors:
       - ValueError
-      policy: try_except_line_4_0
+      policy: try_except_line_6_0

@@ -16,11 +16,11 @@ spec:
   env: []
   resiliency:
     policies:
-      try_except_line_15_0:
+      try_except_line_16_0:
         maxAttempts: 1
         thenRoute:
-        - router-payment-flow-line-21-except-2
+        - router-payment-flow-line-22-except-2
     rules:
     - errors:
       - ValueError
-      policy: try_except_line_15_0
+      policy: try_except_line_16_0

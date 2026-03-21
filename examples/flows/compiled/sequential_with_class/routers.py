@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile sequential_with_class.py
 async def start_class_instantiation_flow(payload: dict):
     """Entrypoint for flow 'class_instantiation_flow'"""
     _next = []
-    _next.append(resolve("router_class_instantiation_flow_line_18_seq_1"))
+    _next.append(resolve("router_class_instantiation_flow_line_17_seq_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_class_instantiation_flow_line_18_seq_1(payload: dict):
+async def router_class_instantiation_flow_line_17_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p = preprocessor.clean(p)

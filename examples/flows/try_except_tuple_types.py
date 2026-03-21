@@ -4,7 +4,8 @@ Try-except with tuple exception types.
 Catches multiple exception types in a single handler using tuple syntax.
 The compiler generates a single retryRule with multiple error entries.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
