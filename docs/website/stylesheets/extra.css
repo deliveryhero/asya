@@ -441,3 +441,47 @@ table td code {
 .dark .highlight .vi { color: #9cdcfe }
 .dark .codehilite .il,
 .dark .highlight .il { color: #b5cea8 }
+
+/* Home button - make site title link back to landing page */
+.site-title a::before {
+  content: "← ";
+}
+
+/* Add a back-to-home link above the nav */
+.sidebar-nav::before {
+  content: "← asya.sh";
+  display: block;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+}
+
+.sidebar-nav::before {
+  content: none;
+}
+
+/* Sidebar tree navigation */
+.sidebar-tree-section > summary {
+  list-style: none;
+}
+
+.sidebar-tree-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-tree-arrow {
+  transition: transform 0.15s ease;
+}
+
+.sidebar-tree-section[open] > summary .sidebar-tree-arrow {
+  transform: rotate(90deg);
+}
+
+.sidebar-tree-section > summary:hover {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}

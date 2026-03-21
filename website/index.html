@@ -502,6 +502,23 @@
             gap: 1.5rem;
         }
 
+        a.protocol-badge {
+            text-decoration: none;
+            color: var(--text-secondary);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        a.protocol-badge:hover {
+            border-color: var(--border-secondary);
+            transform: translateY(-1px);
+            color: var(--text-primary);
+        }
+
+        .protocol-badge.planned {
+            border-style: dashed;
+            opacity: 0.6;
+        }
+
         /* Footer */
         footer {
             padding: 40px 0;
@@ -885,26 +902,33 @@ aws sqs send-message \
                 <div class="protocol-group">
                     <div class="protocol-group-label">Message Transports</div>
                     <div class="protocol-badges">
-                        <span class="protocol-badge"><strong>SQS</strong> Amazon</span>
-                        <span class="protocol-badge"><strong>RabbitMQ</strong> AMQP</span>
-                        <span class="protocol-badge"><strong>Pub/Sub</strong> GCP</span>
+                        <a href="/docs/reference/transports/sqs/" class="protocol-badge"><strong>SQS</strong> Amazon</a>
+                        <a href="/docs/reference/transports/rabbitmq/" class="protocol-badge"><strong>RabbitMQ</strong> AMQP</a>
+                        <a href="/docs/reference/transports/pubsub/" class="protocol-badge"><strong>Pub/Sub</strong> GCP</a>
+                        <span class="protocol-badge planned"><strong>Kafka</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>NATS JetStream</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>Azure Service Bus</strong> planned</span>
                     </div>
                 </div>
                 <div class="protocol-group">
                     <div class="protocol-group-label">State Backends</div>
                     <div class="protocol-badges">
-                        <span class="protocol-badge"><strong>S3</strong> / GCS</span>
-                        <span class="protocol-badge"><strong>Redis</strong></span>
-                        <span class="protocol-badge"><strong>NATS KV</strong></span>
+                        <a href="/docs/reference/state-proxy-connectors/s3/" class="protocol-badge"><strong>S3</strong> Amazon</a>
+                        <a href="/docs/reference/state-proxy-connectors/gcs/" class="protocol-badge"><strong>GCS</strong> Google</a>
+                        <a href="/docs/reference/state-proxy-connectors/redis/" class="protocol-badge"><strong>Redis</strong></a>
+                        <a href="/docs/reference/state-proxy-connectors/nats-kv/" class="protocol-badge"><strong>NATS KV</strong></a>
+                        <span class="protocol-badge planned"><strong>DynamoDB</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>Azure Blob</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>PostgreSQL</strong> planned</span>
                     </div>
                 </div>
                 <div class="protocol-group">
                     <div class="protocol-group-label">Gateway Protocols</div>
                     <div class="protocol-badges">
-                        <span class="protocol-badge"><strong>A2A</strong> Agents</span>
-                        <span class="protocol-badge"><strong>MCP</strong> Tools</span>
-                        <span class="protocol-badge"><strong>SSE</strong> Streaming</span>
-                        <span class="protocol-badge"><strong>REST</strong> HTTP</span>
+                        <a href="/docs/reference/specs/gateway-api/#a2a-protocol" class="protocol-badge"><strong>A2A</strong> Agents</a>
+                        <a href="/docs/reference/specs/gateway-api/#mcp-protocol" class="protocol-badge"><strong>MCP</strong> Tools</a>
+                        <a href="/docs/reference/specs/gateway-api/#external-api-routes-api-deployment" class="protocol-badge"><strong>SSE</strong> Streaming</a>
+                        <a href="/docs/reference/specs/gateway-api/#mesh-routes-mesh-deployment" class="protocol-badge"><strong>REST</strong> Mesh</a>
                     </div>
                 </div>
             </div>

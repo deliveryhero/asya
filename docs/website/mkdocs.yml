@@ -1,4 +1,4 @@
-site_name: Asya
+site_name: Asya Docs
 site_url: https://asya.sh/docs
 site_description: Kubernetes-native async actor framework for orchestrating AI/ML workloads at scale
 repo_name: deliveryhero/asya
@@ -13,7 +13,6 @@ theme:
   favicon: website/img/favicon.svg
   features:
   - navigation.sections
-  - navigation.expand
   - navigation.indexes
   - toc.integrate
   - search.suggest
@@ -26,34 +25,55 @@ extra_javascript:
 - website/js/search-bridge.js
 
 nav:
-- Home: README.md
-- UNDERSTAND:
+- Home:
+  - README.md
   - Motivation: motivation.md
-  - Core Concepts:
-    - Overview: concepts/README.md
-    - Actor Mesh: concepts/actor-mesh.md
-    - Message Knows the Way: concepts/message-knows-the-way.md
-    - Virtual Actors: concepts/virtual-actors.md
-    - Separation of Concerns: concepts/separation-of-concerns.md
-    - Dynamic Routing: concepts/dynamic-routing.md
-    - Flow Compiler: concepts/flow-compiler.md
-    - Scale Zero to Infinity: concepts/scale-to-zero.md
-    - Pluggable Transports: concepts/pluggable-transport.md
-    - Pluggable Storage: concepts/pluggable-storage.md
-    - Kubernetes Native: concepts/kubernetes-native.md
-    - Built-in Resiliency: concepts/built-in-resiliency.md
-    - HTTP Gateway: concepts/http-gateway.md
-    - Agentic Native: concepts/agentic-native.md
-    - Built-in Observability: concepts/observability.md
-    - Developer Experience: concepts/developer-experience.md
   - Architecture: architecture.md
-- USAGE:
-  - Overview: usage/README.md
-  - Getting Started:
+- concepts:
+  - concepts/README.md
+  - Actor Mesh: concepts/actor-mesh.md
+  - Message Knows the Way: concepts/message-knows-the-way.md
+  - Virtual Actors: concepts/virtual-actors.md
+  - Separation of Concerns: concepts/separation-of-concerns.md
+  - Dynamic Routing: concepts/dynamic-routing.md
+  - Flow Compiler: concepts/flow-compiler.md
+  - Scale Zero to Infinity: concepts/scale-to-zero.md
+  - Pluggable Transports: concepts/pluggable-transport.md
+  - Pluggable Storage: concepts/pluggable-storage.md
+  - Kubernetes Native: concepts/kubernetes-native.md
+  - Built-in Resiliency: concepts/built-in-resiliency.md
+  - HTTP Gateway: concepts/http-gateway.md
+  - Agentic Native: concepts/agentic-native.md
+  - Built-in Observability: concepts/observability.md
+  - Developer Experience: concepts/developer-experience.md
+- Setup (Platform Engineers):
+  - setup/README.md
+  - getting started:
+    - Quickstart (Kind): setup/start-quickstart.md
+    - AWS EKS: setup/start-aws-eks.md
+    - GCP GKE: setup/start-gcp-gke.md
+  - guides:
+    - Helm Charts: setup/guide-helm-charts.md
+    - Autoscaling: setup/guide-autoscaling.md
+    - Actor Flavors: setup/guide-actor-flavors.md
+    - State Proxy: setup/guide-state-proxy.md
+    - Pause/Resume: setup/guide-pause-resume.md
+    - Timeouts: setup/guide-timeouts.md
+    - Retries: setup/guide-retries.md
+    - Error Handling: setup/guide-error-handling.md
+    - Gateway: setup/guide-gateway.md
+  - operations:
+    - Observability: setup/ops-observability.md
+    - Troubleshooting: setup/ops-troubleshooting.md
+    - Upgrades: setup/ops-upgrades.md
+- Usage (Data Scientists):
+  - usage/README.md
+  - getting started:
     - First Actor: usage/start-first-actor.md
     - First Actor Mesh: usage/start-first-actor-mesh.md
     - First Flow: usage/start-first-flow.md
-  - Guides:
+  - guides:
+    - AsyncActor Spec: usage/guide-actor-xrd.md
     - Handler Patterns: usage/guide-handler-patterns.md
     - Agentic Patterns: usage/guide-agentic-patterns.md
     - Streaming: usage/guide-streaming.md
@@ -62,67 +82,63 @@ nav:
     - Pause/Resume: usage/guide-pause-resume.md
     - Timeouts: usage/guide-timeouts.md
     - Error Handling: usage/guide-error-handling.md
-  - Operations:
+  - operations:
     - Debugging: usage/ops-debugging.md
-- SETUP:
-  - Overview: setup/README.md
-  - Getting Started:
-    - Quickstart: setup/start-quickstart.md
-    - AWS EKS: setup/start-aws-eks.md
-    - GCP GKE: setup/start-gcp-gke.md
-  - Guides:
-    - Helm Charts: setup/guide-helm-charts.md
-    - Autoscaling: setup/guide-autoscaling.md
-    - Actor Flavors: setup/guide-actor-flavors.md
-    - State Proxy: setup/guide-state-proxy.md
-    - Pause/Resume: setup/guide-pause-resume.md
-    - Timeouts: setup/guide-timeouts.md
-    - Error Handling: setup/guide-error-handling.md
-    - Gateway: setup/guide-gateway.md
-  - Operations:
-    - Observability: setup/ops-observability.md
-    - Troubleshooting: setup/ops-troubleshooting.md
-    - Upgrades: setup/ops-upgrades.md
-- REFERENCE:
-  - Overview: reference/README.md
-  - Components:
-    - Index: reference/components/README.md
+- reference:
+  - reference/README.md
+  - components:
+    - reference/components/README.md
+    - Actor: reference/components/core-actor.md
     - Sidecar: reference/components/core-sidecar.md
     - Runtime: reference/components/core-runtime.md
     - Gateway: reference/components/core-gateway.md
     - Crew: reference/components/core-crew.md
     - Crossplane: reference/components/core-crossplane.md
     - State Proxy: reference/components/core-state-proxy.md
-    - Actor: reference/components/core-actor.md
     - Flow Compiler: reference/components/lab-flow-compiler.md
     - CLI: reference/components/lab-cli.md
-  - Specifications:
-    - Index: reference/specs/README.md
+  - specs:
+    - reference/specs/README.md
     - Envelope: reference/specs/envelope.md
+    - AsyncActor CRD: reference/specs/asyncactor-crd.md
+    - ABI Protocol: reference/specs/abi-protocol.md
     - Sidecar-Runtime: reference/specs/sidecar-runtime.md
     - Gateway API: reference/specs/gateway-api.md
-    - ABI Protocol: reference/specs/abi-protocol.md
     - Flow DSL: reference/specs/flow-dsl.md
     - Error Handling: reference/specs/error-handling.md
-    - AsyncActor CRD: reference/specs/asyncactor-crd.md
-  - Transports:
-    - Overview: reference/transports/README.md
+  - transports:
+    - reference/transports/README.md
     - SQS: reference/transports/sqs.md
     - RabbitMQ: reference/transports/rabbitmq.md
     - Pub/Sub: reference/transports/pubsub.md
     - Socket: reference/transports/socket.md
-  - State Proxy Connectors:
-    - Overview: reference/state-proxy-connectors/README.md
+  - state-proxy-connectors:
+    - reference/state-proxy-connectors/README.md
     - S3: reference/state-proxy-connectors/s3.md
     - GCS: reference/state-proxy-connectors/gcs.md
     - Redis: reference/state-proxy-connectors/redis.md
     - NATS KV: reference/state-proxy-connectors/nats-kv.md
   - Environment Variables: reference/env-vars.md
-- CONTRIBUTING:
-  - Overview: contributing/README.md
-  - Testing A2A: contributing/testing-a2a.md
-  - Testing State Proxy: contributing/testing-state-proxy.md
-  - Testing Transports: contributing/testing-transport.md
+- Comparisons:
+  - comparisons/README.md
+  - by category:
+    - Workflow Orchestrators: comparisons/as-workflow-orchestrator.md
+    - Actor Frameworks: comparisons/as-actor-framework.md
+    - Agentic Frameworks: comparisons/as-agentic-framework.md
+    - ML Pipeline Tools: comparisons/as-ml-pipeline-tool.md
+    - Stream Processing: comparisons/as-stream-processing.md
+    - AI/ML Serving: comparisons/as-ai-serving.md
+    - K8s Job Schedulers: comparisons/as-k8s-scheduler.md
+  - in-depth:
+    - vs Temporal: comparisons/vs-temporal.md
+    - vs Dapr: comparisons/vs-dapr.md
+    - vs LangGraph: comparisons/vs-langgraph.md
+    - vs Google ADK: comparisons/vs-google-adk.md
+    - vs KAgent: comparisons/vs-kagent.md
+    - vs Ray Serve: comparisons/vs-ray-serve.md
+    - vs Kubeflow Pipelines: comparisons/vs-kubeflow-pipelines.md
+- Architecture: architecture.md
+- Motivation: motivation.md
 
 plugins:
 - shadcn/search:
@@ -134,7 +150,7 @@ plugins:
 markdown_extensions:
 - admonition
 - toc:
-    permalink: " ¶"
+    permalink: "  #"
 - tables
 - pymdownx.highlight:
     use_pygments: true
