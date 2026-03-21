@@ -370,7 +370,7 @@ Each overlay builds on top of `common/`.
         # Strip actor- prefix to get the Python function name (the key in actor_retry_rules)
         name = actor.name
         if name.startswith("actor-"):
-            name = name[len("actor-"):]
+            name = name[len("actor-") :]
         actor_python_name = name.replace("-", "_")
         rules = self.codegen_meta.actor_retry_rules.get(actor_python_name, [])
         if not rules:
@@ -492,4 +492,3 @@ Each overlay builds on top of `common/`.
         if name.startswith("start_"):
             return "start"
         return "router"
-
