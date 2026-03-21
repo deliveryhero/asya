@@ -28,6 +28,20 @@ Asya:
 
 Each actor's scaling is tuned to its own resource profile and workload pattern.
 
+## Example: AsyncActor scaling configuration
+
+```yaml
+spec:
+  scaling:
+    minReplicaCount: 0      # scale to zero when queue is empty
+    maxReplicaCount: 50     # handle burst traffic
+    queueLength: 5          # target messages per replica
+    pollingInterval: 15     # check queue every 15s
+```
+
+When the queue has 25 messages and `queueLength` is 5, KEDA creates 5 replicas.
+When the queue drains, replicas scale back to 0 after the cooldown period.
+
 ## No central autoscaler bottleneck
 
 Because KEDA ScaledObjects are per-actor, there is no shared autoscaler making

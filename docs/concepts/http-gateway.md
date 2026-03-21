@@ -7,13 +7,16 @@ synchronous HTTP clients that expect request-response semantics.
 ## What it does
 
 The gateway accepts HTTP requests, injects envelopes into the mesh, and waits
-for results. It supports three protocols:
+for results. Endpoints are organized into three namespaces:
 
-| Protocol | Audience | Use case |
-|----------|----------|----------|
-| **A2A** (Agent-to-Agent) | AI agents, orchestrators | Multi-turn agent communication with task lifecycle |
-| **MCP** (Model Context Protocol) | LLM clients, developers | Tool invocation from LLMs like Claude or GPT |
-| **REST** | Any HTTP client | Simple request-response over `/mcp/` endpoints |
+| Namespace | Protocol | Audience | Example |
+|-----------|----------|----------|---------|
+| `/a2a/` | A2A (Agent-to-Agent) | AI agents, orchestrators | `POST /a2a/` — SendMessage |
+| `/mcp` | MCP (Model Context Protocol) | LLM clients, developers | `POST /mcp` — tool invocation |
+| `/mesh/` | REST (internal) | Sidecars, operators | `POST /mesh` — progress/final callbacks |
+
+Special root routes: `/.well-known/agent.json` (A2A Agent Card discovery) and
+`/health` (K8s liveness/readiness probe).
 
 ## Two deployment modes
 

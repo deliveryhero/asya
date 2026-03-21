@@ -47,6 +47,26 @@ A common pattern is to use Socket transport in development, RabbitMQ in staging,
 and SQS in production. The handler code is identical across all three — only the
 infrastructure configuration changes.
 
+## Transport interface
+
+Adding a new transport means implementing this Go interface
+(`src/asya-sidecar/pkg/transport/transport.go`):
+
+```go
+type Transport interface {
+    Receive(ctx context.Context, queueName string) (QueueMessage, error)
+    Send(ctx context.Context, queueName string, body []byte) error
+    SendWithDelay(ctx context.Context, queueName string, body []byte, delay time.Duration) error
+    Ack(ctx context.Context, msg QueueMessage) error
+    Requeue(ctx context.Context, msg QueueMessage) error
+    Close() error
+}
+```
+
+Each backend (SQS, RabbitMQ, Pub/Sub, Socket) provides its own implementation of
+this interface. The sidecar selects the implementation based on the `transport.type`
+field in the AsyncActor manifest.
+
 ## Further reading
 
 - [Transport reference](../reference/transports/README.md) — configuration

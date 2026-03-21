@@ -35,6 +35,23 @@ The error flow:
 3. After max attempts, sidecar routes to `x-sink` with `phase: failed`
 4. `x-sink` forwards to `x-sump` for DLQ persistence
 
+## Example: AsyncActor resiliency configuration
+
+```yaml
+spec:
+  resiliency:
+    retry:
+      maxAttempts: 3
+      backoffMultiplier: 2
+    timeout: 90s
+    sla:
+      deadline: 300s
+```
+
+This configures the actor to retry up to 3 times with exponential backoff, enforce
+a 90-second handler execution timeout, and reject messages whose pipeline deadline
+exceeds 300 seconds.
+
 ## SLA enforcement
 
 Envelopes carry an optional `deadline_at` header. The sidecar checks this

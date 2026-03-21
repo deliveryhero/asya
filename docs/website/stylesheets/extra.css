@@ -485,3 +485,36 @@ table td code {
   background: var(--bg-tertiary);
   border-radius: 6px;
 }
+
+/* Sidebar section labels - darker in light mode, lighter in dark mode */
+.sidebar-tree-section > summary[data-sidebar="group-label"] {
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+}
+
+.dark .sidebar-tree-section > summary[data-sidebar="group-label"] {
+  color: #d4d4d4 !important;
+}
+
+/* Sidebar tree arrows - visible in both modes */
+.sidebar-tree-arrow {
+  color: #666 !important;
+}
+
+.dark .sidebar-tree-arrow {
+  color: #b0b0b0 !important;
+}
+
+/* Theme toggle button - visible in dark mode */
+.dark button[title="Toggle theme"] svg {
+  stroke: #e5e5e5 !important;
+}
+
+.dark button[title="Toggle layout"] svg {
+  stroke: #e5e5e5 !important;
+}
+
+/* GitHub octocat icon - visible in dark mode */
+.dark a[href*="github.com"] svg {
+  fill: #e5e5e5 !important;
+}

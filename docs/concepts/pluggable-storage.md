@@ -36,6 +36,41 @@ def process(state: dict) -> dict:
 The runtime intercepts these file operations and forwards them to the state proxy over
 a Unix socket. The proxy translates to the configured backend (S3 PUT, Redis SET, etc.).
 
+## Architecture: sidecar over Unix socket
+
+The state proxy is deployed as a sidecar container alongside the actor runtime,
+communicating over HTTP via a Unix socket. Handler code uses standard Python file
+I/O (`open`, `read`, `write`) — the runtime intercepts these calls transparently
+and forwards them to the state proxy. No SDK or special imports are needed.
+
+## Connector interface
+
+Adding a new storage backend means implementing the `StateProxyConnector` interface:
+
+```python
+class StateProxyConnector(ABC):
+    def read(self, key: str) -> BinaryIO: ...
+    def write(self, key: str, data: BinaryIO, size: int | None = None,
+              *, exclusive: bool = False) -> None: ...
+    def exists(self, key: str) -> bool: ...
+    def stat(self, key: str) -> KeyMeta | None: ...
+    def list(self, key_prefix: str, delimiter: str = "/") -> ListResult: ...
+    def delete(self, key: str) -> None: ...
+```
+
+For example, the S3 passthrough connector implements `read` as:
+
+```python
+class S3Passthrough(StateProxyConnector):
+    def read(self, key: str) -> BinaryIO:
+        response = self._s3.get_object(Bucket=self._bucket, Key=self._full_key(key))
+        return _StreamingBodyWrapper(response["Body"])
+```
+
+Available connectors: `s3-passthrough`, `s3-buffered-lww`, `s3-buffered-cas`,
+`gcs-buffered-lww`, `gcs-buffered-cas`, `redis-buffered-cas`. Each is a separate
+Docker image selected at deployment time.
+
 ## Consistency Guarantees
 
 Each connector supports configurable consistency:

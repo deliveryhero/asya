@@ -1,18 +1,38 @@
 # Asya Documentation
 
-**[← Back to asya.sh](https://asya.sh/)**
+<p align="left">
+  <a href="https://asya.sh/">
+    <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" width="200"/>
+  </a>
+</p>
+**[← Back to asya.sh](/)**
 
 ---
 
-## Start Here
+## For Data Scientists / ML Engineers
 
 | I want to... | Go to |
 |---|---|
 | Understand what Asya is | [Concepts](concepts/README.md) |
-| Get a local cluster running | [Quickstart](setup/start-quickstart.md) |
 | Build my first actor | [First Actor](usage/start-first-actor.md) |
 | Chain actors into a mesh | [First Actor Mesh](usage/start-first-actor-mesh.md) |
 | Write a Flow DSL pipeline | [First Flow](usage/start-first-flow.md) |
+| Learn handler patterns | [Handler Patterns](usage/guide-handler-patterns.md) |
+| Build agentic workflows | [Agentic Patterns](usage/guide-agentic-patterns.md) |
+
+## For Platform Engineers
+
+| I want to... | Go to |
+|---|---|
+| Get a local cluster running | [Quickstart (Kind)](setup/start-quickstart.md) |
 | Deploy to production | [AWS EKS](setup/start-aws-eks.md) or [GCP GKE](setup/start-gcp-gke.md) |
+| Configure autoscaling | [Autoscaling](setup/guide-autoscaling.md) |
+| Set up monitoring | [Observability](setup/ops-observability.md) |
 | Look up configuration | [Reference](reference/README.md) |
-| Contribute | [Contributing](contributing/README.md) |
+
+## For Contributors
+
+| I want to... | Go to |
+|---|---|
+| Understand the architecture | [Architecture](architecture.md) |
+| Run tests | [Contributing](contributing/README.md) |
