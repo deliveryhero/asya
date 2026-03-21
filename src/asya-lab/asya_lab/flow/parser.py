@@ -647,7 +647,7 @@ class FlowParser:
 
         # Functions with @actor decorator are not inlined — treat as actor calls.
         # @flow and @unfold ARE meant to be inlined, so skip those.
-        _INLINE_DECORATORS = {"flow", "unfold"}
+        inline_decorators = {"flow", "unfold"}
         if not required and func_node.decorator_list:
             for dec in func_node.decorator_list:
                 dec_name = None
@@ -655,7 +655,7 @@ class FlowParser:
                     dec_name = dec.id
                 elif isinstance(dec, ast.Attribute):
                     dec_name = ast.unparse(dec)
-                if dec_name and dec_name in self._known_wrappers and dec_name not in _INLINE_DECORATORS:
+                if dec_name and dec_name in self._known_wrappers and dec_name not in inline_decorators:
                     self._actors.append(func_name)
                     return [ActorCall(lineno=lineno, name=func_name)]
 
@@ -911,8 +911,10 @@ class FlowParser:
 
     def _parse_expr(self, stmt: ast.Expr) -> list[Operation]:
         value = stmt.value
-        if isinstance(value, ast.Constant) and isinstance(value.value, (str, type(...))):
-            return []  # docstring or Ellipsis — skip
+        if isinstance(value, ast.Constant) and isinstance(value.value, str):
+            return []  # docstring — skip
+        if isinstance(value, ast.Constant) and value.value is ...:
+            return []  # Ellipsis placeholder — skip
         if isinstance(value, ast.Yield | ast.YieldFrom):
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'yield' is not supported in flow definitions")
         if isinstance(value, ast.Await):
