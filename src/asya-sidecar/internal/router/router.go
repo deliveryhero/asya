@@ -933,6 +933,12 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		downstreamCount++
 
 		if frame.IsError() {
+			slog.Error("Runtime returned error",
+				"id", msg.ID,
+				"actor", r.cfg.ActorName,
+				"error", frame.Error,
+				"errorType", frame.Details.Type,
+			)
 			dispatchErr = r.handleErrorResponse(ctx, msg, frame, startTime)
 			streamHalted = true
 			return
@@ -955,7 +961,11 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 	if err != nil {
 		slog.Info("Runtime call failed", "id", msg.ID, "duration", runtimeDuration, "error", err)
 	} else {
-		slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount)
+		if streamHalted {
+			slog.Warn("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount, "status", "error")
+		} else {
+			slog.Info("Runtime call completed", "id", msg.ID, "duration", runtimeDuration, "frames", downstreamCount, "status", "success")
+		}
 	}
 
 	if r.metrics != nil {
@@ -998,7 +1008,12 @@ func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Enve
 	// applies consistently for both function and generator handlers.
 	var runtimeErr *runtime.RuntimeError
 	if errors.As(err, &runtimeErr) {
-		slog.Info("Runtime handler error (SSE)", "id", msg.ID, "error", runtimeErr.Response.Error)
+		slog.Error("Runtime returned error",
+			"id", msg.ID,
+			"actor", r.cfg.ActorName,
+			"error", runtimeErr.Response.Error,
+			"errorType", runtimeErr.Response.Details.Type,
+		)
 		return r.handleErrorResponse(ctx, msg, runtimeErr.Response, startTime)
 	}
 
