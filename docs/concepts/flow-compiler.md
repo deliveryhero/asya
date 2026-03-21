@@ -25,8 +25,8 @@ replicate the control flow using message passing.
 The compiler also generates a visual graph of the compiled pipeline:
 
 <p align="center">
-<a href="/website/docs/img/flow-compiled-example.png" target="_blank" title="Click to view full size">
-  <img src="/website/docs/img/flow-compiled-example.png" alt="Compiled flow graph: text analysis pipeline with language-based branching" style="max-width: 80%; cursor: zoom-in;"/>
+<a href="/docs/website/img/flow-compiled-example.png" target="_blank" title="Click to view full size">
+  <img src="/docs/website/img/flow-compiled-example.png" alt="Compiled flow graph: text analysis pipeline with language-based branching" style="max-width: 80%; cursor: zoom-in;"/>
 </a>
 </p>
 <p align="center"><em>Green = actor handlers (your code).<br/>Orange = auto-generated routers.<br/>Blue = entrypoint/exitpoint.</em></p>
