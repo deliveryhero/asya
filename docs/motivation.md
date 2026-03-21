@@ -58,12 +58,12 @@ through queues**.
 - Runs a pure Python function — no retry logic, no queue client, no SDK
 - Is able to re-route each message to another actor
 
-**Independent scaling in action**: enhancer peaks at 44 pods while retriever stays at 1
+**Independent scaling in action**:
 
 <p align="center">
 <img src="/docs/website/img/throughput-after.jpg" width="60%" alt="After: independent scaling per actor, stable throughput" />
 <br>
-    <em>After: each actor scales independently. enhancer-pasd-upscale peaks at 44 pods while retriever stays at 1. The system self-balances.</em>
+    <em>After: each actor scales independently.<br>Enhancer peaks at 44 pods while retriever stays at 1.<br>The system self-balances.</em>
 </p>
 
 ## Two Files, Two Owners
