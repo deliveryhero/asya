@@ -23,10 +23,10 @@ At production load, the synchronous architecture collapses:
 
 <p align="center">
 <img src="/docs/website/img/throughput-before.jpg" width="60%" alt="Before: unacked messages accumulating, unstable throughput" />
+<br>
+  <em>Before: 400-800 unacked messages oscillating — the system cannot drain its queue.</em>
 </p>
 
-
-*Before: 400-800 unacked messages oscillating — the system cannot drain its queue.*
 
 ## The Obvious Fix: Add a Queue
 
@@ -45,22 +45,24 @@ logic, timeouts, and error routing were infrastructure concerns, not application
 This is the actor mesh: **flatten the entire pipeline into independent actors connected
 through queues**.
 
-<p align="center">
+<div align="center">
 <img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
-</p>
+<br>
+<p><strong>Each actor:</strong></p>
+  <ul style="display: inline-block; text-align: left;">
+    <li>Has its own queue (SQS, RabbitMQ, Pub/Sub)</li>
+    <li>Scales independently from 0 to N via KEDA</li>
+    <li>Fails independently — a crashed actor doesn't stall others</li>
+    <li>Runs a pure Python function — no retry logic, no queue client, no SDK</li>
+  </ul>
+</div>
 
-Each actor:
-- Has its own queue (SQS, RabbitMQ, Pub/Sub)
-- Scales independently from 0 to N via KEDA
-- Fails independently — a crashed actor doesn't stall others
-- Runs a pure Python function — no retry logic, no queue client, no SDK
 
 <p align="center">
 <img src="/docs/website/img/throughput-after.jpg" width="60%" alt="After: independent scaling per actor, stable throughput" />
+<br>
+    <em>After: each actor scales independently. enhancer-pasd-upscale peaks at 44 pods while retriever stays at 1. The system self-balances.</em>
 </p>
-
-*After: each actor scales independently. enhancer-pasd-upscale peaks at 44 pods while
-retriever stays at 1. The system self-balances.*
 
 ## Two Files, Two Owners
 
