@@ -22,7 +22,7 @@ At production load, the synchronous architecture collapses:
   step is bottlenecked
 
 <p align="center">
-<img src="/docs/website/img/throughput-before.jpg" width="60%" alt="Before: unacked messages accumulating, unstable throughput" />
+<img src="/docs/website/img/throughput-before.jpg" width="75%" alt="Before: unacked messages accumulating, unstable throughput" />
 <br>
   <em>Before: 400-800 unacked messages oscillating — the system cannot drain its queue.</em>
 </p>
@@ -61,9 +61,9 @@ through queues**.
 **Independent scaling in action**:
 
 <p align="center">
-<img src="/docs/website/img/throughput-after.jpg" width="60%" alt="After: independent scaling per actor, stable throughput" />
+<img src="/docs/website/img/throughput-after.jpg" width="75%" alt="After: independent scaling per actor, stable throughput" />
 <br>
-    <em>After: each actor scales independently.<br>Enhancer peaks at 44 pods while retriever stays at 1.<br>The system self-balances.</em>
+    <em>After: each actor scales independently. Enhancer peaks at 44 pods while retriever stays at 1. The system self-balances.</em>
 </p>
 
 ## Two Files, Two Owners
