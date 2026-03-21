@@ -111,6 +111,8 @@ sidecar:
   gatewayURL: ""
   # AWS credentials secret name to inject into sidecar (for non-IRSA environments)
   awsCredsSecret: ""
+  # Auto-compute SQS endpoint as http://localstack-sqs.{namespace}:4566
+  sqsLocalstackEnabled: false
   # Custom SQS endpoint (for LocalStack or other AWS-compatible services)
   sqsEndpoint: ""
   # SQS long-polling wait time override (seconds)

@@ -35,8 +35,9 @@ Write a pure Python function. Deploy it as a Kubernetes CRD. Asya handles the re
 
 ```python
 # handler.py — your code, zero dependencies
-def process(payload: dict) -> dict:
-    return {**payload, "result": model.predict(payload["input"])}
+def process(state: dict) -> dict:
+    state["output"] = model.predict(state["input"])
+    return state
 ```
 
 ```yaml

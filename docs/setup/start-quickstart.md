@@ -62,24 +62,27 @@ Maps NodePort 30080 to `http://localhost:8080`.
 
 ### Playground (all-in-one)
 
-`asya-playground` is a single Helm chart that installs everything: Crossplane providers, KEDA,
-LocalStack (SQS + S3), crew actors, and a hello-world actor.
+`asya-playground` installs Crossplane providers, LocalStack (SQS + S3), crew actors,
+and a hello-world actor. Prerequisites: Crossplane operator and KEDA (installed separately).
 
-Two phases: the first installs infrastructure, the second enables actors after Crossplane
-providers have registered their CRDs.
+Two phases: install infrastructure first, then enable actors after Crossplane providers
+have registered their CRDs.
 
 ```bash
-# Crossplane operator (prerequisite — manages infrastructure declaratively)
+# Prerequisites
 helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm repo add kedacore https://kedacore.github.io/charts
+helm repo add asya https://asya.sh/charts
+helm repo update
+
 helm install crossplane crossplane-stable/crossplane \
   --namespace crossplane-system --create-namespace \
-  --wait --timeout 180s
+  --wait --timeout 120s
 
-# Asya playground
-helm repo add asya https://asya.sh/charts
-helm repo update asya
+helm install keda kedacore/keda \
+  --namespace keda --create-namespace --wait
 
-# Phase 1: install infrastructure
+# Phase 1: install playground (providers, LocalStack, XRDs)
 helm install asya asya/asya-playground \
   --namespace asya-demo --create-namespace \
   --set global.transport=sqs \
@@ -106,6 +109,7 @@ helm upgrade asya asya/asya-playground --namespace asya-demo \
 
 | Component | Role |
 |-----------|------|
+| **Crossplane** | Operator that manages infrastructure declaratively via Compositions |
 | **Crossplane providers** | Manage SQS queues and K8s Deployments declaratively |
 | **KEDA** | Autoscale actors 0 to N based on queue depth |
 | **LocalStack** | In-cluster SQS + S3 emulator (no AWS account needed) |
@@ -225,6 +229,8 @@ kubectl logs -n asya-demo "$POD" -c asya-sidecar --tail=20
 
 ```bash
 helm uninstall asya -n asya-demo
+helm uninstall keda -n keda
+helm uninstall crossplane -n crossplane-system
 kind delete cluster --name asya-quickstart
 ```
 

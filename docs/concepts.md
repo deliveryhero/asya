@@ -11,7 +11,7 @@ This architecture provides:
 - **Queue-native resilience** — messages are durably queued (SQS, RabbitMQ); if an actor pod is evicted, the message is redelivered
 - **Stateless actors** — actors are pure functions (`dict -> dict`), can scale to zero, and can be replaced without draining
 
-See [motivation.md](motivation.md) for a deeper comparison of choreography vs orchestration.
+**See**: [Actor Mesh: Choreography on Kubernetes](actor-mesh.md) for the full explanation with diagrams, and [motivation.md](motivation.md) for choreography vs orchestration trade-offs.
 
 ## Envelope
 

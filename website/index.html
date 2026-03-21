@@ -20,7 +20,7 @@
 
         .theme-toggle {
             position: fixed;
-            top: 20px;
+            top: 56px;
             right: 20px;
             background: var(--btn-secondary-bg);
             border: 1px solid var(--btn-border);
@@ -186,6 +186,21 @@
             white-space: pre;
         }
 
+        .code-clickable {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .code-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-color: var(--border-secondary);
+        }
+
+        body.dark .code-clickable:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
         /* Light mode: GitHub-style syntax colors */
         .code-example .comment { color: #6a737d; }
         .code-example .keyword { color: #d73a49; }
@@ -237,11 +252,19 @@
             border: 1px solid var(--border-primary);
             border-radius: 8px;
             background: var(--bg-secondary);
-            transition: border-color 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            color: inherit;
         }
 
         .feature-card:hover {
             border-color: var(--border-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            color: inherit;
+        }
+
+        body.dark .feature-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         .feature-card h3 {
@@ -401,6 +424,48 @@
             margin-bottom: 1rem;
         }
 
+        /* Announcement banner */
+        .announcement-bar {
+            background: #f5c518;
+            color: #1a1a1a;
+            text-align: center;
+            padding: 10px 48px 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .announcement-bar a {
+            color: #1a1a1a;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .announcement-bar a:hover {
+            color: #000;
+        }
+
+        .announcement-bar .close-btn {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #1a1a1a;
+            padding: 4px 8px;
+            line-height: 1;
+            opacity: 0.6;
+        }
+
+        .announcement-bar .close-btn:hover {
+            opacity: 1;
+        }
+
         /* Responsive */
         @media (max-width: 700px) {
             .hero h1 { font-size: 2rem; }
@@ -414,6 +479,10 @@
     </style>
 </head>
 <body>
+    <div class="announcement-bar" id="announcementBar" style="display: none;">
+        REST In Peace - Join 🎭Asya presentation at <a href="https://kccnceu2026.sched.com/event/2CW2j" target="_blank" rel="noreferrer">KubeCon Europe 2026 on Wednesday March 25, 2026 14:15 - 14:45 CET (Auditorium)</a>
+        <button class="close-btn" id="closeAnnouncement" aria-label="Close">&times;</button>
+    </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
         <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-light" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -462,25 +531,37 @@
 
         <!-- Two files, two owners -->
         <section>
+            <div class="section-header">
+                <h2>Two files. Two owners.</h2>
+            </div>
+            <div class="two-col" style="margin-bottom: 2rem;">
+                <div>
+                    <h3>Data Scientist owns the handler</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        Pure Python, zero dependencies. No SDK imports, no decorators,
+                        no framework coupling.
+                    </p>
+                    <p style="color: var(--text-tertiary); line-height: 1.7; margin-top: 0.75rem;">
+                        Test locally with <code>assert process(state) == expected</code>.
+                    </p>
+                </div>
+                <a href="/docs/usage/start-first-actor/" style="text-decoration: none; display: block;">
+                    <div class="code-example code-clickable"><span class="comment"># handler.py &mdash; your code, zero dependencies</span>
+<span class="keyword">def</span> <span class="function">process</span>(<span class="param">state</span>: <span class="param">dict</span>) -> <span class="param">dict</span>:
+    state[<span class="string">"output"</span>] = model.predict(state[<span class="string">"input"</span>])
+    <span class="keyword">return</span> state</div>
+                </a>
+            </div>
             <div class="two-col">
                 <div>
-                    <h2>Two files. Two owners.</h2>
+                    <h3>Platform team owns the spec</h3>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
-                        Your Python handler + your AsyncActor YAML spec. That's the entire interface.
-                        No SDK imports, no decorators, no framework coupling. Test locally with
-                        <code>assert process(payload) == expected</code>.
-                    </p>
-                    <p style="color: var(--text-tertiary); line-height: 1.7; margin-top: 1rem;">
                         Deploy as a Kubernetes CRD. Asya injects the sidecar, creates the queue,
                         configures KEDA autoscaling. Your code stays clean.
                     </p>
                 </div>
-                <div>
-                    <div class="code-example"><span class="comment"># handler.py &mdash; your code, zero dependencies</span>
-<span class="keyword">def</span> <span class="function">process</span>(<span class="param">payload</span>: <span class="param">dict</span>) -> <span class="param">dict</span>:
-    result = model.predict(payload[<span class="string">"input"</span>])
-    <span class="keyword">return</span> {**payload, <span class="string">"result"</span>: result}</div>
-                    <div class="code-example" style="margin-top: 0.75rem;"><span class="comment"># actor.yaml &mdash; the platform's job</span>
+                <a href="/docs/reference/specs/asyncactor-crd/" style="text-decoration: none; display: block;">
+                    <div class="code-example code-clickable"><span class="comment"># actor.yaml &mdash; the platform's job</span>
 <span class="yaml-key">apiVersion</span>: <span class="yaml-val">asya.sh/v1alpha1</span>
 <span class="yaml-key">kind</span>: <span class="yaml-val">AsyncActor</span>
 <span class="yaml-key">metadata</span>:
@@ -491,7 +572,7 @@
   <span class="yaml-key">scaling</span>:
     <span class="yaml-key">minReplicas</span>: <span class="yaml-val">0</span>
     <span class="yaml-key">maxReplicas</span>: <span class="yaml-val">50</span></div>
-                </div>
+                </a>
             </div>
         </section>
 
@@ -503,42 +584,42 @@
                    Forcing them into synchronous REST adds latency, waste, and cascading failures.</p>
             </div>
             <div class="feature-grid">
-                <div class="feature-card">
-                    <h3>🔀 Decentralized Routing</h3>
-                    <p>Envelopes carry <code>prev/curr/next</code> queues.
-                       No coordinator can fail. Actors rewrite routing at runtime
-                       for agentic patterns, LLM judges, and branching flows.</p>
-                </div>
-                <div class="feature-card">
+                <a href="/docs/actor-mesh/" class="feature-card" style="text-decoration: none;">
+                    <h3>🔀 True Decentralization</h3>
+                    <p>No central orchestrator. Every envelope carries its own
+                       <code>prev/curr/next</code> route. Choreography on Kubernetes &mdash;
+                       no coordinator that can fail or become a bottleneck.</p>
+                </a>
+                <a href="/docs/setup/guide-autoscaling/" class="feature-card" style="text-decoration: none;">
                     <h3>📉 Scale to Zero</h3>
                     <p>KEDA autoscales each actor independently from 0 to N based on
                        its own queue depth. GPU pods cost nothing when idle.
                        Bursty traffic scales up in seconds.</p>
-                </div>
-                <div class="feature-card">
+                </a>
+                <a href="/docs/usage/guide-handler-patterns/" class="feature-card" style="text-decoration: none;">
                     <h3>🐍 Pure Python Handlers</h3>
                     <p>No SDK imports, no decorators, no framework coupling.
                        A handler is <code>dict &rarr; dict</code>. Test with pytest,
                        deploy on Kubernetes. That's it.</p>
-                </div>
-                <div class="feature-card">
+                </a>
+                <a href="/docs/reference/specs/flow-dsl/" class="feature-card" style="text-decoration: none;">
                     <h3>🔄 Dynamic Pipelines</h3>
                     <p>Routes are data embedded in each message, not code.
                        Write flows as plain Python with <code>if/else</code> and <code>while</code>.
                        The compiler generates router actors automatically.</p>
-                </div>
-                <div class="feature-card">
+                </a>
+                <a href="/docs/reference/transports/" class="feature-card" style="text-decoration: none;">
                     <h3>🔌 Multi-Transport</h3>
                     <p>Pluggable message transports: SQS, RabbitMQ, GCP Pub/Sub.
                        Switch transports without changing handler code.
                        Same actor, different infrastructure.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>🤝 A2A + MCP Gateway</h3>
-                    <p>Optional HTTP gateway exposes actor pipelines as
-                       A2A agents and MCP tools. Sync-to-async bridge with
-                       SSE streaming, pause/resume, and task tracking.</p>
-                </div>
+                </a>
+                <a href="/docs/usage/guide-agentic-patterns/" class="feature-card" style="text-decoration: none;">
+                    <h3>🤖 Agentic Native</h3>
+                    <p>HTTP gateway for any client. A2A and MCP out of the box.
+                       FLY events for streaming, state proxy for virtual actor memory,
+                       pause/resume for human-in-the-loop &mdash; all pluggable.</p>
+                </a>
             </div>
         </section>
 
@@ -557,7 +638,7 @@
             </div>
             <div class="two-col" style="margin-top: 3rem;">
                 <div>
-                    <h3>Inside Each Actor Pod</h3>
+                    <h3><a href="/docs/reference/components/core-actor/" style="color: inherit; text-decoration: none;">Actor Anatomy</a></h3>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
                         Every actor pod has two containers: your Python runtime and the
                         Asya sidecar. The sidecar polls the queue, delivers the envelope
@@ -569,7 +650,7 @@
                     </p>
                 </div>
                 <div class="diagram-container">
-                    <a href="/docs/architecture/" title="View full architecture documentation">
+                    <a href="/docs/reference/components/core-actor/" title="Actor internals: sidecar, runtime, state proxy">
                         <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
                     </a>
                 </div>
@@ -583,7 +664,7 @@
                 <p>Local actor mesh in minutes.<br>Requires Docker, kubectl, Helm, and Kind.</p>
             </div>
             <div class="quickstart-steps">
-                <a href="/docs/setup/start-quickstart/#1-create-a-kind-cluster-local-k8s" class="quickstart-step">
+                <a href="/docs/setup/start-quickstart/#1-create-cluster" class="quickstart-step">
                     <span class="step-number">1</span>
                     <h3>Create cluster</h3>
                     <div class="code-block">kind create cluster --name asya
@@ -592,7 +673,7 @@
 <span class="c"># Crossplane, KEDA, LocalStack,</span>
 <span class="c"># crew actors, hello-world actor</span></div>
                 </a>
-                <a href="/docs/setup/start-quickstart/#3-install-the-playground-chart" class="quickstart-step">
+                <a href="/docs/setup/start-quickstart/#2-install-asya" class="quickstart-step">
                     <span class="step-number">2</span>
                     <h3>Install Asya</h3>
                     <div class="code-block">helm repo add asya https://asya.sh/charts
@@ -608,7 +689,7 @@ helm upgrade asya asya/asya-playground \
   --reuse-values \
   --set helloActor.enabled=true</div>
                 </a>
-                <a href="/docs/setup/start-quickstart/#4-verify-the-installation" class="quickstart-step">
+                <a href="/docs/setup/start-quickstart/#3-send-a-message" class="quickstart-step">
                     <span class="step-number">3</span>
                     <h3>Send a message</h3>
                     <div class="code-block"><span class="c"># enqueue a message</span>
@@ -717,6 +798,17 @@ aws sqs send-message \
             }
             applyTheme(theme);
         }
+
+        // Announcement banner
+        const banner = document.getElementById('announcementBar');
+        const closeBanner = document.getElementById('closeAnnouncement');
+        if (!sessionStorage.getItem('announcementDismissed')) {
+            banner.style.display = 'block';
+        }
+        closeBanner.addEventListener('click', () => {
+            banner.style.display = 'none';
+            sessionStorage.setItem('announcementDismissed', '1');
+        });
 
         themeToggle.addEventListener('click', () => {
             const newTheme = body.classList.contains('dark') ? 'light' : 'dark';

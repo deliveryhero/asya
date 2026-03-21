@@ -16,22 +16,20 @@ maintainers:
 - name: Asya Team
 
 # Remote dependencies (from published Helm repositories)
-# NOTE: Crossplane must be installed separately before this chart (see quickstart docs)
+# Prerequisites (install separately before this chart):
+#   - Crossplane operator: helm install crossplane crossplane-stable/crossplane -n crossplane-system
+#   - KEDA: helm install keda kedacore/keda -n keda
 dependencies:
-# KEDA is required for autoscaling - non-optional dependency
-- name: keda
-  version: ">=2.16.0"
-  repository: "https://kedacore.github.io/charts"
 - name: asya-crossplane
   version: ">=0.1.0"
-  repository: "https://asya.sh/charts"
+  repository: "file://../asya-crossplane"
 - name: asya-crew
-  version: ">=0.4.0"
-  repository: "https://asya.sh/charts"
+  version: ">=0.0.0"
+  repository: "file://../asya-crew"
   condition: enableAsyaCrew
 - name: asya-gateway
-  version: ">=0.4.0"
-  repository: "https://asya.sh/charts"
+  version: ">=0.0.0"
+  repository: "file://../asya-gateway"
   condition: enableAsyaGateway
 # Optional: Prometheus + Grafana monitoring stack
 - name: kube-prometheus-stack

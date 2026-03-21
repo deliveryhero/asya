@@ -26,6 +26,14 @@ An actor is a **stateless workload** that:
 
 ## Architecture Diagram
 
+<a href="../../website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="../../website/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
+</a>
+
+*Click the diagram to view full size.*
+
+Simplified view:
+
 ```
 ┌──────────────────────────────────────────────┐
 │               AsyncActor Pod                 │
@@ -47,6 +55,8 @@ An actor is a **stateless workload** that:
     │RabbitMQ)│
     └─────────┘
 ```
+
+**Message flow**: Queue → Sidecar → Runtime (your handler) → Sidecar → Next Queue
 
 ## Deployment
 
