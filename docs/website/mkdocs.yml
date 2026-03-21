@@ -117,6 +117,26 @@ nav:
     - Redis: reference/state-proxy-connectors/redis.md
     - NATS KV: reference/state-proxy-connectors/nats-kv.md
   - Environment Variables: reference/env-vars.md
+- Comparisons:
+  - comparisons/README.md
+  - by category:
+    - Workflow Orchestrators: comparisons/as-workflow-orchestrator.md
+    - Actor Frameworks: comparisons/as-actor-framework.md
+    - Agentic Frameworks: comparisons/as-agentic-framework.md
+    - ML Pipeline Tools: comparisons/as-ml-pipeline-tool.md
+    - Stream Processing: comparisons/as-stream-processing.md
+    - AI/ML Serving: comparisons/as-ai-serving.md
+    - K8s Job Schedulers: comparisons/as-k8s-scheduler.md
+  - in-depth:
+    - vs Temporal: comparisons/vs-temporal.md
+    - vs Dapr: comparisons/vs-dapr.md
+    - vs LangGraph: comparisons/vs-langgraph.md
+    - vs Google ADK: comparisons/vs-google-adk.md
+    - vs KAgent: comparisons/vs-kagent.md
+    - vs Ray Serve: comparisons/vs-ray-serve.md
+    - vs Kubeflow Pipelines: comparisons/vs-kubeflow-pipelines.md
+- Architecture: architecture.md
+- Motivation: motivation.md
 plugins:
 - shadcn/search:
     prebuild_index: python
