@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-order-pipeline-line-32-if-2
+  namespace: default
+  labels:
+    asya.sh/flow: order-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-order-pipeline-line-32-if-2
+  image: python:3.13-slim
+  handler: routers.router_order_pipeline_line_32_if_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_ORDER_PIPELINE_LINE_32_IF_2
+    value: routers.router_order_pipeline_line_32_if_2
+  - name: ASYA_HANDLER_ROUTER_ORDER_PIPELINE_LINE_33_SEQ_1
+    value: routers.router_order_pipeline_line_33_seq_1
+  - name: ASYA_HANDLER_ACTOR_VALIDATE_ORDER
+    value: validate_order

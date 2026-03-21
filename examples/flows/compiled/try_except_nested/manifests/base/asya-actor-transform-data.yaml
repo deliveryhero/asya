@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-transform-data
+  namespace: default
+  labels:
+    asya.sh/flow: nested-error-handling
+spec:
+  actor: actor-transform-data
+  image: examples.asya.sh/transform-data:latest
+  handler: transform_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_24_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-nested-error-handling-line-33-except-2
+    rules:
+    - errors:
+      - ConnectionError
+      policy: try_except_line_24_0

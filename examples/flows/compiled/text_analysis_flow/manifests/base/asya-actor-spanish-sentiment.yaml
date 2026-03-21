@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-spanish-sentiment
+  namespace: default
+  labels:
+    asya.sh/flow: text-analysis-flow
+spec:
+  actor: actor-spanish-sentiment
+  image: examples.asya.sh/spanish-sentiment:latest
+  handler: spanish_sentiment
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

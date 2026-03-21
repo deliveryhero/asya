@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-aggregator.yaml
-- asyncactor-entity-recognizer.yaml
-- asyncactor-preprocessor.yaml
-- asyncactor-router-parallel-sectioning-line-47-fanout-1.yaml
-- asyncactor-sentiment-analyzer.yaml
-- asyncactor-start-parallel-sectioning.yaml
-- asyncactor-topic-extractor.yaml
+- asya-actor-aggregator.yaml
+- asya-actor-entity-recognizer.yaml
+- asya-actor-preprocessor.yaml
+- asya-actor-sentiment-analyzer.yaml
+- asya-actor-topic-extractor.yaml
+- asya-router-parallel-sectioning-line-47-fanout-1.yaml
+- asya-start-parallel-sectioning.yaml
 - configmap-routers.yaml

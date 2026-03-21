@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-classify.yaml
-- asyncactor-format-output.yaml
-- asyncactor-router-actor-override-flow-line-26-if-1.yaml
-- asyncactor-start-actor-override-flow.yaml
-- asyncactor-tool-executor.yaml
+- asya-actor-classify.yaml
+- asya-actor-format-output.yaml
+- asya-actor-tool-executor.yaml
+- asya-router-actor-override-flow-line-26-if-1.yaml
+- asya-start-actor-override-flow.yaml
 - configmap-routers.yaml

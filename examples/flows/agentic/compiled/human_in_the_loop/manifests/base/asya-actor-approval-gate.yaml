@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-approval-gate
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+spec:
+  actor: actor-approval-gate
+  image: examples.asya.sh/approval-gate:latest
+  handler: approval_gate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

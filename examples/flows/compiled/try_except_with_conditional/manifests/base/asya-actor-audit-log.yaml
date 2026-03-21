@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-audit-log
+  namespace: default
+  labels:
+    asya.sh/flow: payment-flow
+spec:
+  actor: actor-audit-log
+  image: examples.asya.sh/audit-log:latest
+  handler: audit_log
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

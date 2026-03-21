@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-early-return-flow-line-13-if-1.yaml
-- asyncactor-start-early-return-flow.yaml
+- asya-router-early-return-flow-line-13-if-1.yaml
+- asya-start-early-return-flow.yaml
 - configmap-routers.yaml

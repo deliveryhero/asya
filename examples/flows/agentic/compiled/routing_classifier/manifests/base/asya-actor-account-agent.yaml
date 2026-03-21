@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-account-agent
+  namespace: default
+  labels:
+    asya.sh/flow: routing-classifier
+spec:
+  actor: actor-account-agent
+  image: examples.asya.sh/account-agent:latest
+  handler: account_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

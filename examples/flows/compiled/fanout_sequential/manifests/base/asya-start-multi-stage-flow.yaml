@@ -1,0 +1,30 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-multi-stage-flow
+  namespace: default
+  labels:
+    asya.sh/flow: multi-stage-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-multi-stage-flow
+  image: python:3.13-slim
+  handler: routers.start_multi_stage_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_LINE_14
+    value: routers.fanin_multi_stage_flow_line_14
+  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_LINE_15
+    value: routers.fanin_multi_stage_flow_line_15
+  - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
+    value: research_agent
+  - name: ASYA_HANDLER_ACTOR_REVIEW_AGENT
+    value: review_agent
+  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_LINE_14_FANOUT_2
+    value: routers.router_multi_stage_flow_line_14_fanout_2
+  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_LINE_15_FANOUT_1
+    value: routers.router_multi_stage_flow_line_15_fanout_1

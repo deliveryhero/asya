@@ -1,8 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-if-inside-while-flow-line-13-seq-3.yaml
-- asyncactor-router-if-inside-while-flow-line-14-while-1.yaml
-- asyncactor-router-if-inside-while-flow-line-16-if-2.yaml
-- asyncactor-start-if-inside-while-flow.yaml
+- asya-router-if-inside-while-flow-line-13-seq-3.yaml
+- asya-router-if-inside-while-flow-line-14-while-1.yaml
+- asya-router-if-inside-while-flow-line-16-if-2.yaml
+- asya-start-if-inside-while-flow.yaml
 - configmap-routers.yaml

@@ -1,0 +1,51 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-hierarchical-delegation-line-77-if-3
+  namespace: default
+  labels:
+    asya.sh/flow: hierarchical-delegation
+    asya.sh/generated: 'true'
+spec:
+  actor: router-hierarchical-delegation-line-77-if-3
+  image: python:3.13-slim
+  handler: routers.router_hierarchical_delegation_line_77_if_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_API_SPECIALIST
+    value: api_specialist
+  - name: ASYA_HANDLER_ACTOR_CONTENT_GENERALIST
+    value: content_generalist
+  - name: ASYA_HANDLER_ACTOR_CONTENT_TEAM_LEAD
+    value: content_team_lead
+  - name: ASYA_HANDLER_ACTOR_DATA_GENERALIST
+    value: data_generalist
+  - name: ASYA_HANDLER_ACTOR_DATA_TEAM_LEAD
+    value: data_team_lead
+  - name: ASYA_HANDLER_ACTOR_EDITOR
+    value: editor
+  - name: ASYA_HANDLER_ACTOR_FINAL_ASSEMBLER
+    value: final_assembler
+  - name: ASYA_HANDLER_ACTOR_GENERALIST
+    value: generalist
+  - name: ASYA_HANDLER_ACTOR_ROOT_AGENT
+    value: root_agent
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_60_IF_6
+    value: routers.router_hierarchical_delegation_line_60_if_6
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_64_IF_2
+    value: routers.router_hierarchical_delegation_line_64_if_2
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_66_IF_1
+    value: routers.router_hierarchical_delegation_line_66_if_1
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_71_IF_5
+    value: routers.router_hierarchical_delegation_line_71_if_5
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_75_IF_4
+    value: routers.router_hierarchical_delegation_line_75_if_4
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_77_IF_3
+    value: routers.router_hierarchical_delegation_line_77_if_3
+  - name: ASYA_HANDLER_ACTOR_SQL_SPECIALIST
+    value: sql_specialist
+  - name: ASYA_HANDLER_ACTOR_WRITER
+    value: writer

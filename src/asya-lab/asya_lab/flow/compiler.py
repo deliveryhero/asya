@@ -295,7 +295,7 @@ class FlowCompiler:
         for handler_name in sorted(self._codegen_meta.all_handler_names):
             if any(handler_name.startswith(p) for p in ROUTER_PREFIXES):
                 continue
-            k8s_name = handler_name.replace("_", "-")
+            k8s_name = f"actor-{handler_name.replace('_', '-')}"
             actors.append(
                 ActorInfo(
                     name=k8s_name,

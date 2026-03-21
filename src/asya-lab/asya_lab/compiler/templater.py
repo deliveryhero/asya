@@ -150,7 +150,7 @@ class ManifestTemplater:
 
         actors = self._collect_actors()
         for actor in actors:
-            filename = f"asyncactor-{actor.name}.yaml"
+            filename = f"asya-{actor.name}.yaml"
             self._stamp_actor(base_dir / filename, actor)
             resources.append(filename)
             generated.append(f"base/{filename}")
@@ -368,7 +368,11 @@ Each overlay builds on top of `common/`.
             return
 
         # Reverse K8s name to Python name (the key used in actor_retry_rules)
-        actor_python_name = actor.name.replace("-", "_")
+        # Strip actor- prefix if present (handler actors get actor- prefix in K8s name)
+        k8s_name = actor.name
+        if k8s_name.startswith("actor-"):
+            k8s_name = k8s_name[len("actor-") :]
+        actor_python_name = k8s_name.replace("-", "_")
         rules = self.codegen_meta.actor_retry_rules.get(actor_python_name, [])
         if not rules:
             return
@@ -440,7 +444,7 @@ Each overlay builds on top of `common/`.
                     continue
                 if actor_name not in handler_actors:
                     image = self.project.resolve_image(actor_name)
-                    k8s_name = self._to_k8s_name(actor_name)
+                    k8s_name = f"actor-{self._to_k8s_name(actor_name)}"
                     handler = self.import_map.get(actor_name, actor_name)
                     # Graph-derived role overrides the default "actor" role
                     role = self.flow_roles.get(actor_name, "actor")
@@ -472,11 +476,13 @@ Each overlay builds on top of `common/`.
             if actor_name in seen:
                 continue
             seen.add(actor_name)
-            env_var_name = f"ASYA_HANDLER_{actor_name.upper().replace('-', '_')}"
             if self._is_router_name(actor_name):
+                k8s_name = self._to_k8s_name(actor_name)
                 handler = f"routers.{actor_name}"
             else:
+                k8s_name = f"actor-{self._to_k8s_name(actor_name)}"
                 handler = self.import_map.get(actor_name, actor_name)
+            env_var_name = f"ASYA_HANDLER_{k8s_name.upper().replace('-', '_')}"
             env.append({"name": env_var_name, "value": handler})
         return env
 

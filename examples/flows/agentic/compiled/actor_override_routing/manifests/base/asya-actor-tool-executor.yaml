@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-tool-executor
+  namespace: default
+  labels:
+    asya.sh/flow: actor-override-flow
+spec:
+  actor: actor-tool-executor
+  image: examples.asya.sh/tool-executor:latest
+  handler: tool_executor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

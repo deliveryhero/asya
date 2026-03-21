@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-order-pipeline-line-27-seq-3.yaml
-- asyncactor-router-order-pipeline-line-32-if-2.yaml
-- asyncactor-router-order-pipeline-line-33-seq-1.yaml
-- asyncactor-start-order-pipeline.yaml
-- asyncactor-validate-order.yaml
+- asya-actor-validate-order.yaml
+- asya-router-order-pipeline-line-27-seq-3.yaml
+- asya-router-order-pipeline-line-32-if-2.yaml
+- asya-router-order-pipeline-line-33-seq-1.yaml
+- asya-start-order-pipeline.yaml
 - configmap-routers.yaml

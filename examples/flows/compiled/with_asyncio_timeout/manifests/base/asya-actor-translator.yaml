@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-translator
+  namespace: default
+  labels:
+    asya.sh/flow: document-pipeline
+spec:
+  actor: actor-translator
+  image: examples.asya.sh/translator:latest
+  handler: translator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -1,0 +1,36 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-payment-flow
+  namespace: default
+  labels:
+    asya.sh/flow: payment-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-payment-flow
+  image: python:3.13-slim
+  handler: routers.start_payment_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_AUDIT_LOG
+    value: audit_log
+  - name: ASYA_HANDLER_ACTOR_CHARGE_CARD
+    value: charge_card
+  - name: ASYA_HANDLER_ACTOR_NOTIFY_PAYMENT_FAILURE
+    value: notify_payment_failure
+  - name: ASYA_HANDLER_ACTOR_PROCESS_BANK_TRANSFER
+    value: process_bank_transfer
+  - name: ASYA_HANDLER_ACTOR_RECORD_TRANSACTION
+    value: record_transaction
+  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_17_IF_3
+    value: routers.router_payment_flow_line_17_if_3
+  - name: ASYA_HANDLER_ROUTER_PAYMENT_FLOW_LINE_23_SEQ_1
+    value: routers.router_payment_flow_line_23_seq_1
+  - name: ASYA_HANDLER_ACTOR_SEND_RECEIPT
+    value: send_receipt
+  - name: ASYA_HANDLER_ACTOR_VALIDATE_PAYMENT
+    value: validate_payment

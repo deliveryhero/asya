@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-c
+  namespace: default
+  labels:
+    asya.sh/flow: conditional-nested-flow
+    asya.sh/role: end
+spec:
+  actor: actor-handler-c
+  image: examples.asya.sh/handler-c:latest
+  handler: handler_c
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

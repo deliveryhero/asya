@@ -69,7 +69,7 @@ def test_find_flow_images(tmp_path):
         "metadata": {"name": "actor-a"},
         "spec": {"image": "ghcr.io/org/image-a:v1"},
     }
-    (base_dir / "asyncactor-actor-a.yaml").write_text(yaml.dump(actor_manifest))
+    (base_dir / "asya-actor-a.yaml").write_text(yaml.dump(actor_manifest))
 
     actor_manifest2 = {
         "apiVersion": "asya.sh/v1alpha1",
@@ -77,7 +77,7 @@ def test_find_flow_images(tmp_path):
         "metadata": {"name": "actor-b"},
         "spec": {"image": "ghcr.io/org/image-b:v1"},
     }
-    (base_dir / "asyncactor-actor-b.yaml").write_text(yaml.dump(actor_manifest2))
+    (base_dir / "asya-actor-b.yaml").write_text(yaml.dump(actor_manifest2))
 
     # kustomization.yaml should be skipped
     (base_dir / "kustomization.yaml").write_text("resources: []")
@@ -124,8 +124,8 @@ def test_resolve_entries_by_flow_name(tmp_path):
         "metadata": {"name": "validate-order"},
         "spec": {"image": "ghcr.io/org/ecom:v1"},
     }
-    (base_dir / "asyncactor-validate-order.yaml").write_text(yaml.dump(manifest))
-    (base_dir / "kustomization.yaml").write_text("resources: [asyncactor-validate-order.yaml]")
+    (base_dir / "asya-validate-order.yaml").write_text(yaml.dump(manifest))
+    (base_dir / "kustomization.yaml").write_text("resources: [asya-validate-order.yaml]")
 
     entries = [
         {"module": "e_commerce", "image": "ghcr.io/org/ecom:v1", "command": "docker build ."},
@@ -269,7 +269,7 @@ def test_build_deduplicates_images(tmp_path):
             "metadata": {"name": name},
             "spec": {"image": "ghcr.io/org/shared:v1"},
         }
-        (base_dir / f"asyncactor-{name}.yaml").write_text(yaml.dump(manifest))
+        (base_dir / f"asya-{name}.yaml").write_text(yaml.dump(manifest))
     (base_dir / "kustomization.yaml").write_text("resources: []")
 
     entries = [
