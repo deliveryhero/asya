@@ -121,14 +121,27 @@ This is choreography: no coordinator, no single point of failure, no coupled sca
 
 ## When to Use Asya
 
-✅ **Multi-step AI/ML pipelines** where steps have different latencies, hardware, and
-scaling needs
+✅ **Mixed-latency pipelines** — fast backend steps (ms), LLM calls (seconds), and slow
+generative AI for images/video (minutes) all in the same pipeline, each scaling to its
+own hardware profile
 
-✅ **Bursty or unpredictable workloads** that benefit from scale-to-zero
+✅ **Big teams with separation of concerns** — part of a developer platform on K8s where
+data scientists write Python and platform engineers manage infrastructure. Actors are the
+contract between the two worlds
 
-✅ **Agentic workflows** with dynamic routing, LLM judge loops, human-in-the-loop
+✅ **Scale to infinity at constant cost** — KEDA scales each actor independently from zero.
+GPU pods cost nothing when idle. 10x traffic spike scales only the bottleneck, not the
+whole pipeline
 
-✅ **Kubernetes-native teams** that want infrastructure as CRDs
+✅ **True decentralization** — no central orchestrator that can fail, bottleneck, or
+become the deployment dependency for every team. Each actor is independently deployable,
+scalable, and replaceable
+
+✅ **Agentic workflows** — dynamic routing, LLM judge loops, human-in-the-loop
+pause/resume, agent swarms as distributed actors
+
+✅ **Bursty or unpredictable workloads** — batch processing that runs hourly, daily, or
+on-demand. Scale to zero between runs
 
 ## When to Consider Alternatives
 
@@ -136,8 +149,7 @@ scaling needs
 need a fast PoC, Python-native frameworks (LangGraph, CrewAI) are simpler to start with.
 Once you need to scale beyond a single process, Asya is the path forward.
 
-❌ **LLM training** — training requires fast cross-GPU synchronization (NCCL, ring
-allreduce) which is fundamentally different from Asya's async decentralized execution
-model. Use Kubeflow, Ray Train, or native K8s Jobs for training. Asya handles
-everything that happens around training: data preparation, inference, evaluation,
-serving.
+❌ **LLM training** — training requires fast cross-GPU synchronization (NCCL, ring allreduce)
+which is fundamentally different from Asya's async decentralized execution model. You may want
+to use other tools like Ray Train for training. Asya handles everything that happens around
+training: data preparation, inference, evaluation, serving.
