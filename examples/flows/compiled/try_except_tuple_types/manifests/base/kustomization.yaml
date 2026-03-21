@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-fetch-data.yaml
+- asyncactor-parse-data.yaml
+- asyncactor-queue-for-retry.yaml
+- asyncactor-reject-input.yaml
+- asyncactor-router-ingestion-pipeline-line-15-except-2.yaml
+- asyncactor-router-ingestion-pipeline-line-16-seq-1.yaml
+- asyncactor-router-ingestion-pipeline-line-18-except-4.yaml
+- asyncactor-router-ingestion-pipeline-line-19-seq-3.yaml
+- asyncactor-start-ingestion-pipeline.yaml
+- configmap-routers.yaml

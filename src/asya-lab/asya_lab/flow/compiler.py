@@ -241,10 +241,12 @@ class FlowCompiler:
         flow_name = flow_function.replace("_", "-")
 
         try:
-            manifests_dir = self._project.resolve_path("compiler.manifests") / flow_name
+            self._project.resolve_path("compiler.manifests")  # check config exists
             templates_dir = self._project.resolve_path("compiler.templates")
         except KeyError:
             return None
+
+        manifests_dir = compiled_dir / "manifests"
 
         router_code = self._generated_code or ""
         actor_template = templates_dir / "actor.yaml"
