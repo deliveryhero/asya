@@ -21,6 +21,7 @@ from asya_lab.flow.parser import (
     Operation,
     ParseResult,
     Return,
+    TryExcept,
 )
 
 
@@ -47,6 +48,15 @@ class _RouterFunc:
 
 
 @dataclass
+class ActorRetryRule:
+    """Retry rule to inject into an actor's manifest for try/except error routing."""
+
+    error_types: list[str] | None  # None = bare except (policies.default)
+    policy_name: str  # e.g. "try_except_line_3_ve"
+    then_route: list[str]  # K8s actor names for thenRoute
+
+
+@dataclass
 class CodegenMeta:
     """Metadata about generated code, used by manifest templater."""
 
@@ -54,6 +64,7 @@ class CodegenMeta:
     all_handler_names: set[str]
     router_refs: dict[str, list[str]]  # router_name -> list of referenced actor names
     single_actor: str | None  # set for single-actor flows
+    actor_retry_rules: dict[str, list[ActorRetryRule]] | None = None  # actor_name -> rules
 
 
 class CodeGenerator:
@@ -74,6 +85,7 @@ class CodeGenerator:
         self._has_fan_out = False
         self._all_handlers: set[str] = set()
         self._router_counter = 0
+        self._actor_retry_rules: dict[str, list[ActorRetryRule]] = {}  # actor_name -> rules
 
     def generate(self) -> str:
         if self._is_single_actor_flow():
@@ -122,6 +134,7 @@ class CodeGenerator:
             all_handler_names=all_handlers,
             router_refs=router_refs,
             single_actor=None,
+            actor_retry_rules=self._actor_retry_rules if self._actor_retry_rules else None,
         )
 
     # -- Single-actor optimization --
@@ -266,6 +279,15 @@ class CodeGenerator:
                 self._emit_seq_router(seq_name, mutations, [name])
                 return [seq_name]
             return [name]
+
+        elif isinstance(op, TryExcept):
+            rest_chain = self._process_ops(rest, loop_ctx, continuation)
+            chain = self._process_try_except(op, rest_chain, loop_ctx, continuation)
+            if mutations:
+                name = self._router_name("seq", mutations[0].lineno)
+                self._emit_seq_router(name, mutations, chain)
+                return [name]
+            return chain
 
         elif isinstance(op, Break):
             if not loop_ctx:
@@ -531,6 +553,95 @@ class CodeGenerator:
         lines.append('        yield "SET", ".route.next", [_actor, _agg]')
         lines.append('        yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}')
         lines.append("        yield _payload")
+        lines.append("")
+
+        self._functions.append(_RouterFunc(name=name, code="\n".join(lines)))
+
+    # -- Try/except processing --
+
+    def _process_try_except(
+        self,
+        op: TryExcept,
+        rest_chain: list[str],
+        loop_ctx: _LoopCtx | None,
+        continuation: list[str] | None,
+    ) -> list[str]:
+        """Process a try/except block.
+
+        Generates N except_routers (one per handler). Each router overwrites
+        route.next with the handler's continuation path. Try-body actors get
+        retry rules in their manifests via actor_retry_rules.
+        """
+        finally_chain = self._process_ops(op.finally_body, loop_ctx, continuation) if op.finally_body else []
+        after_try = finally_chain + rest_chain
+
+        # Generate one except_router per handler
+        for handler in op.handlers:
+            handler_inner = self._process_ops(handler.body, loop_ctx, continuation)
+            handler_terminal = self._is_terminal(handler.body)
+
+            if handler_terminal:
+                handler_chain = handler_inner
+            else:
+                handler_chain = handler_inner + after_try
+
+            router_name = self._router_name("except", handler.lineno)
+            self._emit_except_router(router_name, handler_chain)
+
+            # Build policy name from error types
+            if handler.error_types is not None:
+                suffix = "_".join(t.replace(".", "_").lower()[:10] for t in handler.error_types)
+                policy_name = f"try_except_line_{op.lineno}_{suffix}"
+            else:
+                policy_name = f"try_except_line_{op.lineno}_default"
+
+            rule = ActorRetryRule(
+                error_types=handler.error_types,
+                policy_name=policy_name,
+                then_route=[router_name],
+            )
+
+            # Record retry rule for every actor in the try body
+            body_actors = self._collect_actor_names(op.body)
+            for actor_name in body_actors:
+                self._actor_retry_rules.setdefault(actor_name, []).append(rule)
+
+        # The success path: try body + finally + rest
+        body_chain = self._process_ops(op.body, loop_ctx, continuation)
+        return body_chain + after_try
+
+    @staticmethod
+    def _collect_actor_names(ops: list[Operation]) -> list[str]:
+        """Collect all actor names from an operation list, recursing into nested structures."""
+        names: list[str] = []
+        for op in ops:
+            if isinstance(op, ActorCall):
+                names.append(op.name)
+            elif isinstance(op, Conditional):
+                names.extend(CodeGenerator._collect_actor_names(op.true_branch))
+                names.extend(CodeGenerator._collect_actor_names(op.false_branch))
+            elif isinstance(op, Loop):
+                names.extend(CodeGenerator._collect_actor_names(op.body))
+            elif isinstance(op, FanOut):
+                names.extend(name for name, _ in op.actor_calls)
+            elif isinstance(op, TryExcept):
+                names.extend(CodeGenerator._collect_actor_names(op.body))
+        return names
+
+    def _emit_except_router(self, name: str, handler_chain: list[str]) -> None:
+        """Generate an except_router that overwrites route.next with the handler's path."""
+        lines = []
+        lines.append(f"async def {name}(payload: dict):")
+        lines.append('    """Router for error handling (except clause)"""')
+
+        if handler_chain:
+            resolved = ", ".join(f'resolve("{a}")' for a in handler_chain)
+            self._all_handlers.update(handler_chain)
+            lines.append(f'    yield "SET", ".route.next", [{resolved}]')
+        else:
+            lines.append('    yield "SET", ".route.next", []')
+
+        lines.append("    yield payload")
         lines.append("")
 
         self._functions.append(_RouterFunc(name=name, code="\n".join(lines)))

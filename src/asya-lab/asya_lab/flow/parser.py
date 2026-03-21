@@ -73,7 +73,26 @@ class Return:
     lineno: int
 
 
-Operation = ActorCall | Mutation | Conditional | Loop | FanOut | Break | Continue | Return
+@dataclass
+class ExceptHandler:
+    """A single except clause in a try/except block."""
+
+    error_types: list[str] | None  # None = bare except (catch-all)
+    body: list[Operation]
+    lineno: int
+
+
+@dataclass
+class TryExcept:
+    """A try/except/finally block."""
+
+    body: list[Operation]
+    handlers: list[ExceptHandler]
+    finally_body: list[Operation]
+    lineno: int
+
+
+Operation = ActorCall | Mutation | Conditional | Loop | FanOut | Break | Continue | Return | TryExcept
 
 
 @dataclass
@@ -160,6 +179,7 @@ class FlowParser:
         self.class_methods: set[str] = set()
         self.import_map: dict[str, str] = {}
         self._loop_depth: int = 0
+        self._in_except_body: bool = False
         self.extracted_configs: list[dict] = []
         self.module_constants: list[str] = []
         self._actors: list[str] = []
@@ -381,10 +401,7 @@ class FlowParser:
         elif isinstance(stmt, ast.While):
             return self._parse_while(stmt)
         elif isinstance(stmt, ast.Try):
-            raise FlowCompileError(
-                f"{self.filename}:{stmt.lineno}: try/except is not supported in the simplified compiler. "
-                f"Use resiliency rules in .asya/config.yaml instead (see aint 7179)."
-            )
+            return self._parse_try_except(stmt)
         elif isinstance(stmt, ast.With | ast.AsyncWith):
             return self._parse_with(stmt)
         elif isinstance(stmt, ast.For):
@@ -404,9 +421,11 @@ class FlowParser:
                 raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'continue' outside loop")
             return [Continue(lineno=stmt.lineno)]
         elif isinstance(stmt, ast.Raise):
+            if self._in_except_body:
+                return [Return(lineno=stmt.lineno)]
             raise FlowCompileError(
-                f"{self.filename}:{stmt.lineno}: 'raise' is not supported in the simplified compiler. "
-                f"Use resiliency rules in .asya/config.yaml instead."
+                f"{self.filename}:{stmt.lineno}: 'raise' is only supported inside except blocks. "
+                f"Use resiliency rules in .asya/config.yaml for error handling outside try/except."
             )
         elif isinstance(stmt, ast.Expr):
             return self._parse_expr(stmt)
@@ -713,6 +732,80 @@ class FlowParser:
 
         return [Loop(lineno=stmt.lineno, test=test, body=body)]
 
+    def _parse_try_except(self, stmt: ast.Try) -> list[Operation]:
+        if not stmt.handlers:
+            raise FlowCompileError(
+                f"{self.filename}:{stmt.lineno}: try/finally without except is not supported. "
+                f"Use a context manager or resiliency rules instead."
+            )
+
+        body = self._parse_body(stmt.body)
+
+        handlers: list[ExceptHandler] = []
+        for handler in stmt.handlers:
+            error_types: list[str] | None = None
+            if handler.type is not None:
+                error_types = self._extract_exception_types(handler.type, handler.lineno)
+            if handler.name is not None:
+                raise FlowCompileError(
+                    f"{self.filename}:{handler.lineno}: naming the exception ('as {handler.name}') "
+                    f"is not supported in flow try/except."
+                )
+            self._in_except_body = True
+            try:
+                handler_body = self._parse_body(handler.body)
+            finally:
+                self._in_except_body = False
+            handlers.append(
+                ExceptHandler(
+                    error_types=error_types,
+                    body=handler_body,
+                    lineno=handler.lineno,
+                )
+            )
+
+        finally_body: list[Operation] = []
+        if stmt.finalbody:
+            finally_body = self._parse_body(stmt.finalbody)
+
+        if stmt.orelse:
+            raise FlowCompileError(f"{self.filename}:{stmt.lineno}: 'else' clause on try/except is not supported.")
+
+        return [
+            TryExcept(
+                body=body,
+                handlers=handlers,
+                finally_body=finally_body,
+                lineno=stmt.lineno,
+            )
+        ]
+
+    def _extract_exception_types(self, node: ast.expr, lineno: int) -> list[str]:
+        """Extract exception type names from an except clause type annotation.
+
+        Supports: except ValueError, except (ValueError, TypeError)
+        """
+        if isinstance(node, ast.Name):
+            return [node.id]
+        elif isinstance(node, ast.Attribute):
+            return [ast.unparse(node)]
+        elif isinstance(node, ast.Tuple):
+            types: list[str] = []
+            for elt in node.elts:
+                if isinstance(elt, ast.Name):
+                    types.append(elt.id)
+                elif isinstance(elt, ast.Attribute):
+                    types.append(ast.unparse(elt))
+                else:
+                    raise FlowCompileError(
+                        f"{self.filename}:{lineno}: Unsupported exception type expression: {ast.unparse(elt)}"
+                    )
+            return types
+        else:
+            raise FlowCompileError(
+                f"{self.filename}:{lineno}: Unsupported exception type expression: {ast.unparse(node)}"
+            )
+
     def _parse_with(self, stmt: ast.With | ast.AsyncWith) -> list[Operation]:
         symbols: list[str] = []
         for item in stmt.items:
@@ -803,6 +896,11 @@ class FlowParser:
                 actors.extend(FlowParser._collect_scope_actors(op.body))
             elif isinstance(op, FanOut):
                 actors.extend(name for name, _ in op.actor_calls)
+            elif isinstance(op, TryExcept):
+                actors.extend(FlowParser._collect_scope_actors(op.body))
+                for handler in op.handlers:
+                    actors.extend(FlowParser._collect_scope_actors(handler.body))
+                actors.extend(FlowParser._collect_scope_actors(op.finally_body))
         return actors
 
     def _parse_expr(self, stmt: ast.Expr) -> list[Operation]:

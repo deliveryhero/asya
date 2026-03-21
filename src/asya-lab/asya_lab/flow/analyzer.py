@@ -483,6 +483,7 @@ def _deduplicate_edges(edges: list[dict]) -> None:
 def analyze(
     routers_source: str,
     handler_sources: dict[str, str] | None = None,
+    actor_retry_rules: dict | None = None,
 ) -> GraphData:
     """Analyze generated routers and user handlers to build graph topology.
 
@@ -532,7 +533,23 @@ def analyze(
                     edge["override"] = True
                 all_edges.extend(handler_edges)
 
-    # Step 3: TODO - Parse manifests for resiliency.rules error routing
+    # Step 3: Add error edges from try-body actors to except_routers
+    if actor_retry_rules:
+        for actor_name, rules in actor_retry_rules.items():
+            for rule in rules:
+                for router_name in rule.then_route:
+                    if rule.error_types is not None:
+                        label = ", ".join(rule.error_types)
+                    else:
+                        label = "except *"
+                    all_edges.append(
+                        {
+                            "from": actor_name,
+                            "to": router_name,
+                            "label": label,
+                            "type": "error",
+                        }
+                    )
 
     # Step 4: Splice prepend chains into continuation chains.
     # When router R prepends [P1, P2] and has continuation R → C (from a parent chain),

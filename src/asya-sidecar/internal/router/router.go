@@ -269,10 +269,6 @@ func (r *Router) parseAndValidateMessage(ctx context.Context, msgBody []byte, st
 // When resiliency is configured, it matches the error against rules to find a policy,
 // then applies that policy (retry, onExhausted routing, or fail permanently).
 func (r *Router) handleErrorResponse(ctx context.Context, msg *envelopes.Envelope, response runtime.RuntimeResponse, startTime time.Time) error {
-	if onError, ok := msg.Headers["_on_error"].(string); ok && onError != "" {
-		return r.routeToFlowErrorHandler(ctx, msg, onError, response, startTime)
-	}
-
 	if r.metrics != nil {
 		r.metrics.RecordMessageProcessed(r.actorName, "error")
 		r.metrics.RecordProcessingDuration(r.actorName, time.Since(startTime))
@@ -611,70 +607,6 @@ func (r *Router) sendRetryFailure(ctx context.Context, msg *envelopes.Envelope, 
 		}
 		return fmt.Errorf("failed to send to error queue: %w", err)
 	}
-	return nil
-}
-
-// routeToFlowErrorHandler routes an error to a flow-level error handler (except_dispatch router)
-// instead of the error-end queue. This preserves the original payload and sets error details
-// in status.error for the except_dispatch router to inspect.
-func (r *Router) routeToFlowErrorHandler(ctx context.Context, msg *envelopes.Envelope, onError string, response runtime.RuntimeResponse, startTime time.Time) error {
-	slog.Info("Routing error to flow error handler", "id", msg.ID, "handler", onError, "error", response.Error)
-
-	// Clear _on_error to prevent infinite error routing loops
-	delete(msg.Headers, "_on_error")
-
-	// Replace next actors with the error handler (runtime will do the shift)
-	msg.Route.Next = []string{onError}
-
-	// Set error details in status
-	now := time.Now().UTC().Format(time.RFC3339)
-	createdAt := now
-	if msg.Status != nil && msg.Status.CreatedAt != "" {
-		createdAt = msg.Status.CreatedAt
-	}
-	msg.Status = &envelopes.Status{
-		Phase:       envelopes.PhaseFailed,
-		Actor:       r.actorName,
-		Attempt:     1,
-		MaxAttempts: 1,
-		CreatedAt:   createdAt,
-		UpdatedAt:   now,
-		Error: &envelopes.StatusError{
-			Message:   response.Details.Message,
-			Type:      response.Details.Type,
-			Traceback: response.Details.Traceback,
-			MRO:       response.Details.MRO,
-		},
-	}
-
-	// Marshal and send
-	msgBody, err := json.Marshal(msg)
-	if err != nil {
-		return fmt.Errorf("failed to marshal message for flow error handler: %w", err)
-	}
-
-	if r.metrics != nil {
-		r.metrics.RecordMessageSize("sent", len(msgBody))
-	}
-
-	sendStart := time.Now()
-	queueName := r.resolveQueueName(onError)
-	err = r.transport.Send(ctx, queueName, msgBody)
-	sendDuration := time.Since(sendStart)
-
-	if r.metrics != nil {
-		r.metrics.RecordQueueSendDuration(onError, r.cfg.TransportType, sendDuration)
-		if err == nil {
-			r.metrics.RecordMessageSent(onError, "flow_error_handler")
-		}
-	}
-
-	if err != nil {
-		slog.Error("Failed to send to flow error handler", "id", msg.ID, "handler", onError, "error", err)
-		return fmt.Errorf("failed to send to flow error handler: %w", err)
-	}
-
-	slog.Info("Routed error to flow error handler", "id", msg.ID, "handler", onError, "queue", queueName)
 	return nil
 }
 

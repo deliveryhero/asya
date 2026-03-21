@@ -117,7 +117,7 @@ class FlowCompiler:
 
         # Step 3: Analyze (graph extraction from generated code)
         handler_sources = self._extract_handler_sources(source_code, result.actors)
-        self._graph_data = analyze(code, handler_sources)
+        self._graph_data = analyze(code, handler_sources, self._codegen_meta.actor_retry_rules)
         # Pass through flow composition groups from parser
         if result.groups:
             self._graph_data.groups = result.groups
