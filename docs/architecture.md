@@ -31,8 +31,6 @@ Each actor pod has two injected containers:
 Your handler sees only `dict -> dict`. The envelope structure, queue mechanics, and
 routing are invisible to it.
 
-<img src="/docs/website/img/actor-anatomy.png" width="100%" alt="Actor pod anatomy: sidecar + runtime + optional state proxy"/>
-
 ### Gateway (optional)
 
 The [gateway](reference/components/core-gateway.md) bridges synchronous HTTP with the async mesh:
