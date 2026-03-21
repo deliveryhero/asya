@@ -51,12 +51,14 @@ through queues**.
     <em>Actor Mesh: each actor scales independently, messages carry their own route</em>
 </p>
 
-Each actor:
+**Each actor**:
 - Has its own queue (SQS, RabbitMQ, Pub/Sub)
 - Scales independently from 0 to N via KEDA
 - Fails independently — a crashed actor doesn't stall others
 - Runs a pure Python function — no retry logic, no queue client, no SDK
+- Is able to re-route each message to another actor
 
+**Independent scaling in action**: enhancer peaks at 44 pods while retriever stays at 1
 
 <p align="center">
 <img src="/docs/website/img/throughput-after.jpg" width="60%" alt="After: independent scaling per actor, stable throughput" />
