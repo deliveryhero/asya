@@ -78,5 +78,13 @@
         }
         el.addEventListener('toggle', saveState);
     });
+
+    // Scroll active nav item into view
+    var activeItem = document.querySelector('[data-active="true"]');
+    if (activeItem) {
+        setTimeout(function() {
+            activeItem.scrollIntoView({ block: 'center', behavior: 'instant' });
+        }, 50);
+    }
 })();
 </script>
