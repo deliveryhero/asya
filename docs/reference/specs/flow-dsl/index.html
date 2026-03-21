@@ -647,29 +647,200 @@ and how CPS compilation works, see
 <a href="../../components/lab-flow-compiler/">Flow Compiler Architecture</a>.</p>
 <hr />
 <h2 id="what-is-the-flow-dsl">What is the Flow DSL?<a class="headerlink" href="#what-is-the-flow-dsl" title="Permanent link">&para;</a></h2>
-<p>The Flow DSL is a Python-based language for describing how actors are
+<p>The Flow DSL is a restricted subset of Python for describing how actors are
 connected. You write a function that looks like ordinary sequential Python
 code. The compiler transforms it into a network of <strong>router actors</strong> that
 steer messages through your pipeline at runtime.</p>
-<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">review_pipeline</span><span class="p">(</span><span class="n">state</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">classify</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">review_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">classify</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="k">if</span> <span class="n">state</span><span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;urgent&quot;</span><span class="p">:</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">escalate</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;category&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;urgent&quot;</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">escalate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">standard_review</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">standard_review</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">notify</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">state</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">notify</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">fallback_notify</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
-<p>This compiles into four router actors that handle sequencing, branching,
-and merging. You deploy the routers alongside your handler actors
-(<code>classify</code>, <code>escalate</code>, <code>standard_review</code>, <code>notify</code>) and Asya runs the
-pipeline.</p>
+<p>This compiles into router actors that handle sequencing, branching, error
+routing, and merging. You deploy the routers alongside your handler actors
+and Asya runs the pipeline.</p>
+<h3 id="flow-dsl-vs-actor-handlers">Flow DSL vs Actor handlers<a class="headerlink" href="#flow-dsl-vs-actor-handlers" title="Permanent link">&para;</a></h3>
+<p>A flow and an actor handler both have a <code>dict -&gt; dict</code> signature, but they
+are fundamentally different:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th></th>
+<th>Flow DSL</th>
+<th>Actor handler</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Purpose</strong></td>
+<td>Describes routing between actors</td>
+<td>Executes business logic</td>
+</tr>
+<tr>
+<td><strong>Runs as</strong></td>
+<td>Compiled to router actors (CPS)</td>
+<td>Deployed as a pod with sidecar</td>
+</tr>
+<tr>
+<td><strong>Allowed</strong></td>
+<td>Control flow only: <code>if</code>, <code>while</code>, <code>try/except</code>, <code>break</code>, <code>continue</code>, <code>return</code></td>
+<td>Full Python: imports, classes, I/O, yields, FLY events</td>
+</tr>
+<tr>
+<td><strong>Forbidden</strong></td>
+<td><code>yield</code>, <code>for</code>, free variables, imports, side effects</td>
+<td>N/A — full Python</td>
+</tr>
+<tr>
+<td><strong>State</strong></td>
+<td>Single <code>p</code> variable (the payload dict)</td>
+<td>Can use <code>yield "GET"</code>, <code>yield "SET"</code>, state proxy</td>
+</tr>
+<tr>
+<td><strong>Errors</strong></td>
+<td><code>try/except</code> compiles to resiliency rules in manifests</td>
+<td>Errors bubble to sidecar for policy dispatch</td>
+</tr>
+</tbody>
+</table></div>
+<p>The Flow DSL is <strong>pure control flow</strong> — it describes the shape of the pipeline.
+All computation happens in actor handlers. Think of it as a wiring diagram:
+the flow says "connect A to B, branch on condition C, retry on error D";
+the actors do the actual work.</p>
+<h3 id="what-flows-support">What flows support<a class="headerlink" href="#what-flows-support" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Construct</th>
+<th>Example</th>
+<th>Compiles to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Actor calls</td>
+<td><code>p = handler(p)</code></td>
+<td>Route entry in <code>route.next</code></td>
+</tr>
+<tr>
+<td>Payload mutations</td>
+<td><code>p["key"] = "value"</code></td>
+<td>Inline code in router function</td>
+</tr>
+<tr>
+<td>Conditionals</td>
+<td><code>if p["x"]: ... else: ...</code></td>
+<td>Conditional router with branch routing</td>
+</tr>
+<tr>
+<td>While loops</td>
+<td><code>while p["n"] &lt; 3: ...</code></td>
+<td>Loop-back router with self-reference</td>
+</tr>
+<tr>
+<td>Break / continue</td>
+<td><code>break</code>, <code>continue</code></td>
+<td>Exit / restart loop via route overwrite</td>
+</tr>
+<tr>
+<td>Early return</td>
+<td><code>return p</code></td>
+<td>Clear <code>route.next</code> → x-sink</td>
+</tr>
+<tr>
+<td>Try/except/finally</td>
+<td><code>try: ... except E: ...</code></td>
+<td>Except router + resiliency rules in manifests</td>
+</tr>
+<tr>
+<td>Raise (in except)</td>
+<td><code>raise</code></td>
+<td>Terminate flow (route to x-sink)</td>
+</tr>
+<tr>
+<td>Fan-out</td>
+<td><code>p["r"] = [a(x) for x in items]</code></td>
+<td>Fan-out router + fan-in aggregator</td>
+</tr>
+<tr>
+<td>Flow composition</td>
+<td><code>@flow</code> sub-functions</td>
+<td>Inlined at compile time</td>
+</tr>
+<tr>
+<td>Context managers</td>
+<td><code>with timeout(30): ...</code></td>
+<td>Config extraction (via compiler rules)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="what-flows-do-not-support">What flows do NOT support<a class="headerlink" href="#what-flows-do-not-support" title="Permanent link">&para;</a></h3>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Construct</th>
+<th>Why</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>for x in items:</code></td>
+<td>Replaced by fan-out comprehensions</td>
+<td><code>p["r"] = [actor(x) for x in items]</code></td>
+</tr>
+<tr>
+<td><code>yield</code> / <code>yield from</code></td>
+<td>Flows are not generators</td>
+<td>Use yields inside actor handlers</td>
+</tr>
+<tr>
+<td><code>import</code> / <code>global</code></td>
+<td>Flows are pure control flow</td>
+<td>Put logic in actor handlers</td>
+</tr>
+<tr>
+<td>Free variables</td>
+<td>Only <code>p</code> is allowed</td>
+<td>Pass data via <code>p["key"]</code></td>
+</tr>
+<tr>
+<td><code>result = a(b(p))</code></td>
+<td>Nested calls</td>
+<td>Assign sequentially: <code>p = b(p); p = a(p)</code></td>
+</tr>
+<tr>
+<td><code>except E as e:</code></td>
+<td>No exception binding</td>
+<td>Error details in <code>status.error</code> (read via ABI)</td>
+</tr>
+<tr>
+<td><code>try: ... else:</code></td>
+<td>Not supported</td>
+<td>Use a separate <code>if</code> after the try block</td>
+</tr>
+<tr>
+<td>Side effects (<code>print</code>)</td>
+<td>Not a control flow construct</td>
+<td>Put in actor handlers</td>
+</tr>
+</tbody>
+</table></div>
 <p><strong>There is no <code>AsyncFlow</code> CRD.</strong> A flow is a group of <code>AsyncActor</code>
 resources linked by the <code>asya.sh/flow</code> label. The compiler sets this
-label (along with <code>asya.sh/flow-role</code> to distinguish <code>entrypoint</code>,
-<code>router</code>, and <code>processor</code> actors) on every generated manifest. Query all
+label (along with <code>asya.sh/role</code> to distinguish <code>start</code>, <code>end</code>,
+<code>router</code>, and <code>actor</code> roles) on every generated manifest. Query all
 actors in a flow with <code>kubectl get asya -l asya.sh/flow=&lt;name&gt;</code>. The
 actor remains the single Kubernetes primitive — flows are a labeling
 convention on top of it.</p>
@@ -749,19 +920,28 @@ loops (configurable via <code>--max-iterations</code>, default 100).</p>
 <h3 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
 <p>Catch and recover from actor failures:</p>
 <div class="highlight"><pre><span></span><code><span class="k">try</span><span class="p">:</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">risky_operation</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">another_step</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">risky_operation</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">another_step</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 <span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
-    <span class="n">state</span><span class="p">[</span><span class="s2">&quot;fallback&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
-    <span class="n">state</span> <span class="o">=</span> <span class="k">await</span> <span class="n">retry_handler</span><span class="p">(</span><span class="n">state</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;fallback&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">retry_handler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
-    <span class="k">pass</span>            <span class="c1"># swallow and continue</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">log_and_continue</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+<span class="k">finally</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">cleanup</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 </code></pre></div>
-<p>The compiler generates try-enter, try-exit, except-dispatch, and reraise
-routers. When an actor inside the <code>try</code> block fails, the sidecar stamps
-the error type and MRO onto <code>status.error</code>, and the except-dispatch
-router matches it against the handler clauses.</p>
-<p>Unmatched exceptions propagate to <code>x-sump</code> (the error sink).</p>
+<p>The compiler generates one <strong>except_router</strong> per <code>except</code> clause and
+injects <strong>resiliency rules</strong> into the manifests of every actor inside
+the <code>try</code> body. When an actor fails, the sidecar matches the error type
+against the rules and routes to the correct except_router. The
+except_router overwrites <code>route.next</code> with the handler's continuation
+path (including <code>finally</code> actors).</p>
+<p>Supported patterns: typed exceptions, tuple types (<code>except (A, B):</code>),
+FQN types (<code>except openai.RateLimitError:</code>), bare <code>except:</code> (catch-all),
+<code>raise</code> in except body (terminates flow), nested try/except, and
+<code>finally</code> blocks.</p>
+<p>See <a href="../../../usage/guide-error-handling/">usage/guide-error-handling.md</a> for
+detailed examples and runtime flow diagrams.</p>
 <h3 id="fan-out-parallel-execution">Fan-out (parallel execution)<a class="headerlink" href="#fan-out-parallel-execution" title="Permanent link">&para;</a></h3>
 <p>Dispatch work to multiple actors in parallel:</p>
 <div class="highlight"><pre><span></span><code><span class="n">state</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
@@ -774,63 +954,29 @@ router matches it against the handler clauses.</p>
 <p>The compiler generates both a fan-out and a corresponding fan-in router to handle this. The fan-out router dispatches work to <code>analyzer_a</code>, <code>analyzer_b</code>, <code>and analyzer_c</code> in parallel. A hidden fan-in router then acts as an aggregator, collecting the results from all analyzers and placing them into <code>state["results"]</code>. Once all results are collected, the flow proceeds to the next step, <code>await merge_results(state)</code>, which can then operate on the aggregated data.</p>
 <hr />
 <h2 id="what-you-cannot-write-in-a-flow">What you cannot write in a flow<a class="headerlink" href="#what-you-cannot-write-in-a-flow" title="Permanent link">&para;</a></h2>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Feature</th>
-<th>Why not</th>
-<th>Alternative</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>for x in items:</code></td>
-<td><code>for</code> loops not yet supported</td>
-<td>Use <code>while</code> with an index</td>
-</tr>
-<tr>
-<td><code>result = a(b(state))</code></td>
-<td>Nested calls not allowed</td>
-<td>Assign to state sequentially</td>
-</tr>
-<tr>
-<td><code>x, y = handler(state)</code></td>
-<td>Multiple assignment targets</td>
-<td>Use single state variable</td>
-</tr>
-<tr>
-<td><code>MyClass(param=value)</code></td>
-<td>Instantiation with arguments not supported</td>
-<td>Instantiate with <code>MyClass()</code> and rely on default <code>__init__</code> arguments.</td>
-</tr>
-<tr>
-<td><code>yield</code> / <code>yield from</code></td>
-<td>Flows don't produce events</td>
-<td>Use ABI yields inside actor handlers</td>
-</tr>
-<tr>
-<td><code>import</code> / <code>global</code></td>
-<td>Flows are pure control flow</td>
-<td>Put logic in actor handlers</td>
-</tr>
-</tbody>
-</table></div>
+<p>See the full table in the <a href="#what-flows-do-not-support">What flows do NOT support</a> section above.</p>
 <hr />
 <h2 id="compilation">Compilation<a class="headerlink" href="#compilation" title="Permanent link">&para;</a></h2>
 <h3 id="what-the-compiler-does">What the compiler does<a class="headerlink" href="#what-the-compiler-does" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>Flow source (.py)
     │
     ▼
-  Parser ──→ validates syntax, extracts IR operations
+  Parser ──→ validates syntax, extracts operations
     │
     ▼
-  Grouper ──→ groups operations into routers, optimizes
+  CodeGen ──→ generates router Python code + retry rules
     │
     ▼
-  CodeGen ──→ generates router Python code
+  Analyzer ──→ extracts graph topology from generated code
     │
     ▼
-  routers.py + flow.dot (optional diagram)
+  GraphGen ──→ renders DOT, Mermaid, JSON visualizations
+    │
+    ▼
+  Templater ──→ stamps AsyncActor manifests (if .asya/ configured)
+    │
+    ▼
+  routers.py + graph.json + flow.dot + manifests/
 </code></pre></div>
 <h3 id="compiler-commands">Compiler commands<a class="headerlink" href="#compiler-commands" title="Permanent link">&para;</a></h3>
 <p><strong>Compile:</strong>
@@ -860,12 +1006,24 @@ router matches it against the handler clauses.</p>
 <td>Router functions + <code>resolve()</code> handler resolution</td>
 </tr>
 <tr>
+<td><code>graph.json</code></td>
+<td>Graph topology (nodes, edges, groups)</td>
+</tr>
+<tr>
 <td><code>flow.dot</code></td>
 <td>Graphviz diagram source (with <code>--plot</code>)</td>
 </tr>
 <tr>
-<td><code>flow.svg</code></td>
-<td>Visual flow diagram (with <code>--plot</code>)</td>
+<td><code>flow.mmd</code></td>
+<td>Mermaid flowchart (with <code>--plot</code>)</td>
+</tr>
+<tr>
+<td><code>flow.png</code></td>
+<td>Rendered diagram (with <code>--plot</code>, requires graphviz)</td>
+</tr>
+<tr>
+<td><code>manifests/</code></td>
+<td>AsyncActor YAML manifests (if <code>.asya/</code> configured)</td>
 </tr>
 </tbody>
 </table></div>
@@ -884,20 +1042,28 @@ router matches it against the handler clauses.</p>
 <td>Entry point</td>
 </tr>
 <tr>
-<td><code>end_{flow}</code></td>
-<td>Exit point</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_if</code></td>
+<td><code>router_{flow}_line_{N}_if_{id}</code></td>
 <td>Conditional branch at line N</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_seq</code></td>
+<td><code>router_{flow}_line_{N}_seq_{id}</code></td>
 <td>Sequential mutations at line N</td>
 </tr>
 <tr>
-<td><code>router_{flow}_line_{N}_while_0</code></td>
+<td><code>router_{flow}_line_{N}_while_{id}</code></td>
 <td>Loop control at line N</td>
+</tr>
+<tr>
+<td><code>router_{flow}_line_{N}_except_{id}</code></td>
+<td>Error handler routing at line N</td>
+</tr>
+<tr>
+<td><code>fanout_{flow}_line_{N}</code></td>
+<td>Fan-out dispatch</td>
+</tr>
+<tr>
+<td><code>fanin_{flow}_line_{N}</code></td>
+<td>Fan-out aggregator</td>
 </tr>
 </tbody>
 </table></div>
@@ -1306,62 +1472,11 @@ validation.</p>
 <p>The IR is a flat tree: <code>Condition</code>, <code>WhileLoop</code>, and <code>TryExcept</code> contain nested
 operation lists in their branches, but there is no separate "block" concept.
 The grouper walks this tree to produce routers.</p>
-<h2 id="stage-2-grouper-ir-routers">Stage 2: Grouper (IR → Routers)<a class="headerlink" href="#stage-2-grouper-ir-routers" title="Permanent link">&para;</a></h2>
-<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/grouper.py</code></p>
-<p>The grouper transforms the flat IR operation list into a list of <code>Router</code>
-execution units. Each router becomes a separate async function in the
-generated code.</p>
-<h3 id="what-is-a-router">What is a Router?<a class="headerlink" href="#what-is-a-router" title="Permanent link">&para;</a></h3>
-<p>A <code>Router</code> is an execution unit with:</p>
-<ul>
-<li><strong>Mutations</strong>: payload transformations executed inline (fused from
-  consecutive <code>Mutation</code> / <code>InlineCode</code> IR nodes)</li>
-<li><strong>Routing decision</strong>: conditional branch, loop-back, exception dispatch</li>
-<li><strong>Continuation</strong>: list of downstream actor names to visit next</li>
-</ul>
-<p>Key fields:</p>
-<div class="highlight"><pre><span></span><code><span class="n">Router</span><span class="p">:</span>
-  <span class="n">name</span><span class="p">:</span> <span class="nb">str</span>                              <span class="c1"># e.g. &quot;router_my_flow_line_5_if&quot;</span>
-  <span class="n">mutations</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Mutation</span><span class="p">]</span>              <span class="c1"># inline payload edits</span>
-  <span class="n">condition</span><span class="p">:</span> <span class="n">Condition</span> <span class="o">|</span> <span class="kc">None</span>            <span class="c1"># if-test (None = unconditional)</span>
-  <span class="n">true_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>          <span class="c1"># actors if condition true</span>
-  <span class="n">false_branch_actors</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>         <span class="c1"># actors if condition false</span>
-  <span class="n">is_loop_back</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># re-inserts loop body actors</span>
-  <span class="n">guard_max_iter</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span>             <span class="c1"># max iterations (while True guard)</span>
-  <span class="n">is_try_enter</span><span class="p">:</span> <span class="nb">bool</span>                     <span class="c1"># sets _on_error header</span>
-  <span class="n">is_try_exit</span><span class="p">:</span> <span class="nb">bool</span>                      <span class="c1"># clears _on_error on success</span>
-  <span class="n">is_except_dispatch</span><span class="p">:</span> <span class="nb">bool</span>               <span class="c1"># matches error type, routes to handler</span>
-  <span class="n">is_reraise</span><span class="p">:</span> <span class="nb">bool</span>                       <span class="c1"># raises for unhandled exceptions</span>
-  <span class="n">is_fan_out</span><span class="p">:</span> <span class="nb">bool</span>
-  <span class="n">fan_out_op</span><span class="p">:</span> <span class="n">FanOutCall</span> <span class="o">|</span> <span class="kc">None</span>
-</code></pre></div>
-<h3 id="grouping-rules">Grouping rules<a class="headerlink" href="#grouping-rules" title="Permanent link">&para;</a></h3>
-<ol>
-<li><strong>Mutation fusion</strong>: consecutive mutations are batched into the next
-   router's <code>mutations</code> list — no separate actor for mutations</li>
-<li><strong>Condition</strong>: creates a conditional router; branches processed recursively
-   with convergence labels for rejoin points</li>
-<li><strong>WhileLoop</strong>: <code>while True</code> creates a self-referencing loop-back router
-   with max-iterations guard; <code>while cond</code> creates a condition router with
-   self-reference in the true branch</li>
-<li><strong>TryExcept</strong>: creates four routers: try-enter (set <code>_on_error</code> header),
-   try-exit (clear header on success), except-dispatch (match error type via
-   MRO), reraise (unhandled)</li>
-<li><strong>FanOut</strong>: creates a fan-out router + aggregator reference</li>
-</ol>
-<h3 id="convergence-resolution">Convergence resolution<a class="headerlink" href="#convergence-resolution" title="Permanent link">&para;</a></h3>
-<p>Branches (if/else, try/except) must reconverge. The grouper uses placeholder
-labels (<code>CONVERGENCE_0</code>, <code>LOOP_EXIT_0</code>, etc.) during grouping, then resolves
-them to actual actor names in a final pass.</p>
-<h3 id="optimization">Optimization<a class="headerlink" href="#optimization" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Start router merger</strong>: if the first router after <code>start_</code> only has
-  mutations (no branching), merge into <code>start_</code> to save one actor hop</li>
-</ul>
-<h2 id="stage-3-code-generator-routers-code">Stage 3: Code generator (Routers → Code)<a class="headerlink" href="#stage-3-code-generator-routers-code" title="Permanent link">&para;</a></h2>
+<h2 id="stage-2-code-generator-operations-code">Stage 2: Code generator (Operations → Code)<a class="headerlink" href="#stage-2-code-generator-operations-code" title="Permanent link">&para;</a></h2>
 <p><strong>Source</strong>: <code>src/asya-lab/asya_lab/flow/codegen.py</code></p>
-<p>The code generator emits Python source from the router list. Each router
-becomes an <code>async def</code> function using the ABI yield protocol.</p>
+<p>The code generator walks the operation list from the parser and directly
+emits router functions. Each operation type maps to a router generation
+strategy:</p>
 <h3 id="generated-router-types">Generated router types<a class="headerlink" href="#generated-router-types" title="Permanent link">&para;</a></h3>
 <div class="table-wrapper"><table>
 <thead>
@@ -1376,118 +1491,49 @@ becomes an <code>async def</code> function using the ABI yield protocol.</p>
 <td>Apply mutations, <code>SET .route.next[:0]</code> to prepend downstream actors</td>
 </tr>
 <tr>
+<td>Seq</td>
+<td>Batch mutations + chain actors sequentially</td>
+</tr>
+<tr>
 <td>Conditional</td>
-<td><code>if condition:</code> branch, append actors to <code>_next</code> list</td>
+<td><code>if condition:</code> branch, append actors to <code>_next</code> list per branch</td>
 </tr>
 <tr>
-<td>Loop-back</td>
-<td>Re-insert loop body actors; for <code>while True</code>: check iteration guard via <code>.route.prev</code> count</td>
+<td>Loop</td>
+<td>Re-insert loop body actors + self-reference; exit via <code>SET .route.next</code></td>
 </tr>
 <tr>
-<td>Try-enter</td>
-<td><code>SET .headers._on_error</code> to except-dispatch router name</td>
-</tr>
-<tr>
-<td>Try-exit</td>
-<td>Clear <code>_on_error</code> header; chain finally + continuation actors</td>
-</tr>
-<tr>
-<td>Except-dispatch</td>
-<td>Read <code>.status.error.type</code> + <code>.status.error.mro</code>, match handlers</td>
-</tr>
-<tr>
-<td>Reraise</td>
-<td>Raise <code>RuntimeError</code> for unhandled exceptions</td>
+<td>Except</td>
+<td><code>SET .route.next</code> (overwrite) to handler + finally + continuation</td>
 </tr>
 <tr>
 <td>Fan-out</td>
 <td>Emit N+1 messages: parent + N sub-agents with <code>x-asya-fan-in</code> headers</td>
 </tr>
 <tr>
-<td>End</td>
-<td><code>SET .route.next</code> to <code>[]</code> (pipeline completion)</td>
+<td>Fan-in</td>
+<td>Aggregator (hidden, generated alongside fan-out)</td>
 </tr>
 </tbody>
 </table></div>
+<h3 id="tryexcept-compilation">Try/except compilation<a class="headerlink" href="#tryexcept-compilation" title="Permanent link">&para;</a></h3>
+<p>For <code>try/except</code> blocks, the code generator:</p>
+<ol>
+<li>Creates one <strong>except_router</strong> per <code>except</code> clause — each overwrites
+   <code>route.next</code> with the handler's continuation path (using SET, not prepend)</li>
+<li>Records <strong>ActorRetryRule</strong> for every actor in the try body — these are
+   later injected into actor manifests by the templater</li>
+<li>Includes <code>finally</code> actors in both the success path and every error path</li>
+</ol>
+<p>The retry rules link actors to their except_routers via the sidecar's
+<code>retryRules</code> first-match dispatch — no Python-level type matching needed.</p>
 <h3 id="handler-resolution_1">Handler resolution<a class="headerlink" href="#handler-resolution_1" title="Permanent link">&para;</a></h3>
 <p>The generated <code>resolve()</code> function maps handler names from the flow source to
-actor names using <code>ASYA_HANDLER_*</code> environment variables:</p>
-<div class="highlight"><pre><span></span><code>ASYA_HANDLER_ANALYZE_SENTIMENT=&quot;handlers.analyze_sentiment&quot;
-</code></pre></div>
-<p>Resolution uses suffix matching — any unambiguous suffix works:</p>
-<div class="highlight"><pre><span></span><code><span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;analyze_sentiment&quot;</span><span class="p">)</span>              <span class="c1"># shortest suffix</span>
-<span class="n">resolve</span><span class="p">(</span><span class="s2">&quot;handlers.analyze_sentiment&quot;</span><span class="p">)</span>     <span class="c1"># full path</span>
-</code></pre></div>
-<p>Ambiguous matches raise an error listing candidates.</p>
+actor names using <code>ASYA_HANDLER_*</code> environment variables. Resolution uses
+suffix matching — any unambiguous suffix works.</p>
 <h3 id="single-actor-flows">Single-actor flows<a class="headerlink" href="#single-actor-flows" title="Permanent link">&para;</a></h3>
 <p>When a flow has exactly one actor call and no branching, the code generator
-emits a <code>FLOW_METADATA</code> constant instead of router functions:</p>
-<div class="highlight"><pre><span></span><code><span class="n">FLOW_METADATA</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">&quot;flow_name&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;single-actor&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;actor&quot;</span><span class="p">:</span> <span class="s2">&quot;handler_name&quot;</span><span class="p">,</span>
-    <span class="s2">&quot;labels&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;asya.sh/flow&quot;</span><span class="p">:</span> <span class="s2">&quot;my_flow&quot;</span><span class="p">,</span> <span class="s2">&quot;asya.sh/role&quot;</span><span class="p">:</span> <span class="s2">&quot;start&quot;</span><span class="p">},</span>
-<span class="p">}</span>
-</code></pre></div>
-<h3 id="router-naming-convention">Router naming convention<a class="headerlink" href="#router-naming-convention" title="Permanent link">&para;</a></h3>
-<div class="table-wrapper"><table>
-<thead>
-<tr>
-<th>Pattern</th>
-<th>Purpose</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>start_{flow}</code></td>
-<td>Entry point</td>
-</tr>
-<tr>
-<td><code>end_{flow}</code></td>
-<td>Exit point</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_if</code></td>
-<td>Conditional at line N</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_seq</code></td>
-<td>Sequential mutations at line N</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_while_{id}</code></td>
-<td>Loop condition check</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_loop_back_{id}</code></td>
-<td>Loop re-insertion</td>
-</tr>
-<tr>
-<td><code>fanout_{flow}_line_{N}</code></td>
-<td>Fan-out dispatch</td>
-</tr>
-<tr>
-<td><code>fanin_{flow}_line_{N}</code></td>
-<td>Fan-out aggregator</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_try_enter_{id}</code></td>
-<td>Try entry</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_try_exit_{id}</code></td>
-<td>Try success path</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_except_dispatch_{id}</code></td>
-<td>Exception dispatch</td>
-</tr>
-<tr>
-<td><code>router_{flow}_line_{N}_reraise_{id}</code></td>
-<td>Unhandled exception</td>
-</tr>
-</tbody>
-</table></div>
+emits a <code>FLOW_METADATA</code> constant instead of router functions.</p>
 <h2 id="future-adapter-generation">Future: adapter generation<a class="headerlink" href="#future-adapter-generation" title="Permanent link">&para;</a></h2>
 <p>When a flow calls a decorated function (e.g. <code>@tool(...)</code>) that doesn't
 conform to the <code>dict -&gt; dict</code> actor protocol, the compiler will generate
@@ -1541,6 +1587,10 @@ adapter — it never touches AST nodes directly.</p>
   exists, the router problem, CPS model, and design principles</li>
 <li><a href="../abi-protocol/">ABI Protocol Reference</a> —
   yield-based metadata access used by generated routers and user handlers</li>
+<li><a href="../../../usage/guide-error-handling/">Error Handling in Flows</a> —
+  try/except patterns, runtime flow diagrams, manifest examples</li>
+<li><a href="../../../setup/guide-error-handling/">Configuring Error Handling</a> —
+  resiliency policies, rules, and error routing at the platform level</li>
 </ul>
   </div>
 </article>
@@ -1737,6 +1787,26 @@ adapter — it never touches AST nodes directly.</p>
             data-active="false" data-depth="2">
             What is the Flow DSL?
         </a>
+        
+        
+        <a href="#flow-dsl-vs-actor-handlers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Flow DSL vs Actor handlers
+        </a>
+        
+        <a href="#what-flows-support"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            What flows support
+        </a>
+        
+        <a href="#what-flows-do-not-support"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            What flows do NOT support
+        </a>
+        
         
 
         
@@ -2002,44 +2072,10 @@ adapter — it never touches AST nodes directly.</p>
         
 
         
-        <a href="#stage-2-grouper-ir-routers"
+        <a href="#stage-2-code-generator-operations-code"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Stage 2: Grouper (IR → Routers)
-        </a>
-        
-        
-        <a href="#what-is-a-router"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            What is a Router?
-        </a>
-        
-        <a href="#grouping-rules"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Grouping rules
-        </a>
-        
-        <a href="#convergence-resolution"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Convergence resolution
-        </a>
-        
-        <a href="#optimization"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Optimization
-        </a>
-        
-        
-
-        
-        <a href="#stage-3-code-generator-routers-code"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Stage 3: Code generator (Routers → Code)
+            Stage 2: Code generator (Operations → Code)
         </a>
         
         
@@ -2047,6 +2083,12 @@ adapter — it never touches AST nodes directly.</p>
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Generated router types
+        </a>
+        
+        <a href="#tryexcept-compilation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Try/except compilation
         </a>
         
         <a href="#handler-resolution_1"
@@ -2059,12 +2101,6 @@ adapter — it never touches AST nodes directly.</p>
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
             Single-actor flows
-        </a>
-        
-        <a href="#router-naming-convention"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Router naming convention
         </a>
         
         

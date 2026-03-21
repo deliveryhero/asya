@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Retries - Asya</title>
+    <title>Error Handling - Asya</title>
     
 
 
-<title>Retries</title>
+<title>Error Handling</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/setup/guide-retries/">
+<link rel="canonical" href="https://asya.sh/docs/usage/guide-error-handling/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Retries">
+<meta property="og:title" content="Error Handling">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/setup/guide-retries/">
+<meta property="og:url" content="https://asya.sh/docs/usage/guide-error-handling/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Retries">
+<meta name="twitter:title" content="Error Handling">
 
 
 
@@ -566,12 +566,12 @@
         <h1
           class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
         >
-          Retries
+          Error Handling
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/setup/guide-retries.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/usage/guide-error-handling.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -584,7 +584,7 @@
             data-slot="button"
             id="previous-button"
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/setup/guide-timeouts/"
+            href="/docs/usage/guide-timeouts/"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -610,7 +610,7 @@
             data-slot="button"
             id="next-button"
             class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/setup/guide-gateway/"
+            href="/docs/usage/ops-debugging/"
           >
             <span class="sr-only">Next</span>
             <svg
@@ -640,46 +640,328 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Practical recipes for configuring retry behavior on Asya actors using
-resiliency policies and error-matching rules.</p>
+    <p>How to use <code>try/except/finally</code> in the Flow DSL to handle errors
+declaratively. The compiler transforms Python error-handling syntax
+into sidecar-native routing rules — no centralized error dispatch needed.</p>
 <hr />
-<h2 id="retry-with-exponential-backoff">Retry with exponential backoff<a class="headerlink" href="#retry-with-exponential-backoff" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:5,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;2s&quot;,&quot;maxInterval&quot;:&quot;60s&quot;,&quot;jitter&quot;:true}}&#39;</span>
+<h2 id="how-it-works">How it works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<p>When you write <code>try/except</code> in a flow, the compiler does three things:</p>
+<ol>
+<li><strong>Generates except_routers</strong> — one per <code>except</code> clause, each with a
+   static route to the handler's continuation path</li>
+<li><strong>Injects resiliency rules</strong> into the manifests of every actor inside
+   the <code>try</code> body, so the sidecar routes errors to the correct except_router</li>
+<li><strong>Includes <code>finally</code> actors</strong> in both the success path and every
+   error handler's path</li>
+</ol>
+<p>The sidecar matches errors using first-match rules against the error's
+type and MRO (method resolution order). No Python-level <code>isinstance()</code>
+checks — error dispatch is fully declarative.</p>
+<hr />
+<h2 id="simple-tryexcept">Simple try/except<a class="headerlink" href="#simple-tryexcept" title="Permanent link">&para;</a></h2>
+<p>Catch a specific exception and route to a handler actor:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">asya_lab.flow</span><span class="w"> </span><span class="kn">import</span> <span class="n">flow</span>
+
+<span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">order_processing</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">validate_order</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;invalid&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">notify_rejection</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
-<h2 id="non-retryable-errors-go-directly-to-x-sink">Non-retryable errors go directly to x-sink<a class="headerlink" href="#non-retryable-errors-go-directly-to-x-sink" title="Permanent link">&para;</a></h2>
-<p>Configure a policy with <code>maxAttempts=1</code> and a rule that routes specific error
-types to it. On the first failure, the policy is exhausted immediately.</p>
-<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{</span>
-<span class="s1">  &quot;default&quot;:    {&quot;maxAttempts&quot;:3,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;1s&quot;},</span>
-<span class="s1">  &quot;hard-fail&quot;:  {&quot;maxAttempts&quot;:1}</span>
-<span class="s1">}&#39;</span>
-<span class="nv">ASYA_RESILIENCY_RULES</span><span class="o">=</span><span class="s1">&#39;[</span>
-<span class="s1">  {&quot;errors&quot;:[&quot;ValueError&quot;,&quot;TypeError&quot;],&quot;policy&quot;:&quot;hard-fail&quot;}</span>
-<span class="s1">]&#39;</span>
+<p><strong>What happens at runtime:</strong></p>
+<div class="highlight"><pre><span></span><code>                       envelope
+                          │
+                 ┌────────▼────────┐
+                 │ validate_order  │
+                 └──┬───────────┬──┘
+              OK    │           │  ValueError
+                    │           │
+                    │    ┌──────▼─────────────────────┐
+                    │    │      *except_router*       │
+                    │    │  SET route.next=[seq, ...] │
+                    │    └──────┬─────────────────────┘
+                    │           │
+                    │    ┌──────▼───────────────┐
+                    │    │  *notify_rejection*  │
+                    │    │ p[&quot;status&quot;]=&quot;invalid&quot;│
+                    │    └──────┬───────────────┘
+                    │           │
+                    └─────┬─────┘
+                          │
+                     ┌────▼────┐
+                     │ x-sink  │
+                     └─────────┘
 </code></pre></div>
-<h2 id="route-exhausted-envelopes-to-a-recovery-actor">Route exhausted envelopes to a recovery actor<a class="headerlink" href="#route-exhausted-envelopes-to-a-recovery-actor" title="Permanent link">&para;</a></h2>
-<p>When the policy exhausts, instead of going to <code>x-sink</code>, the envelope is forwarded
-to a recovery actor that can inspect or reprocess it:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:3,&quot;backoff&quot;:&quot;constant&quot;,&quot;initialDelay&quot;:&quot;5s&quot;,&quot;onExhausted&quot;:[&quot;recovery-actor&quot;]}}&#39;</span>
+<p>The sidecar on <code>validate-order</code>'s pod has a resiliency rule:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">resiliency</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">policies</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">try_except_line_4_0</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">maxAttempts</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
+<span class="w">      </span><span class="nt">thenRoute</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;router-order-processing-line-6-except-2&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">errors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ValueError&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">try_except_line_4_0</span>
 </code></pre></div>
-<p>The recovery actor receives the envelope with <code>status.phase=failed</code> and
-<code>status.reason=PolicyRouted</code>.</p>
-<h2 id="cap-total-retry-time">Cap total retry time<a class="headerlink" href="#cap-total-retry-time" title="Permanent link">&para;</a></h2>
-<p>Stop retrying after 10 minutes regardless of attempt count:</p>
-<div class="highlight"><pre><span></span><code><span class="nv">ASYA_RESILIENCY_POLICIES</span><span class="o">=</span><span class="s1">&#39;{&quot;default&quot;:{&quot;maxAttempts&quot;:100,&quot;backoff&quot;:&quot;exponential&quot;,&quot;initialDelay&quot;:&quot;1s&quot;,&quot;maxInterval&quot;:&quot;30s&quot;,&quot;maxDuration&quot;:&quot;10m&quot;}}&#39;</span>
+<p>When <code>validate_order</code> throws <code>ValueError</code>, the sidecar matches the rule
+and routes to the except_router. The except_router overwrites <code>route.next</code>
+with the handler path. <code>validate_order</code> is not retried (maxAttempts: 1).</p>
+<hr />
+<h2 id="multiple-except-handlers">Multiple except handlers<a class="headerlink" href="#multiple-except-handlers" title="Permanent link">&para;</a></h2>
+<p>Each <code>except</code> clause generates its own router and resiliency rule:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">data_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">parse_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">transform_data</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;error_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;validation&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handle_validation_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;error_type&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;type_mismatch&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handle_type_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
 </code></pre></div>
+<p>Both <code>parse_input</code> and <code>transform_data</code> get <strong>two</strong> resiliency rules
+(one per handler). The sidecar evaluates rules top-to-bottom, first match
+wins:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Injected into parse_input AND transform_data manifests:</span>
+<span class="nt">resiliency</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">policies</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">try_except_line_4_0</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> maxAttempts</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nt"> thenRoute</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">except-router-ve</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">    </span><span class="nt">try_except_line_4_1</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt"> maxAttempts</span><span class="p">:</span><span class="w"> </span><span class="nv">1</span><span class="p p-Indicator">,</span><span class="nt"> thenRoute</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">except-router-te</span><span class="p p-Indicator">]</span><span class="w"> </span><span class="p p-Indicator">}</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">errors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ValueError&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">try_except_line_4_0</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">errors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;TypeError&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">try_except_line_4_1</span>
+</code></pre></div>
+<hr />
+<h2 id="tuple-exception-types">Tuple exception types<a class="headerlink" href="#tuple-exception-types" title="Permanent link">&para;</a></h2>
+<p>Catch multiple exception types in a single handler:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ingestion_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">fetch_data</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">ConnectionError</span><span class="p">,</span> <span class="ne">TimeoutError</span><span class="p">):</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;retry_reason&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;transient&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">queue_for_retry</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>The generated rule has multiple entries in <code>errors</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">rules</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">errors</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;ConnectionError&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;TimeoutError&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">    </span><span class="nt">policy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">try_except_line_3_0</span>
+</code></pre></div>
+<hr />
+<h2 id="fqn-exception-types">FQN exception types<a class="headerlink" href="#fqn-exception-types" title="Permanent link">&para;</a></h2>
+<p>Catch vendor-specific exceptions using fully-qualified names:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">llm_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">call_llm</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">openai</span><span class="o">.</span><span class="n">RateLimitError</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">call_fallback_llm</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="n">openai</span><span class="o">.</span><span class="n">AuthenticationError</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">notify_admin</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>The sidecar matches FQN types exactly: <code>openai.RateLimitError</code> only
+matches errors where <code>type.__module__ + "." + type.__name__</code> equals
+<code>"openai.RateLimitError"</code>. Short names (no dot) match any error with
+that <code>type.__name__</code>.</p>
+<hr />
+<h2 id="tryexceptfinally">try/except/finally<a class="headerlink" href="#tryexceptfinally" title="Permanent link">&para;</a></h2>
+<p><code>finally</code> actors run on both success and error paths:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">resource_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">acquire_resource</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">process_with_resource</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">RuntimeError</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;failed&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handle_failure</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">release_resource</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">finalize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p><strong>Success path:</strong></p>
+<div class="highlight"><pre><span></span><code>acquire_resource → process_with_resource → release_resource → finalize
+</code></pre></div>
+<p><strong>Error path (RuntimeError in either actor):</strong></p>
+<div class="highlight"><pre><span></span><code>except_router → p[&quot;status&quot;]=&quot;failed&quot; → handle_failure → release_resource → finalize
+</code></pre></div>
+<p>The compiler bakes <code>release_resource</code> into both paths at compile time.
+There is no runtime coordination needed.</p>
+<hr />
+<h2 id="bare-except-catch-all">Bare except (catch-all)<a class="headerlink" href="#bare-except-catch-all" title="Permanent link">&para;</a></h2>
+<p>A bare <code>except:</code> catches any unmatched error:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">resilient_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">risky_operation</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handle_known_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handle_unknown_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>The catch-all is implemented via <code>policies.default.thenRoute</code> — when no
+rule matches, the default policy routes to the bare-except router.</p>
+<hr />
+<h2 id="raise-in-except-body">raise in except body<a class="headerlink" href="#raise-in-except-body" title="Permanent link">&para;</a></h2>
+<p><code>raise</code> inside an <code>except</code> block terminates the flow. The except_router
+routes to an empty path, which sends the envelope to <code>x-sink</code> with the
+error preserved:</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">strict_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">log_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">raise</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>On <code>ValueError</code>: <code>log_error</code> runs, then the envelope goes to <code>x-sink</code>
+with <code>status.phase=failed</code>. The <code>return p</code> line is never reached.</p>
+<hr />
+<h2 id="combining-with-other-flow-constructs">Combining with other flow constructs<a class="headerlink" href="#combining-with-other-flow-constructs" title="Permanent link">&para;</a></h2>
+<h3 id="tryexcept-with-ifelse">try/except with if/else<a class="headerlink" href="#tryexcept-with-ifelse" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">payment_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">validate_payment</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;method&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;card&quot;</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">charge_card</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">process_bank_transfer</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">record_transaction</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;status&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;payment_failed&quot;</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">notify_payment_failure</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">finally</span><span class="p">:</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="n">audit_log</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">send_receipt</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>All actors inside the <code>try</code> body — <code>charge_card</code>, <code>process_bank_transfer</code>,
+and <code>record_transaction</code> — get the same resiliency rules. On error from
+any of them:</p>
+<div class="highlight"><pre><span></span><code>except_router
+  SET route.next = [seq_router, audit_log, send_receipt]
+      │
+      ▼
+  p[&quot;status&quot;] = &quot;payment_failed&quot;
+  notify_payment_failure → audit_log → send_receipt → x-sink
+</code></pre></div>
+<p>The if/else router and <code>record_transaction</code> are skipped because the
+except_router <strong>overwrites</strong> <code>route.next</code> (SET, not prepend).</p>
+<h3 id="tryexcept-with-while-loops">try/except with while loops<a class="headerlink" href="#tryexcept-with-while-loops" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">retry_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">while</span> <span class="n">p</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">3</span><span class="p">:</span>
+        <span class="n">p</span><span class="p">[</span><span class="s2">&quot;attempt&quot;</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">call_external_api</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">ConnectionError</span><span class="p">:</span>
+            <span class="n">p</span> <span class="o">=</span> <span class="n">log_retry</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>On each iteration, if <code>call_external_api</code> throws <code>ConnectionError</code>, the
+except_router routes to <code>log_retry</code>, then back to the while loop router
+for the next iteration. This gives you application-level retry with
+custom recovery logic between attempts.</p>
+<hr />
+<h2 id="what-you-cannot-do">What you cannot do<a class="headerlink" href="#what-you-cannot-do" title="Permanent link">&para;</a></h2>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Supported?</th>
+<th>Alternative</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>except ValueError as e:</code></td>
+<td>No</td>
+<td>Error details are in <code>status.error</code> (read via ABI)</td>
+</tr>
+<tr>
+<td><code>try: ... else:</code></td>
+<td>No</td>
+<td>Use a separate <code>if</code> after the try block</td>
+</tr>
+<tr>
+<td><code>try: ... finally:</code> (no except)</td>
+<td>No</td>
+<td>Use a context manager (<code>with</code>)</td>
+</tr>
+<tr>
+<td><code>raise</code> outside except</td>
+<td>No</td>
+<td>Use resiliency rules in <code>.asya/config.yaml</code></td>
+</tr>
+<tr>
+<td>Nested try/except</td>
+<td>Yes</td>
+<td>Each level gets its own rules</td>
+</tr>
+<tr>
+<td>try/except wrapping fan-out</td>
+<td>Yes</td>
+<td>All fan-out actors get the rules</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="how-the-compiler-transforms-tryexcept">How the compiler transforms try/except<a class="headerlink" href="#how-the-compiler-transforms-tryexcept" title="Permanent link">&para;</a></h2>
+<p>For readers who want to understand what the compiler generates:</p>
+<div class="highlight"><pre><span></span><code>Source:                           Compiled:
+                                  ┌─────────────┐
+try:                              │ start_       │
+    p = actor_a(p)    ──────────► │ prepend      │
+    p = actor_b(p)                │ [a, b, c]    │  ← success path
+except ValueError:                └──────────────┘
+    p = handler(p)
+p = continuation(p)              ┌──────────────────┐
+                                  │ except_router     │
+                                  │ SET route.next =  │
+                                  │ [handler, c]      │  ← error path
+                                  └──────────────────┘
+
+                                  actor_a manifest:
+                                    resiliency.rules:
+                                      - errors: [ValueError]
+                                        policy: try_except_line_N_0
+
+                                  actor_b manifest:
+                                    (same rules as actor_a)
+</code></pre></div>
+<p>The except_router uses <strong>SET</strong> (overwrite) instead of prepend, which
+replaces the entire remaining route. This skips any actors between the
+failing actor and the end of the try body.</p>
 <hr />
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">&para;</a></h2>
 <ul>
-<li><a href="../../reference/specs/asyncactor-crd/">AsyncActor CRD Reference</a> — policy schema and rule configuration</li>
+<li><a href="../../examples/flows/">Examples</a> — <code>try_except_*.py</code> files with compiled output</li>
+<li><a href="../guide-timeouts/">Actor Timeouts</a> — per-actor execution deadlines</li>
+<li><a href="../guide-pause-resume/">Pause/Resume</a> — human-in-the-loop error recovery</li>
 </ul>
+<p><strong>Platform configuration</strong>: To configure retry policies, error routing rules,
+and resiliency settings at the infrastructure level, see
+<a href="../../setup/guide-error-handling/">setup/guide-error-handling.md</a>.</p>
   </div>
 </article>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
-        href="/docs/setup/guide-timeouts/">
+        href="/docs/usage/guide-timeouts/">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-left ">
@@ -693,8 +975,8 @@ to a recovery actor that can inspect or reprocess it:</p>
     
     <a data-slot="button"
         class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/docs/setup/guide-gateway/">
-        <span class="max-[500px]:hidden">Gateway</span>
+        href="/docs/usage/ops-debugging/">
+        <span class="max-[500px]:hidden">Debugging</span>
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
             class="tabler-icon tabler-icon-arrow-right ">
@@ -766,7 +1048,7 @@ to a recovery actor that can inspect or reprocess it:</p>
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../../usage/">
+                        <a class="text-2xl font-medium" href="../">
                             
                             Overview
                             
@@ -781,7 +1063,7 @@ to a recovery actor that can inspect or reprocess it:</p>
                     
                     <div class="flex flex-col gap-3">
                         
-                        <a class="text-2xl font-medium" href="../">
+                        <a class="text-2xl font-medium" href="../../setup/">
                             
                             Overview
                             
@@ -863,34 +1145,104 @@ to a recovery actor that can inspect or reprocess it:</p>
         
         
         
-        <a href="#retry-with-exponential-backoff"
+        <a href="#how-it-works"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Retry with exponential backoff
+            How it works
         </a>
         
 
         
-        <a href="#non-retryable-errors-go-directly-to-x-sink"
+        <a href="#simple-tryexcept"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Non-retryable errors go directly to x-sink
+            Simple try/except
         </a>
         
 
         
-        <a href="#route-exhausted-envelopes-to-a-recovery-actor"
+        <a href="#multiple-except-handlers"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Route exhausted envelopes to a recovery actor
+            Multiple except handlers
         </a>
         
 
         
-        <a href="#cap-total-retry-time"
+        <a href="#tuple-exception-types"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Cap total retry time
+            Tuple exception types
+        </a>
+        
+
+        
+        <a href="#fqn-exception-types"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            FQN exception types
+        </a>
+        
+
+        
+        <a href="#tryexceptfinally"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            try/except/finally
+        </a>
+        
+
+        
+        <a href="#bare-except-catch-all"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Bare except (catch-all)
+        </a>
+        
+
+        
+        <a href="#raise-in-except-body"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            raise in except body
+        </a>
+        
+
+        
+        <a href="#combining-with-other-flow-constructs"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Combining with other flow constructs
+        </a>
+        
+        
+        <a href="#tryexcept-with-ifelse"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            try/except with if/else
+        </a>
+        
+        <a href="#tryexcept-with-while-loops"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            try/except with while loops
+        </a>
+        
+        
+
+        
+        <a href="#what-you-cannot-do"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            What you cannot do
+        </a>
+        
+
+        
+        <a href="#how-the-compiler-transforms-tryexcept"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            How the compiler transforms try/except
         </a>
         
 
