@@ -21,9 +21,7 @@ At production load, the synchronous architecture collapses:
 - **Coupled scaling**: the entire pipeline scales as one unit, even when only the GPU
   step is bottlenecked
 
-<kbd>
-<img src="/docs/website/img/throughput-before.jpg" alt="Before: unacked messages accumulating, unstable throughput" width="75%" />
-</kbd>
+<img src="/docs/website/img/throughput-before.jpg" width="60%" alt="Before: unacked messages accumulating, unstable throughput" />
 
 
 *Before: 400-800 unacked messages oscillating — the system cannot drain its queue.*
@@ -45,9 +43,7 @@ logic, timeouts, and error routing were infrastructure concerns, not application
 This is the actor mesh: **flatten the entire pipeline into independent actors connected
 through queues**.
 
-<kbd>
-<img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh: all uniform, all async" width="100%"/>
-</kbd>
+<img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
 
 Each actor:
 - Has its own queue (SQS, RabbitMQ, Pub/Sub)
@@ -55,9 +51,7 @@ Each actor:
 - Fails independently — a crashed actor doesn't stall others
 - Runs a pure Python function — no retry logic, no queue client, no SDK
 
-<kbd>
-<img src="/docs/website/img/throughput-after.jpg" alt="After: independent scaling per actor, stable throughput" width="75%"/>
-</kbd>
+<img src="/docs/website/img/throughput-after.jpg" width="60%" alt="After: independent scaling per actor, stable throughput" />
 
 *After: each actor scales independently. enhancer-pasd-upscale peaks at 44 pods while
 retriever stays at 1. The system self-balances.*
