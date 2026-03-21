@@ -6,8 +6,8 @@ An actor mesh is a network of stateless actors communicating through message que
 Each actor is an independent Kubernetes workload that receives envelopes, processes them,
 and forwards results to the next actor.
 
-<a href="/docs/img/actor-mesh.png" target="_blank" title="Click to view full size">
-  <img src="/docs/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/website/docs/img/actor-mesh.png" target="_blank" title="Click to view full size">
+  <img src="/website/docs/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
@@ -108,8 +108,8 @@ Each `AsyncActor` CRD creates three Kubernetes resources:
 2. **Deployment** — the actor pod with sidecar injected by Crossplane
 3. **KEDA ScaledObject** — autoscaler watching the queue depth
 
-<a href="/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="/docs/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/website/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="/website/docs/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*

@@ -24,7 +24,7 @@ When `infer` finishes, the sidecar reads `route.next`, sends the envelope to `po
 
 This is choreography over orchestration. The failure domain of each actor is exactly one queue. A crashed actor doesn't stall others — messages accumulate until replicas come back. Each actor scales based purely on its own queue depth.
 
-![Asya actor mesh](/docs/img/actor-mesh.png)
+![Asya actor mesh](/website/docs/img/actor-mesh.png)
 
 ## What Asya Is
 

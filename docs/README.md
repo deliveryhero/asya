@@ -4,7 +4,7 @@ Asya is an open-source Kubernetes-native **async actor framework** for orchestra
 
 GitHub repo: [https://github.com/deliveryhero/asya](https://github.com/deliveryhero/asya)
 
-<img src="/docs/img/logo_colored_with_borders.png" alt="Asya" width="280"/>
+<img src="/website/docs/img/logo_colored_with_borders.png" alt="Asya" width="280"/>
 
 ## Build AI Actors
 

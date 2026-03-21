@@ -26,8 +26,8 @@ An actor is a **stateless workload** that:
 
 ## Architecture Diagram
 
-<a href="/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="/docs/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/website/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="/website/docs/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
