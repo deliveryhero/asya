@@ -22,14 +22,14 @@ maintainers:
 dependencies:
 - name: asya-crossplane
   version: ">=0.1.0"
-  repository: "file://../asya-crossplane"
+  repository: "https://asya.sh/charts"
 - name: asya-crew
-  version: ">=0.0.0"
-  repository: "file://../asya-crew"
+  version: ">=0.4.0"
+  repository: "https://asya.sh/charts"
   condition: enableAsyaCrew
 - name: asya-gateway
-  version: ">=0.0.0"
-  repository: "file://../asya-gateway"
+  version: ">=0.4.0"
+  repository: "https://asya.sh/charts"
   condition: enableAsyaGateway
 # Optional: Prometheus + Grafana monitoring stack
 - name: kube-prometheus-stack
