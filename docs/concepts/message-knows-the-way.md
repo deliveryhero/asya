@@ -17,6 +17,24 @@ Every message in the mesh is wrapped in an envelope containing three sections:
 The route is a triplet — `prev`, `curr`, `next` — that fully describes the
 message's journey through the mesh.
 
+## Example envelope
+
+```json
+{
+  "id": "env-abc123",
+  "route": {
+    "prev": ["preprocess"],
+    "curr": "infer",
+    "next": ["postprocess", "store"]
+  },
+  "headers": { "trace_id": "t-42" },
+  "payload": { "text": "Hello world", "cleaned": true }
+}
+```
+
+This envelope has already passed through `preprocess`, is currently being handled
+by `infer`, and will next visit `postprocess` then `store`.
+
 ## Route advancement
 
 After each actor processes a message, the runtime shifts the route forward:
@@ -25,17 +43,32 @@ After each actor processes a message, the runtime shifts the route forward:
 2. The first element of `next` becomes the new `curr`
 3. `next` shrinks by one
 
+```
+Before infer:   prev=[preprocess]       curr=infer       next=[postprocess, store]
+After infer:    prev=[preprocess,infer] curr=postprocess  next=[store]
+After postproc: prev=[..., postprocess] curr=store        next=[]
+After store:    next is empty → routed to x-sink
+```
+
 When `next` is empty and the actor finishes, the sidecar routes the envelope to
 `x-sink` for result persistence. No special "end" marker is needed.
 
 ## Actors are stateless
 
 Because the route travels with the message, actors do not need to know about the
-pipeline they belong to. An actor receives an envelope, processes the payload,
-and hands it back. The sidecar reads the route and delivers the envelope to the
-next queue.
+pipeline they belong to. An actor receives the payload, processes it,
+and returns the result. The sidecar handles the envelope and routing.
+
+```python
+# The actor never sees the envelope — only the payload
+def process(state: dict) -> dict:
+    state["prediction"] = model.predict(state["text"])
+    return state
+```
 
 This means actors can be reused across different pipelines without modification.
+The same `process` function works whether the route is
+`[preprocess, infer, store]` or `[infer, judge, human-review]`.
 
 ## Why this matters
 

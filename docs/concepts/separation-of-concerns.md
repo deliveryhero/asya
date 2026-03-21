@@ -40,14 +40,43 @@ pipelines as familiar Python — `if/else`, loops, `asyncio.gather`. The compile
 produces standard `AsyncActor` manifests. The data scientist never touches YAML;
 the platform team never reads Python pipeline code.
 
+## Actor Flavors: complexity hidden by platform
+
+The full AsyncActor CRD has many fields — transport config, sidecar settings,
+state proxy, KEDA triggers, resource limits. Platform engineers pre-configure
+these as **flavors**: reusable templates that bundle infrastructure defaults.
+
+```yaml
+# What the data scientist sees (flavor = gpu-inference):
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: my-model
+spec:
+  flavor: gpu-inference    # platform-defined preset
+  image: my-model:latest
+  handler: model.predict
+```
+
+```yaml
+# What the platform team defined in the flavor:
+#   GPU node affinity, 0-10 scaling, 90s timeout,
+#   retry with backoff, SQS transport, S3 state proxy
+```
+
+The flavor absorbs the complexity. The data scientist's YAML stays short and
+readable — just name, image, handler, and flavor.
+
 ## What each side controls
 
 **Data scientist**:
 - Business logic (model inference, data transforms, LLM calls)
 - Input/output contract (payload schema)
 - Local testing with `pytest`
+- Choosing a flavor (e.g., `gpu-inference`, `cpu-fast`, `agentic`)
 
 **Platform team**:
+- Defining flavors with sensible defaults
 - Transport backend (SQS, RabbitMQ, Pub/Sub)
 - Autoscaling thresholds (KEDA)
 - Retry policies, timeouts, SLA deadlines

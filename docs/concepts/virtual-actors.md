@@ -22,6 +22,52 @@ runtime. It exposes a virtual filesystem at `/state/...` inside the actor pod.
 The actor code looks like ordinary file I/O — no SDK, no client library, no
 connection management.
 
+### Reading state
+
+```python
+import json
+
+def process(state: dict) -> dict:
+    # Load conversation history from previous invocations
+    try:
+        with open("/state/history.json") as f:
+            history = json.load(f)
+    except FileNotFoundError:
+        history = []
+
+    # Append current interaction
+    history.append({"role": "user", "content": state["prompt"]})
+    response = llm.chat(history)
+    history.append({"role": "assistant", "content": response})
+
+    # Persist for next invocation
+    with open("/state/history.json", "w") as f:
+        json.dump(history, f)
+
+    state["response"] = response
+    return state
+```
+
+### Enabling state proxy in an actor spec
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chat-agent
+spec:
+  image: my-chat-agent:latest
+  handler: agent.process
+  stateProxy:
+    backend: s3
+    bucket: asya-actor-state
+    consistency: lww
+```
+
+The handler reads/writes `/state/...` as regular files. The proxy transparently
+stores them in the configured S3 bucket under a key prefix derived from the
+actor name.
+
 ## Pluggable backends
 
 | Backend | Use case |

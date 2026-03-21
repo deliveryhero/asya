@@ -85,9 +85,46 @@
 
         .hero .tagline {
             font-size: 1.3rem;
-            color: var(--text-tertiary);
-            margin: 0 0 1.5rem;
+            color: var(--text-secondary);
+            margin: 0 0 1rem;
             font-weight: 400;
+        }
+
+        .dict-headline {
+            text-align: left;
+            max-width: 540px;
+            margin: 0 auto 0.5rem;
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+        }
+
+        .dict-headline em {
+            font-style: italic;
+            color: var(--text-primary);
+        }
+
+        .dict-entry {
+            text-align: left;
+            max-width: 540px;
+            margin: 0 auto 2rem;
+            font-size: 0.95rem;
+            color: var(--text-tertiary);
+            line-height: 1.7;
+        }
+
+        .dict-entry ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .dict-entry li {
+            margin-bottom: 0.25rem;
+        }
+
+        .dict-pronunciation {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85em;
+            color: var(--text-muted);
         }
 
         .hero .description {
@@ -571,14 +608,19 @@
 
         <!-- Hero -->
         <section class="hero">
-            <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" class="hero-logo" width="160">
+            <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" class="hero-logo" width="250">
             <h1>Asya</h1>
             <p class="tagline">The Message Knows the Way.</p>
-            <p class="description">
-                A Kubernetes-native actor mesh for async AI/ML pipelines.
-                Each actor is a pure Python function. Each message carries its own route.
-                No central orchestrator. No SDK lock-in. Scale to zero.
-            </p>
+            <p class="dict-headline"><span class="dict-pronunciation">/ˈɑː.sjə/</span> &mdash; <em><strong>asy</strong>nc <strong>a</strong>ctors</em></p>
+            <div class="dict-entry">
+                <ul>
+                    <li>A Kubernetes-native actor mesh for AI and agentic workloads</li>
+                    <li>Queue-based routing &mdash; each message carries its own route</li>
+                    <li>Independent scaling from zero to infinity</li>
+                    <li>No central orchestrator &mdash; choreography, not orchestration</li>
+                    <li>Pure Python functions and K8s manifests &mdash; no infrastructure in your code</li>
+                </ul>
+            </div>
             <div class="hero-buttons">
                 <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Get Started</a>
                 <a href="https://github.com/deliveryhero/asya" class="btn" target="_blank" rel="noreferrer">
@@ -588,10 +630,13 @@
                 <a href="/docs/" class="btn">Documentation</a>
             </div>
             <div class="badges">
-                <a href="https://github.com/deliveryhero/asya/actions/workflows/ci.yml"><img src="https://github.com/deliveryhero/asya/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
                 <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
+                <a href="https://github.com/deliveryhero/asya/actions/workflows/ci.yml"><img src="https://github.com/deliveryhero/asya/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
                 <a href="https://goreportcard.com/report/github.com/deliveryhero/asya"><img src="https://goreportcard.com/badge/github.com/deliveryhero/asya" alt="Go Report Card"></a>
                 <a href="https://github.com/deliveryhero/asya/releases/latest"><img src="https://img.shields.io/github/v/release/deliveryhero/asya" alt="Release"></a>
+                <img src="https://img.shields.io/badge/kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes 1.28+">
+                <img src="https://img.shields.io/badge/helm-3.12+-0F1689?logo=helm&logoColor=white" alt="Helm 3.12+">
+                <a href="https://artifacthub.io/packages/search?repo=asya"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/asya" alt="Artifact Hub"></a>
             </div>
         </section>
 
@@ -687,21 +732,21 @@
             <div class="feature-group group-infra">
                 <div class="feature-group-label">Infrastructure</div>
                 <div class="feature-grid">
+                    <a href="/docs/concepts/kubernetes-native/" class="feature-card" style="text-decoration: none;">
+                        <h3>☸️ Kubernetes Native</h3>
+                        <p>CRDs, Helm charts, GitOps &mdash; runs anywhere K8s runs</p>
+                    </a>
                     <a href="/docs/concepts/scale-to-zero/" class="feature-card" style="text-decoration: none;">
                         <h3>📈 Scale Zero to Infinity</h3>
                         <p>KEDA scales each actor independently &mdash; GPU pods cost nothing when idle</p>
                     </a>
                     <a href="/docs/concepts/pluggable-transports/" class="feature-card" style="text-decoration: none;">
-                        <h3>🔌 Pluggable Transports</h3>
+                        <h3>🔌 Pluggable Transport</h3>
                         <p>SQS, RabbitMQ, Pub/Sub &mdash; swap via Crossplane, handler code unchanged</p>
                     </a>
                     <a href="/docs/concepts/pluggable-storage/" class="feature-card" style="text-decoration: none;">
                         <h3>🗄️ Pluggable Storage</h3>
                         <p>S3, GCS, Redis, NATS KV &mdash; state proxy connectors for virtual actor memory</p>
-                    </a>
-                    <a href="/docs/concepts/kubernetes-native/" class="feature-card" style="text-decoration: none;">
-                        <h3>☸️ Kubernetes Native</h3>
-                        <p>CRDs, Helm charts, GitOps &mdash; runs anywhere K8s runs</p>
                     </a>
                     <a href="/docs/concepts/built-in-resiliency/" class="feature-card" style="text-decoration: none;">
                         <h3>🛡️ Built-in Resiliency</h3>
@@ -748,7 +793,7 @@
             </div>
             <div class="diagram-container">
                 <a href="/docs/architecture/" title="View full architecture documentation">
-                    <img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
+                    <img src="/docs/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
                 </a>
                 <p class="caption">Actor Mesh: messages carry their own route through independently scaling actors</p>
             </div>
@@ -767,7 +812,7 @@
                 </div>
                 <div class="diagram-container">
                     <a href="/docs/reference/components/core-actor/" title="Actor internals: sidecar, runtime, state proxy">
-                        <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
+                        <img src="/docs/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
                     </a>
                 </div>
             </div>

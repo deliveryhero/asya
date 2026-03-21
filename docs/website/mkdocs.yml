@@ -38,7 +38,7 @@ nav:
     - Dynamic Routing: concepts/dynamic-routing.md
     - Flow Compiler: concepts/flow-compiler.md
     - Scale Zero to Infinity: concepts/scale-to-zero.md
-    - Pluggable Transports: concepts/pluggable-transports.md
+    - Pluggable Transports: concepts/pluggable-transport.md
     - Pluggable Storage: concepts/pluggable-storage.md
     - Kubernetes Native: concepts/kubernetes-native.md
     - Built-in Resiliency: concepts/built-in-resiliency.md
@@ -134,7 +134,7 @@ plugins:
 markdown_extensions:
 - admonition
 - toc:
-    permalink: "#"
+    permalink: " ¶"
 - tables
 - pymdownx.highlight:
     use_pygments: true

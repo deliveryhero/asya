@@ -17,17 +17,24 @@ paths through the same set of actors.
 
 ## Actors can change the future
 
-A generator handler can overwrite `route.next` mid-execution:
+A generator handler can insert actors at the front of `route.next` using the
+slice notation `.route.next[:0]`. This **prepends** without losing the remaining
+route:
 
 ```python
 def handler(payload: dict):
     confidence = payload["score"]
     if confidence < 0.7:
-        yield "SET", ".route.next", ["human-review"]
+        # Insert human-review before whatever comes next
+        yield "SET", ".route.next[:0]", ["human-review"]
     else:
-        yield "SET", ".route.next", ["auto-approve"]
+        yield "SET", ".route.next[:0]", ["auto-approve"]
     yield payload
 ```
+
+> **Avoid** overwriting `.route.next` entirely (e.g., `yield "SET", ".route.next", [...]`).
+> This discards the remaining route and breaks downstream actors that expect to
+> receive the envelope. Use `.route.next[:0]` to prepend safely.
 
 Only `.route.next` is writable. `.route.prev` and `.route.curr` are read-only,
 enforcing a forward-only execution model — actors cannot rewrite history.

@@ -6,8 +6,8 @@ An actor mesh is a network of stateless actors communicating through message que
 Each actor is an independent Kubernetes workload that receives envelopes, processes them,
 and forwards results to the next actor.
 
-<a href="../website/img/actor-mesh.png" target="_blank" title="Click to view full size">
-  <img src="../website/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/docs/img/actor-mesh.png" target="_blank" title="Click to view full size">
+  <img src="/docs/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
@@ -67,18 +67,19 @@ No checkpointing logic needed in your code.
 
 ### Dynamic routing
 
-Actors can modify `route.next` at runtime. An LLM judge can route high-confidence results
-directly to storage while sending uncertain results back for human review:
+Actors can modify `route.next` at runtime. An LLM judge can prepend different
+actors at the front of the remaining route based on confidence:
 
 ```python
-def judge(state: dict) -> dict:
+def judge(state: dict):
     if state["confidence"] > 0.9:
-        yield "SET", ".route.next", ["store"]
+        yield "SET", ".route.next[:0]", ["store"]
     else:
-        yield "SET", ".route.next", ["human-review"]
+        yield "SET", ".route.next[:0]", ["human-review"]
     yield state
 ```
 
+Using `.route.next[:0]` prepends without discarding the remaining route.
 This is impossible in a static DAG — you'd need to rebuild the graph at runtime.
 
 ## The Trade-offs
@@ -107,8 +108,8 @@ Each `AsyncActor` CRD creates three Kubernetes resources:
 2. **Deployment** — the actor pod with sidecar injected by Crossplane
 3. **KEDA ScaledObject** — autoscaler watching the queue depth
 
-<a href="../website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="../website/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="/docs/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*

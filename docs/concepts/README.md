@@ -23,10 +23,10 @@ capability — what it enables, why it matters, and where to go for details.
 
 | Concept | One-liner |
 |---------|-----------|
-| [Scale Zero to Infinity](scale-to-zero.md) | KEDA watches queues — GPU pods cost nothing between batches |
-| [Pluggable Transports](pluggable-transports.md) | Swap SQS, RabbitMQ, or Pub/Sub via Crossplane without changing user code |
-| [Pluggable Storage](pluggable-storage.md) | S3, GCS, Redis, NATS KV — state proxy connectors for virtual actor memory |
 | [Kubernetes Native](kubernetes-native.md) | AsyncActor is a CRD — kubectl, Helm, GitOps, RBAC all work |
+| [Scale Zero to Infinity](scale-to-zero.md) | KEDA watches queues — GPU pods cost nothing between batches |
+| [Pluggable Transport](pluggable-transport.md) | Swap SQS, RabbitMQ, or Pub/Sub via Crossplane without changing user code |
+| [Pluggable Storage](pluggable-storage.md) | S3, GCS, Redis, NATS KV — state proxy connectors for virtual actor memory |
 | [Built-in Resiliency](built-in-resiliency.md) | Durable queues, retries, DLQ, SLA deadlines, timeouts |
 
 ## Integration

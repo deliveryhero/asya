@@ -26,8 +26,8 @@ An actor is a **stateless workload** that:
 
 ## Architecture Diagram
 
-<a href="../../website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="../../website/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="/docs/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="/docs/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
@@ -97,33 +97,8 @@ metadata:
   namespace: production # Queue name = asya-production-text-processor
 ```
 
-**Custom actor name** via `asya.sh/actor` label enables multi-region/multi-cluster deployments:
-
-```yaml
-# EU region
-metadata:
-  name: text-processor-eu
-  labels:
-    asya.sh/actor: text-processor  # Actor name = text-processor
-# Queue: asya-production-text-processor
-
-# US region
-metadata:
-  name: text-processor-us
-  labels:
-    asya.sh/actor: text-processor  # Same actor name
-# Queue: asya-production-text-processor (same queue!)
-```
-
-**Benefits**:
-- ✅ Same logical actor across regions/clusters
-- ✅ Distinct resource names for cluster management
-- ✅ Shared queue for load distribution
-- ✅ Filter by actor: `kubectl get asya -l asya.sh/actor=text-processor`
-
-**Queue naming format**: `asya-{namespace}-{actor-name}`
-
-**See**: [`examples/asyas/multi-region-actor.yaml`](https://github.com/deliveryhero/asya/tree/main/examples/asyas/multi-region-actor.yaml) for multi-region example.
+- **Filter by actor**: `kubectl get asya -n production -l asya.sh/actor=text-processor`.
+- **Queue naming format**: `asya-{namespace}-{actor-name}`
 
 ## Label Propagation
 

@@ -10,6 +10,9 @@
 [![CI](https://github.com/deliveryhero/asya/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/deliveryhero/asya/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Go Report Card](https://goreportcard.com/badge/github.com/deliveryhero/asya)](https://goreportcard.com/report/github.com/deliveryhero/asya)
+![Kubernetes](https://img.shields.io/badge/kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white)
+![Helm](https://img.shields.io/badge/helm-3.12+-0F1689?logo=helm&logoColor=white)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/asya)](https://artifacthub.io/packages/search?repo=asya)
 
 **The Message Knows the Way.**
 

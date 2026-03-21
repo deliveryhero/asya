@@ -22,6 +22,15 @@ async def pipeline(payload):
 The compiler reads this function and produces a set of router actors that
 replicate the control flow using message passing.
 
+The compiler also generates a visual graph of the compiled pipeline:
+
+<p align="center">
+<a href="/docs/img/flow-compiled-example.png" target="_blank" title="Click to view full size">
+  <img src="/docs/img/flow-compiled-example.png" alt="Compiled flow graph: text analysis pipeline with language-based branching" style="max-width: 80%; cursor: zoom-in;"/>
+</a>
+</p>
+<p align="center"><em>Green = actor handlers (your code).<br/>Orange = auto-generated routers.<br/>Blue = entrypoint/exitpoint.</em></p>
+
 ## How it works: CPS transformation
 
 The compiler uses **continuation-passing style** (CPS): instead of calling the
@@ -36,20 +45,29 @@ The output is a set of standard `AsyncActor` manifests linked by an
 | Python construct | Mesh equivalent |
 |-----------------|-----------------|
 | Sequential calls | Chained routes |
-| `if/else` | Conditional route rewrite |
-| `for x in items` / list comprehension | Fan-out with automatic fan-in |
-| `asyncio.gather(a, b)` | Heterogeneous fan-out with aggregation |
+| `if/elif/else` | Conditional route rewrite |
+| `while` / `while True` with `break` | Loop-back edges with exit conditions |
+| `payload["results"] = [x for x in payload["items"]]` | Fan-out with automatic fan-in |
+| `asyncio.gather(a, b)` | Fan-out with automatic fan-in (for asyncio flows) |
+| `try/except` | Error routing to recovery actors |
+| `with asyncio.timeout()` | SLA-bounded execution |
 
-## What flows cannot do
+## Flows vs standalone actors
 
-Flows enforce 1:1 payload mapping per actor call. These actor-only features are
-not available in flows:
+Flows compile to standard actors, but the compiler enforces **1:1 payload
+mapping** — each actor call takes one payload and returns one payload. This
+keeps the compiled graph predictable and debuggable.
 
-- ❌ `yield "FLY", ...` — FLY streaming events
-- ❌ Multiple `yield` without aggregation (fire-and-forget fan-out)
-- ❌ Returning `None` (abort)
+For advanced patterns that break this contract, use standalone generator actors
+directly:
 
-Use standalone actors for these patterns.
+| Pattern | Flow | Standalone actor |
+|---------|------|-----------------|
+| Sequential, branching, loops | ✅ | ✅ |
+| Early return | ✅ | ✅ |
+| Fan-out / fan-in | ✅ | ✅ |
+| Fire-and-forget fan-out (multiple yields) | use standalone | ✅ |
+| Streaming events (FLY) | use standalone | ✅ |
 
 ## Purely additive
 
