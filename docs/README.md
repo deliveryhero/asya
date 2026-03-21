@@ -40,7 +40,7 @@ Deploy Asya on your cluster, configure transports, monitor and scale.
 
 | I want to... | Start with |
 |---|---|
-| Understand what Asya is | [Motivation](motivation.md) then [Core Concepts](concepts.md) |
+| Understand what Asya is | [Motivation](motivation.md) then [Core Concepts](concepts/README.md) |
 | Get a local cluster running | [Quickstart](setup/start-quickstart.md) |
 | Build my first actor | [First Actor](usage/start-first-actor.md) |
 | Chain actors into a mesh | [First Actor Mesh](usage/start-first-actor-mesh.md) |
@@ -53,7 +53,7 @@ Deploy Asya on your cluster, configure transports, monitor and scale.
 ### Concepts
 
 - **[Motivation](motivation.md)** — Why async choreography over centralized orchestration
-- **[Core Concepts](concepts.md)** — Actor mesh, envelope, sidecar, runtime, crew, flow DSL, gateway
+- **[Core Concepts](concepts/README.md)** — Actor mesh, envelope, sidecar, runtime, crew, flow DSL, gateway
 - **[Architecture](architecture.md)** — System design, component interactions, sync gateway
 
 ### Usage (Actor Authors)

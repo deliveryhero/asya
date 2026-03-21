@@ -859,4 +859,4 @@ yield payload
 | ABI handler examples (3 patterns) | `examples/actors/agentic/` |
 | Gateway security model (auth, dual-deployment) | [Gateway](../reference/components/core-gateway.md) |
 | Envelope protocol and routing semantics | [Envelope](../reference/specs/envelope.md) |
-| Core concepts (actor mesh, choreography) | [Concepts](../concepts.md) |
+| Core concepts (actor mesh, choreography) | [Concepts](../concepts/README.md) |

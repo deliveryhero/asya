@@ -6,8 +6,8 @@ An actor mesh is a network of stateless actors communicating through message que
 Each actor is an independent Kubernetes workload that receives envelopes, processes them,
 and forwards results to the next actor.
 
-<a href="website/img/actor-mesh.png" target="_blank" title="Click to view full size">
-  <img src="website/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="../website/img/actor-mesh.png" target="_blank" title="Click to view full size">
+  <img src="../website/img/actor-mesh.png" alt="Actor Mesh: actors connected through queues with independent KEDA scaling" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
@@ -107,8 +107,8 @@ Each `AsyncActor` CRD creates three Kubernetes resources:
 2. **Deployment** — the actor pod with sidecar injected by Crossplane
 3. **KEDA ScaledObject** — autoscaler watching the queue depth
 
-<a href="website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="website/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
+<a href="../website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
+  <img src="../website/img/actor-anatomy.png" alt="Actor pod anatomy" style="max-width: 100%; cursor: zoom-in;"/>
 </a>
 
 *Click the diagram to view full size.*
@@ -121,7 +121,7 @@ no dangling deployments.
 
 ## Further Reading
 
-- **[Core Concepts](concepts.md)** — envelope, actor, sidecar, routing
-- **[Motivation](motivation.md)** — choreography vs orchestration trade-offs in depth
-- **[Architecture](architecture.md)** — components, protocols, data flow
-- **[Flow DSL](reference/specs/flow-dsl.md)** — write pipelines as Python, compile to actors
+- **[Core Concepts](README.md)** — envelope, actor, sidecar, routing
+- **[Motivation](../motivation.md)** — choreography vs orchestration trade-offs in depth
+- **[Architecture](../architecture.md)** — components, protocols, data flow
+- **[Flow DSL](../reference/specs/flow-dsl.md)** — write pipelines as Python, compile to actors

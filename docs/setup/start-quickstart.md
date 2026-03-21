@@ -142,6 +142,9 @@ helm install keda kedacore/keda \
 # 3. Cloud credentials
 #    AWS: create secret with access key, or use IRSA (see EKS guide)
 #    GCP: use Workload Identity (see GKE guide)
+#
+#    The secret must exist in crossplane-system (for ProviderConfig)
+#    AND in the actor namespace (for KEDA TriggerAuthentication).
 kubectl apply -f - <<'EOF'
 apiVersion: v1
 kind: Secret
@@ -158,12 +161,44 @@ stringData:
   AWS_SECRET_ACCESS_KEY: YOUR_SECRET_KEY
 EOF
 
+# Also create credentials in the actor namespace (used by KEDA)
+kubectl create namespace YOUR_NAMESPACE
+kubectl apply -f - <<'EOF'
+apiVersion: v1
+kind: Secret
+metadata:
+  name: aws-creds
+  namespace: YOUR_NAMESPACE
+type: Opaque
+stringData:
+  AWS_ACCESS_KEY_ID: YOUR_ACCESS_KEY
+  AWS_SECRET_ACCESS_KEY: YOUR_SECRET_KEY
+EOF
+
 # 4. Asya Crossplane chart (XRDs, Compositions, ProviderConfigs)
+#    This installs cluster-scoped resources (XRDs, Compositions, Providers,
+#    RBAC) and a namespace-scoped runtime ConfigMap. Only one asya-crossplane
+#    release can exist per cluster.
 helm repo add asya https://asya.sh/charts
 helm install asya-crossplane asya/asya-crossplane \
   --namespace asya-system --create-namespace \
+  --set providers.aws.enabled=true \
+  --set transport=sqs \
   --set awsProviderConfig.secretRef.namespace=crossplane-system \
   --set actorNamespace=YOUR_NAMESPACE \
+  --wait --timeout 300s
+
+# Wait for Crossplane providers and XRD to become ready
+kubectl wait --for=condition=Healthy \
+  providers/provider-aws-sqs providers/provider-kubernetes \
+  functions/function-go-templating functions/function-patch-and-transform functions/function-auto-ready \
+  --timeout=300s
+kubectl wait --for=condition=Established xrd/xasyncactors.asya.sh --timeout=120s
+
+# Enable ProviderConfigs (after provider CRDs are registered)
+helm upgrade asya-crossplane asya/asya-crossplane \
+  --namespace asya-system --reuse-values \
+  --set providerConfigs.install=true \
   --wait
 
 # 5. Crew actors (x-sink, x-sump)

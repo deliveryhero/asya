@@ -94,7 +94,7 @@ and sending your first message.
 |---|---|
 | **[Setup](docs/setup/README.md)** | Install on Kind (local), EKS, or GKE |
 | **[Usage](docs/usage/README.md)** | Write handlers, deploy actors, build flows |
-| **[Concepts](docs/concepts.md)** | Envelope, actor, sidecar, routing — the core model |
+| **[Concepts](docs/concepts/README.md)** | Envelope, actor, sidecar, routing — the core model |
 | **[Architecture](docs/architecture.md)** | Components, protocols, data flow |
 | **[Reference](docs/reference/README.md)** | Specs, config tables, API surfaces |
 | **[Examples](examples/)** | Actor specs and Flow DSL examples |

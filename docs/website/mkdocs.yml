@@ -29,7 +29,23 @@ nav:
 - Home: README.md
 - UNDERSTAND:
   - Motivation: motivation.md
-  - Core Concepts: concepts.md
+  - Core Concepts:
+    - Overview: concepts/README.md
+    - Actor Mesh: concepts/actor-mesh.md
+    - Message Knows the Way: concepts/message-knows-the-way.md
+    - Virtual Actors: concepts/virtual-actors.md
+    - Separation of Concerns: concepts/separation-of-concerns.md
+    - Dynamic Routing: concepts/dynamic-routing.md
+    - Flow Compiler: concepts/flow-compiler.md
+    - Scale Zero to Infinity: concepts/scale-to-zero.md
+    - Pluggable Transports: concepts/pluggable-transports.md
+    - Pluggable Storage: concepts/pluggable-storage.md
+    - Kubernetes Native: concepts/kubernetes-native.md
+    - Built-in Resiliency: concepts/built-in-resiliency.md
+    - HTTP Gateway: concepts/http-gateway.md
+    - Agentic Native: concepts/agentic-native.md
+    - Built-in Observability: concepts/observability.md
+    - Developer Experience: concepts/developer-experience.md
   - Architecture: architecture.md
 - USAGE:
   - Overview: usage/README.md
@@ -118,7 +134,7 @@ plugins:
 markdown_extensions:
 - admonition
 - toc:
-    permalink: true
+    permalink: "#"
 - tables
 - pymdownx.highlight:
     use_pygments: true
