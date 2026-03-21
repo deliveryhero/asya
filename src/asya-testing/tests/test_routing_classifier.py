@@ -149,23 +149,23 @@ async def test_start_router_chains_to_classifier_and_conditional(run_handler, mo
     assert len(set_cmds) == 1
     actors = set_cmds[0][2]
     assert actors[0] == "actor-classifier"
-    assert "actor-router_routing_classifier_line_47_if_3" in actors
+    assert "actor-router_routing_classifier_line_46_if_3" in actors
 
 
 @pytest.mark.parametrize(
     "category, expected_agent",
     [
         ("billing", "actor-billing_agent"),
-        ("technical", "actor-router_routing_classifier_line_49_if_2"),  # passes to next router
+        ("technical", "actor-router_routing_classifier_line_48_if_2"),  # passes to next router
     ],
 )
 async def test_billing_conditional_router(run_handler, monkeypatch, load_routers, category, expected_agent):
-    """The line_47_if router routes billing to billing_agent, others to next router."""
+    """The line_46_if router routes billing to billing_agent, others to next router."""
     routers = load_routers("routing_classifier")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     payload = {"category": category, "message": "test"}
-    result = await run_handler(routers.router_routing_classifier_line_47_if_3(payload))
+    result = await run_handler(routers.router_routing_classifier_line_46_if_3(payload))
 
     set_cmds = [e for e in result.abi if e[0] == "SET" and e[1].startswith(".route.next")]
     assert len(set_cmds) == 1
@@ -175,16 +175,16 @@ async def test_billing_conditional_router(run_handler, monkeypatch, load_routers
 
 
 async def test_account_general_conditional_router(run_handler, monkeypatch, load_routers):
-    """The line_51_if router sends account to account_agent, else to general_agent."""
+    """The line_50_if router sends account to account_agent, else to general_agent."""
     routers = load_routers("routing_classifier")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     # account path
-    result = await run_handler(routers.router_routing_classifier_line_51_if_1({"category": "account"}))
+    result = await run_handler(routers.router_routing_classifier_line_50_if_1({"category": "account"}))
     actors = next(e[2] for e in result.abi if e[0] == "SET")
     assert "actor-account_agent" in actors
 
     # general (else) path
-    result = await run_handler(routers.router_routing_classifier_line_51_if_1({"category": "something-else"}))
+    result = await run_handler(routers.router_routing_classifier_line_50_if_1({"category": "something-else"}))
     actors = next(e[2] for e in result.abi if e[0] == "SET")
     assert "actor-general_agent" in actors
