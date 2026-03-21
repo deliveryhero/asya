@@ -6,6 +6,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.6] - 2026-03-21
+
+## What's Changed
+* Update CHANGELOG.md for v0.5.5 by @github-actions[bot] in https://github.com/deliveryhero/asya/pull/318
+* docs(gcp-gke): complete GKE + GCP Pub/Sub install guide for KubeCon demo by @atemate in https://github.com/deliveryhero/asya/pull/319
+* fix(e2e): fix three bugs introduced by @flow decorator commit (#315) by @atemate in https://github.com/deliveryhero/asya/pull/322
+* fix(state-proxy): implement exclusive create (xb mode) in server and CAS connectors by @atemate in https://github.com/deliveryhero/asya/pull/326
+* feat(xrd): remove transport from AsyncActor spec, use defaultCompositionRef by @atemate in https://github.com/deliveryhero/asya/pull/321
+* refactor(runtime): cleanup asya_runtime.py by @atemate in https://github.com/deliveryhero/asya/pull/324
+* feat(dlq-worker): add GCS storage + Pub/Sub consumer for native GKE [y6xv] by @atemate in https://github.com/deliveryhero/asya/pull/323
+* refactor(gateway): unify terminology — task=A2A, tool=MCP, envelope=mesh by @atemate in https://github.com/deliveryhero/asya/pull/325
+* fix(charts): all transports and IRSA disabled by default by @atemate in https://github.com/deliveryhero/asya/pull/320
+* refactor(cli): remove asya flow * subcommand, promote validate to top-level by @atemate in https://github.com/deliveryhero/asya/pull/314
+* chore(deps): bump google.golang.org/grpc from 1.74.2 to 1.79.3 in /src/asya-gateway by @dependabot[bot] in https://github.com/deliveryhero/asya/pull/327
+* chore(deps): bump google.golang.org/grpc from 1.79.2 to 1.79.3 in /src/asya-crew/cmd/dlq-worker by @dependabot[bot] in https://github.com/deliveryhero/asya/pull/328
+* feat(compiler): union of PRs #278, #280, #307 — directives, decorators, rules engine by @atemate in https://github.com/deliveryhero/asya/pull/329
+* docs: remove stale transport: field from AsyncActor spec examples by @atemate in https://github.com/deliveryhero/asya/pull/331
+* feat(sidecar): x-asya-first-attempt header for maxDuration tracking by @atemate in https://github.com/deliveryhero/asya/pull/332
+* chore: remove asya-actor helm chart by @atemate in https://github.com/deliveryhero/asya/pull/333
+* fix(crew): x-sump must always be reached via x-sink (enforce two-layer termination) [nqf5] by @atemate in https://github.com/deliveryhero/asya/pull/330
+* feat(sidecar): policy-based error handling — policies+rules replaces retry+nonRetryableErrors by @atemate in https://github.com/deliveryhero/asya/pull/334
+* fix: Remove /mesh/expose — ConfigMap+hot-reload is the only tool registration mechanism [38we] by @atemate in https://github.com/deliveryhero/asya/pull/335
+* chore(deps): bump github.com/buger/jsonparser from 1.1.1 to 1.1.2 in /src/asya-gateway by @dependabot[bot] in https://github.com/deliveryhero/asya/pull/336
+* refactor(compiler): Phase 1 — replace ir/grouper/dotgen with analyzer/graphgen by @atemate in https://github.com/deliveryhero/asya/pull/337
+* feat(compiler): Phase 2 — 5-step pipeline with manifest generation and FlowInfo by @atemate in https://github.com/deliveryhero/asya/pull/339
+* feat(compiler): Phase 3 — flow composition, examples, validation by @atemate in https://github.com/deliveryhero/asya/pull/340
+* docs: restructure documentation against Diataxis framework [u1zh] by @atemate in https://github.com/deliveryhero/asya/pull/338
+* feat(compiler): per-scope semantics for context manager configs [ia37] by @atemate in https://github.com/deliveryhero/asya/pull/342
+* docs: prettify repo for KubeCon by @atemate in https://github.com/deliveryhero/asya/pull/343
+* fix(sidecar): log runtime error content at ERROR level by @atemate in https://github.com/deliveryhero/asya/pull/344
+* chore(deps): bump google.golang.org/grpc from 1.74.2 to 1.79.3 in /testing/integration/sidecar by @dependabot[bot] in https://github.com/deliveryhero/asya/pull/341
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.5...v0.5.6
+
+
+
 ## [0.5.4] - 2026-03-17
 
 ## Major Changes
@@ -1229,6 +1266,9 @@ All images are published to GitHub Container Registry:
 [0.5.4]: https://github.com/deliveryhero/asya/releases/tag/v0.5.4
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.5...HEAD
 [0.5.5]: https://github.com/deliveryhero/asya/releases/tag/v0.5.5
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.6...HEAD
+[0.5.6]: https://github.com/deliveryhero/asya/releases/tag/v0.5.6
 
