@@ -41,7 +41,7 @@ kind create cluster --name asya-quickstart --config kind-config.yaml
 
 This maps the cluster's NodePort 30080 to your local port 8080, allowing you to access services at `http://localhost:8080`.
 
-## 2. Install Crossplane
+### Install Crossplane
 
 Crossplane manages actor infrastructure (SQS queues, Deployments, KEDA ScaledObjects).
 It must be installed before the playground chart because the playground's providers need
@@ -55,7 +55,7 @@ helm install crossplane crossplane-stable/crossplane \
   --wait --timeout 180s
 ```
 
-## 3. Install the playground chart
+## 2. Install the playground chart
 
 `asya-playground` is a batteries-included quickstart: Crossplane, KEDA, LocalStack (SQS + S3),
 crew actors, and a hello-world actor — all in one release. No separate installs needed.
@@ -176,7 +176,7 @@ production setup guide.
 
 </details>
 
-## 4. Verify the installation
+## 3. Verify the installation
 
 ```bash
 kubectl get pods -n asya-demo
@@ -188,7 +188,7 @@ Expected:
 - `x-sink`, `x-sump` — `Ready` (always running, `minReplicaCount=1`)
 - `hello` — `Napping` (scaled to 0 until a message arrives)
 
-## 5. Send a test message
+## Send a test message
 
 ```bash
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
@@ -204,7 +204,7 @@ kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
   "
 ```
 
-## 6. Watch scale-from-zero
+## 4. Watch scale-from-zero
 
 KEDA detects the message and scales the hello deployment from 0 to 1 (takes ~30s):
 
@@ -218,7 +218,7 @@ Once the pod is running, it shows `2/2` containers (handler + sidecar injected b
 kubectl get pods -n asya-demo -l asya.sh/actor=hello
 ```
 
-## 7. Check logs
+## 5. Check logs
 
 ```bash
 POD=$(kubectl get pods -n asya-demo -l asya.sh/actor=hello -o jsonpath='{.items[0].metadata.name}')
@@ -239,99 +239,12 @@ helm uninstall asya -n asya-demo
 kind delete cluster --name asya-quickstart
 ```
 
-## Alternative: Manual Installation
+## Production deployment
 
-For more control over the installation process or to use different infrastructure backends:
+For deploying on managed Kubernetes with real cloud infrastructure:
 
-### Using E2E Test Infrastructure
-
-The E2E test infrastructure provides a complete development environment:
-
-```bash
-cd testing/e2e
-
-# Deploy RabbitMQ + MinIO stack
-make up PROFILE=rabbitmq-minio
-
-# Or deploy AWS-style stack (LocalStack SQS + S3)
-make up PROFILE=sqs-s3
-```
-
-**Includes**: Kind cluster, KEDA, Crossplane, RabbitMQ/SQS, MinIO/S3, PostgreSQL, gateway, crew actors, and test actors.
-
-See `testing/e2e/README.md` for details.
-
-### Manual Component Installation
-
-1. **Install KEDA**:
-```bash
-helm repo add kedacore https://kedacore.github.io/charts
-helm install keda kedacore/keda --namespace keda --create-namespace
-```
-
-2. **Install RabbitMQ**:
-```bash
-helm upgrade --install asya-rabbitmq testing/e2e/charts/rabbitmq \
-  --namespace asya-e2e --create-namespace
-
-kubectl wait --for=condition=ready pod -l app=rabbitmq \
-  -n asya-e2e --timeout=300s
-```
-
-3. **Install MinIO**:
-```bash
-helm upgrade --install minio testing/e2e/charts/minio \
-  --namespace asya-e2e --create-namespace
-```
-
-The chart automatically creates the `asya-results` and `asya-errors` buckets.
-
-4. **Install Asya Gateway** (requires PostgreSQL):
-```bash
-helm upgrade --install asya-gateway-postgresql testing/e2e/charts/postgres \
-  --namespace asya-e2e --create-namespace
-
-cat > gateway-values.yaml <<'EOF'
-config:
-  postgresHost: asya-gateway-postgresql.asya-e2e.svc.cluster.local
-  postgresDatabase: asya_gateway
-  postgresUsername: postgres
-  postgresPassword: postgres
-
-routes:
-  tools:
-  - name: hello
-    description: Hello actor
-    parameters:
-      who:
-        type: string
-        required: true
-    route: [hello-actor]
-EOF
-
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
-  -n asya-e2e --create-namespace \
-  -f gateway-values.yaml
-```
-
-5. **Install Crew Actors**:
-```bash
-cat > crew-values.yaml <<'EOF'
-x-sink:
-  enabled: true
-  env:
-    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
-
-x-sump:
-  enabled: true
-  env:
-    ASYA_PERSISTENCE_MOUNT: /state/checkpoints
-EOF
-
-helm install asya-crew deploy/helm-charts/asya-crew/ \
-  --namespace asya-e2e \
-  -f crew-values.yaml
-```
+- **[AWS EKS Guide](start-aws-eks.md)** — SQS transport, S3 storage, IRSA for IAM
+- **[GCP GKE Guide](start-gcp-gke.md)** — Pub/Sub transport, GCS storage, Workload Identity
 
 ---
 

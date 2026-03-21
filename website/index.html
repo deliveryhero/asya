@@ -186,12 +186,25 @@
             white-space: pre;
         }
 
-        .code-example .comment { color: #6a9955; }
-        .code-example .keyword { color: #569cd6; }
-        .code-example .decorator { color: #d7ba7d; }
-        .code-example .string { color: #ce9178; }
-        .code-example .function { color: #dcdcaa; }
-        .code-example .param { color: #9cdcfe; }
+        /* Light mode: GitHub-style syntax colors */
+        .code-example .comment { color: #6a737d; }
+        .code-example .keyword { color: #d73a49; }
+        .code-example .decorator { color: #6f42c1; }
+        .code-example .string { color: #032f62; }
+        .code-example .function { color: #6f42c1; }
+        .code-example .param { color: #e36209; }
+        .code-example .yaml-key { color: #22863a; }
+        .code-example .yaml-val { color: #032f62; }
+
+        /* Dark mode: VS Code-style syntax colors */
+        body.dark .code-example .comment { color: #6a9955; }
+        body.dark .code-example .keyword { color: #569cd6; }
+        body.dark .code-example .decorator { color: #d7ba7d; }
+        body.dark .code-example .string { color: #ce9178; }
+        body.dark .code-example .function { color: #dcdcaa; }
+        body.dark .code-example .param { color: #9cdcfe; }
+        body.dark .code-example .yaml-key { color: #9cdcfe; }
+        body.dark .code-example .yaml-val { color: #ce9178; }
 
         /* Section headers */
         .section-header {
@@ -255,6 +268,16 @@
             border-radius: 8px;
             background: white;
             padding: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .diagram-container a:hover img {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        body.dark .diagram-container a:hover img {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .diagram-container .caption {
@@ -263,49 +286,6 @@
             margin-top: 0.75rem;
         }
 
-        /* Comparison table */
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .comparison-table th,
-        .comparison-table td {
-            padding: 12px 16px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-primary);
-        }
-
-        .comparison-table th {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .comparison-table td:first-child {
-            text-align: left;
-            font-weight: 500;
-        }
-
-        .comparison-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .check { color: #22863a; font-size: 1.1rem; }
-        .cross { color: #cb2431; font-size: 1.1rem; }
-        body.dark .check { color: #56d364; }
-        body.dark .cross { color: #f85149; }
-
-        .highlight-col {
-            background: rgba(60, 99, 204, 0.06);
-        }
-
-        body.dark .highlight-col {
-            background: rgba(60, 99, 204, 0.12);
-        }
 
         /* Quickstart */
         .quickstart-steps {
@@ -319,6 +299,20 @@
             border-radius: 8px;
             padding: 1.5rem;
             background: var(--bg-secondary);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .quickstart-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-color: var(--border-secondary);
+        }
+
+        body.dark .quickstart-step:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         .quickstart-step .step-number {
@@ -351,6 +345,10 @@
             white-space: pre;
             line-height: 1.5;
             margin-top: 0.5rem;
+        }
+
+        .quickstart-step .code-block .c {
+            color: #6a9955;
         }
 
         /* Protocols */
@@ -483,16 +481,16 @@
     result = model.predict(payload[<span class="string">"input"</span>])
     <span class="keyword">return</span> {**payload, <span class="string">"result"</span>: result}</div>
                     <div class="code-example" style="margin-top: 0.75rem;"><span class="comment"># actor.yaml &mdash; the platform's job</span>
-<span class="param">apiVersion</span>: asya.sh/v1alpha1
-<span class="param">kind</span>: AsyncActor
-<span class="param">metadata</span>:
-  <span class="param">name</span>: my-model
-<span class="param">spec</span>:
-  <span class="param">image</span>: my-model:latest
-  <span class="param">handler</span>: handler.process
-  <span class="param">scaling</span>:
-    <span class="param">minReplicas</span>: 0
-    <span class="param">maxReplicas</span>: 50</div>
+<span class="yaml-key">apiVersion</span>: <span class="yaml-val">asya.sh/v1alpha1</span>
+<span class="yaml-key">kind</span>: <span class="yaml-val">AsyncActor</span>
+<span class="yaml-key">metadata</span>:
+  <span class="yaml-key">name</span>: <span class="yaml-val">my-model</span>
+<span class="yaml-key">spec</span>:
+  <span class="yaml-key">image</span>: <span class="yaml-val">my-model:latest</span>
+  <span class="yaml-key">handler</span>: <span class="yaml-val">handler.process</span>
+  <span class="yaml-key">scaling</span>:
+    <span class="yaml-key">minReplicas</span>: <span class="yaml-val">0</span>
+    <span class="yaml-key">maxReplicas</span>: <span class="yaml-val">50</span></div>
                 </div>
             </div>
         </section>
@@ -552,7 +550,9 @@
                    that carries its own routing instructions.</p>
             </div>
             <div class="diagram-container">
-                <img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
+                <a href="/docs/architecture/" title="View full architecture documentation">
+                    <img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
+                </a>
                 <p class="caption">Actor Mesh: each actor scales independently, messages carry their own route</p>
             </div>
             <div class="two-col" style="margin-top: 3rem;">
@@ -569,71 +569,10 @@
                     </p>
                 </div>
                 <div class="diagram-container">
-                    <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
+                    <a href="/docs/architecture/" title="View full architecture documentation">
+                        <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
+                    </a>
                 </div>
-            </div>
-        </section>
-
-        <!-- Comparison -->
-        <section>
-            <div class="section-header">
-                <h2>How Asya Compares</h2>
-            </div>
-            <div style="overflow-x: auto;">
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th class="highlight-col">Asya</th>
-                            <th>Argo Workflows</th>
-                            <th>Temporal</th>
-                            <th>LangGraph</th>
-                            <th>Ray Serve</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Scale to zero</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>No SDK lock-in</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>Dynamic routing</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>K8s native (CRDs)</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>Pure Python handlers</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </section>
 
@@ -641,70 +580,56 @@
         <section>
             <div class="section-header">
                 <h2>Quick Start</h2>
-                <p>Get a local actor mesh running in minutes.
-                   Requires Docker, kubectl, Helm, and Kind.</p>
+                <p>Local actor mesh in minutes.<br>Requires Docker, kubectl, Helm, and Kind.</p>
             </div>
             <div class="quickstart-steps">
-                <div class="quickstart-step">
+                <a href="/docs/setup/start-quickstart/#1-create-a-kind-cluster-local-k8s" class="quickstart-step">
                     <span class="step-number">1</span>
                     <h3>Create cluster</h3>
                     <div class="code-block">kind create cluster --name asya
 
-helm repo add crossplane-stable \
-  https://charts.crossplane.io/stable
-helm repo update crossplane-stable
-helm repo add asya https://asya.sh/charts
-helm repo update asya</div>
-                </div>
-                <div class="quickstart-step">
+<span class="c"># playground chart installs:</span>
+<span class="c"># Crossplane, KEDA, LocalStack,</span>
+<span class="c"># crew actors, hello-world actor</span></div>
+                </a>
+                <a href="/docs/setup/start-quickstart/#3-install-the-playground-chart" class="quickstart-step">
                     <span class="step-number">2</span>
                     <h3>Install Asya</h3>
-                    <div class="code-block">helm install crossplane \
-  crossplane-stable/crossplane \
-  -n crossplane-system \
-  --create-namespace --wait
+                    <div class="code-block">helm repo add asya https://asya.sh/charts
 
-# Phase 1: infrastructure
+<span class="c"># single chart, two phases</span>
 helm install asya asya/asya-playground \
-  -n asya-demo --create-namespace \
-  --set global.transport=sqs \
-  --timeout 600s --wait
+  -n asya-demo \
+  --create-namespace
 
-# Phase 2: wait for providers, enable actors
-kubectl wait --for=condition=Healthy \
-  providers/provider-aws-sqs \
-  providers/provider-kubernetes \
-  --timeout=300s
-kubectl wait --for=condition=Established \
-  xrd/xasyncactors.asya.sh --timeout=120s
-
+<span class="c"># wait for CRDs, enable actors</span>
 helm upgrade asya asya/asya-playground \
-  -n asya-demo --reuse-values \
-  --set asya-crossplane.providerConfigs.install=true \
-  --set enableAsyaCrew=true \
-  --set helloActor.enabled=true \
-  --timeout 300s --wait</div>
-                </div>
-                <div class="quickstart-step">
+  -n asya-demo \
+  --reuse-values \
+  --set helloActor.enabled=true</div>
+                </a>
+                <a href="/docs/setup/start-quickstart/#4-verify-the-installation" class="quickstart-step">
                     <span class="step-number">3</span>
                     <h3>Send a message</h3>
-                    <div class="code-block">aws sqs send-message \
-  --endpoint-url \
-    http://localstack-sqs.asya-demo:4566 \
-  --queue-url \
-    http://localstack-sqs.asya-demo:4566\
-/000000000000/asya-asya-demo-hello \
-  --message-body '{"id":"test-1", \
-    "route":{"prev":[],"curr":"hello",\
-    "next":[]}, "payload":{"name":"Asya"}}'
+                    <div class="code-block"><span class="c"># enqueue a message</span>
+aws sqs send-message \
+  --message-body '{"id": "test-1",
+    "route": {
+        "prev": ["ingester"],
+        "curr": "text-generator",
+        "next": ["validator", "scorer", ...]
+    },
+    "payload": {"prompt": "Hello human world!"}}'
 
-# KEDA scales hello from 0 to 1
-# Actor processes, routes to x-sink
-# Scales back to zero</div>
-                </div>
+<span class="c"># KEDA scales hello: 0 -> 1</span>
+<span class="c"># actor processes, routes to x-sink</span>
+<span class="c"># scales back to zero</span></div>
+                </a>
             </div>
-            <p style="text-align: center; margin-top: 1.5rem;">
-                <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Full Quickstart Guide</a>
+            <p style="text-align: center; margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Quickstart (Kind)</a>
+                <a href="/docs/setup/start-aws-eks/" class="btn">AWS EKS</a>
+                <a href="/docs/setup/start-gcp-gke/" class="btn">GCP GKE</a>
             </p>
         </section>
 
