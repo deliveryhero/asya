@@ -92,19 +92,19 @@ a:focus {
   font-weight: 600;
 }
 
-/* Code blocks */
+/* Code blocks - GitHub VS Code Light */
 pre {
-  background-color: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
+  background-color: #f6f8fa;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
   padding: 16px;
   overflow-x: auto;
 }
 
 /* Inline code */
 code {
-  color: #c7254e;
-  background-color: #f9f2f4;
+  color: #0550ae;
+  background-color: #f6f8fa;
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 90%;
@@ -112,129 +112,129 @@ code {
 
 /* Code blocks should not have the inline code styling */
 pre code {
-  color: inherit;
+  color: #24292f;
   background-color: transparent;
   padding: 0;
   font-size: inherit;
 }
 
-/* Syntax highlighting colors - apply to both .codehilite and .highlight */
+/* Syntax highlighting: GitHub VS Code Light theme */
 .codehilite .hll,
-.highlight .hll { background-color: #ffffcc }
+.highlight .hll { background-color: #fff8c5 }
 .codehilite .c,
-.highlight .c { color: #999988; font-style: italic }
+.highlight .c { color: #6e7781; font-style: italic }
 .codehilite .k,
-.highlight .k { color: #000000; font-weight: bold }
+.highlight .k { color: #cf222e; font-weight: normal }
 .codehilite .o,
-.highlight .o { color: #000000; font-weight: bold }
+.highlight .o { color: #24292f; font-weight: normal }
 .codehilite .cm,
-.highlight .cm { color: #999988; font-style: italic }
+.highlight .cm { color: #6e7781; font-style: italic }
 .codehilite .cp,
-.highlight .cp { color: #999999; font-weight: bold; font-style: italic }
+.highlight .cp { color: #6e7781; font-weight: normal; font-style: italic }
 .codehilite .c1,
-.highlight .c1 { color: #999988; font-style: italic }
+.highlight .c1 { color: #6e7781; font-style: italic }
 .codehilite .cs,
-.highlight .cs { color: #999999; font-weight: bold; font-style: italic }
+.highlight .cs { color: #6e7781; font-weight: normal; font-style: italic }
 .codehilite .gd,
-.highlight .gd { color: #000000; background-color: #ffdddd }
+.highlight .gd { color: #82071e; background-color: #ffebe9 }
 .codehilite .gr,
-.highlight .gr { color: #aa0000 }
+.highlight .gr { color: #82071e }
 .codehilite .gh,
-.highlight .gh { color: #999999 }
+.highlight .gh { color: #24292f; font-weight: 600 }
 .codehilite .gi,
-.highlight .gi { color: #000000; background-color: #ddffdd }
+.highlight .gi { color: #116329; background-color: #dafbe1 }
 .codehilite .go,
-.highlight .go { color: #888888 }
+.highlight .go { color: #6e7781 }
 .codehilite .gp,
-.highlight .gp { color: #555555 }
+.highlight .gp { color: #6e7781; font-weight: 600 }
 .codehilite .gu,
-.highlight .gu { color: #aaaaaa }
+.highlight .gu { color: #0550ae; font-weight: 600 }
 .codehilite .gt,
-.highlight .gt { color: #aa0000 }
+.highlight .gt { color: #82071e }
 .codehilite .kc,
-.highlight .kc { color: #000000; font-weight: bold }
+.highlight .kc { color: #0550ae; font-weight: normal }
 .codehilite .kd,
-.highlight .kd { color: #000000; font-weight: bold }
+.highlight .kd { color: #cf222e; font-weight: normal }
 .codehilite .kn,
-.highlight .kn { color: #000000; font-weight: bold }
+.highlight .kn { color: #cf222e; font-weight: normal }
 .codehilite .kp,
-.highlight .kp { color: #000000; font-weight: bold }
+.highlight .kp { color: #cf222e; font-weight: normal }
 .codehilite .kr,
-.highlight .kr { color: #000000; font-weight: bold }
+.highlight .kr { color: #cf222e; font-weight: normal }
 .codehilite .kt,
-.highlight .kt { color: #445588; font-weight: bold }
+.highlight .kt { color: #0550ae; font-weight: normal }
 .codehilite .m,
-.highlight .m { color: #009999 }
+.highlight .m { color: #0550ae }
 .codehilite .s,
-.highlight .s { color: #d01040 }
+.highlight .s { color: #0a3069 }
 .codehilite .na,
-.highlight .na { color: #008080 }
+.highlight .na { color: #24292f }
 .codehilite .nb,
-.highlight .nb { color: #0086B3 }
+.highlight .nb { color: #953800 }
 .codehilite .nc,
-.highlight .nc { color: #445588; font-weight: bold }
+.highlight .nc { color: #953800; font-weight: normal }
 .codehilite .no,
-.highlight .no { color: #008080 }
+.highlight .no { color: #0550ae }
 .codehilite .nd,
-.highlight .nd { color: #3c5d5d; font-weight: bold }
+.highlight .nd { color: #8250df; font-weight: normal }
 .codehilite .ni,
-.highlight .ni { color: #800080 }
+.highlight .ni { color: #24292f }
 .codehilite .ne,
-.highlight .ne { color: #990000; font-weight: bold }
+.highlight .ne { color: #953800; font-weight: normal }
 .codehilite .nf,
-.highlight .nf { color: #990000; font-weight: bold }
+.highlight .nf { color: #8250df; font-weight: normal }
 .codehilite .nl,
-.highlight .nl { color: #990000; font-weight: bold }
+.highlight .nl { color: #0550ae; font-weight: normal }
 .codehilite .nn,
-.highlight .nn { color: #555555 }
+.highlight .nn { color: #953800 }
 .codehilite .nt,
-.highlight .nt { color: #000080 }
+.highlight .nt { color: #116329 }
 .codehilite .nv,
-.highlight .nv { color: #008080 }
+.highlight .nv { color: #0550ae }
 .codehilite .ow,
-.highlight .ow { color: #000000; font-weight: bold }
+.highlight .ow { color: #cf222e; font-weight: normal }
 .codehilite .w,
-.highlight .w { color: #bbbbbb }
+.highlight .w { color: #6e7781 }
 .codehilite .mf,
-.highlight .mf { color: #009999 }
+.highlight .mf { color: #0550ae }
 .codehilite .mh,
-.highlight .mh { color: #009999 }
+.highlight .mh { color: #0550ae }
 .codehilite .mi,
-.highlight .mi { color: #009999 }
+.highlight .mi { color: #0550ae }
 .codehilite .mo,
-.highlight .mo { color: #009999 }
+.highlight .mo { color: #0550ae }
 .codehilite .sb,
-.highlight .sb { color: #d01040 }
+.highlight .sb { color: #0a3069 }
 .codehilite .sc,
-.highlight .sc { color: #d01040 }
+.highlight .sc { color: #0a3069 }
 .codehilite .sd,
-.highlight .sd { color: #d01040 }
+.highlight .sd { color: #0a3069 }
 .codehilite .s2,
-.highlight .s2 { color: #d01040 }
+.highlight .s2 { color: #0a3069 }
 .codehilite .se,
-.highlight .se { color: #d01040 }
+.highlight .se { color: #0550ae }
 .codehilite .sh,
-.highlight .sh { color: #d01040 }
+.highlight .sh { color: #0a3069 }
 .codehilite .si,
-.highlight .si { color: #d01040 }
+.highlight .si { color: #24292f }
 .codehilite .sx,
-.highlight .sx { color: #d01040 }
+.highlight .sx { color: #0a3069 }
 .codehilite .sr,
-.highlight .sr { color: #009926 }
+.highlight .sr { color: #116329 }
 .codehilite .s1,
-.highlight .s1 { color: #d01040 }
+.highlight .s1 { color: #0a3069 }
 .codehilite .ss,
-.highlight .ss { color: #990073 }
+.highlight .ss { color: #0550ae }
 .codehilite .bp,
-.highlight .bp { color: #999999 }
+.highlight .bp { color: #953800 }
 .codehilite .vc,
-.highlight .vc { color: #008080 }
+.highlight .vc { color: #0550ae }
 .codehilite .vg,
-.highlight .vg { color: #008080 }
+.highlight .vg { color: #0550ae }
 .codehilite .vi,
-.highlight .vi { color: #008080 }
+.highlight .vi { color: #0550ae }
 .codehilite .il,
-.highlight .il { color: #009999 }
+.highlight .il { color: #0550ae }
 
 /* Headers with softer accent */
 h1, h2, h3, h4, h5, h6 {
@@ -307,137 +307,238 @@ table td code {
   word-break: break-word !important;
 }
 
-/* Dark mode: code blocks and syntax highlighting */
+/* Dark mode: GitHub VS Code Dark code blocks */
 .dark pre {
-  background-color: #1e1e1e;
-  border: 1px solid #3a3a3a;
-  color: #d4d4d4;
+  background-color: #0d1117;
+  border: 1px solid #30363d;
+  color: #c9d1d9;
 }
 
 .dark code {
-  color: #e06c75;
-  background-color: #2d2d2d;
+  color: #79c0ff;
+  background-color: #161b22;
 }
 
 .dark pre code {
-  color: #d4d4d4;
+  color: #c9d1d9;
   background-color: transparent;
 }
 
-/* Dark mode syntax highlighting - VS Code Dark+ inspired colors */
+/* Dark mode syntax highlighting - GitHub VS Code Dark theme */
 .dark .codehilite .hll,
-.dark .highlight .hll { background-color: #3a3a3a }
+.dark .highlight .hll { background-color: #264f78 }
 .dark .codehilite .c,
-.dark .highlight .c { color: #6a9955; font-style: italic }
+.dark .highlight .c { color: #8b949e; font-style: italic }
 .dark .codehilite .k,
-.dark .highlight .k { color: #c586c0; font-weight: normal }
+.dark .highlight .k { color: #ff7b72; font-weight: normal }
 .dark .codehilite .o,
-.dark .highlight .o { color: #d4d4d4; font-weight: normal }
+.dark .highlight .o { color: #c9d1d9; font-weight: normal }
 .dark .codehilite .cm,
-.dark .highlight .cm { color: #6a9955; font-style: italic }
+.dark .highlight .cm { color: #8b949e; font-style: italic }
 .dark .codehilite .cp,
-.dark .highlight .cp { color: #6a9955; font-weight: normal; font-style: italic }
+.dark .highlight .cp { color: #8b949e; font-weight: normal; font-style: italic }
 .dark .codehilite .c1,
-.dark .highlight .c1 { color: #6a9955; font-style: italic }
+.dark .highlight .c1 { color: #8b949e; font-style: italic }
 .dark .codehilite .cs,
-.dark .highlight .cs { color: #6a9955; font-weight: normal; font-style: italic }
+.dark .highlight .cs { color: #8b949e; font-weight: normal; font-style: italic }
 .dark .codehilite .gd,
-.dark .highlight .gd { color: #d4d4d4; background-color: #4b1818 }
+.dark .highlight .gd { color: #ffa198; background-color: #490202 }
 .dark .codehilite .gr,
-.dark .highlight .gr { color: #f44747 }
+.dark .highlight .gr { color: #ffa198 }
 .dark .codehilite .gh,
-.dark .highlight .gh { color: #808080 }
+.dark .highlight .gh { color: #c9d1d9; font-weight: 600 }
 .dark .codehilite .gi,
-.dark .highlight .gi { color: #d4d4d4; background-color: #1a3a1a }
+.dark .highlight .gi { color: #aff5b4; background-color: #04260f }
 .dark .codehilite .go,
-.dark .highlight .go { color: #808080 }
+.dark .highlight .go { color: #8b949e }
 .dark .codehilite .gp,
-.dark .highlight .gp { color: #9cdcfe }
+.dark .highlight .gp { color: #8b949e; font-weight: 600 }
 .dark .codehilite .gu,
-.dark .highlight .gu { color: #808080 }
+.dark .highlight .gu { color: #79c0ff; font-weight: 600 }
 .dark .codehilite .gt,
-.dark .highlight .gt { color: #f44747 }
+.dark .highlight .gt { color: #ffa198 }
 .dark .codehilite .kc,
-.dark .highlight .kc { color: #569cd6; font-weight: normal }
+.dark .highlight .kc { color: #79c0ff; font-weight: normal }
 .dark .codehilite .kd,
-.dark .highlight .kd { color: #569cd6; font-weight: normal }
+.dark .highlight .kd { color: #ff7b72; font-weight: normal }
 .dark .codehilite .kn,
-.dark .highlight .kn { color: #c586c0; font-weight: normal }
+.dark .highlight .kn { color: #ff7b72; font-weight: normal }
 .dark .codehilite .kp,
-.dark .highlight .kp { color: #569cd6; font-weight: normal }
+.dark .highlight .kp { color: #ff7b72; font-weight: normal }
 .dark .codehilite .kr,
-.dark .highlight .kr { color: #569cd6; font-weight: normal }
+.dark .highlight .kr { color: #ff7b72; font-weight: normal }
 .dark .codehilite .kt,
-.dark .highlight .kt { color: #4ec9b0; font-weight: normal }
+.dark .highlight .kt { color: #79c0ff; font-weight: normal }
 .dark .codehilite .m,
-.dark .highlight .m { color: #b5cea8 }
+.dark .highlight .m { color: #79c0ff }
 .dark .codehilite .s,
-.dark .highlight .s { color: #ce9178 }
+.dark .highlight .s { color: #a5d6ff }
 .dark .codehilite .na,
-.dark .highlight .na { color: #9cdcfe }
+.dark .highlight .na { color: #c9d1d9 }
 .dark .codehilite .nb,
-.dark .highlight .nb { color: #dcdcaa }
+.dark .highlight .nb { color: #ffa657 }
 .dark .codehilite .nc,
-.dark .highlight .nc { color: #4ec9b0; font-weight: normal }
+.dark .highlight .nc { color: #ffa657; font-weight: normal }
 .dark .codehilite .no,
-.dark .highlight .no { color: #4fc1ff }
+.dark .highlight .no { color: #79c0ff }
 .dark .codehilite .nd,
-.dark .highlight .nd { color: #dcdcaa; font-weight: normal }
+.dark .highlight .nd { color: #d2a8ff; font-weight: normal }
 .dark .codehilite .ni,
-.dark .highlight .ni { color: #c586c0 }
+.dark .highlight .ni { color: #c9d1d9 }
 .dark .codehilite .ne,
-.dark .highlight .ne { color: #4ec9b0; font-weight: normal }
+.dark .highlight .ne { color: #ffa657; font-weight: normal }
 .dark .codehilite .nf,
-.dark .highlight .nf { color: #dcdcaa; font-weight: normal }
+.dark .highlight .nf { color: #d2a8ff; font-weight: normal }
 .dark .codehilite .nl,
-.dark .highlight .nl { color: #dcdcaa; font-weight: normal }
+.dark .highlight .nl { color: #79c0ff; font-weight: normal }
 .dark .codehilite .nn,
-.dark .highlight .nn { color: #4ec9b0 }
+.dark .highlight .nn { color: #ffa657 }
 .dark .codehilite .nt,
-.dark .highlight .nt { color: #569cd6 }
+.dark .highlight .nt { color: #7ee787 }
 .dark .codehilite .nv,
-.dark .highlight .nv { color: #9cdcfe }
+.dark .highlight .nv { color: #79c0ff }
 .dark .codehilite .ow,
-.dark .highlight .ow { color: #569cd6; font-weight: normal }
+.dark .highlight .ow { color: #ff7b72; font-weight: normal }
 .dark .codehilite .w,
-.dark .highlight .w { color: #d4d4d4 }
+.dark .highlight .w { color: #c9d1d9 }
 .dark .codehilite .mf,
-.dark .highlight .mf { color: #b5cea8 }
+.dark .highlight .mf { color: #79c0ff }
 .dark .codehilite .mh,
-.dark .highlight .mh { color: #b5cea8 }
+.dark .highlight .mh { color: #79c0ff }
 .dark .codehilite .mi,
-.dark .highlight .mi { color: #b5cea8 }
+.dark .highlight .mi { color: #79c0ff }
 .dark .codehilite .mo,
-.dark .highlight .mo { color: #b5cea8 }
+.dark .highlight .mo { color: #79c0ff }
 .dark .codehilite .sb,
-.dark .highlight .sb { color: #ce9178 }
+.dark .highlight .sb { color: #a5d6ff }
 .dark .codehilite .sc,
-.dark .highlight .sc { color: #ce9178 }
+.dark .highlight .sc { color: #a5d6ff }
 .dark .codehilite .sd,
-.dark .highlight .sd { color: #ce9178 }
+.dark .highlight .sd { color: #a5d6ff }
 .dark .codehilite .s2,
-.dark .highlight .s2 { color: #ce9178 }
+.dark .highlight .s2 { color: #a5d6ff }
 .dark .codehilite .se,
-.dark .highlight .se { color: #d7ba7d }
+.dark .highlight .se { color: #79c0ff }
 .dark .codehilite .sh,
-.dark .highlight .sh { color: #ce9178 }
+.dark .highlight .sh { color: #a5d6ff }
 .dark .codehilite .si,
-.dark .highlight .si { color: #d7ba7d }
+.dark .highlight .si { color: #c9d1d9 }
 .dark .codehilite .sx,
-.dark .highlight .sx { color: #ce9178 }
+.dark .highlight .sx { color: #a5d6ff }
 .dark .codehilite .sr,
-.dark .highlight .sr { color: #d16969 }
+.dark .highlight .sr { color: #7ee787 }
 .dark .codehilite .s1,
-.dark .highlight .s1 { color: #ce9178 }
+.dark .highlight .s1 { color: #a5d6ff }
 .dark .codehilite .ss,
-.dark .highlight .ss { color: #ce9178 }
+.dark .highlight .ss { color: #79c0ff }
 .dark .codehilite .bp,
-.dark .highlight .bp { color: #4ec9b0 }
+.dark .highlight .bp { color: #ffa657 }
 .dark .codehilite .vc,
-.dark .highlight .vc { color: #9cdcfe }
+.dark .highlight .vc { color: #79c0ff }
 .dark .codehilite .vg,
-.dark .highlight .vg { color: #9cdcfe }
+.dark .highlight .vg { color: #79c0ff }
 .dark .codehilite .vi,
-.dark .highlight .vi { color: #9cdcfe }
+.dark .highlight .vi { color: #79c0ff }
 .dark .codehilite .il,
-.dark .highlight .il { color: #b5cea8 }
+.dark .highlight .il { color: #79c0ff }
+
+/* Home button - make site title link back to landing page */
+.site-title a::before {
+  content: "← ";
+}
+
+/* Add a back-to-home link above the nav */
+.sidebar-nav::before {
+  content: "← asya.sh";
+  display: block;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+  border-bottom: 1px solid var(--border-primary);
+  cursor: pointer;
+}
+
+.sidebar-nav::before {
+  content: none;
+}
+
+/* Sidebar tree navigation */
+.sidebar-tree-section > summary {
+  list-style: none;
+}
+
+.sidebar-tree-section > summary::-webkit-details-marker {
+  display: none;
+}
+
+.sidebar-tree-arrow {
+  transition: transform 0.15s ease;
+}
+
+.sidebar-tree-section[open] > summary .sidebar-tree-arrow {
+  transform: rotate(90deg);
+}
+
+.sidebar-tree-section > summary:hover {
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+}
+
+/* Sidebar section labels - darker in light mode, lighter in dark mode */
+.sidebar-tree-section > summary[data-sidebar="group-label"] {
+  color: #2c3e50 !important;
+  font-weight: 600 !important;
+}
+
+.dark .sidebar-tree-section > summary[data-sidebar="group-label"] {
+  color: #d4d4d4 !important;
+}
+
+/* Sidebar tree arrows - visible in both modes */
+.sidebar-tree-arrow {
+  color: #666 !important;
+}
+
+.dark .sidebar-tree-arrow {
+  color: #b0b0b0 !important;
+}
+
+/* Theme toggle button - visible in dark mode */
+.dark button[title="Toggle theme"] svg {
+  stroke: #e5e5e5 !important;
+}
+
+.dark button[title="Toggle layout"] svg {
+  stroke: #e5e5e5 !important;
+}
+
+/* GitHub octocat icon - visible in dark mode */
+.dark a[href*="github.com"] svg {
+  fill: #e5e5e5 !important;
+}
+
+/* Images with transparent backgrounds need white bg in dark mode */
+.dark img[src*=".png"],
+.dark img[src*=".jpg"] {
+  background-color: white;
+  border-radius: 8px;
+  padding: 8px;
+}
+
+/* Permalink anchors in asya blue */
+.headerlink {
+  color: #3c63cc !important;
+  opacity: 0.5;
+  transition: opacity 0.2s ease;
+}
+
+.headerlink:hover {
+  opacity: 1;
+  text-decoration: none !important;
+}
+
+.dark .headerlink {
+  color: #6b8fd4 !important;
+}

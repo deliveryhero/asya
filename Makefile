@@ -1,5 +1,5 @@
 # Central Makefile chaining targets in other Makefiles
-.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images clean cov docs-serve docs-build docs-preview
+.PHONY: setup lint test test-unit test-component clean-component test-integration clean-integration test-e2e up-e2e clean-e2e diagnostics-e2e build-go build-images clean cov docs-build docs-preview
 MAKEFLAGS += --no-print-directory
 .EXPORT_ALL_VARIABLES:
 
@@ -148,17 +148,16 @@ clean: clean-integration ## Clean build artifacts
 # Documentation
 # =============================================================================
 
-docs-serve: docs-build ## Serve docs locally at http://127.0.0.1:8000
-	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
-	uv run mkdocs serve
-
 docs-build: ## Build docs to site/ directory
 	@uv run mkdocs --version >/dev/null 2>&1 || (echo "[.] Installing MkDocs..." && uv pip install mkdocs mkdocs-shadcn pygments mkdocs-mermaid2-plugin)
-	uv run mkdocs build
+	uv run mkdocs build -f docs/website/mkdocs.yml -d $(CURDIR)/site
 
 docs-preview: docs-build ## Preview full site locally (landing page + docs) at http://127.0.0.1:9090
 	@rm -rf /tmp/asya-preview && mkdir -p /tmp/asya-preview
 	@cp website/index.html /tmp/asya-preview/
 	@ln -sf $(CURDIR)/site /tmp/asya-preview/docs
+	@mkdir -p $(CURDIR)/site/website
+	@ln -sfn $(CURDIR)/docs/website/img $(CURDIR)/site/website/img
+	@ln -sfn $(CURDIR)/docs/website/stylesheets $(CURDIR)/site/website/stylesheets
 	@echo "[.] Preview at http://127.0.0.1:9090 (Ctrl+C to stop)"
 	@python3 -m http.server 9090 --bind 0.0.0.0 --directory /tmp/asya-preview

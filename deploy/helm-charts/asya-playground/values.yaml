@@ -1,4 +1,4 @@
-# Asya Quickstart - Full demo package showing Asya🎭 in action
+# Asya Quickstart - Full demo package showing Asya in action
 # This chart deploys a complete Asya environment with sample infrastructure
 #
 # QUICKSTART (LOCAL): Uses sample infrastructure (LocalStack, sample PostgreSQL)
@@ -30,7 +30,7 @@ global:
 #     --set kube-prometheus-stack.namespaceOverride=monitoring
 #
 # This deploys:
-#   - asya-demo: Crossplane, Gateway, Crew, Actors, KEDA
+#   - asya-demo: Gateway, Crew, Actors
 #   - monitoring: Prometheus, Grafana, dashboards, PodMonitors
 #   - asya-infra: LocalStack SQS, S3, MinIO, PostgreSQL
 namespaces:
@@ -199,6 +199,9 @@ sampleGatewayDb:
 # Asya-Crossplane configuration (passed to asya-crossplane chart)
 # Manages AsyncActor CRDs, Compositions, and Crossplane providers
 asya-crossplane:
+  providers:
+    aws:
+      enabled: true
   providerConfigs:
     install: false # Set to true after Crossplane providers are healthy (two-step install)
   awsProviderConfig:
@@ -230,7 +233,8 @@ asya-crossplane:
       name: aws-creds
       accessKeyIdKey: AWS_ACCESS_KEY_ID
       secretAccessKeyKey: AWS_SECRET_ACCESS_KEY
-  sidecar: {}
+  sidecar:
+    sqsLocalstackEnabled: true
 
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults

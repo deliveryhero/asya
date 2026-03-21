@@ -1,4 +1,4 @@
-# Build AI Actors
+# Build AI Actors 🎭
 
 Write Python functions, deploy as Kubernetes actors, chain into meshes.
 

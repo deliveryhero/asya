@@ -33,6 +33,22 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Validate release tag
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        if ! echo "$TAG" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+          echo "::error::Tag '$TAG' does not match semver pattern vX.Y.Z"
+          exit 1
+        fi
+        MAJOR=$(echo "$TAG" | cut -d. -f1 | tr -d 'v')
+        if [ "$MAJOR" -ge 1 ]; then
+          BODY="${{ github.event.release.body }}"
+          if ! echo "$BODY" | grep -q 'MAJOR_VERSION_BUMP_CONFIRMED'; then
+            echo "::error::Major version bump (${TAG}) requires 'MAJOR_VERSION_BUMP_CONFIRMED' in the release description. This prevents accidental major releases."
+            exit 1
+          fi
+        fi
+
     - name: Extract version from tag
       id: version
       run: |

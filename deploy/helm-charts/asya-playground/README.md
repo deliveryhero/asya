@@ -1,19 +1,20 @@
-# Asya Quickstart Helm Chart
+# Asya Playground Helm Chart
 
-Full demo package showing Asya🎭 in action with sample actors, flows, and infrastructure.
+Full demo package showing Asya in action with sample actors, flows, and infrastructure.
 
 ## Overview
 
 The `asya-playground` chart is a complete demonstration package that bundles:
-- **Crossplane** - XRDs and Compositions for AsyncActor resources (sidecar rendered inline)
+- **asya-crossplane** - XRDs and Compositions for AsyncActor resources (sidecar rendered inline)
 - **Crew Actors** - System actors (x-sink, x-sump)
 - **Gateway** - MCP gateway with PostgreSQL backend
 - **Sample Actors** - Hello-world actor for validation and testing
 - **Sample Infrastructure** - LocalStack (SQS/S3), RabbitMQ, MinIO for demos
+- **Monitoring** - Optional kube-prometheus-stack with pre-configured dashboards
 
 This chart is ideal for:
 - Quick demos and evaluations
-- Learning Asya🎭 concepts
+- Learning Asya concepts
 - Local development and testing
 - CI/CD pipeline validation
 
@@ -21,46 +22,72 @@ This chart is ideal for:
 
 ## Prerequisites
 
-- Kubernetes 1.24+
-- Helm 3.8+
+- Kubernetes 1.28+
+- Helm 3.12+
 - kubectl configured for your cluster
-- [Crossplane](https://crossplane.io/) installed in the cluster
 
-For production deployments, install components separately with proper cloud services and custom configurations.
+Crossplane and KEDA must be installed separately before this chart. Crossplane
+CRDs must be available when the playground chart renders `asya-crossplane` templates.
 
 ## Installation
 
-### Quick Start (SQS + S3 via LocalStack)
+Three steps: install Crossplane, install the playground, then enable actors after
+Crossplane providers have registered their CRDs.
+
+### Step 1: Install prerequisites (Crossplane and KEDA)
 
 ```bash
-# From Helm repository
-helm repo add asya https://asya.sh/charts
-helm repo update
-helm install asya asya/asya-playground \
-  --create-namespace \
-  --namespace asya-playground \
-  --set global.transport=sqs \
-  --set global.storage=s3 \
-  --set global.profile=local
+helm repo add crossplane-stable https://charts.crossplane.io/stable
+helm install crossplane crossplane-stable/crossplane \
+  --namespace crossplane-system --create-namespace \
+  --wait --timeout 120s
 
-# Or from local filesystem
-helm install asya deploy/helm-charts/asya-playground/ \
-  --create-namespace \
-  --namespace asya-playground \
+helm repo add kedacore https://kedacore.github.io/charts
+helm install keda kedacore/keda \
+  --namespace keda --create-namespace \
+  --wait --timeout 120s
+```
+
+### Step 2: Install infrastructure
+
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update asya
+
+helm install asya asya/asya-playground \
+  --namespace asya-demo --create-namespace \
   --set global.transport=sqs \
   --set global.storage=s3 \
-  --set global.profile=local
+  --timeout 600s --wait
+```
+
+### Step 3: Wait for CRDs, enable actors
+
+```bash
+# Wait for Crossplane providers and functions to become healthy
+kubectl wait --for=condition=Healthy \
+  providers/provider-aws-sqs providers/provider-kubernetes \
+  functions/function-go-templating functions/function-patch-and-transform functions/function-auto-ready \
+  --timeout=300s
+kubectl wait --for=condition=Established xrd/xasyncactors.asya.sh --timeout=120s
+
+# Enable ProviderConfigs, crew actors, and hello actor
+helm upgrade asya asya/asya-playground --namespace asya-demo \
+  --reuse-values \
+  --set asya-crossplane.providerConfigs.install=true \
+  --set enableAsyaCrew=true \
+  --set helloActor.enabled=true \
+  --timeout 300s --wait
 ```
 
 ### RabbitMQ + MinIO
 
 ```bash
-helm install asya deploy/helm-charts/asya-playground/ \
-  --create-namespace \
-  --namespace asya-playground \
+helm install asya asya/asya-playground \
+  --namespace asya-demo --create-namespace \
   --set global.transport=rabbitmq \
   --set global.storage=minio \
-  --set global.profile=local
+  --timeout 600s --wait
 ```
 
 ### Production (External Infrastructure)
@@ -69,9 +96,8 @@ Use existing/managed services instead of sample infrastructure:
 
 ```bash
 # AWS SQS + S3 + RDS PostgreSQL
-helm install asya deploy/helm-charts/asya-playground/ \
-  --create-namespace \
-  --namespace asya-playground \
+helm install asya asya/asya-playground \
+  --namespace asya-demo --create-namespace \
   --set global.transport=sqs \
   --set global.storage=s3 \
   --set global.profile=production \
@@ -86,9 +112,8 @@ helm install asya deploy/helm-charts/asya-playground/ \
   --set asya-gateway.externalDatabase.password=YOUR_DB_PASSWORD
 
 # Or use a values file (recommended for production)
-helm install asya deploy/helm-charts/asya-playground/ \
-  --create-namespace \
-  --namespace asya-playground \
+helm install asya asya/asya-playground \
+  --namespace asya-demo --create-namespace \
   -f production-values.yaml
 ```
 
@@ -155,9 +180,12 @@ asya-gateway:
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
-| `enableAsyaCrew` | Deploy crew actors | `true` |
-| `enableAsyaGateway` | Deploy MCP gateway | `true` |
-| `helloActor.enabled` | Deploy test hello-world actor | `true` |
+| `enableAsyaCrew` | Deploy crew actors | `false` |
+| `enableAsyaGateway` | Deploy MCP gateway | `false` |
+| `helloActor.enabled` | Deploy test hello-world actor | `false` |
+
+Crew actors and the hello actor default to `false` because they require Crossplane
+CRDs to be established first (see two-phase installation above).
 
 ### Sample Infrastructure
 
@@ -171,7 +199,7 @@ Sample infrastructure provides quick-start transport and storage backends for de
 | `sampleTransport.rabbitmq.enabled` | Deploy RabbitMQ | `false` |
 | `sampleStorage.s3Localstack.enabled` | Deploy LocalStack for S3 | `true` |
 | `sampleStorage.minio.enabled` | Deploy MinIO | `false` |
-| `sampleGatewayDb.postgresql.enabled` | Deploy PostgreSQL for gateway | `true` |
+| `sampleGatewayDb.postgresql.enabled` | Deploy PostgreSQL for gateway | `false` |
 
 **Production Note**: Sample infrastructure components are not suitable for production use. Configure proper cloud services (AWS SQS/S3, hosted RabbitMQ, etc.) instead.
 
@@ -180,7 +208,7 @@ Sample infrastructure provides quick-start transport and storage backends for de
 All components are installed in the release namespace (`--namespace` flag or `default`).
 
 For production deployments with separate namespaces:
-- Install Crossplane in `asya-system` using its respective chart
+- Install Crossplane in `crossplane-system` using its respective chart
 - Install this bundle (gateway + actors + infrastructure) in a dedicated namespace
 
 ### Hello Actor Configuration
@@ -199,10 +227,10 @@ See `values.yaml` for complete configuration options.
 ### Local Profile (`global.profile=local`)
 
 - Deploys sample infrastructure automatically based on transport/storage selection
-- SQS transport → `localstack-sqs` service
-- S3 storage → `s3-localstack` service
-- RabbitMQ transport → `rabbitmq` service
-- MinIO storage → `minio` service
+- SQS transport -> `localstack-sqs` service
+- S3 storage -> `s3-localstack` service
+- RabbitMQ transport -> `rabbitmq` service
+- MinIO storage -> `minio` service
 - Uses in-cluster endpoints
 - Suitable for Kind, Minikube, or development clusters
 
@@ -227,78 +255,75 @@ After installation, follow the steps in `NOTES.txt` to:
 4. Check actor logs
 5. Test the MCP gateway (if enabled)
 
-Example test command (SQS):
+Example test command (SQS with LocalStack, namespace `asya-demo`):
 
 ```bash
 kubectl run aws-cli --rm -i --restart=Never --image=amazon/aws-cli \
+  --namespace asya-demo \
   --env="AWS_ACCESS_KEY_ID=test" \
   --env="AWS_SECRET_ACCESS_KEY=test" \
   --env="AWS_DEFAULT_REGION=us-east-1" \
   --command -- sh -c "
     aws sqs send-message \
-      --endpoint-url=http://localstack-sqs.asya-playground:4566 \
-      --queue-url http://localstack-sqs.asya-playground:4566/000000000000/asya-default-hello \
-      --message-body '{\"id\":\"test-1\",\"route\":{\"actors\":[\"hello\"],\"current\":0},\"payload\":{\"name\":\"World\"}}'
+      --endpoint-url=http://localstack-sqs.asya-demo:4566 \
+      --queue-url http://localstack-sqs.asya-demo:4566/000000000000/asya-asya-demo-hello \
+      --message-body '{\"id\":\"test-1\",\"route\":{\"prev\":[],\"curr\":\"hello\",\"next\":[]},\"headers\":{},\"payload\":{\"name\":\"World\"}}'
   "
 ```
 
 ## Monitoring and Observability
 
-For production-grade monitoring, use the `kube-prometheus-stack` Helm chart from the prometheus-community:
+The chart bundles an optional `kube-prometheus-stack` dependency. Enable it with:
 
 ```bash
-# Add prometheus-community repository
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm repo update
-
-# Install kube-prometheus-stack
-helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --create-namespace
+helm upgrade asya asya/asya-playground --namespace asya-demo \
+  --reuse-values \
+  --set sampleMonitoring.enabled=true
 ```
 
 This provides:
 - Prometheus for metrics collection
 - Grafana with pre-configured dashboards
-- Alert Manager for notifications
 - Service monitors for Kubernetes components
 
 Access Grafana:
 ```bash
-kubectl port-forward -n monitoring svc/prometheus-grafana 3000:80
-# Default credentials: admin/prom-operator
+kubectl port-forward -n asya-demo svc/asya-monitoring-grafana 3000:80
+# Default credentials: admin/asya-admin
 ```
-
-**Note:** Custom Asya🎭 Grafana dashboards will be added in a future release (tracked separately).
 
 ## Uninstallation
 
 ```bash
-helm uninstall asya -n asya-playground
+helm uninstall asya -n asya-demo
 ```
 
 **Note:** PersistentVolumeClaims are not automatically deleted. To remove them:
 
 ```bash
-kubectl delete pvc -l app=postgresql -n asya-playground
-kubectl delete pvc minio-data -n asya-playground
+kubectl delete pvc -l app=postgresql -n asya-demo
+kubectl delete pvc minio-data -n asya-demo
 ```
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│ Release namespace (e.g., default or asya-demo)       │
-│ - asya-crossplane (XRDs, Compositions, Providers)    │
-│ - asya-gateway + PostgreSQL                          │
-│ - asya-crew (x-sink, x-sump)                         │
-│ - hello-world actor                                  │
-│                                                       │
-│ Sample Infrastructure (demo only):                   │
-│ - localstack-sqs / s3-localstack (if enabled)        │
-│ - rabbitmq (if enabled)                              │
-│ - minio (if enabled)                                 │
-└─────────────────────────────────────────────────────┘
+Prerequisites (install separately):
+  - Crossplane operator (crossplane-system namespace)
+  - KEDA (keda namespace)
+
++---------------------------------------------------------+
+| Release namespace (e.g., asya-demo)                     |
+| - asya-crossplane (XRDs, Compositions, Providers)       |
+| - asya-gateway + PostgreSQL (if enabled)                |
+| - asya-crew (x-sink, x-sump)                           |
+| - hello-world actor                                     |
+|                                                         |
+| Sample Infrastructure (demo only):                      |
+| - localstack-sqs / s3-localstack (if enabled)           |
+| - rabbitmq (if enabled)                                 |
+| - minio (if enabled)                                    |
++---------------------------------------------------------+
 ```
 
 **Note**: For production, consider installing components in separate namespaces:
@@ -310,59 +335,67 @@ kubectl delete pvc minio-data -n asya-playground
 
 ### Actor not scaling
 
-Verify KEDA is installed:
+Verify KEDA is running:
 ```bash
-kubectl get pods -n keda
+kubectl get pods -n asya-demo -l app=keda-operator
 ```
 
 Check ScaledObject:
 ```bash
-kubectl get scaledobject -n asya-playground
-kubectl describe scaledobject hello -n asya-playground
+kubectl get scaledobject -n asya-demo
+kubectl describe scaledobject hello -n asya-demo
 ```
 
-### Gateway connection errors
+### Providers not becoming Healthy
 
-Check gateway logs:
 ```bash
-kubectl logs -n asya-playground -l app.kubernetes.io/name=asya-gateway
+kubectl describe providers provider-aws-sqs
+kubectl describe functions function-go-templating
 ```
 
-Verify PostgreSQL is ready:
+Providers pull packages from `xpkg.upbound.io`. On slow connections, increase the `--timeout`.
+
+### AsyncActor stuck in Creating
+
 ```bash
-kubectl get pods -l app=postgresql -n asya-playground
+kubectl describe asyncactor hello -n asya-demo
+kubectl get objects -A   # check provider-kubernetes managed objects
 ```
+
+Common cause: provider-kubernetes RBAC. Verify the ClusterRoleBinding references
+the correct namespace for the `provider-kubernetes` ServiceAccount.
 
 ### LocalStack not responding
 
 Check LocalStack SQS health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://localstack-sqs.asya-playground:4566/_localstack/health
+  http://localstack-sqs.asya-demo:4566/_localstack/health
 ```
 
 Check LocalStack S3 health:
 ```bash
 kubectl run curl --rm -i --restart=Never --image=curlimages/curl -- \
-  http://s3-localstack.asya-playground:4566/_localstack/health
+  http://s3-localstack.asya-demo:4566/_localstack/health
 ```
 
 ## Dependencies
 
-This umbrella chart depends on:
+**Prerequisites** (install separately before this chart):
+- `crossplane` (>=1.18.0) - Crossplane operator
+- `keda` (>=2.16.0) - Event-driven autoscaler
+
+**Bundled sub-charts**:
 - `asya-crossplane` (>=0.1.0) - XRDs, Compositions, Crossplane providers (includes inline sidecar rendering)
 - `asya-crew` (>=0.4.0) - System actors
 - `asya-gateway` (>=0.4.0) - MCP gateway
+- `kube-prometheus-stack` (>=65.0.0) - Optional monitoring stack
 
-Dependencies are pulled from `https://asya.sh/charts` (published Helm repository).
-
-## Load Testing (Future)
-
-Load testing capabilities for stress-testing actor pipelines are tracked in a separate work item and will be added in a future release.
+Sub-chart dependencies are pulled from `https://asya.sh/charts` (published Helm repository).
 
 ## Production Considerations
 
-**IMPORTANT**: This quickstart chart is designed for demos and learning. For production deployments, consider:
+**IMPORTANT**: This chart is designed for demos and learning. For production deployments, consider:
 
 1. **Install components separately** - Use individual charts (asya-crossplane, asya-gateway, asya-crew) with custom configurations
 2. **Use cloud services** - Replace sample infrastructure with AWS SQS/S3, hosted RabbitMQ, managed PostgreSQL
@@ -376,5 +409,5 @@ Load testing capabilities for stress-testing actor pipelines are tracked in a se
 ## Links
 
 - Documentation: https://github.com/deliveryhero/asya
-- Quickstart Guide: docs/quickstart/README.md
+- Quickstart Guide: [Getting Started](../../docs/setup/start-quickstart.md)
 - Component Charts: deploy/helm-charts/
