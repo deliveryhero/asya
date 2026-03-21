@@ -78,6 +78,7 @@ spec:
 
 ```bash
 helm repo add asya https://asya.sh/charts
+helm repo update asya
 helm install asya asya/asya-playground --namespace asya-demo --create-namespace
 ```
 
