@@ -89,7 +89,7 @@ The flow compiler transforms this into a distributed actor graph:
 
 <p align="center">
 <a href="/docs/website/img/agentic-evaluator-optimizer.png" target="_blank" title="Click to view full size">
-  <img src="/docs/website/img/agentic-evaluator-optimizer.png" alt="Evaluator-optimizer flow: generator-evaluator loop with score threshold" style="max-width: 80%; cursor: zoom-in;"/>
+  <img src="/docs/website/img/agentic-evaluator-optimizer.png" alt="Evaluator-optimizer flow: generator-evaluator loop with score threshold" style="max-width: 60%; cursor: zoom-in;"/>
 </a>
 </p>
 <p align="center"><em>Each box is an independent actor. The loop runs as message-passing between queues.</em></p>
