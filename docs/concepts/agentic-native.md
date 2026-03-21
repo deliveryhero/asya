@@ -20,43 +20,6 @@ pipeline:
 - Failure isolation — one agent crashing does not affect others
 - Durable message delivery — no lost work on pod eviction
 
-## Example: evaluator-optimizer loop
-
-A classic agentic pattern — a generator produces output, an evaluator scores it,
-and the loop repeats until quality thresholds are met:
-
-```python
-@flow
-async def evaluator_optimizer(state: dict) -> dict:
-    state["iteration"] = 0
-
-    while True:
-        state["iteration"] += 1
-        state = await generator(state)
-        state = await evaluator(state)
-
-        if state.get("score", 0) >= SCORE_THRESHOLD:
-            break
-        if state["iteration"] >= MAX_ITERATIONS:
-            break
-
-    state = await polisher(state)
-    return state
-```
-
-The flow compiler transforms this into a distributed actor graph:
-
-<p align="center">
-<a href="/docs/website/img/agentic-evaluator-optimizer.png" target="_blank" title="Click to view full size">
-  <img src="/docs/website/img/agentic-evaluator-optimizer.png" alt="Evaluator-optimizer flow: generator-evaluator loop with score threshold" style="max-width: 80%; cursor: zoom-in;"/>
-</a>
-</p>
-<p align="center"><em>Each box is an independent actor. The loop runs as message-passing between queues.</em></p>
-
-More agentic flow examples: [human-in-the-loop](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/human_in_the_loop.py),
-[orchestrator-workers](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/orchestrator_workers.py),
-[multi-agent debate](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/multi_agent_debate.py).
-
 ## Real-time streaming with FLY events
 
 Actors can stream intermediate results to connected clients via FLY events:
@@ -97,6 +60,44 @@ protocols. Your agents run as actors on the mesh — each with independent scali
 fault isolation, and queue-based communication. External AI agents and LLM clients
 (Claude, GPT) interact with the mesh through these standard protocols, rather than
 through framework-specific integrations.
+
+## Example: evaluator-optimizer loop
+
+A classic agentic pattern — a generator produces output, an evaluator scores it,
+and the loop repeats until quality thresholds are met:
+
+```python
+@flow
+async def evaluator_optimizer(state: dict) -> dict:
+    state["iteration"] = 0
+
+    while True:
+        state["iteration"] += 1
+        state = await generator(state)
+        state = await evaluator(state)
+
+        if state.get("score", 0) >= SCORE_THRESHOLD:
+            break
+        if state["iteration"] >= MAX_ITERATIONS:
+            break
+
+    state = await polisher(state)
+    return state
+```
+
+The flow compiler transforms this into a distributed actor graph:
+
+<p align="center">
+<a href="/docs/website/img/agentic-evaluator-optimizer.png" target="_blank" title="Click to view full size">
+  <img src="/docs/website/img/agentic-evaluator-optimizer.png" alt="Evaluator-optimizer flow: generator-evaluator loop with score threshold" style="max-width: 80%; cursor: zoom-in;"/>
+</a>
+</p>
+<p align="center"><em>Each box is an independent actor. The loop runs as message-passing between queues.</em></p>
+
+More agentic flow examples: [human-in-the-loop](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/human_in_the_loop.py),
+[orchestrator-workers](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/orchestrator_workers.py),
+[multi-agent debate](https://github.com/deliveryhero/asya/tree/main/examples/flows/agentic/multi_agent_debate.py).
+
 
 ## Further reading
 
