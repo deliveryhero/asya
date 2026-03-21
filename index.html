@@ -20,7 +20,7 @@
 
         .theme-toggle {
             position: fixed;
-            top: 20px;
+            top: 56px;
             right: 20px;
             background: var(--btn-secondary-bg);
             border: 1px solid var(--btn-border);
@@ -85,9 +85,46 @@
 
         .hero .tagline {
             font-size: 1.3rem;
-            color: var(--text-tertiary);
-            margin: 0 0 1.5rem;
+            color: var(--text-secondary);
+            margin: 0 0 1rem;
             font-weight: 400;
+        }
+
+        .dict-headline {
+            text-align: left;
+            max-width: 540px;
+            margin: 0 auto 0.5rem;
+            font-size: 1.15rem;
+            color: var(--text-secondary);
+        }
+
+        .dict-headline em {
+            font-style: italic;
+            color: var(--text-primary);
+        }
+
+        .dict-entry {
+            text-align: left;
+            max-width: 540px;
+            margin: 0 auto 2rem;
+            font-size: 0.95rem;
+            color: var(--text-tertiary);
+            line-height: 1.7;
+        }
+
+        .dict-entry ul {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        .dict-entry li {
+            margin-bottom: 0.25rem;
+        }
+
+        .dict-pronunciation {
+            font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+            font-size: 0.85em;
+            color: var(--text-muted);
         }
 
         .hero .description {
@@ -183,14 +220,43 @@
             line-height: 1.6;
             overflow-x: auto;
             color: var(--text-code);
+            white-space: pre;
         }
 
-        .code-example .comment { color: #6a9955; }
-        .code-example .keyword { color: #569cd6; }
-        .code-example .decorator { color: #d7ba7d; }
-        .code-example .string { color: #ce9178; }
-        .code-example .function { color: #dcdcaa; }
-        .code-example .param { color: #9cdcfe; }
+        .code-clickable {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .code-clickable:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-color: var(--border-secondary);
+        }
+
+        body.dark .code-clickable:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Light mode: GitHub VS Code Light theme */
+        .code-example .comment { color: #6a737d; }
+        .code-example .keyword { color: #cf222e; }
+        .code-example .decorator { color: #8250df; }
+        .code-example .string { color: #0a3069; }
+        .code-example .function { color: #8250df; }
+        .code-example .param { color: #24292f; }
+        .code-example .yaml-key { color: #0550ae; }
+        .code-example .yaml-val { color: #0a3069; }
+
+        /* Dark mode: GitHub VS Code Dark theme */
+        body.dark .code-example .comment { color: #8b949e; }
+        body.dark .code-example .keyword { color: #ff7b72; }
+        body.dark .code-example .decorator { color: #d2a8ff; }
+        body.dark .code-example .string { color: #a5d6ff; }
+        body.dark .code-example .function { color: #d2a8ff; }
+        body.dark .code-example .param { color: #c9d1d9; }
+        body.dark .code-example .yaml-key { color: #79c0ff; }
+        body.dark .code-example .yaml-val { color: #a5d6ff; }
 
         /* Section headers */
         .section-header {
@@ -223,11 +289,19 @@
             border: 1px solid var(--border-primary);
             border-radius: 8px;
             background: var(--bg-secondary);
-            transition: border-color 0.2s ease;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            color: inherit;
         }
 
         .feature-card:hover {
             border-color: var(--border-secondary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            color: inherit;
+        }
+
+        body.dark .feature-card:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         .feature-card h3 {
@@ -254,6 +328,16 @@
             border-radius: 8px;
             background: white;
             padding: 12px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .diagram-container a:hover img {
+            transform: scale(1.02);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        body.dark .diagram-container a:hover img {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
         }
 
         .diagram-container .caption {
@@ -262,49 +346,6 @@
             margin-top: 0.75rem;
         }
 
-        /* Comparison table */
-        .comparison-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-
-        .comparison-table th,
-        .comparison-table td {
-            padding: 12px 16px;
-            text-align: center;
-            border-bottom: 1px solid var(--border-primary);
-        }
-
-        .comparison-table th {
-            font-weight: 600;
-            font-size: 0.85rem;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-        }
-
-        .comparison-table td:first-child {
-            text-align: left;
-            font-weight: 500;
-        }
-
-        .comparison-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        .check { color: #22863a; font-size: 1.1rem; }
-        .cross { color: #cb2431; font-size: 1.1rem; }
-        body.dark .check { color: #56d364; }
-        body.dark .cross { color: #f85149; }
-
-        .highlight-col {
-            background: rgba(60, 99, 204, 0.06);
-        }
-
-        body.dark .highlight-col {
-            background: rgba(60, 99, 204, 0.12);
-        }
 
         /* Quickstart */
         .quickstart-steps {
@@ -318,6 +359,20 @@
             border-radius: 8px;
             padding: 1.5rem;
             background: var(--bg-secondary);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+
+        .quickstart-step:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            border-color: var(--border-secondary);
+        }
+
+        body.dark .quickstart-step:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
         }
 
         .quickstart-step .step-number {
@@ -352,6 +407,10 @@
             margin-top: 0.5rem;
         }
 
+        .quickstart-step .code-block .c {
+            color: #6a9955;
+        }
+
         /* Protocols */
         .protocol-badges {
             display: flex;
@@ -375,6 +434,89 @@
 
         .protocol-badge strong {
             color: var(--text-primary);
+        }
+
+        .feature-group {
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--border-primary);
+        }
+
+        .feature-group-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            padding-left: 0.25rem;
+        }
+
+        .feature-group .feature-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        /* Group color accents */
+        .feature-group.group-core { border-left: 4px solid #3c63cc; }
+        .feature-group.group-core .feature-group-label { color: #3c63cc; }
+        body.dark .feature-group.group-core { border-left-color: #6b8fd4; }
+        body.dark .feature-group.group-core .feature-group-label { color: #6b8fd4; }
+
+        .feature-group.group-dev { border-left: 4px solid #22863a; }
+        .feature-group.group-dev .feature-group-label { color: #22863a; }
+        body.dark .feature-group.group-dev { border-left-color: #56d364; }
+        body.dark .feature-group.group-dev .feature-group-label { color: #56d364; }
+
+        .feature-group.group-infra { border-left: 4px solid #e36209; }
+        .feature-group.group-infra .feature-group-label { color: #e36209; }
+        body.dark .feature-group.group-infra { border-left-color: #d29922; }
+        body.dark .feature-group.group-infra .feature-group-label { color: #d29922; }
+
+        .feature-group.group-integration { border-left: 4px solid #6f42c1; }
+        .feature-group.group-integration .feature-group-label { color: #6f42c1; }
+        body.dark .feature-group.group-integration { border-left-color: #bc8cff; }
+        body.dark .feature-group.group-integration .feature-group-label { color: #bc8cff; }
+
+        .feature-group.group-ops { border-left: 4px solid #cb2431; }
+        .feature-group.group-ops .feature-group-label { color: #cb2431; }
+        body.dark .feature-group.group-ops { border-left-color: #f85149; }
+        body.dark .feature-group.group-ops .feature-group-label { color: #f85149; }
+
+        .protocol-group {
+            text-align: left;
+            margin-bottom: 1rem;
+        }
+
+        .protocol-group-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.5rem;
+        }
+
+        .protocol-groups {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+        }
+
+        a.protocol-badge {
+            text-decoration: none;
+            color: var(--text-secondary);
+            transition: border-color 0.2s ease, transform 0.2s ease;
+        }
+
+        a.protocol-badge:hover {
+            border-color: var(--border-secondary);
+            transform: translateY(-1px);
+            color: var(--text-primary);
+        }
+
+        .protocol-badge.planned {
+            border-style: dashed;
+            opacity: 0.6;
         }
 
         /* Footer */
@@ -402,6 +544,48 @@
             margin-bottom: 1rem;
         }
 
+        /* Announcement banner */
+        .announcement-bar {
+            background: #f5c518;
+            color: #1a1a1a;
+            text-align: center;
+            padding: 10px 48px 10px 16px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .announcement-bar a {
+            color: #1a1a1a;
+            text-decoration: underline;
+            font-weight: 600;
+        }
+
+        .announcement-bar a:hover {
+            color: #000;
+        }
+
+        .announcement-bar .close-btn {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            color: #1a1a1a;
+            padding: 4px 8px;
+            line-height: 1;
+            opacity: 0.6;
+        }
+
+        .announcement-bar .close-btn:hover {
+            opacity: 1;
+        }
+
         /* Responsive */
         @media (max-width: 700px) {
             .hero h1 { font-size: 2rem; }
@@ -415,6 +599,10 @@
     </style>
 </head>
 <body>
+    <div class="announcement-bar" id="announcementBar" style="display: none;">
+        <span id="announcementText"></span>
+        <button class="close-btn" id="closeAnnouncement" aria-label="Close">&times;</button>
+    </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
         <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-light" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
@@ -437,14 +625,20 @@
 
         <!-- Hero -->
         <section class="hero">
-            <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" class="hero-logo" width="160">
+            <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" class="hero-logo" width="250">
             <h1>Asya</h1>
             <p class="tagline">The Message Knows the Way.</p>
-            <p class="description">
-                A Kubernetes-native actor mesh for async AI/ML pipelines.
-                Each actor is a pure Python function. Each message carries its own route.
-                No central orchestrator. No SDK lock-in. Scale to zero.
-            </p>
+            <br>
+            <p class="dict-headline"><span class="dict-pronunciation">/ˈɑː.sjə/</span> &mdash; <em><strong>asy</strong>nc <strong>a</strong>ctors</em> 🎭</p>
+            <div class="dict-entry">
+                <ul>
+                    <li>A Kubernetes-native actor mesh for AI and agentic workloads</li>
+                    <li>Queue-based routing &mdash; each message carries its own route</li>
+                    <li>Independent scaling from zero to infinity</li>
+                    <li>No central orchestrator &mdash; choreography, not orchestration</li>
+                    <li>Pure Python functions and K8s manifests &mdash; no infrastructure in your code</li>
+                </ul>
+            </div>
             <div class="hero-buttons">
                 <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Get Started</a>
                 <a href="https://github.com/deliveryhero/asya" class="btn" target="_blank" rel="noreferrer">
@@ -454,45 +648,60 @@
                 <a href="/docs/" class="btn">Documentation</a>
             </div>
             <div class="badges">
-                <a href="https://github.com/deliveryhero/asya/actions/workflows/ci.yml"><img src="https://github.com/deliveryhero/asya/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
                 <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License"></a>
+                <a href="https://github.com/deliveryhero/asya/actions/workflows/ci.yml"><img src="https://github.com/deliveryhero/asya/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
                 <a href="https://goreportcard.com/report/github.com/deliveryhero/asya"><img src="https://goreportcard.com/badge/github.com/deliveryhero/asya" alt="Go Report Card"></a>
                 <a href="https://github.com/deliveryhero/asya/releases/latest"><img src="https://img.shields.io/github/v/release/deliveryhero/asya" alt="Release"></a>
+                <img src="https://img.shields.io/badge/kubernetes-1.28+-326CE5?logo=kubernetes&logoColor=white" alt="Kubernetes 1.28+">
+                <img src="https://img.shields.io/badge/helm-3.12+-0F1689?logo=helm&logoColor=white" alt="Helm 3.12+">
+                <a href="https://artifacthub.io/packages/search?repo=asya"><img src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/asya" alt="Artifact Hub"></a>
             </div>
         </section>
 
         <!-- Two files, two owners -->
         <section>
+            <div class="section-header">
+                <h2>Two files. Two owners.</h2>
+            </div>
+            <div class="two-col" style="margin-bottom: 2rem;">
+                <div>
+                    <h3>Data Scientist owns the handler</h3>
+                    <p style="color: var(--text-secondary); line-height: 1.7;">
+                        Pure Python, zero dependencies. No SDK imports, no decorators,
+                        no framework coupling.
+                    </p>
+                    <p style="color: var(--text-tertiary); line-height: 1.7; margin-top: 0.75rem;">
+                        Test locally with <code>assert process(state) == expected</code>.
+                    </p>
+                </div>
+                <a href="/docs/usage/start-first-actor/" style="text-decoration: none; display: block;">
+                    <div class="code-example code-clickable"><span class="comment"># handler.py &mdash; your code, zero dependencies</span>
+<span class="keyword">def</span> <span class="function">process</span>(<span class="param">state</span>: <span class="param">dict</span>) -> <span class="param">dict</span>:
+    state[<span class="string">"output"</span>] = model.predict(state[<span class="string">"input"</span>])
+    <span class="keyword">return</span> state</div>
+                </a>
+            </div>
             <div class="two-col">
                 <div>
-                    <h2>Two files. Two owners.</h2>
+                    <h3>Platform team owns the spec</h3>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
-                        Your Python handler + your AsyncActor YAML spec. That's the entire interface.
-                        No SDK imports, no decorators, no framework coupling. Test locally with
-                        <code>assert process(payload) == expected</code>.
-                    </p>
-                    <p style="color: var(--text-tertiary); line-height: 1.7; margin-top: 1rem;">
                         Deploy as a Kubernetes CRD. Asya injects the sidecar, creates the queue,
                         configures KEDA autoscaling. Your code stays clean.
                     </p>
                 </div>
-                <div>
-                    <div class="code-example"><span class="comment"># handler.py &mdash; your code, zero dependencies</span>
-<span class="keyword">def</span> <span class="function">process</span>(<span class="param">payload</span>: <span class="param">dict</span>) -> <span class="param">dict</span>:
-    result = model.predict(payload[<span class="string">"input"</span>])
-    <span class="keyword">return</span> {**payload, <span class="string">"result"</span>: result}</div>
-                    <div class="code-example" style="margin-top: 0.75rem;"><span class="comment"># actor.yaml &mdash; the platform's job</span>
-<span class="param">apiVersion</span>: asya.sh/v1alpha1
-<span class="param">kind</span>: AsyncActor
-<span class="param">metadata</span>:
-  <span class="param">name</span>: my-model
-<span class="param">spec</span>:
-  <span class="param">image</span>: my-model:latest
-  <span class="param">handler</span>: handler.process
-  <span class="param">scaling</span>:
-    <span class="param">minReplicas</span>: 0
-    <span class="param">maxReplicas</span>: 50</div>
-                </div>
+                <a href="/docs/usage/guide-actor-xrd/" style="text-decoration: none; display: block;">
+                    <div class="code-example code-clickable"><span class="comment"># actor.yaml &mdash; the platform's job</span>
+<span class="yaml-key">apiVersion</span>: <span class="yaml-val">asya.sh/v1alpha1</span>
+<span class="yaml-key">kind</span>: <span class="yaml-val">AsyncActor</span>
+<span class="yaml-key">metadata</span>:
+  <span class="yaml-key">name</span>: <span class="yaml-val">my-model</span>
+<span class="yaml-key">spec</span>:
+  <span class="yaml-key">image</span>: <span class="yaml-val">my-model:latest</span>
+  <span class="yaml-key">handler</span>: <span class="yaml-val">handler.process</span>
+  <span class="yaml-key">scaling</span>:
+    <span class="yaml-key">minReplicas</span>: <span class="yaml-val">0</span>
+    <span class="yaml-key">maxReplicas</span>: <span class="yaml-val">50</span></div>
+                </a>
             </div>
         </section>
 
@@ -500,45 +709,95 @@
         <section>
             <div class="section-header">
                 <h2>Why Asya</h2>
-                <p>AI workloads are batch jobs &mdash; bursty, GPU-heavy, multi-step.
-                   Forcing them into synchronous REST adds latency, waste, and cascading failures.</p>
+                <p>Built for AI/ML workloads that need independent scaling, fault isolation, and zero framework lock-in.</p>
             </div>
-            <div class="feature-grid">
-                <div class="feature-card">
-                    <h3>Decentralized Routing</h3>
-                    <p>Envelopes carry <code>prev/curr/next</code> queues.
-                       No coordinator can fail. Actors rewrite routing at runtime
-                       for agentic patterns, LLM judges, and branching flows.</p>
+            <div class="feature-group group-core">
+                <div class="feature-group-label">Core Architecture</div>
+                <div class="feature-grid">
+                    <a href="/docs/concepts/actor-mesh/" class="feature-card" style="text-decoration: none;">
+                        <h3>🔀 Actor Mesh</h3>
+                        <p>Choreography on Kubernetes &mdash; no central orchestrator, each message carries its own route</p>
+                    </a>
+                    <a href="/docs/concepts/message-knows-the-way/" class="feature-card" style="text-decoration: none;">
+                        <h3>✉️ Message Knows the Way</h3>
+                        <p>Stateless actors, all state travels in the envelope &mdash; route, payload, headers</p>
+                    </a>
+                    <a href="/docs/concepts/virtual-actors/" class="feature-card" style="text-decoration: none;">
+                        <h3>💾 Virtual Actors</h3>
+                        <p>Stateless by design, with optional persistent memory via pluggable state proxy</p>
+                    </a>
                 </div>
-                <div class="feature-card">
-                    <h3>Scale to Zero</h3>
-                    <p>KEDA autoscales each actor independently from 0 to N based on
-                       its own queue depth. GPU pods cost nothing when idle.
-                       Bursty traffic scales up in seconds.</p>
+            </div>
+
+            <div class="feature-group group-dev">
+                <div class="feature-group-label">Developer Model</div>
+                <div class="feature-grid">
+                    <a href="/docs/concepts/separation-of-concerns/" class="feature-card" style="text-decoration: none;">
+                        <h3>🧩 Separation of Concerns</h3>
+                        <p>Data scientist writes Python, platform team owns the YAML spec</p>
+                    </a>
+                    <a href="/docs/concepts/dynamic-routing/" class="feature-card" style="text-decoration: none;">
+                        <h3>🔄 Dynamic Routing</h3>
+                        <p>Actors change the future &mdash; rewrite routes at runtime for judges, loops, branching</p>
+                    </a>
+                    <a href="/docs/concepts/flow-compiler/" class="feature-card" style="text-decoration: none;">
+                        <h3>⚙️ Flow Compiler</h3>
+                        <p>Write Python if/else/while, compile to flat actor graphs &mdash; no new CRDs</p>
+                    </a>
                 </div>
-                <div class="feature-card">
-                    <h3>Pure Python Handlers</h3>
-                    <p>No SDK imports, no decorators, no framework coupling.
-                       A handler is <code>dict &rarr; dict</code>. Test with pytest,
-                       deploy on Kubernetes. That's it.</p>
+            </div>
+
+            <div class="feature-group group-infra">
+                <div class="feature-group-label">Infrastructure</div>
+                <div class="feature-grid">
+                    <a href="/docs/concepts/kubernetes-native/" class="feature-card" style="text-decoration: none;">
+                        <h3>☸️ Kubernetes Native</h3>
+                        <p>CRDs, Helm charts, GitOps &mdash; runs anywhere K8s runs</p>
+                    </a>
+                    <a href="/docs/concepts/scale-to-zero/" class="feature-card" style="text-decoration: none;">
+                        <h3>📈 Scale Zero to Infinity</h3>
+                        <p>KEDA scales each actor independently &mdash; GPU pods cost nothing when idle</p>
+                    </a>
+                    <a href="/docs/concepts/pluggable-transports/" class="feature-card" style="text-decoration: none;">
+                        <h3>🔌 Pluggable Transport</h3>
+                        <p>SQS, RabbitMQ, Pub/Sub &mdash; swap via Crossplane, handler code unchanged</p>
+                    </a>
+                    <a href="/docs/concepts/pluggable-storage/" class="feature-card" style="text-decoration: none;">
+                        <h3>🗄️ Pluggable Storage</h3>
+                        <p>S3, GCS, Redis, NATS KV &mdash; state proxy connectors for virtual actor memory</p>
+                    </a>
+                    <a href="/docs/concepts/built-in-resiliency/" class="feature-card" style="text-decoration: none;">
+                        <h3>🛡️ Built-in Resiliency</h3>
+                        <p>Durable queues, retry policies, DLQ, SLA enforcement, timeout control</p>
+                    </a>
                 </div>
-                <div class="feature-card">
-                    <h3>Dynamic Pipelines</h3>
-                    <p>Routes are data embedded in each message, not code.
-                       Write flows as plain Python with <code>if/else</code> and <code>while</code>.
-                       The compiler generates router actors automatically.</p>
+            </div>
+
+            <div class="feature-group group-integration">
+                <div class="feature-group-label">Integration</div>
+                <div class="feature-grid">
+                    <a href="/docs/concepts/http-gateway/" class="feature-card" style="text-decoration: none;">
+                        <h3>🌐 HTTP Gateway</h3>
+                        <p>Async mesh exposed as REST, A2A agents, and MCP tools with SSE streaming</p>
+                    </a>
+                    <a href="/docs/concepts/agentic-native/" class="feature-card" style="text-decoration: none;">
+                        <h3>🤖 Agentic Native</h3>
+                        <p>Agent swarms as actors &mdash; FLY streaming, state proxy, pause/resume, A2A/MCP</p>
+                    </a>
                 </div>
-                <div class="feature-card">
-                    <h3>Multi-Transport</h3>
-                    <p>Pluggable message transports: SQS, RabbitMQ, GCP Pub/Sub.
-                       Switch transports without changing handler code.
-                       Same actor, different infrastructure.</p>
-                </div>
-                <div class="feature-card">
-                    <h3>A2A + MCP Gateway</h3>
-                    <p>Optional HTTP gateway exposes actor pipelines as
-                       A2A agents and MCP tools. Sync-to-async bridge with
-                       SSE streaming, pause/resume, and task tracking.</p>
+            </div>
+
+            <div class="feature-group group-ops">
+                <div class="feature-group-label">Operations</div>
+                <div class="feature-grid">
+                    <a href="/docs/concepts/observability/" class="feature-card" style="text-decoration: none;">
+                        <h3>📊 Built-in Observability</h3>
+                        <p>OpenTelemetry tracing, Prometheus metrics, Grafana dashboards</p>
+                    </a>
+                    <a href="/docs/concepts/developer-experience/" class="feature-card" style="text-decoration: none;">
+                        <h3>🛠️ Developer Experience</h3>
+                        <p>Fits any dev flow &mdash; GitOps (Flux/Argo), any OCI image, CI/CD, Docker Compose testing</p>
+                    </a>
                 </div>
             </div>
         </section>
@@ -551,12 +810,14 @@
                    that carries its own routing instructions.</p>
             </div>
             <div class="diagram-container">
-                <img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
-                <p class="caption">Actor Mesh: each actor scales independently, messages carry their own route</p>
+                <a href="/docs/architecture/" title="View full architecture documentation">
+                    <img src="/docs/website/img/actor-mesh.png" alt="Actor Mesh diagram showing actors connected through queues with independent KEDA scaling">
+                </a>
+                <p class="caption">Actor Mesh: messages carry their own route through independently scaling actors</p>
             </div>
             <div class="two-col" style="margin-top: 3rem;">
                 <div>
-                    <h3>Inside Each Actor Pod</h3>
+                    <h3><a href="/docs/reference/components/core-actor/" style="color: inherit; text-decoration: none;">Actor Anatomy</a></h3>
                     <p style="color: var(--text-secondary); line-height: 1.7;">
                         Every actor pod has two containers: your Python runtime and the
                         Asya sidecar. The sidecar polls the queue, delivers the envelope
@@ -568,71 +829,10 @@
                     </p>
                 </div>
                 <div class="diagram-container">
-                    <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
+                    <a href="/docs/reference/components/core-actor/" title="Actor internals: sidecar, runtime, state proxy">
+                        <img src="/docs/website/img/actor-anatomy.png" alt="Actor pod anatomy: sidecar + runtime + optional state proxy">
+                    </a>
                 </div>
-            </div>
-        </section>
-
-        <!-- Comparison -->
-        <section>
-            <div class="section-header">
-                <h2>How Asya Compares</h2>
-            </div>
-            <div style="overflow-x: auto;">
-                <table class="comparison-table">
-                    <thead>
-                        <tr>
-                            <th></th>
-                            <th class="highlight-col">Asya</th>
-                            <th>Argo Workflows</th>
-                            <th>Temporal</th>
-                            <th>LangGraph</th>
-                            <th>Ray Serve</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Scale to zero</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>No SDK lock-in</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>Dynamic routing</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>K8s native (CRDs)</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                        <tr>
-                            <td>Pure Python handlers</td>
-                            <td class="highlight-col"><span class="check">&#10003;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                            <td><span class="cross">&#10007;</span></td>
-                        </tr>
-                    </tbody>
-                </table>
             </div>
         </section>
 
@@ -640,86 +840,132 @@
         <section>
             <div class="section-header">
                 <h2>Quick Start</h2>
-                <p>Get a local actor mesh running in minutes.
-                   Requires Docker, kubectl, Helm, and Kind.</p>
+                <p>Local actor mesh in minutes.<br>Requires Docker, kubectl, Helm, and Kind.</p>
             </div>
             <div class="quickstart-steps">
-                <div class="quickstart-step">
+                <a href="/docs/setup/start-quickstart/#1-create-cluster" class="quickstart-step">
                     <span class="step-number">1</span>
                     <h3>Create cluster</h3>
                     <div class="code-block">kind create cluster --name asya
 
-helm repo add crossplane-stable \
-  https://charts.crossplane.io/stable
-helm repo update crossplane-stable
-helm repo add asya https://asya.sh/charts
-helm repo update asya</div>
-                </div>
-                <div class="quickstart-step">
+<span class="c"># playground chart installs:</span>
+<span class="c"># Crossplane, KEDA, LocalStack,</span>
+<span class="c"># crew actors, hello-world actor</span></div>
+                </a>
+                <a href="/docs/setup/start-quickstart/#2-install-asya" class="quickstart-step">
                     <span class="step-number">2</span>
                     <h3>Install Asya</h3>
-                    <div class="code-block">helm install crossplane \
-  crossplane-stable/crossplane \
-  -n crossplane-system \
-  --create-namespace --wait
+                    <div class="code-block">helm repo add asya https://asya.sh/charts
 
-# Phase 1: infrastructure
+<span class="c"># single chart, two phases</span>
 helm install asya asya/asya-playground \
-  -n asya-demo --create-namespace \
-  --set global.transport=sqs \
-  --timeout 600s --wait
+  -n asya-demo \
+  --create-namespace
 
-# Phase 2: wait for providers, enable actors
-kubectl wait --for=condition=Healthy \
-  providers/provider-aws-sqs \
-  providers/provider-kubernetes \
-  --timeout=300s
-kubectl wait --for=condition=Established \
-  xrd/xasyncactors.asya.sh --timeout=120s
-
+<span class="c"># wait for CRDs, enable actors</span>
 helm upgrade asya asya/asya-playground \
-  -n asya-demo --reuse-values \
-  --set asya-crossplane.providerConfigs.install=true \
-  --set enableAsyaCrew=true \
-  --set helloActor.enabled=true \
-  --timeout 300s --wait</div>
-                </div>
-                <div class="quickstart-step">
+  -n asya-demo \
+  --reuse-values \
+  --set helloActor.enabled=true</div>
+                </a>
+                <a href="/docs/setup/start-quickstart/#3-send-a-message" class="quickstart-step">
                     <span class="step-number">3</span>
                     <h3>Send a message</h3>
-                    <div class="code-block">aws sqs send-message \
-  --endpoint-url \
-    http://localstack-sqs.asya-demo:4566 \
-  --queue-url \
-    http://localstack-sqs.asya-demo:4566\
-/000000000000/asya-asya-demo-hello \
-  --message-body '{"id":"test-1", \
-    "route":{"prev":[],"curr":"hello",\
-    "next":[]}, "payload":{"name":"Asya"}}'
+                    <div class="code-block"><span class="c"># enqueue a message</span>
+aws sqs send-message \
+  --message-body '{"id": "test-1",
+    "route": {
+        "prev": ["ingester"],
+        "curr": "text-generator",
+        "next": ["validator", "scorer", ...]
+    },
+    "payload": {"prompt": "Hello human world!"}}'
 
-# KEDA scales hello from 0 to 1
-# Actor processes, routes to x-sink
-# Scales back to zero</div>
-                </div>
+<span class="c"># KEDA scales hello: 0 -> 1</span>
+<span class="c"># actor processes, routes to x-sink</span>
+<span class="c"># scales back to zero</span></div>
+                </a>
             </div>
-            <p style="text-align: center; margin-top: 1.5rem;">
-                <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Full Quickstart Guide</a>
+            <p style="text-align: center; margin-top: 1.5rem; display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                <a href="/docs/setup/start-quickstart/" class="btn btn-primary">Local Kind</a>
+                <a href="/docs/setup/start-aws-eks/" class="btn">AWS EKS</a>
+                <a href="/docs/setup/start-gcp-gke/" class="btn">GCP GKE</a>
             </p>
         </section>
 
-        <!-- Protocols -->
+        <!-- Interoperability -->
         <section>
             <div class="section-header">
                 <h2>Interoperability</h2>
-                <p>Asya's gateway speaks the protocols your AI stack already uses.</p>
+                <p>Pluggable at every layer. Swap transports, state backends, and gateway protocols independently.</p>
             </div>
-            <div class="protocol-badges">
-                <span class="protocol-badge"><strong>A2A</strong> Agent-to-Agent Protocol</span>
-                <span class="protocol-badge"><strong>MCP</strong> Model Context Protocol</span>
-                <span class="protocol-badge"><strong>SSE</strong> Server-Sent Events</span>
-                <span class="protocol-badge"><strong>SQS</strong> Amazon SQS</span>
-                <span class="protocol-badge"><strong>RabbitMQ</strong> AMQP</span>
-                <span class="protocol-badge"><strong>Pub/Sub</strong> GCP</span>
+            <div class="protocol-groups">
+                <div class="protocol-group">
+                    <div class="protocol-group-label">Message Transports</div>
+                    <div class="protocol-badges">
+                        <a href="/docs/reference/transports/sqs/" class="protocol-badge"><strong>SQS</strong> Amazon</a>
+                        <a href="/docs/reference/transports/rabbitmq/" class="protocol-badge"><strong>RabbitMQ</strong> AMQP</a>
+                        <a href="/docs/reference/transports/pubsub/" class="protocol-badge"><strong>Pub/Sub</strong> GCP</a>
+                        <span class="protocol-badge planned"><strong>Kafka</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>NATS JetStream</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>Azure Service Bus</strong> planned</span>
+                    </div>
+                </div>
+                <div class="protocol-group">
+                    <div class="protocol-group-label">State Backends</div>
+                    <div class="protocol-badges">
+                        <a href="/docs/reference/state-proxy-connectors/s3/" class="protocol-badge"><strong>S3</strong> Amazon</a>
+                        <a href="/docs/reference/state-proxy-connectors/gcs/" class="protocol-badge"><strong>GCS</strong> Google</a>
+                        <a href="/docs/reference/state-proxy-connectors/redis/" class="protocol-badge"><strong>Redis</strong></a>
+                        <a href="/docs/reference/state-proxy-connectors/nats-kv/" class="protocol-badge"><strong>NATS KV</strong></a>
+                        <span class="protocol-badge planned"><strong>DynamoDB</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>Azure Blob</strong> planned</span>
+                        <span class="protocol-badge planned"><strong>PostgreSQL</strong> planned</span>
+                    </div>
+                </div>
+                <div class="protocol-group">
+                    <div class="protocol-group-label">Gateway Protocols</div>
+                    <div class="protocol-badges">
+                        <a href="/docs/reference/specs/gateway-api/#a2a-protocol" class="protocol-badge"><strong>A2A</strong> Agents</a>
+                        <a href="/docs/reference/specs/gateway-api/#mcp-protocol" class="protocol-badge"><strong>MCP</strong> Tools</a>
+                        <a href="/docs/reference/specs/gateway-api/#external-api-routes-api-deployment" class="protocol-badge"><strong>SSE</strong> Streaming</a>
+                        <a href="/docs/reference/specs/gateway-api/#mesh-routes-mesh-deployment" class="protocol-badge"><strong>REST</strong> Mesh</a>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparisons -->
+        <section>
+            <div class="section-header">
+                <h2>How Asya Compares</h2>
+                <p>Honest, factual comparisons with real code examples.</p>
+            </div>
+            <div class="feature-grid" style="grid-template-columns: repeat(3, 1fr);">
+                <a href="/docs/comparisons/as-agentic-framework/" class="feature-card" style="text-decoration: none; border-left: 3px solid #8250df;">
+                    <h3>🎭 vs 🤖 Agentic Frameworks</h3>
+                    <p>Distributed actors, not in-process graphs &mdash; LangGraph, CrewAI, ADK, AutoGen, KAgent</p>
+                </a>
+                <a href="/docs/comparisons/as-workflow-orchestrator/" class="feature-card" style="text-decoration: none; border-left: 3px solid #3c63cc;">
+                    <h3>🎭 vs 🎯 Workflow Orchestrators</h3>
+                    <p>Choreography, not centralized orchestration &mdash; Temporal, Argo, Airflow, Prefect, Dagster</p>
+                </a>
+                <a href="/docs/comparisons/as-ml-pipeline-tool/" class="feature-card" style="text-decoration: none; border-left: 3px solid #22863a;">
+                    <h3>🎭 vs 🧪 ML Pipelines</h3>
+                    <p>Runtime-centric, not training-centric &mdash; KFP, Flyte, Metaflow, ZenML</p>
+                </a>
+                <a href="/docs/comparisons/as-stream-processing/" class="feature-card" style="text-decoration: none; border-left: 3px solid #e36209;">
+                    <h3>🎭 vs ⚡ Stream Processing</h3>
+                    <p>Discrete messages, not infinite streams &mdash; Flink, Kafka Streams, Spark</p>
+                </a>
+                <a href="/docs/comparisons/as-actor-framework/" class="feature-card" style="text-decoration: none; border-left: 3px solid #cf222e;">
+                    <h3>🎭 vs 🎭 Actor Frameworks</h3>
+                    <p>Pure functions, not mailboxes &mdash; Erlang, Akka, Orleans, Dapr</p>
+                </a>
+                <a href="/docs/comparisons/" class="feature-card" style="text-decoration: none; border-style: dashed;">
+                    <h3>📋 All Comparisons</h3>
+                    <p>7 categories + 7 in-depth 1:1 with code examples</p>
+                </a>
             </div>
         </section>
 
@@ -729,28 +975,28 @@ helm upgrade asya asya/asya-playground \
                 <h2>Documentation</h2>
             </div>
             <div class="feature-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
-                <a href="/docs/setup/" class="feature-card" style="text-decoration: none;">
-                    <h3>Setup</h3>
+                <a href="/docs/setup/" class="feature-card" style="text-decoration: none; border-left: 3px solid #e36209;">
+                    <h3>🚀 Setup</h3>
                     <p>Install on Kind, EKS, or GKE</p>
                 </a>
-                <a href="/docs/usage/" class="feature-card" style="text-decoration: none;">
-                    <h3>Usage</h3>
+                <a href="/docs/usage/" class="feature-card" style="text-decoration: none; border-left: 3px solid #22863a;">
+                    <h3>🐍 Usage</h3>
                     <p>Write handlers, deploy actors, build flows</p>
                 </a>
-                <a href="/docs/concepts/" class="feature-card" style="text-decoration: none;">
-                    <h3>Concepts</h3>
-                    <p>Envelopes, actors, routing, sidecars</p>
+                <a href="/docs/concepts/" class="feature-card" style="text-decoration: none; border-left: 3px solid #3c63cc;">
+                    <h3>💡 Concepts</h3>
+                    <p>Actor mesh, envelope, routing, scaling</p>
                 </a>
-                <a href="/docs/architecture/" class="feature-card" style="text-decoration: none;">
-                    <h3>Architecture</h3>
+                <a href="/docs/architecture/" class="feature-card" style="text-decoration: none; border-left: 3px solid #8250df;">
+                    <h3>🏗️ Architecture</h3>
                     <p>Components, protocols, data flow</p>
                 </a>
-                <a href="/docs/reference/" class="feature-card" style="text-decoration: none;">
-                    <h3>Reference</h3>
+                <a href="/docs/reference/" class="feature-card" style="text-decoration: none; border-left: 3px solid #6e7781;">
+                    <h3>📖 Reference</h3>
                     <p>Specs, config tables, API surfaces</p>
                 </a>
-                <a href="https://github.com/deliveryhero/asya/tree/main/examples" class="feature-card" style="text-decoration: none;">
-                    <h3>Examples</h3>
+                <a href="https://github.com/deliveryhero/asya/tree/main/examples" class="feature-card" style="text-decoration: none; border-left: 3px solid #cf222e;">
+                    <h3>📂 Examples</h3>
                     <p>Actor specs and Flow DSL samples</p>
                 </a>
             </div>
@@ -765,7 +1011,7 @@ helm upgrade asya asya/asya-playground \
                 <a href="https://github.com/deliveryhero/asya/blob/main/LICENSE">Apache 2.0 License</a>
             </div>
             <p>
-                Built at <a href="https://tech.deliveryhero.com/">Delivery Hero</a>.
+                🎭 Built at <a href="https://tech.deliveryhero.com/">Delivery Hero</a>.
                 Battle-tested for global-scale AI image enhancement.
                 Now powering LLM and agentic workflows.
             </p>
@@ -791,6 +1037,49 @@ helm upgrade asya asya/asya-playground \
             }
             applyTheme(theme);
         }
+
+        // Announcement banner with live countdown
+        const banner = document.getElementById('announcementBar');
+        const bannerText = document.getElementById('announcementText');
+        const closeBanner = document.getElementById('closeAnnouncement');
+        const eventStartUTC = new Date('2026-03-25T13:15:00Z');
+        const eventEndUTC = new Date('2026-03-25T13:45:00Z');
+        const schedLink = '<a href="https://kccnceu2026.sched.com/event/2CW2j" target="_blank" rel="noreferrer">';
+
+        function updateBanner() {
+            var now = new Date();
+            var msToStart = eventStartUTC - now;
+            var msToEnd = eventEndUTC - now;
+
+            if (msToEnd <= 0) {
+                bannerText.innerHTML = 'Missed the KubeCon talk? ' + schedLink + 'Watch the recording</a>';
+            } else if (msToStart <= 0) {
+                bannerText.innerHTML = 'REST In Peace - Happening now! ' + schedLink + 'KubeCon Europe 2026 (Auditorium)</a>';
+            } else {
+                var totalSeconds = Math.floor(msToStart / 1000);
+                var days = Math.floor(totalSeconds / 86400);
+                var hours = Math.floor((totalSeconds % 86400) / 3600);
+                var minutes = Math.floor((totalSeconds % 3600) / 60);
+                var seconds = totalSeconds % 60;
+                var parts = [];
+                if (days > 0) parts.push(days + (days === 1 ? ' day' : ' days'));
+                if (hours > 0) parts.push(hours + 'h');
+                if (minutes > 0) parts.push(minutes + 'm');
+                parts.push(seconds + 's');
+                var countdown = parts.join(' ');
+                bannerText.innerHTML = 'REST In Peace - Join Asya presentation in ' + countdown + ' at ' + schedLink + 'KubeCon Europe 2026 on Wednesday March 25, 14:15 - 14:45 CET (Auditorium)</a>';
+            }
+        }
+
+        if (!sessionStorage.getItem('announcementDismissed')) {
+            updateBanner();
+            setInterval(updateBanner, 1000);
+            banner.style.display = 'block';
+        }
+        closeBanner.addEventListener('click', function() {
+            banner.style.display = 'none';
+            sessionStorage.setItem('announcementDismissed', '1');
+        });
 
         themeToggle.addEventListener('click', () => {
             const newTheme = body.classList.contains('dark') ? 'light' : 'dark';

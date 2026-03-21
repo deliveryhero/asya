@@ -5,7 +5,7 @@
   --bg-primary: #fafafa;
   --bg-secondary: white;
   --bg-tertiary: #f8f8f8;
-  --bg-code: #f8f9fa;
+  --bg-code: #f6f8fa;
 
   /* Text colors */
   --text-primary: #1a1a1a;
@@ -36,7 +36,7 @@ body.dark {
   --bg-primary: #1a1a1a;
   --bg-secondary: #2d2d2d;
   --bg-tertiary: #242424;
-  --bg-code: #1e1e1e;
+  --bg-code: #0d1117;
 
   --text-primary: #e5e5e5;
   --text-secondary: #d4d4d4;

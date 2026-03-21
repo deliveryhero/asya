@@ -9,11 +9,131 @@
          <lastmod>2026-03-21</lastmod>
     </url>
     <url>
+         <loc>https://asya.sh/docs/motivation/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-actor-framework/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-agentic-framework/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-ai-serving/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-k8s-scheduler/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-ml-pipeline-tool/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-stream-processing/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/as-workflow-orchestrator/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-dapr/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-google-adk/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-kagent/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-kubeflow-pipelines/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-langgraph/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-ray-serve/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/comparisons/vs-temporal/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
          <loc>https://asya.sh/docs/concepts/</loc>
          <lastmod>2026-03-21</lastmod>
     </url>
     <url>
-         <loc>https://asya.sh/docs/motivation/</loc>
+         <loc>https://asya.sh/docs/concepts/actor-mesh/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/agentic-native/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/built-in-resiliency/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/developer-experience/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/dynamic-routing/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/flow-compiler/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/http-gateway/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/kubernetes-native/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/message-knows-the-way/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/observability/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/pluggable-storage/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/pluggable-transport/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/scale-to-zero/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/separation-of-concerns/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/concepts/virtual-actors/</loc>
          <lastmod>2026-03-21</lastmod>
     </url>
     <url>
@@ -198,6 +318,10 @@
     </url>
     <url>
          <loc>https://asya.sh/docs/setup/ops-upgrades/</loc>
+         <lastmod>2026-03-21</lastmod>
+    </url>
+    <url>
+         <loc>https://asya.sh/docs/setup/start-actor-xrd/</loc>
          <lastmod>2026-03-21</lastmod>
     </url>
     <url>
