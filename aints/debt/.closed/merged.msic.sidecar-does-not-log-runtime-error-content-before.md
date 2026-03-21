@@ -11,11 +11,17 @@ tags:
 
 
 
+
 ## Bug
 
-When the runtime returns an error frame (handler exception, validation
-error, etc.), the sidecar routes the message to x-sump but **never logs
-what the error was**. The sidecar logs show:
+When the runtime returns an error (handler exception, envelope validation
+failure, etc.), **neither** the sidecar nor the runtime log the error content.
+The operator must check x-sump consumer logs to find the traceback.
+
+### Sidecar (Go)
+
+The sidecar routes the message to x-sump but **never logs what the error was**.
+The sidecar logs show:
 
 ```
 INFO  "Calling runtime" id=demo actor=analyze
@@ -101,3 +107,30 @@ if frame.IsError() {
     return
 }
 ```
+
+### Runtime (Python)
+
+The runtime also fails to log handler errors visibly. In `asya_runtime.py`,
+`_stream_sse_response` catches exceptions and calls
+`logger.exception("Error during SSE streaming")` (line ~1262), but the log
+output **does not appear in `kubectl logs`**. The error is returned as an SSE
+error event to the sidecar but never visibly logged in the runtime container.
+
+Runtime container logs show ONLY startup — no handler calls, no errors:
+```
+INFO  Asya Actor Runtime starting with handler: 'sentiment_actors.handler.analyze'
+INFO  Loading function handler: module=sentiment_actors.handler function=analyze
+INFO  HTTP server bound to /var/run/asya/asya-runtime.sock
+INFO  Runtime ready signal created: /var/run/asya/runtime-ready
+# (nothing else — the TypeError is swallowed)
+```
+
+Possible causes:
+- Python stdout buffering (not flushed before SSE response completes)
+- `BaseHTTPServer` suppresses handler thread logs
+- Missing `PYTHONUNBUFFERED=1` in the runtime container env
+
+**Suggested fix**: Ensure `logger.exception()` output flushes to stdout.
+Add `sys.stdout.flush()` / `sys.stderr.flush()` after exception logging,
+or set `PYTHONUNBUFFERED=1` in the sidecar composition's env for the
+runtime container.
