@@ -1,96 +1,169 @@
-# Why Asya: REST in Peace, AI Needs to Be Async
+# REST in Peace: AI Needs to Be Async 🎭
+
+## The Starting Point
+
+AI-powered food image enhancement at Delivery Hero: take a restaurant photo, enhance it
+with SDXL, score quality with an LLM judge, upload if good enough. A multi-step pipeline
+running on Vertex AI / KFP with GPU acceleration.
+
+It worked — until it didn't.
 
 ## The Nightmare at Scale
 
-Your AI pipeline runs fine in staging. In production, at peak load, a slow LLM call holds a connection open. The client retries with exponential backoff. Other clients do the same. The server queues up, hits memory limits, and starts dropping requests. A single slow component stalls everything downstream.
+At production load, the synchronous architecture collapses:
 
-This is the synchronous trap: **request/response requires someone to hold state and wait**. In AI workloads — where individual steps take milliseconds to minutes, traffic is unpredictably bursty, and components run on different hardware — waiting is expensive and fragile.
+- **Rate limits**: external AI APIs return 429. Clients retry with exponential backoff.
+  While they wait, the server is idle too — everyone is sleeping
+- **Cascading failures**: one slow LLM call holds a connection open. Upstream callers
+  time out. Retries multiply. The pipeline stalls
+- **Wasted compute**: GPU pods sit idle during backoff. You pay for 24/7 what you need
+  for minutes
+- **Coupled scaling**: the entire pipeline scales as one unit, even when only the GPU
+  step is bottlenecked
 
-Traditional orchestrators (Airflow, Prefect, Kubeflow Pipelines) invert the problem by introducing a central coordinator. Now you have a new single point of failure, and all components must scale together even when only one is bottlenecked.
+<p align="center">
+<img src="/docs/website/img/throughput-before.jpg" width="75%" alt="Before: unacked messages accumulating, unstable throughput" />
+<br>
+  <em>Before: 400-800 unacked messages oscillating — the system cannot drain its queue.</em>
+</p>
 
-## The Insight: The Message Knows the Way
 
-Asya's core idea is to remove the coordinator entirely. Instead of a controller routing messages between actors, **each message carries its own route**:
+## The Obvious Fix: Add a Queue
+
+The first fix is obvious: put a message queue in front of the GPU workers. Now callers
+don't block — they enqueue and move on. GPU workers pull at their own pace.
+
+But this only fixes one step. The rest of the pipeline still has the same problems:
+retry logic in application code, coupled failure domains, monolithic scaling. You've
+added a queue to one bottleneck, but the architecture is still fundamentally synchronous.
+
+## The Real Fix: Flatten Everything
+
+What if every step had a queue? What if every step scaled independently? What if retry
+logic, timeouts, and error routing were infrastructure concerns, not application code?
+
+This is the actor mesh: **flatten the entire pipeline into independent actors connected
+through queues**.
+
+<p align="center">
+<img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
+<br>
+    <em>Actor Mesh: each actor scales independently, messages carry their own route</em>
+</p>
+
+**Each actor**:
+- Has its own queue (SQS, RabbitMQ, Pub/Sub)
+- Scales independently from 0 to N via KEDA
+- Fails independently — a crashed actor doesn't stall others
+- Runs a pure Python function — no retry logic, no queue client, no SDK
+- Is able to re-route each message to another actor
+
+**Independent scaling in action**:
+
+<p align="center">
+<img src="/docs/website/img/throughput-after.jpg" width="75%" alt="After: independent scaling per actor, stable throughput" />
+<br>
+    <em>After: each actor scales independently. Enhancer peaks at 44 pods while retriever stays at 1. The system self-balances.</em>
+</p>
+
+## Two Files, Two Owners
+
+The handler is a pure Python function. No `@retry`, no `ThreadPoolExecutor`, no
+`sleep(backoff)`. Just business logic:
+
+```python
+def answer_questions(payload: dict) -> dict:
+    payload["answers"] = [call_model(q) for q in payload["questions"]]
+    return payload
+```
+
+The infrastructure — retries, timeouts, scaling, transport — lives in the AsyncActor
+manifest, owned by the platform team:
+
+```yaml
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: model-caller
+spec:
+  image: call-model:latest
+  handler: handler.answer_questions
+  scaling:
+    minReplicaCount: 0
+    maxReplicaCount: 3
+  resiliency:
+    actorTimeout: 300s
+    policies:
+      default:
+        maxAttempts: 5
+        backoff: exponential
+        initialInterval: 1s
+        maxInterval: 60s
+  flavors: [llm-resilient]
+```
+
+Complexity moves from application code to deployment configuration. Platform engineers
+pre-configure **flavors** (reusable templates) so data scientists never touch retry
+policies or scaling thresholds.
+
+## The Message Knows the Way
+
+Every message carries its own route — `prev/curr/next` — so there is no central
+coordinator deciding what happens next:
 
 ```json
 {
-  "id": "env-123",
-  "route": { "prev": ["preprocess"], "curr": "infer", "next": ["postprocess"] },
-  "payload": { "text": "..." }
+  "id": "a1b2c3d",
+  "route": { "prev": ["enhance"], "curr": "score", "next": ["validate"] },
+  "payload": { "image_url": "s3://cat.jpg", "enhanced_img": "supercat.jpg" }
 }
 ```
 
-When `infer` finishes, the sidecar reads `route.next`, sends the envelope to `postprocess`, and `infer` is done. No callback, no polling, no coordinator. The message knows where to go next.
+Actors can even rewrite the route at runtime — an LLM judge can route high-confidence
+results directly to storage while sending uncertain results back for human review.
+This is choreography: no coordinator, no single point of failure, no coupled scaling.
 
-This is choreography over orchestration. The failure domain of each actor is exactly one queue. A crashed actor doesn't stall others — messages accumulate until replicas come back. Each actor scales based purely on its own queue depth.
+## REST in Peace. Long Live the Queue.
 
-![Asya actor mesh](website/img/actor-mesh.png)
-
-## What Asya Is
-
-Asya is a Kubernetes-native actor mesh framework. You write pure Python functions. Asya handles queue creation, sidecar injection, autoscaling via KEDA, and message routing. The only interface between your code and the framework is the envelope payload — a plain Python dict in, a plain Python dict out.
-
-It is **not** a model serving platform, a training framework, a CI/CD system, or a managed cloud service. It is the async messaging layer that connects your AI components without coupling them.
+| Before (REST) | After (Actor Mesh) |
+|---|---|
+| POST /predict and wait | Queue it, the **message knows the way** |
+| Static pre-built pipeline | Dynamic mesh — **actors write the future** |
+| Retry/timeout/backoff in your code | Retry policy is **deployment configuration** |
+| One pipeline process, one failure domain | Independent actors, **independent scaling** |
+| Framework or AI provider lock-in | **Pure Python function** + Pure K8s manifest |
 
 ## When to Use Asya
 
-✅ **Multi-step AI/ML pipelines** where individual steps have different latencies, hardware, and scaling needs (OCR → classification → LLM → storage)
+✅ **Mixed-latency pipelines** — fast backend steps (ms), LLM calls (seconds), and slow
+generative AI for images/video (minutes) all in the same pipeline, each scaling to its
+own hardware profile
 
-✅ **Bursty or unpredictable workloads** that benefit from scale-to-zero — GPU pods that cost nothing when idle
+✅ **Big teams with separation of concerns** — part of a developer platform on K8s where
+data scientists write Python and platform engineers manage infrastructure. Actors are the
+contract between the two worlds
 
-✅ **Agentic workflows** with dynamic routing: LLM judge loops, human-in-the-loop pause/resume, parallel fan-out
+✅ **Scale to infinity at constant cost** — KEDA scales each actor independently from zero.
+GPU pods cost nothing when idle. 10x traffic spike scales only the bottleneck, not the
+whole pipeline
 
-✅ **Kubernetes-native teams** that want infrastructure declared as CRDs alongside application workloads
+✅ **True decentralization** — no central orchestrator that can fail, bottleneck, or
+become the deployment dependency for every team. Each actor is independently deployable,
+scalable, and replaceable
 
-## When Not to Use Asya
+✅ **Agentic workflows** — dynamic routing, LLM judge loops, human-in-the-loop
+pause/resume, agent swarms as distributed actors
 
-❌ **Sub-100ms latency requirements** — queue overhead adds ~10–500ms; use KServe or BentoML for synchronous model serving
+✅ **Bursty or unpredictable workloads** — batch processing that runs hourly, daily, or
+on-demand. Scale to zero between runs
 
-❌ **Single-step processing** — a standalone REST endpoint doesn't need a message bus
+## When to Consider Alternatives
 
-❌ **Training jobs** — use Kubeflow, Ray Train, or native Kubernetes Jobs instead
+❌ **Quick prototyping without Kubernetes** — if you don't have a K8s cluster and just
+need a fast PoC, Python-native frameworks (LangGraph, CrewAI) are simpler to start with.
+Once you need to scale beyond a single process, Asya is the path forward.
 
-## How Asya Compares
-
-| | Asya | Airflow / Prefect | Dapr |
-|---|---|---|---|
-| Coordination model | Choreography (no center) | Centralized DAG executor | Sidecar + actor runtime |
-| AI/ML focus | ✅ First-class (scaling, GPU, agentic) | ❌ General ETL | ❌ General microservices |
-| Scale to zero | ✅ KEDA per-actor | ❌ Workers always running | ❌ Not built-in |
-| Handler interface | Pure Python `dict → dict` | Decorated tasks (`@task`) | Language-specific SDK |
-| Failure isolation | Per-actor queue | Central orchestrator stalls | Per-service |
-
-Asya integrates with LLM serving tools (KAITO, LLM-d) via HTTP calls from actors — it is the pipeline
-layer around them, not a replacement.
-
-## Choreography vs Orchestration: The Trade-offs
-
-Choreography is not universally better than orchestration. The choice depends on the workload.
-
-### Complexity Comparison
-
-| Concern | Orchestration | Choreography (Asya) |
-|---------|--------------|---------------------|
-| Adding a new step | Change the orchestrator's DAG definition | Deploy a new actor; update the route in the envelope or flow config |
-| Debugging a failure | Read the orchestrator's execution log | Trace the envelope by `trace_id` across actor logs |
-| Scaling a bottleneck | Scale the orchestrator + the bottleneck worker | Scale only the bottleneck actor (independent KEDA trigger) |
-| Handling a crash | Orchestrator must checkpoint and resume | Queue redelivers the message; actor is stateless |
-| Global visibility | Orchestrator has a complete view of all workflows | Aggregate from per-actor metrics and logs |
-
-### Where orchestration might be better
-
-- **Simple workflows** with 2-3 steps that rarely change — the overhead of queues and sidecars is not justified
-- **Strong consistency requirements** where you need exactly-once semantics and transactional guarantees across steps
-- **Tight request-response latency** under 100ms — queue overhead adds 10-500ms per hop
-- **Small-scale deployments** that do not need per-component scaling
-
-### The debuggability question
-
-A common concern with choreography is debuggability. Asya addresses this with:
-
-1. **Envelope IDs and trace IDs** propagated through all actors
-2. **Progress reporting** from sidecars to the gateway at three points per actor
-3. **Prometheus metrics** for per-actor throughput, latency, and error rates
-4. **x-sink / x-sump** — all envelopes end at one of two known destinations
-
-The trade-off is real: you lose the single-pane-of-glass that an orchestrator provides. You gain independent failure domains and scaling.
+❌ **LLM training** — training requires fast cross-GPU synchronization (NCCL, ring allreduce)
+which is fundamentally different from Asya's async decentralized execution model. You may want
+to use other tools like Ray Train for training. Asya handles everything that happens around
+training: data preparation, inference, evaluation, serving.

@@ -1,6 +1,6 @@
 # Crew Actors
 
-Crew actors with pre-defined roles for 🎭 pipelines: `x-sink` (successful completion) and `x-sump` (error handling).
+Crew actors with pre-defined roles for pipelines: `x-sink` (successful completion) and `x-sump` (error handling).
 
 ## Overview
 

@@ -1,6 +1,6 @@
-# Asya🎭 Framework Deployment
+# Asya Framework Deployment
 
-This directory contains Helm charts for deploying the 🎭 framework components.
+This directory contains Helm charts for deploying the framework components.
 
 ## What is Asya Architecture?
 
@@ -17,7 +17,7 @@ When installed, it:
 
 ### Gateway Chart (`helm-charts/asya-gateway/`)
 
-Helm chart for deploying the 🎭 MCP gateway with PostgreSQL backend:
+Helm chart for deploying the MCP gateway with PostgreSQL backend:
 
 ```bash
 # Install with bundled PostgreSQL (recommended)

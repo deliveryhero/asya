@@ -8,7 +8,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: provider-kubernetes
-    namespace: crossplane-system
+    namespace: {{ .Values.crossplaneNamespace | default "crossplane-system" }}
 roleRef:
   kind: ClusterRole
   name: cluster-admin

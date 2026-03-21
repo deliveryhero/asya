@@ -68,12 +68,12 @@ version-resolver:
   major:
     labels:
     - 'major'
-    - 'breaking'
-    - 'breaking-change'
   minor:
     labels:
     - 'minor'
     - 'feat'
+    - 'breaking'
+    - 'breaking-change'
   patch:
     labels:
     - 'patch'

@@ -1,6 +1,6 @@
-# Asya🎭 Examples
+# Asya Examples
 
-Examples and reference deployments for Asya🎭.
+Examples and reference deployments for Asya.
 
 > **See also:** [Actor Examples Guide](../docs/guides/examples-actors.md) for detailed explanations
 

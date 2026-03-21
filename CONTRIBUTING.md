@@ -1,4 +1,4 @@
-# Contributing to Asya🎭
+# Contributing to Asya
 
 ## Development Setup
 

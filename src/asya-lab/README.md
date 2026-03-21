@@ -1,6 +1,6 @@
-# Asya🎭 CLI
+# Asya CLI
 
-Command-line developer tools for debugging and operating the 🎭 framework.
+Command-line developer tools for debugging and operating the framework.
 
 ## Installation
 
@@ -208,7 +208,7 @@ Minimal Python CLI specifically for asya gateway debugging.
 - No AI/LLM required
 - Direct REST API calls
 - Built-in progress display (tqdm)
-- Asya🎭-specific features (task tracking)
+- Asya-specific features (task tracking)
 - Super simple, single file
 
 **Cons**:

@@ -1,4 +1,4 @@
-# Asya🎭 E2E Tests
+# Asya E2E Tests
 
 End-to-end tests with Kind (Kubernetes in Docker).
 

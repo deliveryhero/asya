@@ -38,7 +38,7 @@ pids=()
 for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
   "$REPO_ROOT"/examples/flows/*.py \
   "$REPO_ROOT"/examples/flows/agentic/*.py \
-  "$REPO_ROOT"/docs/img/flows/*.py; do
+  "$REPO_ROOT"/docs/website/img/flows/*.py; do
   [ -f "$flow_file" ] || continue
 
   flow_dir="$(dirname "$flow_file")"

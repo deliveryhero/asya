@@ -227,6 +227,5 @@ testing/e2e/.jwks/
 
 # Docs scratch directories (gitignored by convention)
 docs/plans/
-docs/comparisons/
 
 .DS_Store/
