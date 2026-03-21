@@ -5,7 +5,7 @@ templates:
 
 compiler:
   routers: "./compiled"
-  manifests: ".asya/manifests"
+  manifests: "./compiled"
   templates: ".asya/templates"
 
 build:
