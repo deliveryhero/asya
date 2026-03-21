@@ -3,7 +3,7 @@ entries:
   asya-crew:
   - apiVersion: v2
     appVersion: 2.0.0
-    created: "2026-03-21T14:27:29.675915239Z"
+    created: "2026-03-21T14:27:34.389688626Z"
     description: System AsyncActors with reserved roles (x-sink, x-sump, checkpoint-s3,
       ...) for Asya framework
     digest: be57dd33aa7f67deb6992c9b46ae997f2707c2493c2262067e35de6b43a0f0c0
@@ -22,7 +22,7 @@ entries:
   asya-crossplane:
   - apiVersion: v2
     appVersion: 2.0.0
-    created: "2026-03-21T14:27:29.677072506Z"
+    created: "2026-03-21T14:27:34.390805659Z"
     description: Crossplane XRDs and Compositions for Asya AsyncActor
     digest: 09b9f54c34fcd6c0738e79b8941995c025899a559cf3d8bd6ca8e313c4190235
     home: https://github.com/deliveryhero/asya
@@ -41,7 +41,7 @@ entries:
   asya-gateway:
   - apiVersion: v2
     appVersion: 2.0.0
-    created: "2026-03-21T14:27:29.677727883Z"
+    created: "2026-03-21T14:27:34.391467159Z"
     description: Asya MCP Gateway with PostgreSQL backend
     digest: f66e76eb2cfc650644aa963f1424f2effe725aa7d80168e2b6406397c4463ac7
     name: asya-gateway
@@ -49,4 +49,44 @@ entries:
     urls:
     - https://asya.sh/charts/asya-gateway-2.0.0.tgz
     version: 2.0.0
-generated: "2026-03-21T14:27:29.674990126Z"
+  asya-playground:
+  - apiVersion: v2
+    appVersion: 2.0.0
+    created: "2026-03-21T14:27:34.428122135Z"
+    dependencies:
+    - name: keda
+      repository: https://kedacore.github.io/charts
+      version: '>=2.16.0'
+    - name: asya-crossplane
+      repository: https://asya.sh/charts
+      version: '>=0.1.0'
+    - condition: enableAsyaCrew
+      name: asya-crew
+      repository: https://asya.sh/charts
+      version: '>=0.4.0'
+    - condition: enableAsyaGateway
+      name: asya-gateway
+      repository: https://asya.sh/charts
+      version: '>=0.4.0'
+    - condition: sampleMonitoring.enabled
+      name: kube-prometheus-stack
+      repository: https://prometheus-community.github.io/helm-charts
+      version: '>=65.0.0'
+    description: Demo package for local development and testing with Asya. NOT for
+      production use.
+    digest: 3d63157aadea9f5d0fa73581f1ac9d603b7ca20e064667d45579e4a0d4bdbae9
+    keywords:
+    - asya
+    - actor
+    - crossplane
+    - gateway
+    - demo
+    - quickstart
+    maintainers:
+    - name: Asya Team
+    name: asya-playground
+    type: application
+    urls:
+    - https://asya.sh/charts/asya-playground-2.0.0.tgz
+    version: 2.0.0
+generated: "2026-03-21T14:27:34.388759534Z"
