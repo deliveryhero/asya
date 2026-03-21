@@ -1,12 +1,16 @@
 ---
 title: Compiler error handling
 priority: 2 # medium
+assignee: Artem Yushkovskiy
 tags:
   - integrate-into:gml9
   - absorbed-into:gml9
+  - worktree:.worktrees/compiler-simplify/3dp2.compiler-error-handling
+  - branch:compiler-simplify/3dp2.compiler-error-handling
 dependencies:
   - 7179
 ---
+
 
 
 
