@@ -1,10 +1,10 @@
-# Asya🎭 Actor Helm Chart
+# Asya Actor Helm Chart
 
-A reusable Helm chart for deploying 🎭 AsyncActor resources to Kubernetes.
+A reusable Helm chart for deploying AsyncActor resources to Kubernetes.
 
 ## Overview
 
-This chart creates an AsyncActor CRD resource. The 🎭 operator will automatically handle:
+This chart creates an AsyncActor CRD resource. The operator will automatically handle:
 - ✅ Sidecar container injection (asya-sidecar)
 - ✅ Runtime command injection (`["python3", "/opt/asya/asya_runtime.py"]`)
 - ✅ Socket configuration and volume mounts
@@ -24,7 +24,7 @@ This chart creates an AsyncActor CRD resource. The 🎭 operator will automatica
 - Kubernetes 1.19+
 - Helm 3.x
 - Crossplane XRDs installed via asya-crossplane Helm chart
-- 🎭 operator running in the cluster
+- operator running in the cluster
 - KEDA installed (if using autoscaling)
 
 ## Installation

@@ -1,4 +1,4 @@
-# Asya🎭 Gateway
+# Asya Gateway
 
 MCP (Model Context Protocol) gateway for async actors. JSON-RPC 2.0 server with PostgreSQL job storage and SSE streaming.
 

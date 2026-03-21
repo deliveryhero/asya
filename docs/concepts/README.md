@@ -1,6 +1,6 @@
 # Core Concepts
 
-Asya's design rests on a small set of ideas. Each page below explains one
+Asya 🎭 rests on a small set of ideas. Each page below explains one
 capability — what it enables, why it matters, and where to go for details.
 
 ## Core Architecture

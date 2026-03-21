@@ -2,7 +2,7 @@
 
 ## What is an Actor Mesh?
 
-An actor mesh is a network of stateless actors communicating through message queues.
+An 🎭 actor mesh is a network of stateless actors communicating through message queues.
 Each actor is an independent Kubernetes workload that receives envelopes, processes them,
 and forwards results to the next actor.
 

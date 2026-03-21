@@ -17,7 +17,7 @@ data:
         name = payload.get("name", "World")
         return {
             "greeting": f"Hello, {name}!",
-            "message": "Welcome to Asya🎭 Actor Mesh"
+            "message": "Welcome to Asya Actor Mesh"
         }
 ---
 apiVersion: asya.sh/v1alpha1

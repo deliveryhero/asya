@@ -1,4 +1,4 @@
-# REST in Peace: AI Needs to Be Async
+# REST in Peace: AI Needs to Be Async 🎭
 
 ## The Starting Point
 
@@ -92,10 +92,13 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 3
   resiliency:
-    retry:
-      policy: exponential
-      maxAttempts: 5
     actorTimeout: 300s
+    policies:
+      default:
+        maxAttempts: 5
+        backoff: exponential
+        initialInterval: 1s
+        maxInterval: 60s
   flavors: [llm-resilient]
 ```
 

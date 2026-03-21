@@ -1,4 +1,4 @@
-# Asya🎭 Actor Runtime
+# Asya Actor Runtime
 
 Lightweight Unix socket server for actor-sidecar communication. Single Python file, no dependencies.
 

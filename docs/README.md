@@ -1,4 +1,4 @@
-# Asya Documentation
+# 🎭 Asya Documentation
 
 <p align="left">
   <a href="https://asya.sh/">

@@ -16,7 +16,7 @@
 
 **The Message Knows the Way.**
 
-Asya is a Kubernetes-native **actor mesh** for async AI/ML pipelines. Each actor is a pure Python
+🎭 Asya is a Kubernetes-native **actor mesh** for async AI/ML pipelines. Each actor is a pure Python
 function. Each message carries its own route. No central orchestrator. No SDK. No waiting.
 
 ---
@@ -115,4 +115,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Prerequisites: Go 1.24+, Python 3.13+, D
 Alpha. Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI image
 enhancement. Now powering LLM and agentic workflows.
 
-Apache 2.0 licensed. **Maintainer**: Artem Yushkovskiy (`@atemate`)
+Apache 2.0 licensed. 🎭 **Maintainer**: Artem Yushkovskiy (`@atemate`)

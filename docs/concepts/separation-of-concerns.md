@@ -3,7 +3,7 @@
 Asya enforces a clean boundary between application logic and infrastructure
 configuration. Two files, two owners, zero overlap.
 
-## Two files, two roles
+## Two files, two roles 🎭
 
 | File | Owner | Contains |
 |------|-------|----------|

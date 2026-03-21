@@ -1,6 +1,6 @@
-# Asya🎭 Sidecar Metrics
+# Asya Sidecar Metrics
 
-Prometheus metrics implementation for the 🎭 sidecar.
+Prometheus metrics implementation for the sidecar.
 
 ## Endpoints
 

@@ -35,22 +35,73 @@ The error flow:
 3. After max attempts, sidecar routes to `x-sink` with `phase: failed`
 4. `x-sink` forwards to `x-sump` for DLQ persistence
 
+## Three-level failure model
+
+Asya handles failures at three distinct levels, each with its own recovery
+mechanism:
+
+
+```
+                     Actor Pod
+                 ┌─────────────────┐
+                 │    Sidecar      │
+                 │  ┌───────────┐  │
+                 │  │  Runtime  │  │
+                 │  └───────────┘  │
+                 └────────┬────────┘
+                          │
+            ┌─────────────┼─────────────┐
+            │             │             │
+       Sidecar crash   Handler error   Handler error
+       (OOM, panic,    (retriable)     (fatal / exhausted)
+       bug in sidecar)     │                │
+            │              │                │
+            ▼              ▼                ▼
+       No ACK →      ACK + retry       ACK + send
+       transport     (SendWithDelay     to x-sink
+       redelivers    to own queue)     (phase: failed)
+            │             │
+       After N            │
+       redeliveries       │ (on success)
+       (maxReceiveCount)  ▼
+            │          ACK + route
+            ▼          to next actor
+       Transport       or x-sink
+       DLQ queue       (phase: succeeded)
+            │
+            ▼
+       x-dlq worker
+       (persist + report
+        to gateway)
+```
+
+| # | Failure | Current behavior | Desired behavior |
+|---|---------|------------------|------------------|
+| 1 | **Sidecar crash/panic** | Nack → redelivery loop | No ACK → after N redeliveries → transport DLQ → `x-dlq` worker persists + reports to gateway |
+| 2 | **Retriable handler error** | ACK + send to error-end (no retry) | ACK + increment attempt + compute delay + `SendWithDelay` back to own queue |
+| 3 | **Fatal handler error / max attempts** | Same as #2 | ACK + send to `x-sink` (phase: failed, reason: NonRetryableFailure or MaxRetriesExhausted) |
+
+
 ## Example: AsyncActor resiliency configuration
 
 ```yaml
 spec:
   resiliency:
-    retry:
-      maxAttempts: 3
-      backoffMultiplier: 2
-    timeout: 90s
-    sla:
-      deadline: 300s
+    actorTimeout: 90s
+    policies:
+      default:
+        maxAttempts: 3
+        backoff: exponential
+        initialInterval: 1s
+        maxInterval: 60s
+    rules:
+    - errors: ["ValueError", "KeyError"]
+      policy: noRetry
 ```
 
-This configures the actor to retry up to 3 times with exponential backoff, enforce
-a 90-second handler execution timeout, and reject messages whose pipeline deadline
-exceeds 300 seconds.
+This configures the actor to retry up to 3 times with exponential backoff and
+enforce a 90-second handler execution timeout. Errors matching `ValueError` or
+`KeyError` skip retries and route to x-sink immediately.
 
 ## SLA enforcement
 
