@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-notify-rejection.yaml
+- asyncactor-router-order-processing-line-6-except-2.yaml
+- asyncactor-router-order-processing-line-7-seq-1.yaml
+- asyncactor-start-order-processing.yaml
+- asyncactor-validate-order.yaml
+- configmap-routers.yaml

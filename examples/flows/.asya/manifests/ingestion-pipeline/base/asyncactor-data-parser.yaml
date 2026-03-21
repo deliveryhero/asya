@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: data-parser
+  namespace: default
+  labels:
+    asya.sh/flow: ingestion-pipeline
+spec:
+  actor: data-parser
+  image: examples.asya.sh/data-parser:latest
+  handler: data_parser
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

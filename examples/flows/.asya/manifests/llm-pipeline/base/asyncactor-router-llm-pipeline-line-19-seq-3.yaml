@@ -1,0 +1,27 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-llm-pipeline-line-19-seq-3
+  namespace: default
+  labels:
+    asya.sh/flow: llm-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-llm-pipeline-line-19-seq-3
+  image: python:3.13-slim
+  handler: routers.router_llm_pipeline_line_19_seq_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_CALL_FALLBACK_LLM
+    value: call_fallback_llm
+  - name: ASYA_HANDLER_CALL_LLM
+    value: call_llm
+  - name: ASYA_HANDLER_NOTIFY_ADMIN
+    value: notify_admin
+  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_16_SEQ_1
+    value: routers.router_llm_pipeline_line_16_seq_1
+  - name: ASYA_HANDLER_ROUTER_LLM_PIPELINE_LINE_19_SEQ_3
+    value: routers.router_llm_pipeline_line_19_seq_3

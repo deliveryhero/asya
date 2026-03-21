@@ -2,20 +2,6 @@
   "flow_name": "resilient_pipeline",
   "nodes": [
     {
-      "id": "handle_known_error",
-      "label": "handle_known_error",
-      "role": "end"
-    },
-    {
-      "id": "handle_unknown_error",
-      "label": "handle_unknown_error",
-      "role": "end"
-    },
-    {
-      "id": "risky_operation",
-      "label": "risky_operation"
-    },
-    {
       "id": "router_resilient_pipeline_line_10_seq_3",
       "label": "router_resilient_pipeline_line_10_seq_3",
       "generated": true,
@@ -40,27 +26,9 @@
       "id": "router_resilient_pipeline_line_9_except_4",
       "label": "router_resilient_pipeline_line_9_except_4",
       "generated": true
-    },
-    {
-      "id": "start_resilient_pipeline",
-      "label": "start_resilient_pipeline",
-      "role": "start",
-      "generated": true
     }
   ],
   "edges": [
-    {
-      "from": "start_resilient_pipeline",
-      "to": "risky_operation",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_7_seq_1",
-      "to": "handle_known_error",
-      "label": null,
-      "type": "prepend"
-    },
     {
       "from": "router_resilient_pipeline_line_6_except_2",
       "to": "router_resilient_pipeline_line_7_seq_1",
@@ -68,29 +36,15 @@
       "type": "set"
     },
     {
-      "from": "router_resilient_pipeline_line_10_seq_3",
-      "to": "handle_unknown_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
       "from": "router_resilient_pipeline_line_9_except_4",
       "to": "router_resilient_pipeline_line_10_seq_3",
       "label": null,
       "type": "set"
-    },
-    {
-      "from": "risky_operation",
-      "to": "router_resilient_pipeline_line_6_except_2",
-      "label": "ValueError",
-      "type": "error"
-    },
-    {
-      "from": "risky_operation",
-      "to": "router_resilient_pipeline_line_9_except_4",
-      "label": "except *",
-      "type": "error"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "node 'router_resilient_pipeline_line_6_except_2' has no incoming edges but is not an entry",
+    "node 'router_resilient_pipeline_line_9_except_4' has no incoming edges but is not an entry"
+  ]
 }

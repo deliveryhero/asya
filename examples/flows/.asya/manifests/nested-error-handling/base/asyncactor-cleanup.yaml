@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: cleanup
+  namespace: default
+  labels:
+    asya.sh/flow: nested-error-handling
+spec:
+  actor: cleanup
+  image: examples.asya.sh/cleanup:latest
+  handler: cleanup
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

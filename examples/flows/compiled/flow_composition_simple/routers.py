@@ -16,10 +16,6 @@ Regenerate by running: asya flow compile flow_composition_simple.py
 async def start_outer_pipeline(payload: dict):
     """Entrypoint for flow 'outer_pipeline'"""
     _next = []
-    _next.append(resolve("preprocess"))
-    _next.append(resolve("validate"))
-    _next.append(resolve("enrich"))
-    _next.append(resolve("store"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 

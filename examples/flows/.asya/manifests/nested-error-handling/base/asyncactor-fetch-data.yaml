@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: fetch-data
+  namespace: default
+  labels:
+    asya.sh/flow: nested-error-handling
+spec:
+  actor: fetch-data
+  image: examples.asya.sh/fetch-data:latest
+  handler: fetch_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_23_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-nested-error-handling-line-32-except-2
+    rules:
+    - errors:
+      - ConnectionError
+      policy: try_except_line_23_0

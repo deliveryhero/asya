@@ -1,0 +1,6 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-router-mutations-only-flow-line-14-seq-1.yaml
+- asyncactor-start-mutations-only-flow.yaml
+- configmap-routers.yaml

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: data-validator
+  namespace: default
+  labels:
+    asya.sh/flow: ingestion-pipeline
+spec:
+  actor: data-validator
+  image: examples.asya.sh/data-validator:latest
+  handler: data_validator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

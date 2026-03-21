@@ -44,23 +44,22 @@ def order_processing(p: dict) -> dict:
 **What happens at runtime:**
 
 ```
-                 envelope enters
-                      │
-                 ┌────▼────────────┐
-                 │ validate_order   │
+                       envelope
+                          │
+                 ┌────────▼────────┐
+                 │ validate_order  │
                  └──┬───────────┬──┘
               OK    │           │  ValueError
                     │           │
-                    │    ┌──────▼──────────┐
-                    │    │  except_router   │
-                    │    │  SET route.next= │
-                    │    │  [seq, ...]      │
-                    │    └──────┬──────────┘
+                    │    ┌──────▼─────────────────────┐
+                    │    │      *except_router*       │
+                    │    │  SET route.next=[seq, ...] │
+                    │    └──────┬─────────────────────┘
                     │           │
-                    │    ┌──────▼──────────────┐
+                    │    ┌──────▼───────────────┐
+                    │    │  *notify_rejection*  │
                     │    │ p["status"]="invalid"│
-                    │    │ notify_rejection     │
-                    │    └──────┬──────────────┘
+                    │    └──────┬───────────────┘
                     │           │
                     └─────┬─────┘
                           │

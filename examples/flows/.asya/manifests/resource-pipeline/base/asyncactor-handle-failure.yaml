@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: handle-failure
+  namespace: default
+  labels:
+    asya.sh/flow: resource-pipeline
+spec:
+  actor: handle-failure
+  image: examples.asya.sh/handle-failure:latest
+  handler: handle_failure
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

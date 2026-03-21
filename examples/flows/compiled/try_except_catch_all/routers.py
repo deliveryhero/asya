@@ -16,7 +16,6 @@ Regenerate by running: asya flow compile try_except_catch_all.py
 async def start_resilient_pipeline(payload: dict):
     """Entrypoint for flow 'resilient_pipeline'"""
     _next = []
-    _next.append(resolve("risky_operation"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -25,7 +24,6 @@ async def router_resilient_pipeline_line_7_seq_1(payload: dict):
     p = payload
     _next = []
     p['error_type'] = 'known'
-    _next.append(resolve("handle_known_error"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -40,7 +38,6 @@ async def router_resilient_pipeline_line_10_seq_3(payload: dict):
     p = payload
     _next = []
     p['error_type'] = 'unknown'
-    _next.append(resolve("handle_unknown_error"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

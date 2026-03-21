@@ -1,0 +1,18 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-outer-pipeline
+  namespace: default
+  labels:
+    asya.sh/flow: outer-pipeline
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-outer-pipeline
+  image: python:3.13-slim
+  handler: routers.start_outer_pipeline
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env: []

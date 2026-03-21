@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-handle-runtime-error.yaml
+- asyncactor-handle-type-error.yaml
+- asyncactor-handle-validation-error.yaml
+- asyncactor-parse-input.yaml
+- asyncactor-router-data-pipeline-line-10-except-4.yaml
+- asyncactor-router-data-pipeline-line-11-seq-3.yaml
+- asyncactor-router-data-pipeline-line-13-except-6.yaml
+- asyncactor-router-data-pipeline-line-14-seq-5.yaml
+- asyncactor-router-data-pipeline-line-7-except-2.yaml
+- asyncactor-router-data-pipeline-line-8-seq-1.yaml
+- asyncactor-start-data-pipeline.yaml
+- asyncactor-transform-data.yaml
+- configmap-routers.yaml

@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: store-results
+  namespace: default
+  labels:
+    asya.sh/flow: nested-error-handling
+    asya.sh/role: end
+spec:
+  actor: store-results
+  image: examples.asya.sh/store-results:latest
+  handler: store_results
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

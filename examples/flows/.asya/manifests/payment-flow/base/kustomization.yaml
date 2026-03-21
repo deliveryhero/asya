@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-audit-log.yaml
+- asyncactor-charge-card.yaml
+- asyncactor-notify-payment-failure.yaml
+- asyncactor-process-bank-transfer.yaml
+- asyncactor-record-transaction.yaml
+- asyncactor-router-payment-flow-line-16-if-3.yaml
+- asyncactor-router-payment-flow-line-21-except-2.yaml
+- asyncactor-router-payment-flow-line-22-seq-1.yaml
+- asyncactor-send-receipt.yaml
+- asyncactor-start-payment-flow.yaml
+- asyncactor-validate-payment.yaml
+- configmap-routers.yaml

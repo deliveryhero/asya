@@ -1,0 +1,24 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-order-processing
+  namespace: default
+  labels:
+    asya.sh/flow: order-processing
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-order-processing
+  image: python:3.13-slim
+  handler: routers.start_order_processing
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_NOTIFY_REJECTION
+    value: notify_rejection
+  - name: ASYA_HANDLER_ROUTER_ORDER_PROCESSING_LINE_7_SEQ_1
+    value: routers.router_order_processing_line_7_seq_1
+  - name: ASYA_HANDLER_VALIDATE_ORDER
+    value: validate_order

@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-resilient-pipeline-line-6-except-2
+  namespace: default
+  labels:
+    asya.sh/flow: resilient-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-resilient-pipeline-line-6-except-2
+  image: python:3.13-slim
+  handler: routers.router_resilient_pipeline_line_6_except_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_10_SEQ_3
+    value: routers.router_resilient_pipeline_line_10_seq_3
+  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_7_SEQ_1
+    value: routers.router_resilient_pipeline_line_7_seq_1
