@@ -367,8 +367,8 @@ Each overlay builds on top of `common/`.
         if not self.codegen_meta.actor_retry_rules:
             return
 
-        # Look up rules by Python name (handler name without module prefix)
-        actor_python_name = actor.handler.split(".")[-1] if "." in actor.handler else actor.handler
+        # Reverse K8s name to Python name (the key used in actor_retry_rules)
+        actor_python_name = actor.name.replace("-", "_")
         rules = self.codegen_meta.actor_retry_rules.get(actor_python_name, [])
         if not rules:
             return

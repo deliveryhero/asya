@@ -576,7 +576,7 @@ class CodeGenerator:
         after_try = finally_chain + rest_chain
 
         # Generate one except_router per handler
-        for handler in op.handlers:
+        for handler_idx, handler in enumerate(op.handlers):
             handler_inner = self._process_ops(handler.body, loop_ctx, continuation)
             handler_terminal = self._is_terminal(handler.body)
 
@@ -588,10 +588,8 @@ class CodeGenerator:
             router_name = self._router_name("except", handler.lineno)
             self._emit_except_router(router_name, handler_chain)
 
-            # Build policy name from error types
             if handler.error_types is not None:
-                suffix = "_".join(t.replace(".", "_").lower()[:10] for t in handler.error_types)
-                policy_name = f"try_except_line_{op.lineno}_{suffix}"
+                policy_name = f"try_except_line_{op.lineno}_{handler_idx}"
             else:
                 policy_name = f"try_except_line_{op.lineno}_default"
 
@@ -635,7 +633,7 @@ class CodeGenerator:
         lines.append('    """Router for error handling (except clause)"""')
 
         if handler_chain:
-            resolved = ", ".join(f'resolve("{a}")' for a in handler_chain)
+            resolved = ", ".join(f"resolve({a!r})" for a in handler_chain)
             self._all_handlers.update(handler_chain)
             lines.append(f'    yield "SET", ".route.next", [{resolved}]')
         else:
