@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: finalize
+  namespace: default
+  labels:
+    asya.sh/flow: resource-pipeline
+    asya.sh/role: end
+spec:
+  actor: finalize
+  image: examples.asya.sh/finalize:latest
+  handler: finalize
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

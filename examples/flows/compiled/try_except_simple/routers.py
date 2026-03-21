@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile try_except_simple.py
 async def start_order_processing(payload: dict):
     """Entrypoint for flow 'order_processing'"""
     _next = []
-    _next.append(resolve("router_order_processing_line_4_try_enter_0"))
+    _next.append(resolve("validate_order"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_7_seq(payload: dict):
+async def router_order_processing_line_9_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -30,52 +30,9 @@ async def router_order_processing_line_7_seq(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_4_try_enter_0(payload: dict):
-    """Try-enter router: sets _on_error header and inserts try body"""
-    _next = []
-    yield "SET", ".headers._on_error", resolve("router_order_processing_line_4_except_dispatch_0")
-    _next.append(resolve("validate_order"))
-    _next.append(resolve("router_order_processing_line_4_try_exit_0"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_order_processing_line_4_try_exit_0(payload: dict):
-    """Try-exit router: clears _on_error header (success path)"""
-    _next = []
-    headers = yield "GET", ".headers"
-    if "_on_error" in headers:
-        yield "DEL", ".headers._on_error"
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_order_processing_line_4_except_dispatch_0(payload: dict):
-    """Except-dispatch router: matches error type and routes to handler"""
-    p = payload
-    _next = []
-    _error_type = yield "GET", ".status.error.type"
-    _error_mro = yield "GET", ".status.error.mro"
-    _all_types = [_error_type] + _error_mro
-
-    if "ValueError" in _all_types:
-        yield "DEL", ".status.error"
-        _next.append(resolve("router_order_processing_line_7_seq"))
-    else:
-        _next.append(resolve("router_order_processing_line_4_reraise_0"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_order_processing_line_4_reraise_0(payload: dict):
-    """Reraise router: raises RuntimeError for unhandled exceptions"""
-    _error_type = yield "GET", ".status.error.type"
-    _error_msg = yield "GET", ".status.error.message"
-    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
-
-async def end_order_processing(payload: dict):
-    """Exitpoint for flow 'order_processing'"""
-    yield "SET", ".route.next", []
+async def router_order_processing_line_8_except_2(payload: dict):
+    """Router for error handling (except clause)"""
+    yield "SET", ".route.next", [resolve('router_order_processing_line_9_seq_1')]
     yield payload
 
 

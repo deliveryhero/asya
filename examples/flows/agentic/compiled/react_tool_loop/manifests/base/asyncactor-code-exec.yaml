@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: code-exec
+  namespace: default
+  labels:
+    asya.sh/flow: react-tool-loop
+spec:
+  actor: code-exec
+  image: examples.asya.sh/code-exec:latest
+  handler: code_exec
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

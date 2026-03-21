@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-router-while-break-continue-flow-line-13-seq-4.yaml
+- asyncactor-router-while-break-continue-flow-line-14-while-1.yaml
+- asyncactor-router-while-break-continue-flow-line-17-if-3.yaml
+- asyncactor-router-while-break-continue-flow-line-20-if-2.yaml
+- asyncactor-start-while-break-continue-flow.yaml
+- configmap-routers.yaml

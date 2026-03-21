@@ -42,7 +42,9 @@ Payload contract:
 """
 
 import os
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
+
 
 # static deployment-time configuration can be passed via env vars:
 SCORE_THRESHOLD = int(os.getenv("SCORE_THRESHOLD", 85))
@@ -50,8 +52,6 @@ MAX_ITERATIONS = int(os.getenv("MAX_ITERATIONS", 5))
 
 
 @flow
-
-
 async def evaluator_optimizer(state: dict) -> dict:
     state["iteration"] = 0
 
@@ -83,6 +83,7 @@ async def evaluator_optimizer(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def generator(state: dict) -> dict:
     """LLM actor: generate or revise content.
 
@@ -97,13 +98,18 @@ async def generator(state: dict) -> dict:
     feedback = state.get("feedback")
 
     if not feedback:
-        state["draft"] = f"Initial draft for task: {task}. This is a preliminary version with basic coverage but lacking detail and polish."
+        state["draft"] = (
+            f"Initial draft for task: {task}. This is a preliminary version with basic coverage but lacking detail and polish."
+        )
     else:
-        state["draft"] = f"Revised draft for task: {task}. Improvements based on feedback: {feedback}. Now includes more detail, better structure, and clearer arguments."
+        state["draft"] = (
+            f"Revised draft for task: {task}. Improvements based on feedback: {feedback}. Now includes more detail, better structure, and clearer arguments."
+        )
 
     return state
 
 
+@actor
 async def evaluator(state: dict) -> dict:
     """LLM actor: score and critique the draft.
 
@@ -121,17 +127,24 @@ async def evaluator(state: dict) -> dict:
 
     if iteration == 1:
         state["score"] = 55
-        state["feedback"] = "Draft lacks sufficient detail and supporting evidence. Structure needs improvement. Arguments are not well-developed."
+        state["feedback"] = (
+            "Draft lacks sufficient detail and supporting evidence. Structure needs improvement. Arguments are not well-developed."
+        )
     elif iteration == 2:
         state["score"] = 72
-        state["feedback"] = "Much better structure and detail. Could still use stronger transitions and more concrete examples in the conclusion."
+        state["feedback"] = (
+            "Much better structure and detail. Could still use stronger transitions and more concrete examples in the conclusion."
+        )
     else:
         state["score"] = 90
-        state["feedback"] = "Excellent quality. Well-structured, detailed, and persuasive. Minor polish could improve flow."
+        state["feedback"] = (
+            "Excellent quality. Well-structured, detailed, and persuasive. Minor polish could improve flow."
+        )
 
     return state
 
 
+@actor
 async def polisher(state: dict) -> dict:
     """Actor: final formatting and cleanup.
 
@@ -139,5 +152,7 @@ async def polisher(state: dict) -> dict:
     formatting, citation, and style adjustments. Sets state["final_output"].
     """
     draft = state["draft"]
-    state["final_output"] = f"[POLISHED] {draft} [Formatted with proper citations, consistent style, and professional presentation]"
+    state["final_output"] = (
+        f"[POLISHED] {draft} [Formatted with proper citations, consistent style, and professional presentation]"
+    )
     return state

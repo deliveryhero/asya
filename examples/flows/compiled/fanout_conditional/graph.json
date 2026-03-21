@@ -2,39 +2,26 @@
   "flow_name": "adaptive_flow",
   "nodes": [
     {
-      "id": "classifier",
-      "label": "classifier"
-    },
-    {
       "id": "deep_analyzer",
       "label": "deep_analyzer"
     },
     {
-      "id": "fanin_adaptive_flow_line_17",
-      "label": "fanin_adaptive_flow_line_17"
+      "id": "fanin_adaptive_flow_line_16",
+      "label": "fanin_adaptive_flow_line_16"
     },
     {
       "id": "fast_analyzer",
       "label": "fast_analyzer"
     },
     {
-      "id": "formatter",
-      "label": "formatter",
-      "role": "end"
-    },
-    {
-      "id": "router_adaptive_flow_line_16_if_2",
-      "label": "router_adaptive_flow_line_16_if_2",
+      "id": "router_adaptive_flow_line_15_if_2",
+      "label": "router_adaptive_flow_line_15_if_2",
       "generated": true
     },
     {
-      "id": "router_adaptive_flow_line_17_fanout_1",
-      "label": "router_adaptive_flow_line_17_fanout_1",
+      "id": "router_adaptive_flow_line_16_fanout_1",
+      "label": "router_adaptive_flow_line_16_fanout_1",
       "generated": true
-    },
-    {
-      "id": "sequential_analyzer",
-      "label": "sequential_analyzer"
     },
     {
       "id": "start_adaptive_flow",
@@ -46,74 +33,50 @@
   "edges": [
     {
       "from": "start_adaptive_flow",
-      "to": "classifier",
+      "to": "router_adaptive_flow_line_15_if_2",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "classifier",
-      "to": "router_adaptive_flow_line_16_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_adaptive_flow_line_17_fanout_1",
-      "to": "fanin_adaptive_flow_line_17",
+      "from": "router_adaptive_flow_line_16_fanout_1",
+      "to": "fanin_adaptive_flow_line_16",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "router_adaptive_flow_line_17_fanout_1",
+      "from": "router_adaptive_flow_line_16_fanout_1",
       "to": "fast_analyzer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "fast_analyzer",
-      "to": "fanin_adaptive_flow_line_17",
+      "to": "fanin_adaptive_flow_line_16",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_17_fanout_1",
+      "from": "router_adaptive_flow_line_16_fanout_1",
       "to": "deep_analyzer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "deep_analyzer",
-      "to": "fanin_adaptive_flow_line_17",
+      "to": "fanin_adaptive_flow_line_16",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_16_if_2",
-      "to": "router_adaptive_flow_line_17_fanout_1",
+      "from": "router_adaptive_flow_line_15_if_2",
+      "to": "router_adaptive_flow_line_16_fanout_1",
       "label": "p['parallel']",
       "type": "prepend"
     },
     {
-      "from": "router_adaptive_flow_line_17_fanout_1",
-      "to": "formatter",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_adaptive_flow_line_16_if_2",
-      "to": "sequential_analyzer",
+      "from": "router_adaptive_flow_line_15_if_2",
+      "to": "router_adaptive_flow_line_16_fanout_1",
       "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "sequential_analyzer",
-      "to": "formatter",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "fanin_adaptive_flow_line_17",
-      "to": "formatter",
-      "label": null,
       "type": "continuation"
     }
   ],

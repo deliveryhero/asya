@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: enricher
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-callsite-flow
+    asya.sh/role: end
+spec:
+  actor: enricher
+  image: examples.asya.sh/enricher:latest
+  handler: enricher
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

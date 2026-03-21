@@ -6,7 +6,7 @@ on the tool name returned by the LLM. Demonstrates conditional
 tool routing inside a ReAct loop.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

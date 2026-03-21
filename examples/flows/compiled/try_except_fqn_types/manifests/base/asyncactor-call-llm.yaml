@@ -1,0 +1,33 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: call-llm
+  namespace: default
+  labels:
+    asya.sh/flow: llm-pipeline
+spec:
+  actor: call-llm
+  image: examples.asya.sh/call-llm:latest
+  handler: call_llm
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_14_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-llm-pipeline-line-16-except-2
+      try_except_line_14_1:
+        maxAttempts: 1
+        thenRoute:
+        - router-llm-pipeline-line-19-except-4
+    rules:
+    - errors:
+      - openai.RateLimitError
+      policy: try_except_line_14_0
+    - errors:
+      - openai.AuthenticationError
+      policy: try_except_line_14_1

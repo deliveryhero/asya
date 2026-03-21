@@ -1,34 +1,14 @@
-digraph "try_except_retry_loop" {
+digraph "retry_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
     { rank=source; start_retry_pipeline; }
 
-    call_another_api [label="call_another_api", fillcolor=lightblue];
-    call_external_api [label="call_external_api", fillcolor=lightblue];
-    log_retry [label="log_retry", fillcolor=lightblue];
-    prepare_request [label="prepare_request", fillcolor=lightblue];
-    router_retry_pipeline_line_16_while_0 [label="router_retry_pipeline_line_16_while_0", fillcolor=wheat];
-    router_retry_pipeline_line_17_seq [label="router_retry_pipeline_line_17_seq\n\np['attempt'] += 1", fillcolor=wheat];
-    router_retry_pipeline_line_18_except_dispatch_0 [label="router_retry_pipeline_line_18_except_dispatch_0", fillcolor=wheat];
-    router_retry_pipeline_line_18_reraise_0 [label="router_retry_pipeline_line_18_reraise_0", fillcolor=wheat];
-    router_retry_pipeline_line_18_try_enter_0 [label="router_retry_pipeline_line_18_try_enter_0", fillcolor=wheat];
-    router_retry_pipeline_line_18_try_exit_0 [label="router_retry_pipeline_line_18_try_exit_0", fillcolor=wheat];
+    router_retry_pipeline_line_15_while_1 [label="router_retry_pipeline_line_15_while_1", fillcolor=wheat];
+    router_retry_pipeline_line_16_seq_4 [label="router_retry_pipeline_line_16_seq_4\n\np['attempt'] += 1", fillcolor=wheat];
     start_retry_pipeline [label="start_retry_pipeline\n\np['attempt'] = 0", fillcolor=palegreen];
 
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
-    start_retry_pipeline -> prepare_request;
-    prepare_request -> router_retry_pipeline_line_16_while_0;
-    router_retry_pipeline_line_18_try_enter_0 -> call_external_api;
-    call_external_api -> call_another_api;
-    call_another_api -> router_retry_pipeline_line_18_try_exit_0;
-    router_retry_pipeline_line_18_except_dispatch_0 -> log_retry [label="'ConnectionError' in _all_types"];
-    router_retry_pipeline_line_18_except_dispatch_0 -> router_retry_pipeline_line_18_reraise_0 [label="not ('ValueError' in _all_types)"];
-    router_retry_pipeline_line_17_seq -> router_retry_pipeline_line_18_try_enter_0;
-    router_retry_pipeline_line_16_while_0 -> router_retry_pipeline_line_17_seq [label="p['attempt'] < 3"];
-    router_retry_pipeline_line_18_try_enter_0 -> router_retry_pipeline_line_16_while_0;
-    log_retry -> __end__;
-    router_retry_pipeline_line_18_reraise_0 -> __end__;
-    router_retry_pipeline_line_18_try_exit_0 -> __end__;
+    start_retry_pipeline -> router_retry_pipeline_line_15_while_1;
+    router_retry_pipeline_line_15_while_1 -> router_retry_pipeline_line_16_seq_4 [label="p['attempt'] < 3", color="#2E8B57", fontcolor="#2E8B57"];
+    router_retry_pipeline_line_16_seq_4 -> router_retry_pipeline_line_15_while_1;
 }

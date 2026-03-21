@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: generator
+  namespace: default
+  labels:
+    asya.sh/flow: evaluator-optimizer
+spec:
+  actor: generator
+  image: examples.asya.sh/generator:latest
+  handler: generator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

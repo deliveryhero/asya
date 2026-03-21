@@ -12,33 +12,85 @@ and how CPS compilation works, see
 
 ## What is the Flow DSL?
 
-The Flow DSL is a Python-based language for describing how actors are
+The Flow DSL is a restricted subset of Python for describing how actors are
 connected. You write a function that looks like ordinary sequential Python
 code. The compiler transforms it into a network of **router actors** that
 steer messages through your pipeline at runtime.
 
 ```python
-async def review_pipeline(state: dict) -> dict:
-    state = await classify(state)
+@flow
+def review_pipeline(p: dict) -> dict:
+    p = classify(p)
 
-    if state["category"] == "urgent":
-        state = await escalate(state)
+    if p["category"] == "urgent":
+        p = escalate(p)
     else:
-        state = await standard_review(state)
+        p = standard_review(p)
 
-    state = await notify(state)
-    return state
+    try:
+        p = notify(p)
+    except ConnectionError:
+        p = fallback_notify(p)
+
+    return p
 ```
 
-This compiles into four router actors that handle sequencing, branching,
-and merging. You deploy the routers alongside your handler actors
-(`classify`, `escalate`, `standard_review`, `notify`) and Asya runs the
-pipeline.
+This compiles into router actors that handle sequencing, branching, error
+routing, and merging. You deploy the routers alongside your handler actors
+and Asya runs the pipeline.
+
+### Flow DSL vs Actor handlers
+
+A flow and an actor handler both have a `dict -> dict` signature, but they
+are fundamentally different:
+
+| | Flow DSL | Actor handler |
+|---|---|---|
+| **Purpose** | Describes routing between actors | Executes business logic |
+| **Runs as** | Compiled to router actors (CPS) | Deployed as a pod with sidecar |
+| **Allowed** | Control flow only: `if`, `while`, `try/except`, `break`, `continue`, `return` | Full Python: imports, classes, I/O, yields, FLY events |
+| **Forbidden** | `yield`, `for`, free variables, imports, side effects | N/A — full Python |
+| **State** | Single `p` variable (the payload dict) | Can use `yield "GET"`, `yield "SET"`, state proxy |
+| **Errors** | `try/except` compiles to resiliency rules in manifests | Errors bubble to sidecar for policy dispatch |
+
+The Flow DSL is **pure control flow** — it describes the shape of the pipeline.
+All computation happens in actor handlers. Think of it as a wiring diagram:
+the flow says "connect A to B, branch on condition C, retry on error D";
+the actors do the actual work.
+
+### What flows support
+
+| Construct | Example | Compiles to |
+|-----------|---------|-------------|
+| Actor calls | `p = handler(p)` | Route entry in `route.next` |
+| Payload mutations | `p["key"] = "value"` | Inline code in router function |
+| Conditionals | `if p["x"]: ... else: ...` | Conditional router with branch routing |
+| While loops | `while p["n"] < 3: ...` | Loop-back router with self-reference |
+| Break / continue | `break`, `continue` | Exit / restart loop via route overwrite |
+| Early return | `return p` | Clear `route.next` → x-sink |
+| Try/except/finally | `try: ... except E: ...` | Except router + resiliency rules in manifests |
+| Raise (in except) | `raise` | Terminate flow (route to x-sink) |
+| Fan-out | `p["r"] = [a(x) for x in items]` | Fan-out router + fan-in aggregator |
+| Flow composition | `@flow` sub-functions | Inlined at compile time |
+| Context managers | `with timeout(30): ...` | Config extraction (via compiler rules) |
+
+### What flows do NOT support
+
+| Construct | Why | Alternative |
+|-----------|-----|-------------|
+| `for x in items:` | Replaced by fan-out comprehensions | `p["r"] = [actor(x) for x in items]` |
+| `yield` / `yield from` | Flows are not generators | Use yields inside actor handlers |
+| `import` / `global` | Flows are pure control flow | Put logic in actor handlers |
+| Free variables | Only `p` is allowed | Pass data via `p["key"]` |
+| `result = a(b(p))` | Nested calls | Assign sequentially: `p = b(p); p = a(p)` |
+| `except E as e:` | No exception binding | Error details in `status.error` (read via ABI) |
+| `try: ... else:` | Not supported | Use a separate `if` after the try block |
+| Side effects (`print`) | Not a control flow construct | Put in actor handlers |
 
 **There is no `AsyncFlow` CRD.** A flow is a group of `AsyncActor`
 resources linked by the `asya.sh/flow` label. The compiler sets this
-label (along with `asya.sh/flow-role` to distinguish `entrypoint`,
-`router`, and `processor` actors) on every generated manifest. Query all
+label (along with `asya.sh/role` to distinguish `start`, `end`,
+`router`, and `actor` roles) on every generated manifest. Query all
 actors in a flow with `kubectl get asya -l asya.sh/flow=<name>`. The
 actor remains the single Kubernetes primitive — flows are a labeling
 convention on top of it.
@@ -158,21 +210,31 @@ Catch and recover from actor failures:
 
 ```python
 try:
-    state = await risky_operation(state)
-    state = await another_step(state)
+    p = risky_operation(p)
+    p = another_step(p)
 except ConnectionError:
-    state["fallback"] = True
-    state = await retry_handler(state)
+    p["fallback"] = True
+    p = retry_handler(p)
 except ValueError:
-    pass            # swallow and continue
+    p = log_and_continue(p)
+finally:
+    p = cleanup(p)
 ```
 
-The compiler generates try-enter, try-exit, except-dispatch, and reraise
-routers. When an actor inside the `try` block fails, the sidecar stamps
-the error type and MRO onto `status.error`, and the except-dispatch
-router matches it against the handler clauses.
+The compiler generates one **except_router** per `except` clause and
+injects **resiliency rules** into the manifests of every actor inside
+the `try` body. When an actor fails, the sidecar matches the error type
+against the rules and routes to the correct except_router. The
+except_router overwrites `route.next` with the handler's continuation
+path (including `finally` actors).
 
-Unmatched exceptions propagate to `x-sump` (the error sink).
+Supported patterns: typed exceptions, tuple types (`except (A, B):`),
+FQN types (`except openai.RateLimitError:`), bare `except:` (catch-all),
+`raise` in except body (terminates flow), nested try/except, and
+`finally` blocks.
+
+See [usage/guide-error-handling.md](../../usage/guide-error-handling.md) for
+detailed examples and runtime flow diagrams.
 
 ### Fan-out (parallel execution)
 
@@ -193,14 +255,7 @@ The compiler generates both a fan-out and a corresponding fan-in router to handl
 
 ## What you cannot write in a flow
 
-| Feature | Why not | Alternative |
-|---|---|---|
-| `for x in items:` | `for` loops not yet supported | Use `while` with an index |
-| `result = a(b(state))` | Nested calls not allowed | Assign to state sequentially |
-| `x, y = handler(state)` | Multiple assignment targets | Use single state variable |
-| `MyClass(param=value)` | Instantiation with arguments not supported | Instantiate with `MyClass()` and rely on default `__init__` arguments. |
-| `yield` / `yield from` | Flows don't produce events | Use ABI yields inside actor handlers |
-| `import` / `global` | Flows are pure control flow | Put logic in actor handlers |
+See the full table in the [What flows do NOT support](#what-flows-do-not-support) section above.
 
 ---
 
@@ -212,16 +267,22 @@ The compiler generates both a fan-out and a corresponding fan-in router to handl
 Flow source (.py)
     │
     ▼
-  Parser ──→ validates syntax, extracts IR operations
+  Parser ──→ validates syntax, extracts operations
     │
     ▼
-  Grouper ──→ groups operations into routers, optimizes
+  CodeGen ──→ generates router Python code + retry rules
     │
     ▼
-  CodeGen ──→ generates router Python code
+  Analyzer ──→ extracts graph topology from generated code
     │
     ▼
-  routers.py + flow.dot (optional diagram)
+  GraphGen ──→ renders DOT, Mermaid, JSON visualizations
+    │
+    ▼
+  Templater ──→ stamps AsyncActor manifests (if .asya/ configured)
+    │
+    ▼
+  routers.py + graph.json + flow.dot + manifests/
 ```
 
 ### Compiler commands
@@ -249,8 +310,11 @@ asya flow validate pipeline.py
 | File | Contents |
 |---|---|
 | `routers.py` | Router functions + `resolve()` handler resolution |
+| `graph.json` | Graph topology (nodes, edges, groups) |
 | `flow.dot` | Graphviz diagram source (with `--plot`) |
-| `flow.svg` | Visual flow diagram (with `--plot`) |
+| `flow.mmd` | Mermaid flowchart (with `--plot`) |
+| `flow.png` | Rendered diagram (with `--plot`, requires graphviz) |
+| `manifests/` | AsyncActor YAML manifests (if `.asya/` configured) |
 
 ### Router naming
 
@@ -259,10 +323,12 @@ Generated routers have predictable names tied to source line numbers:
 | Name pattern | Purpose |
 |---|---|
 | `start_{flow}` | Entry point |
-| `end_{flow}` | Exit point |
-| `router_{flow}_line_{N}_if` | Conditional branch at line N |
-| `router_{flow}_line_{N}_seq` | Sequential mutations at line N |
-| `router_{flow}_line_{N}_while_0` | Loop control at line N |
+| `router_{flow}_line_{N}_if_{id}` | Conditional branch at line N |
+| `router_{flow}_line_{N}_seq_{id}` | Sequential mutations at line N |
+| `router_{flow}_line_{N}_while_{id}` | Loop control at line N |
+| `router_{flow}_line_{N}_except_{id}` | Error handler routing at line N |
+| `fanout_{flow}_line_{N}` | Fan-out dispatch |
+| `fanin_{flow}_line_{N}` | Fan-out aggregator |
 
 ---
 
@@ -596,136 +662,49 @@ The IR is a flat tree: `Condition`, `WhileLoop`, and `TryExcept` contain nested
 operation lists in their branches, but there is no separate "block" concept.
 The grouper walks this tree to produce routers.
 
-## Stage 2: Grouper (IR → Routers)
-
-**Source**: `src/asya-lab/asya_lab/flow/grouper.py`
-
-The grouper transforms the flat IR operation list into a list of `Router`
-execution units. Each router becomes a separate async function in the
-generated code.
-
-### What is a Router?
-
-A `Router` is an execution unit with:
-
-- **Mutations**: payload transformations executed inline (fused from
-  consecutive `Mutation` / `InlineCode` IR nodes)
-- **Routing decision**: conditional branch, loop-back, exception dispatch
-- **Continuation**: list of downstream actor names to visit next
-
-Key fields:
-
-```python
-Router:
-  name: str                              # e.g. "router_my_flow_line_5_if"
-  mutations: list[Mutation]              # inline payload edits
-  condition: Condition | None            # if-test (None = unconditional)
-  true_branch_actors: list[str]          # actors if condition true
-  false_branch_actors: list[str]         # actors if condition false
-  is_loop_back: bool                     # re-inserts loop body actors
-  guard_max_iter: int | None             # max iterations (while True guard)
-  is_try_enter: bool                     # sets _on_error header
-  is_try_exit: bool                      # clears _on_error on success
-  is_except_dispatch: bool               # matches error type, routes to handler
-  is_reraise: bool                       # raises for unhandled exceptions
-  is_fan_out: bool
-  fan_out_op: FanOutCall | None
-```
-
-### Grouping rules
-
-1. **Mutation fusion**: consecutive mutations are batched into the next
-   router's `mutations` list — no separate actor for mutations
-2. **Condition**: creates a conditional router; branches processed recursively
-   with convergence labels for rejoin points
-3. **WhileLoop**: `while True` creates a self-referencing loop-back router
-   with max-iterations guard; `while cond` creates a condition router with
-   self-reference in the true branch
-4. **TryExcept**: creates four routers: try-enter (set `_on_error` header),
-   try-exit (clear header on success), except-dispatch (match error type via
-   MRO), reraise (unhandled)
-5. **FanOut**: creates a fan-out router + aggregator reference
-
-### Convergence resolution
-
-Branches (if/else, try/except) must reconverge. The grouper uses placeholder
-labels (`CONVERGENCE_0`, `LOOP_EXIT_0`, etc.) during grouping, then resolves
-them to actual actor names in a final pass.
-
-### Optimization
-
-- **Start router merger**: if the first router after `start_` only has
-  mutations (no branching), merge into `start_` to save one actor hop
-
-## Stage 3: Code generator (Routers → Code)
+## Stage 2: Code generator (Operations → Code)
 
 **Source**: `src/asya-lab/asya_lab/flow/codegen.py`
 
-The code generator emits Python source from the router list. Each router
-becomes an `async def` function using the ABI yield protocol.
+The code generator walks the operation list from the parser and directly
+emits router functions. Each operation type maps to a router generation
+strategy:
 
 ### Generated router types
 
 | Router type | Generated behavior |
 |---|---|
 | Start | Apply mutations, `SET .route.next[:0]` to prepend downstream actors |
-| Conditional | `if condition:` branch, append actors to `_next` list |
-| Loop-back | Re-insert loop body actors; for `while True`: check iteration guard via `.route.prev` count |
-| Try-enter | `SET .headers._on_error` to except-dispatch router name |
-| Try-exit | Clear `_on_error` header; chain finally + continuation actors |
-| Except-dispatch | Read `.status.error.type` + `.status.error.mro`, match handlers |
-| Reraise | Raise `RuntimeError` for unhandled exceptions |
+| Seq | Batch mutations + chain actors sequentially |
+| Conditional | `if condition:` branch, append actors to `_next` list per branch |
+| Loop | Re-insert loop body actors + self-reference; exit via `SET .route.next` |
+| Except | `SET .route.next` (overwrite) to handler + finally + continuation |
 | Fan-out | Emit N+1 messages: parent + N sub-agents with `x-asya-fan-in` headers |
-| End | `SET .route.next` to `[]` (pipeline completion) |
+| Fan-in | Aggregator (hidden, generated alongside fan-out) |
+
+### Try/except compilation
+
+For `try/except` blocks, the code generator:
+
+1. Creates one **except_router** per `except` clause — each overwrites
+   `route.next` with the handler's continuation path (using SET, not prepend)
+2. Records **ActorRetryRule** for every actor in the try body — these are
+   later injected into actor manifests by the templater
+3. Includes `finally` actors in both the success path and every error path
+
+The retry rules link actors to their except_routers via the sidecar's
+`retryRules` first-match dispatch — no Python-level type matching needed.
 
 ### Handler resolution
 
 The generated `resolve()` function maps handler names from the flow source to
-actor names using `ASYA_HANDLER_*` environment variables:
-
-```
-ASYA_HANDLER_ANALYZE_SENTIMENT="handlers.analyze_sentiment"
-```
-
-Resolution uses suffix matching — any unambiguous suffix works:
-
-```python
-resolve("analyze_sentiment")              # shortest suffix
-resolve("handlers.analyze_sentiment")     # full path
-```
-
-Ambiguous matches raise an error listing candidates.
+actor names using `ASYA_HANDLER_*` environment variables. Resolution uses
+suffix matching — any unambiguous suffix works.
 
 ### Single-actor flows
 
 When a flow has exactly one actor call and no branching, the code generator
-emits a `FLOW_METADATA` constant instead of router functions:
-
-```python
-FLOW_METADATA = {
-    "flow_name": "my_flow",
-    "type": "single-actor",
-    "actor": "handler_name",
-    "labels": {"asya.sh/flow": "my_flow", "asya.sh/role": "start"},
-}
-```
-
-### Router naming convention
-
-| Pattern | Purpose |
-|---|---|
-| `start_{flow}` | Entry point |
-| `end_{flow}` | Exit point |
-| `router_{flow}_line_{N}_if` | Conditional at line N |
-| `router_{flow}_line_{N}_seq` | Sequential mutations at line N |
-| `router_{flow}_line_{N}_while_{id}` | Loop condition check |
-| `router_{flow}_line_{N}_loop_back_{id}` | Loop re-insertion |
-| `fanout_{flow}_line_{N}` | Fan-out dispatch |
-| `fanin_{flow}_line_{N}` | Fan-out aggregator |
-| `router_{flow}_line_{N}_try_enter_{id}` | Try entry |
-| `router_{flow}_line_{N}_try_exit_{id}` | Try success path |
-| `router_{flow}_line_{N}_except_dispatch_{id}` | Exception dispatch |
-| `router_{flow}_line_{N}_reraise_{id}` | Unhandled exception |
+emits a `FLOW_METADATA` constant instead of router functions.
 
 ## Future: adapter generation
 
@@ -759,3 +738,7 @@ adapter — it never touches AST nodes directly.
   exists, the router problem, CPS model, and design principles
 - [ABI Protocol Reference](abi-protocol.md) —
   yield-based metadata access used by generated routers and user handlers
+- [Error Handling in Flows](../../usage/guide-error-handling.md) —
+  try/except patterns, runtime flow diagrams, manifest examples
+- [Configuring Error Handling](../../setup/guide-error-handling.md) —
+  resiliency policies, rules, and error routing at the platform level

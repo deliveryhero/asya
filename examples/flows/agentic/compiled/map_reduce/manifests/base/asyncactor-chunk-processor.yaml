@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: chunk-processor
+  namespace: default
+  labels:
+    asya.sh/flow: map-reduce
+spec:
+  actor: chunk-processor
+  image: examples.asya.sh/chunk-processor:latest
+  handler: chunk_processor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

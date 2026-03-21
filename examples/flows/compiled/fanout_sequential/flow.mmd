@@ -1,26 +1,24 @@
 flowchart TD
     %% Flow: multi_stage_flow
 
+    fanin_multi_stage_flow_line_14[fanin_multi_stage_flow_line_14]
     fanin_multi_stage_flow_line_15[fanin_multi_stage_flow_line_15]
-    fanin_multi_stage_flow_line_16[fanin_multi_stage_flow_line_16]
     research_agent[research_agent]
     review_agent[review_agent]
-    router_multi_stage_flow_line_15_fanout_2{{router_multi_stage_flow_line_15_fanout_2}}
-    router_multi_stage_flow_line_16_fanout_1{{router_multi_stage_flow_line_16_fanout_1}}
+    router_multi_stage_flow_line_14_fanout_2{{router_multi_stage_flow_line_14_fanout_2}}
+    router_multi_stage_flow_line_15_fanout_1{{router_multi_stage_flow_line_15_fanout_1}}
     start_multi_stage_flow([start_multi_stage_flow])
-    summarizer[summarizer]
     __end__((( )))
 
-    start_multi_stage_flow --> router_multi_stage_flow_line_15_fanout_2
-    router_multi_stage_flow_line_16_fanout_1 -->|"fanout: p['research']"| fanin_multi_stage_flow_line_16
-    fanin_multi_stage_flow_line_16 --> summarizer
-    router_multi_stage_flow_line_16_fanout_1 --> review_agent
-    review_agent --> fanin_multi_stage_flow_line_16
-    router_multi_stage_flow_line_15_fanout_2 -->|"fanout: p['topics']"| fanin_multi_stage_flow_line_15
-    fanin_multi_stage_flow_line_15 --> router_multi_stage_flow_line_16_fanout_1
-    router_multi_stage_flow_line_15_fanout_2 --> research_agent
-    research_agent --> fanin_multi_stage_flow_line_15
-    summarizer --> __end__
+    start_multi_stage_flow --> router_multi_stage_flow_line_14_fanout_2
+    router_multi_stage_flow_line_15_fanout_1 -->|"fanout: p['research']"| fanin_multi_stage_flow_line_15
+    router_multi_stage_flow_line_15_fanout_1 --> review_agent
+    review_agent --> fanin_multi_stage_flow_line_15
+    router_multi_stage_flow_line_14_fanout_2 -->|"fanout: p['topics']"| fanin_multi_stage_flow_line_14
+    fanin_multi_stage_flow_line_14 --> router_multi_stage_flow_line_15_fanout_1
+    router_multi_stage_flow_line_14_fanout_2 --> research_agent
+    research_agent --> fanin_multi_stage_flow_line_14
+    fanin_multi_stage_flow_line_15 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -28,8 +26,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_multi_stage_flow start
-    class summarizer endnode
-    class router_multi_stage_flow_line_15_fanout_2,router_multi_stage_flow_line_16_fanout_1 router
-    class fanin_multi_stage_flow_line_15,fanin_multi_stage_flow_line_16,research_agent,review_agent handler
+    class router_multi_stage_flow_line_14_fanout_2,router_multi_stage_flow_line_15_fanout_1 router
+    class fanin_multi_stage_flow_line_14,fanin_multi_stage_flow_line_15,research_agent,review_agent handler
     class __end__ endpoint
-    linkStyle 1,5 stroke:#7B68EE
+    linkStyle 1,4 stroke:#7B68EE

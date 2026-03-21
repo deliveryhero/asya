@@ -45,20 +45,21 @@ each debater revises in parallel, then convergence is checked.
 """
 
 import asyncio
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def multi_agent_debate(state: dict) -> dict:
     state["round"] = 0
 
-    state["positions"] = list(await asyncio.gather(
-        debater_a(state["question"]),
-        debater_b(state["question"]),
-        debater_c(state["question"]),
-    ))
+    state["positions"] = list(
+        await asyncio.gather(
+            debater_a(state["question"]),
+            debater_b(state["question"]),
+            debater_c(state["question"]),
+        )
+    )
 
     while True:
         state["round"] += 1
@@ -71,11 +72,13 @@ async def multi_agent_debate(state: dict) -> dict:
         if state["round"] >= 3:
             break
 
-        state["positions"] = list(await asyncio.gather(
-            revise_a(state),
-            revise_b(state),
-            revise_c(state),
-        ))
+        state["positions"] = list(
+            await asyncio.gather(
+                revise_a(state),
+                revise_b(state),
+                revise_c(state),
+            )
+        )
 
     state = await final_judge(state)
     return state
@@ -87,6 +90,7 @@ async def multi_agent_debate(state: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 async def debater_a(question: dict) -> dict:
     """LLM actor: generate initial position on the question.
 
@@ -100,6 +104,7 @@ async def debater_a(question: dict) -> dict:
     ...  # LLM call: generate independent position on the question
 
 
+@actor
 async def debater_b(question: dict) -> dict:
     """LLM actor: generate initial position (different perspective).
 
@@ -109,6 +114,7 @@ async def debater_b(question: dict) -> dict:
     ...  # LLM call: generate independent position (different config)
 
 
+@actor
 async def debater_c(question: dict) -> dict:
     """LLM actor: generate initial position (third perspective).
 
@@ -117,6 +123,7 @@ async def debater_c(question: dict) -> dict:
     ...  # LLM call: generate independent position (third config)
 
 
+@actor
 async def convergence_checker(state: dict) -> dict:
     """LLM/logic actor: check if debaters have reached consensus.
 
@@ -133,6 +140,7 @@ async def convergence_checker(state: dict) -> dict:
     ...  # LLM/logic: compare positions, determine if converged
 
 
+@actor
 async def revise_a(state: dict) -> dict:
     """LLM actor: debater A revises position seeing all positions.
 
@@ -145,6 +153,7 @@ async def revise_a(state: dict) -> dict:
     ...  # LLM call: revise own position given all other positions
 
 
+@actor
 async def revise_b(state: dict) -> dict:
     """LLM actor: debater B revises position seeing all positions.
 
@@ -154,6 +163,7 @@ async def revise_b(state: dict) -> dict:
     ...  # LLM call: revise own position given all other positions
 
 
+@actor
 async def revise_c(state: dict) -> dict:
     """LLM actor: debater C revises position seeing all positions.
 
@@ -163,6 +173,7 @@ async def revise_c(state: dict) -> dict:
     ...  # LLM call: revise own position given all other positions
 
 
+@actor
 async def final_judge(state: dict) -> dict:
     """LLM actor: select or synthesize the final answer.
 

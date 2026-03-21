@@ -5,15 +5,13 @@ digraph "agent_with_tools" {
     { rank=source; start_agent_with_tools; }
 
     execute_tool [label="execute_tool", fillcolor=lightblue];
-    llm_call [label="llm_call", fillcolor=lightblue];
     router_agent_with_tools_line_17_while_1 [label="router_agent_with_tools_line_17_while_1", fillcolor=wheat];
     router_agent_with_tools_line_19_if_2 [label="router_agent_with_tools_line_19_if_2", fillcolor=wheat];
     start_agent_with_tools [label="start_agent_with_tools\n\np['messages'] = p.get('messages', [])", fillcolor=palegreen];
 
     start_agent_with_tools -> router_agent_with_tools_line_17_while_1;
     router_agent_with_tools_line_19_if_2 -> execute_tool [label="p.get('tool_calls')", color="#2E8B57", fontcolor="#2E8B57"];
-    router_agent_with_tools_line_17_while_1 -> llm_call;
-    llm_call -> router_agent_with_tools_line_19_if_2;
+    router_agent_with_tools_line_17_while_1 -> router_agent_with_tools_line_19_if_2;
     execute_tool -> router_agent_with_tools_line_17_while_1;
     router_agent_with_tools_line_19_if_2 -> router_agent_with_tools_line_17_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
 }

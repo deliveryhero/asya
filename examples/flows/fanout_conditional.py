@@ -4,12 +4,11 @@ Fan-out inside conditional - choose strategy based on payload.
 When parallel mode is enabled, process items via fan-out.
 Otherwise, fall back to a sequential handler.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def adaptive_flow(p: dict) -> dict:
     p = classifier(p)
 

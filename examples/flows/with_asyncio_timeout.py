@@ -8,12 +8,11 @@ applies to the entire scope (ocr_extractor + language_detector combined), not
 Compile with:
     asya flow compile with_asyncio_timeout.py --output-dir compiled/
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 async def document_pipeline(p: dict) -> dict:
     p["status"] = "processing"
 

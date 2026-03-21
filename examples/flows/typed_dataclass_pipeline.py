@@ -19,9 +19,9 @@ Payload contract:
   p["result"]         - FormattedResult with final output (set by formatter)
 """
 
-from dataclasses import dataclass, field
-from typing import List
-from asya_lab.flow import flow
+from dataclasses import dataclass
+
+from _asya_utils import actor, flow
 
 
 # ---------------------------------------------------------------------------
@@ -55,7 +55,7 @@ class EnrichedData:
 @dataclass
 class FormattedResult:
     summary: str
-    entities: List[EntitySpan]
+    entities: list[EntitySpan]
     classification: ClassificationResult
     enriched: EnrichedData
 
@@ -66,8 +66,6 @@ class FormattedResult:
 
 
 @flow
-
-
 def typed_dataclass_pipeline(p: dict) -> dict:
     p = extractor(p)
     p = classifier(p)
@@ -81,6 +79,7 @@ def typed_dataclass_pipeline(p: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 def extractor(p: dict) -> dict:
     """NER actor: extract entity spans from input text.
 
@@ -105,6 +104,7 @@ def extractor(p: dict) -> dict:
     return p
 
 
+@actor
 def classifier(p: dict) -> dict:
     """Classification actor: categorize the input text.
 
@@ -133,6 +133,7 @@ def classifier(p: dict) -> dict:
     return p
 
 
+@actor
 def enricher(p: dict) -> dict:
     """Enrichment actor: add metadata derived from prior results.
 
@@ -158,6 +159,7 @@ def enricher(p: dict) -> dict:
     return p
 
 
+@actor
 def formatter(p: dict) -> dict:
     """Formatting actor: produce the final structured result.
 

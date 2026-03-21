@@ -3,12 +3,11 @@ Complex combined flow.
 
 Tests combination of all patterns: if/elif/else + while + break/continue.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def complex_combined_flow(p: dict) -> dict:
     p = handler_init(p)
 

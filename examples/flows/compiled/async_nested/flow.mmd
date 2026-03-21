@@ -1,21 +1,12 @@
 flowchart TD
     %% Flow: review_pipeline_flow
 
-    auto_approve[auto_approve]
-    detailed_review[detailed_review]
-    human_review[human_review]
-    initial_review[initial_review]
-    router_review_pipeline_flow_line_17_if_1{{router_review_pipeline_flow_line_17_if_1}}
+    router_review_pipeline_flow_line_16_if_1{{router_review_pipeline_flow_line_16_if_1}}
     start_review_pipeline_flow([start_review_pipeline_flow])
     __end__((( )))
 
-    start_review_pipeline_flow --> initial_review
-    initial_review --> router_review_pipeline_flow_line_17_if_1
-    router_review_pipeline_flow_line_17_if_1 -->|"p['score'] < 0.5"| detailed_review
-    detailed_review --> human_review
-    router_review_pipeline_flow_line_17_if_1 -->|"else"| auto_approve
-    auto_approve --> __end__
-    human_review --> __end__
+    start_review_pipeline_flow --> router_review_pipeline_flow_line_16_if_1
+    router_review_pipeline_flow_line_16_if_1 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -23,9 +14,5 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_review_pipeline_flow start
-    class auto_approve,human_review endnode
-    class router_review_pipeline_flow_line_17_if_1 router
-    class detailed_review,initial_review handler
+    class router_review_pipeline_flow_line_16_if_1 router
     class __end__ endpoint
-    linkStyle 2 stroke:#2E8B57
-    linkStyle 4 stroke:#E07040

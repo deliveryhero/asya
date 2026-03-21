@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-fact-checker.yaml
+- asyncactor-generator.yaml
+- asyncactor-query-analyzer.yaml
+- asyncactor-query-refiner.yaml
+- asyncactor-relevance-evaluator.yaml
+- asyncactor-retriever.yaml
+- asyncactor-router-rag-pipeline-line-49-seq-5.yaml
+- asyncactor-router-rag-pipeline-line-55-while-1.yaml
+- asyncactor-router-rag-pipeline-line-56-seq-4.yaml
+- asyncactor-router-rag-pipeline-line-65-if-3.yaml
+- asyncactor-router-rag-pipeline-line-69-if-2.yaml
+- asyncactor-start-rag-pipeline.yaml
+- configmap-routers.yaml

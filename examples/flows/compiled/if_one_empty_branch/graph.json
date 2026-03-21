@@ -2,21 +2,8 @@
   "flow_name": "if_empty_branches_flow",
   "nodes": [
     {
-      "id": "handler_finalize",
-      "label": "handler_finalize",
-      "role": "end"
-    },
-    {
-      "id": "handler_process",
-      "label": "handler_process"
-    },
-    {
-      "id": "handler_setup",
-      "label": "handler_setup"
-    },
-    {
-      "id": "router_if_empty_branches_flow_line_14_if_1",
-      "label": "router_if_empty_branches_flow_line_14_if_1",
+      "id": "router_if_empty_branches_flow_line_13_if_1",
+      "label": "router_if_empty_branches_flow_line_13_if_1",
       "generated": true
     },
     {
@@ -29,33 +16,9 @@
   "edges": [
     {
       "from": "start_if_empty_branches_flow",
-      "to": "handler_setup",
+      "to": "router_if_empty_branches_flow_line_13_if_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "handler_setup",
-      "to": "router_if_empty_branches_flow_line_14_if_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_if_empty_branches_flow_line_14_if_1",
-      "to": "handler_finalize",
-      "label": "p['skip_processing']",
-      "type": "prepend"
-    },
-    {
-      "from": "router_if_empty_branches_flow_line_14_if_1",
-      "to": "handler_process",
-      "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "handler_process",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

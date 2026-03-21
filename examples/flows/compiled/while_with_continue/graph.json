@@ -2,27 +2,6 @@
   "flow_name": "while_with_continue_flow",
   "nodes": [
     {
-      "id": "handler_finalize",
-      "label": "handler_finalize",
-      "role": "end"
-    },
-    {
-      "id": "handler_init",
-      "label": "handler_init"
-    },
-    {
-      "id": "handler_process",
-      "label": "handler_process"
-    },
-    {
-      "id": "router_while_with_continue_flow_line_13_seq_3",
-      "label": "router_while_with_continue_flow_line_13_seq_3",
-      "generated": true,
-      "mutations": [
-        "p['i'] = 0"
-      ]
-    },
-    {
       "id": "router_while_with_continue_flow_line_14_while_1",
       "label": "router_while_with_continue_flow_line_14_while_1",
       "generated": true
@@ -39,32 +18,23 @@
       "id": "start_while_with_continue_flow",
       "label": "start_while_with_continue_flow",
       "role": "start",
-      "generated": true
+      "generated": true,
+      "mutations": [
+        "p['i'] = 0"
+      ]
     }
   ],
   "edges": [
     {
       "from": "start_while_with_continue_flow",
-      "to": "handler_init",
+      "to": "router_while_with_continue_flow_line_14_while_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "handler_init",
-      "to": "router_while_with_continue_flow_line_13_seq_3",
-      "label": null,
-      "type": "continuation"
     },
     {
       "from": "router_while_with_continue_flow_line_16_if_2",
       "to": "router_while_with_continue_flow_line_14_while_1",
       "label": "p['skip_iteration']",
-      "type": "prepend"
-    },
-    {
-      "from": "router_while_with_continue_flow_line_16_if_2",
-      "to": "handler_process",
-      "label": "else",
       "type": "prepend"
     },
     {
@@ -74,21 +44,9 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_with_continue_flow_line_14_while_1",
-      "to": "handler_finalize",
+      "from": "router_while_with_continue_flow_line_16_if_2",
+      "to": "router_while_with_continue_flow_line_14_while_1",
       "label": "else",
-      "type": "set"
-    },
-    {
-      "from": "router_while_with_continue_flow_line_13_seq_3",
-      "to": "router_while_with_continue_flow_line_14_while_1",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "handler_process",
-      "to": "router_while_with_continue_flow_line_14_while_1",
-      "label": null,
       "type": "continuation"
     }
   ],

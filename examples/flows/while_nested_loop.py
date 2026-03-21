@@ -3,12 +3,11 @@ Loop processing flow example.
 
 Demonstrates while loops with break and continue statements.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def nested_loop_flow(p: dict) -> dict:
     p = initialize(p)
 
@@ -26,6 +25,7 @@ def nested_loop_flow(p: dict) -> dict:
 
 def process_item(p: dict) -> dict:
     return p
+
 
 def finalize_loop_j(p: dict) -> dict:
     """Initialize processing state."""

@@ -1,0 +1,20 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-review-pipeline-flow
+  namespace: default
+  labels:
+    asya.sh/flow: review-pipeline-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-review-pipeline-flow
+  image: python:3.13-slim
+  handler: routers.start_review_pipeline_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_REVIEW_PIPELINE_FLOW_LINE_16_IF_1
+    value: routers.router_review_pipeline_flow_line_16_if_1

@@ -2,21 +2,13 @@
   "flow_name": "react_agent",
   "nodes": [
     {
-      "id": "execute_tool",
-      "label": "execute_tool"
-    },
-    {
-      "id": "llm_call",
-      "label": "llm_call"
-    },
-    {
-      "id": "router_react_agent_line_14_while_1",
-      "label": "router_react_agent_line_14_while_1",
+      "id": "router_react_agent_line_13_while_1",
+      "label": "router_react_agent_line_13_while_1",
       "generated": true
     },
     {
-      "id": "router_react_agent_line_16_if_2",
-      "label": "router_react_agent_line_16_if_2",
+      "id": "router_react_agent_line_15_if_2",
+      "label": "router_react_agent_line_15_if_2",
       "generated": true
     },
     {
@@ -29,38 +21,20 @@
   "edges": [
     {
       "from": "start_react_agent",
-      "to": "router_react_agent_line_14_while_1",
+      "to": "router_react_agent_line_13_while_1",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_react_agent_line_16_if_2",
-      "to": "execute_tool",
-      "label": "p.get('tool_calls')",
-      "type": "prepend"
-    },
-    {
-      "from": "router_react_agent_line_14_while_1",
-      "to": "llm_call",
+      "from": "router_react_agent_line_13_while_1",
+      "to": "router_react_agent_line_15_if_2",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "llm_call",
-      "to": "router_react_agent_line_16_if_2",
+      "from": "router_react_agent_line_15_if_2",
+      "to": "router_react_agent_line_13_while_1",
       "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "execute_tool",
-      "to": "router_react_agent_line_14_while_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_react_agent_line_16_if_2",
-      "to": "router_react_agent_line_14_while_1",
-      "label": "else",
       "type": "continuation"
     }
   ],

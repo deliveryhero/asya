@@ -16,11 +16,6 @@ Regenerate by running: asya flow compile flow_composition_nested.py
 async def start_compiler_pipeline(payload: dict):
     """Entrypoint for flow 'compiler_pipeline'"""
     _next = []
-    _next.append(resolve("tokenize"))
-    _next.append(resolve("parse_syntax"))
-    _next.append(resolve("analyze_semantics"))
-    _next.append(resolve("optimize"))
-    _next.append(resolve("emit_code"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 

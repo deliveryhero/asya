@@ -1,5 +1,5 @@
 {
-  "flow_name": "try_except_catch_all",
+  "flow_name": "resilient_pipeline",
   "nodes": [
     {
       "id": "handle_known_error",
@@ -16,36 +16,30 @@
       "label": "risky_operation"
     },
     {
-      "id": "router_resilient_pipeline_line_10_seq",
-      "label": "router_resilient_pipeline_line_10_seq",
+      "id": "router_resilient_pipeline_line_11_except_4",
+      "label": "router_resilient_pipeline_line_11_except_4",
+      "generated": true
+    },
+    {
+      "id": "router_resilient_pipeline_line_12_seq_3",
+      "label": "router_resilient_pipeline_line_12_seq_3",
+      "generated": true,
       "mutations": [
         "p['error_type'] = 'unknown'"
-      ],
+      ]
+    },
+    {
+      "id": "router_resilient_pipeline_line_8_except_2",
+      "label": "router_resilient_pipeline_line_8_except_2",
       "generated": true
     },
     {
-      "id": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "label": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "generated": true
-    },
-    {
-      "id": "router_resilient_pipeline_line_4_try_enter_0",
-      "label": "router_resilient_pipeline_line_4_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_resilient_pipeline_line_4_try_exit_0",
-      "label": "router_resilient_pipeline_line_4_try_exit_0",
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_resilient_pipeline_line_7_seq",
-      "label": "router_resilient_pipeline_line_7_seq",
+      "id": "router_resilient_pipeline_line_9_seq_1",
+      "label": "router_resilient_pipeline_line_9_seq_1",
+      "generated": true,
       "mutations": [
         "p['error_type'] = 'known'"
-      ],
-      "generated": true
+      ]
     },
     {
       "id": "start_resilient_pipeline",
@@ -57,54 +51,46 @@
   "edges": [
     {
       "from": "start_resilient_pipeline",
-      "to": "router_resilient_pipeline_line_4_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_7_seq",
-      "to": "handle_known_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_10_seq",
-      "to": "handle_unknown_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_4_try_enter_0",
       "to": "risky_operation",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "risky_operation",
-      "to": "router_resilient_pipeline_line_4_try_exit_0",
+      "from": "router_resilient_pipeline_line_9_seq_1",
+      "to": "handle_known_error",
       "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "to": "router_resilient_pipeline_line_7_seq",
-      "label": "'ValueError' in _all_types",
       "type": "prepend"
     },
     {
-      "from": "router_resilient_pipeline_line_4_except_dispatch_0",
-      "to": "router_resilient_pipeline_line_10_seq",
-      "label": "not ('ValueError' in _all_types)",
+      "from": "router_resilient_pipeline_line_8_except_2",
+      "to": "router_resilient_pipeline_line_9_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_resilient_pipeline_line_12_seq_3",
+      "to": "handle_unknown_error",
+      "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "router_resilient_pipeline_line_11_except_4",
+      "to": "router_resilient_pipeline_line_12_seq_3",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "risky_operation",
+      "to": "router_resilient_pipeline_line_8_except_2",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "risky_operation",
+      "to": "router_resilient_pipeline_line_11_except_4",
+      "label": "except *",
+      "type": "error"
     }
   ],
-  "groups": [],
-  "warnings": [
-    "node 'handle_known_error' is not reachable from entrypoint",
-    "node 'handle_unknown_error' is not reachable from entrypoint",
-    "node 'router_resilient_pipeline_line_10_seq' is not reachable from entrypoint",
-    "node 'router_resilient_pipeline_line_4_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_resilient_pipeline_line_7_seq' is not reachable from entrypoint",
-    "node 'router_resilient_pipeline_line_4_except_dispatch_0' has no incoming edges but is not an entrypoint"
-  ]
+  "groups": []
 }

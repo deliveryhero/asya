@@ -1,81 +1,15 @@
 {
   "flow_name": "compiler_pipeline",
-  "nodes": [
-    {
-      "id": "analyze_semantics",
-      "label": "analyze_semantics"
-    },
-    {
-      "id": "emit_code",
-      "label": "emit_code",
-      "role": "end"
-    },
-    {
-      "id": "optimize",
-      "label": "optimize"
-    },
-    {
-      "id": "parse_syntax",
-      "label": "parse_syntax"
-    },
-    {
-      "id": "start_compiler_pipeline",
-      "label": "start_compiler_pipeline",
-      "role": "start",
-      "generated": true
-    },
-    {
-      "id": "tokenize",
-      "label": "tokenize"
-    }
-  ],
-  "edges": [
-    {
-      "from": "start_compiler_pipeline",
-      "to": "tokenize",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "tokenize",
-      "to": "parse_syntax",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "parse_syntax",
-      "to": "analyze_semantics",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "analyze_semantics",
-      "to": "optimize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "optimize",
-      "to": "emit_code",
-      "label": null,
-      "type": "continuation"
-    }
-  ],
+  "nodes": [],
+  "edges": [],
   "groups": [
     {
       "id": "frontend",
-      "nodes": [
-        "tokenize",
-        "parse_syntax"
-      ]
+      "nodes": []
     },
     {
       "id": "middle",
-      "nodes": [
-        "tokenize",
-        "parse_syntax",
-        "analyze_semantics"
-      ]
+      "nodes": []
     }
   ]
 }

@@ -5,19 +5,19 @@ digraph "map_reduce" {
     { rank=source; start_map_reduce; }
 
     chunk_processor [label="chunk_processor", fillcolor=lightblue];
-    fanin_map_reduce_line_55 [label="fanin_map_reduce_line_55", fillcolor=lightblue];
+    fanin_map_reduce_line_54 [label="fanin_map_reduce_line_54", fillcolor=lightblue];
     reducer [label="reducer", fillcolor=lightsalmon];
-    router_map_reduce_line_55_fanout_1 [label="router_map_reduce_line_55_fanout_1", fillcolor=wheat];
+    router_map_reduce_line_54_fanout_1 [label="router_map_reduce_line_54_fanout_1", fillcolor=wheat];
     splitter [label="splitter", fillcolor=lightblue];
     start_map_reduce [label="start_map_reduce", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_map_reduce -> splitter;
-    splitter -> router_map_reduce_line_55_fanout_1;
-    router_map_reduce_line_55_fanout_1 -> fanin_map_reduce_line_55 [label="fanout: p['chunks']", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_map_reduce_line_55 -> reducer;
-    router_map_reduce_line_55_fanout_1 -> chunk_processor;
-    chunk_processor -> fanin_map_reduce_line_55;
+    splitter -> router_map_reduce_line_54_fanout_1;
+    router_map_reduce_line_54_fanout_1 -> fanin_map_reduce_line_54 [label="fanout: p['chunks']", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_map_reduce_line_54 -> reducer;
+    router_map_reduce_line_54_fanout_1 -> chunk_processor;
+    chunk_processor -> fanin_map_reduce_line_54;
     reducer -> __end__;
 }

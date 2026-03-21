@@ -27,7 +27,7 @@ async def router_research_agent_line_21_if_2(payload: dict):
     p = payload
     _next = []
     if p.get('tool_name') == 'code_exec':
-        _next.append(resolve("code_executor"))
+        pass
     else:
         yield p
         return
@@ -40,7 +40,7 @@ async def router_research_agent_line_19_if_3(payload: dict):
     p = payload
     _next = []
     if p.get('tool_name') == 'calculator':
-        _next.append(resolve("calculator"))
+        pass
     else:
         _next.append(resolve("router_research_agent_line_21_if_2"))
 
@@ -52,7 +52,7 @@ async def router_research_agent_line_17_if_4(payload: dict):
     p = payload
     _next = []
     if p.get('tool_name') == 'search':
-        _next.append(resolve("web_search"))
+        pass
     else:
         _next.append(resolve("router_research_agent_line_19_if_3"))
 
@@ -63,7 +63,6 @@ async def router_research_agent_line_15_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("llm_call"))
     _next.append(resolve("router_research_agent_line_17_if_4"))
     _next.append(resolve("router_research_agent_line_15_while_1"))
 

@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: handle-type-error
+  namespace: default
+  labels:
+    asya.sh/flow: data-pipeline
+    asya.sh/role: end
+spec:
+  actor: handle-type-error
+  image: examples.asya.sh/handle-type-error:latest
+  handler: handle_type_error
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

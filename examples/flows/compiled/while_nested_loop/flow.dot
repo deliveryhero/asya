@@ -4,30 +4,27 @@ digraph "nested_loop_flow" {
 
     { rank=source; start_nested_loop_flow; }
 
-    finalize_loop_i [label="finalize_loop_i", fillcolor=lightsalmon];
-    finalize_loop_j [label="finalize_loop_j", fillcolor=lightsalmon];
     initialize [label="initialize", fillcolor=lightblue];
-    process_item [label="process_item", fillcolor=lightblue];
-    router_nested_loop_flow_line_15_seq_5 [label="router_nested_loop_flow_line_15_seq_5\n\np['i'] = 0", fillcolor=wheat];
-    router_nested_loop_flow_line_16_while_1 [label="router_nested_loop_flow_line_16_while_1", fillcolor=wheat];
-    router_nested_loop_flow_line_17_seq_4 [label="router_nested_loop_flow_line_17_seq_4\n\np['i'] += 1\np['j'] = 0", fillcolor=wheat];
-    router_nested_loop_flow_line_19_while_2 [label="router_nested_loop_flow_line_19_while_2", fillcolor=wheat];
-    router_nested_loop_flow_line_20_seq_3 [label="router_nested_loop_flow_line_20_seq_3\n\np['j'] += 1", fillcolor=wheat];
+    router_nested_loop_flow_line_14_seq_7 [label="router_nested_loop_flow_line_14_seq_7\n\np['i'] = 0", fillcolor=wheat];
+    router_nested_loop_flow_line_15_while_2 [label="router_nested_loop_flow_line_15_while_2", fillcolor=wheat];
+    router_nested_loop_flow_line_16_seq_6 [label="router_nested_loop_flow_line_16_seq_6\n\np['i'] += 1\np['j'] = 0", fillcolor=wheat];
+    router_nested_loop_flow_line_18_while_4 [label="router_nested_loop_flow_line_18_while_4", fillcolor=wheat];
+    router_nested_loop_flow_line_19_seq_5 [label="router_nested_loop_flow_line_19_seq_5\n\np['j'] += 1", fillcolor=wheat];
+    router_nested_loop_flow_line_32_seq_3 [label="router_nested_loop_flow_line_32_seq_3\n\np['finalize_loop_j'] = 1", fillcolor=wheat];
+    router_nested_loop_flow_line_38_seq_1 [label="router_nested_loop_flow_line_38_seq_1\n\np['finalize_loop_i'] = 1", fillcolor=wheat];
     start_nested_loop_flow [label="start_nested_loop_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_nested_loop_flow -> initialize;
-    initialize -> router_nested_loop_flow_line_15_seq_5;
-    router_nested_loop_flow_line_20_seq_3 -> process_item;
-    router_nested_loop_flow_line_19_while_2 -> router_nested_loop_flow_line_20_seq_3 [label="p['j'] < p['max_j']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_nested_loop_flow_line_19_while_2 -> finalize_loop_j [label="else", color="#D35400", fontcolor="#D35400"];
-    router_nested_loop_flow_line_17_seq_4 -> router_nested_loop_flow_line_19_while_2;
-    router_nested_loop_flow_line_16_while_1 -> router_nested_loop_flow_line_17_seq_4 [label="p['i'] < p['max_i']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_nested_loop_flow_line_16_while_1 -> finalize_loop_i [label="else", color="#D35400", fontcolor="#D35400"];
-    router_nested_loop_flow_line_15_seq_5 -> router_nested_loop_flow_line_16_while_1;
-    process_item -> router_nested_loop_flow_line_19_while_2;
-    router_nested_loop_flow_line_20_seq_3 -> router_nested_loop_flow_line_16_while_1;
-    finalize_loop_i -> __end__;
-    finalize_loop_j -> __end__;
+    initialize -> router_nested_loop_flow_line_14_seq_7;
+    router_nested_loop_flow_line_18_while_4 -> router_nested_loop_flow_line_19_seq_5 [label="p['j'] < p['max_j']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_nested_loop_flow_line_19_seq_5 -> router_nested_loop_flow_line_18_while_4;
+    router_nested_loop_flow_line_18_while_4 -> router_nested_loop_flow_line_32_seq_3 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_nested_loop_flow_line_16_seq_6 -> router_nested_loop_flow_line_18_while_4;
+    router_nested_loop_flow_line_15_while_2 -> router_nested_loop_flow_line_16_seq_6 [label="p['i'] < p['max_i']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_nested_loop_flow_line_15_while_2 -> router_nested_loop_flow_line_38_seq_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_nested_loop_flow_line_14_seq_7 -> router_nested_loop_flow_line_15_while_2;
+    router_nested_loop_flow_line_32_seq_3 -> __end__;
+    router_nested_loop_flow_line_38_seq_1 -> __end__;
 }

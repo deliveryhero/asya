@@ -1,0 +1,40 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: parse-input
+  namespace: default
+  labels:
+    asya.sh/flow: data-pipeline
+spec:
+  actor: parse-input
+  image: examples.asya.sh/parse-input:latest
+  handler: parse_input
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_6_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-data-pipeline-line-9-except-2
+      try_except_line_6_1:
+        maxAttempts: 1
+        thenRoute:
+        - router-data-pipeline-line-12-except-4
+      try_except_line_6_2:
+        maxAttempts: 1
+        thenRoute:
+        - router-data-pipeline-line-15-except-6
+    rules:
+    - errors:
+      - ValueError
+      policy: try_except_line_6_0
+    - errors:
+      - TypeError
+      policy: try_except_line_6_1
+    - errors:
+      - RuntimeError
+      policy: try_except_line_6_2

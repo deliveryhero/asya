@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-sample-flow-line-10-seq-1
+  namespace: default
+  labels:
+    asya.sh/flow: sample-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-sample-flow-line-10-seq-1
+  image: python:3.13-slim
+  handler: routers.router_sample_flow_line_10_seq_1
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_HANDLER_SETUP
+    value: handler_setup
+  - name: ASYA_HANDLER_HANDLER_TYPE_A
+    value: handler_type_a
+  - name: ASYA_HANDLER_HANDLER_TYPE_B
+    value: handler_type_b
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_10_SEQ_1
+    value: routers.router_sample_flow_line_10_seq_1
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_14_SEQ_2
+    value: routers.router_sample_flow_line_14_seq_2
+  - name: ASYA_HANDLER_ROUTER_SAMPLE_FLOW_LINE_9_IF_3
+    value: routers.router_sample_flow_line_9_if_3

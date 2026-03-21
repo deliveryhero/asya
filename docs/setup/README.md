@@ -20,7 +20,7 @@ Configure and customize the platform:
 - **[State Proxy](guide-state-proxy.md)** — Configure state proxy storage backends
 - **[Pause/Resume](guide-pause-resume.md)** — Deploy x-pause/x-resume, configure S3 checkpoint
 - **[Timeouts](guide-timeouts.md)** — Configure SLA, gateway backstop, transport timeouts
-- **[Retries](guide-retries.md)** — Retry policies, error matching, DLQ configuration
+- **[Error Handling](guide-error-handling.md)** — Resiliency policies, error routing, retry rules
 - **[Gateway](guide-gateway.md)** — Deploy gateway modes, configure auth, register tools
 
 ## Operations

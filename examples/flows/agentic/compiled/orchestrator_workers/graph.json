@@ -14,41 +14,41 @@
       "label": "orchestrator"
     },
     {
-      "id": "router_orchestrator_workers_line_57_while_1",
-      "label": "router_orchestrator_workers_line_57_while_1",
+      "id": "router_orchestrator_workers_line_56_while_1",
+      "label": "router_orchestrator_workers_line_56_while_1",
       "generated": true
     },
     {
-      "id": "router_orchestrator_workers_line_58_seq_7",
-      "label": "router_orchestrator_workers_line_58_seq_7",
+      "id": "router_orchestrator_workers_line_57_seq_7",
+      "label": "router_orchestrator_workers_line_57_seq_7",
       "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
-      "id": "router_orchestrator_workers_line_62_if_6",
-      "label": "router_orchestrator_workers_line_62_if_6",
+      "id": "router_orchestrator_workers_line_61_if_6",
+      "label": "router_orchestrator_workers_line_61_if_6",
       "generated": true
     },
     {
-      "id": "router_orchestrator_workers_line_65_if_5",
-      "label": "router_orchestrator_workers_line_65_if_5",
+      "id": "router_orchestrator_workers_line_64_if_5",
+      "label": "router_orchestrator_workers_line_64_if_5",
       "generated": true
     },
     {
-      "id": "router_orchestrator_workers_line_67_if_4",
-      "label": "router_orchestrator_workers_line_67_if_4",
+      "id": "router_orchestrator_workers_line_66_if_4",
+      "label": "router_orchestrator_workers_line_66_if_4",
       "generated": true
     },
     {
-      "id": "router_orchestrator_workers_line_69_if_3",
-      "label": "router_orchestrator_workers_line_69_if_3",
+      "id": "router_orchestrator_workers_line_68_if_3",
+      "label": "router_orchestrator_workers_line_68_if_3",
       "generated": true
     },
     {
-      "id": "router_orchestrator_workers_line_72_if_2",
-      "label": "router_orchestrator_workers_line_72_if_2",
+      "id": "router_orchestrator_workers_line_71_if_2",
+      "label": "router_orchestrator_workers_line_71_if_2",
       "generated": true
     },
     {
@@ -74,103 +74,103 @@
   "edges": [
     {
       "from": "start_orchestrator_workers",
-      "to": "router_orchestrator_workers_line_57_while_1",
+      "to": "router_orchestrator_workers_line_56_while_1",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_72_if_2",
+      "from": "router_orchestrator_workers_line_71_if_2",
       "to": "synthesizer",
       "label": "p['iteration'] >= 10",
       "type": "set"
     },
     {
-      "from": "router_orchestrator_workers_line_69_if_3",
+      "from": "router_orchestrator_workers_line_68_if_3",
       "to": "writing_worker",
       "label": "p.get('next_action') == 'write'",
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_67_if_4",
+      "from": "router_orchestrator_workers_line_66_if_4",
       "to": "analysis_worker",
       "label": "p.get('next_action') == 'analyze'",
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_67_if_4",
-      "to": "router_orchestrator_workers_line_69_if_3",
+      "from": "router_orchestrator_workers_line_66_if_4",
+      "to": "router_orchestrator_workers_line_68_if_3",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_65_if_5",
+      "from": "router_orchestrator_workers_line_64_if_5",
       "to": "data_worker",
       "label": "p.get('next_action') == 'research'",
       "type": "prepend"
     },
     {
       "from": "data_worker",
-      "to": "router_orchestrator_workers_line_72_if_2",
+      "to": "router_orchestrator_workers_line_71_if_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_65_if_5",
-      "to": "router_orchestrator_workers_line_67_if_4",
+      "from": "router_orchestrator_workers_line_64_if_5",
+      "to": "router_orchestrator_workers_line_66_if_4",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_62_if_6",
-      "to": "router_orchestrator_workers_line_65_if_5",
+      "from": "router_orchestrator_workers_line_61_if_6",
+      "to": "router_orchestrator_workers_line_64_if_5",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_orchestrator_workers_line_62_if_6",
+      "from": "router_orchestrator_workers_line_61_if_6",
       "to": "synthesizer",
       "label": "p.get('is_complete')",
       "type": "set"
     },
     {
-      "from": "router_orchestrator_workers_line_58_seq_7",
+      "from": "router_orchestrator_workers_line_57_seq_7",
       "to": "orchestrator",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "orchestrator",
-      "to": "router_orchestrator_workers_line_62_if_6",
+      "to": "router_orchestrator_workers_line_61_if_6",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_57_while_1",
-      "to": "router_orchestrator_workers_line_58_seq_7",
+      "from": "router_orchestrator_workers_line_56_while_1",
+      "to": "router_orchestrator_workers_line_57_seq_7",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "analysis_worker",
-      "to": "router_orchestrator_workers_line_72_if_2",
+      "to": "router_orchestrator_workers_line_71_if_2",
       "label": null,
       "type": "continuation"
     },
     {
       "from": "writing_worker",
-      "to": "router_orchestrator_workers_line_72_if_2",
+      "to": "router_orchestrator_workers_line_71_if_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_72_if_2",
-      "to": "router_orchestrator_workers_line_57_while_1",
+      "from": "router_orchestrator_workers_line_71_if_2",
+      "to": "router_orchestrator_workers_line_56_while_1",
       "label": "else",
       "type": "continuation"
     },
     {
-      "from": "router_orchestrator_workers_line_69_if_3",
-      "to": "router_orchestrator_workers_line_57_while_1",
+      "from": "router_orchestrator_workers_line_68_if_3",
+      "to": "router_orchestrator_workers_line_56_while_1",
       "label": "else",
       "type": "continuation"
     }

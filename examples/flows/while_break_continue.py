@@ -4,7 +4,7 @@ While loop with both break and continue.
 Tests complex loop control flow.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

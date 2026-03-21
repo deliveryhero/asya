@@ -1,0 +1,33 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-nested-loop-flow-line-18-while-4
+  namespace: default
+  labels:
+    asya.sh/flow: nested-loop-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-nested-loop-flow-line-18-while-4
+  image: python:3.13-slim
+  handler: routers.router_nested_loop_flow_line_18_while_4
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_INITIALIZE
+    value: initialize
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_14_SEQ_7
+    value: routers.router_nested_loop_flow_line_14_seq_7
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_15_WHILE_2
+    value: routers.router_nested_loop_flow_line_15_while_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_16_SEQ_6
+    value: routers.router_nested_loop_flow_line_16_seq_6
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_18_WHILE_4
+    value: routers.router_nested_loop_flow_line_18_while_4
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_19_SEQ_5
+    value: routers.router_nested_loop_flow_line_19_seq_5
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_32_SEQ_3
+    value: routers.router_nested_loop_flow_line_32_seq_3
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_LINE_38_SEQ_1
+    value: routers.router_nested_loop_flow_line_38_seq_1

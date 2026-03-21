@@ -2,8 +2,8 @@
   "flow_name": "ingester",
   "nodes": [
     {
-      "id": "router_ingester_line_181_seq_1",
-      "label": "router_ingester_line_181_seq_1",
+      "id": "router_ingester_line_176_seq_1",
+      "label": "router_ingester_line_176_seq_1",
       "generated": true,
       "mutations": [
         "p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"
@@ -19,7 +19,7 @@
   "edges": [
     {
       "from": "start_ingester",
-      "to": "router_ingester_line_181_seq_1",
+      "to": "router_ingester_line_176_seq_1",
       "label": null,
       "type": "prepend"
     }

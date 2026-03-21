@@ -1,34 +1,28 @@
-digraph "try_except_finally" {
+digraph "resource_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
     { rank=source; start_resource_pipeline; }
 
     acquire_resource [label="acquire_resource", fillcolor=lightblue];
-    finalize [label="finalize", fillcolor=lightblue];
+    finalize [label="finalize", fillcolor=lightsalmon];
     handle_failure [label="handle_failure", fillcolor=lightblue];
     process_with_resource [label="process_with_resource", fillcolor=lightblue];
     release_resource [label="release_resource", fillcolor=lightblue];
-    router_resource_pipeline_line_5_except_dispatch_0 [label="router_resource_pipeline_line_5_except_dispatch_0", fillcolor=wheat];
-    router_resource_pipeline_line_5_reraise_0 [label="router_resource_pipeline_line_5_reraise_0", fillcolor=wheat];
-    router_resource_pipeline_line_5_try_enter_0 [label="router_resource_pipeline_line_5_try_enter_0", fillcolor=wheat];
-    router_resource_pipeline_line_5_try_exit_0 [label="router_resource_pipeline_line_5_try_exit_0", fillcolor=wheat];
-    router_resource_pipeline_line_9_seq [label="router_resource_pipeline_line_9_seq\n\np['status'] = 'failed'", fillcolor=wheat];
+    router_resource_pipeline_line_10_except_2 [label="router_resource_pipeline_line_10_except_2", fillcolor=wheat];
+    router_resource_pipeline_line_11_seq_1 [label="router_resource_pipeline_line_11_seq_1\n\np['status'] = 'failed'", fillcolor=wheat];
     start_resource_pipeline [label="start_resource_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_resource_pipeline -> router_resource_pipeline_line_5_try_enter_0;
-    router_resource_pipeline_line_9_seq -> handle_failure;
-    router_resource_pipeline_line_5_try_enter_0 -> acquire_resource;
+    start_resource_pipeline -> acquire_resource;
     acquire_resource -> process_with_resource;
-    process_with_resource -> router_resource_pipeline_line_5_try_exit_0;
-    router_resource_pipeline_line_5_try_exit_0 -> release_resource;
+    process_with_resource -> release_resource;
     release_resource -> finalize;
-    router_resource_pipeline_line_5_except_dispatch_0 -> release_resource;
-    router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_9_seq [label="'RuntimeError' in _all_types"];
-    router_resource_pipeline_line_5_except_dispatch_0 -> router_resource_pipeline_line_5_reraise_0 [label="not ('RuntimeError' in _all_types)"];
+    router_resource_pipeline_line_11_seq_1 -> handle_failure;
+    router_resource_pipeline_line_10_except_2 -> router_resource_pipeline_line_11_seq_1;
+    acquire_resource -> router_resource_pipeline_line_10_except_2 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    process_with_resource -> router_resource_pipeline_line_10_except_2 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    handle_failure -> release_resource;
     finalize -> __end__;
-    handle_failure -> __end__;
-    router_resource_pipeline_line_5_reraise_0 -> __end__;
 }

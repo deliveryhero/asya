@@ -117,7 +117,7 @@ class FlowCompiler:
 
         # Step 3: Analyze (graph extraction from generated code)
         handler_sources = self._extract_handler_sources(source_code, result.actors)
-        self._graph_data = analyze(code, handler_sources)
+        self._graph_data = analyze(code, handler_sources, self._codegen_meta.actor_retry_rules)
         # Pass through flow composition groups from parser
         if result.groups:
             self._graph_data.groups = result.groups
@@ -241,10 +241,12 @@ class FlowCompiler:
         flow_name = flow_function.replace("_", "-")
 
         try:
-            manifests_dir = self._project.resolve_path("compiler.manifests") / flow_name
+            self._project.resolve_path("compiler.manifests")  # check config exists
             templates_dir = self._project.resolve_path("compiler.templates")
         except KeyError:
             return None
+
+        manifests_dir = compiled_dir / "manifests"
 
         router_code = self._generated_code or ""
         actor_template = templates_dir / "actor.yaml"

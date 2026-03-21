@@ -4,11 +4,11 @@ digraph "ingester" {
 
     { rank=source; start_ingester; }
 
-    router_ingester_line_181_seq_1 [label="router_ingester_line_181_seq_1\n\np['candidates'] = retrieve(p['query'], p.get('top_k', 10))", fillcolor=wheat];
+    router_ingester_line_176_seq_1 [label="router_ingester_line_176_seq_1\n\np['candidates'] = retrieve(p['query'], p.get('top_k', 10))", fillcolor=wheat];
     start_ingester [label="start_ingester", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_ingester -> router_ingester_line_181_seq_1;
-    router_ingester_line_181_seq_1 -> __end__;
+    start_ingester -> router_ingester_line_176_seq_1;
+    router_ingester_line_176_seq_1 -> __end__;
 }

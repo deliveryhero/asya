@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: notify-admin
+  namespace: default
+  labels:
+    asya.sh/flow: llm-pipeline
+    asya.sh/role: end
+spec:
+  actor: notify-admin
+  image: examples.asya.sh/notify-admin:latest
+  handler: notify_admin
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

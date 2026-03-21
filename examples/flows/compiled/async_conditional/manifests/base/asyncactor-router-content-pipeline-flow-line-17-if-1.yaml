@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-content-pipeline-flow-line-17-if-1
+  namespace: default
+  labels:
+    asya.sh/flow: content-pipeline-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-content-pipeline-flow-line-17-if-1
+  image: python:3.13-slim
+  handler: routers.router_content_pipeline_flow_line_17_if_1
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_LINE_15_IF_2
+    value: routers.router_content_pipeline_flow_line_15_if_2
+  - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_LINE_17_IF_1
+    value: routers.router_content_pipeline_flow_line_17_if_1

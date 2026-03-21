@@ -18,18 +18,18 @@ import copy
 async def start_multi_stage_flow(payload: dict):
     """Entrypoint for flow 'multi_stage_flow'"""
     _next = []
-    _next.append(resolve("router_multi_stage_flow_line_15_fanout_2"))
+    _next.append(resolve("router_multi_stage_flow_line_14_fanout_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_multi_stage_flow_line_16_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 16)"""
+async def router_multi_stage_flow_line_15_fanout_1(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 15)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_stage_flow_line_16")
+    _agg = resolve("fanin_multi_stage_flow_line_15")
 
     _slices = []
     for r in p['research']:
@@ -44,7 +44,7 @@ async def router_multi_stage_flow_line_16_fanout_1(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("summarizer")] + _next_tail
+    yield "SET", ".route.next", [_agg] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 
@@ -53,14 +53,14 @@ async def router_multi_stage_flow_line_16_fanout_1(payload: dict):
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
         yield _payload
 
-async def router_multi_stage_flow_line_15_fanout_2(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 15)"""
+async def router_multi_stage_flow_line_14_fanout_2(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_multi_stage_flow_line_15")
+    _agg = resolve("fanin_multi_stage_flow_line_14")
 
     _slices = []
     for t in p['topics']:
@@ -75,7 +75,7 @@ async def router_multi_stage_flow_line_15_fanout_2(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg, resolve("router_multi_stage_flow_line_16_fanout_1")] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("router_multi_stage_flow_line_15_fanout_1")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

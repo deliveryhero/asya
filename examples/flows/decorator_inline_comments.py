@@ -8,13 +8,13 @@ classifier is explicitly marked as an actor boundary.
 
 import uuid
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow
 def decorator_inline_comments_flow(p: dict) -> dict:
-    p = inject_id(p)           # asya: inline
-    p = classifier(p)          # asya: actor
+    p = inject_id(p)  # asya: inline
+    p = classifier(p)  # asya: actor
     if p["category"] == "priority":
         p = fast_handler(p)
     else:

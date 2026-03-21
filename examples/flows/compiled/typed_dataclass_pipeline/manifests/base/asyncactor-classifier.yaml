@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: classifier
+  namespace: default
+  labels:
+    asya.sh/flow: typed-dataclass-pipeline
+spec:
+  actor: classifier
+  image: examples.asya.sh/classifier:latest
+  handler: classifier
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

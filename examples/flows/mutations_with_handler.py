@@ -3,12 +3,11 @@ Mutations followed by handler.
 
 Tests grouping mutations before handler calls.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def mutations_with_handler_flow(p: dict) -> dict:
     p["initialized"] = True
     p["step"] = 1

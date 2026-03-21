@@ -3,12 +3,11 @@ While True with break.
 
 Tests infinite loop with conditional exit.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def while_true_flow(p: dict) -> dict:
     p = handler_init(p)
     while True:

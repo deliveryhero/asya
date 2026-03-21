@@ -1,28 +1,10 @@
 flowchart TD
     %% Flow: compiler_pipeline
 
-    analyze_semantics[analyze_semantics]
-    emit_code[emit_code]
-    optimize[optimize]
-    parse_syntax[parse_syntax]
-    start_compiler_pipeline([start_compiler_pipeline])
-    tokenize[tokenize]
-    __end__((( )))
 
-    start_compiler_pipeline --> tokenize
-    tokenize --> parse_syntax
-    parse_syntax --> analyze_semantics
-    analyze_semantics --> optimize
-    optimize --> emit_code
-    emit_code --> __end__
     subgraph frontend[frontend]
-        tokenize
-        parse_syntax
     end
     subgraph middle[middle]
-        tokenize
-        parse_syntax
-        analyze_semantics
     end
 
     classDef start fill:#98FB98,stroke:#333
@@ -30,7 +12,3 @@ flowchart TD
     classDef router fill:#F5DEB3,stroke:#333
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
-    class start_compiler_pipeline start
-    class emit_code endnode
-    class analyze_semantics,optimize,parse_syntax,tokenize handler
-    class __end__ endpoint

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: execution-planner
+  namespace: default
+  labels:
+    asya.sh/flow: sequential-pipeline
+spec:
+  actor: execution-planner
+  image: examples.asya.sh/execution-planner:latest
+  handler: execution_planner
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

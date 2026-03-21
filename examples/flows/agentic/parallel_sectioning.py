@@ -34,22 +34,23 @@ Payload contract:
 """
 
 import asyncio
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def parallel_sectioning(state: dict) -> dict:
     # Prepare input for parallel analysis
     state = await preprocessor(state)
 
     # Fan-out: three independent analyses run in parallel
-    state["analysis"] = list(await asyncio.gather(
-        sentiment_analyzer(state["text"]),
-        topic_extractor(state["text"]),
-        entity_recognizer(state["text"]),
-    ))
+    state["analysis"] = list(
+        await asyncio.gather(
+            sentiment_analyzer(state["text"]),
+            topic_extractor(state["text"]),
+            entity_recognizer(state["text"]),
+        )
+    )
 
     # Fan-in: merge all parallel results
     state = await aggregator(state)
@@ -59,6 +60,7 @@ async def parallel_sectioning(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def preprocessor(state: dict) -> dict:
     """Actor: prepare input text for analysis.
 
@@ -75,6 +77,7 @@ async def preprocessor(state: dict) -> dict:
     return state
 
 
+@actor
 async def sentiment_analyzer(text: dict) -> dict:
     """LLM/ML actor: analyze sentiment of the text.
 
@@ -91,6 +94,7 @@ async def sentiment_analyzer(text: dict) -> dict:
     }
 
 
+@actor
 async def topic_extractor(text: dict) -> dict:
     """LLM actor: extract main topics and themes.
 
@@ -113,6 +117,7 @@ async def topic_extractor(text: dict) -> dict:
     }
 
 
+@actor
 async def entity_recognizer(text: dict) -> dict:
     """ML actor: recognize named entities (people, orgs, locations).
 
@@ -128,6 +133,7 @@ async def entity_recognizer(text: dict) -> dict:
     }
 
 
+@actor
 async def aggregator(state: dict) -> dict:
     """Actor: merge parallel analysis results into a unified view.
 

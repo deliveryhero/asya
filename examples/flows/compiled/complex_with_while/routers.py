@@ -16,18 +16,22 @@ Regenerate by running: asya flow compile complex_with_while.py
 async def start_complex_flow(payload: dict):
     """Entrypoint for flow 'complex_flow'"""
     _next = []
-    _next.append(resolve("handler_preprocess"))
-    _next.append(resolve("handler_validate"))
-    _next.append(resolve("router_complex_flow_line_15_if_6"))
+    _next.append(resolve("router_complex_flow_line_15_if_14"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_29_if_2(payload: dict):
+async def router_complex_flow_line_89_seq_1(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    p['finalized'] = True
+    yield p
+
+async def router_complex_flow_line_29_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['quality_score'] >= 50:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield "SET", ".route.next", [resolve("router_complex_flow_line_89_seq_1")]
         yield p
         return
     else:
@@ -36,72 +40,144 @@ async def router_complex_flow_line_29_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_26_if_3(payload: dict):
+async def router_complex_flow_line_26_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
+    p['batch_count'] += 1
+    p['quality_checked'] = True
+    p['quality_score'] = p.get('batch_count', 0) * 10
     if p['quality_score'] < 20:
-        _next.append(resolve("router_complex_flow_line_22_while_1"))
+        _next.append(resolve("router_complex_flow_line_22_while_2"))
     else:
-        _next.append(resolve("router_complex_flow_line_29_if_2"))
+        _next.append(resolve("router_complex_flow_line_29_if_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_22_while_1(payload: dict):
+async def router_complex_flow_line_60_seq_5(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['batch_count'] = 0
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_59_if_6(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    if 'batch_count' not in p:
+        _next.append(resolve("router_complex_flow_line_60_seq_5"))
+        _next.append(resolve("router_complex_flow_line_26_if_4"))
+    else:
+        _next.append(resolve("router_complex_flow_line_26_if_4"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_22_while_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('batch_count', 0) < p.get('max_batches', 3):
-        _next.append(resolve("handler_transform_batch"))
-        _next.append(resolve("handler_check_quality"))
-        _next.append(resolve("router_complex_flow_line_26_if_3"))
-        _next.append(resolve("router_complex_flow_line_22_while_1"))
+        _next.append(resolve("router_complex_flow_line_59_if_6"))
+        _next.append(resolve("router_complex_flow_line_22_while_2"))
     else:
-        yield "SET", ".route.next", [resolve("handler_finalize")]
+        yield "SET", ".route.next", [resolve("router_complex_flow_line_89_seq_1")]
         yield p
         return
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_32_if_4(payload: dict):
+async def router_complex_flow_line_53_seq_7(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['enriched'] = True
+    _next.append(resolve("router_complex_flow_line_22_while_2"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_77_seq_8(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['retry_count'] += 1
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_76_seq_9(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['retry_count'] = 0
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_75_if_10(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['retried'] = True
+    if 'retry_count' not in p:
+        _next.append(resolve("router_complex_flow_line_76_seq_9"))
+        _next.append(resolve("router_complex_flow_line_77_seq_8"))
+    else:
+        _next.append(resolve("router_complex_flow_line_77_seq_8"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_complex_flow_line_32_if_11(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('requires_retry'):
-        _next.append(resolve("handler_retry_handler"))
+        _next.append(resolve("router_complex_flow_line_75_if_10"))
     else:
         pass
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_19_if_5(payload: dict):
+async def router_complex_flow_line_19_if_12(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('needs_enrichment'):
-        _next.append(resolve("handler_enrich_data"))
-        _next.append(resolve("router_complex_flow_line_22_while_1"))
-        _next.append(resolve("handler_finalize"))
+        _next.append(resolve("router_complex_flow_line_53_seq_7"))
+        _next.append(resolve("router_complex_flow_line_89_seq_1"))
     else:
-        _next.append(resolve("router_complex_flow_line_32_if_4"))
-        _next.append(resolve("handler_finalize"))
+        _next.append(resolve("router_complex_flow_line_32_if_11"))
+        _next.append(resolve("router_complex_flow_line_89_seq_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_complex_flow_line_15_if_6(payload: dict):
+async def router_complex_flow_line_83_seq_13(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    p['error_handled'] = True
+    yield p
+
+async def router_complex_flow_line_15_if_14(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
+    p['stage'] = 'preprocessed'
+    p['valid'] = p.get('data') is not None
     if not p['valid']:
-        yield "SET", ".route.next", [resolve("handler_error")]
+        yield "SET", ".route.next", [resolve("router_complex_flow_line_83_seq_13")]
         yield p
         return
     else:
-        _next.append(resolve("router_complex_flow_line_19_if_5"))
+        _next.append(resolve("router_complex_flow_line_19_if_12"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

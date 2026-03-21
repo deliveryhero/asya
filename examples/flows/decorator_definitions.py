@@ -8,7 +8,7 @@ Unknown decorators on handler functions are ignored by the compiler.
 
 import uuid
 
-from asya_lab.flow import flow
+from _asya_utils import actor, flow
 
 
 # Compiler classification hints — identity functions at runtime.

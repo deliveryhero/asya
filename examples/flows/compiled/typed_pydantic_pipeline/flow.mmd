@@ -1,12 +1,12 @@
 flowchart TD
     %% Flow: ingester
 
-    router_ingester_line_181_seq_1{{"router_ingester_line_181_seq_1<br/><br/>p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"}}
+    router_ingester_line_176_seq_1{{"router_ingester_line_176_seq_1<br/><br/>p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"}}
     start_ingester([start_ingester])
     __end__((( )))
 
-    start_ingester --> router_ingester_line_181_seq_1
-    router_ingester_line_181_seq_1 --> __end__
+    start_ingester --> router_ingester_line_176_seq_1
+    router_ingester_line_176_seq_1 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -14,5 +14,5 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_ingester start
-    class router_ingester_line_181_seq_1 router
+    class router_ingester_line_176_seq_1 router
     class __end__ endpoint

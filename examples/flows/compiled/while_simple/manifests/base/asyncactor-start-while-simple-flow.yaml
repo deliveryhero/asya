@@ -1,0 +1,22 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-while-simple-flow
+  namespace: default
+  labels:
+    asya.sh/flow: while-simple-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-while-simple-flow
+  image: python:3.13-slim
+  handler: routers.start_while_simple_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_LINE_14_WHILE_1
+    value: routers.router_while_simple_flow_line_14_while_1
+  - name: ASYA_HANDLER_ROUTER_WHILE_SIMPLE_FLOW_LINE_15_SEQ_2
+    value: routers.router_while_simple_flow_line_15_seq_2

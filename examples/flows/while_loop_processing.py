@@ -3,12 +3,11 @@ Loop processing flow example.
 
 Demonstrates while loops with break and continue statements.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def loop_flow(p: dict) -> dict:
     p = initialize(p)
 
@@ -18,9 +17,9 @@ def loop_flow(p: dict) -> dict:
         p = process_item(p)
 
         if p.get("skip_threshold_check"):
-            p['abort'] = 1
+            p["abort"] = 1
             p = process_abort(p)
-            p['abort'] = 2
+            p["abort"] = 2
             continue
         p = check_threshold(p)
 
@@ -33,6 +32,7 @@ def loop_flow(p: dict) -> dict:
 
 def process_abort(p: dict) -> dict:
     return None
+
 
 def initialize(p: dict) -> dict:
     """Initialize processing state."""

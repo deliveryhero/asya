@@ -19,18 +19,18 @@ async def start_parallel_sectioning(payload: dict):
     """Entrypoint for flow 'parallel_sectioning'"""
     _next = []
     _next.append(resolve("preprocessor"))
-    _next.append(resolve("router_parallel_sectioning_line_48_fanout_1"))
+    _next.append(resolve("router_parallel_sectioning_line_47_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_parallel_sectioning_line_48_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 48)"""
+async def router_parallel_sectioning_line_47_fanout_1(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 47)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_parallel_sectioning_line_48")
+    _agg = resolve("fanin_parallel_sectioning_line_47")
 
     _slices = []
     _slices.append((resolve("sentiment_analyzer"), p['text']))

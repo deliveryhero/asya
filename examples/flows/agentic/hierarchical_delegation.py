@@ -47,12 +47,11 @@ sub-flow's start router is just another actor. This example flattens the
 hierarchy inline for clarity, but in production each team could be its
 own compiled flow deployed as an independent actor network.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def hierarchical_delegation(state: dict) -> dict:
     # Root agent: analyze and categorize the project
     state = await root_agent(state)
@@ -92,6 +91,7 @@ async def hierarchical_delegation(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def root_agent(state: dict) -> dict:
     """LLM actor: top-level decomposition and delegation.
 
@@ -111,6 +111,7 @@ async def root_agent(state: dict) -> dict:
     return state
 
 
+@actor
 async def data_team_lead(state: dict) -> dict:
     """LLM actor: mid-level data team orchestrator.
 
@@ -130,6 +131,7 @@ async def data_team_lead(state: dict) -> dict:
     return state
 
 
+@actor
 async def sql_specialist(state: dict) -> dict:
     """LLM actor: SQL query generation and execution.
 
@@ -141,14 +143,15 @@ async def sql_specialist(state: dict) -> dict:
         "results": [
             {"customer_id": 1245, "revenue": 125430.50},
             {"customer_id": 8921, "revenue": 98234.20},
-            {"customer_id": 3456, "revenue": 87120.00}
+            {"customer_id": 3456, "revenue": 87120.00},
         ],
         "schema_inspected": ["orders", "customers"],
-        "execution_time_ms": 142
+        "execution_time_ms": 142,
     }
     return state
 
 
+@actor
 async def api_specialist(state: dict) -> dict:
     """LLM actor: API integration specialist.
 
@@ -162,17 +165,15 @@ async def api_specialist(state: dict) -> dict:
         "data": {
             "total_revenue": 1250000.00,
             "period": "2024-Q1",
-            "breakdown": [
-                {"category": "subscriptions", "amount": 850000},
-                {"category": "one_time", "amount": 400000}
-            ]
+            "breakdown": [{"category": "subscriptions", "amount": 850000}, {"category": "one_time", "amount": 400000}],
         },
         "pagination": {"page": 1, "total_pages": 1},
-        "cache_hit": False
+        "cache_hit": False,
     }
     return state
 
 
+@actor
 async def data_generalist(state: dict) -> dict:
     """LLM actor: general data tasks.
 
@@ -183,14 +184,15 @@ async def data_generalist(state: dict) -> dict:
         "findings": [
             "Data quality assessment completed",
             "Identified 3 key trends in user behavior",
-            "Recommended additional data collection for Q2"
+            "Recommended additional data collection for Q2",
         ],
         "visualizations": ["correlation_matrix.png", "trend_plot.png"],
-        "confidence": "medium"
+        "confidence": "medium",
     }
     return state
 
 
+@actor
 async def content_team_lead(state: dict) -> dict:
     """LLM actor: mid-level content team orchestrator.
 
@@ -210,6 +212,7 @@ async def content_team_lead(state: dict) -> dict:
     return state
 
 
+@actor
 async def writer(state: dict) -> dict:
     """LLM actor: content creation specialist.
 
@@ -222,11 +225,12 @@ async def writer(state: dict) -> dict:
         "draft": "In the rapidly evolving landscape of artificial intelligence, distributed systems are becoming increasingly important...",
         "sections": ["Introduction", "Core Concepts", "Real-world Applications", "Conclusion"],
         "seo_keywords": ["AI systems", "distributed computing", "machine learning"],
-        "readability_score": 68
+        "readability_score": 68,
     }
     return state
 
 
+@actor
 async def editor(state: dict) -> dict:
     """LLM actor: content editing specialist.
 
@@ -239,15 +243,16 @@ async def editor(state: dict) -> dict:
             "Removed redundant phrases in paragraphs 2-4",
             "Strengthened topic sentences across all sections",
             "Improved flow between Core Concepts and Applications",
-            "Fixed 12 grammar issues and 3 style inconsistencies"
+            "Fixed 12 grammar issues and 3 style inconsistencies",
         ],
         "readability_improvement": {"before": 68, "after": 74},
         "tone": "professional yet accessible",
-        "final_draft": "In the rapidly evolving landscape of artificial intelligence, distributed systems have become critical..."
+        "final_draft": "In the rapidly evolving landscape of artificial intelligence, distributed systems have become critical...",
     }
     return state
 
 
+@actor
 async def content_generalist(state: dict) -> dict:
     """LLM actor: general content tasks.
 
@@ -258,15 +263,16 @@ async def content_generalist(state: dict) -> dict:
         "recommendations": [
             "Develop content calendar for Q2 2024",
             "Focus on technical deep-dive pieces",
-            "Target developer and architect personas"
+            "Target developer and architect personas",
         ],
         "competitive_analysis": "Analyzed 5 competitor blogs",
         "content_gaps": ["case studies", "implementation guides"],
-        "next_steps": ["Schedule editorial planning meeting", "Draft content brief templates"]
+        "next_steps": ["Schedule editorial planning meeting", "Draft content brief templates"],
     }
     return state
 
 
+@actor
 async def generalist(state: dict) -> dict:
     """LLM actor: handles tasks that don't fit any team.
 
@@ -278,14 +284,15 @@ async def generalist(state: dict) -> dict:
         "steps_taken": [
             "Analyzed requirements from multiple angles",
             "Identified potential solutions",
-            "Evaluated trade-offs"
+            "Evaluated trade-offs",
         ],
         "recommendation": "Consider breaking into smaller domain-specific subtasks",
-        "confidence": "low_to_medium"
+        "confidence": "low_to_medium",
     }
     return state
 
 
+@actor
 async def final_assembler(state: dict) -> dict:
     """Actor: assemble final output from team results.
 
@@ -301,6 +308,6 @@ async def final_assembler(state: dict) -> dict:
         "team_results": team_output,
         "summary": f"Completed {domain} domain task with team collaboration",
         "completion_timestamp": "2024-03-15T14:32:18Z",
-        "quality_score": 0.92
+        "quality_score": 0.92,
     }
     return state
