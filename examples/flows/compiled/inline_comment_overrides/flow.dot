@@ -4,7 +4,6 @@ digraph "order_pipeline" {
 
     { rank=source; start_order_pipeline; }
 
-    charge_payment [label="charge_payment", fillcolor=lightsalmon];
     router_order_pipeline_line_32_if_2 [label="router_order_pipeline_line_32_if_2", fillcolor=wheat];
     router_order_pipeline_line_33_seq_1 [label="router_order_pipeline_line_33_seq_1\n\np['status'] = 'rejected'", fillcolor=wheat];
     start_order_pipeline [label="start_order_pipeline", fillcolor=palegreen];
@@ -14,8 +13,6 @@ digraph "order_pipeline" {
 
     start_order_pipeline -> validate_order;
     validate_order -> router_order_pipeline_line_32_if_2;
-    router_order_pipeline_line_32_if_2 -> charge_payment [label="else", color="#D35400", fontcolor="#D35400"];
     router_order_pipeline_line_32_if_2 -> router_order_pipeline_line_33_seq_1 [label="p.get('fraud_score', 0) > 0.8", color="#2E8B57", fontcolor="#2E8B57"];
-    charge_payment -> __end__;
     router_order_pipeline_line_33_seq_1 -> __end__;
 }

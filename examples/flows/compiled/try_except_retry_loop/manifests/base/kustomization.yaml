@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-router-retry-pipeline-line-13-seq-5.yaml
+- asyncactor-router-retry-pipeline-line-15-while-1.yaml
+- asyncactor-router-retry-pipeline-line-16-seq-4.yaml
+- asyncactor-router-retry-pipeline-line-20-except-2.yaml
+- asyncactor-router-retry-pipeline-line-22-except-3.yaml
+- asyncactor-start-retry-pipeline.yaml
+- configmap-routers.yaml

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: relevance-evaluator
+  namespace: default
+  labels:
+    asya.sh/flow: rag-pipeline
+spec:
+  actor: relevance-evaluator
+  image: examples.asya.sh/relevance-evaluator:latest
+  handler: relevance_evaluator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

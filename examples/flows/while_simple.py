@@ -4,7 +4,7 @@ Simple while loop.
 Tests basic iteration without break/continue.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

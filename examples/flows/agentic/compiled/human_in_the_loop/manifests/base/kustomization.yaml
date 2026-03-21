@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-approval-gate.yaml
+- asyncactor-executor.yaml
+- asyncactor-notifier.yaml
+- asyncactor-proposal-generator.yaml
+- asyncactor-revision-agent.yaml
+- asyncactor-router-human-in-the-loop-line-57-seq-7.yaml
+- asyncactor-router-human-in-the-loop-line-59-while-1.yaml
+- asyncactor-router-human-in-the-loop-line-60-seq-6.yaml
+- asyncactor-router-human-in-the-loop-line-69-if-5.yaml
+- asyncactor-router-human-in-the-loop-line-74-if-4.yaml
+- asyncactor-router-human-in-the-loop-line-78-if-3.yaml
+- asyncactor-router-human-in-the-loop-line-79-seq-2.yaml
+- asyncactor-start-human-in-the-loop.yaml
+- configmap-routers.yaml

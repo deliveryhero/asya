@@ -15,7 +15,8 @@ Demonstrates two override patterns:
 
 Pattern: flow routing + actor-level yield SET override
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
@@ -29,6 +30,7 @@ async def actor_override_flow(p: dict) -> dict:
     return p
 
 
+@actor
 async def classify(p: dict) -> dict:
     """Classify intent and decide routing.
 
@@ -45,24 +47,28 @@ async def classify(p: dict) -> dict:
     yield p
 
 
+@actor
 async def tool_executor(p: dict) -> dict:
     """Execute the requested tool."""
     p["tool_result"] = "executed"
     return p
 
 
+@actor
 async def format_output(p: dict) -> dict:
     """Format the final response."""
     p["formatted"] = True
     return p
 
 
+@actor
 async def escalate(p: dict) -> dict:
     """Handle urgent escalation (SET override target, exits flow)."""
     p["escalated"] = True
     return p
 
 
+@actor
 async def audit_logger(p: dict) -> dict:
     """Log for audit (prepend override target, continues flow)."""
     p["audited"] = True

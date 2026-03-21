@@ -2,12 +2,12 @@
   "flow_name": "multi_stage_flow",
   "nodes": [
     {
-      "id": "fanin_multi_stage_flow_line_15",
-      "label": "fanin_multi_stage_flow_line_15"
+      "id": "fanin_multi_stage_flow_line_14",
+      "label": "fanin_multi_stage_flow_line_14"
     },
     {
-      "id": "fanin_multi_stage_flow_line_16",
-      "label": "fanin_multi_stage_flow_line_16"
+      "id": "fanin_multi_stage_flow_line_15",
+      "label": "fanin_multi_stage_flow_line_15"
     },
     {
       "id": "research_agent",
@@ -18,13 +18,13 @@
       "label": "review_agent"
     },
     {
-      "id": "router_multi_stage_flow_line_15_fanout_2",
-      "label": "router_multi_stage_flow_line_15_fanout_2",
+      "id": "router_multi_stage_flow_line_14_fanout_2",
+      "label": "router_multi_stage_flow_line_14_fanout_2",
       "generated": true
     },
     {
-      "id": "router_multi_stage_flow_line_16_fanout_1",
-      "label": "router_multi_stage_flow_line_16_fanout_1",
+      "id": "router_multi_stage_flow_line_15_fanout_1",
+      "label": "router_multi_stage_flow_line_15_fanout_1",
       "generated": true
     },
     {
@@ -32,65 +32,54 @@
       "label": "start_multi_stage_flow",
       "role": "start",
       "generated": true
-    },
-    {
-      "id": "summarizer",
-      "label": "summarizer",
-      "role": "end"
     }
   ],
   "edges": [
     {
       "from": "start_multi_stage_flow",
-      "to": "router_multi_stage_flow_line_15_fanout_2",
+      "to": "router_multi_stage_flow_line_14_fanout_2",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_multi_stage_flow_line_16_fanout_1",
-      "to": "fanin_multi_stage_flow_line_16",
+      "from": "router_multi_stage_flow_line_15_fanout_1",
+      "to": "fanin_multi_stage_flow_line_15",
       "label": "fanout: p['research']",
       "type": "set"
     },
     {
-      "from": "fanin_multi_stage_flow_line_16",
-      "to": "summarizer",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_multi_stage_flow_line_16_fanout_1",
+      "from": "router_multi_stage_flow_line_15_fanout_1",
       "to": "review_agent",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "review_agent",
-      "to": "fanin_multi_stage_flow_line_16",
+      "to": "fanin_multi_stage_flow_line_15",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_stage_flow_line_15_fanout_2",
-      "to": "fanin_multi_stage_flow_line_15",
+      "from": "router_multi_stage_flow_line_14_fanout_2",
+      "to": "fanin_multi_stage_flow_line_14",
       "label": "fanout: p['topics']",
       "type": "set"
     },
     {
-      "from": "fanin_multi_stage_flow_line_15",
-      "to": "router_multi_stage_flow_line_16_fanout_1",
+      "from": "fanin_multi_stage_flow_line_14",
+      "to": "router_multi_stage_flow_line_15_fanout_1",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_stage_flow_line_15_fanout_2",
+      "from": "router_multi_stage_flow_line_14_fanout_2",
       "to": "research_agent",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "research_agent",
-      "to": "fanin_multi_stage_flow_line_15",
+      "to": "fanin_multi_stage_flow_line_14",
       "label": null,
       "type": "continuation"
     }

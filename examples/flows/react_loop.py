@@ -8,7 +8,7 @@ Uses AsyncGenerator to yield intermediate results.
 Reference: https://github.com/google/adk-samples/tree/main/python/agents/llm-auditor
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

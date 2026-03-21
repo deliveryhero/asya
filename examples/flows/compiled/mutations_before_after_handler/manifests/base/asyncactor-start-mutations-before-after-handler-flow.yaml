@@ -1,0 +1,20 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-mutations-before-after-handler-flow
+  namespace: default
+  labels:
+    asya.sh/flow: mutations-before-after-handler-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-mutations-before-after-handler-flow
+  image: python:3.13-slim
+  handler: routers.start_mutations_before_after_handler_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_MUTATIONS_BEFORE_AFTER_HANDLER_FLOW_LINE_12_SEQ_1
+    value: routers.router_mutations_before_after_handler_flow_line_12_seq_1

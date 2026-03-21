@@ -32,20 +32,21 @@ Payload contract:
 """
 
 import asyncio
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def voting_ensemble(state: dict) -> dict:
     # Fan-out: three agents tackle the same task independently
     # Each uses different LLM settings (temperature, style, model)
-    state["candidates"] = list(await asyncio.gather(
-        creative_writer(state["prompt"]),
-        analytical_writer(state["prompt"]),
-        concise_writer(state["prompt"]),
-    ))
+    state["candidates"] = list(
+        await asyncio.gather(
+            creative_writer(state["prompt"]),
+            analytical_writer(state["prompt"]),
+            concise_writer(state["prompt"]),
+        )
+    )
 
     # Judge evaluates all candidates and selects the best
     state = await judge(state)
@@ -55,6 +56,7 @@ async def voting_ensemble(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def creative_writer(prompt: dict) -> dict:
     """LLM actor (high temperature): generate a creative, expressive response.
 
@@ -68,6 +70,7 @@ async def creative_writer(prompt: dict) -> dict:
     }
 
 
+@actor
 async def analytical_writer(prompt: dict) -> dict:
     """LLM actor (low temperature): generate a precise, analytical response.
 
@@ -81,6 +84,7 @@ async def analytical_writer(prompt: dict) -> dict:
     }
 
 
+@actor
 async def concise_writer(prompt: dict) -> dict:
     """LLM actor (medium temperature): generate a concise, clear response.
 
@@ -94,6 +98,7 @@ async def concise_writer(prompt: dict) -> dict:
     }
 
 
+@actor
 async def judge(state: dict) -> dict:
     """LLM actor: evaluate candidates and select the best.
 

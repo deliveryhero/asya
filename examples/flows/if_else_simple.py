@@ -3,12 +3,11 @@ Simple if-else.
 
 Tests basic two-branch conditional.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def if_else_simple_flow(p: dict) -> dict:
     p = handler_setup(p)
     if p["type"] == "A":

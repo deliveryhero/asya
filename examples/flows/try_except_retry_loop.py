@@ -4,12 +4,11 @@ Retry loop with try-except.
 Retries up to 3 times on ConnectionError, re-raises on ValueError.
 Demonstrates combining while loops with try-except for resilient processing.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def retry_pipeline(p: dict) -> dict:
     p["attempt"] = 0
     p = prepare_request(p)

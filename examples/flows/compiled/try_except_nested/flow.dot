@@ -1,0 +1,42 @@
+digraph "nested_error_handling" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_nested_error_handling; }
+
+    cleanup [label="cleanup", fillcolor=lightblue];
+    fetch_data [label="fetch_data", fillcolor=lightblue];
+    handle_connection_error [label="handle_connection_error", fillcolor=lightblue];
+    handle_parse_error [label="handle_parse_error", fillcolor=lightblue];
+    parse_data [label="parse_data", fillcolor=lightblue];
+    router_nested_error_handling_line_29_except_4 [label="router_nested_error_handling_line_29_except_4", fillcolor=wheat];
+    router_nested_error_handling_line_30_seq_3 [label="router_nested_error_handling_line_30_seq_3\n\np['parse_status'] = 'invalid'", fillcolor=wheat];
+    router_nested_error_handling_line_33_except_2 [label="router_nested_error_handling_line_33_except_2", fillcolor=wheat];
+    router_nested_error_handling_line_34_seq_1 [label="router_nested_error_handling_line_34_seq_1\n\np['status'] = 'connection_failed'", fillcolor=wheat];
+    start_nested_error_handling [label="start_nested_error_handling", fillcolor=palegreen];
+    store_results [label="store_results", fillcolor=lightsalmon];
+    transform_data [label="transform_data", fillcolor=lightblue];
+    validate_data [label="validate_data", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_nested_error_handling -> fetch_data;
+    fetch_data -> parse_data;
+    parse_data -> validate_data;
+    validate_data -> transform_data;
+    transform_data -> cleanup;
+    cleanup -> store_results;
+    router_nested_error_handling_line_34_seq_1 -> handle_connection_error;
+    router_nested_error_handling_line_33_except_2 -> router_nested_error_handling_line_34_seq_1;
+    router_nested_error_handling_line_30_seq_3 -> handle_parse_error;
+    router_nested_error_handling_line_29_except_4 -> router_nested_error_handling_line_30_seq_3;
+    fetch_data -> router_nested_error_handling_line_33_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    parse_data -> router_nested_error_handling_line_33_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    parse_data -> router_nested_error_handling_line_29_except_4 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    validate_data -> router_nested_error_handling_line_33_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    validate_data -> router_nested_error_handling_line_29_except_4 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    transform_data -> router_nested_error_handling_line_33_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    handle_connection_error -> cleanup;
+    handle_parse_error -> transform_data;
+    store_results -> __end__;
+}

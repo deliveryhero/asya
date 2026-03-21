@@ -4,7 +4,7 @@ Demonstrates multiple nesting levels producing nested groups in graph.json.
 Each reference to the same inner flow creates NEW actor instances.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 def tokenize(p: dict) -> dict:

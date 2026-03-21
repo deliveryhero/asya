@@ -19,12 +19,11 @@ Inspired by: https://github.com/google/adk-samples/tree/main/python/agents/llm-a
 Pipeline:
   extract_claims -> [loop: generate -> parallel score -> branch(approve|revise|deep_revise)] -> finalize
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 async def llm_auditor(p: dict) -> dict:
     # Class instantiation
     scorer = QualityScorer()

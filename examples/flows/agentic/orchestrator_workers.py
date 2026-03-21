@@ -44,12 +44,11 @@ Note on control flow: The while loop, if/elif dispatch, and break are pure
 state transformations -- they compile into router actors. Only the function
 calls (orchestrator, data_worker, etc.) become real deployed actors.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def orchestrator_workers(state: dict) -> dict:
     state["iteration"] = 0
     state["worker_results"] = []
@@ -82,6 +81,7 @@ async def orchestrator_workers(state: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 async def orchestrator(state: dict) -> dict:
     """LLM actor: the "brain" that plans and dispatches.
 
@@ -97,6 +97,7 @@ async def orchestrator(state: dict) -> dict:
     ...  # LLM call: given request + worker_results, decide next_action
 
 
+@actor
 async def data_worker(state: dict) -> dict:
     """LLM+tools actor: gather data and information.
 
@@ -109,6 +110,7 @@ async def data_worker(state: dict) -> dict:
     ...  # LLM call with tools: search, retrieve, extract findings
 
 
+@actor
 async def analysis_worker(state: dict) -> dict:
     """LLM+tools actor: analyze data.
 
@@ -121,6 +123,7 @@ async def analysis_worker(state: dict) -> dict:
     ...  # LLM call with tools: analyze data, compute statistics
 
 
+@actor
 async def writing_worker(state: dict) -> dict:
     """LLM actor: produce written content.
 
@@ -132,6 +135,7 @@ async def writing_worker(state: dict) -> dict:
     ...  # LLM call: draft report/summary from accumulated results
 
 
+@actor
 async def synthesizer(state: dict) -> dict:
     """LLM actor: produce final output from accumulated worker results.
 

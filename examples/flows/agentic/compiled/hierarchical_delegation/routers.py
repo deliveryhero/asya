@@ -17,11 +17,11 @@ async def start_hierarchical_delegation(payload: dict):
     """Entrypoint for flow 'hierarchical_delegation'"""
     _next = []
     _next.append(resolve("root_agent"))
-    _next.append(resolve("router_hierarchical_delegation_line_61_if_6"))
+    _next.append(resolve("router_hierarchical_delegation_line_60_if_6"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_67_if_1(payload: dict):
+async def router_hierarchical_delegation_line_66_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,19 +33,19 @@ async def router_hierarchical_delegation_line_67_if_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_65_if_2(payload: dict):
+async def router_hierarchical_delegation_line_64_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('subtask') == 'sql':
         _next.append(resolve("sql_specialist"))
     else:
-        _next.append(resolve("router_hierarchical_delegation_line_67_if_1"))
+        _next.append(resolve("router_hierarchical_delegation_line_66_if_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_78_if_3(payload: dict):
+async def router_hierarchical_delegation_line_77_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -57,41 +57,41 @@ async def router_hierarchical_delegation_line_78_if_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_76_if_4(payload: dict):
+async def router_hierarchical_delegation_line_75_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('subtask') == 'write':
         _next.append(resolve("writer"))
     else:
-        _next.append(resolve("router_hierarchical_delegation_line_78_if_3"))
+        _next.append(resolve("router_hierarchical_delegation_line_77_if_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_72_if_5(payload: dict):
+async def router_hierarchical_delegation_line_71_if_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('domain') == 'content':
         _next.append(resolve("content_team_lead"))
-        _next.append(resolve("router_hierarchical_delegation_line_76_if_4"))
+        _next.append(resolve("router_hierarchical_delegation_line_75_if_4"))
     else:
         _next.append(resolve("generalist"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_hierarchical_delegation_line_61_if_6(payload: dict):
+async def router_hierarchical_delegation_line_60_if_6(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('domain') == 'data':
         _next.append(resolve("data_team_lead"))
-        _next.append(resolve("router_hierarchical_delegation_line_65_if_2"))
+        _next.append(resolve("router_hierarchical_delegation_line_64_if_2"))
         _next.append(resolve("final_assembler"))
     else:
-        _next.append(resolve("router_hierarchical_delegation_line_72_if_5"))
+        _next.append(resolve("router_hierarchical_delegation_line_71_if_5"))
         _next.append(resolve("final_assembler"))
 
     yield "SET", ".route.next[:0]", _next

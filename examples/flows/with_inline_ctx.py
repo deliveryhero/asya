@@ -15,12 +15,11 @@ Compile with:
 """
 
 import contextlib
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def order_processing(p: dict) -> dict:
     p["stage"] = "validation"
 

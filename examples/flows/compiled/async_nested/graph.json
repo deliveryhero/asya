@@ -2,26 +2,8 @@
   "flow_name": "review_pipeline_flow",
   "nodes": [
     {
-      "id": "auto_approve",
-      "label": "auto_approve",
-      "role": "end"
-    },
-    {
-      "id": "detailed_review",
-      "label": "detailed_review"
-    },
-    {
-      "id": "human_review",
-      "label": "human_review",
-      "role": "end"
-    },
-    {
-      "id": "initial_review",
-      "label": "initial_review"
-    },
-    {
-      "id": "router_review_pipeline_flow_line_17_if_1",
-      "label": "router_review_pipeline_flow_line_17_if_1",
+      "id": "router_review_pipeline_flow_line_16_if_1",
+      "label": "router_review_pipeline_flow_line_16_if_1",
       "generated": true
     },
     {
@@ -34,32 +16,8 @@
   "edges": [
     {
       "from": "start_review_pipeline_flow",
-      "to": "initial_review",
+      "to": "router_review_pipeline_flow_line_16_if_1",
       "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "initial_review",
-      "to": "router_review_pipeline_flow_line_17_if_1",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_review_pipeline_flow_line_17_if_1",
-      "to": "detailed_review",
-      "label": "p['score'] < 0.5",
-      "type": "prepend"
-    },
-    {
-      "from": "detailed_review",
-      "to": "human_review",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_review_pipeline_flow_line_17_if_1",
-      "to": "auto_approve",
-      "label": "else",
       "type": "prepend"
     }
   ],

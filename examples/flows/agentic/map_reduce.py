@@ -41,20 +41,17 @@ and a fan-in aggregator that collects all results.
 """
 
 import asyncio
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def map_reduce(state: dict) -> dict:
     # Split: divide large input into manageable chunks
     state = await splitter(state)
 
     # Map: apply same operation to each chunk (dynamic fan-out)
-    state["chunk_results"] = list(
-        await asyncio.gather(*[chunk_processor(chunk) for chunk in state["chunks"]])
-    )
+    state["chunk_results"] = list(await asyncio.gather(*[chunk_processor(chunk) for chunk in state["chunks"]]))
 
     # Reduce: aggregate all chunk results into final output
     state = await reducer(state)
@@ -64,6 +61,7 @@ async def map_reduce(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def splitter(state: dict) -> dict:
     """Actor: divide input into chunks for parallel processing.
 
@@ -75,23 +73,15 @@ async def splitter(state: dict) -> dict:
     """
     document = state["document"]
     chunks = [
-        {
-            "content": document[:len(document)//3],
-            "index": 0
-        },
-        {
-            "content": document[len(document)//3:2*len(document)//3],
-            "index": 1
-        },
-        {
-            "content": document[2*len(document)//3:],
-            "index": 2
-        }
+        {"content": document[: len(document) // 3], "index": 0},
+        {"content": document[len(document) // 3 : 2 * len(document) // 3], "index": 1},
+        {"content": document[2 * len(document) // 3 :], "index": 2},
     ]
     state["chunks"] = chunks
     return state
 
 
+@actor
 async def chunk_processor(chunk: dict) -> dict:
     """LLM actor: process a single chunk (the "map" operation).
 
@@ -111,12 +101,13 @@ async def chunk_processor(chunk: dict) -> dict:
         "key_points": [
             f"Point 1 from chunk {chunk['index']}",
             f"Point 2 from chunk {chunk['index']}",
-            f"Point 3 from chunk {chunk['index']}"
+            f"Point 3 from chunk {chunk['index']}",
         ],
-        "word_count": word_count
+        "word_count": word_count,
     }
 
 
+@actor
 async def reducer(state: dict) -> dict:
     """Actor: aggregate chunk results into final output.
 
@@ -137,6 +128,6 @@ async def reducer(state: dict) -> dict:
     state["final_result"] = {
         "full_summary": " ".join(all_summaries),
         "all_key_points": all_key_points,
-        "total_words": total_words
+        "total_words": total_words,
     }
     return state

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: general-agent
+  namespace: default
+  labels:
+    asya.sh/flow: routing-classifier
+spec:
+  actor: general-agent
+  image: examples.asya.sh/general-agent:latest
+  handler: general_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

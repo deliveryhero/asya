@@ -1,0 +1,99 @@
+{
+  "flow_name": "llm_pipeline",
+  "nodes": [
+    {
+      "id": "call_fallback_llm",
+      "label": "call_fallback_llm",
+      "role": "end"
+    },
+    {
+      "id": "call_llm",
+      "label": "call_llm"
+    },
+    {
+      "id": "notify_admin",
+      "label": "notify_admin",
+      "role": "end"
+    },
+    {
+      "id": "router_llm_pipeline_line_16_except_2",
+      "label": "router_llm_pipeline_line_16_except_2",
+      "generated": true
+    },
+    {
+      "id": "router_llm_pipeline_line_17_seq_1",
+      "label": "router_llm_pipeline_line_17_seq_1",
+      "generated": true,
+      "mutations": [
+        "p['fallback'] = True"
+      ]
+    },
+    {
+      "id": "router_llm_pipeline_line_19_except_4",
+      "label": "router_llm_pipeline_line_19_except_4",
+      "generated": true
+    },
+    {
+      "id": "router_llm_pipeline_line_20_seq_3",
+      "label": "router_llm_pipeline_line_20_seq_3",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'auth_failed'"
+      ]
+    },
+    {
+      "id": "start_llm_pipeline",
+      "label": "start_llm_pipeline",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['model'] = 'gpt-4'"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_llm_pipeline",
+      "to": "call_llm",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_pipeline_line_17_seq_1",
+      "to": "call_fallback_llm",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_pipeline_line_16_except_2",
+      "to": "router_llm_pipeline_line_17_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_llm_pipeline_line_20_seq_3",
+      "to": "notify_admin",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_llm_pipeline_line_19_except_4",
+      "to": "router_llm_pipeline_line_20_seq_3",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "call_llm",
+      "to": "router_llm_pipeline_line_16_except_2",
+      "label": "openai.RateLimitError",
+      "type": "error"
+    },
+    {
+      "from": "call_llm",
+      "to": "router_llm_pipeline_line_19_except_4",
+      "label": "openai.AuthenticationError",
+      "type": "error"
+    }
+  ],
+  "groups": []
+}

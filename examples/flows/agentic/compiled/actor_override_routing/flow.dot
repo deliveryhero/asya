@@ -8,19 +8,19 @@ digraph "actor_override_flow" {
     classify [label="classify", fillcolor=lightblue];
     escalate [label="escalate", fillcolor=lightsalmon];
     format_output [label="format_output", fillcolor=lightsalmon];
-    router_actor_override_flow_line_25_if_1 [label="router_actor_override_flow_line_25_if_1", fillcolor=wheat];
+    router_actor_override_flow_line_26_if_1 [label="router_actor_override_flow_line_26_if_1", fillcolor=wheat];
     start_actor_override_flow [label="start_actor_override_flow", fillcolor=palegreen];
     tool_executor [label="tool_executor", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_actor_override_flow -> classify;
-    router_actor_override_flow_line_25_if_1 -> tool_executor [label="p.get('needs_tool')", color="#2E8B57", fontcolor="#2E8B57"];
+    router_actor_override_flow_line_26_if_1 -> tool_executor [label="p.get('needs_tool')", color="#2E8B57", fontcolor="#2E8B57"];
     tool_executor -> format_output;
-    router_actor_override_flow_line_25_if_1 -> format_output [label="else", color="#D35400", fontcolor="#D35400"];
+    router_actor_override_flow_line_26_if_1 -> format_output [label="else", color="#D35400", fontcolor="#D35400"];
     classify -> escalate [label="p.get('urgent')\n[ABORT]", color="#00B84D", fontcolor="#00B84D"];
     classify -> audit_logger [label="else", color="#FF5500", fontcolor="#FF5500"];
-    audit_logger -> router_actor_override_flow_line_25_if_1;
+    audit_logger -> router_actor_override_flow_line_26_if_1;
     escalate -> __end__;
     format_output -> __end__;
 }

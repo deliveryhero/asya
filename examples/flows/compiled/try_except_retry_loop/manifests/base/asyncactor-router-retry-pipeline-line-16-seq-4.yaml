@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-retry-pipeline-line-16-seq-4
+  namespace: default
+  labels:
+    asya.sh/flow: retry-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-retry-pipeline-line-16-seq-4
+  image: python:3.13-slim
+  handler: routers.router_retry_pipeline_line_16_seq_4
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_LINE_15_WHILE_1
+    value: routers.router_retry_pipeline_line_15_while_1
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_LINE_16_SEQ_4
+    value: routers.router_retry_pipeline_line_16_seq_4

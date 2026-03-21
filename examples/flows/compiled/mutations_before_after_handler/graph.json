@@ -2,26 +2,12 @@
   "flow_name": "mutations_before_after_handler_flow",
   "nodes": [
     {
-      "id": "handler_a",
-      "label": "handler_a"
-    },
-    {
-      "id": "handler_b",
-      "label": "handler_b"
-    },
-    {
-      "id": "router_mutations_before_after_handler_flow_line_15_seq_2",
-      "label": "router_mutations_before_after_handler_flow_line_15_seq_2",
+      "id": "router_mutations_before_after_handler_flow_line_12_seq_1",
+      "label": "router_mutations_before_after_handler_flow_line_12_seq_1",
       "generated": true,
       "mutations": [
-        "p['step'] = 2"
-      ]
-    },
-    {
-      "id": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "label": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "generated": true,
-      "mutations": [
+        "p['step'] = 1",
+        "p['step'] = 2",
         "p['step'] = 3"
       ]
     },
@@ -29,36 +15,15 @@
       "id": "start_mutations_before_after_handler_flow",
       "label": "start_mutations_before_after_handler_flow",
       "role": "start",
-      "generated": true,
-      "mutations": [
-        "p['step'] = 1"
-      ]
+      "generated": true
     }
   ],
   "edges": [
     {
       "from": "start_mutations_before_after_handler_flow",
-      "to": "handler_a",
+      "to": "router_mutations_before_after_handler_flow_line_12_seq_1",
       "label": null,
       "type": "prepend"
-    },
-    {
-      "from": "handler_a",
-      "to": "router_mutations_before_after_handler_flow_line_15_seq_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_mutations_before_after_handler_flow_line_15_seq_2",
-      "to": "handler_b",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "handler_b",
-      "to": "router_mutations_before_after_handler_flow_line_17_seq_1",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

@@ -3,12 +3,11 @@ Mutations without handlers.
 
 Tests flow with only payload mutations, no handler calls.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def mutations_only_flow(p: dict) -> dict:
     # so technically, it's not a flow but an actor!
     p["step"] = 1

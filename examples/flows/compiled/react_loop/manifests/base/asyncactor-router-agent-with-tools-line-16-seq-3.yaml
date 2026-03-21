@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-agent-with-tools-line-16-seq-3
+  namespace: default
+  labels:
+    asya.sh/flow: agent-with-tools
+    asya.sh/generated: 'true'
+spec:
+  actor: router-agent-with-tools-line-16-seq-3
+  image: python:3.13-slim
+  handler: routers.router_agent_with_tools_line_16_seq_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_EXECUTE_TOOL
+    value: execute_tool
+  - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_LINE_17_WHILE_1
+    value: routers.router_agent_with_tools_line_17_while_1
+  - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_LINE_19_IF_2
+    value: routers.router_agent_with_tools_line_19_if_2

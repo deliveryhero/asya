@@ -20,27 +20,27 @@ async def start_document_pipeline(payload: dict):
     p['status'] = 'processing'
     _next.append(resolve("ocr_extractor"))
     _next.append(resolve("language_detector"))
-    _next.append(resolve("router_document_pipeline_line_24_if_2"))
+    _next.append(resolve("router_document_pipeline_line_23_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_document_pipeline_line_28_seq_1(payload: dict):
+async def router_document_pipeline_line_27_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['status'] = 'done'
     yield p
 
-async def router_document_pipeline_line_24_if_2(payload: dict):
+async def router_document_pipeline_line_23_if_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('language') != 'en':
         _next.append(resolve("translator"))
         _next.append(resolve("sentiment_analyzer"))
-        _next.append(resolve("router_document_pipeline_line_28_seq_1"))
+        _next.append(resolve("router_document_pipeline_line_27_seq_1"))
     else:
         _next.append(resolve("sentiment_analyzer"))
-        _next.append(resolve("router_document_pipeline_line_28_seq_1"))
+        _next.append(resolve("router_document_pipeline_line_27_seq_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

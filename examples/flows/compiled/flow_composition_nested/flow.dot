@@ -2,34 +2,13 @@ digraph "compiler_pipeline" {
     rankdir=TB;
     node [shape=box, style=filled, fontname="Helvetica"];
 
-    { rank=source; start_compiler_pipeline; }
 
-    analyze_semantics [label="analyze_semantics", fillcolor=lightblue];
-    emit_code [label="emit_code", fillcolor=lightsalmon];
-    optimize [label="optimize", fillcolor=lightblue];
-    parse_syntax [label="parse_syntax", fillcolor=lightblue];
-    start_compiler_pipeline [label="start_compiler_pipeline", fillcolor=palegreen];
-    tokenize [label="tokenize", fillcolor=lightblue];
-
-    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
-
-    start_compiler_pipeline -> tokenize;
-    tokenize -> parse_syntax;
-    parse_syntax -> analyze_semantics;
-    analyze_semantics -> optimize;
-    optimize -> emit_code;
-    emit_code -> __end__;
     subgraph cluster_frontend {
         label="frontend";
         style=dashed;
-        tokenize;
-        parse_syntax;
     }
     subgraph cluster_middle {
         label="middle";
         style=dashed;
-        tokenize;
-        parse_syntax;
-        analyze_semantics;
     }
 }

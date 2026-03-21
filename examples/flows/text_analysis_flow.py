@@ -1,5 +1,8 @@
 """NLP pipeline with language-based conditional branching and entity extraction."""
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
+
+
 @flow
 def text_analysis_flow(p: dict) -> dict:
     # Flow entrypoint: start_text_analysis_flow
@@ -22,23 +25,33 @@ def text_analysis_flow(p: dict) -> dict:
 
     return p  # Flow exitpoint: end_text_analysis_flow
 
+
 # Define your handler functions (can be in separate files)
+@actor
 def clean_text(p: dict) -> dict:
     ...
     return p
 
+
+@actor
 def tokenize(p: dict) -> dict:
     ...
     return p
 
+
+@actor
 def english_sentiment(p: dict) -> dict:
     ...
     return p
 
+
+@actor
 def spanish_sentiment(p: dict) -> dict:
     ...
     return p
 
+
+@actor
 def extract_entities(p: dict) -> dict:
     ...
     return p

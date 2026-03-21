@@ -45,4 +45,4 @@ Errors are classified by the sidecar for policy matching:
 | Message parse failure | Parse error | Route to x-sink -> x-sump (no retry) |
 | Validation error | Validation error | Route to x-sink -> x-sump (no retry) |
 
-See [guide-retries.md](../../setup/guide-retries.md) for configuring retry policies.
+See [guide-error-handling.md](../../setup/guide-error-handling.md) for configuring retry policies and error routing.

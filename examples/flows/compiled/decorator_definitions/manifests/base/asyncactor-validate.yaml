@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: validate
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-definitions-flow
+spec:
+  actor: validate
+  image: examples.asya.sh/validate:latest
+  handler: validate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

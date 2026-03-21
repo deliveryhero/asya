@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: "{{ actor_name }}"
+  namespace: "{{ namespace }}"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+
+spec:
+  actor: "{{ actor_name }}"
+  image: "{{ image }}"
+  handler: "{{ handler }}"
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: "{{ max_replicas }}"

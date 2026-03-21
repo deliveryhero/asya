@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: research-agent
+  namespace: default
+  labels:
+    asya.sh/flow: multi-stage-flow
+spec:
+  actor: research-agent
+  image: examples.asya.sh/research-agent:latest
+  handler: research_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

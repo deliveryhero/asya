@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-api-specialist.yaml
+- asyncactor-content-generalist.yaml
+- asyncactor-content-team-lead.yaml
+- asyncactor-data-generalist.yaml
+- asyncactor-data-team-lead.yaml
+- asyncactor-editor.yaml
+- asyncactor-final-assembler.yaml
+- asyncactor-generalist.yaml
+- asyncactor-root-agent.yaml
+- asyncactor-router-hierarchical-delegation-line-60-if-6.yaml
+- asyncactor-router-hierarchical-delegation-line-64-if-2.yaml
+- asyncactor-router-hierarchical-delegation-line-66-if-1.yaml
+- asyncactor-router-hierarchical-delegation-line-71-if-5.yaml
+- asyncactor-router-hierarchical-delegation-line-75-if-4.yaml
+- asyncactor-router-hierarchical-delegation-line-77-if-3.yaml
+- asyncactor-sql-specialist.yaml
+- asyncactor-start-hierarchical-delegation.yaml
+- asyncactor-writer.yaml
+- configmap-routers.yaml

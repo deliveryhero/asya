@@ -2,15 +2,13 @@ flowchart TD
     %% Flow: agent_with_tools
 
     execute_tool[execute_tool]
-    llm_call[llm_call]
     router_agent_with_tools_line_17_while_1{{router_agent_with_tools_line_17_while_1}}
     router_agent_with_tools_line_19_if_2{{router_agent_with_tools_line_19_if_2}}
     start_agent_with_tools(["start_agent_with_tools<br/><br/>p['messages'] = p.get('messages', [])"])
 
     start_agent_with_tools --> router_agent_with_tools_line_17_while_1
     router_agent_with_tools_line_19_if_2 -->|"p.get('tool_calls')"| execute_tool
-    router_agent_with_tools_line_17_while_1 --> llm_call
-    llm_call --> router_agent_with_tools_line_19_if_2
+    router_agent_with_tools_line_17_while_1 --> router_agent_with_tools_line_19_if_2
     execute_tool --> router_agent_with_tools_line_17_while_1
     router_agent_with_tools_line_19_if_2 -->|"else"| router_agent_with_tools_line_17_while_1
 
@@ -21,6 +19,6 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_agent_with_tools start
     class router_agent_with_tools_line_17_while_1,router_agent_with_tools_line_19_if_2 router
-    class execute_tool,llm_call handler
+    class execute_tool handler
     linkStyle 1 stroke:#2E8B57
-    linkStyle 5 stroke:#E07040
+    linkStyle 4 stroke:#E07040

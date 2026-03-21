@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: handle-unknown-error
+  namespace: default
+  labels:
+    asya.sh/flow: resilient-pipeline
+    asya.sh/role: end
+spec:
+  actor: handle-unknown-error
+  image: examples.asya.sh/handle-unknown-error:latest
+  handler: handle_unknown_error
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

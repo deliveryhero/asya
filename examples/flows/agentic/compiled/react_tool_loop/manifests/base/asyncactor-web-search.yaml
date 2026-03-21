@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: web-search
+  namespace: default
+  labels:
+    asya.sh/flow: react-tool-loop
+spec:
+  actor: web-search
+  image: examples.asya.sh/web-search:latest
+  handler: web_search
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

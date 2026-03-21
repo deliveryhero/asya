@@ -1,45 +1,6 @@
 {
   "flow_name": "sequential_flow",
-  "nodes": [
-    {
-      "id": "handler_a",
-      "label": "handler_a"
-    },
-    {
-      "id": "handler_b",
-      "label": "handler_b"
-    },
-    {
-      "id": "handler_c",
-      "label": "handler_c",
-      "role": "end"
-    },
-    {
-      "id": "start_sequential_flow",
-      "label": "start_sequential_flow",
-      "role": "start",
-      "generated": true
-    }
-  ],
-  "edges": [
-    {
-      "from": "start_sequential_flow",
-      "to": "handler_a",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "handler_a",
-      "to": "handler_b",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_b",
-      "to": "handler_c",
-      "label": null,
-      "type": "continuation"
-    }
-  ],
+  "nodes": [],
+  "edges": [],
   "groups": []
 }

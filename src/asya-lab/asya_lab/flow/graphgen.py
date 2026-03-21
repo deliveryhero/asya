@@ -66,6 +66,8 @@ def to_dot(data: GraphData, flow_name: str) -> str:
                 color = "#00B84D"
         elif label == "else":
             color = "#D35400"
+        elif edge.get("type") == "error":
+            color = "#DC143C"
         elif label.startswith("fanout"):
             color = "#6C35EA"
         elif label:
@@ -141,6 +143,7 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
     else_indices: list[int] = []
     fanout_indices: list[int] = []
     override_indices: list[int] = []
+    error_indices: list[int] = []
 
     for edge in data.edges:
         src = _sanitize_id(edge["from"])
@@ -155,6 +158,8 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
             lines.append(f"    {src} --> {dst}")
         if edge.get("override"):
             override_indices.append(edge_index)
+        elif edge.get("type") == "error":
+            error_indices.append(edge_index)
         elif label == "else":
             else_indices.append(edge_index)
         elif label.startswith("fanout"):
@@ -199,6 +204,8 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         lines.append(f"    linkStyle {','.join(str(i) for i in fanout_indices)} stroke:#7B68EE")
     if else_indices:
         lines.append(f"    linkStyle {','.join(str(i) for i in else_indices)} stroke:#E07040")
+    if error_indices:
+        lines.append(f"    linkStyle {','.join(str(i) for i in error_indices)} stroke:#DC143C")
     if override_indices:
         lines.append(f"    linkStyle {','.join(str(i) for i in override_indices)} stroke:#3CB371")
 

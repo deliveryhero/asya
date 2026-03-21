@@ -9,7 +9,7 @@ validator and enricher are separate actors.
 
 import time
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 # Compiler classification hints — identity functions at runtime.

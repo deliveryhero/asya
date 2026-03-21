@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: topic-extractor
+  namespace: default
+  labels:
+    asya.sh/flow: parallel-sectioning
+spec:
+  actor: topic-extractor
+  image: examples.asya.sh/topic-extractor:latest
+  handler: topic_extractor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

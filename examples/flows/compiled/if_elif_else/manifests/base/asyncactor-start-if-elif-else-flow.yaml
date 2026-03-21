@@ -1,0 +1,22 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-if-elif-else-flow
+  namespace: default
+  labels:
+    asya.sh/flow: if-elif-else-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-if-elif-else-flow
+  image: python:3.13-slim
+  handler: routers.start_if_elif_else_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_LINE_13_IF_2
+    value: routers.router_if_elif_else_flow_line_13_if_2
+  - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_LINE_15_IF_1
+    value: routers.router_if_elif_else_flow_line_15_if_1

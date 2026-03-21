@@ -4,7 +4,7 @@ While loop with continue.
 Tests skipping loop iterations.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

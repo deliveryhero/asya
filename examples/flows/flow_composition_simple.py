@@ -4,7 +4,7 @@ Demonstrates compile-time inlining -- inner flow's body is expanded
 into the outer flow. All actors get asya.sh/flow=outer_pipeline.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 def preprocess(p: dict) -> dict:

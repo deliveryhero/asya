@@ -4,7 +4,7 @@ While loop with break.
 Tests early loop exit.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

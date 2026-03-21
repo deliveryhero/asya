@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: english-sentiment
+  namespace: default
+  labels:
+    asya.sh/flow: text-analysis-flow
+spec:
+  actor: english-sentiment
+  image: examples.asya.sh/english-sentiment:latest
+  handler: english_sentiment
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

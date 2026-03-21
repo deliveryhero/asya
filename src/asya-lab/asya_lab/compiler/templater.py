@@ -181,6 +181,11 @@ class ManifestTemplater:
 
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env
+
+        # Inject compiler-generated resiliency rules for try/except error routing
+        if not actor.generated:
+            self._inject_retry_rules(manifest, actor)
+
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_template(self, actor: ActorInfo) -> dict:
@@ -350,6 +355,58 @@ Each overlay builds on top of `common/`.
             generated.append(f"overlays/{ctx_name}/kustomization.yaml")
 
         return generated
+
+    # -- resiliency injection ------------------------------------------------
+
+    def _inject_retry_rules(self, manifest: dict, actor: ActorInfo) -> None:
+        """Inject compiler-generated resiliency rules from try/except blocks.
+
+        Compiler-generated rules prepend before actor's own rules so that
+        flow-level try/except semantics take precedence for matched error types.
+        """
+        if not self.codegen_meta.actor_retry_rules:
+            return
+
+        # Reverse K8s name to Python name (the key used in actor_retry_rules)
+        actor_python_name = actor.name.replace("-", "_")
+        rules = self.codegen_meta.actor_retry_rules.get(actor_python_name, [])
+        if not rules:
+            return
+
+        spec = manifest.setdefault("spec", {})
+        resiliency = spec.setdefault("resiliency", {})
+        policies = resiliency.setdefault("policies", {})
+        existing_rules = resiliency.get("rules", [])
+
+        generated_rules: list[dict] = []
+        for rule in rules:
+            k8s_route = [self._to_k8s_name(r) for r in rule.then_route]
+
+            if rule.error_types is None:
+                # Bare except: set policies.default.thenRoute
+                if "default" in policies:
+                    raise ValueError(
+                        f"Actor '{actor.name}' already has policies.default defined; "
+                        f"cannot use bare 'except:' in a try/except block wrapping this actor."
+                    )
+                policies["default"] = {
+                    "maxAttempts": 1,
+                    "thenRoute": k8s_route,
+                }
+            else:
+                policies[rule.policy_name] = {
+                    "maxAttempts": 1,
+                    "thenRoute": k8s_route,
+                }
+                generated_rules.append(
+                    {
+                        "errors": rule.error_types,
+                        "policy": rule.policy_name,
+                    }
+                )
+
+        # Prepend compiler-generated rules before actor's own rules
+        resiliency["rules"] = generated_rules + existing_rules
 
     # -- actor collection ---------------------------------------------------
 

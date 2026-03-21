@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: editor
+  namespace: default
+  labels:
+    asya.sh/flow: hierarchical-delegation
+spec:
+  actor: editor
+  image: examples.asya.sh/editor:latest
+  handler: editor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

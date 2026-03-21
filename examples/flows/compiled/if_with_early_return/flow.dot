@@ -4,20 +4,11 @@ digraph "early_return_flow" {
 
     { rank=source; start_early_return_flow; }
 
-    handler_error [label="handler_error", fillcolor=lightsalmon];
-    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
-    handler_process [label="handler_process", fillcolor=lightblue];
-    handler_validate [label="handler_validate", fillcolor=lightblue];
-    router_early_return_flow_line_14_if_1 [label="router_early_return_flow_line_14_if_1", fillcolor=wheat];
+    router_early_return_flow_line_13_if_1 [label="router_early_return_flow_line_13_if_1", fillcolor=wheat];
     start_early_return_flow [label="start_early_return_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_early_return_flow -> handler_validate;
-    handler_validate -> router_early_return_flow_line_14_if_1;
-    router_early_return_flow_line_14_if_1 -> handler_process [label="else", color="#D35400", fontcolor="#D35400"];
-    handler_process -> handler_finalize;
-    router_early_return_flow_line_14_if_1 -> handler_error [label="not p['valid']", color="#2E8B57", fontcolor="#2E8B57"];
-    handler_error -> __end__;
-    handler_finalize -> __end__;
+    start_early_return_flow -> router_early_return_flow_line_13_if_1;
+    router_early_return_flow_line_13_if_1 -> __end__;
 }

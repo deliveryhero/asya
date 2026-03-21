@@ -1,0 +1,28 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-map-reduce
+  namespace: default
+  labels:
+    asya.sh/flow: map-reduce
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-map-reduce
+  image: python:3.13-slim
+  handler: routers.start_map_reduce
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_CHUNK_PROCESSOR
+    value: chunk_processor
+  - name: ASYA_HANDLER_FANIN_MAP_REDUCE_LINE_54
+    value: routers.fanin_map_reduce_line_54
+  - name: ASYA_HANDLER_REDUCER
+    value: reducer
+  - name: ASYA_HANDLER_ROUTER_MAP_REDUCE_LINE_54_FANOUT_1
+    value: routers.router_map_reduce_line_54_fanout_1
+  - name: ASYA_HANDLER_SPLITTER
+    value: splitter

@@ -4,7 +4,7 @@ While loop with mutations.
 Tests mutations inside loop body.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

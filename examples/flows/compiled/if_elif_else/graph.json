@@ -2,34 +2,13 @@
   "flow_name": "if_elif_else_flow",
   "nodes": [
     {
-      "id": "handler_default",
-      "label": "handler_default"
-    },
-    {
-      "id": "handler_finalize",
-      "label": "handler_finalize",
-      "role": "end"
-    },
-    {
-      "id": "handler_type_a",
-      "label": "handler_type_a"
-    },
-    {
-      "id": "handler_type_b",
-      "label": "handler_type_b"
-    },
-    {
-      "id": "handler_validate",
-      "label": "handler_validate"
-    },
-    {
-      "id": "router_if_elif_else_flow_line_14_if_2",
-      "label": "router_if_elif_else_flow_line_14_if_2",
+      "id": "router_if_elif_else_flow_line_13_if_2",
+      "label": "router_if_elif_else_flow_line_13_if_2",
       "generated": true
     },
     {
-      "id": "router_if_elif_else_flow_line_16_if_1",
-      "label": "router_if_elif_else_flow_line_16_if_1",
+      "id": "router_if_elif_else_flow_line_15_if_1",
+      "label": "router_if_elif_else_flow_line_15_if_1",
       "generated": true
     },
     {
@@ -42,57 +21,15 @@
   "edges": [
     {
       "from": "start_if_elif_else_flow",
-      "to": "handler_validate",
+      "to": "router_if_elif_else_flow_line_13_if_2",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "handler_validate",
-      "to": "router_if_elif_else_flow_line_14_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_if_elif_else_flow_line_16_if_1",
-      "to": "handler_type_b",
-      "label": "p['type'] == 'B'",
-      "type": "prepend"
-    },
-    {
-      "from": "router_if_elif_else_flow_line_16_if_1",
-      "to": "handler_default",
+      "from": "router_if_elif_else_flow_line_13_if_2",
+      "to": "router_if_elif_else_flow_line_15_if_1",
       "label": "else",
       "type": "prepend"
-    },
-    {
-      "from": "router_if_elif_else_flow_line_14_if_2",
-      "to": "handler_type_a",
-      "label": "p['type'] == 'A'",
-      "type": "prepend"
-    },
-    {
-      "from": "handler_type_a",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_if_elif_else_flow_line_14_if_2",
-      "to": "router_if_elif_else_flow_line_16_if_1",
-      "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "handler_type_b",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "handler_default",
-      "to": "handler_finalize",
-      "label": null,
-      "type": "continuation"
     }
   ],
   "groups": []

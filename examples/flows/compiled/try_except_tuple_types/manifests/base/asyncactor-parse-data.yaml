@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: parse-data
+  namespace: default
+  labels:
+    asya.sh/flow: ingestion-pipeline
+spec:
+  actor: parse-data
+  image: examples.asya.sh/parse-data:latest
+  handler: parse_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_13_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-ingestion-pipeline-line-16-except-2
+      try_except_line_13_1:
+        maxAttempts: 1
+        thenRoute:
+        - router-ingestion-pipeline-line-19-except-4
+    rules:
+    - errors:
+      - ConnectionError
+      - TimeoutError
+      policy: try_except_line_13_0
+    - errors:
+      - ValueError
+      - KeyError
+      policy: try_except_line_13_1

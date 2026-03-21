@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-acquire-resource.yaml
+- asyncactor-finalize.yaml
+- asyncactor-handle-failure.yaml
+- asyncactor-process-with-resource.yaml
+- asyncactor-release-resource.yaml
+- asyncactor-router-resource-pipeline-line-10-except-2.yaml
+- asyncactor-router-resource-pipeline-line-11-seq-1.yaml
+- asyncactor-router-resource-pipeline-line-6-seq-3.yaml
+- asyncactor-start-resource-pipeline.yaml
+- configmap-routers.yaml

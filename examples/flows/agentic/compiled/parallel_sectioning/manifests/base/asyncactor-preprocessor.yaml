@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: preprocessor
+  namespace: default
+  labels:
+    asya.sh/flow: parallel-sectioning
+spec:
+  actor: preprocessor
+  image: examples.asya.sh/preprocessor:latest
+  handler: preprocessor
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

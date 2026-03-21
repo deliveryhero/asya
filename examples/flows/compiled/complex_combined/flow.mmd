@@ -1,48 +1,28 @@
 flowchart TD
     %% Flow: complex_combined_flow
 
-    handler_default[handler_default]
-    handler_error[handler_error]
-    handler_finalize[handler_finalize]
-    handler_init[handler_init]
-    handler_process[handler_process]
-    handler_type_a[handler_type_a]
-    handler_type_b[handler_type_b]
-    router_complex_combined_flow_line_15_if_8{{router_complex_combined_flow_line_15_if_8}}
-    router_complex_combined_flow_line_19_if_7{{router_complex_combined_flow_line_19_if_7}}
-    router_complex_combined_flow_line_20_seq_4{{"router_complex_combined_flow_line_20_seq_4<br/><br/>p['i'] = 0"}}
-    router_complex_combined_flow_line_21_while_1{{router_complex_combined_flow_line_21_while_1}}
-    router_complex_combined_flow_line_24_if_3{{"router_complex_combined_flow_line_24_if_3<br/><br/>p['i'] += 1"}}
-    router_complex_combined_flow_line_29_if_2{{router_complex_combined_flow_line_29_if_2}}
-    router_complex_combined_flow_line_32_if_6{{router_complex_combined_flow_line_32_if_6}}
-    router_complex_combined_flow_line_34_if_5{{router_complex_combined_flow_line_34_if_5}}
+    router_complex_combined_flow_line_14_if_8{{router_complex_combined_flow_line_14_if_8}}
+    router_complex_combined_flow_line_18_if_7{{router_complex_combined_flow_line_18_if_7}}
+    router_complex_combined_flow_line_19_seq_4{{"router_complex_combined_flow_line_19_seq_4<br/><br/>p['i'] = 0"}}
+    router_complex_combined_flow_line_20_while_1{{router_complex_combined_flow_line_20_while_1}}
+    router_complex_combined_flow_line_23_if_3{{"router_complex_combined_flow_line_23_if_3<br/><br/>p['i'] += 1"}}
+    router_complex_combined_flow_line_28_if_2{{router_complex_combined_flow_line_28_if_2}}
+    router_complex_combined_flow_line_31_if_6{{router_complex_combined_flow_line_31_if_6}}
+    router_complex_combined_flow_line_33_if_5{{router_complex_combined_flow_line_33_if_5}}
     start_complex_combined_flow([start_complex_combined_flow])
     __end__((( )))
 
-    start_complex_combined_flow --> handler_init
-    handler_init --> router_complex_combined_flow_line_15_if_8
-    router_complex_combined_flow_line_29_if_2 -->|"p['stop_early']"| handler_finalize
-    router_complex_combined_flow_line_24_if_3 -->|"p['skip_even'] and p['i'] % 2 == 0"| router_complex_combined_flow_line_21_while_1
-    router_complex_combined_flow_line_24_if_3 -->|"else"| handler_process
-    handler_process --> router_complex_combined_flow_line_29_if_2
-    router_complex_combined_flow_line_21_while_1 -->|"p['i'] < p['max_iterations']"| router_complex_combined_flow_line_24_if_3
-    router_complex_combined_flow_line_21_while_1 -->|"else"| handler_finalize
-    router_complex_combined_flow_line_20_seq_4 --> router_complex_combined_flow_line_21_while_1
-    router_complex_combined_flow_line_34_if_5 -->|"p['type'] == 'B'"| handler_type_b
-    router_complex_combined_flow_line_34_if_5 -->|"else"| handler_default
-    router_complex_combined_flow_line_32_if_6 -->|"p['type'] == 'A'"| handler_type_a
-    router_complex_combined_flow_line_32_if_6 -->|"else"| router_complex_combined_flow_line_34_if_5
-    router_complex_combined_flow_line_19_if_7 -->|"p['needs_loop']"| router_complex_combined_flow_line_20_seq_4
-    router_complex_combined_flow_line_19_if_7 -->|"else"| router_complex_combined_flow_line_32_if_6
-    router_complex_combined_flow_line_15_if_8 -->|"else"| router_complex_combined_flow_line_19_if_7
-    router_complex_combined_flow_line_15_if_8 -->|"not p['valid']"| handler_error
-    router_complex_combined_flow_line_29_if_2 -->|"else"| router_complex_combined_flow_line_21_while_1
-    handler_type_a --> handler_finalize
-    handler_type_b --> handler_finalize
-    handler_default --> handler_finalize
-    router_complex_combined_flow_line_24_if_3 --> handler_finalize
-    handler_error --> __end__
-    handler_finalize --> __end__
+    start_complex_combined_flow --> router_complex_combined_flow_line_14_if_8
+    router_complex_combined_flow_line_23_if_3 -->|"p['skip_even'] and p['i'] % 2 == 0"| router_complex_combined_flow_line_20_while_1
+    router_complex_combined_flow_line_23_if_3 -->|"else"| router_complex_combined_flow_line_28_if_2
+    router_complex_combined_flow_line_20_while_1 -->|"p['i'] < p['max_iterations']"| router_complex_combined_flow_line_23_if_3
+    router_complex_combined_flow_line_19_seq_4 --> router_complex_combined_flow_line_20_while_1
+    router_complex_combined_flow_line_31_if_6 -->|"else"| router_complex_combined_flow_line_33_if_5
+    router_complex_combined_flow_line_18_if_7 -->|"p['needs_loop']"| router_complex_combined_flow_line_19_seq_4
+    router_complex_combined_flow_line_18_if_7 -->|"else"| router_complex_combined_flow_line_31_if_6
+    router_complex_combined_flow_line_14_if_8 -->|"else"| router_complex_combined_flow_line_18_if_7
+    router_complex_combined_flow_line_28_if_2 --> router_complex_combined_flow_line_20_while_1
+    router_complex_combined_flow_line_33_if_5 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -50,9 +30,7 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_complex_combined_flow start
-    class handler_error,handler_finalize endnode
-    class router_complex_combined_flow_line_15_if_8,router_complex_combined_flow_line_19_if_7,router_complex_combined_flow_line_20_seq_4,router_complex_combined_flow_line_21_while_1,router_complex_combined_flow_line_24_if_3,router_complex_combined_flow_line_29_if_2,router_complex_combined_flow_line_32_if_6,router_complex_combined_flow_line_34_if_5 router
-    class handler_default,handler_init,handler_process,handler_type_a,handler_type_b handler
+    class router_complex_combined_flow_line_14_if_8,router_complex_combined_flow_line_18_if_7,router_complex_combined_flow_line_19_seq_4,router_complex_combined_flow_line_20_while_1,router_complex_combined_flow_line_23_if_3,router_complex_combined_flow_line_28_if_2,router_complex_combined_flow_line_31_if_6,router_complex_combined_flow_line_33_if_5 router
     class __end__ endpoint
-    linkStyle 2,3,6,9,11,13,16 stroke:#2E8B57
-    linkStyle 4,7,10,12,14,15,17 stroke:#E07040
+    linkStyle 1,3,6 stroke:#2E8B57
+    linkStyle 2,5,7,8 stroke:#E07040

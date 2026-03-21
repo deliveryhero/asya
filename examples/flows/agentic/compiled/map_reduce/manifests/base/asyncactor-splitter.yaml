@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: splitter
+  namespace: default
+  labels:
+    asya.sh/flow: map-reduce
+spec:
+  actor: splitter
+  image: examples.asya.sh/splitter:latest
+  handler: splitter
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

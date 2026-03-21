@@ -1,22 +1,27 @@
 flowchart TD
-    %% Flow: try_except_simple
+    %% Flow: order_processing
 
     notify_rejection[notify_rejection]
-    router_order_processing_line_4_except_dispatch_0{{router_order_processing_line_4_except_dispatch_0}}
-    router_order_processing_line_4_reraise_0{{router_order_processing_line_4_reraise_0}}
-    router_order_processing_line_4_try_enter_0{{router_order_processing_line_4_try_enter_0}}
-    router_order_processing_line_4_try_exit_0{{router_order_processing_line_4_try_exit_0}}
-    router_order_processing_line_7_seq{{"router_order_processing_line_7_seq<br/><br/>p['status'] = 'invalid'"}}
+    router_order_processing_line_8_except_2{{router_order_processing_line_8_except_2}}
+    router_order_processing_line_9_seq_1{{"router_order_processing_line_9_seq_1<br/><br/>p['status'] = 'invalid'"}}
     start_order_processing([start_order_processing])
     validate_order[validate_order]
     __end__((( )))
 
-    start_order_processing --> router_order_processing_line_4_try_enter_0
-    router_order_processing_line_7_seq --> notify_rejection
-    router_order_processing_line_4_try_enter_0 --> validate_order
-    validate_order --> router_order_processing_line_4_try_exit_0
-    router_order_processing_line_4_except_dispatch_0 -->|'ValueError' in _all_types| router_order_processing_line_7_seq
-    router_order_processing_line_4_except_dispatch_0 -->|not ('ValueError' in _all_types)| router_order_processing_line_4_reraise_0
+    start_order_processing --> validate_order
+    router_order_processing_line_9_seq_1 --> notify_rejection
+    router_order_processing_line_8_except_2 --> router_order_processing_line_9_seq_1
+    validate_order -->|"ValueError"| router_order_processing_line_8_except_2
     notify_rejection --> __end__
-    router_order_processing_line_4_reraise_0 --> __end__
-    router_order_processing_line_4_try_exit_0 --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_order_processing start
+    class notify_rejection endnode
+    class router_order_processing_line_8_except_2,router_order_processing_line_9_seq_1 router
+    class validate_order handler
+    class __end__ endpoint
+    linkStyle 3 stroke:#DC143C

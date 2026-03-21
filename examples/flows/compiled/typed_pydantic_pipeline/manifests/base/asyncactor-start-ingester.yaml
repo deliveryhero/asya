@@ -1,0 +1,20 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-ingester
+  namespace: default
+  labels:
+    asya.sh/flow: ingester
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-ingester
+  image: python:3.13-slim
+  handler: routers.start_ingester
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_INGESTER_LINE_176_SEQ_1
+    value: routers.router_ingester_line_176_seq_1

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: query-refiner
+  namespace: default
+  labels:
+    asya.sh/flow: rag-pipeline
+spec:
+  actor: query-refiner
+  image: examples.asya.sh/query-refiner:latest
+  handler: query_refiner
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

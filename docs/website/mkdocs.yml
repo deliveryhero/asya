@@ -45,6 +45,7 @@ nav:
     - State Proxy: usage/guide-state-proxy.md
     - Pause/Resume: usage/guide-pause-resume.md
     - Timeouts: usage/guide-timeouts.md
+    - Error Handling: usage/guide-error-handling.md
   - Operations:
     - Debugging: usage/ops-debugging.md
 - SETUP:
@@ -60,7 +61,7 @@ nav:
     - State Proxy: setup/guide-state-proxy.md
     - Pause/Resume: setup/guide-pause-resume.md
     - Timeouts: setup/guide-timeouts.md
-    - Retries: setup/guide-retries.md
+    - Error Handling: setup/guide-error-handling.md
     - Gateway: setup/guide-gateway.md
   - Operations:
     - Observability: setup/ops-observability.md

@@ -48,12 +48,11 @@ written into the payload and the message is re-enqueued to continue
 the flow. This requires the approval_gate actor to integrate with
 a notification/response system outside of Asya.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def human_in_the_loop(state: dict) -> dict:
     state["attempt"] = 0
 
@@ -88,6 +87,7 @@ async def human_in_the_loop(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def proposal_generator(state: dict) -> dict:
     """LLM actor: generate a proposed action for human review.
 
@@ -109,10 +109,10 @@ async def proposal_generator(state: dict) -> dict:
             "impact": {
                 "estimated_revenue_lift": "$50K/month",
                 "risk_level": "medium",
-                "rollback_plan": "Feature flag allows instant rollback"
+                "rollback_plan": "Feature flag allows instant rollback",
             },
             "timeline": "Deploy Friday 6pm, monitor through weekend",
-            "resources_required": ["2 hours engineering time", "On-call coverage"]
+            "resources_required": ["2 hours engineering time", "On-call coverage"],
         }
     else:
         state["proposal"] = {
@@ -125,17 +125,18 @@ async def proposal_generator(state: dict) -> dict:
                 "cost_breakdown": {
                     "infrastructure": "$2K/month additional compute",
                     "monitoring": "$500/month enhanced observability",
-                    "engineering": "2 hours deployment + 4 hours monitoring"
-                }
+                    "engineering": "2 hours deployment + 4 hours monitoring",
+                },
             },
             "timeline": "Deploy Tuesday 10am, 10% rollout for 24h, full rollout Thursday",
             "resources_required": ["6 hours engineering time", "On-call coverage Tuesday-Thursday"],
-            "addressing_feedback": f"Added detailed cost breakdown as requested: {feedback}"
+            "addressing_feedback": f"Added detailed cost breakdown as requested: {feedback}",
         }
 
     return state
 
 
+@actor
 async def approval_gate(state: dict) -> dict:
     """Human interface actor: pause for human review.
 
@@ -164,6 +165,7 @@ async def approval_gate(state: dict) -> dict:
     return state
 
 
+@actor
 async def executor(state: dict) -> dict:
     """Actor: carry out the approved action.
 
@@ -184,23 +186,20 @@ async def executor(state: dict) -> dict:
             "Deployment triggered to production cluster",
             "Initial 10% traffic routed to new engine",
             "Monitoring dashboards configured",
-            "On-call team notified"
+            "On-call team notified",
         ],
-        "metrics": {
-            "deployment_duration_seconds": 187,
-            "health_check_status": "passing",
-            "initial_error_rate": 0.001
-        },
+        "metrics": {"deployment_duration_seconds": 187, "health_check_status": "passing", "initial_error_rate": 0.001},
         "next_steps": [
             "Monitor metrics for 24 hours",
             "Review user feedback",
-            "Increase rollout to 100% if metrics remain stable"
+            "Increase rollout to 100% if metrics remain stable",
         ],
-        "timestamp": "2024-03-15T14:32:18Z"
+        "timestamp": "2024-03-15T14:32:18Z",
     }
     return state
 
 
+@actor
 async def revision_agent(state: dict) -> dict:
     """LLM actor: revise proposal based on human feedback.
 
@@ -217,14 +216,15 @@ async def revision_agent(state: dict) -> dict:
             "Add detailed cost breakdown for infrastructure and monitoring",
             "Include staged rollout approach to reduce risk",
             "Extend timeline to allow for gradual rollout",
-            "Add engineering time estimate for monitoring phase"
+            "Add engineering time estimate for monitoring phase",
         ],
-        "revised_at": "2024-03-15T13:45:00Z"
+        "revised_at": "2024-03-15T13:45:00Z",
     }
 
     return state
 
 
+@actor
 async def notifier(state: dict) -> dict:
     """Actor: send confirmation of the outcome to the user.
 
@@ -243,9 +243,9 @@ async def notifier(state: dict) -> dict:
             "message": f"Your requested deployment has been completed. Deployment ID: {result.get('deployment_id', 'unknown')}. Status: {result.get('execution_status', 'unknown')}. Initial metrics look healthy. Monitoring for 24 hours before full rollout.",
             "action_buttons": [
                 {"label": "View Metrics Dashboard", "url": "https://metrics.example.com/deploy-20240315-143218"},
-                {"label": "Rollback", "url": "https://deploy.example.com/rollback"}
+                {"label": "Rollback", "url": "https://deploy.example.com/rollback"},
             ],
-            "sent_at": "2024-03-15T14:32:25Z"
+            "sent_at": "2024-03-15T14:32:25Z",
         }
     else:
         state["notification"] = {
@@ -253,7 +253,7 @@ async def notifier(state: dict) -> dict:
             "recipient": "engineering-team",
             "subject": "Deployment Approval Process Ended",
             "message": f"Max revision attempts reached. Please review the proposal manually. Last status: {approval}",
-            "sent_at": "2024-03-15T14:32:25Z"
+            "sent_at": "2024-03-15T14:32:25Z",
         }
 
     return state

@@ -1,0 +1,181 @@
+{
+  "flow_name": "nested_error_handling",
+  "nodes": [
+    {
+      "id": "cleanup",
+      "label": "cleanup"
+    },
+    {
+      "id": "fetch_data",
+      "label": "fetch_data"
+    },
+    {
+      "id": "handle_connection_error",
+      "label": "handle_connection_error"
+    },
+    {
+      "id": "handle_parse_error",
+      "label": "handle_parse_error"
+    },
+    {
+      "id": "parse_data",
+      "label": "parse_data"
+    },
+    {
+      "id": "router_nested_error_handling_line_29_except_4",
+      "label": "router_nested_error_handling_line_29_except_4",
+      "generated": true
+    },
+    {
+      "id": "router_nested_error_handling_line_30_seq_3",
+      "label": "router_nested_error_handling_line_30_seq_3",
+      "generated": true,
+      "mutations": [
+        "p['parse_status'] = 'invalid'"
+      ]
+    },
+    {
+      "id": "router_nested_error_handling_line_33_except_2",
+      "label": "router_nested_error_handling_line_33_except_2",
+      "generated": true
+    },
+    {
+      "id": "router_nested_error_handling_line_34_seq_1",
+      "label": "router_nested_error_handling_line_34_seq_1",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'connection_failed'"
+      ]
+    },
+    {
+      "id": "start_nested_error_handling",
+      "label": "start_nested_error_handling",
+      "role": "start",
+      "generated": true
+    },
+    {
+      "id": "store_results",
+      "label": "store_results",
+      "role": "end"
+    },
+    {
+      "id": "transform_data",
+      "label": "transform_data"
+    },
+    {
+      "id": "validate_data",
+      "label": "validate_data"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_nested_error_handling",
+      "to": "fetch_data",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "fetch_data",
+      "to": "parse_data",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "parse_data",
+      "to": "validate_data",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "validate_data",
+      "to": "transform_data",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "transform_data",
+      "to": "cleanup",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "cleanup",
+      "to": "store_results",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_nested_error_handling_line_34_seq_1",
+      "to": "handle_connection_error",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_error_handling_line_33_except_2",
+      "to": "router_nested_error_handling_line_34_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_nested_error_handling_line_30_seq_3",
+      "to": "handle_parse_error",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_nested_error_handling_line_29_except_4",
+      "to": "router_nested_error_handling_line_30_seq_3",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fetch_data",
+      "to": "router_nested_error_handling_line_33_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_nested_error_handling_line_33_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_nested_error_handling_line_29_except_4",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "validate_data",
+      "to": "router_nested_error_handling_line_33_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "validate_data",
+      "to": "router_nested_error_handling_line_29_except_4",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "transform_data",
+      "to": "router_nested_error_handling_line_33_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "handle_connection_error",
+      "to": "cleanup",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "handle_parse_error",
+      "to": "transform_data",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

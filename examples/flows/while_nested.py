@@ -4,7 +4,7 @@ Nested while loops.
 Tests two-level loop nesting.
 """
 
-from asya_lab.flow import flow
+from _asya_utils import flow
 
 
 @flow

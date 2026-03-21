@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: notify-rejection
+  namespace: default
+  labels:
+    asya.sh/flow: order-processing
+    asya.sh/role: end
+spec:
+  actor: notify-rejection
+  image: examples.asya.sh/notify-rejection:latest
+  handler: notify_rejection
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

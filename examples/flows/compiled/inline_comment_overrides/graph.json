@@ -2,11 +2,6 @@
   "flow_name": "order_pipeline",
   "nodes": [
     {
-      "id": "charge_payment",
-      "label": "charge_payment",
-      "role": "end"
-    },
-    {
       "id": "router_order_pipeline_line_32_if_2",
       "label": "router_order_pipeline_line_32_if_2",
       "generated": true
@@ -45,16 +40,14 @@
     },
     {
       "from": "router_order_pipeline_line_32_if_2",
-      "to": "charge_payment",
-      "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "router_order_pipeline_line_32_if_2",
       "to": "router_order_pipeline_line_33_seq_1",
       "label": "p.get('fraud_score', 0) > 0.8",
       "type": "set"
     }
   ],
-  "groups": []
+  "groups": [],
+  "warnings": [
+    "if router 'router_order_pipeline_line_32_if_2' has no else edge and merge point could not be determined",
+    "if router 'router_order_pipeline_line_32_if_2' has conditional edge but no else edge"
+  ]
 }

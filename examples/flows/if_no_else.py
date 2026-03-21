@@ -3,12 +3,11 @@ If statement without else.
 
 Tests conditional with only true branch.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def if_no_else_flow(p: dict) -> dict:
     p = handler_setup(p)
     if p["condition"]:

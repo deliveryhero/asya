@@ -21,6 +21,7 @@ Patterns and techniques for actor development:
 - **[State Proxy](guide-state-proxy.md)** — Read/write `/state/` paths in handlers
 - **[Pause/Resume](guide-pause-resume.md)** — Yield SET to x-pause, handle resume input
 - **[Timeouts](guide-timeouts.md)** — Set actorTimeout, understand deadline behavior
+- **[Error Handling](guide-error-handling.md)** — try/except in flows, error routing, finally blocks
 
 ## Operations
 

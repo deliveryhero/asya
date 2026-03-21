@@ -4,12 +4,11 @@ ReAct (Reasoning + Acting) loop pattern.
 Primary use case for while loops: an LLM agent that iterates
 calling an LLM and executing tools until no more tool calls remain.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import flow
 
 
 @flow
-
-
 def react_agent(p: dict) -> dict:
     while True:
         p = llm_call(p)

@@ -1,0 +1,20 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-if-else-simple-flow
+  namespace: default
+  labels:
+    asya.sh/flow: if-else-simple-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-if-else-simple-flow
+  image: python:3.13-slim
+  handler: routers.start_if_else_simple_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_IF_ELSE_SIMPLE_FLOW_LINE_13_IF_1
+    value: routers.router_if_else_simple_flow_line_13_if_1

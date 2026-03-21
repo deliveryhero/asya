@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asyncactor-cleanup.yaml
+- asyncactor-fetch-data.yaml
+- asyncactor-handle-connection-error.yaml
+- asyncactor-handle-parse-error.yaml
+- asyncactor-parse-data.yaml
+- asyncactor-router-nested-error-handling-line-29-except-4.yaml
+- asyncactor-router-nested-error-handling-line-30-seq-3.yaml
+- asyncactor-router-nested-error-handling-line-33-except-2.yaml
+- asyncactor-router-nested-error-handling-line-34-seq-1.yaml
+- asyncactor-start-nested-error-handling.yaml
+- asyncactor-store-results.yaml
+- asyncactor-transform-data.yaml
+- asyncactor-validate-data.yaml
+- configmap-routers.yaml

@@ -18,23 +18,23 @@ async def start_human_in_the_loop(payload: dict):
     p = payload
     _next = []
     p['attempt'] = 0
-    _next.append(resolve("router_human_in_the_loop_line_60_while_1"))
+    _next.append(resolve("router_human_in_the_loop_line_59_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_80_seq_2(payload: dict):
+async def router_human_in_the_loop_line_79_seq_2(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['result'] = 'Max revision attempts reached'
     yield "SET", ".route.next", [resolve("notifier")]
     yield p
 
-async def router_human_in_the_loop_line_79_if_3(payload: dict):
+async def router_human_in_the_loop_line_78_if_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['attempt'] >= 3:
-        yield "SET", ".route.next", [resolve("router_human_in_the_loop_line_80_seq_2")]
+        yield "SET", ".route.next", [resolve("router_human_in_the_loop_line_79_seq_2")]
         yield p
         return
     else:
@@ -43,7 +43,7 @@ async def router_human_in_the_loop_line_79_if_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_75_if_4(payload: dict):
+async def router_human_in_the_loop_line_74_if_4(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -55,7 +55,7 @@ async def router_human_in_the_loop_line_75_if_4(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_70_if_5(payload: dict):
+async def router_human_in_the_loop_line_69_if_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -64,30 +64,30 @@ async def router_human_in_the_loop_line_70_if_5(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_human_in_the_loop_line_75_if_4"))
-        _next.append(resolve("router_human_in_the_loop_line_79_if_3"))
+        _next.append(resolve("router_human_in_the_loop_line_74_if_4"))
+        _next.append(resolve("router_human_in_the_loop_line_78_if_3"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_61_seq_6(payload: dict):
+async def router_human_in_the_loop_line_60_seq_6(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['attempt'] += 1
     _next.append(resolve("proposal_generator"))
     _next.append(resolve("approval_gate"))
-    _next.append(resolve("router_human_in_the_loop_line_70_if_5"))
+    _next.append(resolve("router_human_in_the_loop_line_69_if_5"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_human_in_the_loop_line_60_while_1(payload: dict):
+async def router_human_in_the_loop_line_59_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_human_in_the_loop_line_61_seq_6"))
-    _next.append(resolve("router_human_in_the_loop_line_60_while_1"))
+    _next.append(resolve("router_human_in_the_loop_line_60_seq_6"))
+    _next.append(resolve("router_human_in_the_loop_line_59_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

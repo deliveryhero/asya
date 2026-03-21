@@ -1,0 +1,118 @@
+{
+  "flow_name": "ingestion_pipeline",
+  "nodes": [
+    {
+      "id": "fetch_data",
+      "label": "fetch_data"
+    },
+    {
+      "id": "parse_data",
+      "label": "parse_data"
+    },
+    {
+      "id": "queue_for_retry",
+      "label": "queue_for_retry",
+      "role": "end"
+    },
+    {
+      "id": "reject_input",
+      "label": "reject_input",
+      "role": "end"
+    },
+    {
+      "id": "router_ingestion_pipeline_line_16_except_2",
+      "label": "router_ingestion_pipeline_line_16_except_2",
+      "generated": true
+    },
+    {
+      "id": "router_ingestion_pipeline_line_17_seq_1",
+      "label": "router_ingestion_pipeline_line_17_seq_1",
+      "generated": true,
+      "mutations": [
+        "p['retry_reason'] = 'transient'"
+      ]
+    },
+    {
+      "id": "router_ingestion_pipeline_line_19_except_4",
+      "label": "router_ingestion_pipeline_line_19_except_4",
+      "generated": true
+    },
+    {
+      "id": "router_ingestion_pipeline_line_20_seq_3",
+      "label": "router_ingestion_pipeline_line_20_seq_3",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'bad_input'"
+      ]
+    },
+    {
+      "id": "start_ingestion_pipeline",
+      "label": "start_ingestion_pipeline",
+      "role": "start",
+      "generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_ingestion_pipeline",
+      "to": "fetch_data",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "fetch_data",
+      "to": "parse_data",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_ingestion_pipeline_line_17_seq_1",
+      "to": "queue_for_retry",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_ingestion_pipeline_line_16_except_2",
+      "to": "router_ingestion_pipeline_line_17_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_ingestion_pipeline_line_20_seq_3",
+      "to": "reject_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_ingestion_pipeline_line_19_except_4",
+      "to": "router_ingestion_pipeline_line_20_seq_3",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fetch_data",
+      "to": "router_ingestion_pipeline_line_16_except_2",
+      "label": "ConnectionError, TimeoutError",
+      "type": "error"
+    },
+    {
+      "from": "fetch_data",
+      "to": "router_ingestion_pipeline_line_19_except_4",
+      "label": "ValueError, KeyError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_ingestion_pipeline_line_16_except_2",
+      "label": "ConnectionError, TimeoutError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_ingestion_pipeline_line_19_except_4",
+      "label": "ValueError, KeyError",
+      "type": "error"
+    }
+  ],
+  "groups": []
+}

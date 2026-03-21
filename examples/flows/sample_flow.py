@@ -1,5 +1,8 @@
 """Basic conditional branching — setup, branch on type, finalize."""
-from asya_lab.flow import flow
+
+from _asya_utils import flow
+
+
 @flow
 def sample_flow(p: dict) -> dict:
     p = handler_setup(p)

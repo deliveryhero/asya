@@ -1,4 +1,6 @@
-from asya_lab.flow import flow
+from _asya_utils import flow
+
+
 @flow
 def data_pipeline(p: dict) -> dict:
     try:

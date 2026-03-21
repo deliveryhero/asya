@@ -1,0 +1,20 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-class-instantiation-flow
+  namespace: default
+  labels:
+    asya.sh/flow: class-instantiation-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-class-instantiation-flow
+  image: python:3.13-slim
+  handler: routers.start_class_instantiation_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_CLASS_INSTANTIATION_FLOW_LINE_17_SEQ_1
+    value: routers.router_class_instantiation_flow_line_17_seq_1

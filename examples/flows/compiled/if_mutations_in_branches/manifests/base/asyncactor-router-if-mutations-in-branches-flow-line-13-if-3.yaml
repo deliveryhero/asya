@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-if-mutations-in-branches-flow-line-13-if-3
+  namespace: default
+  labels:
+    asya.sh/flow: if-mutations-in-branches-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-if-mutations-in-branches-flow-line-13-if-3
+  image: python:3.13-slim
+  handler: routers.router_if_mutations_in_branches_flow_line_13_if_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_13_IF_3
+    value: routers.router_if_mutations_in_branches_flow_line_13_if_3
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_14_SEQ_1
+    value: routers.router_if_mutations_in_branches_flow_line_14_seq_1
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_19_SEQ_2
+    value: routers.router_if_mutations_in_branches_flow_line_19_seq_2

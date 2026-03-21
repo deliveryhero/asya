@@ -39,12 +39,11 @@ Note on control flow: The while loop and step counter are pure state
 transformations -- they compile into router actors. Only the function
 calls (planner, executor, etc.) become real deployed actors.
 """
-from asya_lab.flow import flow
+
+from _asya_utils import actor, flow
 
 
 @flow
-
-
 async def plan_and_execute(state: dict) -> dict:
     state["current_step"] = 0
     state["step_results"] = []
@@ -70,6 +69,7 @@ async def plan_and_execute(state: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 
+@actor
 async def planner(state: dict) -> dict:
     """LLM actor: decompose goal into an ordered list of steps.
 
@@ -83,6 +83,7 @@ async def planner(state: dict) -> dict:
     ...  # LLM call: goal -> ordered list of atomic steps
 
 
+@actor
 async def executor(state: dict) -> dict:
     """LLM+tools actor: execute a single step from the plan.
 
@@ -95,6 +96,7 @@ async def executor(state: dict) -> dict:
     ...  # LLM call with tools: execute plan[current_step], record result
 
 
+@actor
 async def re_planner(state: dict) -> dict:
     """LLM actor: review progress and adjust the remaining plan.
 
@@ -108,6 +110,7 @@ async def re_planner(state: dict) -> dict:
     ...  # LLM call: given results so far, adjust remaining plan steps
 
 
+@actor
 async def synthesizer(state: dict) -> dict:
     """LLM actor: produce final output from all step results.
 
