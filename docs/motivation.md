@@ -49,12 +49,14 @@ through queues**.
   <img src="/docs/website/img/actor-mesh.png" width="100%" alt="Actor Mesh: all uniform, all async" />
 </p>
 <div align="center">
+
 | Each actor: |
 | :--- |
 | • Has its own queue (SQS, RabbitMQ, Pub/Sub) |
 | • Scales independently from 0 to N via KEDA |
 | • Fails independently — a crashed actor doesn't stall others |
 | • Runs a pure Python function — no retry logic, no queue client, no SDK |
+
 </div>
 
 
