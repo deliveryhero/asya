@@ -1,9 +1,16 @@
-"""Compiler rules for classifying symbols encountered in the flow DSL."""
+"""Compiler rules for classifying symbols encountered in the flow DSL.
+
+Rules are loaded from YAML config rather than hardcoded.  Defaults ship in
+``asya_lab/defaults/compiler.rules.yaml``; user rules in
+``.asya/config.compiler.rules.yaml`` extend the defaults.
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import ClassVar
+from pathlib import Path
+
+import yaml
 
 
 @dataclass
@@ -11,44 +18,66 @@ class CompilerRule:
     """Classification rule for a single symbol (context manager, decorator, etc.)."""
 
     treat_as: str  # "config" | "inline"
-    extract: dict[str, str] = field(default_factory=dict)  # param_name -> env_var
+    extract: dict[str, str] = field(default_factory=dict)  # param_name -> spec_path
     imports: list[str] = field(default_factory=list)  # import statements for generated code
+
+
+def _load_default_rules() -> list[dict]:
+    """Load default rules from the shipped YAML file."""
+    defaults_path = Path(__file__).parent.parent / "defaults" / "compiler.rules.yaml"
+    if defaults_path.exists():
+        return yaml.safe_load(defaults_path.read_text()) or []
+    return []
+
+
+def _rule_from_dict(d: dict) -> CompilerRule:
+    """Convert a YAML rule dict to a CompilerRule."""
+    return CompilerRule(
+        treat_as=d.get("treat-as", "config"),
+        extract=d.get("extract", {}),
+        imports=d.get("imports", []),
+    )
 
 
 class CompilerRules:
     """Registry of compiler rules indexed by fully-qualified symbol name.
 
-    Built-in defaults cover the most common integrations.  Custom rules
-    passed to ``__init__`` are merged on top of the defaults, so
-    user-provided rules extend rather than replace the built-ins.
-
-    To start with no built-in rules at all use ``CompilerRules.empty()``.
+    Rules are loaded from YAML config files.  To start with no rules at all
+    use ``CompilerRules.empty()``.
     """
 
-    _DEFAULT_RULES: ClassVar[dict[str, CompilerRule]] = {
-        "asyncio.timeout": CompilerRule(
-            treat_as="config",
-            extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
-        ),
-        # contextlib.suppress suppresses exceptions inline in the router function.
-        # The import is emitted in generated code automatically.
-        "contextlib.suppress": CompilerRule(
-            treat_as="inline",
-            imports=["import contextlib"],
-        ),
-    }
-
     def __init__(self, rules: dict[str, CompilerRule] | None = None) -> None:
-        self._rules: dict[str, CompilerRule] = dict(self._DEFAULT_RULES)
+        self._rules: dict[str, CompilerRule] = {}
+        # Load shipped defaults
+        for d in _load_default_rules():
+            if d.get("scope") == "context-manager":
+                self._rules[d["match"]] = _rule_from_dict(d)
+        # User-provided rules override defaults
         if rules is not None:
             self._rules.update(rules)
 
     @classmethod
     def empty(cls) -> CompilerRules:
-        """Return a CompilerRules with no rules at all (not even the built-in defaults)."""
+        """Return a CompilerRules with no rules at all."""
         instance = cls.__new__(cls)
         instance._rules = {}
         return instance
+
+    @classmethod
+    def from_config(cls, rules_cfg: list[dict] | None) -> CompilerRules:
+        """Create CompilerRules from a combined config rule list.
+
+        Filters for ``scope: context-manager`` entries and converts them
+        to CompilerRule instances.  Non-context-manager rules are ignored
+        (they are handled by the call-site RuleEngine in compiler/rules.py).
+        """
+        user_rules: dict[str, CompilerRule] | None = None
+        if rules_cfg:
+            user_rules = {}
+            for d in rules_cfg:
+                if d.get("scope") == "context-manager":
+                    user_rules[d["match"]] = _rule_from_dict(d)
+        return cls(user_rules)
 
     def lookup(self, symbol: str) -> CompilerRule | None:
         """Return the rule for *symbol*, or None if not found."""

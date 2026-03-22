@@ -87,90 +87,26 @@ class TestRuleEngineExactMatch:
         assert engine.classify("tenacity.stop") is None
 
 
-class TestRuleEngineWildcardMatch:
-    def test_global_wildcard(self) -> None:
-        engine = RuleEngine([CompilerRule(match="*", treat_as=TreatAs.INLINE)])
-        assert engine.classify("anything") is TreatAs.INLINE
-        assert engine.classify("some.module.func") is TreatAs.INLINE
-
-    def test_prefix_wildcard(self) -> None:
-        engine = RuleEngine([CompilerRule(match="tenacity.*", treat_as=TreatAs.CONFIG)])
-        assert engine.classify("tenacity.retry") is TreatAs.CONFIG
-        assert engine.classify("tenacity.stop") is TreatAs.CONFIG
-
-    def test_prefix_wildcard_no_match(self) -> None:
-        engine = RuleEngine([CompilerRule(match="tenacity.*", treat_as=TreatAs.CONFIG)])
-        assert engine.classify("other.retry") is None
-        assert engine.classify("tenacity") is None
-
-
-class TestRuleEngineDotMatch:
-    def test_dot_matches_bare_symbol(self) -> None:
-        engine = RuleEngine([CompilerRule(match=".", treat_as=TreatAs.UNFOLD)])
-        assert engine.classify("my_func") is TreatAs.UNFOLD
-
-    def test_dot_matches_same_package(self) -> None:
-        engine = RuleEngine([CompilerRule(match=".", treat_as=TreatAs.UNFOLD)])
-        assert engine.classify("mypackage.util", module_path="mypackage.main") is TreatAs.UNFOLD
-
-    def test_dot_no_match_different_package(self) -> None:
-        engine = RuleEngine([CompilerRule(match=".", treat_as=TreatAs.UNFOLD)])
-        assert engine.classify("other.util", module_path="mypackage.main") is None
-
-    def test_dot_no_match_dotted_symbol_without_module_path(self) -> None:
-        engine = RuleEngine([CompilerRule(match=".", treat_as=TreatAs.UNFOLD)])
-        assert engine.classify("other.util") is None
-
-
-class TestRuleEngineSpecificity:
-    def test_exact_beats_prefix(self) -> None:
+class TestRuleEngineMultipleExactRules:
+    def test_last_exact_match_wins(self) -> None:
         engine = RuleEngine(
             [
-                CompilerRule(match="tenacity.*", treat_as=TreatAs.INLINE),
+                CompilerRule(match="tenacity.retry", treat_as=TreatAs.INLINE),
                 CompilerRule(match="tenacity.retry", treat_as=TreatAs.CONFIG),
+            ]
+        )
+        assert engine.classify("tenacity.retry") is TreatAs.CONFIG
+
+    def test_unmatched_returns_none(self) -> None:
+        engine = RuleEngine(
+            [
+                CompilerRule(match="tenacity.retry", treat_as=TreatAs.CONFIG),
+                CompilerRule(match="tenacity.stop", treat_as=TreatAs.INLINE),
             ]
         )
         assert engine.classify("tenacity.retry") is TreatAs.CONFIG
         assert engine.classify("tenacity.stop") is TreatAs.INLINE
-
-    def test_prefix_beats_dot(self) -> None:
-        engine = RuleEngine(
-            [
-                CompilerRule(match=".", treat_as=TreatAs.UNFOLD),
-                CompilerRule(match="mypackage.*", treat_as=TreatAs.ACTOR),
-            ]
-        )
-        assert engine.classify("mypackage.func", module_path="mypackage.main") is TreatAs.ACTOR
-
-    def test_dot_beats_wildcard(self) -> None:
-        engine = RuleEngine(
-            [
-                CompilerRule(match="*", treat_as=TreatAs.INLINE),
-                CompilerRule(match=".", treat_as=TreatAs.UNFOLD),
-            ]
-        )
-        assert engine.classify("my_func") is TreatAs.UNFOLD
-
-    def test_longer_prefix_wins(self) -> None:
-        engine = RuleEngine(
-            [
-                CompilerRule(match="a.*", treat_as=TreatAs.INLINE),
-                CompilerRule(match="a.b.*", treat_as=TreatAs.ACTOR),
-            ]
-        )
-        assert engine.classify("a.b.c") is TreatAs.ACTOR
-        assert engine.classify("a.x") is TreatAs.INLINE
-
-    def test_exact_beats_everything(self) -> None:
-        engine = RuleEngine(
-            [
-                CompilerRule(match="*", treat_as=TreatAs.INLINE),
-                CompilerRule(match=".", treat_as=TreatAs.UNFOLD),
-                CompilerRule(match="tenacity.*", treat_as=TreatAs.FLOW),
-                CompilerRule(match="tenacity.retry", treat_as=TreatAs.CONFIG),
-            ]
-        )
-        assert engine.classify("tenacity.retry") is TreatAs.CONFIG
+        assert engine.classify("other.func") is None
 
 
 class TestRuleEngineGetRule:
@@ -185,44 +121,51 @@ class TestRuleEngineGetRule:
 
 
 class TestRuleEngineWithDefaults:
-    def test_defaults_provide_dot_and_wildcard(self) -> None:
+    def test_defaults_has_no_builtin_rules(self) -> None:
         engine = RuleEngine.with_defaults()
-        assert engine.classify("my_func") is TreatAs.UNFOLD
-        assert engine.classify("external.lib") is TreatAs.INLINE
+        assert engine.rules == []
+        assert engine.classify("my_func") is None
+        assert engine.classify("external.lib") is None
 
-    def test_extra_rules_override_defaults(self) -> None:
+    def test_extra_rules_are_used(self) -> None:
         extra = [CompilerRule(match="tenacity.retry", treat_as=TreatAs.CONFIG)]
         engine = RuleEngine.with_defaults(extra_rules=extra)
         assert engine.classify("tenacity.retry") is TreatAs.CONFIG
-        assert engine.classify("my_func") is TreatAs.UNFOLD
-        assert engine.classify("other.lib") is TreatAs.INLINE
+        assert engine.classify("other.lib") is None
 
     def test_defaults_rules_property(self) -> None:
         engine = RuleEngine.with_defaults()
-        matches = [r.match for r in engine.rules]
-        assert "." in matches
-        assert "*" in matches
+        assert engine.rules == []
 
 
 class TestRuleEngineFromConfig:
     def test_none_config(self) -> None:
         engine = RuleEngine.from_config(None)
-        assert engine.classify("my_func") is TreatAs.UNFOLD
-        assert engine.classify("ext.lib") is TreatAs.INLINE
+        assert engine.classify("my_func") is None
+        assert engine.classify("ext.lib") is None
 
     def test_empty_config(self) -> None:
         engine = RuleEngine.from_config([])
-        assert engine.classify("my_func") is TreatAs.UNFOLD
+        assert engine.classify("my_func") is None
 
     def test_config_with_user_rules(self) -> None:
         cfg = [
             {"match": "tenacity.retry", "treat-as": "config"},
-            {"match": "functools.*", "treat-as": "inline"},
+            {"match": "functools.lru_cache", "treat-as": "inline"},
         ]
         engine = RuleEngine.from_config(cfg)
         assert engine.classify("tenacity.retry") is TreatAs.CONFIG
         assert engine.classify("functools.lru_cache") is TreatAs.INLINE
-        assert engine.classify("my_func") is TreatAs.UNFOLD
+        assert engine.classify("my_func") is None
+
+    def test_config_filters_context_manager_scope(self) -> None:
+        cfg = [
+            {"match": "tenacity.retry", "treat-as": "config"},
+            {"match": "asyncio.timeout", "treat-as": "config", "scope": "context-manager"},
+        ]
+        engine = RuleEngine.from_config(cfg)
+        assert engine.classify("tenacity.retry") is TreatAs.CONFIG
+        assert engine.classify("asyncio.timeout") is None
 
     def test_config_extraction_rule(self) -> None:
         cfg = [

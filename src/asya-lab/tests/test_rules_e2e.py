@@ -153,11 +153,15 @@ _TENACITY_IMPORTS = {
 
 
 class TestInlineClassification:
-    """External (dotted) calls are inlined by the default '*' rule."""
+    """Dotted calls are inlined when explicit inline rules are provided."""
 
-    def test_dotted_call_inlined_by_default(self, tmp_path: Path) -> None:
-        """A dotted call like ``utils.clean(p)`` matches '*' -> inline."""
-        project = _scaffold_project(tmp_path)
+    def test_dotted_call_inlined_with_explicit_rule(self, tmp_path: Path) -> None:
+        """A dotted call like ``utils.clean(p)`` is inlined when a rule classifies it."""
+        rules = dedent("""\
+            - match: "utils.clean"
+              treat-as: inline
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
             @flow
             async def my_flow(p: dict) -> dict:
@@ -172,9 +176,32 @@ class TestInlineClassification:
         _assert_actor(code, "handler_a")
         _assert_actor(code, "handler_b")
 
+    def test_dotted_call_is_actor_without_rules(self, tmp_path: Path) -> None:
+        """Without rules, dotted calls are treated as actors (no default inline)."""
+        project = _scaffold_project(tmp_path)
+        source = dedent("""\
+            @flow
+            async def my_flow(p: dict) -> dict:
+                p = handler_a(p)
+                p = utils.clean(p)
+                p = handler_b(p)
+                return p
+        """)
+        code = _compile_flow(project, source)
+
+        _assert_actor(code, "utils.clean")
+        _assert_actor(code, "handler_a")
+        _assert_actor(code, "handler_b")
+
     def test_multiple_consecutive_inlines_merged(self, tmp_path: Path) -> None:
         """Multiple consecutive inline calls merge into one router's mutations."""
-        project = _scaffold_project(tmp_path)
+        rules = dedent("""\
+            - match: "logging.info"
+              treat-as: inline
+            - match: "metrics.emit"
+              treat-as: inline
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
             @flow
             async def my_flow(p: dict) -> dict:
@@ -196,7 +223,7 @@ class TestInlineCommentOverride:
     """The ``# asya: <action>`` inline comment has highest priority."""
 
     def test_comment_forces_inline(self, tmp_path: Path) -> None:
-        """A bare symbol (same-package -> unfold) overridden to inline via comment."""
+        """A bare symbol overridden to inline via comment."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
             @flow
@@ -212,8 +239,12 @@ class TestInlineCommentOverride:
         _assert_actor(code, "handler_a")
 
     def test_comment_forces_actor(self, tmp_path: Path) -> None:
-        """A dotted call (default '*' -> inline) overridden to actor via comment."""
-        project = _scaffold_project(tmp_path)
+        """An inline-classified call overridden to actor via comment."""
+        rules = dedent("""\
+            - match: "external.lib"
+              treat-as: inline
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
             @flow
             async def my_flow(p: dict) -> dict:
@@ -229,11 +260,11 @@ class TestInlineCommentOverride:
         assert not _mutation_re("external.lib(p)").search(code), f"external.lib should be actor, not mutation:\n{code}"
 
 
-class TestUserRuleOverridesDefault:
-    """Exact-match user rules (tier 0) beat default wildcards (tier 2/3)."""
+class TestUserRuleClassification:
+    """Exact-match user rules classify symbols correctly."""
 
-    def test_exact_match_beats_wildcard(self, tmp_path: Path) -> None:
-        """User rule: tenacity.retry -> config, default '*' -> inline."""
+    def test_exact_match_classifies_config(self, tmp_path: Path) -> None:
+        """User rule: tenacity.retry -> config is inlined in generated code."""
         rules = dedent("""\
             - match: "tenacity.retry"
               treat-as: config
@@ -249,13 +280,18 @@ class TestUserRuleOverridesDefault:
         code = _compile_flow(project, source)
 
         _assert_inlined(code, "tenacity.retry(p)")
-        _assert_inlined(code, "other.lib(p)")
+        # other.lib has no rule, so it becomes an actor
+        _assert_actor(code, "other.lib")
 
-    def test_prefix_wildcard_rule(self, tmp_path: Path) -> None:
-        """User rule: 'mylib.*' -> actor forces all mylib.X to actor."""
+    def test_multiple_exact_rules(self, tmp_path: Path) -> None:
+        """Multiple exact rules classify each symbol independently."""
         rules = dedent("""\
-            - match: "mylib.*"
+            - match: "mylib.process"
               treat-as: actor
+            - match: "mylib.validate"
+              treat-as: actor
+            - match: "external.util"
+              treat-as: inline
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
@@ -273,11 +309,11 @@ class TestUserRuleOverridesDefault:
         _assert_inlined(code, "external.util(p)")
 
 
-class TestSamePackageClassification:
-    """Bare (undotted) symbols match '.' (same-package) -> unfold by default."""
+class TestNoRulesDefaultBehavior:
+    """Without rules, all symbols become actors."""
 
-    def test_bare_symbol_unfold_still_actor(self, tmp_path: Path) -> None:
-        """Unfold symbols are currently emitted as actors (expansion not yet implemented)."""
+    def test_bare_symbols_are_actors(self, tmp_path: Path) -> None:
+        """Bare symbols with no matching rule become actors."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
             @flow
@@ -313,8 +349,12 @@ class TestConditionalWithMixedClassifications:
         _assert_actor(code, "handler_slow")
 
     def test_inline_inside_branch(self, tmp_path: Path) -> None:
-        """A dotted call inside a branch is inlined within the branch router."""
-        project = _scaffold_project(tmp_path)
+        """A call classified as inline inside a branch is inlined within the branch router."""
+        rules = dedent("""\
+            - match: "metrics.track"
+              treat-as: inline
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
             @flow
             async def my_flow(p: dict) -> dict:
@@ -431,17 +471,17 @@ class TestTenacityRules:
         _assert_inlined(code, "tenacity.retry(p)")
         _assert_actor(code, "handler")
 
-    def test_tenacity_exact_match_beats_default_inline(self, tmp_path: Path) -> None:
-        """tenacity.retry (exact, tier 0) wins over '*' (tier 3)."""
+    def test_tenacity_exact_match_only(self, tmp_path: Path) -> None:
+        """Only tenacity.retry matches; other symbols return None."""
         project = _scaffold_project(tmp_path, rules_yaml=_TENACITY_RULES_YAML)
         engine = _load_engine(project)
 
-        # tenacity.retry -> config (exact match, tier 0)
+        # tenacity.retry -> config (exact match)
         assert engine.classify("tenacity.retry") == TreatAs.CONFIG
-        # tenacity.wait -> inline (falls through to default '*', tier 3)
-        assert engine.classify("tenacity.wait") == TreatAs.INLINE
-        # Bare symbol -> unfold (default '.', tier 2)
-        assert engine.classify("handler") == TreatAs.UNFOLD
+        # tenacity.wait -> None (no matching rule)
+        assert engine.classify("tenacity.wait") is None
+        # Bare symbol -> None (no matching rule)
+        assert engine.classify("handler") is None
 
     def test_extract_stop_after_attempt(self, tmp_path: Path) -> None:
         """Extract maxAttempts from ``stop=stop_after_attempt(5)`` using positional arg.
@@ -598,13 +638,13 @@ class TestFullPipelineWithRichRules:
     """End-to-end: realistic config with multiple rules and a complex flow."""
 
     def test_mixed_flow_with_multiple_rules(self, tmp_path: Path) -> None:
-        """Compile a flow that exercises exact, prefix, and default rules together."""
+        """Compile a flow that exercises multiple exact rules together."""
         rules = dedent("""\
             - match: "tenacity.retry"
               treat-as: config
-            - match: "logging.*"
+            - match: "logging.setup"
               treat-as: inline
-            - match: "myapp.*"
+            - match: "myapp.process"
               treat-as: actor
         """)
         project = _scaffold_project(tmp_path, rules_yaml=rules)
@@ -623,12 +663,17 @@ class TestFullPipelineWithRichRules:
         _assert_inlined(code, "tenacity.retry(p)")
         _assert_inlined(code, "logging.setup(p)")
         _assert_actor(code, "myapp.process")
-        _assert_inlined(code, "external.util(p)")
+        # No rule for external.util or local_handler -> actor
+        _assert_actor(code, "external.util")
         _assert_actor(code, "local_handler")
 
     def test_inline_mutations_in_start_router(self, tmp_path: Path) -> None:
         """Inline calls at the start of a flow are merged into the start router."""
-        project = _scaffold_project(tmp_path)
+        rules = dedent("""\
+            - match: "logging.init"
+              treat-as: inline
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
         source = dedent("""\
             @flow
             async def my_flow(p: dict) -> dict:
@@ -642,8 +687,8 @@ class TestFullPipelineWithRichRules:
         assert "start_my_flow" in code, code
         _assert_actor(code, "handler_a")
 
-    def test_no_rules_file_uses_defaults(self, tmp_path: Path) -> None:
-        """Without config.compiler.rules.yaml, default rules still apply."""
+    def test_no_rules_file_all_actors(self, tmp_path: Path) -> None:
+        """Without config.compiler.rules.yaml, all calls become actors."""
         project = _scaffold_project(tmp_path)
         source = dedent("""\
             @flow
@@ -657,7 +702,7 @@ class TestFullPipelineWithRichRules:
 
         _assert_actor(code, "handler_a")
         _assert_actor(code, "handler_b")
-        _assert_inlined(code, "external.lib(p)")
+        _assert_actor(code, "external.lib")
 
     def test_single_actor_flow(self, tmp_path: Path) -> None:
         """A flow with one actor generates a valid single-actor FLOW_METADATA."""

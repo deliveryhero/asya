@@ -1,0 +1,21 @@
+# Default compiler rules shipped with asya-lab.
+#
+# User rules in .asya/config.compiler.rules.yaml extend (not replace) these
+# defaults. User rules are checked first; these apply when no user rule matches.
+#
+# Context manager rules classify `with` / `async with` expressions.
+# Call-site rules classify `p = fn(p)` expressions.
+
+# -- Context manager rules --
+
+- match: "asyncio.timeout"
+  scope: context-manager
+  treat-as: config
+  extract:
+    delay: spec.resiliency.timeout.actor
+
+- match: "contextlib.suppress"
+  scope: context-manager
+  treat-as: inline
+  imports:
+  - "import contextlib"
