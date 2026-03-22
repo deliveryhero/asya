@@ -164,18 +164,18 @@ class TestBaseLayer:
 
         base = tmp_path / "manifests" / "base"
         # 1 router actor + 2 handler actors + configmap + kustomization
-        assert (base / "asyncactor-start-my-flow.yaml").exists()
-        assert (base / "asyncactor-handler-a.yaml").exists()
-        assert (base / "asyncactor-handler-b.yaml").exists()
+        assert (base / "asya-start-my-flow.yaml").exists()
+        assert (base / "asya-actor-handler-a.yaml").exists()
+        assert (base / "asya-actor-handler-b.yaml").exists()
 
     def test_actor_manifest_has_correct_metadata(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asya-actor-handler-a.yaml").read_text())
         assert actor["apiVersion"] == "asya.sh/v1alpha1"
         assert actor["kind"] == "AsyncActor"
-        assert actor["metadata"]["name"] == "handler-a"
+        assert actor["metadata"]["name"] == "actor-handler-a"
         assert actor["metadata"]["namespace"] == "test-ns"
         assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow"
         # Middle handler: no asya.sh/role, no asya.sh/generated
@@ -186,7 +186,7 @@ class TestBaseLayer:
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-handler-a.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asya-actor-handler-a.yaml").read_text())
         image = actor["spec"]["image"]
         # Manifests are real K8s resources — no OmegaConf interpolations allowed
         assert "${" not in image
@@ -196,7 +196,7 @@ class TestBaseLayer:
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asya-start-my-flow.yaml").read_text())
         assert actor["spec"]["image"] == "python:3.13-slim"
         assert actor["spec"]["handler"] == "routers.start_my_flow"
         # Start router: has both asya.sh/role and asya.sh/generated
@@ -207,11 +207,11 @@ class TestBaseLayer:
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asyncactor-start-my-flow.yaml").read_text())
+        actor = yaml.safe_load((tmp_path / "manifests" / "base" / "asya-start-my-flow.yaml").read_text())
         env = actor["spec"]["env"]
         env_names = {e["name"] for e in env}
-        assert "ASYA_HANDLER_HANDLER_A" in env_names
-        assert "ASYA_HANDLER_HANDLER_B" in env_names
+        assert "ASYA_HANDLER_ACTOR_HANDLER_A" in env_names
+        assert "ASYA_HANDLER_ACTOR_HANDLER_B" in env_names
 
     def test_configmap_contains_router_code(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
@@ -230,8 +230,8 @@ class TestBaseLayer:
         kust = yaml.safe_load((tmp_path / "manifests" / "base" / "kustomization.yaml").read_text())
         resources = kust["resources"]
         assert "configmap-routers.yaml" in resources
-        assert "asyncactor-start-my-flow.yaml" in resources
-        assert "asyncactor-handler-a.yaml" in resources
+        assert "asya-start-my-flow.yaml" in resources
+        assert "asya-actor-handler-a.yaml" in resources
 
     def test_recompile_regenerates_base(self, tmp_path, sequential_meta, router_code, project, template_dir):
         out = tmp_path / "manifests"
@@ -243,7 +243,7 @@ class TestBaseLayer:
 
         templater.stamp(out)
         assert not (out / "base" / "stale.yaml").exists()
-        assert (out / "base" / "asyncactor-start-my-flow.yaml").exists()
+        assert (out / "base" / "asya-start-my-flow.yaml").exists()
 
 
 class TestCommonLayer:
@@ -352,7 +352,7 @@ class TestTwoLabelSystem:
         )
 
     def _load_actor(self, tmp_path, name):
-        return yaml.safe_load((tmp_path / "manifests" / "base" / f"asyncactor-{name}.yaml").read_text())
+        return yaml.safe_load((tmp_path / "manifests" / "base" / f"asya-{name}.yaml").read_text())
 
     def test_start_router_has_role_and_generated(self, tmp_path, sequential_meta, router_code, project, template_dir):
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
@@ -369,7 +369,7 @@ class TestTwoLabelSystem:
         templater = _make_templater("my-flow", sequential_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = self._load_actor(tmp_path, "handler-a")
+        actor = self._load_actor(tmp_path, "actor-handler-a")
         labels = actor["metadata"]["labels"]
         assert "asya.sh/role" not in labels
         assert "asya.sh/generated" not in labels
@@ -390,7 +390,7 @@ class TestTwoLabelSystem:
         templater.flow_roles = flow_roles
         templater.stamp(tmp_path / "manifests")
 
-        actor = self._load_actor(tmp_path, "handler-b")
+        actor = self._load_actor(tmp_path, "actor-handler-b")
         labels = actor["metadata"]["labels"]
         assert labels["asya.sh/role"] == "end"
         assert "asya.sh/generated" not in labels
@@ -400,6 +400,6 @@ class TestTwoLabelSystem:
         templater.stamp(tmp_path / "manifests")
 
         base = tmp_path / "manifests" / "base"
-        for path in sorted(base.glob("asyncactor-*.yaml")):
+        for path in sorted(base.glob("asya-*.yaml")):
             actor = yaml.safe_load(path.read_text())
             assert actor["metadata"]["labels"]["asya.sh/flow"] == "my-flow", f"{path.name} missing flow label"

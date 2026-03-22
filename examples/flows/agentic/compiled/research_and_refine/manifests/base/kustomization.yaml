@@ -1,14 +1,14 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-critic.yaml
-- asyncactor-refine-query.yaml
-- asyncactor-researcher.yaml
-- asyncactor-router-research-and-refine-line-46-seq-5.yaml
-- asyncactor-router-research-and-refine-line-49-while-1.yaml
-- asyncactor-router-research-and-refine-line-50-seq-4.yaml
-- asyncactor-router-research-and-refine-line-54-if-3.yaml
-- asyncactor-router-research-and-refine-line-58-if-2.yaml
-- asyncactor-start-research-and-refine.yaml
-- asyncactor-write-report.yaml
+- asya-actor-critic.yaml
+- asya-actor-refine-query.yaml
+- asya-actor-researcher.yaml
+- asya-actor-write-report.yaml
+- asya-router-research-and-refine-line-46-seq-5.yaml
+- asya-router-research-and-refine-line-49-while-1.yaml
+- asya-router-research-and-refine-line-50-seq-4.yaml
+- asya-router-research-and-refine-line-54-if-3.yaml
+- asya-router-research-and-refine-line-58-if-2.yaml
+- asya-start-research-and-refine.yaml
 - configmap-routers.yaml

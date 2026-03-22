@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-sentiment-analyzer
+  namespace: default
+  labels:
+    asya.sh/flow: analysis-flow
+spec:
+  actor: actor-sentiment-analyzer
+  image: examples.asya.sh/sentiment-analyzer:latest
+  handler: sentiment_analyzer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

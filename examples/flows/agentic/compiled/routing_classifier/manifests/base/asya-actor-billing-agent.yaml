@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-billing-agent
+  namespace: default
+  labels:
+    asya.sh/flow: routing-classifier
+spec:
+  actor: actor-billing-agent
+  image: examples.asya.sh/billing-agent:latest
+  handler: billing_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-proposal-generator
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+spec:
+  actor: actor-proposal-generator
+  image: examples.asya.sh/proposal-generator:latest
+  handler: proposal_generator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

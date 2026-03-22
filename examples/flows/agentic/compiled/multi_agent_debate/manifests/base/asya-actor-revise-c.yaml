@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-revise-c
+  namespace: default
+  labels:
+    asya.sh/flow: multi-agent-debate
+spec:
+  actor: actor-revise-c
+  image: examples.asya.sh/revise-c:latest
+  handler: revise_c
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

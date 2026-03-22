@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-judge
+  namespace: default
+  labels:
+    asya.sh/flow: voting-ensemble
+    asya.sh/role: end
+spec:
+  actor: actor-judge
+  image: examples.asya.sh/judge:latest
+  handler: judge
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-creative-writer
+  namespace: default
+  labels:
+    asya.sh/flow: voting-ensemble
+spec:
+  actor: actor-creative-writer
+  image: examples.asya.sh/creative-writer:latest
+  handler: creative_writer
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

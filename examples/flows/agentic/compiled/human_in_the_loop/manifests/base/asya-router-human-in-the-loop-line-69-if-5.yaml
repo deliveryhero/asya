@@ -1,0 +1,39 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-human-in-the-loop-line-69-if-5
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+    asya.sh/generated: 'true'
+spec:
+  actor: router-human-in-the-loop-line-69-if-5
+  image: python:3.13-slim
+  handler: routers.router_human_in_the_loop_line_69_if_5
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_APPROVAL_GATE
+    value: approval_gate
+  - name: ASYA_HANDLER_ACTOR_EXECUTOR
+    value: executor
+  - name: ASYA_HANDLER_ACTOR_NOTIFIER
+    value: notifier
+  - name: ASYA_HANDLER_ACTOR_PROPOSAL_GENERATOR
+    value: proposal_generator
+  - name: ASYA_HANDLER_ACTOR_REVISION_AGENT
+    value: revision_agent
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_59_WHILE_1
+    value: routers.router_human_in_the_loop_line_59_while_1
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_60_SEQ_6
+    value: routers.router_human_in_the_loop_line_60_seq_6
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_69_IF_5
+    value: routers.router_human_in_the_loop_line_69_if_5
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_74_IF_4
+    value: routers.router_human_in_the_loop_line_74_if_4
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_78_IF_3
+    value: routers.router_human_in_the_loop_line_78_if_3
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_79_SEQ_2
+    value: routers.router_human_in_the_loop_line_79_seq_2

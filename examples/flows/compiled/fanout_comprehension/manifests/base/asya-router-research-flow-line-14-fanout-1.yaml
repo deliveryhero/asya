@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-research-flow-line-14-fanout-1
+  namespace: default
+  labels:
+    asya.sh/flow: research-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-research-flow-line-14-fanout-1
+  image: python:3.13-slim
+  handler: routers.router_research_flow_line_14_fanout_1
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_FANIN_RESEARCH_FLOW_LINE_14
+    value: routers.fanin_research_flow_line_14
+  - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
+    value: research_agent
+  - name: ASYA_HANDLER_ROUTER_RESEARCH_FLOW_LINE_14_FANOUT_1
+    value: routers.router_research_flow_line_14_fanout_1

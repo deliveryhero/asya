@@ -1,0 +1,29 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-document-pipeline-line-27-seq-1
+  namespace: default
+  labels:
+    asya.sh/flow: document-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-document-pipeline-line-27-seq-1
+  image: python:3.13-slim
+  handler: routers.router_document_pipeline_line_27_seq_1
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_LANGUAGE_DETECTOR
+    value: language_detector
+  - name: ASYA_HANDLER_ACTOR_OCR_EXTRACTOR
+    value: ocr_extractor
+  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_LINE_23_IF_2
+    value: routers.router_document_pipeline_line_23_if_2
+  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_LINE_27_SEQ_1
+    value: routers.router_document_pipeline_line_27_seq_1
+  - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER
+    value: sentiment_analyzer
+  - name: ASYA_HANDLER_ACTOR_TRANSLATOR
+    value: translator

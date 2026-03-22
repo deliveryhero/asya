@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handle-connection-error
+  namespace: default
+  labels:
+    asya.sh/flow: nested-error-handling
+spec:
+  actor: actor-handle-connection-error
+  image: examples.asya.sh/handle-connection-error:latest
+  handler: handle_connection_error
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

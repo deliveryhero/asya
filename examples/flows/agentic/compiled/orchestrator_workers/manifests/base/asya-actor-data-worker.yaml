@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-data-worker
+  namespace: default
+  labels:
+    asya.sh/flow: orchestrator-workers
+spec:
+  actor: actor-data-worker
+  image: examples.asya.sh/data-worker:latest
+  handler: data_worker
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
