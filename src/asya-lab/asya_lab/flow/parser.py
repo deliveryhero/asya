@@ -193,6 +193,7 @@ class FlowParser:
         self._groups: list[dict] = []
         self._expansion_depth: int = 0
         self._tree: ast.Module | None = None
+        self._local_functions: set[str] = set()
 
     def parse(self) -> ParseResult:
         try:
@@ -203,6 +204,7 @@ class FlowParser:
 
         self._collect_imports(tree)
         self._collect_module_constants(tree)
+        self._local_functions = {node.name for node in tree.body if isinstance(node, _FUNC_DEF_TYPES)}
         self._decorator_index = self._build_decorator_index(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
@@ -312,6 +314,10 @@ class FlowParser:
             if isinstance(dec.func, ast.Attribute):
                 return ast.unparse(dec.func)
         return None
+
+    def _is_local_function(self, name: str) -> bool:
+        """Check if a function is defined in the current source file."""
+        return name in self._local_functions
 
     def _extract_decorator_args(self, dec: ast.Call, rule: CompilerRule) -> dict[str, str]:
         """Extract args from a decorator call, mapping to spec paths via rule.extract."""
@@ -612,13 +618,16 @@ class FlowParser:
         # Definition-site decorator (lower priority)
         if actor_name in self._decorator_index:
             dec_type = self._decorator_index[actor_name]
-            if dec_type == "inline":
+            if dec_type == "actor":
+                self._actors.append(actor_name)
+                return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+            elif dec_type == "inline":
                 self._inline_funcs.add(actor_name)
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             elif dec_type in ("flow", "unfold"):
                 return self._expand_flow_call(actor_name, stmt.lineno, required=False)
 
-        # Rule engine classification (lowest priority)
+        # Rule engine classification
         if self._rule_engine is not None:
             from asya_lab.compiler.rules import TreatAs
 
@@ -629,6 +638,16 @@ class FlowParser:
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             if treat_as is not None and treat_as in (TreatAs.FLOW, TreatAs.UNFOLD):
                 return self._expand_flow_call(actor_name, stmt.lineno, required=False)
+            if treat_as is not None and treat_as == TreatAs.ACTOR:
+                self._actors.append(actor_name)
+                return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+
+        # Implicit defaults: local function -> unfold, imported -> inline, bare name -> actor
+        if self._is_local_function(actor_name):
+            return self._expand_flow_call(actor_name, stmt.lineno, required=False)
+        if actor_name in self.import_map:
+            self._inline_funcs.add(actor_name)
+            return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
 
         self._actors.append(actor_name)
         return [ActorCall(lineno=stmt.lineno, name=actor_name)]

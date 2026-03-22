@@ -502,72 +502,103 @@ For `CONFIG` rules with `where:` trees, the parser calls
 `ValueExtractor.extract(call_node, rule)` to pull spec values and stores them
 in `InlineCode.extracted_values`.
 
-## Rules engine (AST-level classification)
+## Symbol classification
 
-**Source**: `src/asya-lab/asya_lab/compiler/rules.py`
+**Source**: `src/asya-lab/asya_lab/compiler/rules.py`, `src/asya-lab/asya_lab/flow/parser.py`
 
-The rules engine classifies Python symbols against an ordered list of compiler
-rules using a most-specific-wins strategy.
+Every function call in a flow is classified as one of five `treat-as` values.
+The classification determines whether the call creates an actor boundary,
+runs inline in the router, or extracts configuration.
 
-### TreatAs classifications
+### TreatAs values
 
-| Value | Meaning | IR result |
-|-------|---------|-----------|
-| `actor` | Separate actor, route through queue | `ActorCall` |
-| `unfold` | Recursively compile (same-package helper) | `ActorCall` (future: inline expansion) |
-| `flow` | Embedded sub-flow | `ActorCall` (future: flow composition) |
-| `inline` | Inline code into router body | `InlineCode` |
-| `config` | Extract configuration values | `InlineCode` + `extracted_values` |
+| Value | Meaning | Effect |
+|-------|---------|--------|
+| `actor` | Separate actor, route through queue | `ActorCall` — creates a queue hop |
+| `flow` | Embedded sub-flow, compile recursively | Expand body + create visual group in graph |
+| `unfold` | Expand function body into current flow | Expand body (no visual group) |
+| `inline` | Paste code into router body | `Mutation` — runs inside router process |
+| `config` | Extract configuration values | Strip decorator/context manager, inject into manifest |
 
-### Matching tiers
+### Implicit defaults
 
-Rules are matched against symbols with four tiers (lower = more specific = wins):
+When no explicit annotation or rule matches, the parser classifies based on
+where the function is defined:
 
-| Tier | Pattern | Example | Matches |
-|------|---------|---------|---------|
-| 0 | Exact | `"tenacity.retry"` | `tenacity.retry` only |
-| 1 | Prefix wildcard | `"tenacity.*"` | `tenacity.retry`, `tenacity.stop`, ... |
-| 2 | Same-package dot | `"."` | Bare symbols in same root package |
-| 3 | Global wildcard | `"*"` | Everything |
+| Origin | Default | Rationale |
+|--------|---------|-----------|
+| Local function (defined in same file) | `unfold` | Expand body into the flow |
+| Imported function (from external package) | `inline` | Treat as payload code |
+| Bare name (not defined, not imported) | `actor` | Assumed to be a deployed actor |
 
-Within tier 1, longer prefixes win (`"tenacity.stop.*"` beats `"tenacity.*"`).
+### Explicit overrides (highest to lowest priority)
 
-### Default rules
+1. **Inline comment** — `# asya: <treat-as>` on the call site:
+
+   ```python
+   p = external.lib(p)  # asya: actor   — force actor
+   p = local_helper(p)  # asya: inline  — force inline
+   ```
+
+2. **Definition-site decorator** — `@actor`, `@flow`, `@inline`, `@unfold`:
+
+   ```python
+   @actor
+   def validate(p: dict) -> dict: ...
+
+   @inline
+   def inject_trace(p: dict) -> dict: ...
+   ```
+
+3. **Call-site wrapper** — `actor(fn)(p)`, `inline(fn)(p)`:
+
+   ```python
+   p = actor(validate)(p)
+   p = inline(inject_trace)(p)
+   ```
+
+4. **Config rule** — exact-match rules in `.asya/config.compiler.rules.yaml`:
+
+   ```yaml
+   - match: "tenacity.retry"
+     treat-as: config
+     extract:
+       max_attempt_number: spec.resiliency.policies.default.maxAttempts
+   ```
+
+5. **Implicit defaults** — see table above
+
+All five `treat-as` values are supported via all mechanisms.
+
+### Config extraction
+
+Rules with `treat-as: config` extract values from decorator arguments or
+context manager parameters and inject them into AsyncActor manifests.
+The `extract:` field maps parameter names to spec paths:
 
 ```yaml
-- match: "."    # same-package symbols
-  treat-as: unfold
+# Context manager: asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
+- match: "asyncio.timeout"
+  treat-as: config
+  extract:
+    delay: spec.resiliency.timeout.actor
 
-- match: "*"    # everything else
-  treat-as: inline
-```
-
-Without user rules, bare symbols (same-package) are unfolded and dotted
-symbols (external) are inlined.
-
-### User rules
-
-Loaded from `.asya/config.compiler.rules.yaml`. User rules prepend to defaults,
-so exact matches (tier 0) override wildcards:
-
-```yaml
+# Decorator: @retry(max_attempt_number=5) -> spec.resiliency.policies.default.maxAttempts: 5
 - match: "tenacity.retry"
   treat-as: config
-  where:
-    - param: stop
-      where:
-        - param: {arg: 0, kwarg: "max_attempt_number"}
-          assign-to: spec.resiliency.policies.default.maxAttempts
+  extract:
+    max_attempt_number: spec.resiliency.policies.default.maxAttempts
 ```
 
-### Inline comment override
+The parser auto-detects scope from Python syntax — no `scope:` field needed:
+- Context managers (`with foo():`) apply config to all actors in the `with` body
+- Decorators (`@foo`) apply config to the decorated function only
 
-The highest-priority classification is the `# asya: <action>` inline comment:
+Config decorators are added to `ASYA_IGNORE_DECORATORS` env var so the
+runtime strips them at handler load time.
 
-```python
-p = external.lib(p)  # asya: actor   — forces actor regardless of rules
-p = local_helper(p)  # asya: inline  — forces inline regardless of rules
-```
+Default rules ship in `src/asya-lab/asya_lab/defaults/compiler.rules.yaml`.
+User rules in `.asya/config.compiler.rules.yaml` extend (not replace) defaults.
 
 ## Value extractor (AST-level extraction)
 
