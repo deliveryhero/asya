@@ -301,6 +301,7 @@ class TestConvergenceRouting:
             @actor
             def handler_b(p: dict) -> dict:
                 return p
+            @actor
             def final_handler(p: dict) -> dict:
                 return p
         """)
