@@ -430,14 +430,23 @@ Each overlay builds on top of `common/`.
             name = name[len("actor-") :]
         actor_python_name = name.replace("-", "_")
 
+        # Apply scope configs first (context managers), then decorator configs.
+        # Decorator configs are more specific and override scope values.
         decorator_fqns: list[str] = []
+        scope_configs = []
+        decorator_configs = []
         for config in self.codegen_meta.extracted_configs:
             if actor_python_name not in config.get("scope_actors", []):
                 continue
+            if config.get("scope_type") == "decorator":
+                decorator_configs.append(config)
+                decorator_fqns.append(config["symbol"])
+            else:
+                scope_configs.append(config)
+
+        for config in scope_configs + decorator_configs:
             for spec_path, value in config.get("spec_values", {}).items():
                 self._set_nested(manifest, spec_path, value)
-            if config.get("scope_type") == "decorator":
-                decorator_fqns.append(config["symbol"])
 
         if decorator_fqns:
             env_list = manifest.get("spec", {}).get("env", [])
