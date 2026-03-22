@@ -1,6 +1,9 @@
-# GCP GKE
+# GKE + GCP Pub/Sub Installation
 
 Deploy Asya on Google Kubernetes Engine using native GCP Pub/Sub as the message transport.
+
+For a full map of all secrets, service accounts, and namespaces, see
+[Credentials Reference](../reference/credentials.md).
 
 ## Prerequisites
 
@@ -173,7 +176,7 @@ gcloud iam service-accounts add-iam-policy-binding \
 Then set `--set gcpProviderConfig.credentialsSource=InjectedIdentity` and drop the `secretRef`
 flags from the `helm upgrade` command. The JSON key approach below works without this extra step.
 
-**KEDA TriggerAuthentication — JSON key (`keda/gcp-keda-secret`)**
+**KEDA TriggerAuthentication — JSON key (actor namespace — TriggerAuthentication references it locally)**
 
 KEDA's `TriggerAuthentication` resource for GCP Pub/Sub does not yet support Workload Identity.
 A JSON key is required until upstream KEDA adds WI support for the GCP Pub/Sub scaler.
@@ -215,9 +218,9 @@ kubectl create secret generic asya-actor-creds \
   --namespace=$NS \
   --from-file=sa-key.json=/tmp/asya-actor-key.json
 
-# KEDA scaler credentials (keda namespace)
+# KEDA scaler credentials (actor namespace — TriggerAuthentication references it locally)
 kubectl create secret generic gcp-keda-secret \
-  --namespace=keda \
+  --namespace=$NS \
   --from-file=credentials.json=/tmp/asya-keda-key.json
 
 rm /tmp/asya-*-key.json
@@ -292,7 +295,10 @@ Crossplane providers must reach `Healthy` before their CRDs exist and ProviderCo
 can be created. Install with `providerConfigs.install=false` first.
 
 ```bash
-helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
+helm repo add asya https://asya.sh/charts
+helm repo update asya
+
+helm install asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   --namespace=$NS \
   --set providerConfigs.install=false \
   --set providers.gcp.enabled=true \
@@ -304,7 +310,6 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
   --set gcpProviderConfig.secretRef.name=gcp-creds \
   --set gcpProviderConfig.secretRef.key=credentials.json \
   --set sidecar.gcpProjectId=$PROJECT \
-  --set sidecar.gcpCredsSecret=asya-actor-creds \
   --set sidecar.gatewayURL=http://asya-gateway-mesh.${NS}.svc.cluster.local \
   --set functions.flavorsEnabled=true \
   --set keda.authProvider=secret \
@@ -320,14 +325,14 @@ helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
 Wait for the GCP Pub/Sub provider to become healthy:
 
 ```bash
-kubectl wait provider.pkg.crossplane.io/crossplane-provider-gcp-pubsub \
+kubectl wait provider.pkg.crossplane.io/provider-gcp-pubsub \
   --for=condition=Healthy --timeout=300s
 ```
 
 ### asya-crossplane — step 2: ProviderConfigs
 
 ```bash
-helm upgrade asya-crossplane deploy/helm-charts/asya-crossplane/ \
+helm upgrade asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   --namespace=$NS \
   --reuse-values \
   --set providerConfigs.install=true \
@@ -376,11 +381,10 @@ done
 export DLQ_SUBSCRIPTION="projects/${PROJECT}/subscriptions/asya-dlq-pull"
 export DLQ_GCS_BUCKET="asya-dlq-${PROJECT}"
 
-helm install asya-crew deploy/helm-charts/asya-crew/ \
+helm install asya-crew asya/asya-crew --version $ASYA_VERSION \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
   --set "dlq-worker.enabled=true" \
-  --set "dlq-worker.config.transport=pubsub" \
   --set "dlq-worker.config.queueURL=${DLQ_SUBSCRIPTION}" \
   --set "dlq-worker.config.gcsBucket=${DLQ_GCS_BUCKET}" \
   --wait --timeout=5m
@@ -461,7 +465,7 @@ EOF
 Then install the gateway, referencing the secret directly:
 
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+helm install asya-gateway asya/asya-gateway --version $ASYA_VERSION \
   --namespace=$NS \
   --set image.tag=$ASYA_VERSION \
   --set transports.pubsub.enabled=true \
@@ -570,7 +574,6 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 3
-
   image: <REGISTRY>/hello-actor:latest
   handler: handler.handle
 ```
