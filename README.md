@@ -112,7 +112,6 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Prerequisites: Go 1.24+, Python 3.13+, D
 
 ## Status
 
-Alpha. Battle-tested at [Delivery Hero](https://tech.deliveryhero.com/) for global-scale AI image
-enhancement. Now powering LLM and agentic workflows.
+Born from 3 years of production AI workloads at [Delivery Hero](https://tech.deliveryhero.com/). Open source and growing.
 
 Apache 2.0 licensed. 🎭 **Maintainer**: Artem Yushkovskiy (`@atemate`)
