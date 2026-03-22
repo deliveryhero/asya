@@ -4,7 +4,7 @@ Minimal flow - single handler.
 Tests the simplest possible flow compilation.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -13,6 +13,7 @@ def minimal_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_a(p: dict) -> dict:
     """Single handler."""
     return p

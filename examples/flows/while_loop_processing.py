@@ -4,7 +4,7 @@ Loop processing flow example.
 Demonstrates while loops with break and continue statements.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -30,10 +30,12 @@ def loop_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def process_abort(p: dict) -> dict:
     return None
 
 
+@actor
 def initialize(p: dict) -> dict:
     """Initialize processing state."""
     p["iteration"] = 0
@@ -41,6 +43,7 @@ def initialize(p: dict) -> dict:
     return p
 
 
+@actor
 def process_item(p: dict) -> dict:
     """Process single iteration."""
     p["iteration"] += 1
@@ -48,12 +51,14 @@ def process_item(p: dict) -> dict:
     return p
 
 
+@actor
 def check_threshold(p: dict) -> dict:
     """Check if threshold is met."""
     p["threshold_met"] = p["iteration"] >= p.get("threshold", 3)
     return p
 
 
+@actor
 def finalize_loop(p: dict) -> dict:
     """Finalize after loop completion."""
     p["completed"] = True

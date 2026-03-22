@@ -4,7 +4,7 @@ Class instantiation example.
 Tests instantiating classes and calling their methods.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -21,6 +21,7 @@ def class_instantiation_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def transformation(p: dict) -> dict:
     return p
 

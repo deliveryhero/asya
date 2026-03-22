@@ -60,8 +60,10 @@ class TestRouterExecution:
                 p = handler_b(p)
                 return p
 
+            @actor
             def handler_a(p: dict) -> dict:
                 return p
+            @actor
             def handler_b(p: dict) -> dict:
                 return p
         """)
@@ -87,10 +89,13 @@ class TestRouterExecution:
                 p = handler_c(p)
                 return p
 
+            @actor
             def handler_a(p: dict) -> dict:
                 return p
+            @actor
             def handler_b(p: dict) -> dict:
                 return p
+            @actor
             def handler_c(p: dict) -> dict:
                 return p
         """)
@@ -126,8 +131,10 @@ class TestConditionalRouting:
                     p = right_handler(p)
                 return p
 
+            @actor
             def left_handler(p: dict) -> dict:
                 return p
+            @actor
             def right_handler(p: dict) -> dict:
                 return p
         """)
@@ -156,8 +163,10 @@ class TestConditionalRouting:
                     p = right_handler(p)
                 return p
 
+            @actor
             def left_handler(p: dict) -> dict:
                 return p
+            @actor
             def right_handler(p: dict) -> dict:
                 return p
         """)
@@ -186,8 +195,10 @@ class TestConditionalRouting:
                     p = handler_no_match(p)
                 return p
 
+            @actor
             def handler_match(p: dict) -> dict:
                 return p
+            @actor
             def handler_no_match(p: dict) -> dict:
                 return p
         """)
@@ -225,6 +236,7 @@ class TestMutationRouting:
                 p = handler(p)
                 return p
 
+            @actor
             def handler(p: dict) -> dict:
                 return p
         """)
@@ -283,8 +295,10 @@ class TestConvergenceRouting:
                 p = final_handler(p)
                 return p
 
+            @actor
             def handler_a(p: dict) -> dict:
                 return p
+            @actor
             def handler_b(p: dict) -> dict:
                 return p
             def final_handler(p: dict) -> dict:
@@ -328,8 +342,10 @@ class TestResolveFunction:
                 p = finalizer(p)
                 return p
 
+            @actor
             def handler(p: dict) -> dict:
                 return p
+            @actor
             def finalizer(p: dict) -> dict:
                 return p
         """)
@@ -353,8 +369,10 @@ class TestResolveFunction:
                 p = finalizer(p)
                 return p
 
+            @actor
             def handler(p: dict) -> dict:
                 return p
+            @actor
             def finalizer(p: dict) -> dict:
                 return p
         """)
@@ -377,8 +395,10 @@ class TestResolveFunction:
                 p = finalizer(p)
                 return p
 
+            @actor
             def handler(p: dict) -> dict:
                 return p
+            @actor
             def finalizer(p: dict) -> dict:
                 return p
         """)
@@ -404,8 +424,10 @@ class TestRouteInsertion:
                 p = handler_b(p)
                 return p
 
+            @actor
             def handler_a(p: dict) -> dict:
                 return p
+            @actor
             def handler_b(p: dict) -> dict:
                 return p
         """)
@@ -431,8 +453,10 @@ class TestRouteInsertion:
                 p = finalizer(p)
                 return p
 
+            @actor
             def handler(p: dict) -> dict:
                 return p
+            @actor
             def finalizer(p: dict) -> dict:
                 return p
         """)

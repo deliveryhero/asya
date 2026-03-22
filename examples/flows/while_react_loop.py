@@ -5,7 +5,7 @@ Primary use case for while loops: an LLM agent that iterates
 calling an LLM and executing tools until no more tool calls remain.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -19,11 +19,13 @@ def react_agent(p: dict) -> dict:
     return p
 
 
+@actor
 def llm_call(p: dict) -> dict:
     """Call the LLM with the current state."""
     return p
 
 
+@actor
 def execute_tool(p: dict) -> dict:
     """Execute tool calls requested by the LLM."""
     return p

@@ -38,7 +38,7 @@ Payload contract:
   state["violation_type"] - type of safety violation if any
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -63,6 +63,7 @@ async def guardrails_sandwich(state: dict) -> dict:
 # --- Handler stubs ---
 
 
+@actor
 async def input_validator(state: dict) -> dict:
     """Safety actor: validate input before processing.
 
@@ -96,6 +97,7 @@ async def input_validator(state: dict) -> dict:
     return state
 
 
+@actor
 async def core_agent(state: dict) -> dict:
     """LLM actor: the actual agent being protected.
 
@@ -116,6 +118,7 @@ async def core_agent(state: dict) -> dict:
     return state
 
 
+@actor
 async def output_validator(state: dict) -> dict:
     """Safety actor: validate output before returning to user.
 
@@ -148,6 +151,7 @@ async def output_validator(state: dict) -> dict:
     return state
 
 
+@actor
 async def safe_fallback(state: dict) -> dict:
     """Safety actor: generate a safe refusal response.
 

@@ -1,26 +1,14 @@
 flowchart TD
     %% Flow: content_pipeline_flow
 
-    classifier[classifier]
-    generic_processor[generic_processor]
-    image_processor[image_processor]
-    quality_check[quality_check]
     router_content_pipeline_flow_line_15_if_2{{router_content_pipeline_flow_line_15_if_2}}
     router_content_pipeline_flow_line_17_if_1{{router_content_pipeline_flow_line_17_if_1}}
     start_content_pipeline_flow([start_content_pipeline_flow])
-    text_processor[text_processor]
     __end__((( )))
 
-    start_content_pipeline_flow --> classifier
-    classifier --> router_content_pipeline_flow_line_15_if_2
-    router_content_pipeline_flow_line_17_if_1 -->|"p['content_type'] == 'image'"| image_processor
-    router_content_pipeline_flow_line_17_if_1 -->|"else"| generic_processor
-    router_content_pipeline_flow_line_15_if_2 -->|"p['content_type'] == 'text'"| text_processor
-    text_processor --> quality_check
+    start_content_pipeline_flow --> router_content_pipeline_flow_line_15_if_2
     router_content_pipeline_flow_line_15_if_2 -->|"else"| router_content_pipeline_flow_line_17_if_1
-    image_processor --> quality_check
-    generic_processor --> quality_check
-    quality_check --> __end__
+    router_content_pipeline_flow_line_17_if_1 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -28,9 +16,6 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_content_pipeline_flow start
-    class quality_check endnode
     class router_content_pipeline_flow_line_15_if_2,router_content_pipeline_flow_line_17_if_1 router
-    class classifier,generic_processor,image_processor,text_processor handler
     class __end__ endpoint
-    linkStyle 2,4 stroke:#2E8B57
-    linkStyle 3,6 stroke:#E07040
+    linkStyle 1 stroke:#E07040

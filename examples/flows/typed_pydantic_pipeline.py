@@ -39,7 +39,7 @@ Payload contract:
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 from pydantic import BaseModel
 
 
@@ -177,6 +177,7 @@ def ingester(state: dict) -> dict:
     return state
 
 
+@actor
 def scorer(state: dict) -> dict:
     # state["candidates"] arrives as list[dict] after the JSON boundary —
     # model_validate reconstructs Candidate objects before calling domain fn
@@ -187,6 +188,7 @@ def scorer(state: dict) -> dict:
     return state
 
 
+@actor
 def ranker(state: dict) -> dict:
     # state["scores"] arrives as list[dict] — reconstruct ScoredCandidate objects
     state["ranked"] = rank(
@@ -196,6 +198,7 @@ def ranker(state: dict) -> dict:
     return state
 
 
+@actor
 def responder(state: dict) -> dict:
     # state["ranked"] arrives as plain dict — reconstruct nested RankedResults
     state["response"] = generate_response(RankedResults.model_validate(state["ranked"]))
@@ -207,6 +210,7 @@ def responder(state: dict) -> dict:
 # =============================================================================
 
 
+@flow
 def typed_pydantic_pipeline(p: dict) -> dict:
     p = ingester(p)
     p = scorer(p)

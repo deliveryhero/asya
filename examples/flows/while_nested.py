@@ -4,7 +4,7 @@ Nested while loops.
 Tests two-level loop nesting.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -23,26 +23,31 @@ def while_nested_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_init(p: dict) -> dict:
     """Initialize handler."""
     return p
 
 
+@actor
 def handler_outer(p: dict) -> dict:
     """Outer loop handler."""
     return p
 
 
+@actor
 def handler_inner(p: dict) -> dict:
     """Inner loop handler."""
     return p
 
 
+@actor
 def handler_outer_end(p: dict) -> dict:
     """Outer loop end handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

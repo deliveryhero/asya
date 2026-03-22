@@ -4,20 +4,11 @@ digraph "review_pipeline_flow" {
 
     { rank=source; start_review_pipeline_flow; }
 
-    auto_approve [label="auto_approve", fillcolor=lightsalmon];
-    detailed_review [label="detailed_review", fillcolor=lightblue];
-    human_review [label="human_review", fillcolor=lightsalmon];
-    initial_review [label="initial_review", fillcolor=lightblue];
     router_review_pipeline_flow_line_16_if_1 [label="router_review_pipeline_flow_line_16_if_1", fillcolor=wheat];
     start_review_pipeline_flow [label="start_review_pipeline_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_review_pipeline_flow -> initial_review;
-    initial_review -> router_review_pipeline_flow_line_16_if_1;
-    router_review_pipeline_flow_line_16_if_1 -> detailed_review [label="p['score'] < 0.5", color="#2E8B57", fontcolor="#2E8B57"];
-    detailed_review -> human_review;
-    router_review_pipeline_flow_line_16_if_1 -> auto_approve [label="else", color="#D35400", fontcolor="#D35400"];
-    auto_approve -> __end__;
-    human_review -> __end__;
+    start_review_pipeline_flow -> router_review_pipeline_flow_line_16_if_1;
+    router_review_pipeline_flow_line_16_if_1 -> __end__;
 }

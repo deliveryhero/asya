@@ -10,6 +10,9 @@ Regenerate by running: asya flow compile decorator_inline_comments.py
 
 import uuid
 
+from _asya_utils import actor, flow
+
+@actor
 def inject_id(p: dict) -> dict:
     """Inject a unique ID inline in the router, not a separate actor."""
     p.setdefault('id', str(uuid.uuid4()))

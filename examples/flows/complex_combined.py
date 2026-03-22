@@ -4,7 +4,7 @@ Complex combined flow.
 Tests combination of all patterns: if/elif/else + while + break/continue.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -39,36 +39,43 @@ def complex_combined_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_init(p: dict) -> dict:
     """Initialize handler."""
     return p
 
 
+@actor
 def handler_error(p: dict) -> dict:
     """Error handler."""
     return p
 
 
+@actor
 def handler_process(p: dict) -> dict:
     """Process handler."""
     return p
 
 
+@actor
 def handler_type_a(p: dict) -> dict:
     """Type A handler."""
     return p
 
 
+@actor
 def handler_type_b(p: dict) -> dict:
     """Type B handler."""
     return p
 
 
+@actor
 def handler_default(p: dict) -> dict:
     """Default handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

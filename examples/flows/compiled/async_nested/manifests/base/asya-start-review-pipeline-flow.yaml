@@ -16,13 +16,5 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
-  - name: ASYA_HANDLER_ACTOR_AUTO_APPROVE
-    value: auto_approve
-  - name: ASYA_HANDLER_ACTOR_DETAILED_REVIEW
-    value: detailed_review
-  - name: ASYA_HANDLER_ACTOR_HUMAN_REVIEW
-    value: human_review
-  - name: ASYA_HANDLER_ACTOR_INITIAL_REVIEW
-    value: initial_review
   - name: ASYA_HANDLER_ROUTER_REVIEW_PIPELINE_FLOW_LINE_16_IF_1
     value: routers.router_review_pipeline_flow_line_16_if_1

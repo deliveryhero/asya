@@ -8,7 +8,7 @@ Uses AsyncGenerator to yield intermediate results.
 Reference: https://github.com/google/adk-samples/tree/main/python/agents/llm-auditor
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -23,6 +23,7 @@ async def agent_with_tools(state: dict) -> dict:
     return state
 
 
+@actor
 async def llm_call(state: dict) -> dict:
     """Call LLM with conversation history and available tools."""
     return state

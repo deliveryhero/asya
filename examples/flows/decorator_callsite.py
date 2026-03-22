@@ -9,7 +9,7 @@ validator and enricher are separate actors.
 
 import time
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 # Compiler classification hints — identity functions at runtime.
@@ -32,12 +32,14 @@ def decorator_callsite_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def stamp_timestamp(p: dict) -> dict:
     """Stamp current timestamp inline in the router."""
     p["ts"] = time.time()
     return p
 
 
+@actor
 def validator(p: dict) -> dict:
     """Validate payload as a separate actor."""
     if "id" not in p:
@@ -45,6 +47,7 @@ def validator(p: dict) -> dict:
     return p
 
 
+@actor
 def enricher(p: dict) -> dict:
     """Enrich payload as a separate actor."""
     p.setdefault("tags", [])
