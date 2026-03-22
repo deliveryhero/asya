@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.9] - 2026-03-22
+
+## What's Changed
+* Update CHANGELOG.md for v0.5.8 by @github-actions[bot] in https://github.com/deliveryhero/asya/pull/353
+* feat(compiler): render context manager scopes as dashed subgraphs by @atemate in https://github.com/deliveryhero/asya/pull/355
+* chore(deps): bump google.golang.org/grpc from 1.74.2 to 1.79.3 in /src/asya-sidecar by @dependabot[bot] in https://github.com/deliveryhero/asya/pull/354
+* docs: improve website look, navigation, and content by @atemate in https://github.com/deliveryhero/asya/pull/357
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.8...v0.5.9
+
+
+
 ## [0.5.8] - 2026-03-22
 
 ## What's Changed
@@ -1287,6 +1300,9 @@ All images are published to GitHub Container Registry:
 [0.5.7]: https://github.com/deliveryhero/asya/releases/tag/v0.5.7
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.8...HEAD
 [0.5.8]: https://github.com/deliveryhero/asya/releases/tag/v0.5.8
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.9...HEAD
+[0.5.9]: https://github.com/deliveryhero/asya/releases/tag/v0.5.9
 
