@@ -40,6 +40,7 @@ All compiler rules should be applied **per scope**. Three scope types:
 ### Context managers (the change)
 
 Currently `asyncio.timeout(30)` extracts to `ASYA_RESILIENCY_ACTOR_TIMEOUT`
+(see details in 7179: .aint/aints/resiliency/.closed/merged.7179.policy-based-error-handling-policies-retryrules.md)
 on each actor within the scope. With per-scope semantics:
 
 - The timeout becomes a **scope-level deadline**, not a per-actor env var
