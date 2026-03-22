@@ -5,20 +5,11 @@ description = "Multi-team Skaffold demo for Asya build tool evaluation"
 requires-python = ">=3.13"
 dependencies = [
     "asya-lab",
-    "common-utils",
-    "sentiment-actors",
-    "summarizer",
-    "translator",
+    "nlp",
+    "team-b",
 ]
 
 [tool.uv.sources]
-common-utils = { path = "libs/common" }
-sentiment-actors = { path = "team-a/actors/sentiment" }
-summarizer = { path = "team-a/actors/summarizer" }
-translator = { path = "team-b/actors/translator" }
+nlp = { path = "src/team-a/packages/nlp" }
+team-b = { path = "src/other-repo/team-b" }
 asya-lab = { path = "../../src/asya-lab", editable = true }
-
-[dependency-groups]
-dev = [
-    "asya-lab",
-]

@@ -1,7 +1,0 @@
-apiVersion: skaffold/v4beta13
-kind: Config
-metadata:
-  name: demo-skaffold
-requires:
-- path: team-a
-- path: team-b

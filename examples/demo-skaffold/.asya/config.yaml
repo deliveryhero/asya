@@ -5,13 +5,12 @@ templates:
 
 build:
 - module: "analyze"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.7-10-g8df83ba2-dirty"
+  image: "team-a-nlp"
 - module: "summarize"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-summarizer:v0.5.7-10-g8df83ba2"
+  image: "team-a-nlp"
 - module: "translate"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.7-10-g8df83ba2"
+  image: "team-b-translate"
 
 compiler:
   routers: "./compiled"
-  manifests: ".asya/manifests"
   templates: ".asya/templates"

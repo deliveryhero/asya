@@ -1,0 +1,15 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: team-a
+build:
+  artifacts:
+  - image: team-a-nlp
+    context: packages/nlp
+    docker:
+      dockerfile: Dockerfile
+  - image: team-a-greet
+    context: bare-scripts
+    buildpacks:
+      builder: paketobuildpacks/builder-jammy-base
+      trustBuilder: true
