@@ -288,12 +288,11 @@ class FlowParser:
                 if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
 
-                # Check for config decorators via rules registry
+                # Check for config decorators via rules registries
                 if isinstance(dec, ast.Call):
                     fqn = self.import_map.get(dec_name, dec_name)
-                    rule = self.rules.lookup(fqn)
-                    if rule is not None and rule.treat_as == "config":
-                        spec_values = self._extract_decorator_args(dec, rule)
+                    spec_values = self._extract_config_decorator(dec, fqn)
+                    if spec_values is not None:
                         if spec_values:
                             self.extracted_configs.append(
                                 {
@@ -318,6 +317,28 @@ class FlowParser:
                 return dec.func.id
             if isinstance(dec.func, ast.Attribute):
                 return ast.unparse(dec.func)
+        return None
+
+    def _extract_config_decorator(self, dec: ast.Call, fqn: str) -> dict[str, str] | None:
+        """Extract config from a decorator, trying where: tree first, then simple extract:.
+
+        Returns extracted spec_values dict, or None if no config rule matches.
+        """
+        # Try rule engine (where: tree extraction) first
+        if self._rule_engine is not None:
+            from asya_lab.compiler.extractor import ValueExtractor
+            from asya_lab.compiler.rules import TreatAs
+
+            engine_rule = self._rule_engine.get_rule(fqn)
+            if engine_rule is not None and engine_rule.treat_as == TreatAs.CONFIG and engine_rule.where:
+                extractor = ValueExtractor(imports=self.import_map)
+                return {str(k): str(v) for k, v in extractor.extract(dec, engine_rule).items()}
+
+        # Fall back to flow rules (simple extract: mapping)
+        flow_rule = self.rules.lookup(fqn)
+        if flow_rule is not None and flow_rule.treat_as == "config":
+            return self._extract_decorator_args(dec, flow_rule)
+
         return None
 
     def _is_local_function(self, name: str) -> bool:

@@ -21,15 +21,36 @@
   imports:
   - "import contextlib"
 
-# -- Decorator rules --
+# -- Decorator rules (with nested extraction via where: trees) --
 
-# tenacity.retry — extract direct keyword args into resiliency policy.
-# Usage: @retry(max_attempt_number=5, max_delay=60)
+# tenacity.retry — extract nested stop/wait args into resiliency policy.
+# Handles: @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
+# Also handles BinOp: stop=stop_after_attempt(3) | stop_after_delay(60)
 - match: "tenacity.retry"
   treat-as: config
-  extract:
-    max_attempt_number: spec.resiliency.policies.default.maxAttempts
-    max_delay: spec.resiliency.policies.default.maxDuration
+  where:
+  - param: stop
+    where:
+    - match: "stop_after_attempt"
+      where:
+      - param: max_attempt_number
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "stop_after_delay"
+      where:
+      - param: max_delay
+        assign-to: spec.resiliency.policies.default.maxDuration
+  - param: wait
+    where:
+    - match: "wait_exponential"
+      where:
+      - param: min
+        assign-to: spec.resiliency.policies.default.initialDelay
+      - param: max
+        assign-to: spec.resiliency.policies.default.maxInterval
+    - match: "wait_fixed"
+      where:
+      - param: wait
+        assign-to: spec.resiliency.policies.default.initialDelay
 
 # timeout_decorator.timeout — extract timeout seconds.
 # Usage: @timeout(30)

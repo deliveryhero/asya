@@ -125,13 +125,20 @@ class RuleEngine:
 
     @classmethod
     def with_defaults(cls, *, extra_rules: list[CompilerRule] | None = None) -> RuleEngine:
-        """Create an engine with optional rules (no built-in defaults)."""
-        rules = list(extra_rules or [])
+        """Create an engine with shipped defaults + optional user rules.
+
+        User rules take precedence (overwrite defaults for the same match key).
+        Defaults are loaded from ``asya_lab/defaults/compiler.rules.yaml``.
+        """
+        from asya_lab.flow.rules import _load_default_rules
+
+        defaults = [CompilerRule.from_dict(d) for d in _load_default_rules() if "where" in d]
+        rules = defaults + list(extra_rules or [])
         return cls(rules)
 
     @classmethod
     def from_config(cls, rules_cfg: list[dict] | None) -> RuleEngine:
-        """Load rules from config dicts."""
+        """Load rules from config dicts + shipped defaults."""
         extra: list[CompilerRule] = []
         if rules_cfg:
             extra = [CompilerRule.from_dict(d) for d in rules_cfg]
