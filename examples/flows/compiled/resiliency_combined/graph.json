@@ -1,0 +1,104 @@
+{
+  "flow_name": "data_pipeline",
+  "nodes": [
+    {
+      "id": "fetch_data",
+      "label": "fetch_data"
+    },
+    {
+      "id": "handle_bad_data",
+      "label": "handle_bad_data"
+    },
+    {
+      "id": "parse_data",
+      "label": "parse_data"
+    },
+    {
+      "id": "router_data_pipeline_line_31_except_2",
+      "label": "router_data_pipeline_line_31_except_2",
+      "generated": true
+    },
+    {
+      "id": "router_data_pipeline_line_32_seq_1",
+      "label": "router_data_pipeline_line_32_seq_1",
+      "generated": true,
+      "mutations": [
+        "p['error'] = 'bad_data'"
+      ]
+    },
+    {
+      "id": "start_data_pipeline",
+      "label": "start_data_pipeline",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'started'"
+      ]
+    },
+    {
+      "id": "store_results",
+      "label": "store_results",
+      "role": "end"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_data_pipeline",
+      "to": "fetch_data",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "fetch_data",
+      "to": "parse_data",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "parse_data",
+      "to": "store_results",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_data_pipeline_line_32_seq_1",
+      "to": "handle_bad_data",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_data_pipeline_line_31_except_2",
+      "to": "router_data_pipeline_line_32_seq_1",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "fetch_data",
+      "to": "router_data_pipeline_line_31_except_2",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_data_pipeline_line_31_except_2",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "handle_bad_data",
+      "to": "store_results",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": [
+    {
+      "id": "asyncio.timeout(60)",
+      "nodes": [
+        "fetch_data",
+        "parse_data",
+        "handle_bad_data"
+      ]
+    }
+  ]
+}

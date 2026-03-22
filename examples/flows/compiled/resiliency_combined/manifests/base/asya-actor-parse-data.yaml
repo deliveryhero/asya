@@ -1,0 +1,30 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-parse-data
+  namespace: default
+  labels:
+    asya.sh/flow: data-pipeline
+spec:
+  actor: actor-parse-data
+  image: examples.asya.sh/parse-data:latest
+  handler: parse_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: _asya_utils.timeout
+  resiliency:
+    policies:
+      try_except_line_28_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-data-pipeline-line-31-except-2
+    rules:
+    - errors:
+      - ValueError
+      policy: try_except_line_28_0
+    timeout:
+      actor: '60'
