@@ -17,9 +17,9 @@ spec:
   - name: ASYA_IGNORE_DECORATORS
     value: tenacity.retry
   resiliency:
+    timeout:
+      actor: '120'
     policies:
       default:
         maxAttempts: '5'
         maxDuration: '30'
-    timeout:
-      actor: '120'

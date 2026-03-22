@@ -27,4 +27,4 @@ spec:
       - ValueError
       policy: try_except_line_30_0
     timeout:
-      actor: '60'
+      actor: '10'
