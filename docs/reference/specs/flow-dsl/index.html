@@ -2595,7 +2595,7 @@ the actors do the actual work.</p>
 <tr>
 <td>Try/except/finally</td>
 <td><code>try: ... except E: ...</code></td>
-<td>Except router + resiliency rules in manifests</td>
+<td>Except router + resiliency policies and rules in manifests</td>
 </tr>
 <tr>
 <td>Raise (in except)</td>
@@ -2765,9 +2765,9 @@ loops (configurable via <code>--max-iterations</code>, default 100).</p>
     <span class="n">p</span> <span class="o">=</span> <span class="n">cleanup</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
 </code></pre></div>
 <p>The compiler generates one <strong>except_router</strong> per <code>except</code> clause and
-injects <strong>resiliency rules</strong> into the manifests of every actor inside
-the <code>try</code> body. When an actor fails, the sidecar matches the error type
-against the rules and routes to the correct except_router. The
+injects <strong>resiliency policies and rules</strong> into the manifests of every
+actor inside the <code>try</code> body. When an actor fails, the sidecar matches
+the error type against the rules and routes to the correct except_router. The
 except_router overwrites <code>route.next</code> with the handler's continuation
 path (including <code>finally</code> actors).</p>
 <p>Supported patterns: typed exceptions, tuple types (<code>except (A, B):</code>),
@@ -2798,7 +2798,7 @@ detailed examples and runtime flow diagrams.</p>
   Parser ──→ validates syntax, extracts operations
     │
     ▼
-  CodeGen ──→ generates router Python code + retry rules
+  CodeGen ──→ generates router Python code + resiliency policies and rules
     │
     ▼
   Analyzer ──→ extracts graph topology from generated code
@@ -3196,7 +3196,7 @@ so exact matches (tier 0) override wildcards:</p>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
 <span class="w">      </span><span class="nt">where</span><span class="p">:</span>
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;max_attempt_number&quot;</span><span class="p p-Indicator">}</span>
-<span class="w">          </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.retry.maxAttempts</span>
+<span class="w">          </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
 </code></pre></div>
 <h3 id="inline-comment-override">Inline comment override<a class="headerlink" href="#inline-comment-override" title="Permanent link">  #</a></h3>
 <p>The highest-priority classification is the <code># asya: &lt;action&gt;</code> inline comment:</p>
@@ -3355,12 +3355,12 @@ strategy:</p>
 <ol>
 <li>Creates one <strong>except_router</strong> per <code>except</code> clause — each overwrites
    <code>route.next</code> with the handler's continuation path (using SET, not prepend)</li>
-<li>Records <strong>ActorRetryRule</strong> for every actor in the try body — these are
-   later injected into actor manifests by the templater</li>
+<li>Records resiliency <strong>policies</strong> and <strong>rules</strong> for every actor in the
+   try body — these are later injected into actor manifests by the templater</li>
 <li>Includes <code>finally</code> actors in both the success path and every error path</li>
 </ol>
-<p>The retry rules link actors to their except_routers via the sidecar's
-<code>retryRules</code> first-match dispatch — no Python-level type matching needed.</p>
+<p>The rules link actors to their except_routers via the sidecar's
+<code>resiliency.rules</code> first-match dispatch — no Python-level type matching needed.</p>
 <h3 id="handler-resolution_1">Handler resolution<a class="headerlink" href="#handler-resolution_1" title="Permanent link">  #</a></h3>
 <p>The generated <code>resolve()</code> function maps handler names from the flow source to
 actor names using <code>ASYA_HANDLER_*</code> environment variables. Resolution uses
