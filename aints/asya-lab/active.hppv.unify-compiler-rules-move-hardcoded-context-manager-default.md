@@ -5,6 +5,7 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/asya-lab/hppv.unify-compiler-rules-move-hardcoded-context-manager-default
   - branch:asya-lab/hppv.unify-compiler-rules-move-hardcoded-context-manager-default
+  - pr:356
 ---
 
 
@@ -13,16 +14,12 @@ tags:
 Two separate rule systems exist in the compiler, one configurable and one hardcoded:
 
 1. **`compiler/rules.py` (RuleEngine)** — configurable via `.asya/config.compiler.rules.yaml`.
-   Handles call-site classification with `where:` tree extraction. User rules prepend to
-   defaults and win on specificity. Works well.
+   Handles call-site classification with `where:` tree extraction and 4-tier wildcard
+   matching (`"."`, `"*"`, `"prefix.*"`, exact). Overly complex.
 
 2. **`flow/rules.py` (CompilerRules)** — hardcoded. Handles context manager classification
    only. Two built-in rules (`asyncio.timeout` -> config, `contextlib.suppress` -> inline)
    are baked into `_DEFAULT_RULES` dict. Cannot be extended without modifying source code.
-
-Additionally, the default classification rules (`"."` -> UNFOLD, `"*"` -> INLINE) are
-hardcoded in `compiler/rules.py:142-145` and appended to user rules. While these sensible
-defaults should exist, they should be overridable via config without code changes.
 
 ### What's hardcoded today
 
@@ -33,30 +30,47 @@ defaults should exist, they should be overridable via config without code change
 | `"."` -> UNFOLD | `compiler/rules.py:142-145` | Same-package symbol default |
 | `"*"` -> INLINE | `compiler/rules.py:142-145` | Global fallback |
 
-## Proposed design
+## Design
 
-### 1. Unify context manager rules into `config.compiler.rules.yaml`
+### Simplified classification (no wildcards)
 
-Context manager rules should use the same config file as classification rules. Add a
-`scope: context-manager` field to distinguish them from call-site rules:
+Remove the entire tier/wildcard matching system. Classification is now:
+
+1. **Explicit annotation** (highest priority):
+   - `@actor`, `@flow`, `@inline`, `@unfold` decorators on function definitions
+   - `# asya: actor` inline comment directives on call sites
+   - `actor(fn)(p)` call-site wrappers
+2. **Implicit defaults** (no annotation):
+   - Same-package function → **inline** (code runs in router)
+   - Third-party function → **mutation** (e.g., `uuid4()`, `len()`)
+   - Never implicitly treated as actor — actors MUST be explicitly annotated
+
+No `"."`, `"*"`, `./*`, or prefix wildcards. Exact-match rules only in config.
+
+**Future extension** (out of scope): `external_package.module.actors.*: treat-as: actor`
+wildcard syntax for bulk classification.
+
+### Context manager rules from config
+
+Move hardcoded context manager rules to `config.compiler.rules.yaml` with
+`scope: context-manager`:
 
 ```yaml
 # .asya/config.compiler.rules.yaml
 
-# Context manager rules (scope: context-manager)
+# Context manager rules
 - match: "asyncio.timeout"
   scope: context-manager
   treat-as: config
-  where:
-    - param: delay
-      assign-to: spec.resiliency.timeout.actor
+  extract:
+    delay: spec.resiliency.timeout.actor
 
 - match: "contextlib.suppress"
   scope: context-manager
   treat-as: inline
   imports: ["import contextlib"]
 
-# Call-site classification rules (scope: call, default)
+# Explicit symbol overrides (exact match only)
 - match: "tenacity.retry"
   treat-as: config
   where:
@@ -64,59 +78,38 @@ Context manager rules should use the same config file as classification rules. A
       where:
         - param: {arg: 0, kwarg: "max_attempt_number"}
           assign-to: spec.resiliency.policies.default.maxAttempts
-
-# Default classification (lowest priority)
-- match: "./*"
-  treat-as: unfold
-
-- match: "*"
-  treat-as: inline
 ```
 
-### 2. Wildcard syntax clarification
+### Default rules as shipped YAML
 
-Current `"."` syntax for "same-package symbols" is non-obvious. Proposed change:
-
-| Current | Proposed | Meaning |
-|---|---|---|
-| `"."` | `./*` | Current package, any symbol (filesystem analogy) |
-| `"*"` | `*` | Global wildcard (unchanged) |
-| `"tenacity.*"` | `tenacity.*` | Prefix wildcard (unchanged) |
-| `"tenacity.retry"` | `tenacity.retry` | Exact match (unchanged) |
-
-`./*` reads naturally: "dot-slash = current package, star = any name within it".
-Matches filesystem convention (`./file` = current directory).
-
-**Migration**: support both `"."` and `./*` during transition, deprecate `"."`.
-
-### 3. Default rules as a shipped config file
-
-Ship a `defaults.compiler.rules.yaml` alongside the code that provides sensible defaults.
-User config prepends (higher priority). This makes defaults visible and editable without
-touching source code.
+Ship `src/asya-lab/asya_lab/defaults/compiler.rules.yaml` with the default
+context manager rules. User config extends (not replaces) defaults.
 
 ## Implementation plan
 
-1. **Extend rule config schema**: add `scope: context-manager | call` field (default: `call`)
-2. **Load context manager rules from config**: `flow/rules.py` reads from config instead of
-   hardcoding `_DEFAULT_RULES`
-3. **Wildcard syntax**: add `./*` as alias for `"."`, deprecate bare `"."`
-4. **Ship default rules file**: create `src/asya-lab/asya_lab/defaults/compiler.rules.yaml`
-   with the current hardcoded defaults
-5. **Update flow-dsl.md**: document unified rule syntax
+1. **Simplify `compiler/rules.py`**: remove tier system, keep only exact-match
+   classification. Remove `"."` and `"*"` default rules.
+2. **Update `flow/parser.py` defaults**: same-package → inline, external → mutation
+3. **Move context manager rules to config**: `flow/rules.py` loads from config
+   file instead of `_DEFAULT_RULES`
+4. **Ship default rules file**: `defaults/compiler.rules.yaml` with
+   `asyncio.timeout` and `contextlib.suppress`
+5. **Update tests**: adjust for new classification defaults
+6. **Update flow-dsl.md**: document simplified rule system
 
 ## Acceptance criteria
 
-- [ ] Context manager rules (`asyncio.timeout`, `contextlib.suppress`) loaded from config
-- [ ] Users can add custom context manager rules without code changes
-- [ ] `./*` wildcard works as alias for `"."`
-- [ ] Default rules shipped as a YAML file, not hardcoded
-- [ ] Existing `.asya/config.compiler.rules.yaml` files continue to work (backward compat)
-- [ ] Unit tests cover config-loaded context manager rules
+- [ ] Context manager rules loaded from config, not hardcoded
+- [ ] Users can add custom context manager rules via config
+- [ ] No wildcard matching — exact match only
+- [ ] Same-package functions default to inline, external to mutation
+- [ ] Actors/flows require explicit annotation
+- [ ] Default rules shipped as YAML file
+- [ ] Existing flows compile correctly (backward compat)
+- [ ] Unit tests updated
 
 ## References
 
 - `src/asya-lab/asya_lab/flow/rules.py` — hardcoded context manager rules
-- `src/asya-lab/asya_lab/compiler/rules.py` — configurable classification rules
+- `src/asya-lab/asya_lab/compiler/rules.py` — classification rules engine
 - `.aint/aints/asya-lab/research-compiler-knowledge-base.md` — rules engine design
-- `.aint/aints/compiler-simplify/rfc.md` — RFC section 9.1 (compiler rules summary)
