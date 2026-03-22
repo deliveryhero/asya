@@ -264,30 +264,25 @@ class FlowParser:
         """Map function name to treat-as value for same-file definitions.
 
         Also extracts config from decorators matched by compiler rules
-        (e.g. @retry(max_attempts=3) → spec.resiliency.policies.default.maxAttempts).
+        (e.g. @retry(max_attempts=3) -> spec.resiliency.policies.default.maxAttempts).
+        All decorators are scanned for config extraction; the first known
+        wrapper (@actor, @inline, etc.) determines the function's classification.
         """
         index: dict[str, str] = {}
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
                 continue
             for dec in node.decorator_list:
-                # Check for known wrappers (@actor, @inline, @flow, @unfold)
-                dec_name: str | None = None
-                if isinstance(dec, ast.Name):
-                    dec_name = dec.id
-                elif isinstance(dec, ast.Attribute):
-                    dec_name = ast.unparse(dec)
-                elif isinstance(dec, ast.Call):
-                    if isinstance(dec.func, ast.Name):
-                        dec_name = dec.func.id
-                    elif isinstance(dec.func, ast.Attribute):
-                        dec_name = ast.unparse(dec.func)
-                if dec_name in self._known_wrappers:
+                dec_name = self._decorator_name(dec)
+                if dec_name is None:
+                    continue
+
+                # Record first known wrapper as the function's classification
+                if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
-                    break
 
                 # Check for config decorators via rules registry
-                if dec_name is not None and isinstance(dec, ast.Call):
+                if isinstance(dec, ast.Call):
                     fqn = self.import_map.get(dec_name, dec_name)
                     rule = self.rules.lookup(fqn)
                     if rule is not None and rule.treat_as == "config":
@@ -303,6 +298,20 @@ class FlowParser:
                             )
                         self.ignore_decorators.append(fqn)
         return index
+
+    @staticmethod
+    def _decorator_name(dec: ast.expr) -> str | None:
+        """Extract the bare name from a decorator AST node."""
+        if isinstance(dec, ast.Name):
+            return dec.id
+        if isinstance(dec, ast.Attribute):
+            return ast.unparse(dec)
+        if isinstance(dec, ast.Call):
+            if isinstance(dec.func, ast.Name):
+                return dec.func.id
+            if isinstance(dec.func, ast.Attribute):
+                return ast.unparse(dec.func)
+        return None
 
     def _extract_decorator_args(self, dec: ast.Call, rule: CompilerRule) -> dict[str, str]:
         """Extract args from a decorator call, mapping to spec paths via rule.extract."""
