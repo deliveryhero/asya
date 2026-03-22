@@ -1,0 +1,29 @@
+{
+  "flow_name": "greet_flow",
+  "nodes": [
+    {
+      "id": "router_greet_flow_line_17_seq_1",
+      "label": "router_greet_flow_line_17_seq_1",
+      "generated": true,
+      "mutations": [
+        "p['greet'] = greet(p)",
+        "p['shout'] = shout(p)"
+      ]
+    },
+    {
+      "id": "start_greet_flow",
+      "label": "start_greet_flow",
+      "role": "start",
+      "generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_greet_flow",
+      "to": "router_greet_flow_line_17_seq_1",
+      "label": null,
+      "type": "prepend"
+    }
+  ],
+  "groups": []
+}

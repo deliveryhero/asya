@@ -9,7 +9,9 @@ Compiles to: start-greet-flow -> greet -> analyze -> summarize -> shout -> x-sin
 from greeter import greet
 from shouter import shout
 
+flow = lambda f: f  # no-op decorator
 
+@flow
 def greet_flow(payload: dict) -> dict:  # asya: flow
     payload["greet"] = greet(payload)  # asya: actor
     payload["shout"] = shout(payload)  # asya: actor
