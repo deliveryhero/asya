@@ -27,3 +27,10 @@ def retry(**kwargs):
     def decorator(f):
         return f
     return decorator
+
+
+def timeout(seconds):
+    """No-op stub for timeout_decorator.timeout — compiler extracts into manifests."""
+    def decorator(f):
+        return f
+    return decorator

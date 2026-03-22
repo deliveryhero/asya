@@ -4,9 +4,9 @@
 # defaults. User rules are checked first; these apply when no user rule matches.
 #
 # The parser auto-detects the scope from Python syntax:
-#   with foo():        -> context manager
-#   @foo               -> decorator
-#   p = foo(p)         -> call-site
+#   with foo():                 -> context manager
+#   @foo / def fn(): # asya:   -> decorator / definition-site directive
+#   p = foo(p)                  -> call-site
 # No need to declare scope in the rule.
 
 # -- Context manager rules --
@@ -23,10 +23,25 @@
 
 # -- Decorator rules --
 
+# tenacity.retry — extract direct keyword args into resiliency policy.
+# Usage: @retry(max_attempt_number=5, max_delay=60)
 - match: "tenacity.retry"
   treat-as: config
   extract:
     max_attempt_number: spec.resiliency.policies.default.maxAttempts
-    # Nested extraction (stop=stop_after_attempt(3)) requires where: trees,
-    # which is a future enhancement. For now, use direct keyword args:
-    #   @retry(max_attempt_number=3)
+    max_delay: spec.resiliency.policies.default.maxDuration
+
+# timeout_decorator.timeout — extract timeout seconds.
+# Usage: @timeout(30)
+- match: "timeout_decorator.timeout"
+  treat-as: config
+  extract:
+    seconds: spec.resiliency.timeout.actor
+
+# stamina.retry — extract direct keyword args.
+# Usage: @stamina.retry(attempts=3, timeout=60)
+- match: "stamina.retry"
+  treat-as: config
+  extract:
+    attempts: spec.resiliency.policies.default.maxAttempts
+    timeout: spec.resiliency.policies.default.maxDuration
