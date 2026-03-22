@@ -1,4 +1,4 @@
-# Actor-to-Actor Protocol
+# Envelope
 
 ## Envelope Structure
 

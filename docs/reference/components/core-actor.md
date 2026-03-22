@@ -1,6 +1,6 @@
-# AsyncActor
+# Actor
 
-## What is an Actor?
+![AsyncActor pod anatomy: sidecar + runtime + optional state proxy](../../website/img/actor-anatomy.png)
 
 An actor is a **stateless workload** that:
 
@@ -24,13 +24,7 @@ An actor is a **stateless workload** that:
 - **Scaling**: KEDA adjusting replica count based on queue depth
 - **Failing**: Pods crashing, requires intervention
 
-## Architecture Diagram
-
-<a href="/docs/website/img/actor-anatomy.png" target="_blank" title="Click to view full size">
-  <img src="/docs/website/img/actor-anatomy.png" alt="AsyncActor pod anatomy: sidecar + runtime + optional state proxy" style="max-width: 100%; cursor: zoom-in;"/>
-</a>
-
-*Click the diagram to view full size.*
+## Pod Structure
 
 Simplified view:
 
@@ -145,33 +139,25 @@ kubectl get asya -l asya.sh/actor=text-processor
 ## Basic Commands
 
 ```bash
-# List actors (shows ACTOR column from asya.sh/actor label)
+# List actors
 kubectl get asyas
-
-# List actors with flow and other details
 kubectl get asyas -o wide
-
-# Filter by actor name
-kubectl get asya -l asya.sh/actor=text-processor
 
 # Filter by flow
 kubectl get asya -l asya.sh/flow=document-processing
 
 # View actor details
-kubectl get asya text-processor -o yaml
+kubectl describe asya -l asya.sh/flow=document-processing
 
-# View actor status
-kubectl describe asya text-processor
+# View pods
+kubectl get pods -l asya.sh/flow=document-processing
+
+# View logs (all actors in a flow)
+kubectl logs -f -l asya.sh/flow=document-processing
+kubectl logs -f -l asya.sh/flow=document-processing -c asya-sidecar
 
 # Watch autoscaling
-kubectl get hpa -w
-
-# View pods (uses asya.sh/actor label for pod selection)
-kubectl get pods -l asya.sh/actor=text-processor
-
-# View logs
-kubectl logs -f deploy/text-processor
-kubectl logs -f deploy/text-processor -c asya-sidecar
+kubectl get hpa -l asya.sh/flow=document-processing -w
 ```
 
 ## Handler Return Values and Sidecar Behavior

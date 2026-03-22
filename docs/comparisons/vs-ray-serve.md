@@ -1,4 +1,4 @@
-# Asya vs Ray Serve
+# vs Ray Serve
 
 ## TL;DR
 

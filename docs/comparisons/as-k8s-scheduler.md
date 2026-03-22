@@ -1,4 +1,4 @@
-# 🎭 Asya vs Kubernetes GPU Schedulers
+# K8s Job Schedulers
 
 **Kueue, Run.ai, Volcano**
 

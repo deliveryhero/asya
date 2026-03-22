@@ -1,4 +1,4 @@
-# Asya vs LangGraph
+# vs LangGraph
 
 ## TL;DR
 

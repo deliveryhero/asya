@@ -1,5 +1,5 @@
 
-# Pause/Resume: Human-in-the-Loop
+# Pause/Resume
 
 How to pause your actor pipeline mid-execution to collect human input, then resume with that input merged into the payload.
 

@@ -1,4 +1,4 @@
-# Asya Gateway
+# Gateway
 
 ## Responsibilities
 
@@ -81,7 +81,7 @@ The ConfigMap is the source of truth for *what flows exist*. It is seeded by
 Helm at deploy time and can be patched at runtime (e.g., via `kubectl patch` or
 `asya mcp expose`) without a pod restart.
 
-**PostgreSQL** — task and auth state:
+**Database** — task and auth state (PostgreSQL):
 
 | | api pod | mesh pod |
 |---|---|---|
@@ -91,9 +91,16 @@ Helm at deploy time and can be patched at runtime (e.g., via `kubectl patch` or
 | Reads task state | ✅ (GetTask, SSE, OAuth) | ✅ (SSE stream) |
 | Stores OAuth clients/tokens | ✅ (when OAuth enabled) | ❌ |
 
-Both pods connect to the **same** PostgreSQL instance. PostgreSQL is the shared
+Both pods connect to the **same** database instance. The database is the shared
 coordination point: the api pod creates a task record, then mesh pod workers
 update it as actors report progress.
+
+The storage layer is abstracted internally. PostgreSQL is the provided
+implementation — it handles metadata and task state well for all current use
+cases. Additional backends may be added if specific requirements emerge. Note
+that this is distinct from the pluggable **transports** (SQS, RabbitMQ, Pub/Sub)
+and pluggable **state proxy connectors** (S3, GCS, Redis, NATS KV), which are
+designed for high-throughput data paths.
 
 Production deployments use **two Helm releases** from the same chart:
 
@@ -109,11 +116,11 @@ helm install asya-gateway-mesh deploy/helm-charts/asya-gateway/ \
   -f gateway-mesh-values.yaml
 ```
 
-Both releases share the same container image and PostgreSQL database. Sidecars
+Both releases share the same container image and database. Sidecars
 and crew actors reach the mesh deployment via in-cluster DNS:
 `asya-gateway-mesh.<namespace>.svc.cluster.local`.
 
-**Gateway is stateful**: Requires PostgreSQL database for task tracking and
+**Gateway is stateful**: Requires a database (PostgreSQL) for task tracking and
 (when OAuth is enabled) for OAuth client/token storage.
 
 ## Configuration

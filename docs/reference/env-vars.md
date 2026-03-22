@@ -1,5 +1,5 @@
 
-# Environment Variables Reference
+# Environment Variables
 
 Consolidated reference of all environment variables used by Asya components.
 Grouped by component.

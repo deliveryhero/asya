@@ -1,4 +1,4 @@
-# Asya vs Temporal
+# vs Temporal
 
 ## TL;DR
 

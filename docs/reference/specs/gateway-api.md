@@ -1,4 +1,4 @@
-# Gateway API Reference
+# Gateway API
 
 Complete reference for all `asya-gateway` HTTP endpoints. Routes are split across two deployments (api and mesh). See [core-gateway.md](../components/core-gateway.md) for deployment architecture and auth configuration.
 

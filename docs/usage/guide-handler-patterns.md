@@ -1,4 +1,4 @@
-# Actor Handler Patterns
+# Handler Patterns
 
 This guide covers practical patterns for writing Asya actor handlers: from basic
 function handlers to advanced generator adapters, the adapter pattern for typed

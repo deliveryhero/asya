@@ -6,7 +6,7 @@ particularly valuable for GPU inference workloads where idle pods are expensive.
 
 ## How it works
 
-Each actor gets its own KEDA `ScaledObject` with independent configuration:
+Each actor gets its own [KEDA](https://keda.sh/) `ScaledObject` with independent configuration:
 
 - **Min replicas** — typically 0 for bursty workloads, 1 for always-on actors
 - **Max replicas** — upper bound for resource protection

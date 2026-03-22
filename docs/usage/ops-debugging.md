@@ -1,5 +1,5 @@
 
-# How to Debug an Envelope
+# Debugging
 
 This guide covers practical steps for tracing an envelope through the Asya
 mesh, diagnosing failures, and identifying performance bottlenecks.

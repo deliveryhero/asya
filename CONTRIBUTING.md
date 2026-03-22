@@ -175,7 +175,7 @@ These tests validate the complete message flow through the system.
 make docs-build
 
 # Serve documentation locally at http://127.0.0.1:8000
-make docs-serve
+make docs-preview
 ```
 
 ### Other Utilities

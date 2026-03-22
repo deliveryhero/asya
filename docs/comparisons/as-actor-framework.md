@@ -1,4 +1,4 @@
-# 🎭 Asya as an Actor Framework
+# Actor Frameworks
 
 **Erlang/OTP, Akka/Pekko, Microsoft Orleans, Dapr**
 
