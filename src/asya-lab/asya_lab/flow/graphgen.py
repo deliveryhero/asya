@@ -272,7 +272,7 @@ def _render_dot_group_node(node: tuple[dict, list], lines: list[str], indent: st
         child_nodes.update(child_group.get("nodes", []))
 
     lines.append(f"{indent}subgraph cluster_{gid} {{")
-    lines.append(f'{indent}    label="{group["id"]}";')
+    lines.append(f'{indent}    label="{_escape_dot(group["id"])}";')
     lines.append(f"{indent}    style=dashed;")
     for member in group.get("nodes", []):
         if member not in child_nodes:
@@ -296,7 +296,8 @@ def _render_mermaid_group_node(node: tuple[dict, list], lines: list[str], indent
     for child_group, _child_children in children:
         child_nodes.update(child_group.get("nodes", []))
 
-    lines.append(f"{indent}subgraph {gid}[{group['id']}]")
+    escaped_label = group["id"].replace('"', "'").replace("[", "(").replace("]", ")")
+    lines.append(f"{indent}subgraph {gid}[{escaped_label}]")
     for member in group.get("nodes", []):
         if member not in child_nodes:
             lines.append(f"{indent}    {_sanitize_id(member)}")
@@ -310,9 +311,7 @@ def _render_mermaid_group_node(node: tuple[dict, list], lines: list[str], indent
 
 def _sanitize_id(name: str) -> str:
     """Make a name safe for DOT/Mermaid node IDs."""
-    return (
-        name.replace(".", "_").replace("-", "_").replace(" ", "_").replace("(", "_").replace(")", "_").replace(",", "_")
-    )
+    return "".join(c if c.isalnum() or c == "_" else "_" for c in name)
 
 
 def _display_name(name: str) -> str:
