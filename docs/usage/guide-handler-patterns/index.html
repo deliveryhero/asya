@@ -2977,7 +2977,7 @@ docker<span class="w"> </span>push<span class="w"> </span>my-registry/echo-actor
 <h3 id="step-2-create-the-asyncactor-manifest">Step 2: Create the AsyncActor manifest<a class="headerlink" href="#step-2-create-the-asyncactor-manifest" title="Permanent link">  #</a></h3>
 <p>Create a YAML manifest declaring the actor. Three fields are required: <code>actor</code>,
 <code>image</code>, and <code>handler</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># file: echo-actor.yaml</span>
+<div class="highlight"><pre><span></span><code><span class="c1"># file: asya-echo-actor.yaml</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">asya.sh/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">AsyncActor</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -3037,7 +3037,7 @@ available fields.</p>
 <span class="w">    </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;DEBUG&quot;</span>
 </code></pre></div>
 <h3 id="step-3-deploy">Step 3: Deploy<a class="headerlink" href="#step-3-deploy" title="Permanent link">  #</a></h3>
-<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>echo-actor.yaml
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>apply<span class="w"> </span>-f<span class="w"> </span>asya-echo-actor.yaml
 </code></pre></div>
 <p>Crossplane creates three resources:
 1. A message queue (<code>asya-my-project-echo-actor</code>)
