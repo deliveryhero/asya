@@ -35,6 +35,8 @@ Replace line numbers with semantic names derived from AST content:
 | **Fan-out** | `fanout_{flow}_line_{N}` | `fanout_{flow}_{target_key_slug}` | Counter if duplicate fan-outs |
 | **Fan-in** | `fanin_{flow}_line_{N}` | `fanin_{flow}_{target_key_slug}` | Matches fan-out |
 
+Where `flow` is flow name (not flow function name!).
+
 ### Slug generation
 
 Derive a short, readable slug from the AST content:
@@ -45,11 +47,12 @@ Derive a short, readable slug from the AST content:
 | `p.get("language") != "en"` | `language_ne_en` |
 | `True` (while True) | `loop` |
 | `p["attempt"] < 3` | `attempt_lt_3` |
-| `ValueError` | `ValueError` |
-| `(ConnectionError, TimeoutError)` | `ConnectionError_TimeoutError` |
+| `ValueError` | `valueerror` |
+| `(ConnectionError, TimeoutError)` | `connectionerror_timeouterror` |
 | `p["status"] = "processing"` | `set_status` |
 
 Rules:
+- All slugs are **lowercased** (K8s resource names must be lowercase)
 - Extract key name from subscripts: `p["key"]` -> `key`, `p.get("key")` -> `key`
 - Extract operator: `==` -> `eq`, `!=` -> `ne`, `<` -> `lt`, `>` -> `gt`, `<=` -> `le`, `>=` -> `ge`
 - Extract value: string/number constants, keep short
@@ -62,8 +65,8 @@ Retry policies from try/except also get semantic names:
 
 | Current | Proposed |
 |---|---|
-| `try_except_line_28_0` | `except_ValueError` |
-| `try_except_line_28_1` | `except_ConnectionError` |
+| `try_except_line_28_0` | `except_valueerror` |
+| `try_except_line_28_1` | `except_connectionerror` |
 | `try_except_line_28_bare` | `except_all` |
 
 ### Corner cases
@@ -102,12 +105,12 @@ router_{flow}_except_all
 
 **Tuple exception types** — `except (ValueError, TypeError)`:
 ```
-router_{flow}_except_ValueError_TypeError
+router_{flow}_except_valueerror_typeerror
 ```
 
 **FQN exception types** — `except openai.RateLimitError`:
 ```
-router_{flow}_except_RateLimitError
+router_{flow}_except_ratelimiterror
 ```
 Use the short name (last component) to keep it readable.
 
@@ -134,7 +137,7 @@ router_{subflow}_if_valid                # in expanded sub-flow
 Router names map to K8s resource names via `_` -> `-`:
 ```
 asya-router-data-pipeline-if-status-eq-done.yaml
-asya-router-data-pipeline-except-ValueError.yaml
+asya-router-data-pipeline-except-valueerror.yaml
 ```
 
 K8s name limit is 253 chars — well within bounds for semantic names.
@@ -157,7 +160,7 @@ The `_router_counter` disambiguates duplicates.
 - [ ] Router names derived from AST content, not line numbers
 - [ ] Adding/removing blank lines doesn't change router names
 - [ ] Duplicate conditions disambiguated with counter suffix
-- [ ] Policy names semantic (`except_ValueError` not `try_except_line_28_0`)
+- [ ] Policy names semantic (`except_valueerror` not `try_except_line_28_0`)
 - [ ] All example flows recompile with stable names
 - [ ] graph.json, DOT, Mermaid use semantic names
 - [ ] K8s manifest filenames use semantic names
