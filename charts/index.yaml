@@ -3,10 +3,10 @@ entries:
   asya-crew:
   - apiVersion: v2
     appVersion: 0.5.8
-    created: "2026-03-22T13:54:11.274172986Z"
+    created: "2026-03-22T18:59:35.969365746Z"
     description: System AsyncActors with reserved roles (x-sink, x-sump, checkpoint-s3,
       ...) for Asya framework
-    digest: 3075917f360366f3e44e81219573fb2965101ad110ee5288d4549b776c96ed8f
+    digest: 0594aadcbbcf866e870e7fc20fb419ed280e97424f9bfa8a42735c2e04de42c9
     keywords:
     - asya
     - actor
@@ -22,9 +22,9 @@ entries:
   asya-crossplane:
   - apiVersion: v2
     appVersion: 0.5.8
-    created: "2026-03-22T13:54:11.275313839Z"
+    created: "2026-03-22T18:59:35.970545813Z"
     description: Crossplane XRDs and Compositions for Asya AsyncActor
-    digest: 64652e14a04a05de4c9a4d6ade23bbebc6a645b3326828cf3cfec9fe28e6bb97
+    digest: 356a63d467f8837f6a5ef294e1207b1459743b72133563b1688a5febb52778c7
     home: https://github.com/deliveryhero/asya
     keywords:
     - asya
@@ -41,9 +41,9 @@ entries:
   asya-gateway:
   - apiVersion: v2
     appVersion: 0.5.8
-    created: "2026-03-22T13:54:11.276682438Z"
+    created: "2026-03-22T18:59:35.971221898Z"
     description: Asya MCP Gateway with PostgreSQL backend
-    digest: 7faf12a501dbb805c067114566f06da47670358069efe72e30b98c5fb30c99fb
+    digest: 7f87cd3c80c5a22cabf6c54891888fa2cc70c616a2fb87811c341db52c00b584
     name: asya-gateway
     type: application
     urls:
@@ -52,7 +52,7 @@ entries:
   asya-playground:
   - apiVersion: v2
     appVersion: 0.5.8
-    created: "2026-03-22T13:54:11.309089466Z"
+    created: "2026-03-22T18:59:36.004413135Z"
     dependencies:
     - name: asya-crossplane
       repository: https://asya.sh/charts
@@ -86,4 +86,4 @@ entries:
     urls:
     - https://asya.sh/charts/asya-playground-0.5.8.tgz
     version: 0.5.8
-generated: "2026-03-22T13:54:11.273283052Z"
+generated: "2026-03-22T18:59:35.968428102Z"
