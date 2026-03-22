@@ -157,4 +157,4 @@ markdown_extensions:
       format: !!python/name:mermaid2.fence_mermaid
 - pymdownx.snippets
 
-copyright: Copyright &copy; 2025 Delivery Hero SE
+copyright: Copyright The Asya Authors

@@ -1,5 +1,19 @@
 # Contributing to Asya
 
+## Developer Certificate of Origin (DCO)
+
+All contributions must be signed off to certify that you have the right to
+submit the code under the project's open source license. Add a `Signed-off-by`
+line to your commit messages:
+
+```bash
+git commit -s -m "feat: add new transport"
+```
+
+This adds a line like `Signed-off-by: Your Name <you@example.com>` to the
+commit message. See [developercertificate.org](https://developercertificate.org/)
+for the full text.
+
 ## Development Setup
 
 ### Prerequisites
