@@ -68,7 +68,7 @@ the actors do the actual work.
 | While loops | `while p["n"] < 3: ...` | Loop-back router with self-reference |
 | Break / continue | `break`, `continue` | Exit / restart loop via route overwrite |
 | Early return | `return p` | Clear `route.next` → x-sink |
-| Try/except/finally | `try: ... except E: ...` | Except router + resiliency rules in manifests |
+| Try/except/finally | `try: ... except E: ...` | Except router + resiliency policies and rules in manifests |
 | Raise (in except) | `raise` | Terminate flow (route to x-sink) |
 | Fan-out | `p["r"] = [a(x) for x in items]` | Fan-out router + fan-in aggregator |
 | Flow composition | `@flow` sub-functions | Inlined at compile time |
@@ -222,9 +222,9 @@ finally:
 ```
 
 The compiler generates one **except_router** per `except` clause and
-injects **resiliency rules** into the manifests of every actor inside
-the `try` body. When an actor fails, the sidecar matches the error type
-against the rules and routes to the correct except_router. The
+injects **resiliency policies and rules** into the manifests of every
+actor inside the `try` body. When an actor fails, the sidecar matches
+the error type against the rules and routes to the correct except_router. The
 except_router overwrites `route.next` with the handler's continuation
 path (including `finally` actors).
 
@@ -270,7 +270,7 @@ Flow source (.py)
   Parser ──→ validates syntax, extracts operations
     │
     ▼
-  CodeGen ──→ generates router Python code + retry rules
+  CodeGen ──→ generates router Python code + resiliency policies and rules
     │
     ▼
   Analyzer ──→ extracts graph topology from generated code
@@ -557,7 +557,7 @@ so exact matches (tier 0) override wildcards:
     - param: stop
       where:
         - param: {arg: 0, kwarg: "max_attempt_number"}
-          assign-to: spec.resiliency.retry.maxAttempts
+          assign-to: spec.resiliency.policies.default.maxAttempts
 ```
 
 ### Inline comment override
@@ -688,12 +688,12 @@ For `try/except` blocks, the code generator:
 
 1. Creates one **except_router** per `except` clause — each overwrites
    `route.next` with the handler's continuation path (using SET, not prepend)
-2. Records **ActorRetryRule** for every actor in the try body — these are
-   later injected into actor manifests by the templater
+2. Records resiliency **policies** and **rules** for every actor in the
+   try body — these are later injected into actor manifests by the templater
 3. Includes `finally` actors in both the success path and every error path
 
-The retry rules link actors to their except_routers via the sidecar's
-`retryRules` first-match dispatch — no Python-level type matching needed.
+The rules link actors to their except_routers via the sidecar's
+`resiliency.rules` first-match dispatch — no Python-level type matching needed.
 
 ### Handler resolution
 

@@ -84,5 +84,13 @@
       "type": "prepend"
     }
   ],
-  "groups": []
+  "groups": [
+    {
+      "id": "asyncio.timeout(30)",
+      "nodes": [
+        "ocr_extractor",
+        "language_detector"
+      ]
+    }
+  ]
 }

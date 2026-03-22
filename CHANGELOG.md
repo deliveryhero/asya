@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.8] - 2026-03-22
+
+## What's Changed
+* Update CHANGELOG.md for v0.5.7 by @github-actions[bot] in https://github.com/deliveryhero/asya/pull/349
+* feat(compiler): try/except support via sidecar retryRules [3dp2] by @atemate in https://github.com/deliveryhero/asya/pull/346
+* docs: streamline README, fix website code blocks by @atemate in https://github.com/deliveryhero/asya/pull/345
+* fix(docs): add missing guide-actor-xrd.md, fix pluggable-transport URL by @atemate in https://github.com/deliveryhero/asya/pull/351
+* feat(compiler): rename manifest prefix asyncactor to asya, add actor- prefix [b5mg] by @atemate in https://github.com/deliveryhero/asya/pull/350
+* fix(ci): preserve Helm charts when deploying docs to gh-pages by @atemate in https://github.com/deliveryhero/asya/pull/352
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.7...v0.5.8
+
+
+
 ## [0.5.7] - 2026-03-21
 
 ## What's Changed
@@ -1269,6 +1284,9 @@ All images are published to GitHub Container Registry:
 [0.5.5]: https://github.com/deliveryhero/asya/releases/tag/v0.5.5
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.7...HEAD
 [0.5.7]: https://github.com/deliveryhero/asya/releases/tag/v0.5.7
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.8...HEAD
+[0.5.8]: https://github.com/deliveryhero/asya/releases/tag/v0.5.8
 
