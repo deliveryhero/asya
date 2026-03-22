@@ -152,8 +152,8 @@ class TestFlowInfo:
         handler_actors = [a for a in result.actors if not a.generated]
         assert len(handler_actors) == 2
         handler_names = {a.name for a in handler_actors}
-        assert "handler-a" in handler_names
-        assert "handler-b" in handler_names
+        assert "actor-handler-a" in handler_names
+        assert "actor-handler-b" in handler_names
 
     def test_flow_info_graph_outputs_written(self, tmp_path: Path):
         source_file = tmp_path / "flow.py"

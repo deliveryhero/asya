@@ -1,6 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-ingester-line-176-seq-1.yaml
-- asyncactor-start-ingester.yaml
+- asya-router-ingester-line-176-seq-1.yaml
+- asya-start-ingester.yaml
 - configmap-routers.yaml

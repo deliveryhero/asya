@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-call-fallback-llm.yaml
-- asyncactor-call-llm.yaml
-- asyncactor-notify-admin.yaml
-- asyncactor-router-llm-pipeline-line-13-seq-5.yaml
-- asyncactor-router-llm-pipeline-line-16-except-2.yaml
-- asyncactor-router-llm-pipeline-line-17-seq-1.yaml
-- asyncactor-router-llm-pipeline-line-19-except-4.yaml
-- asyncactor-router-llm-pipeline-line-20-seq-3.yaml
-- asyncactor-start-llm-pipeline.yaml
+- asya-actor-call-fallback-llm.yaml
+- asya-actor-call-llm.yaml
+- asya-actor-notify-admin.yaml
+- asya-router-llm-pipeline-line-13-seq-5.yaml
+- asya-router-llm-pipeline-line-16-except-2.yaml
+- asya-router-llm-pipeline-line-17-seq-1.yaml
+- asya-router-llm-pipeline-line-19-except-4.yaml
+- asya-router-llm-pipeline-line-20-seq-3.yaml
+- asya-start-llm-pipeline.yaml
 - configmap-routers.yaml

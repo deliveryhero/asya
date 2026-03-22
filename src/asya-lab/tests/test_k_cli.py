@@ -329,7 +329,7 @@ def test_edit_creates_patch_and_opens_editor(mock_execvp, tmp_path):
         "metadata": {"name": "validate-order"},
         "spec": {"image": "test:v1"},
     }
-    (base_dir / "asyncactor-validate-order.yaml").write_text(yaml.dump(manifest))
+    (base_dir / "asya-validate-order.yaml").write_text(yaml.dump(manifest))
 
     runner = CliRunner()
     with (
@@ -589,7 +589,7 @@ def test_find_flow_for_actor_found(tmp_path):
         "metadata": {"name": "validate-order"},
         "spec": {"image": "test:v1"},
     }
-    (base_dir / "asyncactor-validate-order.yaml").write_text(yaml.dump(manifest))
+    (base_dir / "asya-validate-order.yaml").write_text(yaml.dump(manifest))
 
     result = _find_flow_for_actor(manifests_dir, "validate-order")
     assert result == "my-flow"

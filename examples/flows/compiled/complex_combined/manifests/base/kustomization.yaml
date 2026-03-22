@@ -1,13 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-complex-combined-flow-line-14-if-8.yaml
-- asyncactor-router-complex-combined-flow-line-18-if-7.yaml
-- asyncactor-router-complex-combined-flow-line-19-seq-4.yaml
-- asyncactor-router-complex-combined-flow-line-20-while-1.yaml
-- asyncactor-router-complex-combined-flow-line-23-if-3.yaml
-- asyncactor-router-complex-combined-flow-line-28-if-2.yaml
-- asyncactor-router-complex-combined-flow-line-31-if-6.yaml
-- asyncactor-router-complex-combined-flow-line-33-if-5.yaml
-- asyncactor-start-complex-combined-flow.yaml
+- asya-router-complex-combined-flow-line-14-if-8.yaml
+- asya-router-complex-combined-flow-line-18-if-7.yaml
+- asya-router-complex-combined-flow-line-19-seq-4.yaml
+- asya-router-complex-combined-flow-line-20-while-1.yaml
+- asya-router-complex-combined-flow-line-23-if-3.yaml
+- asya-router-complex-combined-flow-line-28-if-2.yaml
+- asya-router-complex-combined-flow-line-31-if-6.yaml
+- asya-router-complex-combined-flow-line-33-if-5.yaml
+- asya-start-complex-combined-flow.yaml
 - configmap-routers.yaml

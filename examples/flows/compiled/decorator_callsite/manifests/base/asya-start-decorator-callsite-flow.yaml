@@ -1,0 +1,22 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-decorator-callsite-flow
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-callsite-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-decorator-callsite-flow
+  image: python:3.13-slim
+  handler: routers.start_decorator_callsite_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ENRICHER
+    value: enricher
+  - name: ASYA_HANDLER_ACTOR_VALIDATOR
+    value: validator

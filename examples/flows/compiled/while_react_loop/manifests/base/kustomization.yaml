@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-react-agent-line-13-while-1.yaml
-- asyncactor-router-react-agent-line-15-if-2.yaml
-- asyncactor-start-react-agent.yaml
+- asya-router-react-agent-line-13-while-1.yaml
+- asya-router-react-agent-line-15-if-2.yaml
+- asya-start-react-agent.yaml
 - configmap-routers.yaml

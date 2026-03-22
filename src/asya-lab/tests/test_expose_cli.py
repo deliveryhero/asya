@@ -32,7 +32,7 @@ KUSTOMIZATION = {
     "kind": "Kustomization",
     "resources": [
         "configmap-routers.yaml",
-        "asyncactor-start-my-flow.yaml",
+        "asya-start-my-flow.yaml",
     ],
 }
 
@@ -47,7 +47,7 @@ def _setup_base_dir(tmp_path: Path) -> Path:
     base_dir = asya_dir / "manifests" / "my-flow" / "base"
     base_dir.mkdir(parents=True)
 
-    actor_path = base_dir / "asyncactor-start-my-flow.yaml"
+    actor_path = base_dir / "asya-start-my-flow.yaml"
     actor_path.write_text(yaml.dump(ACTOR_MANIFEST, default_flow_style=False))
 
     kust_path = base_dir / "kustomization.yaml"

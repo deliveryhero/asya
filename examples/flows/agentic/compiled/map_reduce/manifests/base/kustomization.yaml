@@ -1,9 +1,9 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-chunk-processor.yaml
-- asyncactor-reducer.yaml
-- asyncactor-router-map-reduce-line-54-fanout-1.yaml
-- asyncactor-splitter.yaml
-- asyncactor-start-map-reduce.yaml
+- asya-actor-chunk-processor.yaml
+- asya-actor-reducer.yaml
+- asya-actor-splitter.yaml
+- asya-router-map-reduce-line-54-fanout-1.yaml
+- asya-start-map-reduce.yaml
 - configmap-routers.yaml

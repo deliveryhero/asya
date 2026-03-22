@@ -298,7 +298,7 @@ _PATCH_TEMPLATE = """\
 # Uncomment and modify fields you want to override.
 #
 # This file is applied on top of the compiler-generated base/ manifest.
-# See base/asyncactor-{actor_name}.yaml for all available fields.
+# See base/asya-{actor_name}.yaml for all available fields.
 #
 # apiVersion: asya.sh/v1alpha1
 # kind: AsyncActor

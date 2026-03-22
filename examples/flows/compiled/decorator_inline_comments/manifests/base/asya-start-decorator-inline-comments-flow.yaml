@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-decorator-inline-comments-flow
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-inline-comments-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-decorator-inline-comments-flow
+  image: python:3.13-slim
+  handler: routers.start_decorator_inline_comments_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CLASSIFIER
+    value: classifier
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_18_IF_3
+    value: routers.router_decorator_inline_comments_flow_line_18_if_3
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_39_SEQ_1
+    value: routers.router_decorator_inline_comments_flow_line_39_seq_1
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_45_SEQ_2
+    value: routers.router_decorator_inline_comments_flow_line_45_seq_2

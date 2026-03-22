@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-acquire-resource
+  namespace: default
+  labels:
+    asya.sh/flow: resource-pipeline
+spec:
+  actor: actor-acquire-resource
+  image: examples.asya.sh/acquire-resource:latest
+  handler: acquire_resource
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_7_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-resource-pipeline-line-10-except-2
+    rules:
+    - errors:
+      - RuntimeError
+      policy: try_except_line_7_0

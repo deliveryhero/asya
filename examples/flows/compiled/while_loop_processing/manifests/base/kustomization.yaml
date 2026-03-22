@@ -1,11 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asyncactor-router-loop-flow-line-15-while-2.yaml
-- asyncactor-router-loop-flow-line-19-if-5.yaml
-- asyncactor-router-loop-flow-line-20-seq-4.yaml
-- asyncactor-router-loop-flow-line-26-if-3.yaml
-- asyncactor-router-loop-flow-line-39-seq-6.yaml
-- asyncactor-router-loop-flow-line-59-seq-1.yaml
-- asyncactor-start-loop-flow.yaml
+- asya-router-loop-flow-line-15-while-2.yaml
+- asya-router-loop-flow-line-19-if-5.yaml
+- asya-router-loop-flow-line-20-seq-4.yaml
+- asya-router-loop-flow-line-26-if-3.yaml
+- asya-router-loop-flow-line-39-seq-6.yaml
+- asya-router-loop-flow-line-59-seq-1.yaml
+- asya-start-loop-flow.yaml
 - configmap-routers.yaml

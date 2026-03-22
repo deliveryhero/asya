@@ -621,7 +621,7 @@ Create a YAML manifest declaring the actor. Three fields are required: `actor`,
 `image`, and `handler`.
 
 ```yaml
-# file: echo-actor.yaml
+# file: asya-echo-actor.yaml
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
@@ -676,7 +676,7 @@ spec:
 ### Step 3: Deploy
 
 ```bash
-kubectl apply -f echo-actor.yaml
+kubectl apply -f asya-echo-actor.yaml
 ```
 
 Crossplane creates three resources:
