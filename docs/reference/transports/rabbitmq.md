@@ -1,4 +1,4 @@
-# RabbitMQ Transport
+# RabbitMQ
 
 Self-hosted open-source message broker.
 

@@ -1,4 +1,4 @@
-# Actor Mesh: Choreography on Kubernetes
+# Actor Mesh
 
 ## What is an Actor Mesh?
 

@@ -1,4 +1,4 @@
-# Asya vs KAgent
+# vs KAgent
 
 ## TL;DR
 

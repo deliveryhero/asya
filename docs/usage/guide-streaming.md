@@ -1,4 +1,4 @@
-# Streaming with FLY Events
+# Streaming
 
 How to stream live progress updates from your actor handlers to gateway clients in real-time.
 

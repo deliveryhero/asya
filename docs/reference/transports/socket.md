@@ -1,4 +1,4 @@
-# Socket Transport
+# Socket
 
 ⚠️ **Local testing only.** The socket transport exists exclusively for Docker Compose developer
 workflows. It has no persistence, no broker, no competing consumers, and no Kubernetes support.

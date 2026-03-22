@@ -1,8 +1,8 @@
-# Crossplane Compositions
+# Crossplane
 
 ## Overview
 
-The Crossplane integration provides an alternative deployment model for AsyncActor resources using Crossplane compositions instead of the native Kubernetes operator. Crossplane manages the entire infrastructure lifecycle declaratively, from SQS queues to Deployments to KEDA autoscaling.
+The [Crossplane](https://www.crossplane.io/) integration provides an alternative deployment model for AsyncActor resources using Crossplane compositions instead of the native Kubernetes operator. Crossplane manages the entire infrastructure lifecycle declaratively, from SQS queues to Deployments to KEDA autoscaling.
 
 ## Architecture
 

@@ -1,4 +1,4 @@
-# 🎭 Asya vs Workflow Orchestrators
+# Workflow Orchestrators
 
 **Temporal, Argo Workflows, Apache Airflow, Prefect, Dagster**
 

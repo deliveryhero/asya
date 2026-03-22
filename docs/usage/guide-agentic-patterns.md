@@ -1,5 +1,5 @@
 
-# Agentic Patterns in Asya
+# Agentic Patterns
 
 Hands-on pattern walkthroughs for developers who know an agentic framework
 (Google ADK, LangGraph, CrewAI, Mastra) and want to build equivalent systems

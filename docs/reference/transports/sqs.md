@@ -1,4 +1,4 @@
-# SQS Transport
+# SQS
 
 AWS-managed message queue service.
 

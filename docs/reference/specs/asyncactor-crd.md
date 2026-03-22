@@ -1,5 +1,5 @@
 
-# AsyncActor CRD Reference
+# AsyncActor CRD
 
 Full field reference for the `AsyncActor` custom resource definition.
 
