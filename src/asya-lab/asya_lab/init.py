@@ -76,29 +76,80 @@ kind: Kustomization
 """
 
 _RULES_YAML = """\
-# Compiler rules: classify Python symbols during flow compilation.
-# Most specific match wins (exact > prefix.* > . > *).
+# Compiler rules: map Python constructs to AsyncActor manifest fields.
 #
-# Classification (treat-as):
-#   actor  - message boundary, separate K8s deployment
-#   inline - run code inside router verbatim
+# The parser auto-detects scope from Python syntax:
+#   with foo():        -> context manager (applies to all actors in scope)
+#   @foo(...)          -> decorator (applies to the decorated function)
+#   p = foo(p)         -> call-site
+#
+# treat-as values:
+#   actor  - separate K8s deployment (queue boundary)
+#   flow   - sub-flow, compile recursively (creates visual group)
 #   unfold - expand function body into current flow
-#   flow   - sub-flow, compile recursively
-#   config - infrastructure metadata, strip and extract
+#   inline - paste code into router body
+#   config - extract values into manifest, strip at runtime
 #
-# Extraction rules (where: + assign-to:):
-#   Navigate decorator AST, map values to XR spec paths.
+# extract: maps parameter names to spec paths (direct keyword args).
+# where:   navigates nested calls (e.g. stop=stop_after_attempt(3)).
 
-# --- Default classification rules ---
-- match: "."
-  treat-as: unfold
+# -- Context managers --
 
-- match: "*"
+- match: "asyncio.timeout"
+  treat-as: config
+  extract:
+    delay: spec.resiliency.timeout.actor
+
+- match: "contextlib.suppress"
   treat-as: inline
+  imports:
+    - "import contextlib"
 
-# --- User rules below ---
-# - match: "my_lib.helper"
-#   treat-as: inline
+# -- Decorators --
+
+# tenacity.retry — nested extraction via where: trees.
+# @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
+# @retry(stop=stop_after_attempt(5) | stop_after_delay(30))
+- match: "tenacity.retry"
+  treat-as: config
+  where:
+    - param: stop
+      where:
+        - match: "stop_after_attempt"
+          where:
+            - param: max_attempt_number
+              assign-to: spec.resiliency.policies.default.maxAttempts
+        - match: "stop_after_delay"
+          where:
+            - param: max_delay
+              assign-to: spec.resiliency.policies.default.maxDuration
+    - param: wait
+      where:
+        - match: "wait_exponential"
+          where:
+            - param: min
+              assign-to: spec.resiliency.policies.default.initialDelay
+            - param: max
+              assign-to: spec.resiliency.policies.default.maxInterval
+        - match: "wait_fixed"
+          where:
+            - param: wait
+              assign-to: spec.resiliency.policies.default.initialDelay
+
+# timeout_decorator.timeout — @timeout(30)
+- match: "timeout_decorator.timeout"
+  treat-as: config
+  extract:
+    seconds: spec.resiliency.timeout.actor
+
+# stamina.retry — @stamina.retry(attempts=3, timeout=60)
+- match: "stamina.retry"
+  treat-as: config
+  extract:
+    attempts: spec.resiliency.policies.default.maxAttempts
+    timeout: spec.resiliency.policies.default.maxDuration
+
+# -- Add your project-specific rules below --
 """
 
 
