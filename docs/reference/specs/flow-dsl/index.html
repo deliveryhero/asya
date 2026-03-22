@@ -3094,111 +3094,134 @@ consults the rules engine:</p>
 <p>For <code>CONFIG</code> rules with <code>where:</code> trees, the parser calls
 <code>ValueExtractor.extract(call_node, rule)</code> to pull spec values and stores them
 in <code>InlineCode.extracted_values</code>.</p>
-<h2 id="rules-engine-ast-level-classification">Rules engine (AST-level classification)<a class="headerlink" href="#rules-engine-ast-level-classification" title="Permanent link">#</a></h2>
-<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/rules.py</code></p>
-<p>The rules engine classifies Python symbols against an ordered list of compiler
-rules using a most-specific-wins strategy.</p>
-<h3 id="treatas-classifications">TreatAs classifications<a class="headerlink" href="#treatas-classifications" title="Permanent link">#</a></h3>
+<h2 id="symbol-classification">Symbol classification<a class="headerlink" href="#symbol-classification" title="Permanent link">#</a></h2>
+<p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/rules.py</code>, <code>src/asya-lab/asya_lab/flow/parser.py</code></p>
+<p>Every function call in a flow is classified as one of five <code>treat-as</code> values.
+The classification determines whether the call creates an actor boundary,
+runs inline in the router, or extracts configuration.</p>
+<h3 id="treatas-values">TreatAs values<a class="headerlink" href="#treatas-values" title="Permanent link">#</a></h3>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
 <th>Value</th>
 <th>Meaning</th>
-<th>IR result</th>
+<th>Effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td><code>actor</code></td>
 <td>Separate actor, route through queue</td>
-<td><code>ActorCall</code></td>
-</tr>
-<tr>
-<td><code>unfold</code></td>
-<td>Recursively compile (same-package helper)</td>
-<td><code>ActorCall</code> (future: inline expansion)</td>
+<td><code>ActorCall</code> — creates a queue hop</td>
 </tr>
 <tr>
 <td><code>flow</code></td>
-<td>Embedded sub-flow</td>
-<td><code>ActorCall</code> (future: flow composition)</td>
+<td>Embedded sub-flow, compile recursively</td>
+<td>Expand body + create visual group in graph</td>
+</tr>
+<tr>
+<td><code>unfold</code></td>
+<td>Expand function body into current flow</td>
+<td>Expand body (no visual group)</td>
 </tr>
 <tr>
 <td><code>inline</code></td>
-<td>Inline code into router body</td>
-<td><code>InlineCode</code></td>
+<td>Paste code into router body</td>
+<td><code>Mutation</code> — runs inside router process</td>
 </tr>
 <tr>
 <td><code>config</code></td>
 <td>Extract configuration values</td>
-<td><code>InlineCode</code> + <code>extracted_values</code></td>
+<td>Strip decorator/context manager, inject into manifest</td>
 </tr>
 </tbody>
 </table></div>
-<h3 id="matching-tiers">Matching tiers<a class="headerlink" href="#matching-tiers" title="Permanent link">#</a></h3>
-<p>Rules are matched against symbols with four tiers (lower = more specific = wins):</p>
+<h3 id="implicit-defaults">Implicit defaults<a class="headerlink" href="#implicit-defaults" title="Permanent link">#</a></h3>
+<p>When no explicit annotation or rule matches, the parser classifies based on
+where the function is defined:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Tier</th>
-<th>Pattern</th>
-<th>Example</th>
-<th>Matches</th>
+<th>Origin</th>
+<th>Default</th>
+<th>Rationale</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>0</td>
-<td>Exact</td>
-<td><code>"tenacity.retry"</code></td>
-<td><code>tenacity.retry</code> only</td>
+<td>Local function (defined in same file)</td>
+<td><code>unfold</code></td>
+<td>Expand body into the flow</td>
 </tr>
 <tr>
-<td>1</td>
-<td>Prefix wildcard</td>
-<td><code>"tenacity.*"</code></td>
-<td><code>tenacity.retry</code>, <code>tenacity.stop</code>, ...</td>
+<td>Imported function (from external package)</td>
+<td><code>inline</code></td>
+<td>Treat as payload code</td>
 </tr>
 <tr>
-<td>2</td>
-<td>Same-package dot</td>
-<td><code>"."</code></td>
-<td>Bare symbols in same root package</td>
-</tr>
-<tr>
-<td>3</td>
-<td>Global wildcard</td>
-<td><code>"*"</code></td>
-<td>Everything</td>
+<td>Bare name (not defined, not imported)</td>
+<td><code>actor</code></td>
+<td>Assumed to be a deployed actor</td>
 </tr>
 </tbody>
 </table></div>
-<p>Within tier 1, longer prefixes win (<code>"tenacity.stop.*"</code> beats <code>"tenacity.*"</code>).</p>
-<h3 id="default-rules">Default rules<a class="headerlink" href="#default-rules" title="Permanent link">#</a></h3>
-<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.&quot;</span><span class="w">    </span><span class="c1"># same-package symbols</span>
-<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">unfold</span>
-
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*&quot;</span><span class="w">    </span><span class="c1"># everything else</span>
-<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">inline</span>
+<h3 id="explicit-overrides-highest-to-lowest-priority">Explicit overrides (highest to lowest priority)<a class="headerlink" href="#explicit-overrides-highest-to-lowest-priority" title="Permanent link">#</a></h3>
+<ol>
+<li><strong>Inline comment</strong> — <code># asya: &lt;treat-as&gt;</code> on the call site:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">external</span><span class="o">.</span><span class="n">lib</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: actor   — force actor</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">local_helper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline  — force inline</span>
 </code></pre></div>
-<p>Without user rules, bare symbols (same-package) are unfolded and dotted
-symbols (external) are inlined.</p>
-<h3 id="user-rules">User rules<a class="headerlink" href="#user-rules" title="Permanent link">#</a></h3>
-<p>Loaded from <code>.asya/config.compiler.rules.yaml</code>. User rules prepend to defaults,
-so exact matches (tier 0) override wildcards:</p>
+<ol>
+<li><strong>Definition-site decorator</strong> — <code>@actor</code>, <code>@flow</code>, <code>@inline</code>, <code>@unfold</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nd">@actor</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="nd">@inline</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">inject_trace</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<ol>
+<li><strong>Call-site wrapper</strong> — <code>actor(fn)(p)</code>, <code>inline(fn)(p)</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">actor</span><span class="p">(</span><span class="n">validate</span><span class="p">)(</span><span class="n">p</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">inline</span><span class="p">(</span><span class="n">inject_trace</span><span class="p">)(</span><span class="n">p</span><span class="p">)</span>
+</code></pre></div>
+<ol>
+<li><strong>Config rule</strong> — exact-match rules in <code>.asya/config.compiler.rules.yaml</code>:</li>
+</ol>
 <div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
 <span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
-<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
-<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;max_attempt_number&quot;</span><span class="p p-Indicator">}</span>
-<span class="w">          </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">max_attempt_number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
 </code></pre></div>
-<h3 id="inline-comment-override">Inline comment override<a class="headerlink" href="#inline-comment-override" title="Permanent link">#</a></h3>
-<p>The highest-priority classification is the <code># asya: &lt;action&gt;</code> inline comment:</p>
-<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">external</span><span class="o">.</span><span class="n">lib</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: actor   — forces actor regardless of rules</span>
-<span class="n">p</span> <span class="o">=</span> <span class="n">local_helper</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline  — forces inline regardless of rules</span>
+<ol>
+<li><strong>Implicit defaults</strong> — see table above</li>
+</ol>
+<p>All five <code>treat-as</code> values are supported via all mechanisms.</p>
+<h3 id="config-extraction">Config extraction<a class="headerlink" href="#config-extraction" title="Permanent link">#</a></h3>
+<p>Rules with <code>treat-as: config</code> extract values from decorator arguments or
+context manager parameters and inject them into AsyncActor manifests.
+The <code>extract:</code> field maps parameter names to spec paths:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Context manager: asyncio.timeout(30) -&gt; spec.resiliency.timeout.actor: 30</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;asyncio.timeout&quot;</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.timeout.actor</span>
+
+<span class="c1"># Decorator: @retry(max_attempt_number=5) -&gt; spec.resiliency.policies.default.maxAttempts: 5</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">max_attempt_number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
 </code></pre></div>
+<p>The parser auto-detects scope from Python syntax — no <code>scope:</code> field needed:
+- Context managers (<code>with foo():</code>) apply config to all actors in the <code>with</code> body
+- Decorators (<code>@foo</code>) apply config to the decorated function only</p>
+<p>Config decorators are added to <code>ASYA_IGNORE_DECORATORS</code> env var so the
+runtime strips them at handler load time.</p>
+<p>Default rules ship in <code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code>.
+User rules in <code>.asya/config.compiler.rules.yaml</code> extend (not replace) defaults.</p>
 <h2 id="value-extractor-ast-level-extraction">Value extractor (AST-level extraction)<a class="headerlink" href="#value-extractor-ast-level-extraction" title="Permanent link">#</a></h2>
 <p><strong>Source</strong>: <code>src/asya-lab/asya_lab/compiler/extractor.py</code></p>
 <p>The extractor pulls spec values from <code>ast.Call</code> nodes guided by <code>where:</code> trees
@@ -4721,41 +4744,35 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
         
-        <a href="#rules-engine-ast-level-classification"
+        <a href="#symbol-classification"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
-            Rules engine (AST-level classification)
+            Symbol classification
         </a>
         
         
-        <a href="#treatas-classifications"
+        <a href="#treatas-values"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            TreatAs classifications
+            TreatAs values
         </a>
         
-        <a href="#matching-tiers"
+        <a href="#implicit-defaults"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Matching tiers
+            Implicit defaults
         </a>
         
-        <a href="#default-rules"
+        <a href="#explicit-overrides-highest-to-lowest-priority"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            Default rules
+            Explicit overrides (highest to lowest priority)
         </a>
         
-        <a href="#user-rules"
+        <a href="#config-extraction"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="3">
-            User rules
-        </a>
-        
-        <a href="#inline-comment-override"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="3">
-            Inline comment override
+            Config extraction
         </a>
         
         
