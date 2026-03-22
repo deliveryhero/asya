@@ -15,4 +15,8 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
-  env: []
+  env:
+  - name: ASYA_HANDLER_ACTOR_CRITIC
+    value: critic
+  - name: ASYA_HANDLER_ACTOR_REVISER
+    value: reviser
