@@ -472,6 +472,13 @@ table td code {
   margin-right: 4px;
 }
 
+/* Align logo with sidebar tree lines on desktop */
+@media (min-width: 1024px) {
+  .asya-home-link {
+    margin-left: 1rem;
+  }
+}
+
 .asya-docs-btn {
   margin-left: -4px;
 }
