@@ -1,13 +1,13 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: summarize
+  name: actor-summarize
   namespace: demo-skaffold
   labels:
     asya.sh/flow: pipeline
 spec:
-  actor: summarize
-  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-summarizer:v0.5.5-27-gfd384607
+  actor: actor-summarize
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-summarizer:v0.5.7-10-g8df83ba2
   handler: summarizer.handler.summarize
   scaling:
     enabled: true

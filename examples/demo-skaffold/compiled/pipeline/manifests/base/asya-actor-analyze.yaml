@@ -1,13 +1,13 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: analyze
+  name: actor-analyze
   namespace: demo-skaffold
   labels:
     asya.sh/flow: pipeline
 spec:
-  actor: analyze
-  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.5-27-gfd384607
+  actor: actor-analyze
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.7-10-g8df83ba2-dirty
   handler: sentiment_actors.handler.analyze
   scaling:
     enabled: true

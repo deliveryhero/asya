@@ -14,11 +14,11 @@ spec:
   env:
   - name: PYTHONPATH
     value: /app
-  - name: ASYA_HANDLER_ANALYZE
+  - name: ASYA_HANDLER_ACTOR_ANALYZE
     value: sentiment_actors.handler.analyze
-  - name: ASYA_HANDLER_SUMMARIZE
+  - name: ASYA_HANDLER_ACTOR_SUMMARIZE
     value: summarizer.handler.summarize
-  - name: ASYA_HANDLER_TRANSLATE
+  - name: ASYA_HANDLER_ACTOR_TRANSLATE
     value: translator.handler.translate
   volumes:
   - name: handler

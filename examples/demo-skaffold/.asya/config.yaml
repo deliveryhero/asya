@@ -5,11 +5,11 @@ templates:
 
 build:
 - module: "analyze"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.5-27-gfd384607"
+  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-sentiment-actors:v0.5.7-10-g8df83ba2-dirty"
 - module: "summarize"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-summarizer:v0.5.5-27-gfd384607"
+  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-summarizer:v0.5.7-10-g8df83ba2"
 - module: "translate"
-  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.5-27-gfd384607"
+  image: "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.7-10-g8df83ba2"
 
 compiler:
   routers: "./compiled"

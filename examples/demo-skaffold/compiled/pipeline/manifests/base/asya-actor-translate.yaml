@@ -1,14 +1,14 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: translate
+  name: actor-translate
   namespace: demo-skaffold
   labels:
     asya.sh/flow: pipeline
     asya.sh/role: end
 spec:
-  actor: translate
-  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.5-27-gfd384607
+  actor: actor-translate
+  image: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/skaffold-translator:v0.5.7-10-g8df83ba2
   handler: translator.handler.translate
   scaling:
     enabled: true
