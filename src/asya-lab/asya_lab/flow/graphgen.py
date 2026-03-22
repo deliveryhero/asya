@@ -84,15 +84,8 @@ def to_dot(data: GraphData, flow_name: str) -> str:
     for nid in exitpoints:
         lines.append(f"    {nid} -> __end__;")
 
-    # Groups as subgraphs
-    for group in data.groups:
-        gid = _sanitize_id(group["id"])
-        lines.append(f"    subgraph cluster_{gid} {{")
-        lines.append(f'        label="{group["id"]}";')
-        lines.append("        style=dashed;")
-        for member in group.get("nodes", []):
-            lines.append(f"        {_sanitize_id(member)};")
-        lines.append("    }")
+    # Groups as subgraphs (nested when one group's nodes are a subset of another's)
+    _render_dot_groups(data.groups, lines, indent="    ")
 
     lines.append("}")
     return "\n".join(lines)
@@ -173,13 +166,8 @@ def to_mermaid(data: GraphData, flow_name: str) -> str:
         lines.append(f"    {nid} --> __end__")
         edge_index += 1
 
-    # Groups as subgraphs
-    for group in data.groups:
-        gid = _sanitize_id(group["id"])
-        lines.append(f"    subgraph {gid}[{group['id']}]")
-        for member in group.get("nodes", []):
-            lines.append(f"        {_sanitize_id(member)}")
-        lines.append("    end")
+    # Groups as subgraphs (nested when one group's nodes are a subset of another's)
+    _render_mermaid_groups(data.groups, lines, indent="    ")
 
     # Styling — match DOT color scheme
     lines.append("")
@@ -230,12 +218,100 @@ def to_json_string(data: GraphData, flow_name: str) -> str:
     return json.dumps(to_json(data, flow_name), indent=2) + "\n"
 
 
+# -- Group nesting --
+
+
+def _build_group_tree(groups: list[dict]) -> list[tuple[dict, list]]:
+    """Build a tree of groups where children have nodes that are a strict subset of their parent.
+
+    Returns a forest (list of root nodes), each node is (group, children).
+    Groups are sorted largest-first so parents are processed before children.
+    """
+    if not groups:
+        return []
+
+    sorted_groups = sorted(groups, key=lambda g: len(g.get("nodes", [])), reverse=True)
+    node_sets = {id(g): set(g.get("nodes", [])) for g in sorted_groups}
+
+    # tree_nodes[id(group)] = (group, children_list)
+    tree_nodes: dict[int, tuple[dict, list]] = {id(g): (g, []) for g in sorted_groups}
+    roots: list[tuple[dict, list]] = []
+    assigned: set[int] = set()
+
+    for child in sorted_groups:
+        child_id = id(child)
+        child_nodes = node_sets[child_id]
+        placed = False
+        for parent in sorted_groups:
+            parent_id = id(parent)
+            if parent_id == child_id:
+                continue
+            if child_nodes < node_sets[parent_id]:
+                tree_nodes[parent_id][1].append(tree_nodes[child_id])
+                assigned.add(child_id)
+                placed = True
+                break
+        if not placed and child_id not in assigned:
+            roots.append(tree_nodes[child_id])
+
+    return roots
+
+
+def _render_dot_groups(groups: list[dict], lines: list[str], indent: str) -> None:
+    """Render groups as nested DOT subgraphs."""
+    tree = _build_group_tree(groups)
+    for node in tree:
+        _render_dot_group_node(node, lines, indent)
+
+
+def _render_dot_group_node(node: tuple[dict, list], lines: list[str], indent: str) -> None:
+    group, children = node
+    gid = _sanitize_id(group["id"])
+    child_nodes = set()
+    for child_group, _child_children in children:
+        child_nodes.update(child_group.get("nodes", []))
+
+    lines.append(f"{indent}subgraph cluster_{gid} {{")
+    lines.append(f'{indent}    label="{_escape_dot(group["id"])}";')
+    lines.append(f"{indent}    style=dashed;")
+    for member in group.get("nodes", []):
+        if member not in child_nodes:
+            lines.append(f"{indent}    {_sanitize_id(member)};")
+    for child in children:
+        _render_dot_group_node(child, lines, indent + "    ")
+    lines.append(f"{indent}}}")
+
+
+def _render_mermaid_groups(groups: list[dict], lines: list[str], indent: str) -> None:
+    """Render groups as nested Mermaid subgraphs."""
+    tree = _build_group_tree(groups)
+    for node in tree:
+        _render_mermaid_group_node(node, lines, indent)
+
+
+def _render_mermaid_group_node(node: tuple[dict, list], lines: list[str], indent: str) -> None:
+    group, children = node
+    gid = _sanitize_id(group["id"])
+    child_nodes = set()
+    for child_group, _child_children in children:
+        child_nodes.update(child_group.get("nodes", []))
+
+    escaped_label = group["id"].replace('"', "'").replace("[", "(").replace("]", ")")
+    lines.append(f"{indent}subgraph {gid}[{escaped_label}]")
+    for member in group.get("nodes", []):
+        if member not in child_nodes:
+            lines.append(f"{indent}    {_sanitize_id(member)}")
+    for child in children:
+        _render_mermaid_group_node(child, lines, indent + "    ")
+    lines.append(f"{indent}end")
+
+
 # -- Helpers --
 
 
 def _sanitize_id(name: str) -> str:
     """Make a name safe for DOT/Mermaid node IDs."""
-    return name.replace(".", "_").replace("-", "_").replace(" ", "_")
+    return "".join(c if c.isalnum() or c == "_" else "_" for c in name)
 
 
 def _display_name(name: str) -> str:

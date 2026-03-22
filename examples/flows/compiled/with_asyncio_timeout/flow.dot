@@ -22,4 +22,10 @@ digraph "document_pipeline" {
     sentiment_analyzer -> router_document_pipeline_line_27_seq_1;
     router_document_pipeline_line_23_if_2 -> sentiment_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
     router_document_pipeline_line_27_seq_1 -> __end__;
+    subgraph cluster_asyncio_timeout_30_ {
+        label="asyncio.timeout(30)";
+        style=dashed;
+        ocr_extractor;
+        language_detector;
+    }
 }
