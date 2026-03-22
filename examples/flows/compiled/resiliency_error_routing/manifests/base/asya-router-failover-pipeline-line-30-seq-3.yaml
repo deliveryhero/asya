@@ -1,0 +1,29 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-failover-pipeline-line-30-seq-3
+  namespace: default
+  labels:
+    asya.sh/flow: failover-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-failover-pipeline-line-30-seq-3
+  image: python:3.13-slim
+  handler: routers.router_failover_pipeline_line_30_seq_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CALL_FALLBACK
+    value: call_fallback
+  - name: ASYA_HANDLER_ACTOR_CALL_PRIMARY
+    value: call_primary
+  - name: ASYA_HANDLER_ACTOR_FINALIZE
+    value: finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLE_VALIDATION_ERROR
+    value: handle_validation_error
+  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_27_SEQ_1
+    value: routers.router_failover_pipeline_line_27_seq_1
+  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_30_SEQ_3
+    value: routers.router_failover_pipeline_line_30_seq_3

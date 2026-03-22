@@ -1,0 +1,29 @@
+flowchart TD
+    %% Flow: llm_pipeline
+
+    call_llm[call_llm]
+    parse_response[parse_response]
+    start_llm_pipeline(["start_llm_pipeline<br/><br/>p['status'] = 'started'"])
+    store_result[store_result]
+    validate_input[validate_input]
+    __end__((( )))
+
+    start_llm_pipeline --> validate_input
+    validate_input --> call_llm
+    call_llm --> parse_response
+    parse_response --> store_result
+    store_result --> __end__
+    subgraph asyncio_timeout_120_[asyncio.timeout(120)]
+        call_llm
+        parse_response
+    end
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_llm_pipeline start
+    class store_result endnode
+    class call_llm,parse_response,validate_input handler
+    class __end__ endpoint

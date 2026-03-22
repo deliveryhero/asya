@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asya-actor-call-fallback.yaml
+- asya-actor-call-primary.yaml
+- asya-actor-finalize.yaml
+- asya-actor-handle-validation-error.yaml
+- asya-router-failover-pipeline-line-22-seq-5.yaml
+- asya-router-failover-pipeline-line-26-except-2.yaml
+- asya-router-failover-pipeline-line-27-seq-1.yaml
+- asya-router-failover-pipeline-line-29-except-4.yaml
+- asya-router-failover-pipeline-line-30-seq-3.yaml
+- asya-start-failover-pipeline.yaml
+- configmap-routers.yaml

@@ -1,0 +1,27 @@
+flowchart TD
+    %% Flow: api_pipeline
+
+    fetch_from_api[fetch_from_api]
+    process_response[process_response]
+    start_api_pipeline(["start_api_pipeline<br/><br/>p['status'] = 'started'"])
+    store_results[store_results]
+    __end__((( )))
+
+    start_api_pipeline --> fetch_from_api
+    fetch_from_api --> process_response
+    process_response --> store_results
+    store_results --> __end__
+    subgraph asyncio_timeout_120_[asyncio.timeout(120)]
+        fetch_from_api
+        process_response
+    end
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_api_pipeline start
+    class store_results endnode
+    class fetch_from_api,process_response handler
+    class __end__ endpoint
