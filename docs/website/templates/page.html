@@ -1,0 +1,112 @@
+<article class="w-full" view-transition-name="page">
+  <!-- Envelope route navigator -->
+  <nav class="envelope-route" id="envelope-route" aria-label="Navigation history">
+    <div class="route-line"><span class="route-bracket">"route":</span> <span class="route-bracket">{</span></div>
+    <div class="route-line route-indent"><span class="route-label">"prev":</span> <span class="route-bracket">[</span><span id="route-prev" class="route-prev"></span><span class="route-bracket">]</span><span class="route-comma">,</span></div>
+    <div class="route-line route-indent"><span class="route-label">"curr":</span> <span class="route-curr" id="route-curr"></span><span class="route-comma">,</span></div>
+    <div class="route-line route-indent"><span class="route-label">"next":</span> <span class="route-bracket">[</span><span id="route-next" class="route-next">{% if page.next_page %}<a href="{{ page.next_page.abs_url }}" class="route-link">"{{ page.next_page.title }}"</a>{% endif %}</span><span class="route-bracket">]</span></div>
+    <div class="route-line"><span class="route-bracket">}</span></div>
+  </nav>
+
+  <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-2">
+      <div id="page-header" class="flex items-start justify-between">
+        <h1
+          class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
+        >
+          {% if page.meta.title %}{{ page.meta.title }}{% else %}{{ page.title }}{% endif %}
+        </h1>
+
+        <div class="flex items-center gap-2 pt-1.5">
+          {% include "templates/copy_button.html" %}
+        </div>
+      </div>
+      {% if page.meta.summary %}
+      <p
+        id="summary"
+        class="text-muted-foreground text-[1.05rem] text-balance sm:text-base"
+      >
+        {{ page.meta.summary }}
+      </p>
+      {% endif %}
+    </div>
+    <div class="flex justify-end items-center">
+      {% if page.meta.external_links %}
+      <div class="grow flex items-center space-x-2 pt-4 external_links">
+        {% for link_name, href in page.meta.external_links.items() %}
+        <a
+          target="_blank"
+          rel="noreferrer"
+          data-slot="badge"
+          class="inline-flex items-center justify-center rounded-md border px-2 py-0.5 text-xs font-medium w-fit whitespace-nowrap shrink-0 [&amp;&gt;svg]:size-3 gap-1 [&amp;&gt;svg]:pointer-events-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive transition-[color,box-shadow] overflow-hidden border-transparent bg-secondary text-secondary-foreground [a&amp;]:hover:bg-secondary/90"
+          href="{{ href }}"
+        >
+          {{ link_name }}
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            class="tabler-icon tabler-icon-arrow-up-right"
+          >
+            <path d="M17 7l-10 10"></path>
+            <path d="M8 7l9 0l0 9"></path>
+          </svg>
+        </a>
+        {% endfor %}
+      </div>
+      {% endif %} {% if page.meta.show_datetime == True %} {% include
+      "components/datetime.html" %} {% elif page.meta.show_datetime == False %}
+      {# do nothing #} {% elif config.theme.show_datetime == True %} {% include
+      "components/datetime.html" %} {% endif %}
+    </div>
+  </div>
+  <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
+    {{ page.content }}
+  </div>
+</article>
+
+<script>
+(function() {
+    var KEY = 'asya-nav-history';
+    var MAX_PREV = 3;
+
+    var currentPath = window.location.pathname;
+    var currentTitle = document.querySelector('#page-header h1').textContent.trim();
+
+    // Load history
+    var history;
+    try { history = JSON.parse(sessionStorage.getItem(KEY)) || { prev: [], curr: null }; }
+    catch(e) { history = { prev: [], curr: null }; }
+
+    // Push previous curr to prev stack
+    if (history.curr && history.curr.path !== currentPath) {
+        history.prev.push(history.curr);
+        if (history.prev.length > MAX_PREV) {
+            history.prev = history.prev.slice(-MAX_PREV);
+        }
+    }
+
+    // Set current
+    history.curr = { title: currentTitle, path: currentPath };
+
+    // Save
+    sessionStorage.setItem(KEY, JSON.stringify(history));
+
+    // Render prev
+    var prevEl = document.getElementById('route-prev');
+    if (history.prev.length > 0) {
+        prevEl.innerHTML = history.prev.map(function(p) {
+            return '<a href="' + p.path + '" class="route-link">"' + p.title + '"</a>';
+        }).join(', ');
+    }
+
+    // Render curr
+    document.getElementById('route-curr').textContent = '"' + currentTitle + '"';
+})();
+</script>

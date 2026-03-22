@@ -1,11 +1,4 @@
-# 🎭 Asya Documentation
-
-<p align="left">
-  <a href="https://asya.sh/">
-    <img src="/docs/website/img/logo_colored_with_borders.png" alt="Asya" width="200"/>
-  </a>
-</p>
-**[← Back to asya.sh](/)**
+# Home
 
 ---
 
