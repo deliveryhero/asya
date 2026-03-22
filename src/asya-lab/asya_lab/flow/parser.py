@@ -265,20 +265,13 @@ class FlowParser:
     def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
         """Map function name to treat-as value for same-file definitions.
 
-        Checks both decorators and ``# asya: <directive>`` inline comments
-        on the ``def`` line.  Also extracts config from decorators matched
-        by compiler rules (e.g. @retry(max_attempts=3)).
+        Also extracts config from decorators matched by compiler rules
+        (e.g. @retry(max_attempts=3)).
         """
         index: dict[str, str] = {}
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
                 continue
-
-            # Check # asya: <directive> on the def line itself
-            directive = self._directives.get(node.lineno)
-            if directive is not None and directive.treat_as in _VALID_DIRECTIVES:
-                index[node.name] = directive.treat_as
-
             for dec in node.decorator_list:
                 dec_name = self._decorator_name(dec)
                 if dec_name is None:
