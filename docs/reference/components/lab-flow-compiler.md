@@ -1,4 +1,4 @@
-# Asya Flow Compiler — Architecture
+# Flow Compiler
 
 This document describes the **compiler internals** — how the Flow DSL
 source is parsed, code-generated into routers, analyzed for routing

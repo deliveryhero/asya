@@ -1,4 +1,4 @@
-# 🎭 Asya as an Agentic Framework
+# Agentic Frameworks
 
 **LangGraph, CrewAI, Google ADK, AutoGen, KAgent**
 

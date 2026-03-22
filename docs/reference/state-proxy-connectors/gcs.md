@@ -1,4 +1,4 @@
-# GCS State Connector
+# GCS
 
 Google Cloud Storage connector for state proxy.
 

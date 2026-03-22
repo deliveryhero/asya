@@ -28,7 +28,7 @@
 
   /* Accent colors */
   --accent-primary: #5a6c8f;
-  --accent-hover: #3d4f6b;
+  --accent-hover: #3c63cc;
 }
 
 /* Dark mode color overrides */
@@ -54,8 +54,8 @@ body.dark {
   --btn-secondary-bg: #2d2d2d;
   --btn-border: #555;
 
-  --accent-primary: #5a6c8f;
-  --accent-hover: #7a8ca0;
+  --accent-primary: #7a9fd4;
+  --accent-hover: #8ab4f8;
 }
 
 /* Base styles */

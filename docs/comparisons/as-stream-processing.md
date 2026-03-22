@@ -1,4 +1,4 @@
-# 🎭 Asya vs Stream Processing Frameworks
+# Stream Processing
 
 **Apache Flink, Kafka Streams, Spark Streaming**
 

@@ -1,4 +1,4 @@
-# Asya vs Kubeflow Pipelines
+# vs Kubeflow Pipelines
 
 ## TL;DR
 

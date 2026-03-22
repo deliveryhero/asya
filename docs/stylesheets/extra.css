@@ -30,6 +30,31 @@ button[onclick*="README.md"],
   pointer-events: none !important;
 }
 
+/* Mobile menu button — visible in dark mode */
+.dark #menu-button,
+.dark #menu-button span,
+.dark #menu-button svg {
+  color: #e5e5e5 !important;
+  stroke: #e5e5e5;
+}
+
+/* Bottom prev/next navigation — subtle, matching sidebar tone */
+.dark [data-slot="button"].inline-flex {
+  color: #9aa8bc !important;
+  background-color: #1a2030 !important;
+}
+
+.dark [data-slot="button"].inline-flex:hover {
+  color: #b8c8dc !important;
+  background-color: #222e40 !important;
+}
+
+/* Prevent overscroll bounce and white flash in dark mode */
+html {
+  overscroll-behavior: none;
+  background-color: var(--bg-primary);
+}
+
 /* Force nested navigation to display */
 .bs-sidebar .nav .nav {
   display: block !important;
@@ -52,14 +77,14 @@ button[onclick*="README.md"],
   color: #666;
 }
 
-/* Override aggressive red with softer blue-gray tones */
+/* Links — blue-gray base, Asya blue on hover */
 a {
   color: #5a6c8f;
 }
 
 a:hover,
 a:focus {
-  color: #3d4f6b;
+  color: #3c63cc;
 }
 
 /* Navbar styling */
@@ -238,7 +263,7 @@ pre code {
 
 /* Headers with softer accent */
 h1, h2, h3, h4, h5, h6 {
-  color: #2c3e50;
+  color: #2a4075;
 }
 
 /* Dark mode: lighter headers for better visibility */
@@ -248,7 +273,7 @@ h1, h2, h3, h4, h5, h6 {
 .dark h4,
 .dark h5,
 .dark h6 {
-  color: #e8eaed;
+  color: #b8cce8;
 }
 
 /* Dark mode: lighter navigation titles for better visibility */
@@ -442,26 +467,156 @@ table td code {
 .dark .codehilite .il,
 .dark .highlight .il { color: #79c0ff }
 
-/* Home button - make site title link back to landing page */
-.site-title a::before {
-  content: "← ";
+/* Top-left logo — gray at rest, colored on hover */
+.asya-home-link {
+  margin-right: 4px;
 }
 
-/* Add a back-to-home link above the nav */
-.sidebar-nav::before {
-  content: "← asya.sh";
+.asya-docs-btn {
+  margin-left: -4px;
+}
+
+.asya-home-logo {
+  height: 20px;
+  width: 20px;
+  object-fit: contain;
+  transition: opacity 0.2s ease;
+}
+
+.asya-logo-gray {
+  opacity: 0.6;
+}
+
+.asya-logo-light {
+  display: none;
+}
+
+.asya-logo-color {
+  display: none;
+}
+
+/* Light mode: gray at rest, colored on hover */
+.asya-home-link:hover .asya-logo-gray {
+  display: none;
+}
+
+.asya-home-link:hover .asya-logo-color {
   display: block;
-  padding: 0.75rem 1rem;
-  margin-bottom: 0.5rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--accent-primary);
-  border-bottom: 1px solid var(--border-primary);
-  cursor: pointer;
+  opacity: 0.6;
 }
 
-.sidebar-nav::before {
-  content: none;
+/* Dark mode: light gray at rest, colored on hover */
+.dark .asya-logo-gray {
+  display: none;
+}
+
+.dark .asya-logo-light {
+  display: block;
+  opacity: 0.6;
+}
+
+.dark .asya-home-link:hover .asya-logo-light {
+  display: none;
+}
+
+.dark .asya-home-link:hover .asya-logo-color {
+  display: block;
+  opacity: 0.5;
+}
+
+/* KubeCon banner */
+.kubecon-banner {
+  background: #f5c518;
+  color: #1a1a1a;
+  text-align: center;
+  padding: 8px 40px 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.kubecon-banner a {
+  color: #1a1a1a !important;
+  text-decoration: underline !important;
+  font-weight: 600;
+}
+
+.kubecon-banner a:hover {
+  color: #000 !important;
+}
+
+.kubecon-close {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #1a1a1a;
+  opacity: 0.6;
+  padding: 4px;
+  line-height: 1;
+}
+
+.kubecon-close:hover {
+  opacity: 1;
+}
+
+/* Sidebar height — use full viewport minus header only */
+[data-slot="sidebar"] {
+  height: calc(100svh - var(--header-height) - 1px) !important;
+}
+
+/* Sidebar scrollbar — vertical only, always visible, thin, blue-tinted */
+[view-transition-name="sidebar"] {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin;
+  scrollbar-color: #c0cee0 transparent;
+}
+
+.dark [view-transition-name="sidebar"] {
+  scrollbar-color: #3a4a60 transparent;
+}
+
+[view-transition-name="sidebar"]::-webkit-scrollbar {
+  width: 4px;
+}
+
+[view-transition-name="sidebar"]::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[view-transition-name="sidebar"]::-webkit-scrollbar-thumb {
+  background-color: #c0cee0;
+  border-radius: 4px;
+}
+
+.dark [view-transition-name="sidebar"]::-webkit-scrollbar-thumb {
+  background-color: #3a4a60;
+}
+
+/* Sidebar theme — blue-tinted to match Asya brand */
+:root {
+  --sidebar-accent: #eef2f9;
+  --sidebar-accent-foreground: #2a4075;
+  --sidebar-primary: #3c63cc;
+  --sidebar-ring: #3c63cc40;
+  --accent: #e8eef8;
+}
+
+.dark {
+  --sidebar-accent: #1e2a40;
+  --sidebar-accent-foreground: #d0ddf0;
+  --sidebar-primary: #8ab4f8;
+  --sidebar-ring: #6b8fd440;
+  --accent: #1a2538;
 }
 
 /* Sidebar tree navigation */
@@ -482,30 +637,69 @@ table td code {
 }
 
 .sidebar-tree-section > summary:hover {
-  background: var(--bg-tertiary);
+  background: var(--sidebar-accent);
   border-radius: 6px;
 }
 
-/* Sidebar section labels - darker in light mode, lighter in dark mode */
+/* Sidebar section labels — blue-tinted */
 .sidebar-tree-section > summary[data-sidebar="group-label"] {
-  color: #2c3e50 !important;
+  color: #2a4075 !important;
   font-weight: 600 !important;
 }
 
 .dark .sidebar-tree-section > summary[data-sidebar="group-label"] {
-  color: #d4d4d4 !important;
+  color: #d0ddf0 !important;
 }
 
-/* Sidebar tree arrows - visible in both modes */
+/* Sidebar tree arrows — blue tint */
 .sidebar-tree-arrow {
-  color: #666 !important;
+  color: #5a7ab5 !important;
 }
 
 .dark .sidebar-tree-arrow {
-  color: #b0b0b0 !important;
+  color: #7a9fd4 !important;
 }
 
-/* Theme toggle button - visible in dark mode */
+/* Open path — only highlight the summary label, not the whole section */
+.sidebar-tree-section[open] > summary[data-sidebar="group-label"] {
+  color: #3c63cc !important;
+}
+
+.dark .sidebar-tree-section[open] > summary[data-sidebar="group-label"] {
+  color: #8ab4f8 !important;
+}
+
+/* Increased indentation for deeper tree structure */
+[data-sidebar="group-content"] {
+  padding-left: 8px !important;
+  border-left: 1px solid #d0d8e8;
+  margin-left: 20px;
+}
+
+.dark [data-sidebar="group-content"] {
+  border-left-color: #2d3a4f;
+}
+
+/* Active sidebar item — blue accent */
+a[data-sidebar="menu-button"][data-active="true"] {
+  color: #3c63cc !important;
+  font-weight: 600 !important;
+}
+
+.dark a[data-sidebar="menu-button"][data-active="true"] {
+  color: #8ab4f8 !important;
+}
+
+/* Overview items — slightly dimmer to distinguish from regular page links */
+
+
+/* Theme toggle — sun/moon swap */
+.theme-icon-sun { display: none; }
+.theme-icon-moon { display: block; }
+.dark .theme-icon-sun { display: block; }
+.dark .theme-icon-moon { display: none; }
+
+/* Toolbar icons — visible in dark mode */
 .dark button[title="Toggle theme"] svg {
   stroke: #e5e5e5 !important;
 }
@@ -520,22 +714,181 @@ table td code {
 }
 
 /* Images with transparent backgrounds need white bg in dark mode */
-.dark img[src*=".png"],
-.dark img[src*=".jpg"] {
+.dark img[src*=".png"]:not(.asya-home-logo),
+.dark img[src*=".jpg"]:not(.asya-home-logo) {
   background-color: white;
   border-radius: 8px;
   padding: 8px;
 }
 
-/* Permalink anchors in asya blue */
-.headerlink {
+/* Envelope route navigator */
+.envelope-route {
+  all: initial !important;
+  display: block !important;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace !important;
+  font-size: 0.75rem !important;
+  color: var(--text-muted) !important;
+  padding: 6px 0 21px 0 !important;
+  margin-bottom: 32px !important;
+  border-bottom: 1px solid #d0d8e8 !important;
+  line-height: 1.5 !important;
+}
+
+.dark .envelope-route {
+  border-bottom-color: #2d3a4f !important;
+}
+
+.envelope-route * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+}
+
+.route-line {
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.route-line-expanded {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.route-prev {
+  display: inline !important;
+}
+
+.route-ellipsis {
+  color: #5a7ab5;
+  cursor: pointer;
+  font-style: italic;
+}
+
+.route-ellipsis:hover {
+  color: #3c63cc;
+  text-decoration: underline;
+}
+
+.route-line-expanded {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.route-fold {
+  color: #5a7ab5;
+  cursor: pointer;
+  font-style: italic;
+  font-size: 0.7rem;
+}
+
+.route-fold:hover {
+  color: #3c63cc;
+  text-decoration: underline;
+}
+
+.route-indent {
+  padding-left: 16px;
+}
+
+.route-comma {
+  color: var(--text-muted);
+}
+
+.route-label {
+  color: #5a7ab5;
+  font-weight: 500;
+}
+
+.dark .route-label {
+  color: #7a9fd4;
+}
+
+.route-bracket {
+  color: var(--text-muted);
+}
+
+.route-curr {
+  color: #3c63cc;
+  font-weight: 600;
+}
+
+.dark .route-curr {
+  color: #8ab4f8;
+}
+
+.route-link {
+  color: var(--text-tertiary) !important;
+  text-decoration: none !important;
+  transition: color 0.2s ease;
+}
+
+.route-link:hover {
   color: #3c63cc !important;
-  opacity: 0.5;
+  text-decoration: underline !important;
+}
+
+.dark .route-link:hover {
+  color: #8ab4f8 !important;
+}
+
+/* Image lightbox */
+.typography img {
+  cursor: zoom-in;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 24px;
+}
+
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: white;
+  padding: 16px;
+}
+
+/* Permalink anchors - positioned BEFORE heading text */
+h1, h2, h3, h4, h5, h6 {
+  display: flex;
+  align-items: baseline;
+}
+
+.headerlink {
+  order: -1;
+  color: #3c63cc !important;
+  opacity: 0;
   transition: opacity 0.2s ease;
+  margin-right: 0.4em;
+  margin-left: -1.2em;
+  font-weight: 400;
+}
+
+h1:hover .headerlink,
+h2:hover .headerlink,
+h3:hover .headerlink,
+h4:hover .headerlink,
+h5:hover .headerlink,
+h6:hover .headerlink {
+  opacity: 0.5;
 }
 
 .headerlink:hover {
-  opacity: 1;
+  opacity: 1 !important;
   text-decoration: none !important;
 }
 

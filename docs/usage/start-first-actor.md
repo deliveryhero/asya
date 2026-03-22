@@ -1,5 +1,5 @@
 
-# Build Your First Actor
+# First Actor
 
 ## What you'll learn
 

@@ -1,4 +1,4 @@
-# Architecture 🎭
+# Architecture
 
 Asya is a Kubernetes-native async actor mesh. All components are designed around one
 principle: **the message knows the way**.
@@ -40,12 +40,12 @@ The [gateway](reference/components/core-gateway.md) bridges synchronous HTTP wit
 | **api** | External clients | `/a2a/` (agents), `/mcp` (tools), `/.well-known/agent.json` |
 | **mesh** | Sidecars (internal) | `/mesh` (progress, FLY events, final results) |
 
-Both modes share PostgreSQL for task state. The gateway translates between HTTP
-request/response and the fire-and-forget queue-based mesh.
+Both modes share a database (PostgreSQL) for task state. The gateway translates
+between HTTP request/response and the fire-and-forget queue-based mesh.
 
 ### Crossplane Compositions
 
-[Crossplane](reference/components/core-crossplane.md) manages the declarative lifecycle of actors. Each `AsyncActor` CRD creates:
+[Crossplane](https://www.crossplane.io/) manages the declarative lifecycle of actors. Each `AsyncActor` CRD creates:
 
 1. **Message queue** (SQS, RabbitMQ, or Pub/Sub)
 2. **Deployment** with sidecar + runtime containers rendered inline

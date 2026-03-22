@@ -1,4 +1,4 @@
-# NATS KV State Connector
+# NATS KV
 
 NATS JetStream Key-Value connector for state proxy.
 

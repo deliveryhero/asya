@@ -81,7 +81,7 @@
 
 
 
-    <link rel="icon" href="../../website/img/favicon.svg">
+    <link rel="icon" href="../../website/img/favicon.ico">
 
     <link href="../../css/base.css" rel="stylesheet">
     <link href="../../css/geist.css" rel="stylesheet">
@@ -104,7 +104,56 @@
 <body
     class="text-foreground group/body overscroll-none font-sans antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)] theme-default">
     <div id="inner-body" class="bg-background relative z-10 flex min-h-svh flex-col">
-        <header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
+        <!-- KubeCon banner -->
+<div class="kubecon-banner" id="kubeconBanner" style="display: none;">
+    <span id="kubeconText"></span>
+    <button class="kubecon-close" id="kubeconClose" aria-label="Close">&times;</button>
+</div>
+<script>
+(function() {
+    var banner = document.getElementById('kubeconBanner');
+    var text = document.getElementById('kubeconText');
+    var closeBtn = document.getElementById('kubeconClose');
+    var eventStart = new Date('2026-03-25T13:15:00Z');
+    var eventEnd = new Date('2026-03-25T13:45:00Z');
+    var schedUrl = 'https://kccnceu2026.sched.com/event/2CW2j';
+
+    function update() {
+        var now = new Date();
+        var toStart = eventStart - now;
+        var toEnd = eventEnd - now;
+
+        if (toEnd <= 0) {
+            text.innerHTML = 'REST in Peace — Missed the KubeCon talk? <a href="' + schedUrl + '" target="_blank" rel="noreferrer">Watch the recording</a>';
+        } else if (toStart <= 0) {
+            text.innerHTML = 'REST in Peace — Happening now! <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a>';
+        } else {
+            var s = Math.floor(toStart / 1000);
+            var d = Math.floor(s / 86400); s %= 86400;
+            var h = Math.floor(s / 3600); s %= 3600;
+            var m = Math.floor(s / 60); s %= 60;
+            var parts = [];
+            if (d > 0) parts.push(d + (d === 1 ? ' day' : ' days'));
+            if (h > 0) parts.push(h + 'h');
+            if (m > 0) parts.push(m + 'm');
+            parts.push(s + 's');
+            text.innerHTML = 'REST in Peace — Meet Asya at <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a> in ' + parts.join(' ');
+        }
+    }
+
+    if (!sessionStorage.getItem('announcementDismissed')) {
+        update();
+        setInterval(update, 1000);
+        banner.style.display = 'flex';
+    }
+    closeBtn.addEventListener('click', function() {
+        banner.style.display = 'none';
+        sessionStorage.setItem('announcementDismissed', '1');
+    });
+})();
+</script>
+
+<header class="bg-background sticky top-0 z-50 w-full" view-transition-name="header">
     <div class="container-wrapper 3xl:fixed:px-0 px-6">
         <div class="3xl:fixed:container flex h-(--header-height) items-center gap-2 **:data-[slot=separator]:!h-4">
             <button id="menu-button" data-slot="popover-trigger" onclick="onMobileMenuButtonClick(event)"
@@ -113,7 +162,6 @@
                 data-state="closed">
                 <div class="relative flex h-8 w-4 items-center justify-center">
                     <div class="relative size-4">
-                        <!-- 16px x 16px -->
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="none" stroke="currentColor"
                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <line x1="0" x2="16" y1="5" y2="5"
@@ -122,15 +170,24 @@
                                 class="group-data-[state=open]:-translate-y-[2.25px] group-data-[state=open]:-translate-x-[2.25px] group-data-[state=open]:-rotate-45 transition-all duration-300 origin-center" />
                         </svg>
                     </div>
-
                     <span class="sr-only">Toggle Menu</span>
                 </div>
                 <span class="flex h-8 items-center text-lg leading-none font-medium">Menu</span>
             </button>
+
+            <!-- Logo — links to asya.sh landing page -->
+            <a class="asya-home-link hidden lg:flex items-center justify-center rounded-md size-8 transition-all hover:bg-accent dark:hover:bg-accent/50"
+                href="https://asya.sh" title="asya.sh">
+                <img class="asya-home-logo asya-logo-gray" src="../../website/img/logo_gray.png" alt="Asya" />
+                <img class="asya-home-logo asya-logo-light" src="../../website/img/logo_light_gray.png" alt="Asya" />
+                <img class="asya-home-logo asya-logo-color" src="../../website/img/logo_colored_with_borders.png" alt="Asya" />
+            </a>
+
+            <!-- Asya Docs button -->
             <a data-slot="button"
-                class="items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
+                class="asya-docs-btn items-center justify-center gap-1 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-5 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 hidden h-8 lg:flex"
                 href="https://asya.sh/docs/">
-                <span class="size-8 flex flex-row justify-center items-center">
+                <span class="size-6 flex flex-row justify-center items-center">
                     
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"
@@ -146,9 +203,10 @@
                 </span>
 
                 
-                <h1 class="pr-2">Asya Docs</h1>
+                <h1>Asya Docs</h1>
                 
             </a>
+
             
             <div class="ml-auto flex items-center gap-2 md:flex-1 md:justify-end">
                 <div class="hidden w-full flex-1 md:flex md:w-auto md:flex-none">
@@ -204,7 +262,7 @@
                         </path>
                     </svg>
                     
-                    <span id="stargazers" class="text-muted-foreground w-8 text-xs tabular-nums" onload="test()">
+                    <span id="stargazers" class="text-muted-foreground text-xs tabular-nums" onload="test()">
                     </span>
                     
                 </a>
@@ -229,15 +287,23 @@
                 <button data-slot="button"
                     class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 group/toggle extend-touch-target size-8"
                     title="Toggle theme" onclick="onThemeSwitch(event)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="size-4.5">
-                        <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-                        <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-                        <path d="M12 3l0 18"></path>
-                        <path d="M12 9l4.65 -4.65"></path>
-                        <path d="M12 14.3l7.37 -7.37"></path>
-                        <path d="M12 19.6l8.85 -8.85"></path>
+                    <!-- Sun icon (visible in dark mode) -->
+                    <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="4"></circle>
+                        <path d="M12 2v2"></path>
+                        <path d="M12 20v2"></path>
+                        <path d="m4.93 4.93 1.41 1.41"></path>
+                        <path d="m17.66 17.66 1.41 1.41"></path>
+                        <path d="M2 12h2"></path>
+                        <path d="M20 12h2"></path>
+                        <path d="m6.34 17.66-1.41 1.41"></path>
+                        <path d="m19.07 4.93-1.41 1.41"></path>
+                    </svg>
+                    <!-- Moon icon (visible in light mode) -->
+                    <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
                     </svg>
                     <span class="sr-only">Toggle theme</span>
                 </button>
@@ -277,8 +343,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="home"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -290,7 +355,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -298,7 +363,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -357,8 +422,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="concepts"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -370,7 +434,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -378,7 +442,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -658,8 +722,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="setup-(platform-engineers)"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -671,7 +734,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -679,7 +742,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -698,8 +761,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="getting-started"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -711,7 +773,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -778,8 +840,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="guides"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -791,7 +852,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -928,8 +989,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="operations"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -941,7 +1001,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1014,8 +1074,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="usage-(data-scientists)" open class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1027,7 +1086,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1035,7 +1094,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -1054,8 +1113,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="getting-started"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1067,7 +1125,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1134,8 +1192,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="guides" open class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1147,7 +1204,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1299,8 +1356,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="operations"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1312,7 +1368,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1351,8 +1407,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="reference"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1364,7 +1419,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1372,7 +1427,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -1408,8 +1463,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="components"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1421,7 +1475,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1429,7 +1483,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -1607,8 +1661,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="specs"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1620,7 +1673,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1628,7 +1681,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -1772,8 +1825,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="transports"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1785,7 +1837,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1793,7 +1845,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -1886,8 +1938,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="state-proxy-connectors"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -1899,7 +1950,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -1907,7 +1958,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -2006,8 +2057,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="comparisons"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            >
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -2019,7 +2069,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 12px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -2027,7 +2077,7 @@
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
         
-        Index
+        Overview
         
 
         
@@ -2046,8 +2096,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="by-category"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -2059,7 +2108,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -2194,8 +2243,7 @@
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="in-depth"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            style="padding-left: 12px">
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
@@ -2207,7 +2255,7 @@
 
 
 
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" style="padding-left: 24px">
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
     <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
@@ -2394,13 +2442,13 @@
                             <div class="flex min-w-0 flex-1 flex-col">
                                 <div class="h-(--top-spacing) shrink-0"></div>
                                 <article class="w-full" view-transition-name="page">
+  <!-- Envelope route navigator --><nav class="envelope-route" id="envelope-route" aria-label="Navigation history"><div class="route-line"><span class="route-bracket">"route":</span> <span class="route-bracket">{</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"prev":</span> <span class="route-bracket">[</span><span id="route-prev" class="route-prev"></span><span class="route-bracket">]</span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"curr":</span> <span class="route-curr" id="route-curr"></span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"next":</span> <span class="route-bracket">[</span><span id="route-next" class="route-next"><a href="/docs/usage/guide-actor-flavors/" class="route-link">"Actor Flavors"</a></span><span class="route-bracket">]</span></div><div class="route-line"><span class="route-bracket">}</span></div></nav>
+
   <div class="flex flex-col gap-2">
     <div class="flex flex-col gap-2">
       <div id="page-header" class="flex items-start justify-between">
-        <h1
-          class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl"
-        >
-          Streaming
+        <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
+          Streaming<a class="headerlink" href="#" title="Permanent link">#</a>
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
@@ -2412,59 +2460,7 @@
     <path d="M7 7m0 2.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667z"></path><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1"></path>
 </svg>
 <span class="max-md:hidden">Copy Page</span>
-</button> 
-          
-          <a
-            data-slot="button"
-            id="previous-button"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/usage/guide-agentic-patterns/"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tabler-icon tabler-icon-arrow-left"
-            >
-              <path d="M5 12l14 0"></path>
-              <path d="M5 12l6 6"></path>
-              <path d="M5 12l6 -6"></path>
-            </svg>
-            <span class="sr-only">Previous</span>
-          </a>
-           
-          
-          <a
-            data-slot="button"
-            id="next-button"
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 extend-touch-target size-8 shadow-none md:size-7"
-            href="/docs/usage/guide-actor-flavors/"
-          >
-            <span class="sr-only">Next</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              class="tabler-icon tabler-icon-arrow-right"
-            >
-              <path d="M5 12l14 0"></path>
-              <path d="M13 18l6 -6"></path>
-              <path d="M13 6l6 6"></path>
-            </svg>
-          </a>
-          
+</button>
         </div>
       </div>
       
@@ -2476,7 +2472,7 @@
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
     <p>How to stream live progress updates from your actor handlers to gateway clients in real-time.</p>
 <hr />
-<h2 id="what-are-fly-events">What are FLY events?<a class="headerlink" href="#what-are-fly-events" title="Permanent link">  #</a></h2>
+<h2 id="what-are-fly-events">What are FLY events?<a class="headerlink" href="#what-are-fly-events" title="Permanent link">#</a></h2>
 <p>FLY events are <strong>ephemeral streaming messages</strong> sent upstream from your actor handler to the gateway. They bypass message queues and are delivered directly to connected clients via Server-Sent Events (SSE).</p>
 <p>Think of FLY as the <strong>fast lane</strong> for live updates:</p>
 <ul>
@@ -2493,7 +2489,7 @@
 - Information that must survive pause/resume
 - Final results (use <code>yield payload</code> instead)</p>
 <hr />
-<h2 id="how-to-use-fly">How to use FLY<a class="headerlink" href="#how-to-use-fly" title="Permanent link">  #</a></h2>
+<h2 id="how-to-use-fly">How to use FLY<a class="headerlink" href="#how-to-use-fly" title="Permanent link">#</a></h2>
 <p>FLY is an ABI verb. Yield a tuple with <code>"FLY"</code> as the first element and a dict as the second:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="c1"># Stream a status update</span>
@@ -2506,7 +2502,7 @@
     <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;result&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result</span>
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
-<h3 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">  #</a></h3>
+<h3 id="signature">Signature<a class="headerlink" href="#signature" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="o">&lt;</span><span class="nb">dict</span><span class="o">&gt;</span>
 </code></pre></div>
 <p>The dict can contain any JSON-serializable data. Common patterns:</p>
@@ -2520,7 +2516,7 @@
 <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="s2">&quot;Hello&quot;</span><span class="p">}</span>
 </code></pre></div>
 <hr />
-<h2 id="fly-vs-history">FLY vs History<a class="headerlink" href="#fly-vs-history" title="Permanent link">  #</a></h2>
+<h2 id="fly-vs-history">FLY vs History<a class="headerlink" href="#fly-vs-history" title="Permanent link">#</a></h2>
 <p>FLY events are <strong>ephemeral</strong> — they reach only clients connected at the moment they're sent. If a client disconnects and reconnects, FLY events are gone.</p>
 <p>For data that must survive pause/resume or be readable by downstream actors, append to <code>payload.a2a.task.history[]</code> instead:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">analyst</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
@@ -2589,8 +2585,8 @@
 </tbody>
 </table></div>
 <hr />
-<h2 id="common-patterns">Common Patterns<a class="headerlink" href="#common-patterns" title="Permanent link">  #</a></h2>
-<h3 id="1-streaming-llm-tokens">1. Streaming LLM tokens<a class="headerlink" href="#1-streaming-llm-tokens" title="Permanent link">  #</a></h3>
+<h2 id="common-patterns">Common Patterns<a class="headerlink" href="#common-patterns" title="Permanent link">#</a></h2>
+<h3 id="1-streaming-llm-tokens">1. Streaming LLM tokens<a class="headerlink" href="#1-streaming-llm-tokens" title="Permanent link">#</a></h3>
 <p>Stream tokens as they're generated, then send the complete response downstream:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">llm_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="p">[]</span>
@@ -2616,7 +2612,7 @@
     <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;partial&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">token</span><span class="p">}</span>
 <span class="k">yield</span> <span class="n">payload</span>  <span class="c1"># downstream frame is the final (non-partial) event</span>
 </code></pre></div>
-<h3 id="2-progress-updates-for-long-running-jobs">2. Progress updates for long-running jobs<a class="headerlink" href="#2-progress-updates-for-long-running-jobs" title="Permanent link">  #</a></h3>
+<h3 id="2-progress-updates-for-long-running-jobs">2. Progress updates for long-running jobs<a class="headerlink" href="#2-progress-updates-for-long-running-jobs" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">batch_processor</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="n">items</span> <span class="o">=</span> <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;items&quot;</span><span class="p">]</span>
     <span class="n">total</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">items</span><span class="p">)</span>
@@ -2639,7 +2635,7 @@
     <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;results&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">results</span>
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
-<h3 id="3-multi-stage-status-updates">3. Multi-stage status updates<a class="headerlink" href="#3-multi-stage-status-updates" title="Permanent link">  #</a></h3>
+<h3 id="3-multi-stage-status-updates">3. Multi-stage status updates<a class="headerlink" href="#3-multi-stage-status-updates" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">data_pipeline</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;stage&quot;</span><span class="p">:</span> <span class="s2">&quot;download&quot;</span><span class="p">,</span> <span class="s2">&quot;message&quot;</span><span class="p">:</span> <span class="s2">&quot;Downloading data...&quot;</span><span class="p">}</span>
     <span class="n">data</span> <span class="o">=</span> <span class="k">await</span> <span class="n">download</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;url&quot;</span><span class="p">])</span>
@@ -2656,7 +2652,7 @@
     <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;result_url&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">result_url</span>
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
-<h3 id="4-debug-markers">4. Debug markers<a class="headerlink" href="#4-debug-markers" title="Permanent link">  #</a></h3>
+<h3 id="4-debug-markers">4. Debug markers<a class="headerlink" href="#4-debug-markers" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">debug_handler</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
     <span class="k">yield</span> <span class="s2">&quot;FLY&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;debug&quot;</span><span class="p">:</span> <span class="s2">&quot;handler_start&quot;</span><span class="p">,</span> <span class="s2">&quot;payload_keys&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">payload</span><span class="o">.</span><span class="n">keys</span><span class="p">())}</span>
 
@@ -2670,7 +2666,7 @@
     <span class="k">yield</span> <span class="n">payload</span>
 </code></pre></div>
 <hr />
-<h2 id="how-fly-reaches-clients">How FLY reaches clients<a class="headerlink" href="#how-fly-reaches-clients" title="Permanent link">  #</a></h2>
+<h2 id="how-fly-reaches-clients">How FLY reaches clients<a class="headerlink" href="#how-fly-reaches-clients" title="Permanent link">#</a></h2>
 <div class="highlight"><pre><span></span><code>Actor handler
     yield &quot;FLY&quot;, {...}
          │
@@ -2688,8 +2684,8 @@
 </code></pre></div>
 <p>FLY events bypass message queues entirely — they travel from the sidecar directly to the gateway via HTTP, then to clients via SSE. This makes them fast but ephemeral.</p>
 <hr />
-<h2 id="client-side-consumption">Client-side consumption<a class="headerlink" href="#client-side-consumption" title="Permanent link">  #</a></h2>
-<h3 id="mcp-sse">MCP SSE<a class="headerlink" href="#mcp-sse" title="Permanent link">  #</a></h3>
+<h2 id="client-side-consumption">Client-side consumption<a class="headerlink" href="#client-side-consumption" title="Permanent link">#</a></h2>
+<h3 id="mcp-sse">MCP SSE<a class="headerlink" href="#mcp-sse" title="Permanent link">#</a></h3>
 <p>Connect to <code>/mesh/{task_id}/stream</code> to receive FLY events:</p>
 <div class="highlight"><pre><span></span><code>curl<span class="w"> </span>-N<span class="w"> </span>-H<span class="w"> </span><span class="s2">&quot;Accept: text/event-stream&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>http://gateway/mesh/<span class="o">{</span>task_id<span class="o">}</span>/stream
@@ -2705,7 +2701,7 @@ event: update
 data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&quot;,&quot;result&quot;:{...}}
 </code></pre></div>
 <p>FLY events arrive with <code>event: partial</code> by default. If the FLY payload contains A2A-specific keys (<code>artifact_update</code>, <code>status_update</code>, or <code>message</code>), the event type matches that key instead. Progress updates from the sidecar arrive with <code>event: update</code>. The final result arrives as the last <code>update</code> event with <code>status: succeeded</code>.</p>
-<h3 id="a2a-subscribe">A2A Subscribe<a class="headerlink" href="#a2a-subscribe" title="Permanent link">  #</a></h3>
+<h3 id="a2a-subscribe">A2A Subscribe<a class="headerlink" href="#a2a-subscribe" title="Permanent link">#</a></h3>
 <p>A2A clients receive FLY events via the Subscribe RPC:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;jsonrpc&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.0&quot;</span><span class="p">,</span>
@@ -2719,7 +2715,7 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
 <span class="p">{</span><span class="nt">&quot;type&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;update&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;status&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;succeeded&quot;</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;result&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="err">...</span><span class="p">}}</span>
 </code></pre></div>
 <hr />
-<h2 id="testing-fly-locally">Testing FLY locally<a class="headerlink" href="#testing-fly-locally" title="Permanent link">  #</a></h2>
+<h2 id="testing-fly-locally">Testing FLY locally<a class="headerlink" href="#testing-fly-locally" title="Permanent link">#</a></h2>
 <p>FLY events are filtered out by the <code>actor()</code> test wrapper (they're tuples, not dicts). To verify FLY emissions in tests, collect all yields:</p>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">collect_all</span><span class="p">(</span><span class="n">gen</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Collect all yields: both ABI commands and emitted frames.&quot;&quot;&quot;</span>
@@ -2739,7 +2735,7 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
     <span class="k">assert</span> <span class="n">payloads</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">][</span><span class="s2">&quot;response&quot;</span><span class="p">]</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
 </code></pre></div>
 <hr />
-<h2 id="performance-considerations">Performance considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">  #</a></h2>
+<h2 id="performance-considerations">Performance considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">#</a></h2>
 <ul>
 <li>FLY events are <strong>not queued</strong> — they're delivered synchronously via HTTP from the sidecar to the gateway</li>
 <li>High-frequency FLY (e.g., per-character token streaming) may add latency to each handler iteration</li>
@@ -2747,7 +2743,7 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
 </ul>
 <p><strong>Best practice</strong>: Stream tokens as they arrive (natural LLM cadence), but avoid yielding FLY in tight CPU-bound loops.</p>
 <hr />
-<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">  #</a></h2>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -2776,6 +2772,101 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
 </table></div>
   </div>
 </article>
+
+<script>
+(function() {
+    var KEY = 'asya-nav-history';
+    var TAIL_COUNT = 3; // visible tail items when collapsed
+
+    var currentPath = window.location.pathname;
+    var h1 = document.querySelector('#page-header h1');
+    var currentTitle = Array.from(h1.childNodes).filter(function(n) {
+        return n.nodeType === 3 || (n.nodeType === 1 && !n.classList.contains('headerlink'));
+    }).map(function(n) { return n.textContent; }).join('').trim();
+
+    // Load history (append-only, including repetitions)
+    var history;
+    try { history = JSON.parse(sessionStorage.getItem(KEY)) || { prev: [], curr: null }; }
+    catch(e) { history = { prev: [], curr: null }; }
+
+    // Append previous curr to prev (no dedup, no cap)
+    if (history.curr) {
+        history.prev.push(history.curr);
+    }
+
+    // Set current
+    history.curr = { title: currentTitle, path: currentPath };
+    sessionStorage.setItem(KEY, JSON.stringify(history));
+
+    // Render curr
+    document.getElementById('route-curr').textContent = '"' + currentTitle + '"';
+
+    // Render prev with overflow collapse
+    var prevEl = document.getElementById('route-prev');
+    if (history.prev.length === 0) return;
+
+    function makeLink(p) {
+        return '<a href="' + p.path + '" class="route-link">"' + p.title + '"</a>';
+    }
+
+    var allHtml = history.prev.map(makeLink).join(', ');
+    var line = prevEl.closest('.route-line');
+    var visibleTail = TAIL_COUNT;
+
+    function renderCollapsed() {
+        var first = makeLink(history.prev[0]);
+        var tail = history.prev.slice(-visibleTail).map(makeLink).join(', ');
+        var hidden = history.prev.length - visibleTail - 1;
+        prevEl.innerHTML = first + ', <span class="route-ellipsis" title="' +
+            history.prev.length + ' pages visited">...' +
+            hidden + ' more</span>, ' + tail;
+        // If still overflowing, reduce tail
+        if (line && line.scrollWidth > line.clientWidth && visibleTail > 1) {
+            visibleTail--;
+            renderCollapsed();
+            return;
+        }
+        if (line) line.classList.remove('route-line-expanded');
+        var el = prevEl.querySelector('.route-ellipsis');
+        if (el) el.addEventListener('click', renderExpanded);
+    }
+
+    function renderExpanded() {
+        prevEl.innerHTML = allHtml + ', <span class="route-fold">fold</span>';
+        if (line) line.classList.add('route-line-expanded');
+        prevEl.querySelector('.route-fold').addEventListener('click', function() {
+            visibleTail = TAIL_COUNT;
+            renderCollapsed();
+        });
+    }
+
+    // First render all, then check overflow
+    prevEl.innerHTML = allHtml;
+    if (line && line.scrollWidth > line.clientWidth && history.prev.length > TAIL_COUNT + 1) {
+        renderCollapsed();
+    }
+})();
+
+// Image lightbox
+document.querySelectorAll('.typography img').forEach(function(img) {
+    img.addEventListener('click', function(e) {
+        e.preventDefault();
+        var overlay = document.createElement('div');
+        overlay.className = 'lightbox-overlay';
+        var zoomed = document.createElement('img');
+        zoomed.src = img.src;
+        zoomed.alt = img.alt;
+        overlay.appendChild(zoomed);
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function() {
+            overlay.remove();
+        });
+        document.addEventListener('keydown', function handler(e) {
+            if (e.key === 'Escape') { overlay.remove(); document.removeEventListener('keydown', handler); }
+        });
+    });
+});
+</script>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
     <a data-slot="button"
@@ -2806,224 +2897,956 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
     </a>
     
 </div>
-                                <dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+                                
+
+<dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
     style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
     <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
         class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
         style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
         tabindex="-1">
-        <div class="flex flex-col gap-12 overflow-auto px-6 py-6">
-            
-            
-            
-
-            
-
-            
-            <div class="flex flex-col gap-8">
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">Home</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../..">
-                            
-                            Index
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../motivation/">
-                            
-                            Motivation
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../architecture/">
-                            
-                            Architecture
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">concepts</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/">
-                            
-                            Index
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/actor-mesh/">
-                            
-                            Actor Mesh
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/message-knows-the-way/">
-                            
-                            Message Knows the Way
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/virtual-actors/">
-                            
-                            Virtual Actors
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/separation-of-concerns/">
-                            
-                            Separation of Concerns
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/dynamic-routing/">
-                            
-                            Dynamic Routing
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/flow-compiler/">
-                            
-                            Flow Compiler
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/scale-to-zero/">
-                            
-                            Scale Zero to Infinity
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/pluggable-transport/">
-                            
-                            Pluggable Transports
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/pluggable-storage/">
-                            
-                            Pluggable Storage
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/kubernetes-native/">
-                            
-                            Kubernetes Native
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/built-in-resiliency/">
-                            
-                            Built-in Resiliency
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/http-gateway/">
-                            
-                            HTTP Gateway
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/agentic-native/">
-                            
-                            Agentic Native
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/observability/">
-                            
-                            Built-in Observability
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../concepts/developer-experience/">
-                            
-                            Developer Experience
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">Setup (Platform Engineers)</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../../setup/">
-                            
-                            Index
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">Usage (Data Scientists)</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../">
-                            
-                            Index
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">reference</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../../reference/">
-                            
-                            Index
-                            
-                        </a>
-                        
-                        <a class="text-2xl font-medium" href="../../reference/env-vars/">
-                            
-                            Environment Variables
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-                <div class="flex flex-col gap-4">
-                    <div class="text-muted-foreground text-sm font-medium">Comparisons</div>
-                    
-                    <div class="flex flex-col gap-3">
-                        
-                        <a class="text-2xl font-medium" href="../../comparisons/">
-                            
-                            Index
-                            
-                        </a>
-                        
-                    </div>
-                    
-                </div>
-                
-            </div>
+        <div class="flex flex-col gap-3 overflow-auto px-6 py-6">
             
             
 
+
+
+
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Home
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../motivation/"
+    style="padding-left: 16px">
+    Motivation
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../architecture/"
+    style="padding-left: 16px">
+    Architecture
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Concepts
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../concepts/actor-mesh/"
+    style="padding-left: 16px">
+    Actor Mesh
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/message-knows-the-way/"
+    style="padding-left: 16px">
+    Message Knows the Way
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/virtual-actors/"
+    style="padding-left: 16px">
+    Virtual Actors
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/separation-of-concerns/"
+    style="padding-left: 16px">
+    Separation of Concerns
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/dynamic-routing/"
+    style="padding-left: 16px">
+    Dynamic Routing
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/flow-compiler/"
+    style="padding-left: 16px">
+    Flow Compiler
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/scale-to-zero/"
+    style="padding-left: 16px">
+    Scale Zero to Infinity
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/pluggable-transport/"
+    style="padding-left: 16px">
+    Pluggable Transports
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/pluggable-storage/"
+    style="padding-left: 16px">
+    Pluggable Storage
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/kubernetes-native/"
+    style="padding-left: 16px">
+    Kubernetes Native
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/built-in-resiliency/"
+    style="padding-left: 16px">
+    Built-in Resiliency
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/http-gateway/"
+    style="padding-left: 16px">
+    HTTP Gateway
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/agentic-native/"
+    style="padding-left: 16px">
+    Agentic Native
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/observability/"
+    style="padding-left: 16px">
+    Built-in Observability
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../concepts/developer-experience/"
+    style="padding-left: 16px">
+    Developer Experience
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Setup (Platform Engineers)
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Getting Started
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../../setup/start-quickstart/"
+    style="padding-left: 32px">
+    Quickstart (Kind)
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/start-aws-eks/"
+    style="padding-left: 32px">
+    AWS EKS
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/start-gcp-gke/"
+    style="padding-left: 32px">
+    GCP GKE
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Guides
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-helm-charts/"
+    style="padding-left: 32px">
+    Helm Charts
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-autoscaling/"
+    style="padding-left: 32px">
+    Autoscaling
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-actor-flavors/"
+    style="padding-left: 32px">
+    Actor Flavors
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-state-proxy/"
+    style="padding-left: 32px">
+    State Proxy
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-pause-resume/"
+    style="padding-left: 32px">
+    Pause/Resume
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-timeouts/"
+    style="padding-left: 32px">
+    Timeouts
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/guide-gateway/"
+    style="padding-left: 32px">
+    Gateway
+</a>
+
+
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Operations
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../../setup/ops-observability/"
+    style="padding-left: 32px">
+    Observability
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/ops-troubleshooting/"
+    style="padding-left: 32px">
+    Troubleshooting
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../setup/ops-upgrades/"
+    style="padding-left: 32px">
+    Upgrades
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Usage (Data Scientists)
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Getting Started
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../start-first-actor/"
+    style="padding-left: 32px">
+    First Actor
+</a>
+
+
+
+<a class="text-lg font-medium" href="../start-first-actor-mesh/"
+    style="padding-left: 32px">
+    First Actor Mesh
+</a>
+
+
+
+<a class="text-lg font-medium" href="../start-first-flow/"
+    style="padding-left: 32px">
+    First Flow
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Guides
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../guide-actor-xrd/"
+    style="padding-left: 32px">
+    AsyncActor Spec
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-handler-patterns/"
+    style="padding-left: 32px">
+    Handler Patterns
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-agentic-patterns/"
+    style="padding-left: 32px">
+    Agentic Patterns
+</a>
+
+
+
+<a class="text-lg font-medium" href="./"
+    style="padding-left: 32px">
+    Streaming
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-actor-flavors/"
+    style="padding-left: 32px">
+    Actor Flavors
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-state-proxy/"
+    style="padding-left: 32px">
+    State Proxy
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-pause-resume/"
+    style="padding-left: 32px">
+    Pause/Resume
+</a>
+
+
+
+<a class="text-lg font-medium" href="../guide-timeouts/"
+    style="padding-left: 32px">
+    Timeouts
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Operations
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../ops-debugging/"
+    style="padding-left: 32px">
+    Debugging
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Reference
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../reference/env-vars/"
+    style="padding-left: 16px">
+    Environment Variables
+</a>
+
+
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Components
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-actor/"
+    style="padding-left: 32px">
+    Actor
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-sidecar/"
+    style="padding-left: 32px">
+    Sidecar
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-runtime/"
+    style="padding-left: 32px">
+    Runtime
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-gateway/"
+    style="padding-left: 32px">
+    Gateway
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-crew/"
+    style="padding-left: 32px">
+    Crew
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-crossplane/"
+    style="padding-left: 32px">
+    Crossplane
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/core-state-proxy/"
+    style="padding-left: 32px">
+    State Proxy
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/lab-flow-compiler/"
+    style="padding-left: 32px">
+    Flow Compiler
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/components/lab-cli/"
+    style="padding-left: 32px">
+    CLI
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Specs
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/envelope/"
+    style="padding-left: 32px">
+    Envelope
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/asyncactor-crd/"
+    style="padding-left: 32px">
+    AsyncActor CRD
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/abi-protocol/"
+    style="padding-left: 32px">
+    ABI Protocol
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/sidecar-runtime/"
+    style="padding-left: 32px">
+    Sidecar-Runtime
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/gateway-api/"
+    style="padding-left: 32px">
+    Gateway API
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/flow-dsl/"
+    style="padding-left: 32px">
+    Flow DSL
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/specs/error-handling/"
+    style="padding-left: 32px">
+    Error Handling
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        Transports
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../reference/transports/sqs/"
+    style="padding-left: 32px">
+    SQS
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/transports/rabbitmq/"
+    style="padding-left: 32px">
+    RabbitMQ
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/transports/pubsub/"
+    style="padding-left: 32px">
+    Pub/Sub
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/transports/socket/"
+    style="padding-left: 32px">
+    Socket
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        State-Proxy-Connectors
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+<a class="text-lg font-medium" href="../../reference/state-proxy-connectors/s3/"
+    style="padding-left: 32px">
+    S3
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/state-proxy-connectors/gcs/"
+    style="padding-left: 32px">
+    GCS
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/state-proxy-connectors/redis/"
+    style="padding-left: 32px">
+    Redis
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../reference/state-proxy-connectors/nats-kv/"
+    style="padding-left: 32px">
+    NATS KV
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-3">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="">
+        Comparisons
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        By Category
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-workflow-orchestrator/"
+    style="padding-left: 32px">
+    Workflow Orchestrators
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-actor-framework/"
+    style="padding-left: 32px">
+    Actor Frameworks
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-agentic-framework/"
+    style="padding-left: 32px">
+    Agentic Frameworks
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-ml-pipeline-tool/"
+    style="padding-left: 32px">
+    ML Pipeline Tools
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-stream-processing/"
+    style="padding-left: 32px">
+    Stream Processing
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-ai-serving/"
+    style="padding-left: 32px">
+    AI/ML Serving
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/as-k8s-scheduler/"
+    style="padding-left: 32px">
+    K8s Job Schedulers
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+<div class="flex flex-col gap-2 mt-1">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="padding-left: 16px">
+        In-Depth
+    </div>
+    <div class="flex flex-col gap-2">
+        
+
+
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-temporal/"
+    style="padding-left: 32px">
+    vs Temporal
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-dapr/"
+    style="padding-left: 32px">
+    vs Dapr
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-langgraph/"
+    style="padding-left: 32px">
+    vs LangGraph
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-google-adk/"
+    style="padding-left: 32px">
+    vs Google ADK
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-kagent/"
+    style="padding-left: 32px">
+    vs KAgent
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-ray-serve/"
+    style="padding-left: 32px">
+    vs Ray Serve
+</a>
+
+
+
+<a class="text-lg font-medium" href="../../comparisons/vs-kubeflow-pipelines/"
+    style="padding-left: 32px">
+    vs Kubeflow Pipelines
+</a>
+
+
+
+
+
+    </div>
+</div>
+
+
+
+    </div>
+</div>
+
+
+
+            
         </div>
     </div>
 </dialog>
@@ -3171,23 +3994,8 @@ data: {&quot;id&quot;:&quot;task-123&quot;,&quot;status&quot;:&quot;succeeded&qu
                 </div>
             </div>
         </main>
-        <footer view-transition-name="footer"
-    class="group-has-[.section-soft]/body:bg-surface/40 3xl:fixed:bg-transparent dark:bg-transparent">
-    <div class="container-wrapper px-4 xl:px-6">
-        <div class="flex h-(--footer-height) items-center justify-between">
-            <div class="text-muted-foreground w-full text-center text-xs leading-loose sm:text-sm">
-                
-                <a href="https://github.com/asiffer/mkdocs-shadcn">shadcn theme</a> provided by
-                <a href="https://github.com/asiffer">@asiffer</a>
-            </div>
-        </div>
+        
     </div>
-</footer>
-    </div>
-     
-
-<script src="../../website/js/search-bridge.js"></script>
-
      
 
 <script src="../../search/main.js"></script>

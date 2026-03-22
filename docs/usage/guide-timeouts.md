@@ -1,4 +1,4 @@
-# Actor Timeouts
+# Timeouts
 
 How to configure per-actor timeouts in your AsyncActor specs to prevent runaway executions.
 

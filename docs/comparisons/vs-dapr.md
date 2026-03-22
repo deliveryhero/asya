@@ -1,4 +1,4 @@
-# Asya vs Dapr
+# vs Dapr
 
 ## TL;DR
 

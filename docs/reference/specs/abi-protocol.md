@@ -1,4 +1,4 @@
-# ABI Protocol Reference
+# ABI Protocol
 
 ## What is the ABI?
 
