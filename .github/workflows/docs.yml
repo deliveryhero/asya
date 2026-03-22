@@ -83,6 +83,18 @@ jobs:
         cp -r website/* site/
         echo "asya.sh" > site/CNAME
 
+    - name: Preserve Helm charts from gh-pages
+      run: |
+        git fetch origin gh-pages
+        if git show origin/gh-pages:charts/index.yaml > /dev/null 2>&1; then
+          echo "[.] Restoring charts/ from gh-pages"
+          git checkout origin/gh-pages -- charts/
+          mv charts/ site/charts/
+          echo "[+] Restored $(ls site/charts/*.tgz 2>/dev/null | wc -l) chart packages"
+        else
+          echo "[!] No charts/ found on gh-pages, skipping"
+        fi
+
     - name: Deploy to gh-pages
       uses: peaceiris/actions-gh-pages@v4
       with:
