@@ -16,7 +16,7 @@ Every actor is an `AsyncActor` Custom Resource. This means:
 
 ## Crossplane Compositions render pods
 
-Asya uses Crossplane Compositions to transform an `AsyncActor` spec into a full
+Asya uses [Crossplane](https://www.crossplane.io/) Compositions to transform an `AsyncActor` spec into a full
 Kubernetes Deployment. The composition renders:
 
 - The runtime container with the handler ConfigMap
@@ -32,7 +32,7 @@ source of truth for the pod spec.
 | Concern | Kubernetes primitive |
 |---------|---------------------|
 | Workloads | Deployments (not StatefulSets) |
-| Autoscaling | KEDA ScaledObjects |
+| Autoscaling | [KEDA](https://keda.sh/) ScaledObjects |
 | Configuration | ConfigMaps, Secrets |
 | Networking | Services, Ingress |
 | Resource management | Crossplane XRDs + Compositions |

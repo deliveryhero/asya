@@ -86,7 +86,7 @@ stateProxy:
     - name: AWS_REGION
       value: us-east-1
     - name: AWS_ENDPOINT_URL  # Optional: for MinIO or LocalStack
-      value: http://minio.default.svc.cluster.local:9000
+      value: http://minio.<namespace>.svc.cluster.local:9000
     resources:
       requests:
         cpu: 50m
@@ -164,7 +164,7 @@ stateProxy:
     image: ghcr.io/deliveryhero/asya-state-proxy-redis-buffered-cas:v1.0.0
     env:
     - name: REDIS_URL
-      value: redis://redis.default.svc.cluster.local:6379/0
+      value: redis://redis.<namespace>.svc.cluster.local:6379/0
     - name: STATE_PREFIX
       value: actor-cache:  # Optional: key prefix
 ```
@@ -349,7 +349,7 @@ stateProxy:
     image: ghcr.io/deliveryhero/asya-state-proxy-redis-buffered-cas:v1.0.0
     env:
     - name: REDIS_URL
-      value: redis://:$(REDIS_PASSWORD)@redis.default.svc.cluster.local:6379/0
+      value: redis://:$(REDIS_PASSWORD)@redis.<namespace>.svc.cluster.local:6379/0
     - name: REDIS_PASSWORD
       valueFrom:
         secretKeyRef:
@@ -372,7 +372,7 @@ spec:
     connector:
       env:
       - name: REDIS_URL
-        value: redis://:$(REDIS_PASSWORD)@redis.default.svc.cluster.local:6379/0
+        value: redis://:$(REDIS_PASSWORD)@redis.<namespace>.svc.cluster.local:6379/0
 ```
 
 ## Key Patterns and Namespace Isolation
@@ -540,7 +540,7 @@ stateProxy:
     image: ghcr.io/deliveryhero/asya-state-proxy-redis-buffered-cas:v1.0.0
     env:
     - name: REDIS_URL
-      value: redis://redis.default.svc.cluster.local:6379/0
+      value: redis://redis.<namespace>.svc.cluster.local:6379/0
 
 - name: checkpoints
   mount:

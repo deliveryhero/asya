@@ -18,7 +18,7 @@ helm install asya-gateway deploy/helm-charts/asya-gateway/ -f values.yaml
 **Key values**:
 ```yaml
 config:
-  sqsRegion: us-east-1
+  sqsRegion: <your-aws-region>
   postgresHost: postgres.default.svc.cluster.local
   postgresDatabase: asya_gateway
   postgresUsername: postgres
@@ -105,7 +105,7 @@ awsProviderConfig:
     name: aws-creds
     key: credentials
 
-awsRegion: us-east-1
+awsRegion: <your-aws-region>
 actorNamespace: asya
 ```
 
@@ -128,7 +128,7 @@ spec:
 
 **Crossplane** (`crossplane-values.yaml`):
 ```yaml
-awsRegion: us-east-1
+awsRegion: <your-aws-region>
 awsProviderConfig:
   name: default
   credentialsSource: Secret
@@ -163,7 +163,7 @@ spec:
 
 **Crossplane** (`crossplane-values.yaml`):
 ```yaml
-awsRegion: us-east-1
+awsRegion: <your-aws-region>
 actorNamespace: asya
 # Use LocalStack or RabbitMQ for local development
 ```

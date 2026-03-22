@@ -10,7 +10,7 @@ This guide assumes you are a **platform engineer** responsible for defining flav
 
 ## How Flavors Work
 
-A flavor is a cluster-scoped `EnvironmentConfig` resource with two requirements:
+A flavor is a **cluster-scoped** Crossplane `EnvironmentConfig` resource with two requirements:
 
 1. Resource name matching the flavor name (the function fetches by name)
 2. A `data` field shaped like a partial AsyncActor spec
@@ -408,7 +408,7 @@ data:
   # Allows actors to switch from [gpu-t4] to [gpu-migration] to [gpu-a100]
 ```
 
-## Fields Flavors Can Provide
+## Supported Flavor Fields
 
 Flavors can set any non-infrastructure spec field:
 
@@ -437,7 +437,7 @@ Flavors can set any non-infrastructure spec field:
 
 - **Maximum 8 flavors per actor**: Enforced by XRD `maxItems: 8`.
 - **Minimum flavor name length**: 3 characters (enforced by XRD).
-- **Cluster-scoped only**: `EnvironmentConfig` is a cluster-scoped resource. Namespace-scoped flavors are not yet supported (planned in aint `jgwn`).
+- **Cluster-scoped only**: `EnvironmentConfig` is a cluster-scoped Crossplane resource, meaning flavors are shared across all namespaces. Only platform engineers with cluster-level RBAC should create or modify them. Namespace-scoped flavors (backed by ConfigMaps) are planned — this will allow data scientists to manage team-specific configuration like API keys and secrets without cluster access.
 - **Missing flavor**: If a referenced flavor does not exist, the actor remains in `Waiting` state until the flavor is created.
 
 ## Debugging Flavors
@@ -677,7 +677,7 @@ spec:
 
 ## Security Considerations
 
-1. **Cluster-scoped resources**: `EnvironmentConfig` is cluster-scoped. Any user who can create AsyncActors can reference any flavor. Use RBAC to control who can create or modify flavors.
+1. **Cluster-scoped resources**: `EnvironmentConfig` is cluster-scoped — any user who can create AsyncActors can reference any flavor by name. Use RBAC to restrict who can create or modify `EnvironmentConfig` resources. Once namespace-scoped flavors (via ConfigMaps) are available, teams will be able to self-manage their own configuration (e.g., OpenAI API keys, model endpoints) without cluster-level access.
 
 2. **Secret injection**: Flavors that reference secrets (via `secretRefs`) give actors access to those secrets. Ensure flavors only reference secrets that actors in any namespace should access.
 

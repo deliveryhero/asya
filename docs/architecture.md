@@ -45,7 +45,7 @@ between HTTP request/response and the fire-and-forget queue-based mesh.
 
 ### Crossplane Compositions
 
-[Crossplane](reference/components/core-crossplane.md) manages the declarative lifecycle of actors. Each `AsyncActor` CRD creates:
+[Crossplane](https://www.crossplane.io/) manages the declarative lifecycle of actors. Each `AsyncActor` CRD creates:
 
 1. **Message queue** (SQS, RabbitMQ, or Pub/Sub)
 2. **Deployment** with sidecar + runtime containers rendered inline

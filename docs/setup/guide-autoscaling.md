@@ -9,7 +9,7 @@ scaling modifiers.
 
 ## How KEDA Works
 
-KEDA (Kubernetes Event Driven Autoscaling) monitors external metrics (queue depth, custom metrics) and scales Kubernetes Deployments.
+[KEDA](https://keda.sh/) (Kubernetes Event Driven Autoscaling) monitors external metrics (queue depth, custom metrics) and scales Kubernetes Deployments.
 
 **Components**:
 
