@@ -1,0 +1,41 @@
+{% macro render_mobile_nav(items, depth=0) %}
+{% set pages = items|selectattr("is_page")|sort(attribute="meta.order")|list %}
+{% set sections = items|rejectattr("is_page")|list %}
+
+{% for sidebar_item in pages %}
+{% if not sidebar_item.is_index %}
+<a class="{% if depth == 0 %}text-xl{% else %}text-lg{% endif %} font-medium" href="{{ sidebar_item.url | url }}"
+    style="{% if depth > 0 %}padding-left: {{ depth * 16 }}px{% endif %}">
+    {{ sidebar_item.title }}
+</a>
+{% endif %}
+{% endfor %}
+
+{% for section in sections %}
+{% if section.children %}
+<div class="flex flex-col gap-2 {% if depth > 0 %}mt-1{% else %}mt-3{% endif %}">
+    <div class="text-muted-foreground text-sm font-medium"
+        style="{% if depth > 0 %}padding-left: {{ depth * 16 }}px{% endif %}">
+        {{ section.title|title }}
+    </div>
+    <div class="flex flex-col gap-2">
+        {{ render_mobile_nav(section.children, depth + 1) }}
+    </div>
+</div>
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+<dialog id="bottom-sidebar" onclick="onBottomSidebarDialogClick(event)" class="bg-transparent"
+    style="position: fixed; left: 0px; top: 0px; transform: translate(0px, 58px); min-width: max-content; --radix-popper-transform-origin: 0% 0px; will-change: transform; z-index: 50; --radix-popper-available-width: 504px; --radix-popper-available-height: 857px; --radix-popper-anchor-width: 72.94999694824219px; --radix-popper-anchor-height: 32px;">
+    <div data-side="bottom" data-align="start" data-state="open" role="dialog" data-slot="popover-content"
+        class="text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 z-50 origin-(--radix-popover-content-transform-origin) border outline-hidden bg-background/90 no-scrollbar h-(--radix-popper-available-height) w-(--radix-popper-available-width) overflow-y-auto rounded-none border-none p-0 shadow-none backdrop-blur duration-100"
+        style="--radix-popover-content-transform-origin: var(--radix-popper-transform-origin); --radix-popover-content-available-width: var(--radix-popper-available-width); --radix-popover-content-available-height: var(--radix-popper-available-height); --radix-popover-trigger-width: var(--radix-popper-anchor-width); --radix-popover-trigger-height: var(--radix-popper-anchor-height);"
+        tabindex="-1">
+        <div class="flex flex-col gap-3 overflow-auto px-6 py-6">
+            {% if nav|length > 1 %}
+            {{ render_mobile_nav(nav) }}
+            {% endif %}
+        </div>
+    </div>
+</dialog>

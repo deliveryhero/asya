@@ -27,7 +27,7 @@ The gateway runs as a single binary in one of two modes:
 - **mesh** — handles internal sidecar callbacks (progress, FLY events, final
   results). Cluster-internal only
 
-Both modes share the same PostgreSQL database for task state.
+Both modes share the same database (PostgreSQL) for task state.
 
 ## Real-time streaming
 

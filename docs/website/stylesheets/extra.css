@@ -30,6 +30,31 @@ button[onclick*="README.md"],
   pointer-events: none !important;
 }
 
+/* Mobile menu button — visible in dark mode */
+.dark #menu-button,
+.dark #menu-button span,
+.dark #menu-button svg {
+  color: #e5e5e5 !important;
+  stroke: #e5e5e5;
+}
+
+/* Bottom prev/next navigation — subtle, matching sidebar tone */
+.dark [data-slot="button"].inline-flex {
+  color: #9aa8bc !important;
+  background-color: #1a2030 !important;
+}
+
+.dark [data-slot="button"].inline-flex:hover {
+  color: #b8c8dc !important;
+  background-color: #222e40 !important;
+}
+
+/* Prevent overscroll bounce and white flash in dark mode */
+html {
+  overscroll-behavior: none;
+  background-color: var(--bg-primary);
+}
+
 /* Force nested navigation to display */
 .bs-sidebar .nav .nav {
   display: block !important;
@@ -462,20 +487,41 @@ table td code {
   opacity: 0.6;
 }
 
+.asya-logo-light {
+  display: none;
+}
+
 .asya-logo-color {
   display: none;
 }
 
+/* Light mode: gray at rest, colored on hover */
 .asya-home-link:hover .asya-logo-gray {
   display: none;
 }
 
 .asya-home-link:hover .asya-logo-color {
   display: block;
+  opacity: 0.6;
 }
 
+/* Dark mode: light gray at rest, colored on hover */
 .dark .asya-logo-gray {
-  filter: invert(0.85);
+  display: none;
+}
+
+.dark .asya-logo-light {
+  display: block;
+  opacity: 0.6;
+}
+
+.dark .asya-home-link:hover .asya-logo-light {
+  display: none;
+}
+
+.dark .asya-home-link:hover .asya-logo-color {
+  display: block;
+  opacity: 0.5;
 }
 
 /* KubeCon banner */
@@ -522,9 +568,15 @@ table td code {
   opacity: 1;
 }
 
-/* Sidebar scrollbar — always visible, thin, blue-tinted */
+/* Sidebar height — use full viewport minus header only */
+[data-slot="sidebar"] {
+  height: calc(100svh - var(--header-height) - 1px) !important;
+}
+
+/* Sidebar scrollbar — vertical only, always visible, thin, blue-tinted */
 [view-transition-name="sidebar"] {
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   scrollbar-width: thin;
   scrollbar-color: #c0cee0 transparent;
 }
@@ -561,8 +613,8 @@ table td code {
 
 .dark {
   --sidebar-accent: #1e2a40;
-  --sidebar-accent-foreground: #b8cce8;
-  --sidebar-primary: #6b8fd4;
+  --sidebar-accent-foreground: #d0ddf0;
+  --sidebar-primary: #8ab4f8;
   --sidebar-ring: #6b8fd440;
   --accent: #1a2538;
 }
@@ -596,7 +648,7 @@ table td code {
 }
 
 .dark .sidebar-tree-section > summary[data-sidebar="group-label"] {
-  color: #b8cce8 !important;
+  color: #d0ddf0 !important;
 }
 
 /* Sidebar tree arrows — blue tint */
@@ -662,8 +714,8 @@ a[data-sidebar="menu-button"][data-active="true"] {
 }
 
 /* Images with transparent backgrounds need white bg in dark mode */
-.dark img[src*=".png"],
-.dark img[src*=".jpg"] {
+.dark img[src*=".png"]:not(.asya-home-logo),
+.dark img[src*=".jpg"]:not(.asya-home-logo) {
   background-color: white;
   border-radius: 8px;
   padding: 8px;
@@ -671,21 +723,71 @@ a[data-sidebar="menu-button"][data-active="true"] {
 
 /* Envelope route navigator */
 .envelope-route {
-  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  padding: 6px 0;
-  margin-bottom: 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  all: initial !important;
+  display: block !important;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace !important;
+  font-size: 0.75rem !important;
+  color: var(--text-muted) !important;
+  padding: 6px 0 21px 0 !important;
+  margin-bottom: 32px !important;
+  border-bottom: 1px solid #d0d8e8 !important;
+  line-height: 1.5 !important;
+}
+
+.dark .envelope-route {
+  border-bottom-color: #2d3a4f !important;
+}
+
+.envelope-route * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
 }
 
 .route-line {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  line-height: 1.6;
+  display: block !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.route-line-expanded {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.route-prev {
+  display: inline !important;
+}
+
+.route-ellipsis {
+  color: #5a7ab5;
+  cursor: pointer;
+  font-style: italic;
+}
+
+.route-ellipsis:hover {
+  color: #3c63cc;
+  text-decoration: underline;
+}
+
+.route-line-expanded {
+  white-space: normal !important;
+  overflow: visible !important;
+}
+
+.route-fold {
+  color: #5a7ab5;
+  cursor: pointer;
+  font-style: italic;
+  font-size: 0.7rem;
+}
+
+.route-fold:hover {
+  color: #3c63cc;
+  text-decoration: underline;
 }
 
 .route-indent {
@@ -731,6 +833,33 @@ a[data-sidebar="menu-button"][data-active="true"] {
 
 .dark .route-link:hover {
   color: #8ab4f8 !important;
+}
+
+/* Image lightbox */
+.typography img {
+  cursor: zoom-in;
+}
+
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+  padding: 24px;
+}
+
+.lightbox-overlay img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  background: white;
+  padding: 16px;
 }
 
 /* Permalink anchors - positioned BEFORE heading text */

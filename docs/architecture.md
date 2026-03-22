@@ -40,8 +40,8 @@ The [gateway](reference/components/core-gateway.md) bridges synchronous HTTP wit
 | **api** | External clients | `/a2a/` (agents), `/mcp` (tools), `/.well-known/agent.json` |
 | **mesh** | Sidecars (internal) | `/mesh` (progress, FLY events, final results) |
 
-Both modes share PostgreSQL for task state. The gateway translates between HTTP
-request/response and the fire-and-forget queue-based mesh.
+Both modes share a database (PostgreSQL) for task state. The gateway translates
+between HTTP request/response and the fire-and-forget queue-based mesh.
 
 ### Crossplane Compositions
 

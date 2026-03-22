@@ -18,9 +18,9 @@
         var toEnd = eventEnd - now;
 
         if (toEnd <= 0) {
-            text.innerHTML = 'Missed the KubeCon talk? <a href="' + schedUrl + '" target="_blank" rel="noreferrer">Watch the recording</a>';
+            text.innerHTML = 'REST in Peace — Missed the KubeCon talk? <a href="' + schedUrl + '" target="_blank" rel="noreferrer">Watch the recording</a>';
         } else if (toStart <= 0) {
-            text.innerHTML = 'REST In Peace — Happening now! <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a>';
+            text.innerHTML = 'REST in Peace — Happening now! <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a>';
         } else {
             var s = Math.floor(toStart / 1000);
             var d = Math.floor(s / 86400); s %= 86400;
@@ -31,7 +31,7 @@
             if (h > 0) parts.push(h + 'h');
             if (m > 0) parts.push(m + 'm');
             parts.push(s + 's');
-            text.innerHTML = 'REST In Peace — Asya at <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a> in ' + parts.join(' ') + ' (Wed March 25, 14:15 CET)';
+            text.innerHTML = 'REST in Peace — Meet Asya at <a href="' + schedUrl + '" target="_blank" rel="noreferrer">KubeCon Europe 2026</a> in ' + parts.join(' ');
         }
     }
 
@@ -73,6 +73,7 @@
             <a class="asya-home-link hidden lg:flex items-center justify-center rounded-md size-8 transition-all hover:bg-accent dark:hover:bg-accent/50"
                 href="https://asya.sh" title="asya.sh">
                 <img class="asya-home-logo asya-logo-gray" src="{{ 'website/img/logo_gray.png' | url }}" alt="Asya" />
+                <img class="asya-home-logo asya-logo-light" src="{{ 'website/img/logo_light_gray.png' | url }}" alt="Asya" />
                 <img class="asya-home-logo asya-logo-color" src="{{ 'website/img/logo_colored_with_borders.png' | url }}" alt="Asya" />
             </a>
 
@@ -108,7 +109,7 @@
                         </path>
                     </svg>
                     {% if config.theme.show_stargazers %}
-                    <span id="stargazers" class="text-muted-foreground w-8 text-xs tabular-nums" onload="test()">
+                    <span id="stargazers" class="text-muted-foreground text-xs tabular-nums" onload="test()">
                     </span>
                     {% endif %}
                 </a>
