@@ -1,6 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- asya-actor-call-another-api.yaml
+- asya-actor-call-external-api.yaml
+- asya-actor-log-retry.yaml
+- asya-actor-prepare-request.yaml
 - asya-router-retry-pipeline-line-13-seq-5.yaml
 - asya-router-retry-pipeline-line-15-while-1.yaml
 - asya-router-retry-pipeline-line-16-seq-4.yaml

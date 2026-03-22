@@ -418,6 +418,9 @@ Each overlay builds on top of `common/`.
         Each extracted_config has spec_values: {spec_path: value} and
         scope_actors: [actor_names]. Config is injected into the manifest
         at the specified spec paths for actors within scope.
+
+        Also injects ASYA_IGNORE_DECORATORS env var for decorator-scoped
+        configs so the runtime strips extracted decorators at load time.
         """
         if not self.codegen_meta.extracted_configs:
             return
@@ -427,11 +430,18 @@ Each overlay builds on top of `common/`.
             name = name[len("actor-") :]
         actor_python_name = name.replace("-", "_")
 
+        decorator_fqns: list[str] = []
         for config in self.codegen_meta.extracted_configs:
             if actor_python_name not in config.get("scope_actors", []):
                 continue
             for spec_path, value in config.get("spec_values", {}).items():
                 self._set_nested(manifest, spec_path, value)
+            if config.get("scope_type") == "decorator":
+                decorator_fqns.append(config["symbol"])
+
+        if decorator_fqns:
+            env_list = manifest.get("spec", {}).get("env", [])
+            env_list.append({"name": "ASYA_IGNORE_DECORATORS", "value": ",".join(sorted(set(decorator_fqns)))})
 
     @staticmethod
     def _set_nested(d: dict, dotted_path: str, value: object) -> None:

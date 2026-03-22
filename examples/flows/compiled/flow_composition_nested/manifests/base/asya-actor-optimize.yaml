@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-optimize
+  namespace: default
+  labels:
+    asya.sh/flow: compiler-pipeline
+spec:
+  actor: actor-optimize
+  image: examples.asya.sh/optimize:latest
+  handler: optimize
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

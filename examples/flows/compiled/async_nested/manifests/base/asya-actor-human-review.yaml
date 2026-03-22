@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-human-review
+  namespace: default
+  labels:
+    asya.sh/flow: review-pipeline-flow
+    asya.sh/role: end
+spec:
+  actor: actor-human-review
+  image: examples.asya.sh/human-review:latest
+  handler: human_review
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -15,4 +15,12 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
-  env: []
+  env:
+  - name: ASYA_HANDLER_ACTOR_ENRICH
+    value: enrich
+  - name: ASYA_HANDLER_ACTOR_PREPROCESS
+    value: preprocess
+  - name: ASYA_HANDLER_ACTOR_STORE
+    value: store
+  - name: ASYA_HANDLER_ACTOR_VALIDATE
+    value: validate

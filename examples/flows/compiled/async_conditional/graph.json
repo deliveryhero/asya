@@ -2,6 +2,23 @@
   "flow_name": "content_pipeline_flow",
   "nodes": [
     {
+      "id": "classifier",
+      "label": "classifier"
+    },
+    {
+      "id": "generic_processor",
+      "label": "generic_processor"
+    },
+    {
+      "id": "image_processor",
+      "label": "image_processor"
+    },
+    {
+      "id": "quality_check",
+      "label": "quality_check",
+      "role": "end"
+    },
+    {
       "id": "router_content_pipeline_flow_line_15_if_2",
       "label": "router_content_pipeline_flow_line_15_if_2",
       "generated": true
@@ -16,20 +33,66 @@
       "label": "start_content_pipeline_flow",
       "role": "start",
       "generated": true
+    },
+    {
+      "id": "text_processor",
+      "label": "text_processor"
     }
   ],
   "edges": [
     {
       "from": "start_content_pipeline_flow",
-      "to": "router_content_pipeline_flow_line_15_if_2",
+      "to": "classifier",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_content_pipeline_flow_line_15_if_2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_17_if_1",
+      "to": "image_processor",
+      "label": "p['content_type'] == 'image'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_17_if_1",
+      "to": "generic_processor",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_content_pipeline_flow_line_15_if_2",
+      "to": "text_processor",
+      "label": "p['content_type'] == 'text'",
+      "type": "prepend"
+    },
+    {
+      "from": "text_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_content_pipeline_flow_line_15_if_2",
       "to": "router_content_pipeline_flow_line_17_if_1",
       "label": "else",
       "type": "prepend"
+    },
+    {
+      "from": "image_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "generic_processor",
+      "to": "quality_check",
+      "label": null,
+      "type": "continuation"
     }
   ],
   "groups": []

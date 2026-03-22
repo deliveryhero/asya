@@ -1,0 +1,45 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-complex-flow-line-26-if-3
+  namespace: default
+  labels:
+    asya.sh/flow: complex-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-complex-flow-line-26-if-3
+  image: python:3.13-slim
+  handler: routers.router_complex_flow_line_26_if_3
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_CHECK_QUALITY
+    value: handler_check_quality
+  - name: ASYA_HANDLER_ACTOR_HANDLER_ENRICH_DATA
+    value: handler_enrich_data
+  - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
+    value: handler_error
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PREPROCESS
+    value: handler_preprocess
+  - name: ASYA_HANDLER_ACTOR_HANDLER_RETRY_HANDLER
+    value: handler_retry_handler
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TRANSFORM_BATCH
+    value: handler_transform_batch
+  - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
+    value: handler_validate
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_15_IF_6
+    value: routers.router_complex_flow_line_15_if_6
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_19_IF_5
+    value: routers.router_complex_flow_line_19_if_5
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_22_WHILE_1
+    value: routers.router_complex_flow_line_22_while_1
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_26_IF_3
+    value: routers.router_complex_flow_line_26_if_3
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_29_IF_2
+    value: routers.router_complex_flow_line_29_if_2
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_32_IF_4
+    value: routers.router_complex_flow_line_32_if_4

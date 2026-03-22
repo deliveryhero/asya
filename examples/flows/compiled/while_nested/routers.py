@@ -15,10 +15,9 @@ Regenerate by running: asya flow compile while_nested.py
 
 async def start_while_nested_flow(payload: dict):
     """Entrypoint for flow 'while_nested_flow'"""
-    p = payload
     _next = []
-    p['i'] = 0
-    _next.append(resolve("router_while_nested_flow_line_14_while_1"))
+    _next.append(resolve("handler_init"))
+    _next.append(resolve("router_while_nested_flow_line_13_seq_6"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -27,6 +26,7 @@ async def router_while_nested_flow_line_19_seq_3(payload: dict):
     p = payload
     _next = []
     p['j'] += 1
+    _next.append(resolve("handler_inner"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -39,19 +39,30 @@ async def router_while_nested_flow_line_18_while_2(payload: dict):
         _next.append(resolve("router_while_nested_flow_line_19_seq_3"))
         _next.append(resolve("router_while_nested_flow_line_18_while_2"))
     else:
+        yield "SET", ".route.next", [resolve("handler_outer_end")]
         yield p
         return
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_while_nested_flow_line_15_seq_4(payload: dict):
+async def router_while_nested_flow_line_17_seq_4(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['j'] = 0
+    _next.append(resolve("router_while_nested_flow_line_18_while_2"))
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_while_nested_flow_line_15_seq_5(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['i'] += 1
-    p['j'] = 0
-    _next.append(resolve("router_while_nested_flow_line_18_while_2"))
+    _next.append(resolve("handler_outer"))
+    _next.append(resolve("router_while_nested_flow_line_17_seq_4"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -61,11 +72,22 @@ async def router_while_nested_flow_line_14_while_1(payload: dict):
     p = payload
     _next = []
     if p['i'] < p['max_i']:
-        _next.append(resolve("router_while_nested_flow_line_15_seq_4"))
+        _next.append(resolve("router_while_nested_flow_line_15_seq_5"))
         _next.append(resolve("router_while_nested_flow_line_14_while_1"))
     else:
+        yield "SET", ".route.next", [resolve("handler_finalize")]
         yield p
         return
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_while_nested_flow_line_13_seq_6(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['i'] = 0
+    _next.append(resolve("router_while_nested_flow_line_14_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

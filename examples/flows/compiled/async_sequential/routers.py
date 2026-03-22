@@ -16,6 +16,8 @@ Regenerate by running: asya flow compile async_sequential.py
 async def start_llm_auditor_flow(payload: dict):
     """Entrypoint for flow 'llm_auditor_flow'"""
     _next = []
+    _next.append(resolve("critic"))
+    _next.append(resolve("reviser"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 

@@ -9,6 +9,8 @@
 #   p = foo(p)         -> call-site
 # No need to declare scope in the rule.
 
+# -- Context manager rules --
+
 - match: "asyncio.timeout"
   treat-as: config
   extract:
@@ -18,3 +20,13 @@
   treat-as: inline
   imports:
   - "import contextlib"
+
+# -- Decorator rules --
+
+- match: "tenacity.retry"
+  treat-as: config
+  extract:
+    max_attempt_number: spec.resiliency.policies.default.maxAttempts
+    # Nested extraction (stop=stop_after_attempt(3)) requires where: trees,
+    # which is a future enhancement. For now, use direct keyword args:
+    #   @retry(max_attempt_number=3)

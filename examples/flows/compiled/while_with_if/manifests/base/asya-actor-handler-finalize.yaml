@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-finalize
+  namespace: default
+  labels:
+    asya.sh/flow: if-inside-while-flow
+    asya.sh/role: end
+spec:
+  actor: actor-handler-finalize
+  image: examples.asya.sh/handler-finalize:latest
+  handler: handler_finalize
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

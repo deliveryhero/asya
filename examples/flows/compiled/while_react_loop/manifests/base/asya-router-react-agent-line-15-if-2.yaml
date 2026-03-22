@@ -15,6 +15,10 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_EXECUTE_TOOL
+    value: execute_tool
+  - name: ASYA_HANDLER_ACTOR_LLM_CALL
+    value: llm_call
   - name: ASYA_HANDLER_ROUTER_REACT_AGENT_LINE_13_WHILE_1
     value: routers.router_react_agent_line_13_while_1
   - name: ASYA_HANDLER_ROUTER_REACT_AGENT_LINE_15_IF_2

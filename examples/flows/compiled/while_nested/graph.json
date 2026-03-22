@@ -2,16 +2,53 @@
   "flow_name": "while_nested_flow",
   "nodes": [
     {
+      "id": "handler_finalize",
+      "label": "handler_finalize",
+      "role": "end"
+    },
+    {
+      "id": "handler_init",
+      "label": "handler_init"
+    },
+    {
+      "id": "handler_inner",
+      "label": "handler_inner"
+    },
+    {
+      "id": "handler_outer",
+      "label": "handler_outer"
+    },
+    {
+      "id": "handler_outer_end",
+      "label": "handler_outer_end",
+      "role": "end"
+    },
+    {
+      "id": "router_while_nested_flow_line_13_seq_6",
+      "label": "router_while_nested_flow_line_13_seq_6",
+      "generated": true,
+      "mutations": [
+        "p['i'] = 0"
+      ]
+    },
+    {
       "id": "router_while_nested_flow_line_14_while_1",
       "label": "router_while_nested_flow_line_14_while_1",
       "generated": true
     },
     {
-      "id": "router_while_nested_flow_line_15_seq_4",
-      "label": "router_while_nested_flow_line_15_seq_4",
+      "id": "router_while_nested_flow_line_15_seq_5",
+      "label": "router_while_nested_flow_line_15_seq_5",
       "generated": true,
       "mutations": [
-        "p['i'] += 1",
+        "p['i'] += 1"
+      ]
+    },
+    {
+      "id": "router_while_nested_flow_line_17_seq_4",
+      "label": "router_while_nested_flow_line_17_seq_4",
+      "generated": true,
+      "mutations": [
         "p['j'] = 0"
       ]
     },
@@ -32,16 +69,25 @@
       "id": "start_while_nested_flow",
       "label": "start_while_nested_flow",
       "role": "start",
-      "generated": true,
-      "mutations": [
-        "p['i'] = 0"
-      ]
+      "generated": true
     }
   ],
   "edges": [
     {
       "from": "start_while_nested_flow",
-      "to": "router_while_nested_flow_line_14_while_1",
+      "to": "handler_init",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "handler_init",
+      "to": "router_while_nested_flow_line_13_seq_6",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_while_nested_flow_line_19_seq_3",
+      "to": "handler_inner",
       "label": null,
       "type": "prepend"
     },
@@ -52,22 +98,58 @@
       "type": "prepend"
     },
     {
-      "from": "router_while_nested_flow_line_19_seq_3",
+      "from": "router_while_nested_flow_line_18_while_2",
+      "to": "handler_outer_end",
+      "label": "else",
+      "type": "set"
+    },
+    {
+      "from": "router_while_nested_flow_line_17_seq_4",
+      "to": "router_while_nested_flow_line_18_while_2",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_nested_flow_line_15_seq_5",
+      "to": "handler_outer",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "handler_outer",
+      "to": "router_while_nested_flow_line_17_seq_4",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_while_nested_flow_line_14_while_1",
+      "to": "router_while_nested_flow_line_15_seq_5",
+      "label": "p['i'] < p['max_i']",
+      "type": "prepend"
+    },
+    {
+      "from": "router_while_nested_flow_line_14_while_1",
+      "to": "handler_finalize",
+      "label": "else",
+      "type": "set"
+    },
+    {
+      "from": "router_while_nested_flow_line_13_seq_6",
+      "to": "router_while_nested_flow_line_14_while_1",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "handler_inner",
       "to": "router_while_nested_flow_line_18_while_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_while_nested_flow_line_15_seq_4",
-      "to": "router_while_nested_flow_line_18_while_2",
+      "from": "router_while_nested_flow_line_18_while_2",
+      "to": "router_while_nested_flow_line_14_while_1",
       "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_while_nested_flow_line_14_while_1",
-      "to": "router_while_nested_flow_line_15_seq_4",
-      "label": "p['i'] < p['max_i']",
-      "type": "prepend"
+      "type": "continuation"
     }
   ],
   "groups": []

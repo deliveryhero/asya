@@ -4,13 +4,25 @@ digraph "content_pipeline_flow" {
 
     { rank=source; start_content_pipeline_flow; }
 
+    classifier [label="classifier", fillcolor=lightblue];
+    generic_processor [label="generic_processor", fillcolor=lightblue];
+    image_processor [label="image_processor", fillcolor=lightblue];
+    quality_check [label="quality_check", fillcolor=lightsalmon];
     router_content_pipeline_flow_line_15_if_2 [label="router_content_pipeline_flow_line_15_if_2", fillcolor=wheat];
     router_content_pipeline_flow_line_17_if_1 [label="router_content_pipeline_flow_line_17_if_1", fillcolor=wheat];
     start_content_pipeline_flow [label="start_content_pipeline_flow", fillcolor=palegreen];
+    text_processor [label="text_processor", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_content_pipeline_flow -> router_content_pipeline_flow_line_15_if_2;
+    start_content_pipeline_flow -> classifier;
+    classifier -> router_content_pipeline_flow_line_15_if_2;
+    router_content_pipeline_flow_line_17_if_1 -> image_processor [label="p['content_type'] == 'image'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_content_pipeline_flow_line_17_if_1 -> generic_processor [label="else", color="#D35400", fontcolor="#D35400"];
+    router_content_pipeline_flow_line_15_if_2 -> text_processor [label="p['content_type'] == 'text'", color="#2E8B57", fontcolor="#2E8B57"];
+    text_processor -> quality_check;
     router_content_pipeline_flow_line_15_if_2 -> router_content_pipeline_flow_line_17_if_1 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_content_pipeline_flow_line_17_if_1 -> __end__;
+    image_processor -> quality_check;
+    generic_processor -> quality_check;
+    quality_check -> __end__;
 }

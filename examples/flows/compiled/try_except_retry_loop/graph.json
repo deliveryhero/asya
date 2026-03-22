@@ -2,6 +2,23 @@
   "flow_name": "retry_pipeline",
   "nodes": [
     {
+      "id": "call_another_api",
+      "label": "call_another_api"
+    },
+    {
+      "id": "call_external_api",
+      "label": "call_external_api"
+    },
+    {
+      "id": "log_retry",
+      "label": "log_retry",
+      "role": "end"
+    },
+    {
+      "id": "prepare_request",
+      "label": "prepare_request"
+    },
+    {
       "id": "router_retry_pipeline_line_15_while_1",
       "label": "router_retry_pipeline_line_15_while_1",
       "generated": true
@@ -13,6 +30,16 @@
       "mutations": [
         "p['attempt'] += 1"
       ]
+    },
+    {
+      "id": "router_retry_pipeline_line_20_except_2",
+      "label": "router_retry_pipeline_line_20_except_2",
+      "generated": true
+    },
+    {
+      "id": "router_retry_pipeline_line_22_except_3",
+      "label": "router_retry_pipeline_line_22_except_3",
+      "generated": true
     },
     {
       "id": "start_retry_pipeline",
@@ -27,9 +54,33 @@
   "edges": [
     {
       "from": "start_retry_pipeline",
-      "to": "router_retry_pipeline_line_15_while_1",
+      "to": "prepare_request",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "prepare_request",
+      "to": "router_retry_pipeline_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_retry_pipeline_line_20_except_2",
+      "to": "log_retry",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_retry_pipeline_line_16_seq_4",
+      "to": "call_external_api",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "call_external_api",
+      "to": "call_another_api",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_retry_pipeline_line_15_while_1",
@@ -38,7 +89,31 @@
       "type": "prepend"
     },
     {
-      "from": "router_retry_pipeline_line_16_seq_4",
+      "from": "call_external_api",
+      "to": "router_retry_pipeline_line_20_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "call_external_api",
+      "to": "router_retry_pipeline_line_22_except_3",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_20_except_2",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
+      "to": "router_retry_pipeline_line_22_except_3",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "call_another_api",
       "to": "router_retry_pipeline_line_15_while_1",
       "label": null,
       "type": "continuation"

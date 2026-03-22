@@ -16,6 +16,7 @@ Regenerate by running: asya flow compile async_conditional.py
 async def start_content_pipeline_flow(payload: dict):
     """Entrypoint for flow 'content_pipeline_flow'"""
     _next = []
+    _next.append(resolve("classifier"))
     _next.append(resolve("router_content_pipeline_flow_line_15_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -25,9 +26,9 @@ async def router_content_pipeline_flow_line_17_if_1(payload: dict):
     p = payload
     _next = []
     if p['content_type'] == 'image':
-        pass
+        _next.append(resolve("image_processor"))
     else:
-        pass
+        _next.append(resolve("generic_processor"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -37,9 +38,11 @@ async def router_content_pipeline_flow_line_15_if_2(payload: dict):
     p = payload
     _next = []
     if p['content_type'] == 'text':
-        pass
+        _next.append(resolve("text_processor"))
+        _next.append(resolve("quality_check"))
     else:
         _next.append(resolve("router_content_pipeline_flow_line_17_if_1"))
+        _next.append(resolve("quality_check"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

@@ -2,6 +2,18 @@
   "flow_name": "research_agent",
   "nodes": [
     {
+      "id": "calculator",
+      "label": "calculator"
+    },
+    {
+      "id": "code_executor",
+      "label": "code_executor"
+    },
+    {
+      "id": "llm_call",
+      "label": "llm_call"
+    },
+    {
       "id": "router_research_agent_line_15_while_1",
       "label": "router_research_agent_line_15_while_1",
       "generated": true
@@ -29,6 +41,10 @@
       "mutations": [
         "p['messages'] = p.get('messages', [])"
       ]
+    },
+    {
+      "id": "web_search",
+      "label": "web_search"
     }
   ],
   "edges": [
@@ -39,9 +55,27 @@
       "type": "prepend"
     },
     {
+      "from": "router_research_agent_line_21_if_2",
+      "to": "code_executor",
+      "label": "p.get('tool_name') == 'code_exec'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_19_if_3",
+      "to": "calculator",
+      "label": "p.get('tool_name') == 'calculator'",
+      "type": "prepend"
+    },
+    {
       "from": "router_research_agent_line_19_if_3",
       "to": "router_research_agent_line_21_if_2",
       "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_research_agent_line_17_if_4",
+      "to": "web_search",
+      "label": "p.get('tool_name') == 'search'",
       "type": "prepend"
     },
     {
@@ -52,14 +86,38 @@
     },
     {
       "from": "router_research_agent_line_15_while_1",
-      "to": "router_research_agent_line_17_if_4",
+      "to": "llm_call",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_agent_line_21_if_2",
+      "from": "llm_call",
+      "to": "router_research_agent_line_17_if_4",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "web_search",
       "to": "router_research_agent_line_15_while_1",
       "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "calculator",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "code_executor",
+      "to": "router_research_agent_line_15_while_1",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_research_agent_line_21_if_2",
+      "to": "router_research_agent_line_15_while_1",
+      "label": "else",
       "type": "continuation"
     }
   ],

@@ -15,5 +15,13 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
+    value: handler_error
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
+    value: handler_validate
   - name: ASYA_HANDLER_ROUTER_EARLY_RETURN_FLOW_LINE_13_IF_1
     value: routers.router_early_return_flow_line_13_if_1

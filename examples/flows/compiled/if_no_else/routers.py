@@ -16,6 +16,7 @@ Regenerate by running: asya flow compile if_no_else.py
 async def start_if_no_else_flow(payload: dict):
     """Entrypoint for flow 'if_no_else_flow'"""
     _next = []
+    _next.append(resolve("handler_setup"))
     _next.append(resolve("router_if_no_else_flow_line_13_if_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -25,7 +26,7 @@ async def router_if_no_else_flow_line_13_if_1(payload: dict):
     p = payload
     _next = []
     if p['condition']:
-        pass
+        _next.append(resolve("handler_true"))
     else:
         pass
 

@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-llm-call
+  namespace: default
+  labels:
+    asya.sh/flow: research-agent
+spec:
+  actor: actor-llm-call
+  image: examples.asya.sh/llm-call:latest
+  handler: llm_call
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

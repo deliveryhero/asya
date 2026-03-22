@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-finalize-loop-i
+  namespace: default
+  labels:
+    asya.sh/flow: nested-loop-flow
+    asya.sh/role: end
+spec:
+  actor: actor-finalize-loop-i
+  image: examples.asya.sh/finalize-loop-i:latest
+  handler: finalize_loop_i
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -42,7 +42,7 @@ async def router_order_pipeline_line_32_if_2(payload: dict):
         yield p
         return
     else:
-        pass
+        _next.append(resolve("charge_payment"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

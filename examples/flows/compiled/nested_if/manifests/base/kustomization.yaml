@@ -1,6 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- asya-actor-handler-a-x.yaml
+- asya-actor-handler-a-y.yaml
+- asya-actor-handler-b-x.yaml
+- asya-actor-handler-b-y.yaml
+- asya-actor-handler-finalize.yaml
+- asya-actor-handler-validate.yaml
 - asya-router-nested-if-flow-line-13-if-7.yaml
 - asya-router-nested-if-flow-line-15-if-3.yaml
 - asya-router-nested-if-flow-line-16-seq-1.yaml

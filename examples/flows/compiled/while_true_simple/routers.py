@@ -16,6 +16,7 @@ Regenerate by running: asya flow compile while_true_simple.py
 async def start_while_true_flow(payload: dict):
     """Entrypoint for flow 'while_true_flow'"""
     _next = []
+    _next.append(resolve("handler_init"))
     _next.append(resolve("router_while_true_flow_line_13_while_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -25,6 +26,7 @@ async def router_while_true_flow_line_15_if_2(payload: dict):
     p = payload
     _next = []
     if p.get('done', False):
+        yield "SET", ".route.next", [resolve("handler_finalize")]
         yield p
         return
     else:
@@ -37,6 +39,7 @@ async def router_while_true_flow_line_13_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
+    _next.append(resolve("handler_process"))
     _next.append(resolve("router_while_true_flow_line_15_if_2"))
     _next.append(resolve("router_while_true_flow_line_13_while_1"))
 

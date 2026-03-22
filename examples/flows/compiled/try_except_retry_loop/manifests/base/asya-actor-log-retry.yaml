@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-log-retry
+  namespace: default
+  labels:
+    asya.sh/flow: retry-pipeline
+    asya.sh/role: end
+spec:
+  actor: actor-log-retry
+  image: examples.asya.sh/log-retry:latest
+  handler: log_retry
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

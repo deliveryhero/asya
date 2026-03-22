@@ -24,9 +24,10 @@ data:
     \ dict):\n    \"\"\"Router for control flow and payload mutations\"\"\"\n    p\
     \ = payload\n    _next = []\n    if p.get('fraud_score', 0) > 0.8:\n        yield\
     \ \"SET\", \".route.next\", [resolve(\"router_order_pipeline_line_33_seq_1\")]\n\
-    \        yield p\n        return\n    else:\n        pass\n\n    yield \"SET\"\
-    , \".route.next[:0]\", _next\n    yield payload\n\n\n# ======================================================================\n\
-    # Handler Resolution\n# ======================================================================\n\
+    \        yield p\n        return\n    else:\n        _next.append(resolve(\"charge_payment\"\
+    ))\n\n    yield \"SET\", \".route.next[:0]\", _next\n    yield payload\n\n\n#\
+    \ ======================================================================\n# Handler\
+    \ Resolution\n# ======================================================================\n\
     \nimport os\nimport logging\n\n_HANDLER_TO_ACTOR: dict[str, str] = {}\n_SUFFIX_TO_HANDLERS:\
     \ dict[str, list[str]] = {}\n\nfor _env_var, _handler_name in os.environ.items():\n\
     \    if _env_var.startswith('ASYA_HANDLER_'):\n        _actor_name = _env_var[len('ASYA_HANDLER_'):].lower().replace('_',\

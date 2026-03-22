@@ -1,6 +1,12 @@
 flowchart TD
     %% Flow: nested_if_flow
 
+    handler_a_x[handler_a_x]
+    handler_a_y[handler_a_y]
+    handler_b_x[handler_b_x]
+    handler_b_y[handler_b_y]
+    handler_finalize[handler_finalize]
+    handler_validate[handler_validate]
     router_nested_if_flow_line_13_if_7{{router_nested_if_flow_line_13_if_7}}
     router_nested_if_flow_line_15_if_3{{"router_nested_if_flow_line_15_if_3<br/><br/>p['l1'] = 'A'"}}
     router_nested_if_flow_line_16_seq_1{{"router_nested_if_flow_line_16_seq_1<br/><br/>p['l2'] = 'X'"}}
@@ -11,17 +17,23 @@ flowchart TD
     start_nested_if_flow([start_nested_if_flow])
     __end__((( )))
 
-    start_nested_if_flow --> router_nested_if_flow_line_13_if_7
+    start_nested_if_flow --> handler_validate
+    handler_validate --> router_nested_if_flow_line_13_if_7
+    router_nested_if_flow_line_16_seq_1 --> handler_a_x
+    router_nested_if_flow_line_19_seq_2 --> handler_a_y
     router_nested_if_flow_line_15_if_3 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_16_seq_1
     router_nested_if_flow_line_15_if_3 -->|"else"| router_nested_if_flow_line_19_seq_2
+    router_nested_if_flow_line_24_seq_4 --> handler_b_x
+    router_nested_if_flow_line_27_seq_5 --> handler_b_y
     router_nested_if_flow_line_23_if_6 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_24_seq_4
     router_nested_if_flow_line_23_if_6 -->|"else"| router_nested_if_flow_line_27_seq_5
     router_nested_if_flow_line_13_if_7 -->|"p['level1'] == 'A'"| router_nested_if_flow_line_15_if_3
     router_nested_if_flow_line_13_if_7 -->|"else"| router_nested_if_flow_line_23_if_6
-    router_nested_if_flow_line_16_seq_1 --> __end__
-    router_nested_if_flow_line_19_seq_2 --> __end__
-    router_nested_if_flow_line_24_seq_4 --> __end__
-    router_nested_if_flow_line_27_seq_5 --> __end__
+    handler_a_x --> handler_finalize
+    handler_a_y --> handler_finalize
+    handler_b_x --> handler_finalize
+    handler_b_y --> handler_finalize
+    handler_finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -29,7 +41,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_nested_if_flow start
+    class handler_finalize endnode
     class router_nested_if_flow_line_13_if_7,router_nested_if_flow_line_15_if_3,router_nested_if_flow_line_16_seq_1,router_nested_if_flow_line_19_seq_2,router_nested_if_flow_line_23_if_6,router_nested_if_flow_line_24_seq_4,router_nested_if_flow_line_27_seq_5 router
+    class handler_a_x,handler_a_y,handler_b_x,handler_b_y,handler_validate handler
     class __end__ endpoint
-    linkStyle 1,3,5 stroke:#2E8B57
-    linkStyle 2,4,6 stroke:#E07040
+    linkStyle 4,8,10 stroke:#2E8B57
+    linkStyle 5,9,11 stroke:#E07040

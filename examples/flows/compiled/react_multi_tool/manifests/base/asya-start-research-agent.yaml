@@ -16,6 +16,12 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_CALCULATOR
+    value: calculator
+  - name: ASYA_HANDLER_ACTOR_CODE_EXECUTOR
+    value: code_executor
+  - name: ASYA_HANDLER_ACTOR_LLM_CALL
+    value: llm_call
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AGENT_LINE_15_WHILE_1
     value: routers.router_research_agent_line_15_while_1
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AGENT_LINE_17_IF_4
@@ -24,3 +30,5 @@ spec:
     value: routers.router_research_agent_line_19_if_3
   - name: ASYA_HANDLER_ROUTER_RESEARCH_AGENT_LINE_21_IF_2
     value: routers.router_research_agent_line_21_if_2
+  - name: ASYA_HANDLER_ACTOR_WEB_SEARCH
+    value: web_search

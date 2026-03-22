@@ -15,22 +15,30 @@ Regenerate by running: asya flow compile while_mutations_in_loop.py
 
 async def start_while_mutations_in_loop_flow(payload: dict):
     """Entrypoint for flow 'while_mutations_in_loop_flow'"""
-    p = payload
     _next = []
-    p['i'] = 0
-    p['sum'] = 0
-    _next.append(resolve("router_while_mutations_in_loop_flow_line_15_while_1"))
+    _next.append(resolve("handler_init"))
+    _next.append(resolve("router_while_mutations_in_loop_flow_line_13_seq_4"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_while_mutations_in_loop_flow_line_16_seq_2(payload: dict):
+async def router_while_mutations_in_loop_flow_line_20_seq_2(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['processed'] = True
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_while_mutations_in_loop_flow_line_16_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['i'] += 1
     p['sum'] += p['i']
     p['step'] = p['i']
-    p['processed'] = True
+    _next.append(resolve("handler_process"))
+    _next.append(resolve("router_while_mutations_in_loop_flow_line_20_seq_2"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -40,11 +48,23 @@ async def router_while_mutations_in_loop_flow_line_15_while_1(payload: dict):
     p = payload
     _next = []
     if p['i'] < p['max_iterations']:
-        _next.append(resolve("router_while_mutations_in_loop_flow_line_16_seq_2"))
+        _next.append(resolve("router_while_mutations_in_loop_flow_line_16_seq_3"))
         _next.append(resolve("router_while_mutations_in_loop_flow_line_15_while_1"))
     else:
+        yield "SET", ".route.next", [resolve("handler_finalize")]
         yield p
         return
+
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+
+async def router_while_mutations_in_loop_flow_line_13_seq_4(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    _next = []
+    p['i'] = 0
+    p['sum'] = 0
+    _next.append(resolve("router_while_mutations_in_loop_flow_line_15_while_1"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

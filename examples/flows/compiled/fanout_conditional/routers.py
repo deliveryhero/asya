@@ -18,6 +18,7 @@ import copy
 async def start_adaptive_flow(payload: dict):
     """Entrypoint for flow 'adaptive_flow'"""
     _next = []
+    _next.append(resolve("classifier"))
     _next.append(resolve("router_adaptive_flow_line_15_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -59,8 +60,10 @@ async def router_adaptive_flow_line_15_if_2(payload: dict):
     _next = []
     if p['parallel']:
         _next.append(resolve("router_adaptive_flow_line_16_fanout_1"))
+        _next.append(resolve("formatter"))
     else:
-        pass
+        _next.append(resolve("sequential_analyzer"))
+        _next.append(resolve("formatter"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

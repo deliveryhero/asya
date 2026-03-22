@@ -1,9 +1,15 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asya-router-while-nested-flow-line-13-seq-5.yaml
+- asya-actor-handler-finalize.yaml
+- asya-actor-handler-init.yaml
+- asya-actor-handler-inner.yaml
+- asya-actor-handler-outer-end.yaml
+- asya-actor-handler-outer.yaml
+- asya-router-while-nested-flow-line-13-seq-6.yaml
 - asya-router-while-nested-flow-line-14-while-1.yaml
-- asya-router-while-nested-flow-line-15-seq-4.yaml
+- asya-router-while-nested-flow-line-15-seq-5.yaml
+- asya-router-while-nested-flow-line-17-seq-4.yaml
 - asya-router-while-nested-flow-line-18-while-2.yaml
 - asya-router-while-nested-flow-line-19-seq-3.yaml
 - asya-start-while-nested-flow.yaml

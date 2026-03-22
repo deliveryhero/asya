@@ -15,6 +15,14 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
+    value: handler_setup
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
+    value: handler_type_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
+    value: handler_type_b
   - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_13_IF_3
     value: routers.router_if_mutations_in_branches_flow_line_13_if_3
   - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_14_SEQ_1

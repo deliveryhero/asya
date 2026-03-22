@@ -181,6 +181,7 @@ class FlowParser:
         self._loop_depth: int = 0
         self._in_except_body: bool = False
         self.extracted_configs: list[dict] = []
+        self.ignore_decorators: list[str] = []
         self.module_constants: list[str] = []
         self._actors: list[str] = []
         self._known_wrappers: frozenset[str] = known_wrappers or _DEFAULT_WRAPPERS
@@ -231,6 +232,7 @@ class FlowParser:
             operations=operations,
             actors=list(self._actors),
             extracted_configs=self.extracted_configs,
+            ignore_decorators=list(self.ignore_decorators),
             imports=list(self.import_map.values()),
             constants=self.module_constants,
             inline_defs=inline_defs,
@@ -259,21 +261,72 @@ class FlowParser:
         return directives
 
     def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
-        """Map function name to treat-as value for same-file definitions."""
+        """Map function name to treat-as value for same-file definitions.
+
+        Also extracts config from decorators matched by compiler rules
+        (e.g. @retry(max_attempts=3) → spec.resiliency.policies.default.maxAttempts).
+        """
         index: dict[str, str] = {}
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
                 continue
             for dec in node.decorator_list:
+                # Check for known wrappers (@actor, @inline, @flow, @unfold)
                 dec_name: str | None = None
                 if isinstance(dec, ast.Name):
                     dec_name = dec.id
                 elif isinstance(dec, ast.Attribute):
                     dec_name = ast.unparse(dec)
+                elif isinstance(dec, ast.Call):
+                    if isinstance(dec.func, ast.Name):
+                        dec_name = dec.func.id
+                    elif isinstance(dec.func, ast.Attribute):
+                        dec_name = ast.unparse(dec.func)
                 if dec_name in self._known_wrappers:
                     index[node.name] = dec_name
                     break
+
+                # Check for config decorators via rules registry
+                if dec_name is not None and isinstance(dec, ast.Call):
+                    fqn = self.import_map.get(dec_name, dec_name)
+                    rule = self.rules.lookup(fqn)
+                    if rule is not None and rule.treat_as == "config":
+                        spec_values = self._extract_decorator_args(dec, rule)
+                        if spec_values:
+                            self.extracted_configs.append(
+                                {
+                                    "symbol": fqn,
+                                    "spec_values": spec_values,
+                                    "scope_type": "decorator",
+                                    "scope_actors": [node.name],
+                                }
+                            )
+                        self.ignore_decorators.append(fqn)
         return index
+
+    def _extract_decorator_args(self, dec: ast.Call, rule: CompilerRule) -> dict[str, str]:
+        """Extract args from a decorator call, mapping to spec paths via rule.extract."""
+        if not rule.extract:
+            return {}
+
+        raw: dict[str, str] = {}
+        param_names = list(rule.extract.keys())
+
+        for i, arg in enumerate(dec.args):
+            if i < len(param_names):
+                raw[param_names[i]] = ast.unparse(arg)
+
+        for kw in dec.keywords:
+            if kw.arg and kw.arg in rule.extract:
+                raw[kw.arg] = ast.unparse(kw.value)
+
+        spec_values: dict[str, str] = {}
+        for param, value in raw.items():
+            spec_path = rule.extract.get(param)
+            if spec_path:
+                spec_values[spec_path] = value
+
+        return spec_values
 
     # -- Import/constant collection --
 

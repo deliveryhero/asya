@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-auto-approve
+  namespace: default
+  labels:
+    asya.sh/flow: review-pipeline-flow
+    asya.sh/role: end
+spec:
+  actor: actor-auto-approve
+  image: examples.asya.sh/auto-approve:latest
+  handler: auto_approve
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

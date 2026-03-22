@@ -3,6 +3,7 @@ kind: Kustomization
 resources:
 - asya-actor-research-agent.yaml
 - asya-actor-review-agent.yaml
+- asya-actor-summarizer.yaml
 - asya-router-multi-stage-flow-line-14-fanout-2.yaml
 - asya-router-multi-stage-flow-line-15-fanout-1.yaml
 - asya-start-multi-stage-flow.yaml

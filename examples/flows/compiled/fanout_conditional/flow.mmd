@@ -1,23 +1,30 @@
 flowchart TD
     %% Flow: adaptive_flow
 
+    classifier[classifier]
     deep_analyzer[deep_analyzer]
     fanin_adaptive_flow_line_16[fanin_adaptive_flow_line_16]
     fast_analyzer[fast_analyzer]
+    formatter[formatter]
     router_adaptive_flow_line_15_if_2{{router_adaptive_flow_line_15_if_2}}
     router_adaptive_flow_line_16_fanout_1{{router_adaptive_flow_line_16_fanout_1}}
+    sequential_analyzer[sequential_analyzer]
     start_adaptive_flow([start_adaptive_flow])
     __end__((( )))
 
-    start_adaptive_flow --> router_adaptive_flow_line_15_if_2
+    start_adaptive_flow --> classifier
+    classifier --> router_adaptive_flow_line_15_if_2
     router_adaptive_flow_line_16_fanout_1 -->|"fanout"| fanin_adaptive_flow_line_16
     router_adaptive_flow_line_16_fanout_1 --> fast_analyzer
     fast_analyzer --> fanin_adaptive_flow_line_16
     router_adaptive_flow_line_16_fanout_1 --> deep_analyzer
     deep_analyzer --> fanin_adaptive_flow_line_16
     router_adaptive_flow_line_15_if_2 -->|"p['parallel']"| router_adaptive_flow_line_16_fanout_1
-    router_adaptive_flow_line_15_if_2 -->|"else"| router_adaptive_flow_line_16_fanout_1
-    fanin_adaptive_flow_line_16 --> __end__
+    router_adaptive_flow_line_16_fanout_1 --> formatter
+    router_adaptive_flow_line_15_if_2 -->|"else"| sequential_analyzer
+    sequential_analyzer --> formatter
+    fanin_adaptive_flow_line_16 --> formatter
+    formatter --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -25,9 +32,10 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_adaptive_flow start
+    class formatter endnode
     class router_adaptive_flow_line_15_if_2,router_adaptive_flow_line_16_fanout_1 router
-    class deep_analyzer,fanin_adaptive_flow_line_16,fast_analyzer handler
+    class classifier,deep_analyzer,fanin_adaptive_flow_line_16,fast_analyzer,sequential_analyzer handler
     class __end__ endpoint
-    linkStyle 6 stroke:#2E8B57
-    linkStyle 1 stroke:#7B68EE
-    linkStyle 7 stroke:#E07040
+    linkStyle 7 stroke:#2E8B57
+    linkStyle 2 stroke:#7B68EE
+    linkStyle 9 stroke:#E07040

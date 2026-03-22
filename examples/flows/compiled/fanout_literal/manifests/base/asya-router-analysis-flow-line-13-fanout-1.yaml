@@ -19,6 +19,8 @@ spec:
     value: entity_recognizer
   - name: ASYA_HANDLER_FANIN_ANALYSIS_FLOW_LINE_13
     value: routers.fanin_analysis_flow_line_13
+  - name: ASYA_HANDLER_ACTOR_MERGE_ANALYSIS
+    value: merge_analysis
   - name: ASYA_HANDLER_ROUTER_ANALYSIS_FLOW_LINE_13_FANOUT_1
     value: routers.router_analysis_flow_line_13_fanout_1
   - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER

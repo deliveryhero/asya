@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-check
+  namespace: default
+  labels:
+    asya.sh/flow: while-break-continue-flow
+spec:
+  actor: actor-handler-check
+  image: examples.asya.sh/handler-check:latest
+  handler: handler_check
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

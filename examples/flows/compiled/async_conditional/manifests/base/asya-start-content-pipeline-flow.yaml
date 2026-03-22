@@ -16,7 +16,17 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_CLASSIFIER
+    value: classifier
+  - name: ASYA_HANDLER_ACTOR_GENERIC_PROCESSOR
+    value: generic_processor
+  - name: ASYA_HANDLER_ACTOR_IMAGE_PROCESSOR
+    value: image_processor
+  - name: ASYA_HANDLER_ACTOR_QUALITY_CHECK
+    value: quality_check
   - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_LINE_15_IF_2
     value: routers.router_content_pipeline_flow_line_15_if_2
   - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_LINE_17_IF_1
     value: routers.router_content_pipeline_flow_line_17_if_1
+  - name: ASYA_HANDLER_ACTOR_TEXT_PROCESSOR
+    value: text_processor

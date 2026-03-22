@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-even
+  namespace: default
+  labels:
+    asya.sh/flow: if-inside-while-flow
+spec:
+  actor: actor-handler-even
+  image: examples.asya.sh/handler-even:latest
+  handler: handler_even
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
