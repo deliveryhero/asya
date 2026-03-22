@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-init
+  namespace: default
+  labels:
+    asya.sh/flow: if-inside-while-flow
+spec:
+  actor: actor-handler-init
+  image: examples.asya.sh/handler-init:latest
+  handler: handler_init
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

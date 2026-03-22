@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-validate
+  namespace: default
+  labels:
+    asya.sh/flow: complex-flow
+spec:
+  actor: actor-handler-validate
+  image: examples.asya.sh/handler-validate:latest
+  handler: handler_validate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

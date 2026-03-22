@@ -27,3 +27,5 @@ spec:
     value: routers.router_multi_stage_flow_line_14_fanout_2
   - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_LINE_15_FANOUT_1
     value: routers.router_multi_stage_flow_line_15_fanout_1
+  - name: ASYA_HANDLER_ACTOR_SUMMARIZER
+    value: summarizer

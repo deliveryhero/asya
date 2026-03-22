@@ -6,6 +6,7 @@ Pipeline: Parse -> CodeGen -> Manifest -> Analyze -> GraphGen
 from __future__ import annotations
 
 import ast
+import contextlib
 import os
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -340,7 +341,11 @@ class FlowCompiler:
 
     def _parse(self, source_code: str, filename: str) -> ParseResult:
         module_path = _calculate_module_path(filename)
-        parser = FlowParser(source_code, filename, module_path, rule_engine=self._rule_engine)
+        ctx_rules = None
+        if self._project is not None:
+            with contextlib.suppress(KeyError, FileNotFoundError):
+                ctx_rules = self._project.load_context_manager_rules()
+        parser = FlowParser(source_code, filename, module_path, rules=ctx_rules, rule_engine=self._rule_engine)
         result = parser.parse()
         self.class_methods = result.class_methods
         self.is_async = result.is_async

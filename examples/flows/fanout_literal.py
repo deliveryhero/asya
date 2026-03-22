@@ -5,7 +5,7 @@ Different actors process the same input in parallel. Results are
 collected into p["analysis"] by the fan-in aggregator.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -19,21 +19,25 @@ def analysis_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def sentiment_analyzer(text: dict) -> dict:
     """Analyze sentiment of the text."""
     return text
 
 
+@actor
 def topic_extractor(text: dict) -> dict:
     """Extract topics from the text."""
     return text
 
 
+@actor
 def entity_recognizer(text: dict) -> dict:
     """Recognize named entities in the text."""
     return text
 
 
+@actor
 def merge_analysis(p: dict) -> dict:
     """Combine all analysis results."""
     return p

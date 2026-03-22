@@ -16,6 +16,7 @@ Regenerate by running: asya flow compile if_elif_else.py
 async def start_if_elif_else_flow(payload: dict):
     """Entrypoint for flow 'if_elif_else_flow'"""
     _next = []
+    _next.append(resolve("handler_validate"))
     _next.append(resolve("router_if_elif_else_flow_line_13_if_2"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -25,9 +26,9 @@ async def router_if_elif_else_flow_line_15_if_1(payload: dict):
     p = payload
     _next = []
     if p['type'] == 'B':
-        pass
+        _next.append(resolve("handler_type_b"))
     else:
-        pass
+        _next.append(resolve("handler_default"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -37,9 +38,11 @@ async def router_if_elif_else_flow_line_13_if_2(payload: dict):
     p = payload
     _next = []
     if p['type'] == 'A':
-        pass
+        _next.append(resolve("handler_type_a"))
+        _next.append(resolve("handler_finalize"))
     else:
         _next.append(resolve("router_if_elif_else_flow_line_15_if_1"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

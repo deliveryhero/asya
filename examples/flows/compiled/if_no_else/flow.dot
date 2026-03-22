@@ -4,11 +4,16 @@ digraph "if_no_else_flow" {
 
     { rank=source; start_if_no_else_flow; }
 
+    handler_setup [label="handler_setup", fillcolor=lightblue];
+    handler_true [label="handler_true", fillcolor=lightsalmon];
     router_if_no_else_flow_line_13_if_1 [label="router_if_no_else_flow_line_13_if_1", fillcolor=wheat];
     start_if_no_else_flow [label="start_if_no_else_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_if_no_else_flow -> router_if_no_else_flow_line_13_if_1;
-    router_if_no_else_flow_line_13_if_1 -> __end__;
+    start_if_no_else_flow -> handler_setup;
+    handler_setup -> router_if_no_else_flow_line_13_if_1;
+    router_if_no_else_flow_line_13_if_1 -> handler_true [label="p['condition']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_no_else_flow_line_13_if_1 -> handler_true [label="else", color="#D35400", fontcolor="#D35400"];
+    handler_true -> __end__;
 }

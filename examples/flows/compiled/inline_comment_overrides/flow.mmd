@@ -1,6 +1,7 @@
 flowchart TD
     %% Flow: order_pipeline
 
+    charge_payment[charge_payment]
     router_order_pipeline_line_32_if_2{{router_order_pipeline_line_32_if_2}}
     router_order_pipeline_line_33_seq_1{{"router_order_pipeline_line_33_seq_1<br/><br/>p['status'] = 'rejected'"}}
     start_order_pipeline([start_order_pipeline])
@@ -9,7 +10,9 @@ flowchart TD
 
     start_order_pipeline --> validate_order
     validate_order --> router_order_pipeline_line_32_if_2
+    router_order_pipeline_line_32_if_2 -->|"else"| charge_payment
     router_order_pipeline_line_32_if_2 -->|"p.get('fraud_score', 0) > 0.8"| router_order_pipeline_line_33_seq_1
+    charge_payment --> __end__
     router_order_pipeline_line_33_seq_1 --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -18,7 +21,9 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_order_pipeline start
+    class charge_payment endnode
     class router_order_pipeline_line_32_if_2,router_order_pipeline_line_33_seq_1 router
     class validate_order handler
     class __end__ endpoint
-    linkStyle 2 stroke:#2E8B57
+    linkStyle 3 stroke:#2E8B57
+    linkStyle 2 stroke:#E07040

@@ -18,7 +18,7 @@ Priority order:
   3. Default resolution
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -40,16 +40,19 @@ def order_pipeline(p: dict) -> dict:
 # Helper functions — deployed as actors or inlined depending on the directive
 
 
+@actor
 def normalize_keys(p: dict) -> dict:
     """Normalize payload keys to lowercase — runs inline in the router."""
     return {k.lower(): v for k, v in p.items()}
 
 
+@actor
 def validate_order(p: dict) -> dict:
     """Validate order fields — dispatched to its own actor queue."""
     return p
 
 
+@actor
 def charge_payment(p: dict) -> dict:
     """Payment processing — dispatched to its own actor queue."""
     return p

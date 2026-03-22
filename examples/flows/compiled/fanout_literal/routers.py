@@ -45,7 +45,7 @@ async def router_analysis_flow_line_13_fanout_1(payload: dict):
     }
 
     # Index 0: parent payload forwarded to aggregator
-    yield "SET", ".route.next", [_agg] + _next_tail
+    yield "SET", ".route.next", [_agg, resolve("merge_analysis")] + _next_tail
     yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
     yield copy.deepcopy(p)
 

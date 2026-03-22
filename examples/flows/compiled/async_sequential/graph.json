@@ -1,6 +1,35 @@
 {
   "flow_name": "llm_auditor_flow",
-  "nodes": [],
-  "edges": [],
+  "nodes": [
+    {
+      "id": "critic",
+      "label": "critic"
+    },
+    {
+      "id": "reviser",
+      "label": "reviser",
+      "role": "end"
+    },
+    {
+      "id": "start_llm_auditor_flow",
+      "label": "start_llm_auditor_flow",
+      "role": "start",
+      "generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_llm_auditor_flow",
+      "to": "critic",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "critic",
+      "to": "reviser",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
   "groups": []
 }

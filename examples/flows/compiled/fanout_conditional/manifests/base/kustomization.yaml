@@ -1,8 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- asya-actor-classifier.yaml
 - asya-actor-deep-analyzer.yaml
 - asya-actor-fast-analyzer.yaml
+- asya-actor-formatter.yaml
+- asya-actor-sequential-analyzer.yaml
 - asya-router-adaptive-flow-line-15-if-2.yaml
 - asya-router-adaptive-flow-line-16-fanout-1.yaml
 - asya-start-adaptive-flow.yaml

@@ -6,7 +6,7 @@ each research result in parallel. Each fan-out/fan-in completes
 before the next one starts.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -17,16 +17,19 @@ def multi_stage_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def research_agent(topic: dict) -> dict:
     """Research a single topic."""
     return topic
 
 
+@actor
 def review_agent(result: dict) -> dict:
     """Review a single research result."""
     return result
 
 
+@actor
 def summarizer(p: dict) -> dict:
     """Summarize all reviewed research."""
     return p

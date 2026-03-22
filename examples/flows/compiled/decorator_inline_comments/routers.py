@@ -10,6 +10,9 @@ Regenerate by running: asya flow compile decorator_inline_comments.py
 
 import uuid
 
+from _asya_utils import actor, flow
+
+@actor
 def inject_id(p: dict) -> dict:
     """Inject a unique ID inline in the router, not a separate actor."""
     p.setdefault('id', str(uuid.uuid4()))
@@ -26,36 +29,18 @@ async def start_decorator_inline_comments_flow(payload: dict):
     _next = []
     p = inject_id(p)
     _next.append(resolve("classifier"))
-    _next.append(resolve("router_decorator_inline_comments_flow_line_18_if_3"))
+    _next.append(resolve("router_decorator_inline_comments_flow_line_18_if_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_decorator_inline_comments_flow_line_39_seq_1(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['handled_by'] = 'fast'
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_decorator_inline_comments_flow_line_45_seq_2(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['handled_by'] = 'standard'
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_decorator_inline_comments_flow_line_18_if_3(payload: dict):
+async def router_decorator_inline_comments_flow_line_18_if_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['category'] == 'priority':
-        _next.append(resolve("router_decorator_inline_comments_flow_line_39_seq_1"))
+        _next.append(resolve("fast_handler"))
     else:
-        _next.append(resolve("router_decorator_inline_comments_flow_line_45_seq_2"))
+        _next.append(resolve("standard_handler"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

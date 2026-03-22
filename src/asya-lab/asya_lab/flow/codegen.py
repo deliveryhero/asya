@@ -65,6 +65,8 @@ class CodegenMeta:
     router_refs: dict[str, list[str]]  # router_name -> list of referenced actor names
     single_actor: str | None  # set for single-actor flows
     actor_retry_rules: dict[str, list[ActorRetryRule]] | None = None  # actor_name -> rules
+    extracted_configs: list[dict] | None = None  # [{spec_values, scope_actors, ...}]
+    ignore_decorators: list[str] | None = None  # FQNs for ASYA_IGNORE_DECORATORS env var
 
 
 class CodeGenerator:
@@ -135,6 +137,8 @@ class CodeGenerator:
             router_refs=router_refs,
             single_actor=None,
             actor_retry_rules=self._actor_retry_rules if self._actor_retry_rules else None,
+            extracted_configs=self.result.extracted_configs if self.result.extracted_configs else None,
+            ignore_decorators=self.result.ignore_decorators if self.result.ignore_decorators else None,
         )
 
     # -- Single-actor optimization --

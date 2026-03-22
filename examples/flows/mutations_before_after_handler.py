@@ -4,7 +4,7 @@ Mutations before and after handler.
 Tests mutation grouping around handler calls.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -17,11 +17,13 @@ def mutations_before_after_handler_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_a(p: dict) -> dict:
     """Handler A."""
     return p
 
 
+@actor
 def handler_b(p: dict) -> dict:
     """Handler B."""
     return p

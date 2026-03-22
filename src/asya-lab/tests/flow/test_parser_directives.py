@@ -4,7 +4,7 @@ import textwrap
 
 import pytest
 from asya_lab.flow.errors import FlowCompileError
-from asya_lab.flow.parser import ActorCall, FlowParser, Mutation
+from asya_lab.flow.parser import ActorCall, FlowParser, Mutation, Return
 
 
 class TestInlineCommentDirectives:
@@ -276,13 +276,31 @@ class TestDefinitionSiteDecorators:
         assert isinstance(ops[0], Mutation)
         assert "uuid_inject" in ops[0].code
 
-    def test_unknown_decorator_is_ignored(self):
+    def test_unknown_decorator_local_function_unfolds(self):
+        """Local function with unknown decorator defaults to unfold (body expanded)."""
         source = textwrap.dedent("""
             @flow
             def my_flow(p: dict) -> dict:
                 p = handler(p)
                 return p
 
+            @some_framework_decorator
+            def handler(p: dict) -> dict:
+                return p
+        """)
+        ops = FlowParser(source, "test.py").parse().operations
+        # Local function without @actor -> unfold (body expanded into flow)
+        assert isinstance(ops[0], Return)  # handler's body is just `return p`
+
+    def test_unknown_decorator_with_actor_is_actor(self):
+        """Local function with @actor + unknown decorator is still an actor."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+
+            @actor
             @some_framework_decorator
             def handler(p: dict) -> dict:
                 return p

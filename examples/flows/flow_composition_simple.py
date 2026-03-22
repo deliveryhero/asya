@@ -4,21 +4,25 @@ Demonstrates compile-time inlining -- inner flow's body is expanded
 into the outer flow. All actors get asya.sh/flow=outer_pipeline.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
+@actor
 def preprocess(p: dict) -> dict:
     return p
 
 
+@actor
 def validate(p: dict) -> dict:
     return p
 
 
+@actor
 def enrich(p: dict) -> dict:
     return p
 
 
+@actor
 def store(p: dict) -> dict:
     return p
 

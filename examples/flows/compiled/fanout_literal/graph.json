@@ -10,6 +10,11 @@
       "label": "fanin_analysis_flow_line_13"
     },
     {
+      "id": "merge_analysis",
+      "label": "merge_analysis",
+      "role": "end"
+    },
+    {
       "id": "router_analysis_flow_line_13_fanout_1",
       "label": "router_analysis_flow_line_13_fanout_1",
       "generated": true
@@ -41,6 +46,12 @@
       "to": "fanin_analysis_flow_line_13",
       "label": "fanout",
       "type": "set"
+    },
+    {
+      "from": "fanin_analysis_flow_line_13",
+      "to": "merge_analysis",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_analysis_flow_line_13_fanout_1",

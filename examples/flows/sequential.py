@@ -4,7 +4,7 @@ Pure sequential flow - no control structures.
 Tests sequential handler execution without any branching or loops.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -15,16 +15,19 @@ def sequential_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_a(p: dict) -> dict:
     """First handler."""
     return p
 
 
+@actor
 def handler_b(p: dict) -> dict:
     """Second handler."""
     return p
 
 
+@actor
 def handler_c(p: dict) -> dict:
     """Third handler."""
     return p

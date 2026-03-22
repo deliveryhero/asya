@@ -15,6 +15,16 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_DEFAULT
+    value: handler_default
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
+    value: handler_type_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
+    value: handler_type_b
+  - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
+    value: handler_validate
   - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_LINE_13_IF_2
     value: routers.router_if_elif_else_flow_line_13_if_2
   - name: ASYA_HANDLER_ROUTER_IF_ELIF_ELSE_FLOW_LINE_15_IF_1

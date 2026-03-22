@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-process
+  namespace: default
+  labels:
+    asya.sh/flow: while-simple-flow
+spec:
+  actor: actor-handler-process
+  image: examples.asya.sh/handler-process:latest
+  handler: handler_process
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

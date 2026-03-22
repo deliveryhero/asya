@@ -181,6 +181,7 @@ class FlowParser:
         self._loop_depth: int = 0
         self._in_except_body: bool = False
         self.extracted_configs: list[dict] = []
+        self.ignore_decorators: list[str] = []
         self.module_constants: list[str] = []
         self._actors: list[str] = []
         self._known_wrappers: frozenset[str] = known_wrappers or _DEFAULT_WRAPPERS
@@ -192,6 +193,7 @@ class FlowParser:
         self._groups: list[dict] = []
         self._expansion_depth: int = 0
         self._tree: ast.Module | None = None
+        self._local_functions: set[str] = set()
 
     def parse(self) -> ParseResult:
         try:
@@ -202,6 +204,7 @@ class FlowParser:
 
         self._collect_imports(tree)
         self._collect_module_constants(tree)
+        self._local_functions = {node.name for node in tree.body if isinstance(node, _FUNC_DEF_TYPES)}
         self._decorator_index = self._build_decorator_index(tree)
         flow_func = self._find_flow_function(tree)
         if not flow_func:
@@ -231,6 +234,7 @@ class FlowParser:
             operations=operations,
             actors=list(self._actors),
             extracted_configs=self.extracted_configs,
+            ignore_decorators=list(self.ignore_decorators),
             imports=list(self.import_map.values()),
             constants=self.module_constants,
             inline_defs=inline_defs,
@@ -259,21 +263,85 @@ class FlowParser:
         return directives
 
     def _build_decorator_index(self, tree: ast.Module) -> dict[str, str]:
-        """Map function name to treat-as value for same-file definitions."""
+        """Map function name to treat-as value for same-file definitions.
+
+        Also extracts config from decorators matched by compiler rules
+        (e.g. @retry(max_attempts=3) -> spec.resiliency.policies.default.maxAttempts).
+        All decorators are scanned for config extraction; the first known
+        wrapper (@actor, @inline, etc.) determines the function's classification.
+        """
         index: dict[str, str] = {}
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
                 continue
             for dec in node.decorator_list:
-                dec_name: str | None = None
-                if isinstance(dec, ast.Name):
-                    dec_name = dec.id
-                elif isinstance(dec, ast.Attribute):
-                    dec_name = ast.unparse(dec)
-                if dec_name in self._known_wrappers:
+                dec_name = self._decorator_name(dec)
+                if dec_name is None:
+                    continue
+
+                # Record first known wrapper as the function's classification
+                if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
-                    break
+
+                # Check for config decorators via rules registry
+                if isinstance(dec, ast.Call):
+                    fqn = self.import_map.get(dec_name, dec_name)
+                    rule = self.rules.lookup(fqn)
+                    if rule is not None and rule.treat_as == "config":
+                        spec_values = self._extract_decorator_args(dec, rule)
+                        if spec_values:
+                            self.extracted_configs.append(
+                                {
+                                    "symbol": fqn,
+                                    "spec_values": spec_values,
+                                    "scope_type": "decorator",
+                                    "scope_actors": [node.name],
+                                }
+                            )
+                        self.ignore_decorators.append(fqn)
         return index
+
+    @staticmethod
+    def _decorator_name(dec: ast.expr) -> str | None:
+        """Extract the bare name from a decorator AST node."""
+        if isinstance(dec, ast.Name):
+            return dec.id
+        if isinstance(dec, ast.Attribute):
+            return ast.unparse(dec)
+        if isinstance(dec, ast.Call):
+            if isinstance(dec.func, ast.Name):
+                return dec.func.id
+            if isinstance(dec.func, ast.Attribute):
+                return ast.unparse(dec.func)
+        return None
+
+    def _is_local_function(self, name: str) -> bool:
+        """Check if a function is defined in the current source file."""
+        return name in self._local_functions
+
+    def _extract_decorator_args(self, dec: ast.Call, rule: CompilerRule) -> dict[str, str]:
+        """Extract args from a decorator call, mapping to spec paths via rule.extract."""
+        if not rule.extract:
+            return {}
+
+        raw: dict[str, str] = {}
+        param_names = list(rule.extract.keys())
+
+        for i, arg in enumerate(dec.args):
+            if i < len(param_names):
+                raw[param_names[i]] = ast.unparse(arg)
+
+        for kw in dec.keywords:
+            if kw.arg and kw.arg in rule.extract:
+                raw[kw.arg] = ast.unparse(kw.value)
+
+        spec_values: dict[str, str] = {}
+        for param, value in raw.items():
+            spec_path = rule.extract.get(param)
+            if spec_path:
+                spec_values[spec_path] = value
+
+        return spec_values
 
     # -- Import/constant collection --
 
@@ -550,13 +618,16 @@ class FlowParser:
         # Definition-site decorator (lower priority)
         if actor_name in self._decorator_index:
             dec_type = self._decorator_index[actor_name]
-            if dec_type == "inline":
+            if dec_type == "actor":
+                self._actors.append(actor_name)
+                return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+            elif dec_type == "inline":
                 self._inline_funcs.add(actor_name)
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             elif dec_type in ("flow", "unfold"):
                 return self._expand_flow_call(actor_name, stmt.lineno, required=False)
 
-        # Rule engine classification (lowest priority)
+        # Rule engine classification
         if self._rule_engine is not None:
             from asya_lab.compiler.rules import TreatAs
 
@@ -567,6 +638,16 @@ class FlowParser:
                 return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
             if treat_as is not None and treat_as in (TreatAs.FLOW, TreatAs.UNFOLD):
                 return self._expand_flow_call(actor_name, stmt.lineno, required=False)
+            if treat_as is not None and treat_as == TreatAs.ACTOR:
+                self._actors.append(actor_name)
+                return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+
+        # Implicit defaults: local function -> unfold, imported -> inline, bare name -> actor
+        if self._is_local_function(actor_name):
+            return self._expand_flow_call(actor_name, stmt.lineno, required=False)
+        if actor_name in self.import_map:
+            self._inline_funcs.add(actor_name)
+            return [Mutation(lineno=stmt.lineno, code=ast.unparse(stmt))]
 
         self._actors.append(actor_name)
         return [ActorCall(lineno=stmt.lineno, name=actor_name)]
@@ -842,11 +923,11 @@ class FlowParser:
             for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
                 if rule is None:
                     raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
-                extracted_args = self._extract_ctx_args(item.context_expr, rule)
+                spec_values = self._extract_ctx_args(item.context_expr, rule)
                 self.extracted_configs.append(
                     {
                         "symbol": sym,
-                        "args": extracted_args,
+                        "spec_values": spec_values,
                         "scope_type": "context_manager",
                         "scope_actors": list(scope_actors),
                     }
@@ -873,23 +954,31 @@ class FlowParser:
         return ast.unparse(ctx_expr)
 
     def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
+        """Extract args from a context manager call, mapping to spec paths via rule.extract."""
         if not isinstance(ctx_expr, ast.Call) or not rule.extract:
             return {}
 
         call = ctx_expr
-        extracted: dict[str, str] = {}
+        # First pass: bind param_name -> raw_value
+        raw: dict[str, str] = {}
         param_names = list(rule.extract.keys())
 
         for i, arg in enumerate(call.args):
             if i < len(param_names):
-                param = param_names[i]
-                extracted[param] = ast.unparse(arg)
+                raw[param_names[i]] = ast.unparse(arg)
 
         for kw in call.keywords:
             if kw.arg and kw.arg in rule.extract:
-                extracted[kw.arg] = ast.unparse(kw.value)
+                raw[kw.arg] = ast.unparse(kw.value)
 
-        return extracted
+        # Second pass: map param_name -> spec_path using rule.extract
+        spec_values: dict[str, str] = {}
+        for param, value in raw.items():
+            spec_path = rule.extract.get(param)
+            if spec_path:
+                spec_values[spec_path] = value
+
+        return spec_values
 
     @staticmethod
     def _collect_scope_actors(ops: list[Operation]) -> list[str]:

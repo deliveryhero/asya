@@ -2,6 +2,10 @@ def flow(f):  # no-op: decorator used by compiler to mark flow entry points
     return f
 
 
+def actor(f):  # no-op: decorator used by compiler to mark actor boundaries
+    return f
+
+
 @flow
 def test_nested_flow(p: dict) -> dict:
     p = validate_input(p)
@@ -27,6 +31,7 @@ def test_nested_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def validate_input(p: dict) -> dict:
     """Validate input payload has required fields."""
     if "level1" not in p or "level2" not in p:
@@ -35,6 +40,7 @@ def validate_input(p: dict) -> dict:
     return p
 
 
+@actor
 def route_a_x(p: dict) -> dict:
     """Process A-X route."""
     p["processed_by"] = "route_a_x"
@@ -42,6 +48,7 @@ def route_a_x(p: dict) -> dict:
     return p
 
 
+@actor
 def route_a_y(p: dict) -> dict:
     """Process A-Y route."""
     p["processed_by"] = "route_a_y"
@@ -49,6 +56,7 @@ def route_a_y(p: dict) -> dict:
     return p
 
 
+@actor
 def route_b_x(p: dict) -> dict:
     """Process B-X route."""
     p["processed_by"] = "route_b_x"
@@ -56,6 +64,7 @@ def route_b_x(p: dict) -> dict:
     return p
 
 
+@actor
 def route_b_y(p: dict) -> dict:
     """Process B-Y route."""
     p["processed_by"] = "route_b_y"
@@ -63,6 +72,7 @@ def route_b_y(p: dict) -> dict:
     return p
 
 
+@actor
 def finalize_result(p: dict) -> dict:
     """Finalize processing and mark as complete."""
     p["status"] = "completed"

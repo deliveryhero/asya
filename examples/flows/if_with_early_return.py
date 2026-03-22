@@ -4,7 +4,7 @@ Early return in conditional.
 Tests early exit pattern for error handling.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -18,21 +18,25 @@ def early_return_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_validate(p: dict) -> dict:
     """Validation handler."""
     return p
 
 
+@actor
 def handler_error(p: dict) -> dict:
     """Error handler."""
     return p
 
 
+@actor
 def handler_process(p: dict) -> dict:
     """Process handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

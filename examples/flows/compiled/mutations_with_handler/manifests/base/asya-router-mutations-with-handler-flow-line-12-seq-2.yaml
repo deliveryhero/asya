@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-mutations-with-handler-flow-line-12-seq-2
+  namespace: default
+  labels:
+    asya.sh/flow: mutations-with-handler-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-mutations-with-handler-flow-line-12-seq-2
+  image: python:3.13-slim
+  handler: routers.router_mutations_with_handler_flow_line_12_seq_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ROUTER_MUTATIONS_WITH_HANDLER_FLOW_LINE_16_SEQ_1
+    value: routers.router_mutations_with_handler_flow_line_16_seq_1

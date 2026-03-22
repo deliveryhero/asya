@@ -12,7 +12,7 @@ This eliminates a redundant actor hop compared to wrapping the actor
 in a start router that only prepends it to the route.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -21,6 +21,7 @@ def single_actor_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def document_processor(p: dict) -> dict:
     """Process the document payload."""
     return p

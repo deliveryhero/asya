@@ -4,13 +4,25 @@ digraph "if_elif_else_flow" {
 
     { rank=source; start_if_elif_else_flow; }
 
+    handler_default [label="handler_default", fillcolor=lightblue];
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
+    handler_type_a [label="handler_type_a", fillcolor=lightblue];
+    handler_type_b [label="handler_type_b", fillcolor=lightblue];
+    handler_validate [label="handler_validate", fillcolor=lightblue];
     router_if_elif_else_flow_line_13_if_2 [label="router_if_elif_else_flow_line_13_if_2", fillcolor=wheat];
     router_if_elif_else_flow_line_15_if_1 [label="router_if_elif_else_flow_line_15_if_1", fillcolor=wheat];
     start_if_elif_else_flow [label="start_if_elif_else_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_if_elif_else_flow -> router_if_elif_else_flow_line_13_if_2;
+    start_if_elif_else_flow -> handler_validate;
+    handler_validate -> router_if_elif_else_flow_line_13_if_2;
+    router_if_elif_else_flow_line_15_if_1 -> handler_type_b [label="p['type'] == 'B'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_elif_else_flow_line_15_if_1 -> handler_default [label="else", color="#D35400", fontcolor="#D35400"];
+    router_if_elif_else_flow_line_13_if_2 -> handler_type_a [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
+    handler_type_a -> handler_finalize;
     router_if_elif_else_flow_line_13_if_2 -> router_if_elif_else_flow_line_15_if_1 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_if_elif_else_flow_line_15_if_1 -> __end__;
+    handler_type_b -> handler_finalize;
+    handler_default -> handler_finalize;
+    handler_finalize -> __end__;
 }

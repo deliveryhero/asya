@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-outer-end
+  namespace: default
+  labels:
+    asya.sh/flow: while-nested-flow
+    asya.sh/role: end
+spec:
+  actor: actor-handler-outer-end
+  image: examples.asya.sh/handler-outer-end:latest
+  handler: handler_outer_end
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

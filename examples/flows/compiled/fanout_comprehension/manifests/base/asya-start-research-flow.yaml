@@ -18,6 +18,10 @@ spec:
   env:
   - name: ASYA_HANDLER_FANIN_RESEARCH_FLOW_LINE_14
     value: routers.fanin_research_flow_line_14
+  - name: ASYA_HANDLER_ACTOR_POST_PROCESSOR
+    value: post_processor
+  - name: ASYA_HANDLER_ACTOR_PREPROCESSOR
+    value: preprocessor
   - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
     value: research_agent
   - name: ASYA_HANDLER_ROUTER_RESEARCH_FLOW_LINE_14_FANOUT_1

@@ -16,7 +16,17 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ROUTER_WHILE_WITH_BREAK_FLOW_LINE_13_SEQ_4
+    value: routers.router_while_with_break_flow_line_13_seq_4
   - name: ASYA_HANDLER_ROUTER_WHILE_WITH_BREAK_FLOW_LINE_14_WHILE_1
     value: routers.router_while_with_break_flow_line_14_while_1
+  - name: ASYA_HANDLER_ROUTER_WHILE_WITH_BREAK_FLOW_LINE_15_SEQ_3
+    value: routers.router_while_with_break_flow_line_15_seq_3
   - name: ASYA_HANDLER_ROUTER_WHILE_WITH_BREAK_FLOW_LINE_17_IF_2
     value: routers.router_while_with_break_flow_line_17_if_2

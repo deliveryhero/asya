@@ -1,0 +1,33 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-call-another-api
+  namespace: default
+  labels:
+    asya.sh/flow: retry-pipeline
+spec:
+  actor: actor-call-another-api
+  image: examples.asya.sh/call-another-api:latest
+  handler: call_another_api
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
+  resiliency:
+    policies:
+      try_except_line_17_0:
+        maxAttempts: 1
+        thenRoute:
+        - router-retry-pipeline-line-20-except-2
+      try_except_line_17_1:
+        maxAttempts: 1
+        thenRoute:
+        - router-retry-pipeline-line-22-except-3
+    rules:
+    - errors:
+      - ConnectionError
+      policy: try_except_line_17_0
+    - errors:
+      - ValueError
+      policy: try_except_line_17_1

@@ -2,6 +2,10 @@
   "flow_name": "adaptive_flow",
   "nodes": [
     {
+      "id": "classifier",
+      "label": "classifier"
+    },
+    {
       "id": "deep_analyzer",
       "label": "deep_analyzer"
     },
@@ -14,6 +18,11 @@
       "label": "fast_analyzer"
     },
     {
+      "id": "formatter",
+      "label": "formatter",
+      "role": "end"
+    },
+    {
       "id": "router_adaptive_flow_line_15_if_2",
       "label": "router_adaptive_flow_line_15_if_2",
       "generated": true
@@ -22,6 +31,10 @@
       "id": "router_adaptive_flow_line_16_fanout_1",
       "label": "router_adaptive_flow_line_16_fanout_1",
       "generated": true
+    },
+    {
+      "id": "sequential_analyzer",
+      "label": "sequential_analyzer"
     },
     {
       "id": "start_adaptive_flow",
@@ -33,9 +46,15 @@
   "edges": [
     {
       "from": "start_adaptive_flow",
-      "to": "router_adaptive_flow_line_15_if_2",
+      "to": "classifier",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "classifier",
+      "to": "router_adaptive_flow_line_15_if_2",
+      "label": null,
+      "type": "continuation"
     },
     {
       "from": "router_adaptive_flow_line_16_fanout_1",
@@ -74,9 +93,27 @@
       "type": "prepend"
     },
     {
+      "from": "router_adaptive_flow_line_16_fanout_1",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    },
+    {
       "from": "router_adaptive_flow_line_15_if_2",
-      "to": "router_adaptive_flow_line_16_fanout_1",
+      "to": "sequential_analyzer",
       "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "sequential_analyzer",
+      "to": "formatter",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "fanin_adaptive_flow_line_16",
+      "to": "formatter",
+      "label": null,
       "type": "continuation"
     }
   ],

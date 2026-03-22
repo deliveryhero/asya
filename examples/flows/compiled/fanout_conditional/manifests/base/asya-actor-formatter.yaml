@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-formatter
+  namespace: default
+  labels:
+    asya.sh/flow: adaptive-flow
+    asya.sh/role: end
+spec:
+  actor: actor-formatter
+  image: examples.asya.sh/formatter:latest
+  handler: formatter
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
