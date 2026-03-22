@@ -182,9 +182,10 @@ class ManifestTemplater:
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env
 
-        # Inject compiler-generated resiliency rules for try/except error routing
+        # Inject compiler-generated resiliency config
         if not actor.generated:
             self._inject_retry_rules(manifest, actor)
+            self._inject_extracted_configs(manifest, actor)
 
         path.write_text(yaml.dump(manifest, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
@@ -410,6 +411,35 @@ Each overlay builds on top of `common/`.
 
         # Prepend compiler-generated rules before actor's own rules
         resiliency["rules"] = generated_rules + existing_rules
+
+    def _inject_extracted_configs(self, manifest: dict, actor: ActorInfo) -> None:
+        """Inject config values extracted from decorators and context managers.
+
+        Each extracted_config has spec_values: {spec_path: value} and
+        scope_actors: [actor_names]. Config is injected into the manifest
+        at the specified spec paths for actors within scope.
+        """
+        if not self.codegen_meta.extracted_configs:
+            return
+
+        name = actor.name
+        if name.startswith("actor-"):
+            name = name[len("actor-") :]
+        actor_python_name = name.replace("-", "_")
+
+        for config in self.codegen_meta.extracted_configs:
+            if actor_python_name not in config.get("scope_actors", []):
+                continue
+            for spec_path, value in config.get("spec_values", {}).items():
+                self._set_nested(manifest, spec_path, value)
+
+    @staticmethod
+    def _set_nested(d: dict, dotted_path: str, value: object) -> None:
+        """Set a value at a dotted path in a nested dict, creating intermediates."""
+        keys = dotted_path.split(".")
+        for key in keys[:-1]:
+            d = d.setdefault(key, {})
+        d[keys[-1]] = value
 
     # -- actor collection ---------------------------------------------------
 

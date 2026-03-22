@@ -842,11 +842,11 @@ class FlowParser:
             for sym, item, rule in zip(symbols, stmt.items, rules, strict=True):
                 if rule is None:
                     raise FlowCompileError(f"{self.filename}:{stmt.lineno}: internal error: rule for {sym!r} is None")
-                extracted_args = self._extract_ctx_args(item.context_expr, rule)
+                spec_values = self._extract_ctx_args(item.context_expr, rule)
                 self.extracted_configs.append(
                     {
                         "symbol": sym,
-                        "args": extracted_args,
+                        "spec_values": spec_values,
                         "scope_type": "context_manager",
                         "scope_actors": list(scope_actors),
                     }
@@ -873,23 +873,31 @@ class FlowParser:
         return ast.unparse(ctx_expr)
 
     def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
+        """Extract args from a context manager call, mapping to spec paths via rule.extract."""
         if not isinstance(ctx_expr, ast.Call) or not rule.extract:
             return {}
 
         call = ctx_expr
-        extracted: dict[str, str] = {}
+        # First pass: bind param_name -> raw_value
+        raw: dict[str, str] = {}
         param_names = list(rule.extract.keys())
 
         for i, arg in enumerate(call.args):
             if i < len(param_names):
-                param = param_names[i]
-                extracted[param] = ast.unparse(arg)
+                raw[param_names[i]] = ast.unparse(arg)
 
         for kw in call.keywords:
             if kw.arg and kw.arg in rule.extract:
-                extracted[kw.arg] = ast.unparse(kw.value)
+                raw[kw.arg] = ast.unparse(kw.value)
 
-        return extracted
+        # Second pass: map param_name -> spec_path using rule.extract
+        spec_values: dict[str, str] = {}
+        for param, value in raw.items():
+            spec_path = rule.extract.get(param)
+            if spec_path:
+                spec_values[spec_path] = value
+
+        return spec_values
 
     @staticmethod
     def _collect_scope_actors(ops: list[Operation]) -> list[str]:
