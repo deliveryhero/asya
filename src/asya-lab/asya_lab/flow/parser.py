@@ -851,6 +851,9 @@ class FlowParser:
                         "scope_actors": list(scope_actors),
                     }
                 )
+            if scope_actors:
+                group_label = ", ".join(ast.unparse(item.context_expr) for item in stmt.items)
+                self._groups.append({"id": group_label, "nodes": list(scope_actors)})
             return body_ops
 
         elif treat_as == "inline":
