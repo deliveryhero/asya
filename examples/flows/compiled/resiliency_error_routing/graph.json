@@ -19,26 +19,26 @@
       "label": "handle_validation_error"
     },
     {
-      "id": "router_failover_pipeline_line_26_except_2",
-      "label": "router_failover_pipeline_line_26_except_2",
+      "id": "router_failover_pipeline_line_27_except_2",
+      "label": "router_failover_pipeline_line_27_except_2",
       "generated": true
     },
     {
-      "id": "router_failover_pipeline_line_27_seq_1",
-      "label": "router_failover_pipeline_line_27_seq_1",
+      "id": "router_failover_pipeline_line_28_seq_1",
+      "label": "router_failover_pipeline_line_28_seq_1",
       "generated": true,
       "mutations": [
         "p['fallback'] = True"
       ]
     },
     {
-      "id": "router_failover_pipeline_line_29_except_4",
-      "label": "router_failover_pipeline_line_29_except_4",
+      "id": "router_failover_pipeline_line_30_except_4",
+      "label": "router_failover_pipeline_line_30_except_4",
       "generated": true
     },
     {
-      "id": "router_failover_pipeline_line_30_seq_3",
-      "label": "router_failover_pipeline_line_30_seq_3",
+      "id": "router_failover_pipeline_line_31_seq_3",
+      "label": "router_failover_pipeline_line_31_seq_3",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'validation'"
@@ -68,38 +68,38 @@
       "type": "continuation"
     },
     {
-      "from": "router_failover_pipeline_line_27_seq_1",
+      "from": "router_failover_pipeline_line_28_seq_1",
       "to": "call_fallback",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_failover_pipeline_line_26_except_2",
-      "to": "router_failover_pipeline_line_27_seq_1",
+      "from": "router_failover_pipeline_line_27_except_2",
+      "to": "router_failover_pipeline_line_28_seq_1",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_failover_pipeline_line_30_seq_3",
+      "from": "router_failover_pipeline_line_31_seq_3",
       "to": "handle_validation_error",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_failover_pipeline_line_29_except_4",
-      "to": "router_failover_pipeline_line_30_seq_3",
+      "from": "router_failover_pipeline_line_30_except_4",
+      "to": "router_failover_pipeline_line_31_seq_3",
       "label": null,
       "type": "set"
     },
     {
       "from": "call_primary",
-      "to": "router_failover_pipeline_line_26_except_2",
+      "to": "router_failover_pipeline_line_27_except_2",
       "label": "ConnectionError",
       "type": "error"
     },
     {
       "from": "call_primary",
-      "to": "router_failover_pipeline_line_29_except_4",
+      "to": "router_failover_pipeline_line_30_except_4",
       "label": "ValueError",
       "type": "error"
     },

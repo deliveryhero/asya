@@ -19,6 +19,7 @@ spec:
   resiliency:
     policies:
       default:
+        maxAttempts: '3'
         initialDelay: '1'
         maxInterval: '60'
     timeout:

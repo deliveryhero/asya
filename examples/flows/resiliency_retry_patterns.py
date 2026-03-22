@@ -15,7 +15,8 @@ Compile with:
 
 import asyncio
 
-from _asya_utils import actor, flow, retry
+from _asya_utils import actor, flow
+from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponential
 
 
 @flow
@@ -48,9 +49,9 @@ def validate_input(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=3, max_delay=60)
+@retry(stop=stop_after_attempt(3) | stop_after_delay(60), wait=wait_exponential(min=1, max=30))
 async def call_llm(p: dict) -> dict:
-    """Call LLM API — retry up to 3 times, max 60s total.
+    """Call LLM API — retry up to 3 times or 60s, exponential backoff 1-30s.
 
     Handles transient API errors, rate limits, and network timeouts.
     """
@@ -59,7 +60,7 @@ async def call_llm(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=5)
+@retry(stop=stop_after_attempt(5))
 async def parse_response(p: dict) -> dict:
     """Parse structured output — retry up to 5 times.
 
@@ -71,9 +72,9 @@ async def parse_response(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=3, max_delay=300)
+@retry(stop=stop_after_attempt(3) | stop_after_delay(300))
 def store_result(p: dict) -> dict:
-    """Store results — retry up to 3 times, max 5 min total.
+    """Store results — retry up to 3 times or 5 min total.
 
     Patient retry for storage backends that may be temporarily unavailable.
     """

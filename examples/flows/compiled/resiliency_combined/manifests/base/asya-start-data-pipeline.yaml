@@ -22,7 +22,7 @@ spec:
     value: handle_bad_data
   - name: ASYA_HANDLER_ACTOR_PARSE_DATA
     value: parse_data
-  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_32_SEQ_1
-    value: routers.router_data_pipeline_line_32_seq_1
+  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_34_SEQ_1
+    value: routers.router_data_pipeline_line_34_seq_1
   - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
     value: store_results

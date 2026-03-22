@@ -14,7 +14,8 @@ Compile with:
     asya compile resiliency_error_routing.py --output-dir compiled/
 """
 
-from _asya_utils import actor, flow, retry
+from _asya_utils import actor, flow
+from tenacity import retry, stop_after_attempt
 
 
 @flow
@@ -35,7 +36,7 @@ async def failover_pipeline(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=3)
+@retry(stop=stop_after_attempt(3))
 async def call_primary(p: dict) -> dict:
     """Call primary service — retry 3 times before routing to error handler."""
     p["result"] = "primary_response"
@@ -43,7 +44,7 @@ async def call_primary(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=2)
+@retry(stop=stop_after_attempt(2))
 async def call_fallback(p: dict) -> dict:
     """Fallback service — retry twice on failure."""
     p["result"] = "fallback_response"

@@ -16,7 +16,7 @@ spec:
     maxReplicaCount: '5'
   env:
   - name: ASYA_IGNORE_DECORATORS
-    value: _asya_utils.retry
+    value: tenacity.retry
   resiliency:
     policies:
       default:

@@ -15,23 +15,23 @@ spec:
     maxReplicaCount: '5'
   env:
   - name: ASYA_IGNORE_DECORATORS
-    value: _asya_utils.retry
+    value: tenacity.retry
   resiliency:
     policies:
-      try_except_line_24_0:
+      try_except_line_25_0:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-26-except-2
-      try_except_line_24_1:
+        - router-failover-pipeline-line-27-except-2
+      try_except_line_25_1:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-29-except-4
+        - router-failover-pipeline-line-30-except-4
       default:
         maxAttempts: '3'
     rules:
     - errors:
       - ConnectionError
-      policy: try_except_line_24_0
+      policy: try_except_line_25_0
     - errors:
       - ValueError
-      policy: try_except_line_24_1
+      policy: try_except_line_25_1

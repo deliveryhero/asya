@@ -23,7 +23,7 @@ async def start_failover_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_failover_pipeline_line_27_seq_1(payload: dict):
+async def router_failover_pipeline_line_28_seq_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,12 +33,12 @@ async def router_failover_pipeline_line_27_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_failover_pipeline_line_26_except_2(payload: dict):
+async def router_failover_pipeline_line_27_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_failover_pipeline_line_27_seq_1'), resolve('finalize')]
+    yield "SET", ".route.next", [resolve('router_failover_pipeline_line_28_seq_1'), resolve('finalize')]
     yield payload
 
-async def router_failover_pipeline_line_30_seq_3(payload: dict):
+async def router_failover_pipeline_line_31_seq_3(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -48,9 +48,9 @@ async def router_failover_pipeline_line_30_seq_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_failover_pipeline_line_29_except_4(payload: dict):
+async def router_failover_pipeline_line_30_except_4(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_failover_pipeline_line_30_seq_3'), resolve('finalize')]
+    yield "SET", ".route.next", [resolve('router_failover_pipeline_line_31_seq_3'), resolve('finalize')]
     yield payload
 
 

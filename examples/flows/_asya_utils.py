@@ -20,17 +20,3 @@ def actor(f):
 def inline(f):
     """Mark a function as inline code (runs inside the router, not a separate actor)."""
     return f
-
-
-def retry(**kwargs):
-    """No-op stub for tenacity.retry — the compiler extracts args into manifests."""
-    def decorator(f):
-        return f
-    return decorator
-
-
-def timeout(seconds):
-    """No-op stub for timeout_decorator.timeout — compiler extracts into manifests."""
-    def decorator(f):
-        return f
-    return decorator

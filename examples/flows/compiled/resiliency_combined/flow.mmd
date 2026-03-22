@@ -4,8 +4,8 @@ flowchart TD
     fetch_data[fetch_data]
     handle_bad_data[handle_bad_data]
     parse_data[parse_data]
-    router_data_pipeline_line_31_except_2{{router_data_pipeline_line_31_except_2}}
-    router_data_pipeline_line_32_seq_1{{"router_data_pipeline_line_32_seq_1<br/><br/>p['error'] = 'bad_data'"}}
+    router_data_pipeline_line_33_except_2{{router_data_pipeline_line_33_except_2}}
+    router_data_pipeline_line_34_seq_1{{"router_data_pipeline_line_34_seq_1<br/><br/>p['error'] = 'bad_data'"}}
     start_data_pipeline(["start_data_pipeline<br/><br/>p['status'] = 'started'"])
     store_results[store_results]
     __end__((( )))
@@ -13,10 +13,10 @@ flowchart TD
     start_data_pipeline --> fetch_data
     fetch_data --> parse_data
     parse_data --> store_results
-    router_data_pipeline_line_32_seq_1 --> handle_bad_data
-    router_data_pipeline_line_31_except_2 --> router_data_pipeline_line_32_seq_1
-    fetch_data -->|"ValueError"| router_data_pipeline_line_31_except_2
-    parse_data -->|"ValueError"| router_data_pipeline_line_31_except_2
+    router_data_pipeline_line_34_seq_1 --> handle_bad_data
+    router_data_pipeline_line_33_except_2 --> router_data_pipeline_line_34_seq_1
+    fetch_data -->|"ValueError"| router_data_pipeline_line_33_except_2
+    parse_data -->|"ValueError"| router_data_pipeline_line_33_except_2
     handle_bad_data --> store_results
     store_results --> __end__
     subgraph asyncio_timeout_60_[asyncio.timeout(60)]
@@ -32,7 +32,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_data_pipeline start
     class store_results endnode
-    class router_data_pipeline_line_31_except_2,router_data_pipeline_line_32_seq_1 router
+    class router_data_pipeline_line_33_except_2,router_data_pipeline_line_34_seq_1 router
     class fetch_data,handle_bad_data,parse_data handler
     class __end__ endpoint
     linkStyle 5,6 stroke:#DC143C

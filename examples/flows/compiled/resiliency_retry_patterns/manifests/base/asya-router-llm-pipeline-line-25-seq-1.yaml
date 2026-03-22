@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-llm-pipeline-line-24-seq-1
+  name: router-llm-pipeline-line-25-seq-1
   namespace: default
   labels:
     asya.sh/flow: llm-pipeline
     asya.sh/generated: 'true'
 spec:
-  actor: router-llm-pipeline-line-24-seq-1
+  actor: router-llm-pipeline-line-25-seq-1
   image: python:3.13-slim
-  handler: routers.router_llm_pipeline_line_24_seq_1
+  handler: routers.router_llm_pipeline_line_25_seq_1
   scaling:
     enabled: true
     minReplicaCount: 0

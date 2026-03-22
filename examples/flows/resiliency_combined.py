@@ -1,7 +1,7 @@
 """Flow example: combined resiliency — retry, timeout, and error routing.
 
 Demonstrates all three resiliency mechanisms working together:
-- @retry(max_attempt_number=5) on fetch_data -> policies.default.maxAttempts: 5
+- @retry(stop=stop_after_attempt(5) | stop_after_delay(30)) on fetch_data
 - @timeout(10) on parse_data -> timeout.actor: 10
 - asyncio.timeout(60) scoping both -> timeout.actor: 60 (scope-level)
 - try/except ValueError -> error routing to handle_bad_data
@@ -17,7 +17,9 @@ Compile with:
 
 import asyncio
 
-from _asya_utils import actor, flow, retry, timeout
+from _asya_utils import actor, flow
+from tenacity import retry, stop_after_attempt, stop_after_delay
+from timeout_decorator import timeout
 
 
 @flow
@@ -37,7 +39,7 @@ async def data_pipeline(p: dict) -> dict:
 
 
 @actor
-@retry(max_attempt_number=5, max_delay=30)
+@retry(stop=stop_after_attempt(5) | stop_after_delay(30))
 def fetch_data(p: dict) -> dict:
     """Fetch from unreliable API — retries up to 5 times, max 30s total."""
     p["raw_data"] = "fetched"

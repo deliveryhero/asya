@@ -1,18 +1,4 @@
 # Compiler rules for example flows.
-#
-# These map _asya_utils stubs to the same extraction rules as the real
-# libraries. For real deployments, use the actual library imports and
-# the built-in rules in asya-lab/defaults/compiler.rules.yaml apply.
-
-# Map _asya_utils.retry stub to tenacity.retry extraction
-- match: "_asya_utils.retry"
-  treat-as: config
-  extract:
-    max_attempt_number: spec.resiliency.policies.default.maxAttempts
-    max_delay: spec.resiliency.policies.default.maxDuration
-
-# Map _asya_utils.timeout stub to timeout_decorator.timeout extraction
-- match: "_asya_utils.timeout"
-  treat-as: config
-  extract:
-    seconds: spec.resiliency.timeout.actor
+# Built-in rules for asyncio.timeout, tenacity.retry, etc. ship with asya-lab.
+# Add project-specific rules here.
+[]

@@ -24,7 +24,7 @@ spec:
     value: finalize
   - name: ASYA_HANDLER_ACTOR_HANDLE_VALIDATION_ERROR
     value: handle_validation_error
-  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_27_SEQ_1
-    value: routers.router_failover_pipeline_line_27_seq_1
-  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_30_SEQ_3
-    value: routers.router_failover_pipeline_line_30_seq_3
+  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_28_SEQ_1
+    value: routers.router_failover_pipeline_line_28_seq_1
+  - name: ASYA_HANDLER_ROUTER_FAILOVER_PIPELINE_LINE_31_SEQ_3
+    value: routers.router_failover_pipeline_line_31_seq_3
