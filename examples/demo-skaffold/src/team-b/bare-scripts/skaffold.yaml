@@ -1,0 +1,11 @@
+apiVersion: skaffold/v4beta13
+kind: Config
+metadata:
+  name: team-b
+build:
+  artifacts:
+  - image: team-b-greet
+    context: .
+    buildpacks:
+      builder: paketobuildpacks/builder-jammy-base
+      trustBuilder: true

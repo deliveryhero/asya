@@ -1,6 +1,9 @@
 # AWS EKS Installation
 
-Production deployment of 🎭 on Amazon EKS.
+Production deployment on Amazon EKS.
+
+For a full map of all secrets, service accounts, and namespaces, see
+[Credentials Reference](../reference/credentials.md).
 
 ## Prerequisites
 
@@ -223,7 +226,10 @@ awsProviderConfig:
 ### 3. Install Asya Crossplane Chart
 
 ```bash
-helm install asya-crossplane deploy/helm-charts/asya-crossplane/ \
+helm repo add asya https://asya.sh/charts
+helm repo update asya
+
+helm install asya-crossplane asya/asya-crossplane --version $ASYA_VERSION \
   -n crossplane-system \
   -f crossplane-values.yaml
 ```
@@ -253,7 +259,7 @@ routes:
 ```
 
 ```bash
-helm install asya-gateway deploy/helm-charts/asya-gateway/ \
+helm install asya-gateway asya/asya-gateway --version $ASYA_VERSION \
   -n default \
   -f gateway-values.yaml
 ```
@@ -279,7 +285,7 @@ x-sump:
 ```
 
 ```bash
-helm install asya-crew deploy/helm-charts/asya-crew/ \
+helm install asya-crew asya/asya-crew --version $ASYA_VERSION \
   -n default \
   -f crew-values.yaml
 ```

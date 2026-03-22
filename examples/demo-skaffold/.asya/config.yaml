@@ -8,8 +8,10 @@ build:
   image: "team-a-nlp"
 - module: "summarize"
   image: "team-a-nlp"
-- module: "translate"
-  image: "team-b-translate"
+- module: "greet"
+  image: "team-b-greet"
+- module: "shout"
+  image: "team-b-greet"
 
 compiler:
   routers: "./compiled"
