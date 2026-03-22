@@ -131,8 +131,8 @@ class RuleEngine:
 
     @classmethod
     def from_config(cls, rules_cfg: list[dict] | None) -> RuleEngine:
-        """Load rules from config dicts (filters out context-manager scope rules)."""
+        """Load rules from config dicts."""
         extra: list[CompilerRule] = []
         if rules_cfg:
-            extra = [CompilerRule.from_dict(d) for d in rules_cfg if d.get("scope") != "context-manager"]
+            extra = [CompilerRule.from_dict(d) for d in rules_cfg]
         return cls.with_defaults(extra_rules=extra)

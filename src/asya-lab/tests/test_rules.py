@@ -158,14 +158,14 @@ class TestRuleEngineFromConfig:
         assert engine.classify("functools.lru_cache") is TreatAs.INLINE
         assert engine.classify("my_func") is None
 
-    def test_config_filters_context_manager_scope(self) -> None:
+    def test_config_loads_all_rules_regardless_of_scope(self) -> None:
         cfg = [
             {"match": "tenacity.retry", "treat-as": "config"},
-            {"match": "asyncio.timeout", "treat-as": "config", "scope": "context-manager"},
+            {"match": "asyncio.timeout", "treat-as": "config"},
         ]
         engine = RuleEngine.from_config(cfg)
         assert engine.classify("tenacity.retry") is TreatAs.CONFIG
-        assert engine.classify("asyncio.timeout") is None
+        assert engine.classify("asyncio.timeout") is TreatAs.CONFIG
 
     def test_config_extraction_rule(self) -> None:
         cfg = [

@@ -3,6 +3,9 @@
 Rules are loaded from YAML config rather than hardcoded.  Defaults ship in
 ``asya_lab/defaults/compiler.rules.yaml``; user rules in
 ``.asya/config.compiler.rules.yaml`` extend the defaults.
+
+The parser auto-detects scope from Python syntax (context manager vs
+decorator vs call-site) — rules do not need a ``scope`` field.
 """
 
 from __future__ import annotations
@@ -48,11 +51,8 @@ class CompilerRules:
 
     def __init__(self, rules: dict[str, CompilerRule] | None = None) -> None:
         self._rules: dict[str, CompilerRule] = {}
-        # Load shipped defaults
         for d in _load_default_rules():
-            if d.get("scope") == "context-manager":
-                self._rules[d["match"]] = _rule_from_dict(d)
-        # User-provided rules override defaults
+            self._rules[d["match"]] = _rule_from_dict(d)
         if rules is not None:
             self._rules.update(rules)
 
@@ -65,18 +65,14 @@ class CompilerRules:
 
     @classmethod
     def from_config(cls, rules_cfg: list[dict] | None) -> CompilerRules:
-        """Create CompilerRules from a combined config rule list.
+        """Create CompilerRules from a config rule list.
 
-        Filters for ``scope: context-manager`` entries and converts them
-        to CompilerRule instances.  Non-context-manager rules are ignored
-        (they are handled by the call-site RuleEngine in compiler/rules.py).
+        All rules are loaded (no scope filtering). User rules override
+        defaults for the same match key.
         """
         user_rules: dict[str, CompilerRule] | None = None
         if rules_cfg:
-            user_rules = {}
-            for d in rules_cfg:
-                if d.get("scope") == "context-manager":
-                    user_rules[d["match"]] = _rule_from_dict(d)
+            user_rules = {d["match"]: _rule_from_dict(d) for d in rules_cfg}
         return cls(user_rules)
 
     def lookup(self, symbol: str) -> CompilerRule | None:
