@@ -11,7 +11,7 @@ def flow(f):
     return f
 
 @flow
-def text_flow(payload: dict) -> dict:  # asya: flow
+def text_flow(payload: dict) -> dict:
     payload = analyze(payload)    # asya: actor
     payload = summarize(payload)  # asya: actor
     return payload

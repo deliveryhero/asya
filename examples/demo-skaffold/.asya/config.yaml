@@ -15,4 +15,5 @@ build:
 
 compiler:
   routers: "./compiled"
+  manifests: ".asya/manifests"
   templates: ".asya/templates"
