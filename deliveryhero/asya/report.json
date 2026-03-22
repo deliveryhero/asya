@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "97b59575847785daf3f62f4cc33e51b91ea93be5",
+  "commit": "c5ebc874cb5e8c8bbdede46d527d0ea3c7fb8bf4",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -25328,7 +25328,7 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 32643,
+    "code": 32700,
     "test": 19323,
     "code_files": [
       {
@@ -26963,7 +26963,7 @@
         "language": "Python"
       },
       {
-        "code": 301,
+        "code": 306,
         "comment": 92,
         "blank": 96,
         "path": "src/asya-lab/asya_lab/compiler/templater.py",
@@ -27047,14 +27047,14 @@
         "language": "Python"
       },
       {
-        "code": 205,
-        "comment": 28,
-        "blank": 44,
+        "code": 254,
+        "comment": 36,
+        "blank": 63,
         "path": "src/asya-lab/asya_lab/flow/graphgen.py",
         "language": "Python"
       },
       {
-        "code": 854,
+        "code": 857,
         "comment": 57,
         "blank": 162,
         "path": "src/asya-lab/asya_lab/flow/parser.py",
@@ -28303,6 +28303,6 @@
       }
     ]
   },
-  "test_execution_time": 375000000000,
-  "timestamp": "2026-03-21T19:02:15.805780449Z"
+  "test_execution_time": 376000000000,
+  "timestamp": "2026-03-22T15:48:00.496117568Z"
 }
