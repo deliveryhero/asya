@@ -90,6 +90,7 @@ jobs:
           echo "[.] Restoring charts/ from gh-pages"
           git checkout origin/gh-pages -- charts/
           mv charts/ site/charts/
+          # shellcheck disable=SC2012
           echo "[+] Restored $(ls site/charts/*.tgz 2>/dev/null | wc -l) chart packages"
         else
           echo "[!] No charts/ found on gh-pages, skipping"
