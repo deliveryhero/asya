@@ -17,4 +17,17 @@ digraph "ingestion_pipeline" {
     data_parser -> data_validator;
     data_validator -> data_writer;
     data_writer -> __end__;
+    subgraph cluster_asyncio_timeout_10_ {
+        label="asyncio.timeout(10)";
+        style=dashed;
+        data_parser;
+        data_validator;
+    }
+    subgraph cluster_asyncio_timeout_60_ {
+        label="asyncio.timeout(60)";
+        style=dashed;
+        data_fetcher;
+        data_parser;
+        data_validator;
+    }
 }

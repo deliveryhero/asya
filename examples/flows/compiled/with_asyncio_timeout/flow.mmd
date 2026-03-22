@@ -18,6 +18,10 @@ flowchart TD
     sentiment_analyzer --> router_document_pipeline_line_27_seq_1
     router_document_pipeline_line_23_if_2 -->|"else"| sentiment_analyzer
     router_document_pipeline_line_27_seq_1 --> __end__
+    subgraph asyncio_timeout_30_[asyncio.timeout(30)]
+        ocr_extractor
+        language_detector
+    end
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333

@@ -235,7 +235,9 @@ def to_json_string(data: GraphData, flow_name: str) -> str:
 
 def _sanitize_id(name: str) -> str:
     """Make a name safe for DOT/Mermaid node IDs."""
-    return name.replace(".", "_").replace("-", "_").replace(" ", "_")
+    return (
+        name.replace(".", "_").replace("-", "_").replace(" ", "_").replace("(", "_").replace(")", "_").replace(",", "_")
+    )
 
 
 def _display_name(name: str) -> str:

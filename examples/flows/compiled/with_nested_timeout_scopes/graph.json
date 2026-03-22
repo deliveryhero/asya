@@ -51,5 +51,21 @@
       "type": "continuation"
     }
   ],
-  "groups": []
+  "groups": [
+    {
+      "id": "asyncio.timeout(10)",
+      "nodes": [
+        "data_parser",
+        "data_validator"
+      ]
+    },
+    {
+      "id": "asyncio.timeout(60)",
+      "nodes": [
+        "data_fetcher",
+        "data_parser",
+        "data_validator"
+      ]
+    }
+  ]
 }
