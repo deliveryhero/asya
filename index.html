@@ -44,10 +44,10 @@
             color: var(--text-primary);
         }
 
-        .theme-icon-light { display: block; }
-        .theme-icon-dark { display: none; }
-        body.dark .theme-icon-light { display: none; }
-        body.dark .theme-icon-dark { display: block; }
+        .theme-icon-sun { display: none; }
+        .theme-icon-moon { display: block; }
+        body.dark .theme-icon-sun { display: block; }
+        body.dark .theme-icon-moon { display: none; }
 
         /* Layout */
         .page {
@@ -604,20 +604,23 @@
         <button class="close-btn" id="closeAnnouncement" aria-label="Close">&times;</button>
     </div>
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
-        <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-light" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-            <path d="M12 3l0 18"></path>
-            <path d="M12 9l4.65 -4.65"></path>
-            <path d="M12 14.3l7.37 -7.37"></path>
-            <path d="M12 19.6l8.85 -8.85"></path>
+        <!-- Sun icon (visible in dark mode) -->
+        <svg class="theme-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2"></path>
+            <path d="M12 20v2"></path>
+            <path d="m4.93 4.93 1.41 1.41"></path>
+            <path d="m17.66 17.66 1.41 1.41"></path>
+            <path d="M2 12h2"></path>
+            <path d="M20 12h2"></path>
+            <path d="m6.34 17.66-1.41 1.41"></path>
+            <path d="m19.07 4.93-1.41 1.41"></path>
         </svg>
-        <svg xmlns="http://www.w3.org/2000/svg" class="theme-icon-dark" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
-            <path d="M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0"></path>
-            <path d="M12 3v18"></path>
-            <path d="M12 14.3l-7.37 -7.37"></path>
-            <path d="M12 19.6l-8.85 -8.85"></path>
+        <!-- Moon icon (visible in light mode) -->
+        <svg class="theme-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path>
         </svg>
     </button>
 
