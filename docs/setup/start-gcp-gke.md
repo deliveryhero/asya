@@ -1,4 +1,4 @@
-# GKE + GCP Pub/Sub Installation
+# GCP GKE
 
 Deploy Asya on Google Kubernetes Engine using native GCP Pub/Sub as the message transport.
 

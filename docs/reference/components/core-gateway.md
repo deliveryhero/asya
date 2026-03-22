@@ -1,4 +1,4 @@
-# Asya Gateway
+# Gateway
 
 ## Responsibilities
 

@@ -1,4 +1,4 @@
-# Crossplane Compositions
+# Crossplane
 
 ## Overview
 

@@ -1,5 +1,5 @@
 
-# How to Configure Autoscaling
+# Autoscaling
 
 Configure KEDA-based autoscaling for AsyncActor workloads, including
 queue-depth scaling, GPU workloads, cost optimization, and advanced

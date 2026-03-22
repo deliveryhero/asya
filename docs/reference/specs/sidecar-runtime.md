@@ -1,4 +1,4 @@
-# Sidecar-Runtime Protocol
+# Sidecar-Runtime
 
 Communication between Asya sidecar (Go) and runtime (Python) uses **HTTP/1.1 over a Unix domain socket**.
 

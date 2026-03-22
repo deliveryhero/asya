@@ -145,7 +145,7 @@ plugins:
 markdown_extensions:
 - admonition
 - toc:
-    permalink: "  #"
+    permalink: "#"
 - tables
 - pymdownx.highlight:
     use_pygments: true

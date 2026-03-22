@@ -1,4 +1,4 @@
-# Pub/Sub Transport
+# Pub/Sub
 
 Google Cloud Pub/Sub managed messaging service for actor communication.
 

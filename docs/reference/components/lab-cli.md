@@ -1,5 +1,5 @@
 
-# CLI Reference
+# CLI
 
 Command reference for the `asya` developer toolkit (package: `asya-lab`).
 

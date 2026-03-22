@@ -1,4 +1,4 @@
-# 🎭 Asya vs Google ADK
+# vs Google ADK
 
 ## TL;DR
 

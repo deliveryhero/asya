@@ -52,14 +52,14 @@ button[onclick*="README.md"],
   color: #666;
 }
 
-/* Override aggressive red with softer blue-gray tones */
+/* Links — blue-gray base, Asya blue on hover */
 a {
   color: #5a6c8f;
 }
 
 a:hover,
 a:focus {
-  color: #3d4f6b;
+  color: #3c63cc;
 }
 
 /* Navbar styling */
@@ -464,6 +464,23 @@ table td code {
   content: none;
 }
 
+/* Sidebar theme — blue-tinted to match Asya brand */
+:root {
+  --sidebar-accent: #eef2f9;
+  --sidebar-accent-foreground: #2a4075;
+  --sidebar-primary: #3c63cc;
+  --sidebar-ring: #3c63cc40;
+  --accent: #e8eef8;
+}
+
+.dark {
+  --sidebar-accent: #1e2a40;
+  --sidebar-accent-foreground: #b8cce8;
+  --sidebar-primary: #6b8fd4;
+  --sidebar-ring: #6b8fd440;
+  --accent: #1a2538;
+}
+
 /* Sidebar tree navigation */
 .sidebar-tree-section > summary {
   list-style: none;
@@ -482,27 +499,81 @@ table td code {
 }
 
 .sidebar-tree-section > summary:hover {
-  background: var(--bg-tertiary);
+  background: var(--sidebar-accent);
   border-radius: 6px;
 }
 
-/* Sidebar section labels - darker in light mode, lighter in dark mode */
+/* Sidebar section labels — blue-tinted */
 .sidebar-tree-section > summary[data-sidebar="group-label"] {
-  color: #2c3e50 !important;
+  color: #2a4075 !important;
   font-weight: 600 !important;
 }
 
 .dark .sidebar-tree-section > summary[data-sidebar="group-label"] {
-  color: #d4d4d4 !important;
+  color: #b8cce8 !important;
 }
 
-/* Sidebar tree arrows - visible in both modes */
+/* Sidebar tree arrows — blue tint */
 .sidebar-tree-arrow {
-  color: #666 !important;
+  color: #5a7ab5 !important;
 }
 
 .dark .sidebar-tree-arrow {
-  color: #b0b0b0 !important;
+  color: #7a9fd4 !important;
+}
+
+/* Open path — only highlight the summary label, not the whole section */
+.sidebar-tree-section[open] > summary[data-sidebar="group-label"] {
+  color: #3c63cc !important;
+}
+
+.dark .sidebar-tree-section[open] > summary[data-sidebar="group-label"] {
+  color: #8ab4f8 !important;
+}
+
+/* Increased indentation for deeper tree structure */
+[data-sidebar="group-content"] {
+  padding-left: 8px !important;
+  border-left: 1px solid #d0d8e8;
+  margin-left: 10px;
+}
+
+.dark [data-sidebar="group-content"] {
+  border-left-color: #2d3a4f;
+}
+
+/* Active sidebar item — blue accent */
+a[data-sidebar="menu-button"][data-active="true"] {
+  color: #3c63cc !important;
+  font-weight: 600 !important;
+}
+
+.dark a[data-sidebar="menu-button"][data-active="true"] {
+  color: #8ab4f8 !important;
+}
+
+/* Section title links — inherit styling, act like regular summary text */
+.sidebar-section-link {
+  color: inherit !important;
+  text-decoration: none !important;
+}
+
+.sidebar-section-link:hover {
+  color: #3c63cc !important;
+}
+
+.dark .sidebar-section-link:hover {
+  color: #8ab4f8 !important;
+}
+
+/* Active section link (current page is the section index) */
+.sidebar-section-link[data-active="true"] {
+  color: #3c63cc !important;
+  font-weight: 600 !important;
+}
+
+.dark .sidebar-section-link[data-active="true"] {
+  color: #8ab4f8 !important;
 }
 
 /* Theme toggle button - visible in dark mode */
@@ -527,15 +598,33 @@ table td code {
   padding: 8px;
 }
 
-/* Permalink anchors in asya blue */
+/* Permalink anchors - positioned BEFORE heading text */
+h1, h2, h3, h4, h5, h6 {
+  display: flex;
+  align-items: baseline;
+}
+
 .headerlink {
+  order: -1;
   color: #3c63cc !important;
-  opacity: 0.5;
+  opacity: 0;
   transition: opacity 0.2s ease;
+  margin-right: 0.4em;
+  margin-left: -1.2em;
+  font-weight: 400;
+}
+
+h1:hover .headerlink,
+h2:hover .headerlink,
+h3:hover .headerlink,
+h4:hover .headerlink,
+h5:hover .headerlink,
+h6:hover .headerlink {
+  opacity: 0.5;
 }
 
 .headerlink:hover {
-  opacity: 1;
+  opacity: 1 !important;
   text-decoration: none !important;
 }
 

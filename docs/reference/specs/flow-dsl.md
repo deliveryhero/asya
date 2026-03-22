@@ -1,5 +1,5 @@
 
-# Flow DSL Reference
+# Flow DSL
 
 Syntax rules, IR specification, compiler stages, and generated router tables
 for the Flow DSL.

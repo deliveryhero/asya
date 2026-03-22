@@ -1,4 +1,4 @@
-# Architecture 🎭
+# Architecture
 
 Asya is a Kubernetes-native async actor mesh. All components are designed around one
 principle: **the message knows the way**.

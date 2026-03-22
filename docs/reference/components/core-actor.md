@@ -1,4 +1,4 @@
-# AsyncActor
+# Actor
 
 ## What is an Actor?
 

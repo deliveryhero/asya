@@ -1,4 +1,4 @@
-# Using the State Proxy
+# State Proxy
 
 How to read and write persistent state from your actor handlers using standard Python file operations.
 

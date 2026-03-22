@@ -1,4 +1,4 @@
-# Redis State Connector
+# Redis
 
 Redis key-value connector for state proxy with Check-And-Set consistency.
 

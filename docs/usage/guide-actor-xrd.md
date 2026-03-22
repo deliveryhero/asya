@@ -1,4 +1,4 @@
-# Understanding the AsyncActor Spec
+# AsyncActor Spec
 
 The AsyncActor is the only CRD you need to deploy an actor on Kubernetes.
 This guide walks through what each section does and how Asya uses it.

@@ -1,4 +1,4 @@
-# Operational Monitoring
+# Observability
 
 This guide shows how to set up monitoring for Asya deployments using Prometheus and Grafana.
 

@@ -1,10 +1,20 @@
 {% macro render_nav(items, depth=0) %}
-{% set pages = items|selectattr("is_page")|sort(attribute="meta.order")|list %}
+{% set pages = items|selectattr("is_page")|list %}
 {% set sections = items|rejectattr("is_page")|list %}
 
-{% if pages|length > 0 %}
-<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5" {% if depth > 0 %}style="padding-left: {{ depth * 12 }}px"{% endif %}>
-    {% for sidebar_item in pages %}
+{# Detect index page: first page child with is_index or a bare README #}
+{% set ns = namespace(index_page=none, other_pages=[]) %}
+{% for p in pages %}
+    {% if loop.first and p.is_index %}
+        {% set ns.index_page = p %}
+    {% else %}
+        {% set ns.other_pages = ns.other_pages + [p] %}
+    {% endif %}
+{% endfor %}
+
+{% if ns.other_pages|length > 0 %}
+<ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
+    {% for sidebar_item in ns.other_pages|sort(attribute="meta.order") %}
     {% include "components/sidebar_item.html" %}
     {% endfor %}
 </ul>
@@ -12,15 +22,27 @@
 
 {% for section in sections %}
 {% if section.children %}
+{# Check if this section has an index page as its first child #}
+{% set sec_ns = namespace(index_page=none, children=section.children) %}
+{% set first_children = section.children|selectattr("is_page")|list %}
+{% if first_children and first_children[0].is_index %}
+    {% set sec_ns.index_page = first_children[0] %}
+{% endif %}
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
     <details data-section-id="{{ section.title|lower|replace(' ', '-') }}" {% if section.active %}open{% endif %} class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
-            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground"
-            {% if depth > 0 %}style="padding-left: {{ depth * 12 }}px"{% endif %}>
+            class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
                 <path d="M4.5 3L7.5 6L4.5 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
+            {% if sec_ns.index_page %}
+            <a href="{{ sec_ns.index_page.abs_url }}" class="sidebar-section-link"
+                data-active="{{ '%s' % sec_ns.index_page.active|lower }}">
+                {{ section.title|title }}
+            </a>
+            {% else %}
             {{ section.title|title }}
+            {% endif %}
         </summary>
         <div data-slot="sidebar-group-content" data-sidebar="group-content" class="w-full text-sm">
             {{ render_nav(section.children, depth + 1) }}
@@ -77,6 +99,13 @@
             el.open = saved[id];
         }
         el.addEventListener('toggle', saveState);
+    });
+
+    // Section title links: click navigates, toggle still works via arrow
+    document.querySelectorAll('.sidebar-section-link').forEach(function(link) {
+        link.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
     });
 
     // Scroll active nav item into view
