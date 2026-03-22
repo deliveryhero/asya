@@ -1,0 +1,24 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-fetch-data
+  namespace: default
+  labels:
+    asya.sh/flow: resilient-pipeline
+spec:
+  actor: actor-fetch-data
+  image: examples.asya.sh/fetch-data:latest
+  handler: fetch_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: _asya_utils.retry
+  resiliency:
+    policies:
+      default:
+        maxAttempts: '5'
+    timeout:
+      actor: '30'

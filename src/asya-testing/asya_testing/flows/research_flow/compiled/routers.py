@@ -18,18 +18,18 @@ import copy
 async def start_research_flow(payload: dict):
     """Entrypoint for flow 'research_flow'"""
     _next = []
-    _next.append(resolve("router_research_flow_line_7_fanout_1"))
+    _next.append(resolve("router_research_flow_line_11_fanout_1"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_flow_line_7_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 7)"""
+async def router_research_flow_line_11_fanout_1(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (line 11)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_research_flow_line_7")
+    _agg = resolve("fanin_research_flow_line_11")
 
     _slices = []
     for t in p['topics']:

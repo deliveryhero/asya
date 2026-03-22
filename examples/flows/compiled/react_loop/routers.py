@@ -39,6 +39,7 @@ async def router_agent_with_tools_line_17_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
+    _next.append(resolve("llm_call"))
     _next.append(resolve("router_agent_with_tools_line_19_if_2"))
     _next.append(resolve("router_agent_with_tools_line_17_while_1"))
 

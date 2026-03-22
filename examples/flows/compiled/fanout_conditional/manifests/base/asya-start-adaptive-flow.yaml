@@ -16,13 +16,19 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_CLASSIFIER
+    value: classifier
   - name: ASYA_HANDLER_ACTOR_DEEP_ANALYZER
     value: deep_analyzer
   - name: ASYA_HANDLER_FANIN_ADAPTIVE_FLOW_LINE_16
     value: routers.fanin_adaptive_flow_line_16
   - name: ASYA_HANDLER_ACTOR_FAST_ANALYZER
     value: fast_analyzer
+  - name: ASYA_HANDLER_ACTOR_FORMATTER
+    value: formatter
   - name: ASYA_HANDLER_ROUTER_ADAPTIVE_FLOW_LINE_15_IF_2
     value: routers.router_adaptive_flow_line_15_if_2
   - name: ASYA_HANDLER_ROUTER_ADAPTIVE_FLOW_LINE_16_FANOUT_1
     value: routers.router_adaptive_flow_line_16_fanout_1
+  - name: ASYA_HANDLER_ACTOR_SEQUENTIAL_ANALYZER
+    value: sequential_analyzer

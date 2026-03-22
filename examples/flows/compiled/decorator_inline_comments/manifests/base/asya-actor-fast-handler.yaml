@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-fast-handler
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-inline-comments-flow
+    asya.sh/role: end
+spec:
+  actor: actor-fast-handler
+  image: examples.asya.sh/fast-handler:latest
+  handler: fast_handler
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

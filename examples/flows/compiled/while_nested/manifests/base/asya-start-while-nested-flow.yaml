@@ -16,10 +16,24 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INNER
+    value: handler_inner
+  - name: ASYA_HANDLER_ACTOR_HANDLER_OUTER
+    value: handler_outer
+  - name: ASYA_HANDLER_ACTOR_HANDLER_OUTER_END
+    value: handler_outer_end
+  - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_13_SEQ_6
+    value: routers.router_while_nested_flow_line_13_seq_6
   - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_14_WHILE_1
     value: routers.router_while_nested_flow_line_14_while_1
-  - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_15_SEQ_4
-    value: routers.router_while_nested_flow_line_15_seq_4
+  - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_15_SEQ_5
+    value: routers.router_while_nested_flow_line_15_seq_5
+  - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_17_SEQ_4
+    value: routers.router_while_nested_flow_line_17_seq_4
   - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_18_WHILE_2
     value: routers.router_while_nested_flow_line_18_while_2
   - name: ASYA_HANDLER_ROUTER_WHILE_NESTED_FLOW_LINE_19_SEQ_3

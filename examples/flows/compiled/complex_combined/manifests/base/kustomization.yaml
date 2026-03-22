@@ -1,6 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
+- asya-actor-handler-default.yaml
+- asya-actor-handler-error.yaml
+- asya-actor-handler-finalize.yaml
+- asya-actor-handler-init.yaml
+- asya-actor-handler-process.yaml
+- asya-actor-handler-type-a.yaml
+- asya-actor-handler-type-b.yaml
 - asya-router-complex-combined-flow-line-14-if-8.yaml
 - asya-router-complex-combined-flow-line-18-if-7.yaml
 - asya-router-complex-combined-flow-line-19-seq-4.yaml

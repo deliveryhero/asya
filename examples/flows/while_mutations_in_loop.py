@@ -4,7 +4,7 @@ While loop with mutations.
 Tests mutations inside loop body.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -22,16 +22,19 @@ def while_mutations_in_loop_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_init(p: dict) -> dict:
     """Initialize handler."""
     return p
 
 
+@actor
 def handler_process(p: dict) -> dict:
     """Process handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

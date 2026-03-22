@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-a
+  namespace: default
+  labels:
+    asya.sh/flow: mutations-before-after-handler-flow
+spec:
+  actor: actor-handler-a
+  image: examples.asya.sh/handler-a:latest
+  handler: handler_a
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

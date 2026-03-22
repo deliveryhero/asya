@@ -140,7 +140,7 @@ class TestConfigRuleWith:
         assert len(parser.extracted_configs) == 1
         config = parser.extracted_configs[0]
         assert config["symbol"] == "asyncio.timeout"
-        assert config["args"]["delay"] == "30"
+        assert config["spec_values"]["spec.resiliency.timeout.actor"] == "30"
 
 
 class TestPerScopeSemantics:
@@ -217,10 +217,10 @@ class TestPerScopeSemantics:
         outer = parser.extracted_configs[1]
         assert inner["scope_type"] == "context_manager"
         assert inner["scope_actors"] == ["inner_handler"]
-        assert inner["args"]["delay"] == "10"
+        assert inner["spec_values"]["spec.resiliency.timeout.actor"] == "10"
         assert outer["scope_type"] == "context_manager"
         assert outer["scope_actors"] == ["outer_handler", "inner_handler"]
-        assert outer["args"]["delay"] == "60"
+        assert outer["spec_values"]["spec.resiliency.timeout.actor"] == "60"
 
     def test_multiple_with_items_share_scope(self):
         """Multiple context managers in one `with` share the same scope_actors."""

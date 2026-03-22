@@ -1,5 +1,4 @@
 # Compiler rules: classify Python symbols during flow compilation.
-# Most specific match wins (exact > prefix.* > . > *).
 #
 # Classification (treat-as):
 #   actor  - message boundary, separate K8s deployment
@@ -8,16 +7,17 @@
 #   flow   - sub-flow, compile recursively
 #   config - infrastructure metadata, strip and extract
 #
-# Extraction rules (where: + assign-to:):
-#   Navigate decorator AST, map values to XR spec paths.
+# Extraction (extract:):
+#   Map decorator/context-manager parameter names to AsyncActor spec paths.
+#   The compiler extracts values from Python source and injects them into manifests.
+#
+# Matching is exact (no wildcards). The parser auto-detects scope from syntax.
+# Built-in rules for asyncio.timeout and tenacity.retry ship with asya-lab.
 
-# --- Default classification rules ---
-- match: "."
-  treat-as: unfold
-
-- match: "*"
-  treat-as: inline
-
-# --- User rules below ---
-# - match: "my_lib.helper"
-#   treat-as: inline
+# Map _asya_utils.retry stub to the tenacity.retry rule
+- match: "_asya_utils.retry"
+  treat-as: config
+  extract:
+    max_attempt_number: spec.resiliency.policies.default.maxAttempts
+    initial_delay: spec.resiliency.policies.default.initialDelay
+    errors: spec.resiliency.rules

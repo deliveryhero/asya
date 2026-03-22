@@ -18,9 +18,9 @@ spec:
   env:
   - name: ASYA_HANDLER_ACTOR_CLASSIFIER
     value: classifier
-  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_18_IF_3
-    value: routers.router_decorator_inline_comments_flow_line_18_if_3
-  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_39_SEQ_1
-    value: routers.router_decorator_inline_comments_flow_line_39_seq_1
-  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_45_SEQ_2
-    value: routers.router_decorator_inline_comments_flow_line_45_seq_2
+  - name: ASYA_HANDLER_ACTOR_FAST_HANDLER
+    value: fast_handler
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_18_IF_1
+    value: routers.router_decorator_inline_comments_flow_line_18_if_1
+  - name: ASYA_HANDLER_ACTOR_STANDARD_HANDLER
+    value: standard_handler

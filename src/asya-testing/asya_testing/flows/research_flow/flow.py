@@ -2,6 +2,10 @@ def flow(f):  # no-op: decorator used by compiler to mark flow entry points
     return f
 
 
+def actor(f):  # no-op: decorator used by compiler to mark actor boundaries
+    return f
+
+
 @flow
 def research_flow(p: dict) -> dict:
     p["results"] = [research_agent(t) for t in p["topics"]]
@@ -9,6 +13,7 @@ def research_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def research_agent(payload: dict) -> dict:
     """Process a single research topic and return findings."""
     topic = payload.get("topic", payload) if isinstance(payload, dict) else payload
@@ -19,6 +24,7 @@ def research_agent(payload: dict) -> dict:
     }
 
 
+@actor
 def summarizer(p: dict) -> dict:
     """Summarize all research results into a final report."""
     results = p.get("results", [])

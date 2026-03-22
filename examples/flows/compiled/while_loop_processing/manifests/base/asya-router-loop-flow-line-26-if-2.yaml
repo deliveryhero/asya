@@ -1,0 +1,41 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-loop-flow-line-26-if-2
+  namespace: default
+  labels:
+    asya.sh/flow: loop-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-loop-flow-line-26-if-2
+  image: python:3.13-slim
+  handler: routers.router_loop_flow_line_26_if_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CHECK_THRESHOLD
+    value: check_threshold
+  - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP
+    value: finalize_loop
+  - name: ASYA_HANDLER_ACTOR_INITIALIZE
+    value: initialize
+  - name: ASYA_HANDLER_ACTOR_PROCESS_ABORT
+    value: process_abort
+  - name: ASYA_HANDLER_ACTOR_PROCESS_ITEM
+    value: process_item
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_14_SEQ_7
+    value: routers.router_loop_flow_line_14_seq_7
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_15_WHILE_1
+    value: routers.router_loop_flow_line_15_while_1
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_16_SEQ_6
+    value: routers.router_loop_flow_line_16_seq_6
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_19_IF_5
+    value: routers.router_loop_flow_line_19_if_5
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_20_SEQ_4
+    value: routers.router_loop_flow_line_20_seq_4
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_22_SEQ_3
+    value: routers.router_loop_flow_line_22_seq_3
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_LINE_26_IF_2
+    value: routers.router_loop_flow_line_26_if_2

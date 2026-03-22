@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-sequential-with-class.DataPreprocessor.clean
+  namespace: default
+  labels:
+    asya.sh/flow: class-instantiation-flow
+spec:
+  actor: actor-sequential-with-class.DataPreprocessor.clean
+  image: examples.asya.sh/sequential-with-class.DataPreprocessor.clean:latest
+  handler: sequential_with_class.DataPreprocessor.clean
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

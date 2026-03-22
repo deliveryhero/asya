@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-transformation
+  namespace: default
+  labels:
+    asya.sh/flow: class-instantiation-flow
+spec:
+  actor: actor-transformation
+  image: examples.asya.sh/transformation:latest
+  handler: transformation
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

@@ -1,28 +1,53 @@
 {
-  "flow_name": "ingester",
+  "flow_name": "typed_pydantic_pipeline",
   "nodes": [
     {
-      "id": "router_ingester_line_176_seq_1",
-      "label": "router_ingester_line_176_seq_1",
+      "id": "ranker",
+      "label": "ranker"
+    },
+    {
+      "id": "responder",
+      "label": "responder",
+      "role": "end"
+    },
+    {
+      "id": "scorer",
+      "label": "scorer"
+    },
+    {
+      "id": "start_typed_pydantic_pipeline",
+      "label": "start_typed_pydantic_pipeline",
+      "role": "start",
       "generated": true,
       "mutations": [
         "p['candidates'] = retrieve(p['query'], p.get('top_k', 10))"
       ]
-    },
-    {
-      "id": "start_ingester",
-      "label": "start_ingester",
-      "role": "start",
-      "generated": true
     }
   ],
   "edges": [
     {
-      "from": "start_ingester",
-      "to": "router_ingester_line_176_seq_1",
+      "from": "start_typed_pydantic_pipeline",
+      "to": "scorer",
       "label": null,
       "type": "prepend"
+    },
+    {
+      "from": "scorer",
+      "to": "ranker",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "ranker",
+      "to": "responder",
+      "label": null,
+      "type": "continuation"
     }
   ],
-  "groups": []
+  "groups": [
+    {
+      "id": "ingester",
+      "nodes": []
+    }
+  ]
 }

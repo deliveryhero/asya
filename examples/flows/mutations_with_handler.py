@@ -4,7 +4,7 @@ Mutations followed by handler.
 Tests grouping mutations before handler calls.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -17,6 +17,7 @@ def mutations_with_handler_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_process(p: dict) -> dict:
     """Process handler."""
     return p

@@ -4,11 +4,22 @@ digraph "while_simple_flow" {
 
     { rank=source; start_while_simple_flow; }
 
+    handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
+    handler_init [label="handler_init", fillcolor=lightblue];
+    handler_process [label="handler_process", fillcolor=lightblue];
+    router_while_simple_flow_line_13_seq_3 [label="router_while_simple_flow_line_13_seq_3\n\np['i'] = 0", fillcolor=wheat];
     router_while_simple_flow_line_14_while_1 [label="router_while_simple_flow_line_14_while_1", fillcolor=wheat];
     router_while_simple_flow_line_15_seq_2 [label="router_while_simple_flow_line_15_seq_2\n\np['i'] += 1", fillcolor=wheat];
-    start_while_simple_flow [label="start_while_simple_flow\n\np['i'] = 0", fillcolor=palegreen];
+    start_while_simple_flow [label="start_while_simple_flow", fillcolor=palegreen];
 
-    start_while_simple_flow -> router_while_simple_flow_line_14_while_1;
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_while_simple_flow -> handler_init;
+    handler_init -> router_while_simple_flow_line_13_seq_3;
+    router_while_simple_flow_line_15_seq_2 -> handler_process;
     router_while_simple_flow_line_14_while_1 -> router_while_simple_flow_line_15_seq_2 [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_while_simple_flow_line_15_seq_2 -> router_while_simple_flow_line_14_while_1;
+    router_while_simple_flow_line_14_while_1 -> handler_finalize [label="else", color="#D35400", fontcolor="#D35400"];
+    router_while_simple_flow_line_13_seq_3 -> router_while_simple_flow_line_14_while_1;
+    handler_process -> router_while_simple_flow_line_14_while_1;
+    handler_finalize -> __end__;
 }

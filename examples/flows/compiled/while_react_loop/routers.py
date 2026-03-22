@@ -25,7 +25,7 @@ async def router_react_agent_line_15_if_2(payload: dict):
     p = payload
     _next = []
     if p.get('tool_calls'):
-        pass
+        _next.append(resolve("execute_tool"))
     else:
         yield p
         return
@@ -37,6 +37,7 @@ async def router_react_agent_line_13_while_1(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
+    _next.append(resolve("llm_call"))
     _next.append(resolve("router_react_agent_line_15_if_2"))
     _next.append(resolve("router_react_agent_line_13_while_1"))
 

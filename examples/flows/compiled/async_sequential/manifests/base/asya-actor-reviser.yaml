@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-reviser
+  namespace: default
+  labels:
+    asya.sh/flow: llm-auditor-flow
+    asya.sh/role: end
+spec:
+  actor: actor-reviser
+  image: examples.asya.sh/reviser:latest
+  handler: reviser
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []

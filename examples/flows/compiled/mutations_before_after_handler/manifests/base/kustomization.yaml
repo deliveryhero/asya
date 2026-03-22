@@ -1,6 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asya-router-mutations-before-after-handler-flow-line-12-seq-1.yaml
+- asya-actor-handler-a.yaml
+- asya-actor-handler-b.yaml
+- asya-router-mutations-before-after-handler-flow-line-12-seq-3.yaml
+- asya-router-mutations-before-after-handler-flow-line-14-seq-2.yaml
+- asya-router-mutations-before-after-handler-flow-line-16-seq-1.yaml
 - asya-start-mutations-before-after-handler-flow.yaml
 - configmap-routers.yaml

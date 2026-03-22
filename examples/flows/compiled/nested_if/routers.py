@@ -16,6 +16,7 @@ Regenerate by running: asya flow compile nested_if.py
 async def start_nested_if_flow(payload: dict):
     """Entrypoint for flow 'nested_if_flow'"""
     _next = []
+    _next.append(resolve("handler_validate"))
     _next.append(resolve("router_nested_if_flow_line_13_if_7"))
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -25,6 +26,7 @@ async def router_nested_if_flow_line_16_seq_1(payload: dict):
     p = payload
     _next = []
     p['l2'] = 'X'
+    _next.append(resolve("handler_a_x"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -34,6 +36,7 @@ async def router_nested_if_flow_line_19_seq_2(payload: dict):
     p = payload
     _next = []
     p['l2'] = 'Y'
+    _next.append(resolve("handler_a_y"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -56,6 +59,7 @@ async def router_nested_if_flow_line_24_seq_4(payload: dict):
     p = payload
     _next = []
     p['l2'] = 'X'
+    _next.append(resolve("handler_b_x"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -65,6 +69,7 @@ async def router_nested_if_flow_line_27_seq_5(payload: dict):
     p = payload
     _next = []
     p['l2'] = 'Y'
+    _next.append(resolve("handler_b_y"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
@@ -88,8 +93,10 @@ async def router_nested_if_flow_line_13_if_7(payload: dict):
     _next = []
     if p['level1'] == 'A':
         _next.append(resolve("router_nested_if_flow_line_15_if_3"))
+        _next.append(resolve("handler_finalize"))
     else:
         _next.append(resolve("router_nested_if_flow_line_23_if_6"))
+        _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

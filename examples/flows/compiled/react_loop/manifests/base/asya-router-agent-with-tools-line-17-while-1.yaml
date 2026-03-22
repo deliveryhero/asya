@@ -17,6 +17,8 @@ spec:
   env:
   - name: ASYA_HANDLER_ACTOR_EXECUTE_TOOL
     value: execute_tool
+  - name: ASYA_HANDLER_ACTOR_LLM_CALL
+    value: llm_call
   - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_LINE_17_WHILE_1
     value: routers.router_agent_with_tools_line_17_while_1
   - name: ASYA_HANDLER_ROUTER_AGENT_WITH_TOOLS_LINE_19_IF_2

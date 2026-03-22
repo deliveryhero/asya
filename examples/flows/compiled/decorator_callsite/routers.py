@@ -10,6 +10,9 @@ Regenerate by running: asya flow compile decorator_callsite.py
 
 import time
 
+from _asya_utils import actor, flow
+
+@actor
 def stamp_timestamp(p: dict) -> dict:
     """Stamp current timestamp inline in the router."""
     p['ts'] = time.time()

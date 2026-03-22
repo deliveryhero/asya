@@ -13,6 +13,7 @@ from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from asya_lab.compiler.rules import RuleEngine
+    from asya_lab.flow.rules import CompilerRules
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -131,13 +132,26 @@ class AsyaProject:
         """
         from asya_lab.compiler.rules import RuleEngine
 
+        return RuleEngine.from_config(self._load_raw_rules_config())
+
+    def load_context_manager_rules(self) -> CompilerRules:
+        """Load context manager rules from config.compiler.rules.
+
+        Filters for entries with ``scope: context-manager`` and returns
+        a CompilerRules instance with defaults + user rules.
+        """
+        from asya_lab.flow.rules import CompilerRules
+
+        return CompilerRules.from_config(self._load_raw_rules_config())
+
+    def _load_raw_rules_config(self) -> list[dict] | None:
+        """Load raw compiler rules list from config.compiler.rules."""
         cfg = self._store.cfg
-        rules_cfg = None
         if "compiler" in cfg and "rules" in cfg["compiler"]:
             raw = OmegaConf.to_container(cfg["compiler"]["rules"], resolve=True)
             if isinstance(raw, list):
-                rules_cfg = raw
-        return RuleEngine.from_config(rules_cfg)
+                return raw
+        return None
 
     # -- contexts -----------------------------------------------------------
 

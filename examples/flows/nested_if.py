@@ -4,7 +4,7 @@ Nested if statements.
 Tests nested conditionals for complex decision trees.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -30,31 +30,37 @@ def nested_if_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_validate(p: dict) -> dict:
     """Validation handler."""
     return p
 
 
+@actor
 def handler_a_x(p: dict) -> dict:
     """A-X handler."""
     return p
 
 
+@actor
 def handler_a_y(p: dict) -> dict:
     """A-Y handler."""
     return p
 
 
+@actor
 def handler_b_x(p: dict) -> dict:
     """B-X handler."""
     return p
 
 
+@actor
 def handler_b_y(p: dict) -> dict:
     """B-Y handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

@@ -4,7 +4,7 @@ Simple if-else.
 Tests basic two-branch conditional.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -18,21 +18,25 @@ def if_else_simple_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_setup(p: dict) -> dict:
     """Setup handler."""
     return p
 
 
+@actor
 def handler_type_a(p: dict) -> dict:
     """Type A handler."""
     return p
 
 
+@actor
 def handler_type_b(p: dict) -> dict:
     """Type B handler."""
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Finalize handler."""
     return p

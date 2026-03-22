@@ -4,7 +4,7 @@ Complex workflow example.
 Demonstrates nested control structures combining if/else and while loops.
 """
 
-from _asya_utils import flow
+from _asya_utils import actor, flow
 
 
 @flow
@@ -36,24 +36,28 @@ def complex_flow(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_preprocess(p: dict) -> dict:
     """Initial preprocessing."""
     p["stage"] = "preprocessed"
     return p
 
 
+@actor
 def handler_validate(p: dict) -> dict:
     """Validate data."""
     p["valid"] = p.get("data") is not None
     return p
 
 
+@actor
 def handler_enrich_data(p: dict) -> dict:
     """Enrich data with additional information."""
     p["enriched"] = True
     return p
 
 
+@actor
 def handler_transform_batch(p: dict) -> dict:
     """Transform batch of items."""
     if "batch_count" not in p:
@@ -62,6 +66,7 @@ def handler_transform_batch(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_check_quality(p: dict) -> dict:
     """Check quality metrics."""
     p["quality_checked"] = True
@@ -69,6 +74,7 @@ def handler_check_quality(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_retry_handler(p: dict) -> dict:
     """Handle retry logic."""
     p["retried"] = True
@@ -78,12 +84,14 @@ def handler_retry_handler(p: dict) -> dict:
     return p
 
 
+@actor
 def handler_error(p: dict) -> dict:
     """Handle errors."""
     p["error_handled"] = True
     return p
 
 
+@actor
 def handler_finalize(p: dict) -> dict:
     """Final processing step."""
     p["finalized"] = True

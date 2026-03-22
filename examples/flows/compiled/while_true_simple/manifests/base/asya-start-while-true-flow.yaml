@@ -16,6 +16,12 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
   - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_LINE_13_WHILE_1
     value: routers.router_while_true_flow_line_13_while_1
   - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_LINE_15_IF_2

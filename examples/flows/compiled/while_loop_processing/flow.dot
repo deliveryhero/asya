@@ -4,22 +4,36 @@ digraph "loop_flow" {
 
     { rank=source; start_loop_flow; }
 
-    router_loop_flow_line_15_while_2 [label="router_loop_flow_line_15_while_2", fillcolor=wheat];
-    router_loop_flow_line_19_if_5 [label="router_loop_flow_line_19_if_5\n\np['iteration'] += 1\np['iteration'] += 1\np['last_processed'] = p['iteration']", fillcolor=wheat];
-    router_loop_flow_line_20_seq_4 [label="router_loop_flow_line_20_seq_4\n\np['abort'] = 1\np['abort'] = 2", fillcolor=wheat];
-    router_loop_flow_line_26_if_3 [label="router_loop_flow_line_26_if_3\n\np['threshold_met'] = p['iteration'] >= p.get('threshold', 3)", fillcolor=wheat];
-    router_loop_flow_line_59_seq_1 [label="router_loop_flow_line_59_seq_1\n\np['completed'] = True", fillcolor=wheat];
-    start_loop_flow [label="start_loop_flow\n\np['iteration'] = 0\np['max_iterations'] = p.get('max_iterations', 5)\np['iteration'] = 0", fillcolor=palegreen];
+    check_threshold [label="check_threshold", fillcolor=lightblue];
+    finalize_loop [label="finalize_loop", fillcolor=lightsalmon];
+    initialize [label="initialize", fillcolor=lightblue];
+    process_abort [label="process_abort", fillcolor=lightblue];
+    process_item [label="process_item", fillcolor=lightblue];
+    router_loop_flow_line_14_seq_7 [label="router_loop_flow_line_14_seq_7\n\np['iteration'] = 0", fillcolor=wheat];
+    router_loop_flow_line_15_while_1 [label="router_loop_flow_line_15_while_1", fillcolor=wheat];
+    router_loop_flow_line_16_seq_6 [label="router_loop_flow_line_16_seq_6\n\np['iteration'] += 1", fillcolor=wheat];
+    router_loop_flow_line_19_if_5 [label="router_loop_flow_line_19_if_5", fillcolor=wheat];
+    router_loop_flow_line_20_seq_4 [label="router_loop_flow_line_20_seq_4\n\np['abort'] = 1", fillcolor=wheat];
+    router_loop_flow_line_22_seq_3 [label="router_loop_flow_line_22_seq_3\n\np['abort'] = 2", fillcolor=wheat];
+    router_loop_flow_line_26_if_2 [label="router_loop_flow_line_26_if_2", fillcolor=wheat];
+    start_loop_flow [label="start_loop_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_loop_flow -> router_loop_flow_line_15_while_2;
-    router_loop_flow_line_26_if_3 -> router_loop_flow_line_59_seq_1 [label="p['threshold_met']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_loop_flow_line_20_seq_4 -> router_loop_flow_line_15_while_2;
+    start_loop_flow -> initialize;
+    initialize -> router_loop_flow_line_14_seq_7;
+    router_loop_flow_line_26_if_2 -> finalize_loop [label="p['threshold_met']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_loop_flow_line_22_seq_3 -> router_loop_flow_line_15_while_1;
+    router_loop_flow_line_20_seq_4 -> process_abort;
+    process_abort -> router_loop_flow_line_22_seq_3;
     router_loop_flow_line_19_if_5 -> router_loop_flow_line_20_seq_4 [label="p.get('skip_threshold_check')", color="#2E8B57", fontcolor="#2E8B57"];
-    router_loop_flow_line_19_if_5 -> router_loop_flow_line_26_if_3 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_loop_flow_line_15_while_2 -> router_loop_flow_line_19_if_5 [label="p['iteration'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_loop_flow_line_15_while_2 -> router_loop_flow_line_59_seq_1 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_loop_flow_line_26_if_3 -> router_loop_flow_line_15_while_2 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_loop_flow_line_59_seq_1 -> __end__;
+    router_loop_flow_line_19_if_5 -> check_threshold [label="else", color="#D35400", fontcolor="#D35400"];
+    check_threshold -> router_loop_flow_line_26_if_2;
+    router_loop_flow_line_16_seq_6 -> process_item;
+    process_item -> router_loop_flow_line_19_if_5;
+    router_loop_flow_line_15_while_1 -> router_loop_flow_line_16_seq_6 [label="p['iteration'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_loop_flow_line_15_while_1 -> finalize_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_loop_flow_line_14_seq_7 -> router_loop_flow_line_15_while_1;
+    router_loop_flow_line_26_if_2 -> router_loop_flow_line_15_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    finalize_loop -> __end__;
 }

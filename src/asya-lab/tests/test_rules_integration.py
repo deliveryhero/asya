@@ -86,12 +86,11 @@ class TestLoadRulesFromConfig:
         (asya_dir / "config.yaml").write_text("{}")
         project = AsyaProject.from_dir(tmp_path)
         engine = project.load_rules()
-        # Bare symbol matches "." (same-package) → unfold
-        assert engine.classify("something") == TreatAs.UNFOLD
-        # Dotted external symbol matches "*" → inline
-        assert engine.classify("external.lib") == TreatAs.INLINE
+        # No built-in defaults, so everything returns None
+        assert engine.classify("something") is None
+        assert engine.classify("external.lib") is None
 
-    def test_user_rule_overrides_default(self, tmp_path: Path) -> None:
+    def test_user_rule_exact_match(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
@@ -99,10 +98,10 @@ class TestLoadRulesFromConfig:
         (asya_dir / "config.compiler.rules.yaml").write_text('- match: "tenacity.retry"\n  treat-as: config\n')
         project = AsyaProject.from_dir(tmp_path)
         engine = project.load_rules()
-        # User rule: exact match beats wildcard default
+        # User rule: exact match
         assert engine.classify("tenacity.retry") == TreatAs.CONFIG
-        # Default still works for unmatched external
-        assert engine.classify("external.lib") == TreatAs.INLINE
+        # Unmatched symbol returns None
+        assert engine.classify("external.lib") is None
 
     @pytest.mark.skip(reason="Config extraction with where: rules not yet implemented in Phase 1 parser")
     def test_config_extraction_carried_through_parser(self, tmp_path: Path) -> None:

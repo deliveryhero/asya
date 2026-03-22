@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-emit-code
+  namespace: default
+  labels:
+    asya.sh/flow: compiler-pipeline
+    asya.sh/role: end
+spec:
+  actor: actor-emit-code
+  image: examples.asya.sh/emit-code:latest
+  handler: emit_code
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: '5'
+  env: []
