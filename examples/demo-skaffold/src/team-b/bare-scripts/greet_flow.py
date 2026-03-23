@@ -12,6 +12,6 @@ from shouter import shout
 
 
 def greet_flow(payload: dict) -> dict:  # asya: flow
-    payload["greeting"] = greet(payload)  # asya: actor
-    payload = shout(payload)  # asya: actor
+    payload["greeting"] = greet(payload)
+    payload = shout(payload)
     return payload

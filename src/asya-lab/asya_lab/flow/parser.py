@@ -224,6 +224,7 @@ class FlowParser:
         self._collect_module_constants(tree)
         self._local_functions = {node.name for node in tree.body if isinstance(node, _FUNC_DEF_TYPES)}
         self._decorator_index = self._build_decorator_index(tree)
+        self._scan_imported_directives()
         flow_func = self._find_flow_function(tree)
         if not flow_func:
             raise FlowCompileError(
@@ -329,6 +330,32 @@ class FlowParser:
                         if treat_as is not None:
                             index[node.name] = treat_as
         return index
+
+    def _scan_imported_directives(self) -> None:
+        """Check imported functions' source for # asya: actor on def lines.
+
+        Resolves import targets to source files via importlib, reads just the
+        def line, and adds to _decorator_index if directive found.
+        """
+        import importlib
+        import importlib.util
+        import inspect as _inspect
+
+        for name, fqn in self.import_map.items():
+            if name in self._decorator_index or name in self._local_functions:
+                continue
+            try:
+                mod = importlib.import_module(fqn.rsplit(".", 1)[0])
+                func = getattr(mod, fqn.rsplit(".", 1)[1], None)
+                if func is None or not callable(func):
+                    continue
+                source_lines, _ = _inspect.getsourcelines(func)
+                if source_lines and _DIRECTIVE_PATTERN.search(source_lines[0]):
+                    m = _DIRECTIVE_PATTERN.search(source_lines[0])
+                    if m:
+                        self._decorator_index[name] = m.group(1)
+            except Exception:
+                continue
 
     def _should_strip_decorator(self, fqn: str) -> bool:
         """Check if a decorator should be stripped based on rule engine."""

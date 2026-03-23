@@ -1,7 +1,7 @@
 """Greeter: prepend a greeting to the text."""
 
 
-def greet(payload: dict) -> dict:
+def greet(payload: dict) -> dict:  # asya: actor
     name = payload.get("name", "world")
     payload["greeting"] = f"Hello, {name}!"
     print(f"[+] greet: {payload['greeting']}")

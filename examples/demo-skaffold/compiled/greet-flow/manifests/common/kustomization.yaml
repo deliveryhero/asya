@@ -5,3 +5,7 @@ resources:
 - ../base
 configurations:
 - kustomizeconfig.yaml
+patches:
+- path: patch-actor-greet.yaml
+- path: patch-actor-shout.yaml
+- path: patch-start-greet-flow.yaml

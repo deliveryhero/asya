@@ -62,6 +62,7 @@ class FlowCompiler:
         self.is_async: bool = False
         self.import_map: dict[str, str] = {}
         self.handler_source_files: dict[str, Path] = {}  # actor_name -> source file
+        self._definition_site_actors: set[str] = set()  # functions with # asya: actor on def line
         self.module_constants: list[str] = []
         self._parse_result: ParseResult | None = None
         self._generated_code: str | None = None
@@ -92,6 +93,11 @@ class FlowCompiler:
             d.mkdir(parents=True, exist_ok=True)
 
         source_code = source_path.read_text()
+
+        # Add skaffold context dirs to sys.path before parsing so the parser
+        # can resolve imported function definitions for # asya: actor directives
+        added_paths = self._add_skaffold_dirs_to_path()
+
         compiled_file = routers_path / "routers.py"
         compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
         compiled_file.write_text(compiled_code)
@@ -118,6 +124,8 @@ class FlowCompiler:
         ops = self._parse_result.operations if self._parse_result else []
         num_actor_calls = sum(1 for op in ops if isinstance(op, ActorCall))
         num_inline_mutations = sum(1 for op in ops if isinstance(op, Mutation))
+
+        self._cleanup_sys_path(added_paths)
 
         return FlowInfo(
             flow_name=flow_name,
@@ -427,21 +435,32 @@ class FlowCompiler:
                 self._cleanup_sys_path(added_paths)
                 return
 
-        for actor_name in actor_names:
-            func = getattr(mod, actor_name, None)
+        # Scan all imported names (not just actors) for source files and directives
+        import_names = list(self._parse_result.import_map.keys()) if self._parse_result else []
+        all_names = set(actor_names) | set(import_names)
+
+        for name in all_names:
+            func = getattr(mod, name, None)
             if func is None or not callable(func):
                 continue
 
             handler_fqn = f"{func.__module__}.{func.__qualname__}"
-            self.import_map[actor_name] = handler_fqn
+            self.import_map[name] = handler_fqn
 
             try:
                 source_file = Path(inspect.getfile(func)).resolve()
-                self.handler_source_files[actor_name] = source_file
-                if self.verbose:
+                self.handler_source_files[name] = source_file
+                if self.verbose and name in actor_names:
                     import click
 
-                    click.echo(f"    [.] {actor_name} -> {handler_fqn} ({source_file})")
+                    click.echo(f"    [.] {name} -> {handler_fqn} ({source_file})")
+
+                # Check if the function definition has # asya: actor directive
+                source_lines, start_line = inspect.getsourcelines(func)
+                if source_lines:
+                    def_line = source_lines[0]
+                    if "# asya: actor" in def_line and name not in actor_names:
+                        self._definition_site_actors.add(name)
             except (TypeError, OSError):
                 pass
 
