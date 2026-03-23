@@ -1797,7 +1797,11 @@ def test_asyncactor_flavors_resolved(e2e_helper):
     actor_list_append = f"test-flavor-append-{e2e_helper.namespace[-4:]}"
 
     try:
-        # --- Scenario 1: single flavor ---
+        # Create all actors up front so Crossplane reconciles them in parallel.
+        # Flavor resolution needs two reconciliation cycles (request -> merge),
+        # and serial 180s waits can exceed the 600s test timeout under CI load.
+
+        # --- Create Scenario 1: single flavor ---
         logger.info("Creating actor with single flavor...")
         kubectl_apply_raw(
             _actor_manifest(
@@ -1808,11 +1812,54 @@ def test_asyncactor_flavors_resolved(e2e_helper):
             namespace=e2e_helper.namespace,
         )
 
-        assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=180), (
-            "Flavor actor should reach Ready=True"
+        # --- Create Scenario 2: multiple flavors + env var override ---
+        logger.info("Creating actor with multiple flavors and env var override...")
+        override_env = """\
+  - name: FLAVOR_EXTRA_VAR
+    value: from-actor"""
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_multi,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-env-vars"],
+                extra_runtime_env=override_env,
+            ),
+            namespace=e2e_helper.namespace,
         )
 
-        # Verify the Deployment has resources applied by the flavor
+        # --- Create Scenario 3: no flavors (backward compat) ---
+        logger.info("Creating actor without flavors...")
+        kubectl_apply_raw(
+            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
+            namespace=e2e_helper.namespace,
+        )
+
+        # --- Create Scenario 4: list append (tolerations from two flavors) ---
+        logger.info("Creating actor with two toleration flavors (list append)...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_list_append,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        # Wait for all actors to become ready (parallel reconciliation)
+        assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=300), (
+            "Flavor actor should reach Ready=True"
+        )
+        assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=300), (
+            "Multi-flavor actor should reach Ready=True"
+        )
+        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=300), (
+            "Non-overlaid actor should reach Ready=True (backward compat)"
+        )
+        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=300), (
+            "List-append actor should reach Ready=True"
+        )
+
+        # --- Verify Scenario 1: single flavor ---
         deployment = kubectl_get("deployment", actor_single, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
@@ -1826,23 +1873,7 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] Single flavor: resources correctly applied from flavor")
 
-        # --- Scenario 2: multiple flavors + env var override ---
-        logger.info("Creating actor with multiple flavors and env var override...")
-        override_env = """\
-  - name: FLAVOR_EXTRA_VAR
-    value: from-actor"""
-        manifest = _actor_manifest(
-            actor_multi,
-            e2e_helper.namespace,
-            flavors=["asya-test-actor", "asya-test-env-vars"],
-            extra_runtime_env=override_env,
-        )
-        kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
-
-        assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=180), (
-            "Multi-flavor actor should reach Ready=True"
-        )
-
+        # --- Verify Scenario 2: multiple flavors + env var override ---
         deployment = kubectl_get("deployment", actor_multi, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
@@ -1853,33 +1884,10 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] Multi-flavor: env var override correctly applied")
 
-        # --- Scenario 3: no flavors (backward compat) ---
-        logger.info("Creating actor without flavors...")
-        kubectl_apply_raw(
-            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
-            namespace=e2e_helper.namespace,
-        )
-
-        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=180), (
-            "Non-overlaid actor should reach Ready=True (backward compat)"
-        )
+        # --- Verify Scenario 3: no flavors (backward compat) ---
         logger.info("[+] No-flavor actor: backward compat confirmed")
 
-        # --- Scenario 4: list append (tolerations from two flavors) ---
-        logger.info("Creating actor with two toleration flavors (list append)...")
-        kubectl_apply_raw(
-            _actor_manifest(
-                actor_list_append,
-                e2e_helper.namespace,
-                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
-            ),
-            namespace=e2e_helper.namespace,
-        )
-
-        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=180), (
-            "List-append actor should reach Ready=True"
-        )
-
+        # --- Verify Scenario 4: list append (tolerations from two flavors) ---
         deployment = kubectl_get("deployment", actor_list_append, namespace=e2e_helper.namespace)
         pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
         tolerations = pod_spec.get("tolerations", [])
