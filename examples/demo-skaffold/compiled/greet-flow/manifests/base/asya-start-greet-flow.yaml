@@ -16,6 +16,8 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
+  - name: PYTHONUNBUFFERED
+    value: '1'
   - name: ASYA_HANDLER_ACTOR_GREET
     value: greeter.greet
   - name: ASYA_HANDLER_ROUTER_GREET_FLOW_SEQ_P_SHOUT_P
