@@ -150,7 +150,7 @@ spec:
               annotations:
                 gotemplating.fn.crossplane.io/composition-resource-name: scaledobject
             spec:
-              watch: false
+              watch: true
               forProvider:
                 manifest:
                   apiVersion: keda.sh/v1alpha1

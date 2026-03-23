@@ -479,3 +479,30 @@ class TestScalingAdvancedCompositionTemplates:
         assert "formula:" in template
         assert "activationTarget:" in template
         assert "metricType:" in template
+
+
+class TestScaledObjectWatchEnabled:
+    """Test that ScaledObject Object resources have watch: true.
+
+    Regression test for mqd9: without watch: true, provider-kubernetes does not
+    observe ScaledObject status changes, so status.infrastructure.keda.ready
+    stays false forever and the actor phase is stuck at Creating.
+    """
+
+    @pytest.fixture(params=["asyncactor-sqs", "asyncactor-rabbitmq"])
+    def composition(self, request) -> dict:
+        """Get SQS and RabbitMQ compositions (pubsub requires GCP values)."""
+        docs = helm_template()
+        comp = find_composition(docs, request.param)
+        assert comp is not None, f"{request.param} Composition should exist"
+        return comp
+
+    def test_scaledobject_object_has_watch_true(self, composition):
+        """Test the ScaledObject Object resource has watch: true for status observation."""
+        step = get_pipeline_step(composition, "render-scaledobject")
+        template = step["input"]["inline"]["template"]
+
+        assert "watch: true" in template, (
+            "ScaledObject Object resource must have watch: true so provider-kubernetes "
+            "observes status changes and populates status.atProvider.manifest.status"
+        )
