@@ -13,7 +13,6 @@ import (
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
 	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -53,6 +52,9 @@ func main() {
 		cancel()
 	}()
 
+	emulatorHost := os.Getenv("PUBSUB_EMULATOR_HOST")
+	slog.Info("Pub/Sub client config", "PUBSUB_EMULATOR_HOST", emulatorHost)
+
 	client, err := pubsub.NewSubscriptionAdminClient(ctx)
 	if err != nil {
 		slog.Error("Failed to create Pub/Sub client", "error", err)
@@ -68,9 +70,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// In-cluster gRPC server — TLS is handled by the service mesh / network policy.
-	// KEDA external scalers use plaintext gRPC by convention.
-	srv := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
+	srv := grpc.NewServer() // nolint:gosec // in-cluster plaintext gRPC, TLS via service mesh
 	pb.RegisterExternalScalerServer(srv, scaler)
 
 	healthSrv := health.NewServer()
