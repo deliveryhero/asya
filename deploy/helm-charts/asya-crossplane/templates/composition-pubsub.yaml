@@ -140,6 +140,7 @@ spec:
               {{`{{- end -}}`}}
             {{`{{- end -}}`}}
             {{`{{- if $scalingEnabled -}}`}}
+            {{- if not .Values.pubsub.keda.scaler.enabled }}
             apiVersion: kubernetes.crossplane.io/v1alpha2
             kind: Object
             metadata:
@@ -169,6 +170,7 @@ spec:
                         key: {{ .Values.pubsub.keda.secretRef.credentialsKey }}
               providerConfigRef:
                 name: {{ .Values.kubernetesProviderConfig.name }}
+            {{- end }}
             {{`{{- end }}`}}
 
     # Create KEDA ScaledObject for autoscaling based on Pub/Sub subscription size
@@ -260,6 +262,14 @@ spec:
                     pollingInterval: {{`{{ $pollingInterval }}`}}
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
+                      {{- if .Values.pubsub.keda.scaler.enabled }}
+                      - type: external
+                        name: queue
+                        metadata:
+                          scalerAddress: "{{ .Values.pubsub.keda.scaler.address }}"
+                          subscriptionName: projects/{{`{{ $gcpProject }}`}}/subscriptions/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
+                          targetValue: "{{`{{ $queueLength }}`}}"
+                      {{- else }}
                       - type: gcp-pubsub
                         name: queue
                         authenticationRef:
@@ -268,6 +278,7 @@ spec:
                           subscriptionName: projects/{{`{{ $gcpProject }}`}}/subscriptions/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                           mode: SubscriptionSize
                           value: "{{`{{ $queueLength }}`}}"
+                      {{- end }}
                       {{`{{- range ($scaling.additionalTriggers | default list) }}`}}
                       - {{`{{ toYaml . | nindent 24 }}`}}
                       {{`{{- end }}`}}

@@ -24,13 +24,6 @@ import time
 
 import pytest
 
-if os.getenv("ASYA_TRANSPORT") == "pubsub":
-    pytest.skip(
-        "KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics; "
-        "ScaledObjects are created by Crossplane but KEDA triggers show TriggerError",
-        allow_module_level=True,
-    )
-
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,
@@ -118,6 +111,11 @@ spec:
             assert "queueURL" in trigger["metadata"]
         elif transport == "rabbitmq":
             assert trigger["type"] == "rabbitmq"
+        elif transport == "pubsub":
+            assert trigger["type"] == "external", \
+                "Pub/Sub should use external scaler (not gcp-pubsub)"
+            assert "scalerAddress" in trigger["metadata"]
+            assert "subscriptionName" in trigger["metadata"]
 
         logger.info("[+] ScaledObject created with correct configuration")
 
@@ -323,8 +321,11 @@ def test_triggerauthentication_created(ensure_keda_installed, namespace):
 
     The Composition always creates TriggerAuthentication when scaling is
     enabled. The auth method depends on the Helm values (podIdentity or secret).
+    Skipped for pubsub: external scaler handles auth internally.
     """
     transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    if transport == "pubsub":
+        pytest.skip("External scaler handles auth internally; no TriggerAuthentication created")
     actor_name = "test-trigger-auth"
 
     actor_manifest = f"""
