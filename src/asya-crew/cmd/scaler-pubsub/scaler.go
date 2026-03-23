@@ -10,6 +10,8 @@ import (
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
 	pubsubpb "cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 const (
@@ -165,6 +167,12 @@ func (s *PubSubScaler) pullAndNack(ctx context.Context, subscription string, max
 		MaxMessages:  maxMessages,
 	})
 	if err != nil {
+		// Subscription may not exist yet (Crossplane still creating it).
+		// Return 0 instead of an error so KEDA reports inactive, not failed.
+		if status.Code(err) == codes.NotFound {
+			slog.Debug("Subscription not found, reporting 0 messages", "subscription", subscription)
+			return 0, nil
+		}
 		return 0, fmt.Errorf("pull from %s: %w", subscription, err)
 	}
 
