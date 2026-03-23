@@ -835,11 +835,12 @@ def context_use(name: str) -> None:
 
 _PORT_FORWARD_TARGETS: dict[str, tuple[str, int, int]] = {
     # name: (service, remote_port, default_local_port)
-    "gateway": ("svc/asya-gateway-api", 80, 8080),
-    "gateway-mesh": ("svc/asya-gateway-mesh", 80, 8081),
-    "grafana": ("svc/grafana", 80, 3000),
+    # Ports chosen to avoid conflicts with common services (8080=docker, 3000=grafana cloud)
+    "gateway": ("svc/asya-gateway-api", 80, 18080),
+    "gateway-mesh": ("svc/asya-gateway-mesh", 80, 18081),
+    "grafana": ("svc/grafana", 80, 13000),
     "jaeger": ("svc/jaeger-query", 16686, 16686),
-    "prometheus": ("svc/prometheus-server", 80, 9090),
+    "prometheus": ("svc/prometheus-server", 80, 19090),
 }
 
 
@@ -1009,36 +1010,42 @@ def kill_port_forward(target: str | None, kill_all: bool) -> None:
 # ---------------------------------------------------------------------------
 
 
-@click.command()
-@click.argument("target", type=ASYA_REF)
-@click.argument("message", required=True)
-@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-@click.option("--url", default=None, help="Gateway URL (default: auto-detect via port-forward)")
-@click.option("--skill", default=None, help="Skill hint when multiple flows are registered")
-@click.option("--follow", "-f", is_flag=True, help="Stream FLY events (not yet implemented)")
-def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | None, follow: bool) -> None:
-    """Send a message to a deployed flow via A2A.
+def _fetch_api_key(runner: KubeRunner, key_name: str) -> str | None:
+    """Fetch an API key from the asya-gateway-auth K8s secret."""
+    import base64
+    import json as _json
 
-    TARGET is the flow name. MESSAGE is the text payload.
+    result = runner.kubectl(
+        "get", "secret", "asya-gateway-auth",
+        "-o", "json",
+        quiet=True, capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        return None
+    try:
+        data = _json.loads(result.stdout).get("data", {})
+        encoded = data.get(key_name)
+        if not encoded:
+            return None
+        return base64.b64decode(encoded).decode()
+    except Exception:
+        return None
 
-    \b
-    Examples:
-      asya k send text-flow "Analyze this text"
-      asya k send text-flow '{"key": "value"}'
-      asya k send greet-flow "Hello" --skill greet-flow
-    """
+
+def _send_a2a(
+    url: str,
+    message: str,
+    skill: str | None,
+    api_key: str | None,
+    stream: bool,
+) -> None:
+    """Send a message via A2A protocol."""
     import json as _json
     import uuid
-
-    if url is None:
-        runner = KubeRunner(ctx)
-        # Try to detect gateway URL from port-forward or service
-        url = _detect_gateway_url(runner)
+    import urllib.request
 
     task_id = str(uuid.uuid4())
     msg_id = str(uuid.uuid4())
-
-    parts = [{"kind": "text", "text": message}]
 
     request = {
         "jsonrpc": "2.0",
@@ -1048,22 +1055,22 @@ def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | 
             "message": {
                 "messageId": msg_id,
                 "role": "user",
-                "parts": parts,
+                "parts": [{"kind": "text", "text": message}],
             },
         },
     }
     if skill:
         request["params"]["metadata"] = {"skill": skill}
 
-    click.echo(f"[.] Sending to {target.name} via {url}/a2a/", err=True)
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
 
     try:
-        import urllib.request
-
         req = urllib.request.Request(
             f"{url}/a2a/",
             data=_json.dumps(request).encode(),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
         )
         with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
             body = _json.loads(resp.read())
@@ -1087,6 +1094,119 @@ def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | 
         click.echo(f"[.] Task {result_id}: {state}")
 
     click.echo(_json.dumps(result, indent=2))
+
+
+def _send_mcp(
+    url: str,
+    tool_name: str,
+    message: str,
+    api_key: str | None,
+    stream: bool,
+) -> None:
+    """Send a message via MCP protocol (initialize session + tools/call)."""
+    import json as _json
+    import uuid
+    import urllib.request
+
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    def _mcp_call(method: str, params: dict, session_id: str | None = None) -> tuple[dict, str | None]:
+        h = dict(headers)
+        if session_id:
+            h["Mcp-Session-Id"] = session_id
+        req_body = {"jsonrpc": "2.0", "id": str(uuid.uuid4()), "method": method, "params": params}
+        req = urllib.request.Request(f"{url}/mcp", data=_json.dumps(req_body).encode(), headers=h)
+        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
+            sid = resp.headers.get("Mcp-Session-Id", session_id)
+            return _json.loads(resp.read()), sid
+
+    # Initialize session
+    click.echo("[.] MCP: initializing session...", err=True)
+    init_resp, session_id = _mcp_call("initialize", {
+        "protocolVersion": "2025-03-26",
+        "capabilities": {},
+        "clientInfo": {"name": "asya-cli", "version": "1.0"},
+    })
+
+    if "error" in init_resp:
+        click.echo(f"[-] MCP initialize failed: {init_resp['error']}", err=True)
+        sys.exit(1)
+
+    # Try parsing message as JSON for tool arguments
+    try:
+        arguments = _json.loads(message)
+        if not isinstance(arguments, dict):
+            arguments = {"text": message}
+    except _json.JSONDecodeError:
+        arguments = {"text": message}
+
+    # Call tool
+    click.echo(f"[.] MCP: calling tool '{tool_name}'...", err=True)
+    call_resp, _ = _mcp_call("tools/call", {"name": tool_name, "arguments": arguments}, session_id)
+
+    if "error" in call_resp:
+        click.echo(f"[-] MCP call failed: {call_resp['error']}", err=True)
+        sys.exit(1)
+
+    result = call_resp.get("result", {})
+    click.echo("[+] MCP call completed")
+    click.echo(_json.dumps(result, indent=2))
+
+
+@click.command()
+@click.argument("target", type=ASYA_REF)
+@click.argument("message", required=True)
+@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
+@click.option("--url", default=None, help="Gateway URL (default: auto-detect via port-forward)")
+@click.option("--skill", default=None, help="Skill hint when multiple flows are registered")
+@click.option("--a2a", "use_a2a", is_flag=True, default=False, help="Use A2A protocol (default)")
+@click.option("--mcp", "use_mcp", is_flag=True, default=False, help="Use MCP protocol")
+@click.option("--stream", is_flag=True, help="Stream events (A2A subscribe)")
+@click.option("--api-key", default=None, help="API key (default: auto-fetch from asya-gateway-auth secret)")
+def send(
+    target: AsyaRef,
+    message: str,
+    ctx: str,
+    url: str | None,
+    skill: str | None,
+    use_a2a: bool,
+    use_mcp: bool,
+    stream: bool,
+    api_key: str | None,
+) -> None:
+    """Send a message to a deployed flow.
+
+    TARGET is the flow name. MESSAGE is the text payload.
+    Auto-fetches API key from the asya-gateway-auth K8s secret.
+
+    \b
+    Examples:
+      asya k send text-flow "Analyze this text"
+      asya k send text-flow "Analyze this text" --mcp
+      asya k send greet-flow "Hello" --skill greet-flow
+      asya k send text-flow '{"key":"val"}' --mcp
+    """
+    runner = KubeRunner(ctx)
+
+    if url is None:
+        url = _detect_gateway_url(runner)
+
+    # Auto-fetch API key from K8s secret
+    if api_key is None:
+        if use_mcp:
+            api_key = _fetch_api_key(runner, "mcp-api-key")
+        else:
+            api_key = _fetch_api_key(runner, "a2a-api-key")
+
+    # Default to A2A
+    if not use_mcp:
+        click.echo(f"[.] Sending to {target.name} via {url}/a2a/", err=True)
+        _send_a2a(url, message, skill or target.name, api_key, stream)
+    else:
+        click.echo(f"[.] Sending to {target.name} via {url}/mcp", err=True)
+        _send_mcp(url, target.name, message, api_key, stream)
 
 
 def _detect_gateway_url(runner: KubeRunner) -> str:
