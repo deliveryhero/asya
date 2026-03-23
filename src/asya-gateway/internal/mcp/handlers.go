@@ -27,7 +27,7 @@ var (
 	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
 )
 
-const flyChannel = "fly"
+const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id + colon
 
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
@@ -687,15 +687,21 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 
 	// Broadcast via PG NOTIFY for cross-process delivery (dual-gateway mode).
 	// FLY events are ephemeral — no INSERT, no UPDATE, no DB storage.
+	// NotifyFLY is the fallback when pg_notify is not available or fails.
 	if h.pool != nil {
 		notification := taskID + ":" + string(body)
-		if _, err := h.pool.Exec(r.Context(), "SELECT pg_notify($1, $2)", flyChannel, notification); err != nil {
-			slog.Warn("Failed to pg_notify FLY event", "task_id", taskID, "error", err)
+		if len(notification) > maxPGNotifyPayload {
+			slog.Warn("FLY event too large for pg_notify, using in-process only",
+				"task_id", taskID, "size", len(notification))
+			h.taskStore.NotifyFLY(taskID, body)
+		} else if _, err := h.pool.Exec(r.Context(), "SELECT pg_notify($1, $2)", envelopestore.FLYChannel, notification); err != nil {
+			slog.Warn("Failed to pg_notify FLY event, falling back to in-process",
+				"task_id", taskID, "error", err)
+			h.taskStore.NotifyFLY(taskID, body)
 		}
+	} else {
+		h.taskStore.NotifyFLY(taskID, body)
 	}
-
-	// Notify in-process subscribers (single-gateway/testing mode)
-	h.taskStore.NotifyFLY(taskID, body)
 
 	w.WriteHeader(http.StatusOK)
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const flyChannel = "fly"
+const FLYChannel = "fly"
 
 // parseFLYNotification splits a "task_id:payload_json" notification.
 func parseFLYNotification(raw string) (string, string, bool) {
@@ -48,11 +48,11 @@ func (s *PgStore) listenLoop(ctx context.Context, connString string) error {
 	}
 	defer func() { _ = conn.Close(ctx) }()
 
-	if _, err := conn.Exec(ctx, "LISTEN "+flyChannel); err != nil {
+	if _, err := conn.Exec(ctx, "LISTEN "+FLYChannel); err != nil {
 		return err
 	}
 
-	slog.Info("FLY listener started", "channel", flyChannel)
+	slog.Info("FLY listener started", "channel", FLYChannel)
 
 	for {
 		notification, err := conn.WaitForNotification(ctx)

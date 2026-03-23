@@ -414,12 +414,12 @@ func TestBlockingModeRelaysFLYAsArtifactChunks(t *testing.T) {
 	eq := &mockEventQueue{}
 
 	go func() {
-		time.Sleep(50 * time.Millisecond) // wait for subscription
+		time.Sleep(50 * time.Millisecond) // wait for Subscribe() to register before sending events
 
 		store.NotifyFLY(taskID, []byte(`{"text":"Hello"}`))
-		time.Sleep(20 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond) // space between FLY events to ensure ordering
 		store.NotifyFLY(taskID, []byte(`{"text":" world"}`))
-		time.Sleep(20 * time.Millisecond)
+		time.Sleep(20 * time.Millisecond) // space before terminal event
 
 		_ = store.Update(types.EnvelopeUpdate{
 			ID:        taskID,
@@ -495,13 +495,13 @@ func TestBlockingModeNonTerminalStatusStillDropped(t *testing.T) {
 	eq := &mockEventQueue{}
 
 	go func() {
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond) // wait for Subscribe() to register before sending updates
 		_ = store.Update(types.EnvelopeUpdate{
 			ID:        taskID,
 			Status:    types.EnvelopeStatusRunning,
 			Timestamp: time.Now(),
 		})
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond) // space before terminal update
 		_ = store.Update(types.EnvelopeUpdate{
 			ID:        taskID,
 			Status:    types.EnvelopeStatusSucceeded,
