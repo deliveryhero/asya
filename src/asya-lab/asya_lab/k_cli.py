@@ -317,30 +317,93 @@ def delete(target: AsyaRef, ctx: str) -> None:
 
 
 @click.command("status")
-@click.argument("target", type=ASYA_REF)
+@click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-def k_status(target: AsyaRef, ctx: str) -> None:
-    """Show live cluster status for a deployed flow.
+def k_status(target: AsyaRef | None, ctx: str) -> None:
+    """Show live cluster status for deployed flows.
 
-    TARGET is the flow name. Shows replicas, phase, and pod status.
+    TARGET is an optional flow name. Without it, shows all flows.
+
+    \b
+    Examples:
+      asya k status                  # all flows
+      asya k status text-flow        # one flow
     """
-    runner = KubeRunner(ctx)
+    import json as _json
 
+    runner = KubeRunner(ctx)
+    label = f"asya.sh/flow={target.name}" if target else "asya.sh/flow"
+
+    # Get actors
     result = runner.kubectl(
-        "get",
-        "asyncactor",
-        "-l",
-        f"asya.sh/flow={target.name}",
-        "-o",
-        "wide",
-        capture_output=True,
-        text=True,
+        "get", "asyncactor", "-l", label, "-o", "json",
+        quiet=True, capture_output=True, text=True,
     )
-    if result.stdout:
-        click.echo(result.stdout, nl=False)
     if result.returncode != 0:
-        click.echo(result.stderr, err=True)
+        if target:
+            click.echo(f"[-] No actors found for flow '{target.name}'", err=True)
+        else:
+            click.echo("[-] No actors found", err=True)
         sys.exit(result.returncode)
+
+    actors_data = _json.loads(result.stdout)
+    actors = actors_data.get("items", [])
+    if not actors:
+        click.echo("[.] No actors deployed")
+        return
+
+    # Get pods
+    pod_result = runner.kubectl(
+        "get", "pods", "-l", label, "-o", "json",
+        quiet=True, capture_output=True, text=True,
+    )
+    pods_by_actor: dict[str, list[dict]] = {}
+    if pod_result.returncode == 0:
+        for pod in _json.loads(pod_result.stdout).get("items", []):
+            actor_name = pod["metadata"].get("labels", {}).get("app.kubernetes.io/name", "?")
+            pods_by_actor.setdefault(actor_name, []).append(pod)
+
+    # Group by flow
+    flows: dict[str, list[dict]] = {}
+    for actor in actors:
+        flow = actor["metadata"].get("labels", {}).get("asya.sh/flow", "?")
+        flows.setdefault(flow, []).append(actor)
+
+    for flow_name, flow_actors in sorted(flows.items()):
+        click.echo(f"Flow: {flow_name}")
+        for actor in flow_actors:
+            name = actor["metadata"]["name"]
+            spec = actor.get("spec", {})
+            status_phase = actor.get("status", {}).get("phase", "?")
+
+            # Derive actual status from pods (XRD status is unreliable — debt/mqd9)
+            actor_pods = pods_by_actor.get(name, [])
+            if actor_pods:
+                running = sum(1 for p in actor_pods if p["status"].get("phase") == "Running")
+                ready = sum(
+                    1 for p in actor_pods
+                    if all(c.get("ready") for c in p["status"].get("containerStatuses", []))
+                )
+                total = len(actor_pods)
+                pod_status = f"{ready}/{total} ready"
+            else:
+                running = ready = total = 0
+                scaling = spec.get("scaling", {})
+                if scaling.get("enabled") and scaling.get("minReplicaCount", 0) == 0:
+                    pod_status = "scaled to 0 (KEDA)"
+                else:
+                    pod_status = "no pods"
+
+            # Role indicator
+            role = actor["metadata"].get("labels", {}).get("asya.sh/role", "")
+            role_marker = f" ({role})" if role else ""
+
+            # Handler
+            handler = spec.get("handler", "?")
+
+            click.echo(f"  {name}{role_marker}: {pod_status}, handler={handler}")
+
+        click.echo()
 
 
 # ---------------------------------------------------------------------------

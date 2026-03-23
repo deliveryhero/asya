@@ -22,6 +22,7 @@ All commands run from `examples/demo-skaffold/`.
 
 ```bash
 cd examples/demo-skaffold
+alias asya="uv run --project ../../src/asya-lab asya"
 ```
 
 ---
@@ -35,7 +36,7 @@ cd examples/demo-skaffold
 ### 1. Compile
 
 ```bash
-uv run --project ../../src/asya-lab asya compile text-flow -f src/team-a/proper-package/nlp/text_flow.py
+asya compile text-flow -f src/team-a/proper-package/nlp/text_flow.py
 ```
 
 Output:
@@ -82,13 +83,13 @@ that `AsyncActor.spec.image` is an image field.
 
 ```bash
 # Set scaling for dev (always-warm to avoid KEDA cold-start lag)
-uv run --project ../../src/asya-lab asya patch text-flow --all-actors scaling.min=1 --context dev
+asya patch text-flow --all-actors scaling.min=1 --context dev
 
 # Register with gateway
-uv run --project ../../src/asya-lab asya patch text-flow --gateway expose=true description="Analyze text sentiment and summarize" mcp=true a2a=true --context dev
+asya patch text-flow --gateway expose=true description="Analyze text sentiment and summarize" mcp=true a2a=true --context dev
 
 # Preview what will be deployed
-uv run --project ../../src/asya-lab asya render text-flow --context dev
+asya render text-flow --context dev
 ```
 
 `asya patch --gateway` creates the gateway-flows ConfigMap in `overlays/dev/`.
@@ -97,7 +98,7 @@ uv run --project ../../src/asya-lab asya render text-flow --context dev
 ### 5. Deploy
 
 ```bash
-uv run --project ../../src/asya-lab asya k apply text-flow --context dev
+asya k apply text-flow --context dev
 ```
 
 This does three things:
@@ -109,7 +110,7 @@ This does three things:
 
 ```bash
 # Check actors
-uv run --project ../../src/asya-lab asya k status text-flow
+asya k status text-flow
 
 # Check pods
 kubectl get pods -n asya-demo -l asya.sh/flow=text-flow
@@ -144,20 +145,20 @@ Expected: `"state": "completed"`
 
 ```bash
 # Tail last 5 lines per actor
-uv run --project ../../src/asya-lab asya k logs text-flow --tail 5
+asya k logs text-flow --tail 5
 
 # Follow mode (live streaming)
-uv run --project ../../src/asya-lab asya k logs text-flow -f
+asya k logs text-flow -f
 
 # Both runtime and sidecar containers
-uv run --project ../../src/asya-lab asya k logs text-flow -f -c asya-runtime -c asya-sidecar
+asya k logs text-flow -f -c asya-runtime -c asya-sidecar
 ```
 
 ### 9. Clean up
 
 ```bash
-uv run --project ../../src/asya-lab asya k delete text-flow
-uv run --project ../../src/asya-lab asya patch text-flow --gateway expose=false --context dev
+asya k delete text-flow
+asya patch text-flow --gateway expose=false --context dev
 ```
 
 ---
@@ -178,7 +179,7 @@ This flow demonstrates:
 ### 1. Compile
 
 ```bash
-uv run --project ../../src/asya-lab asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py
+asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py
 ```
 
 The compiler automatically:
@@ -208,7 +209,7 @@ wrapper for the `payload["greeting"] = greet(payload)` call pattern.
 If you need to add import paths manually (e.g. for cross-team imports):
 
 ```bash
-uv run --project ../../src/asya-lab asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py -I src/team-b/bare-scripts
+asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py -I src/team-b/bare-scripts
 ```
 
 ### 2. Build and push image
@@ -235,8 +236,8 @@ images:
 ### 4. Patch and deploy
 
 ```bash
-uv run --project ../../src/asya-lab asya patch greet-flow --gateway expose=true description="Greet and shout" mcp=true a2a=true --context dev
-uv run --project ../../src/asya-lab asya k apply greet-flow --context dev
+asya patch greet-flow --gateway expose=true description="Greet and shout" mcp=true a2a=true --context dev
+asya k apply greet-flow --context dev
 ```
 
 ### 5. Test
@@ -265,7 +266,7 @@ the gateway which flow to route to.
 ### 6. View logs
 
 ```bash
-uv run --project ../../src/asya-lab asya k logs greet-flow -f
+asya k logs greet-flow -f
 ```
 
 ---
