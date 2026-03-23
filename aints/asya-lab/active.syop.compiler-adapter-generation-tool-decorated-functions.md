@@ -5,9 +5,11 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/asya-lab/syop.compiler-adapter-generation-tool-decorated-functions
   - branch:asya-lab/syop.compiler-adapter-generation-tool-decorated-functions
+  - pr:365
 dependencies:
   - hppv
 ---
+
 
 
 ## Problem
