@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.12] - 2026-03-23
+
+## What's Changed
+* Update CHANGELOG.md for v0.5.11 by @github-actions[bot] in https://github.com/deliveryhero/asya/pull/382
+* fix(website): favicon, pronunciation alignment, footer text by @atemate in https://github.com/deliveryhero/asya/pull/385
+* feat(gateway-chart): projected volume for per-flow ConfigMaps [0mtj] by @atemate in https://github.com/deliveryhero/asya/pull/386
+* feat(crew): KEDA external scaler for GCP Pub/Sub [wpla] by @atemate in https://github.com/deliveryhero/asya/pull/383
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.11...v0.5.12
+
+
+
 ## [0.5.11] - 2026-03-23
 
 ## What's Changed
@@ -1342,6 +1355,9 @@ All images are published to GitHub Container Registry:
 [0.5.10]: https://github.com/deliveryhero/asya/releases/tag/v0.5.10
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.11...HEAD
 [0.5.11]: https://github.com/deliveryhero/asya/releases/tag/v0.5.11
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.12...HEAD
+[0.5.12]: https://github.com/deliveryhero/asya/releases/tag/v0.5.12
 
