@@ -1,0 +1,25 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-decorator-inline-comments-flow-if-category-eq-priority
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-inline-comments-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-decorator-inline-comments-flow-if-category-eq-priority
+  image: python:3.13-slim
+  handler: routers.router_decorator_inline_comments_flow_if_category_eq_priority
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CLASSIFIER
+    value: classifier
+  - name: ASYA_HANDLER_ACTOR_FAST_HANDLER
+    value: fast_handler
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_IF_CATEGORY_EQ_PRIORITY
+    value: routers.router_decorator_inline_comments_flow_if_category_eq_priority
+  - name: ASYA_HANDLER_ACTOR_STANDARD_HANDLER
+    value: standard_handler

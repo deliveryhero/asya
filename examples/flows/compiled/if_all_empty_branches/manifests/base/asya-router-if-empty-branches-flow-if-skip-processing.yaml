@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-if-empty-branches-flow-if-skip-processing
+  namespace: default
+  labels:
+    asya.sh/flow: if-empty-branches-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-if-empty-branches-flow-if-skip-processing
+  image: python:3.13-slim
+  handler: routers.router_if_empty_branches_flow_if_skip_processing
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
+    value: handler_setup
+  - name: ASYA_HANDLER_ROUTER_IF_EMPTY_BRANCHES_FLOW_IF_SKIP_PROCESSING
+    value: routers.router_if_empty_branches_flow_if_skip_processing

@@ -11,16 +11,16 @@
       "label": "entity_recognizer"
     },
     {
-      "id": "fanin_parallel_sectioning_line_47",
-      "label": "fanin_parallel_sectioning_line_47"
+      "id": "fanin_parallel_sectioning_analysis",
+      "label": "fanin_parallel_sectioning_analysis"
     },
     {
       "id": "preprocessor",
       "label": "preprocessor"
     },
     {
-      "id": "router_parallel_sectioning_line_47_fanout_1",
-      "label": "router_parallel_sectioning_line_47_fanout_1",
+      "id": "router_parallel_sectioning_fanout_analysis",
+      "label": "router_parallel_sectioning_fanout_analysis",
       "generated": true
     },
     {
@@ -47,55 +47,55 @@
     },
     {
       "from": "preprocessor",
-      "to": "router_parallel_sectioning_line_47_fanout_1",
+      "to": "router_parallel_sectioning_fanout_analysis",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_parallel_sectioning_line_47_fanout_1",
-      "to": "fanin_parallel_sectioning_line_47",
+      "from": "router_parallel_sectioning_fanout_analysis",
+      "to": "fanin_parallel_sectioning_analysis",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "fanin_parallel_sectioning_line_47",
+      "from": "fanin_parallel_sectioning_analysis",
       "to": "aggregator",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_parallel_sectioning_line_47_fanout_1",
+      "from": "router_parallel_sectioning_fanout_analysis",
       "to": "sentiment_analyzer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "sentiment_analyzer",
-      "to": "fanin_parallel_sectioning_line_47",
+      "to": "fanin_parallel_sectioning_analysis",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_parallel_sectioning_line_47_fanout_1",
+      "from": "router_parallel_sectioning_fanout_analysis",
       "to": "topic_extractor",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "topic_extractor",
-      "to": "fanin_parallel_sectioning_line_47",
+      "to": "fanin_parallel_sectioning_analysis",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_parallel_sectioning_line_47_fanout_1",
+      "from": "router_parallel_sectioning_fanout_analysis",
       "to": "entity_recognizer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "entity_recognizer",
-      "to": "fanin_parallel_sectioning_line_47",
+      "to": "fanin_parallel_sectioning_analysis",
       "label": null,
       "type": "continuation"
     }

@@ -22,20 +22,20 @@ spec:
     value: data_worker
   - name: ASYA_HANDLER_ACTOR_ORCHESTRATOR
     value: orchestrator
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_56_WHILE_1
-    value: routers.router_orchestrator_workers_line_56_while_1
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_57_SEQ_7
-    value: routers.router_orchestrator_workers_line_57_seq_7
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_61_IF_6
-    value: routers.router_orchestrator_workers_line_61_if_6
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_64_IF_5
-    value: routers.router_orchestrator_workers_line_64_if_5
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_66_IF_4
-    value: routers.router_orchestrator_workers_line_66_if_4
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_68_IF_3
-    value: routers.router_orchestrator_workers_line_68_if_3
-  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_LINE_71_IF_2
-    value: routers.router_orchestrator_workers_line_71_if_2
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_IS_COMPLETE
+    value: routers.router_orchestrator_workers_if_is_complete
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_ITERATION_GE_10
+    value: routers.router_orchestrator_workers_if_iteration_ge_10
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_ANALYZE
+    value: routers.router_orchestrator_workers_if_next_action_eq_analyze
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_RESEARCH
+    value: routers.router_orchestrator_workers_if_next_action_eq_research
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_WRITE
+    value: routers.router_orchestrator_workers_if_next_action_eq_write
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_SEQ_SET_ITERATION
+    value: routers.router_orchestrator_workers_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_WHILE_LOOP
+    value: routers.router_orchestrator_workers_while_loop
   - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
     value: synthesizer
   - name: ASYA_HANDLER_ACTOR_WRITING_WORKER

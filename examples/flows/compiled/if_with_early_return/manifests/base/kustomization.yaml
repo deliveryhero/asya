@@ -5,6 +5,6 @@ resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-process.yaml
 - asya-actor-handler-validate.yaml
-- asya-router-early-return-flow-line-13-if-1.yaml
+- asya-router-early-return-flow-if-not-valid.yaml
 - asya-start-early-return-flow.yaml
 - configmap-routers.yaml

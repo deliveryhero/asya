@@ -5,19 +5,19 @@ flowchart TD
     call_primary[call_primary]
     finalize[finalize]
     handle_validation_error[handle_validation_error]
-    router_failover_pipeline_line_29_except_1{{"router_failover_pipeline_line_29_except_1<br/><br/>p['fallback'] = True"}}
-    router_failover_pipeline_line_32_except_2{{"router_failover_pipeline_line_32_except_2<br/><br/>p['error_type'] = 'validation'"}}
+    router_failover_pipeline_except_connectionerror{{"router_failover_pipeline_except_connectionerror<br/><br/>p['fallback'] = True"}}
+    router_failover_pipeline_except_valueerror{{"router_failover_pipeline_except_valueerror<br/><br/>p['error_type'] = 'validation'"}}
     start_failover_pipeline(["start_failover_pipeline<br/><br/>p['status'] = 'started'"])
     __end__((( )))
 
     start_failover_pipeline --> call_primary
     call_primary --> finalize
-    router_failover_pipeline_line_29_except_1 --> call_fallback
+    router_failover_pipeline_except_connectionerror --> call_fallback
     call_fallback --> finalize
-    router_failover_pipeline_line_32_except_2 --> handle_validation_error
+    router_failover_pipeline_except_valueerror --> handle_validation_error
     handle_validation_error --> finalize
-    call_primary -->|"ConnectionError"| router_failover_pipeline_line_29_except_1
-    call_primary -->|"ValueError"| router_failover_pipeline_line_32_except_2
+    call_primary -->|"ConnectionError"| router_failover_pipeline_except_connectionerror
+    call_primary -->|"ValueError"| router_failover_pipeline_except_valueerror
     finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -27,7 +27,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_failover_pipeline start
     class finalize endnode
-    class router_failover_pipeline_line_29_except_1,router_failover_pipeline_line_32_except_2 router
+    class router_failover_pipeline_except_connectionerror,router_failover_pipeline_except_valueerror router
     class call_fallback,call_primary,handle_validation_error handler
     class __end__ endpoint
     linkStyle 6,7 stroke:#DC143C

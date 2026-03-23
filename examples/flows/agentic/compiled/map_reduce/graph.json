@@ -6,8 +6,8 @@
       "label": "chunk_processor"
     },
     {
-      "id": "fanin_map_reduce_line_54",
-      "label": "fanin_map_reduce_line_54"
+      "id": "fanin_map_reduce_chunk_results",
+      "label": "fanin_map_reduce_chunk_results"
     },
     {
       "id": "reducer",
@@ -15,8 +15,8 @@
       "role": "end"
     },
     {
-      "id": "router_map_reduce_line_54_fanout_1",
-      "label": "router_map_reduce_line_54_fanout_1",
+      "id": "router_map_reduce_fanout_chunk_results",
+      "label": "router_map_reduce_fanout_chunk_results",
       "generated": true
     },
     {
@@ -39,31 +39,31 @@
     },
     {
       "from": "splitter",
-      "to": "router_map_reduce_line_54_fanout_1",
+      "to": "router_map_reduce_fanout_chunk_results",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_map_reduce_line_54_fanout_1",
-      "to": "fanin_map_reduce_line_54",
+      "from": "router_map_reduce_fanout_chunk_results",
+      "to": "fanin_map_reduce_chunk_results",
       "label": "fanout: p['chunks']",
       "type": "set"
     },
     {
-      "from": "fanin_map_reduce_line_54",
+      "from": "fanin_map_reduce_chunk_results",
       "to": "reducer",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_map_reduce_line_54_fanout_1",
+      "from": "router_map_reduce_fanout_chunk_results",
       "to": "chunk_processor",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "chunk_processor",
-      "to": "fanin_map_reduce_line_54",
+      "to": "fanin_map_reduce_chunk_results",
       "label": null,
       "type": "continuation"
     }

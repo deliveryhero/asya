@@ -1,0 +1,29 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-retry-pipeline-seq-set-attempt-2
+  namespace: default
+  labels:
+    asya.sh/flow: retry-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-retry-pipeline-seq-set-attempt-2
+  image: python:3.13-slim
+  handler: routers.router_retry_pipeline_seq_set_attempt_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CALL_ANOTHER_API
+    value: call_another_api
+  - name: ASYA_HANDLER_ACTOR_CALL_EXTERNAL_API
+    value: call_external_api
+  - name: ASYA_HANDLER_ACTOR_LOG_RETRY
+    value: log_retry
+  - name: ASYA_HANDLER_ACTOR_PREPARE_REQUEST
+    value: prepare_request
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_SEQ_SET_ATTEMPT
+    value: routers.router_retry_pipeline_seq_set_attempt
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_WHILE_ATTEMPT_LT_3
+    value: routers.router_retry_pipeline_while_attempt_lt_3

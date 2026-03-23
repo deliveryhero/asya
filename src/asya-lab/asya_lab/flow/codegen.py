@@ -6,7 +6,10 @@ module that walks the operation list and emits router functions directly.
 
 from __future__ import annotations
 
+import ast
+import hashlib
 import os
+import re
 from dataclasses import dataclass
 from textwrap import dedent
 
@@ -26,6 +29,177 @@ from asya_lab.flow.parser import (
 
 
 ROUTER_PREFIXES = ("start_", "router_", "fanin_")
+
+_MAX_SLUG_LEN = 40
+
+_OPERATOR_MAP = {
+    "==": "eq",
+    "!=": "ne",
+    "<": "lt",
+    ">": "gt",
+    "<=": "le",
+    ">=": "ge",
+    "in": "in",
+    "not in": "notin",
+    "is": "is",
+    "is not": "isnot",
+}
+
+_NON_ALNUM_RE = re.compile(r"[^a-z0-9]+")
+
+
+def _slug_from_condition(test_source: str | None) -> str:
+    """Derive a slug from a conditional/loop test expression.
+
+    Examples:
+        'p["status"] == "done"' -> 'status_eq_done'
+        'p.get("language") != "en"' -> 'language_ne_en'
+        'True' -> 'loop'
+        'p["attempt"] < 3' -> 'attempt_lt_3'
+        'not p["valid"]' -> 'not_valid'
+    """
+    if test_source is None:
+        return "loop"
+
+    try:
+        tree = ast.parse(test_source, mode="eval")
+        slug = _slug_from_expr(tree.body)
+    except (SyntaxError, ValueError):
+        slug = _sanitize_slug(test_source)
+
+    return _truncate_slug(slug) if slug else "cond"
+
+
+def _slug_from_expr(node: ast.expr) -> str:
+    """Recursively extract a slug from an AST expression node."""
+    if isinstance(node, ast.Compare) and len(node.ops) == 1 and len(node.comparators) == 1:
+        left = _slug_from_expr(node.left)
+        op = _OPERATOR_MAP.get(ast.dump(node.ops[0]).removesuffix("()").lower().replace("_", " "), "cmp")
+        # Fix known AST op class names
+        op_name = type(node.ops[0]).__name__
+        op = {
+            "Eq": "eq",
+            "NotEq": "ne",
+            "Lt": "lt",
+            "Gt": "gt",
+            "LtE": "le",
+            "GtE": "ge",
+            "In": "in",
+            "NotIn": "notin",
+            "Is": "is",
+            "IsNot": "isnot",
+        }.get(op_name, "cmp")
+        right = _slug_from_expr(node.comparators[0])
+        return f"{left}_{op}_{right}"
+
+    if isinstance(node, ast.BoolOp):
+        op_str = "and" if isinstance(node.op, ast.And) else "or"
+        parts = [_slug_from_expr(v) for v in node.values]
+        return f"_{op_str}_".join(parts)
+
+    if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+        return f"not_{_slug_from_expr(node.operand)}"
+
+    if isinstance(node, ast.Subscript):
+        return _extract_key_from_subscript(node)
+
+    if isinstance(node, ast.Call):
+        return _extract_key_from_call(node)
+
+    if isinstance(node, ast.Attribute):
+        return node.attr
+
+    if isinstance(node, ast.Constant):
+        if node.value is True:
+            return "loop"
+        if node.value is False:
+            return "false"
+        if isinstance(node.value, str):
+            return _sanitize_slug(node.value)
+        return str(node.value)
+
+    if isinstance(node, ast.Name):
+        return node.id.lower()
+
+    return _sanitize_slug(ast.unparse(node))
+
+
+def _extract_key_from_subscript(node: ast.Subscript) -> str:
+    """Extract key name from p["key"] or p[key]."""
+    if isinstance(node.slice, ast.Constant) and isinstance(node.slice.value, str):
+        return _sanitize_slug(node.slice.value)
+    return _sanitize_slug(ast.unparse(node.slice))
+
+
+def _extract_key_from_call(node: ast.Call) -> str:
+    """Extract key name from p.get("key") or similar calls."""
+    if (
+        isinstance(node.func, ast.Attribute)
+        and node.func.attr == "get"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and isinstance(node.args[0].value, str)
+    ):
+        return _sanitize_slug(node.args[0].value)
+    return _sanitize_slug(ast.unparse(node))
+
+
+def _slug_from_error_types(error_types: list[str] | None) -> str:
+    """Derive a slug from exception type names.
+
+    Examples:
+        ['ValueError'] -> 'valueerror'
+        ['ConnectionError', 'TimeoutError'] -> 'connectionerror_timeouterror'
+        None (bare except) -> 'all'
+    """
+    if error_types is None:
+        return "all"
+    # Use short name (last component after '.') for FQN types
+    short_names = [t.rsplit(".", 1)[-1].lower() for t in error_types]
+    return "_".join(short_names)
+
+
+def _slug_from_mutation(mutation_code: str) -> str:
+    """Derive a slug from a mutation statement.
+
+    Examples:
+        'p["status"] = "processing"' -> 'set_status'
+        'p["count"] += 1' -> 'set_count'
+    """
+    try:
+        tree = ast.parse(mutation_code, mode="exec")
+        if tree.body and isinstance(tree.body[0], ast.Assign | ast.AugAssign):
+            stmt = tree.body[0]
+            if isinstance(stmt, ast.AugAssign):
+                target: ast.expr = stmt.target
+            else:
+                target = stmt.targets[0]
+            if isinstance(target, ast.Subscript):
+                key = _extract_key_from_subscript(target)
+                return f"set_{key}"
+            if isinstance(target, ast.Attribute):
+                return f"set_{target.attr}"
+    except SyntaxError:
+        pass
+    return _sanitize_slug(mutation_code[:30])
+
+
+def _slug_from_fanout_target(target_key: str) -> str:
+    """Derive a slug from a fan-out target key."""
+    return _sanitize_slug(target_key.strip("/"))
+
+
+def _sanitize_slug(text: str) -> str:
+    """Lowercase and replace non-alphanumeric chars with underscores."""
+    return _NON_ALNUM_RE.sub("_", text.lower()).strip("_")
+
+
+def _truncate_slug(slug: str) -> str:
+    """Truncate slug at _MAX_SLUG_LEN, appending hash if truncated."""
+    if len(slug) <= _MAX_SLUG_LEN:
+        return slug
+    h = hashlib.sha256(slug.encode()).hexdigest()[:6]
+    return f"{slug[: _MAX_SLUG_LEN - 7]}_{h}"
 
 
 @dataclass
@@ -52,7 +226,7 @@ class ActorRetryRule:
     """Retry rule to inject into an actor's manifest for try/except error routing."""
 
     error_types: list[str] | None  # None = bare except (policies.default)
-    policy_name: str  # e.g. "try_except_line_3_ve"
+    policy_name: str  # e.g. "except_valueerror"
     then_route: list[str]  # K8s actor names for thenRoute
 
 
@@ -86,7 +260,7 @@ class CodeGenerator:
         self._functions: list[_RouterFunc] = []
         self._has_fan_out = False
         self._all_handlers: set[str] = set()
-        self._router_counter = 0
+        self._used_names: dict[str, int] = {}
         self._actor_retry_rules: dict[str, list[ActorRetryRule]] = {}  # actor_name -> rules
 
     def generate(self) -> str:
@@ -211,7 +385,7 @@ class CodeGenerator:
 
         if i >= len(ops):
             # Only mutations remain: need a seq router
-            name = self._router_name("seq", mutations[0].lineno)
+            name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
             self._emit_seq_router(name, mutations, [])
             return [name]
 
@@ -223,7 +397,7 @@ class CodeGenerator:
             chain = [op.name, *rest_chain]
             self._all_handlers.add(op.name)
             if mutations:
-                name = self._router_name("seq", mutations[0].lineno)
+                name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_seq_router(name, mutations, chain)
                 return [name]
             return chain
@@ -245,7 +419,7 @@ class CodeGenerator:
             true_exit = self._is_exit_terminal(op.true_branch, loop_ctx)
             false_exit = self._is_exit_terminal(op.false_branch, loop_ctx)
 
-            name = self._router_name("if", op.lineno)
+            name = self._router_name("if", _slug_from_condition(op.test))
             self._emit_conditional_router(
                 name,
                 op.test,
@@ -260,7 +434,7 @@ class CodeGenerator:
         elif isinstance(op, Loop):
             rest_chain = self._process_ops(rest, loop_ctx, continuation)
             exit_chain = rest_chain + cont
-            loop_name = self._router_name("while", op.lineno)
+            loop_name = self._router_name("while", _slug_from_condition(op.test))
             lctx = _LoopCtx(loop_name=loop_name, exit_chain=exit_chain)
             body_chain = self._process_ops(op.body, lctx)
 
@@ -268,7 +442,7 @@ class CodeGenerator:
             self._emit_loop_router(loop_name, op.test, [], body_chain, exit_chain)
 
             if mutations:
-                seq_name = self._router_name("seq", mutations[0].lineno)
+                seq_name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_seq_router(seq_name, mutations, [loop_name])
                 return [seq_name]
             return [loop_name]
@@ -276,10 +450,10 @@ class CodeGenerator:
         elif isinstance(op, FanOut):
             self._has_fan_out = True
             rest_chain = self._process_ops(rest, loop_ctx, continuation)
-            name = self._router_name("fanout", op.lineno)
+            name = self._router_name("fanout", _slug_from_fanout_target(op.target_key))
             self._emit_fanout_router(name, op, rest_chain)
             if mutations:
-                seq_name = self._router_name("seq", mutations[0].lineno)
+                seq_name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_seq_router(seq_name, mutations, [name])
                 return [seq_name]
             return [name]
@@ -288,7 +462,7 @@ class CodeGenerator:
             rest_chain = self._process_ops(rest, loop_ctx, continuation)
             chain = self._process_try_except(op, rest_chain, loop_ctx, continuation)
             if mutations:
-                name = self._router_name("seq", mutations[0].lineno)
+                name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_seq_router(name, mutations, chain)
                 return [name]
             return chain
@@ -297,7 +471,7 @@ class CodeGenerator:
             if not loop_ctx:
                 raise RuntimeError("Break outside loop context")
             if mutations:
-                name = self._router_name("seq", mutations[0].lineno)
+                name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_exit_seq_router(name, mutations, loop_ctx.exit_chain)
                 return [name]
             return loop_ctx.exit_chain
@@ -306,14 +480,14 @@ class CodeGenerator:
             if not loop_ctx:
                 raise RuntimeError("Continue outside loop context")
             if mutations:
-                name = self._router_name("seq", mutations[0].lineno)
+                name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_seq_router(name, mutations, [loop_ctx.loop_name])
                 return [name]
             return [loop_ctx.loop_name]
 
         elif isinstance(op, Return):
             if mutations:
-                name = self._router_name("seq", mutations[0].lineno)
+                name = self._router_name("seq", _slug_from_mutation(mutations[0].code))
                 self._emit_exit_seq_router(name, mutations, [])
                 return [name]
             return []
@@ -349,9 +523,18 @@ class CodeGenerator:
 
     # -- Router name generation --
 
-    def _router_name(self, kind: str, lineno: int) -> str:
-        self._router_counter += 1
-        return f"router_{self.flow_name}_line_{lineno}_{kind}_{self._router_counter}"
+    def _router_name(self, kind: str, slug: str) -> str:
+        """Generate a semantic router name with disambiguation if needed."""
+        base = f"router_{self.flow_name}_{kind}_{slug}"
+        return self._deduplicate_name(base)
+
+    def _deduplicate_name(self, base: str) -> str:
+        """Append _2, _3, etc. if the base name was already used."""
+        count = self._used_names.get(base, 0) + 1
+        self._used_names[base] = count
+        if count == 1:
+            return base
+        return f"{base}_{count}"
 
     # -- Router function generation --
 
@@ -502,14 +685,16 @@ class CodeGenerator:
 
     def _emit_fanout_router(self, name: str, fan_out: FanOut, rest_chain: list[str]) -> None:
         # Aggregator name
-        agg_name = f"fanin_{self.flow_name}_line_{fan_out.lineno}"
+        slug = _slug_from_fanout_target(fan_out.target_key)
+        agg_base = f"fanin_{self.flow_name}_{slug}"
+        agg_name = self._deduplicate_name(agg_base)
         self._all_handlers.add(agg_name)
         for actor_name, _ in fan_out.actor_calls:
             self._all_handlers.add(actor_name)
 
         lines = []
         lines.append(f"async def {name}(payload: dict):")
-        lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator (line {fan_out.lineno})"""')
+        lines.append(f'    """Fan-out router: dispatches to sub-agents and aggregator ({slug})"""')
         lines.append("    p = payload")
         lines.append("")
         lines.append('    origin_id = yield "GET", ".id"')
@@ -580,8 +765,9 @@ class CodeGenerator:
         after_try = finally_chain + rest_chain
 
         # Generate one except_router per handler
-        for handler_idx, handler in enumerate(op.handlers):
-            router_name = self._router_name("except", handler.lineno)
+        for handler in op.handlers:
+            error_slug = _slug_from_error_types(handler.error_types)
+            router_name = self._router_name("except", error_slug)
 
             # Optimization: if handler body is flat (mutations + actor calls only),
             # inline directly into the except router instead of creating a seq router.
@@ -600,10 +786,7 @@ class CodeGenerator:
                     handler_chain = handler_inner + after_try
                 self._emit_except_router(router_name, handler_chain)
 
-            if handler.error_types is not None:
-                policy_name = f"try_except_line_{op.lineno}_{handler_idx}"
-            else:
-                policy_name = f"try_except_line_{op.lineno}_default"
+            policy_name = f"except_{error_slug}"
 
             rule = ActorRetryRule(
                 error_types=handler.error_types,

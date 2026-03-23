@@ -5,19 +5,19 @@ flowchart TD
     classify[classify]
     escalate[escalate]
     format_output[format_output]
-    router_actor_override_flow_line_26_if_1{{router_actor_override_flow_line_26_if_1}}
+    router_actor_override_flow_if_needs_tool{{router_actor_override_flow_if_needs_tool}}
     start_actor_override_flow([start_actor_override_flow])
     tool_executor[tool_executor]
     __end__((( )))
 
     start_actor_override_flow --> classify
-    router_actor_override_flow_line_26_if_1 -->|"p.get('needs_tool')"| tool_executor
+    router_actor_override_flow_if_needs_tool -->|"p.get('needs_tool')"| tool_executor
     tool_executor --> format_output
-    router_actor_override_flow_line_26_if_1 -->|"else"| format_output
+    router_actor_override_flow_if_needs_tool -->|"else"| format_output
     classify -->|"p.get('urgent')
 [ABORT]"| escalate
     classify -->|"else"| audit_logger
-    audit_logger --> router_actor_override_flow_line_26_if_1
+    audit_logger --> router_actor_override_flow_if_needs_tool
     escalate --> __end__
     format_output --> __end__
 
@@ -28,7 +28,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_actor_override_flow start
     class escalate,format_output endnode
-    class router_actor_override_flow_line_26_if_1 router
+    class router_actor_override_flow_if_needs_tool router
     class audit_logger,classify,tool_executor handler
     class __end__ endpoint
     linkStyle 1 stroke:#2E8B57

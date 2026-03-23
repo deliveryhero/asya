@@ -16,17 +16,17 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
-  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_LINE_14
-    value: routers.fanin_multi_stage_flow_line_14
-  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_LINE_15
-    value: routers.fanin_multi_stage_flow_line_15
+  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_RESEARCH
+    value: routers.fanin_multi_stage_flow_research
+  - name: ASYA_HANDLER_FANIN_MULTI_STAGE_FLOW_REVIEWS
+    value: routers.fanin_multi_stage_flow_reviews
   - name: ASYA_HANDLER_ACTOR_RESEARCH_AGENT
     value: research_agent
   - name: ASYA_HANDLER_ACTOR_REVIEW_AGENT
     value: review_agent
-  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_LINE_14_FANOUT_2
-    value: routers.router_multi_stage_flow_line_14_fanout_2
-  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_LINE_15_FANOUT_1
-    value: routers.router_multi_stage_flow_line_15_fanout_1
+  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_FANOUT_RESEARCH
+    value: routers.router_multi_stage_flow_fanout_research
+  - name: ASYA_HANDLER_ROUTER_MULTI_STAGE_FLOW_FANOUT_REVIEWS
+    value: routers.router_multi_stage_flow_fanout_reviews
   - name: ASYA_HANDLER_ACTOR_SUMMARIZER
     value: summarizer

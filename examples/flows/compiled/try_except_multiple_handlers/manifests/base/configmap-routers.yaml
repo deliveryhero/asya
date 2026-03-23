@@ -31,21 +31,21 @@ data:
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_data_pipeline_line_9_except_1(payload: dict):
+    async def router_data_pipeline_except_valueerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error_type'] = 'validation'
         yield "SET", ".route.next", [resolve('handle_validation_error')]
         yield payload
 
-    async def router_data_pipeline_line_12_except_2(payload: dict):
+    async def router_data_pipeline_except_typeerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error_type'] = 'type_mismatch'
         yield "SET", ".route.next", [resolve('handle_type_error')]
         yield payload
 
-    async def router_data_pipeline_line_15_except_3(payload: dict):
+    async def router_data_pipeline_except_runtimeerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error_type'] = 'runtime'

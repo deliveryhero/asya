@@ -23,18 +23,18 @@
       "label": "general_agent"
     },
     {
-      "id": "router_routing_classifier_line_46_if_3",
-      "label": "router_routing_classifier_line_46_if_3",
+      "id": "router_routing_classifier_if_category_eq_account",
+      "label": "router_routing_classifier_if_category_eq_account",
       "generated": true
     },
     {
-      "id": "router_routing_classifier_line_48_if_2",
-      "label": "router_routing_classifier_line_48_if_2",
+      "id": "router_routing_classifier_if_category_eq_billing",
+      "label": "router_routing_classifier_if_category_eq_billing",
       "generated": true
     },
     {
-      "id": "router_routing_classifier_line_50_if_1",
-      "label": "router_routing_classifier_line_50_if_1",
+      "id": "router_routing_classifier_if_category_eq_technical",
+      "label": "router_routing_classifier_if_category_eq_technical",
       "generated": true
     },
     {
@@ -57,36 +57,36 @@
     },
     {
       "from": "classifier",
-      "to": "router_routing_classifier_line_46_if_3",
+      "to": "router_routing_classifier_if_category_eq_billing",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_routing_classifier_line_50_if_1",
+      "from": "router_routing_classifier_if_category_eq_account",
       "to": "account_agent",
       "label": "p.get('category') == 'account'",
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_50_if_1",
+      "from": "router_routing_classifier_if_category_eq_account",
       "to": "general_agent",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_48_if_2",
+      "from": "router_routing_classifier_if_category_eq_technical",
       "to": "technical_agent",
       "label": "p.get('category') == 'technical'",
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_48_if_2",
-      "to": "router_routing_classifier_line_50_if_1",
+      "from": "router_routing_classifier_if_category_eq_technical",
+      "to": "router_routing_classifier_if_category_eq_account",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_routing_classifier_line_46_if_3",
+      "from": "router_routing_classifier_if_category_eq_billing",
       "to": "billing_agent",
       "label": "p.get('category') == 'billing'",
       "type": "prepend"
@@ -98,8 +98,8 @@
       "type": "continuation"
     },
     {
-      "from": "router_routing_classifier_line_46_if_3",
-      "to": "router_routing_classifier_line_48_if_2",
+      "from": "router_routing_classifier_if_category_eq_billing",
+      "to": "router_routing_classifier_if_category_eq_technical",
       "label": "else",
       "type": "prepend"
     },

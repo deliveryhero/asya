@@ -184,3 +184,37 @@ class TestSectionMerge:
         container = OmegaConf.to_container(project.cfg, resolve=False)
         assert "manifests" in container["compiler"]
         assert "rules" in container["compiler"]
+
+    def test_within_dir_list_extends_not_replaces(self, tmp_path: Path) -> None:
+        """config.yaml rules + config.compiler.rules.yaml should extend, not replace."""
+        (tmp_path / ".git").mkdir()
+        asya_dir = tmp_path / ".asya"
+        asya_dir.mkdir()
+        (asya_dir / "config.yaml").write_text(
+            "compiler:\n  rules:\n  - match: from_config_yaml\n    treat-as: inline\n"
+        )
+        (asya_dir / "config.compiler.rules.yaml").write_text("- match: from_dotted_file\n  treat-as: config\n")
+        store = ConfigStore(tmp_path)
+        container = OmegaConf.to_container(store.cfg)
+        matches = [r["match"] for r in container["compiler"]["rules"]]
+        assert "from_config_yaml" in matches
+        assert "from_dotted_file" in matches
+
+    def test_cross_dir_rules_extend(self, tmp_path: Path) -> None:
+        """Rules from parent .asya/ and child .asya/ should extend."""
+        (tmp_path / ".git").mkdir()
+        root_asya = tmp_path / ".asya"
+        root_asya.mkdir()
+        (root_asya / "config.yaml").write_text("{}")
+        (root_asya / "config.compiler.rules.yaml").write_text("- match: root_rule\n  treat-as: config\n")
+        sub = tmp_path / "subdir"
+        sub.mkdir()
+        sub_asya = sub / ".asya"
+        sub_asya.mkdir()
+        (sub_asya / "config.yaml").write_text("{}")
+        (sub_asya / "config.compiler.rules.yaml").write_text("- match: sub_rule\n  treat-as: config\n")
+        store = ConfigStore(sub)
+        container = OmegaConf.to_container(store.cfg)
+        matches = [r["match"] for r in container["compiler"]["rules"]]
+        assert "root_rule" in matches
+        assert "sub_rule" in matches

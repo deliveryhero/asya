@@ -7,17 +7,17 @@ digraph "resilient_pipeline" {
     handle_known_error [label="handle_known_error", fillcolor=lightsalmon];
     handle_unknown_error [label="handle_unknown_error", fillcolor=lightsalmon];
     risky_operation [label="risky_operation", fillcolor=lightblue];
-    router_resilient_pipeline_line_11_except_2 [label="router_resilient_pipeline_line_11_except_2\n\np['error_type'] = 'unknown'", fillcolor=wheat];
-    router_resilient_pipeline_line_8_except_1 [label="router_resilient_pipeline_line_8_except_1\n\np['error_type'] = 'known'", fillcolor=wheat];
+    router_resilient_pipeline_except_all [label="router_resilient_pipeline_except_all\n\np['error_type'] = 'unknown'", fillcolor=wheat];
+    router_resilient_pipeline_except_valueerror [label="router_resilient_pipeline_except_valueerror\n\np['error_type'] = 'known'", fillcolor=wheat];
     start_resilient_pipeline [label="start_resilient_pipeline", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_resilient_pipeline -> risky_operation;
-    router_resilient_pipeline_line_8_except_1 -> handle_known_error;
-    router_resilient_pipeline_line_11_except_2 -> handle_unknown_error;
-    risky_operation -> router_resilient_pipeline_line_8_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    risky_operation -> router_resilient_pipeline_line_11_except_2 [label="except *", color="#DC143C", fontcolor="#DC143C"];
+    router_resilient_pipeline_except_valueerror -> handle_known_error;
+    router_resilient_pipeline_except_all -> handle_unknown_error;
+    risky_operation -> router_resilient_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    risky_operation -> router_resilient_pipeline_except_all [label="except *", color="#DC143C", fontcolor="#DC143C"];
     handle_known_error -> __end__;
     handle_unknown_error -> __end__;
 }

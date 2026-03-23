@@ -7,10 +7,10 @@ resources:
 - asya-actor-query-refiner.yaml
 - asya-actor-relevance-evaluator.yaml
 - asya-actor-retriever.yaml
-- asya-router-rag-pipeline-line-49-seq-5.yaml
-- asya-router-rag-pipeline-line-55-while-1.yaml
-- asya-router-rag-pipeline-line-56-seq-4.yaml
-- asya-router-rag-pipeline-line-65-if-3.yaml
-- asya-router-rag-pipeline-line-69-if-2.yaml
+- asya-router-rag-pipeline-if-is-sufficient.yaml
+- asya-router-rag-pipeline-if-retrieval-attempts-ge-3.yaml
+- asya-router-rag-pipeline-seq-set-retrieval-attempts-2.yaml
+- asya-router-rag-pipeline-seq-set-retrieval-attempts.yaml
+- asya-router-rag-pipeline-while-loop.yaml
 - asya-start-rag-pipeline.yaml
 - configmap-routers.yaml

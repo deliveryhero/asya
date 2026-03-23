@@ -24,9 +24,9 @@ spec:
     value: handler_type_a
   - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
     value: handler_type_b
-  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_13_IF_3
-    value: routers.router_if_mutations_in_branches_flow_line_13_if_3
-  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_14_SEQ_1
-    value: routers.router_if_mutations_in_branches_flow_line_14_seq_1
-  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_LINE_19_SEQ_2
-    value: routers.router_if_mutations_in_branches_flow_line_19_seq_2
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_IF_TYPE_EQ_A
+    value: routers.router_if_mutations_in_branches_flow_if_type_eq_a
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_SEQ_SET_BRANCH
+    value: routers.router_if_mutations_in_branches_flow_seq_set_branch
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_SEQ_SET_BRANCH_2
+    value: routers.router_if_mutations_in_branches_flow_seq_set_branch_2

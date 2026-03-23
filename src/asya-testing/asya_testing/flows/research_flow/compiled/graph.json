@@ -2,16 +2,16 @@
   "flow_name": "research_flow",
   "nodes": [
     {
-      "id": "fanin_research_flow_line_11",
-      "label": "fanin_research_flow_line_11"
+      "id": "fanin_research_flow_results",
+      "label": "fanin_research_flow_results"
     },
     {
       "id": "research_agent",
       "label": "research_agent"
     },
     {
-      "id": "router_research_flow_line_11_fanout_1",
-      "label": "router_research_flow_line_11_fanout_1",
+      "id": "router_research_flow_fanout_results",
+      "label": "router_research_flow_fanout_results",
       "generated": true
     },
     {
@@ -29,31 +29,31 @@
   "edges": [
     {
       "from": "start_research_flow",
-      "to": "router_research_flow_line_11_fanout_1",
+      "to": "router_research_flow_fanout_results",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_flow_line_11_fanout_1",
-      "to": "fanin_research_flow_line_11",
+      "from": "router_research_flow_fanout_results",
+      "to": "fanin_research_flow_results",
       "label": "fanout: p['topics']",
       "type": "set"
     },
     {
-      "from": "fanin_research_flow_line_11",
+      "from": "fanin_research_flow_results",
       "to": "summarizer",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_research_flow_line_11_fanout_1",
+      "from": "router_research_flow_fanout_results",
       "to": "research_agent",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "research_agent",
-      "to": "fanin_research_flow_line_11",
+      "to": "fanin_research_flow_results",
       "label": null,
       "type": "continuation"
     }

@@ -792,15 +792,24 @@ class FlowParser:
         while inner_ops and isinstance(inner_ops[-1], Return):
             inner_ops.pop()
 
+        expanded_actors = list(self._actors[actors_before:])
+
         # Record group metadata for @flow-decorated functions
         if self._decorator_index.get(func_name) == "flow":
-            group_actors = list(self._actors[actors_before:])
             self._groups.append(
                 {
                     "id": func_name,
-                    "nodes": group_actors,
+                    "nodes": expanded_actors,
                 }
             )
+
+        # Re-scope decorator configs from the unfolded function to expanded actors.
+        # A decorated unfold like @retry(...) on an unfold function should apply
+        # to all actors inside the expanded body, same as a context manager scope.
+        if expanded_actors:
+            for config in self.extracted_configs:
+                if config.get("scope_actors") == [func_name]:
+                    config["scope_actors"] = expanded_actors
 
         return inner_ops
 

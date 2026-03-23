@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-while-mutations-in-loop-flow-seq-set-processed
+  namespace: default
+  labels:
+    asya.sh/flow: while-mutations-in-loop-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-while-mutations-in-loop-flow-seq-set-processed
+  image: python:3.13-slim
+  handler: routers.router_while_mutations_in_loop_flow_seq_set_processed
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I
+    value: routers.router_while_mutations_in_loop_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I_2
+    value: routers.router_while_mutations_in_loop_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_PROCESSED
+    value: routers.router_while_mutations_in_loop_flow_seq_set_processed
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_while_mutations_in_loop_flow_while_i_lt_max_iterations

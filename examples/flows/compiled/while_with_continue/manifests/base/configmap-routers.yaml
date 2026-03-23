@@ -27,30 +27,30 @@ data:
         """Entrypoint for flow 'while_with_continue_flow'"""
         _next = []
         _next.append(resolve("handler_init"))
-        _next.append(resolve("router_while_with_continue_flow_line_13_seq_3"))
+        _next.append(resolve("router_while_with_continue_flow_seq_set_i"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_while_with_continue_flow_line_16_if_2(payload: dict):
+    async def router_while_with_continue_flow_if_skip_iteration(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []
         p['i'] += 1
         if p['skip_iteration']:
-            _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
+            _next.append(resolve("router_while_with_continue_flow_while_i_lt_max_iterations"))
         else:
             _next.append(resolve("handler_process"))
 
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_while_with_continue_flow_line_14_while_1(payload: dict):
+    async def router_while_with_continue_flow_while_i_lt_max_iterations(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []
         if p['i'] < p['max_iterations']:
-            _next.append(resolve("router_while_with_continue_flow_line_16_if_2"))
-            _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
+            _next.append(resolve("router_while_with_continue_flow_if_skip_iteration"))
+            _next.append(resolve("router_while_with_continue_flow_while_i_lt_max_iterations"))
         else:
             yield "SET", ".route.next", [resolve("handler_finalize")]
             yield p
@@ -59,12 +59,12 @@ data:
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_while_with_continue_flow_line_13_seq_3(payload: dict):
+    async def router_while_with_continue_flow_seq_set_i(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []
         p['i'] = 0
-        _next.append(resolve("router_while_with_continue_flow_line_14_while_1"))
+        _next.append(resolve("router_while_with_continue_flow_while_i_lt_max_iterations"))
 
         yield "SET", ".route.next[:0]", _next
         yield payload

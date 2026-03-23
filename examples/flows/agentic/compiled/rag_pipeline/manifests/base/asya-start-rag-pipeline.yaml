@@ -28,11 +28,11 @@ spec:
     value: relevance_evaluator
   - name: ASYA_HANDLER_ACTOR_RETRIEVER
     value: retriever
-  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_LINE_55_WHILE_1
-    value: routers.router_rag_pipeline_line_55_while_1
-  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_LINE_56_SEQ_4
-    value: routers.router_rag_pipeline_line_56_seq_4
-  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_LINE_65_IF_3
-    value: routers.router_rag_pipeline_line_65_if_3
-  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_LINE_69_IF_2
-    value: routers.router_rag_pipeline_line_69_if_2
+  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_IF_IS_SUFFICIENT
+    value: routers.router_rag_pipeline_if_is_sufficient
+  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_IF_RETRIEVAL_ATTEMPTS_GE_3
+    value: routers.router_rag_pipeline_if_retrieval_attempts_ge_3
+  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_SEQ_SET_RETRIEVAL_ATTEMPTS
+    value: routers.router_rag_pipeline_seq_set_retrieval_attempts
+  - name: ASYA_HANDLER_ROUTER_RAG_PIPELINE_WHILE_LOOP
+    value: routers.router_rag_pipeline_while_loop

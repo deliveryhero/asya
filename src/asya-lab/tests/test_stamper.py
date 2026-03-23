@@ -342,11 +342,11 @@ class TestTwoLabelSystem:
     def conditional_meta(self):
         """CodegenMeta for: start -> handler_a -> if_router -> handler_b (end) | handler_c (end)."""
         return CodegenMeta(
-            router_names=["start_my_flow", "router_my_flow_line_5_if_1"],
-            all_handler_names={"handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"},
+            router_names=["start_my_flow", "router_my_flow_if_flag"],
+            all_handler_names={"handler_a", "handler_b", "handler_c", "router_my_flow_if_flag"},
             router_refs={
-                "start_my_flow": ["handler_a", "handler_b", "handler_c", "router_my_flow_line_5_if_1"],
-                "router_my_flow_line_5_if_1": ["handler_a", "handler_b", "handler_c"],
+                "start_my_flow": ["handler_a", "handler_b", "handler_c", "router_my_flow_if_flag"],
+                "router_my_flow_if_flag": ["handler_a", "handler_b", "handler_c"],
             },
             single_actor=None,
         )
@@ -378,7 +378,7 @@ class TestTwoLabelSystem:
         templater = _make_templater("my-flow", conditional_meta, router_code, project, template_dir)
         templater.stamp(tmp_path / "manifests")
 
-        actor = self._load_actor(tmp_path, "router-my-flow-line-5-if-1")
+        actor = self._load_actor(tmp_path, "router-my-flow-if-flag")
         labels = actor["metadata"]["labels"]
         assert "asya.sh/role" not in labels
         assert labels["asya.sh/generated"] == "true"

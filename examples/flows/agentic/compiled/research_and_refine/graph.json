@@ -14,26 +14,26 @@
       "label": "researcher"
     },
     {
-      "id": "router_research_and_refine_line_49_while_1",
-      "label": "router_research_and_refine_line_49_while_1",
+      "id": "router_research_and_refine_if_iteration_ge_5",
+      "label": "router_research_and_refine_if_iteration_ge_5",
       "generated": true
     },
     {
-      "id": "router_research_and_refine_line_50_seq_4",
-      "label": "router_research_and_refine_line_50_seq_4",
+      "id": "router_research_and_refine_if_not_gaps_or_quality_score_ge_85",
+      "label": "router_research_and_refine_if_not_gaps_or_quality_score_ge_85",
+      "generated": true
+    },
+    {
+      "id": "router_research_and_refine_seq_set_iteration",
+      "label": "router_research_and_refine_seq_set_iteration",
       "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
-      "id": "router_research_and_refine_line_54_if_3",
-      "label": "router_research_and_refine_line_54_if_3",
-      "generated": true
-    },
-    {
-      "id": "router_research_and_refine_line_58_if_2",
-      "label": "router_research_and_refine_line_58_if_2",
+      "id": "router_research_and_refine_while_loop",
+      "label": "router_research_and_refine_while_loop",
       "generated": true
     },
     {
@@ -55,36 +55,36 @@
   "edges": [
     {
       "from": "start_research_and_refine",
-      "to": "router_research_and_refine_line_49_while_1",
+      "to": "router_research_and_refine_while_loop",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_58_if_2",
+      "from": "router_research_and_refine_if_iteration_ge_5",
       "to": "write_report",
       "label": "p['iteration'] >= 5",
       "type": "set"
     },
     {
-      "from": "router_research_and_refine_line_54_if_3",
+      "from": "router_research_and_refine_if_not_gaps_or_quality_score_ge_85",
       "to": "refine_query",
       "label": "else",
       "type": "prepend"
     },
     {
       "from": "refine_query",
-      "to": "router_research_and_refine_line_58_if_2",
+      "to": "router_research_and_refine_if_iteration_ge_5",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_research_and_refine_line_54_if_3",
+      "from": "router_research_and_refine_if_not_gaps_or_quality_score_ge_85",
       "to": "write_report",
       "label": "not p.get('gaps') or p.get('quality_score', 0) >= 85",
       "type": "set"
     },
     {
-      "from": "router_research_and_refine_line_50_seq_4",
+      "from": "router_research_and_refine_seq_set_iteration",
       "to": "researcher",
       "label": null,
       "type": "prepend"
@@ -97,19 +97,19 @@
     },
     {
       "from": "critic",
-      "to": "router_research_and_refine_line_54_if_3",
+      "to": "router_research_and_refine_if_not_gaps_or_quality_score_ge_85",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_research_and_refine_line_49_while_1",
-      "to": "router_research_and_refine_line_50_seq_4",
+      "from": "router_research_and_refine_while_loop",
+      "to": "router_research_and_refine_seq_set_iteration",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_and_refine_line_58_if_2",
-      "to": "router_research_and_refine_line_49_while_1",
+      "from": "router_research_and_refine_if_iteration_ge_5",
+      "to": "router_research_and_refine_while_loop",
       "label": "else",
       "type": "continuation"
     }

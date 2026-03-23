@@ -4,6 +4,6 @@ resources:
 - asya-actor-chunk-processor.yaml
 - asya-actor-reducer.yaml
 - asya-actor-splitter.yaml
-- asya-router-map-reduce-line-54-fanout-1.yaml
+- asya-router-map-reduce-fanout-chunk-results.yaml
 - asya-start-map-reduce.yaml
 - configmap-routers.yaml

@@ -8,20 +8,20 @@ digraph "if_mutations_in_branches_flow" {
     handler_setup [label="handler_setup", fillcolor=lightblue];
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
-    router_if_mutations_in_branches_flow_line_13_if_3 [label="router_if_mutations_in_branches_flow_line_13_if_3", fillcolor=wheat];
-    router_if_mutations_in_branches_flow_line_14_seq_1 [label="router_if_mutations_in_branches_flow_line_14_seq_1\n\np['branch'] = 'A'\np['value'] = 100", fillcolor=wheat];
-    router_if_mutations_in_branches_flow_line_19_seq_2 [label="router_if_mutations_in_branches_flow_line_19_seq_2\n\np['branch'] = 'B'\np['value'] = 200", fillcolor=wheat];
+    router_if_mutations_in_branches_flow_if_type_eq_a [label="router_if_mutations_in_branches_flow_if_type_eq_a", fillcolor=wheat];
+    router_if_mutations_in_branches_flow_seq_set_branch [label="router_if_mutations_in_branches_flow_seq_set_branch\n\np['branch'] = 'A'\np['value'] = 100", fillcolor=wheat];
+    router_if_mutations_in_branches_flow_seq_set_branch_2 [label="router_if_mutations_in_branches_flow_seq_set_branch_2\n\np['branch'] = 'B'\np['value'] = 200", fillcolor=wheat];
     start_if_mutations_in_branches_flow [label="start_if_mutations_in_branches_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_mutations_in_branches_flow -> handler_setup;
-    handler_setup -> router_if_mutations_in_branches_flow_line_13_if_3;
-    router_if_mutations_in_branches_flow_line_14_seq_1 -> handler_type_a;
-    router_if_mutations_in_branches_flow_line_13_if_3 -> router_if_mutations_in_branches_flow_line_14_seq_1 [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_if_mutations_in_branches_flow_line_13_if_3 -> handler_type_b [label="else", color="#D35400", fontcolor="#D35400"];
-    handler_type_b -> router_if_mutations_in_branches_flow_line_19_seq_2;
-    router_if_mutations_in_branches_flow_line_19_seq_2 -> handler_finalize;
+    handler_setup -> router_if_mutations_in_branches_flow_if_type_eq_a;
+    router_if_mutations_in_branches_flow_seq_set_branch -> handler_type_a;
+    router_if_mutations_in_branches_flow_if_type_eq_a -> router_if_mutations_in_branches_flow_seq_set_branch [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_mutations_in_branches_flow_if_type_eq_a -> handler_type_b [label="else", color="#D35400", fontcolor="#D35400"];
+    handler_type_b -> router_if_mutations_in_branches_flow_seq_set_branch_2;
+    router_if_mutations_in_branches_flow_seq_set_branch_2 -> handler_finalize;
     handler_type_a -> handler_finalize;
     handler_finalize -> __end__;
 }

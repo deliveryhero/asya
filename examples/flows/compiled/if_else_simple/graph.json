@@ -19,8 +19,8 @@
       "label": "handler_type_b"
     },
     {
-      "id": "router_if_else_simple_flow_line_13_if_1",
-      "label": "router_if_else_simple_flow_line_13_if_1",
+      "id": "router_if_else_simple_flow_if_type_eq_a",
+      "label": "router_if_else_simple_flow_if_type_eq_a",
       "generated": true
     },
     {
@@ -39,12 +39,12 @@
     },
     {
       "from": "handler_setup",
-      "to": "router_if_else_simple_flow_line_13_if_1",
+      "to": "router_if_else_simple_flow_if_type_eq_a",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_if_else_simple_flow_line_13_if_1",
+      "from": "router_if_else_simple_flow_if_type_eq_a",
       "to": "handler_type_a",
       "label": "p['type'] == 'A'",
       "type": "prepend"
@@ -56,7 +56,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_if_else_simple_flow_line_13_if_1",
+      "from": "router_if_else_simple_flow_if_type_eq_a",
       "to": "handler_type_b",
       "label": "else",
       "type": "prepend"

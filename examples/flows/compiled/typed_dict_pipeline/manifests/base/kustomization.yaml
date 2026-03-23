@@ -6,6 +6,6 @@ resources:
 - asya-actor-sink-adapter.yaml
 - asya-actor-transformer.yaml
 - asya-actor-validator.yaml
-- asya-router-typeddict-pipeline-line-76-if-1.yaml
+- asya-router-typeddict-pipeline-if-not-valid.yaml
 - asya-start-typeddict-pipeline.yaml
 - configmap-routers.yaml

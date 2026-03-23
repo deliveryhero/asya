@@ -15,22 +15,8 @@
       "label": "handler_process"
     },
     {
-      "id": "router_while_mutations_in_loop_flow_line_13_seq_4",
-      "label": "router_while_mutations_in_loop_flow_line_13_seq_4",
-      "generated": true,
-      "mutations": [
-        "p['i'] = 0",
-        "p['sum'] = 0"
-      ]
-    },
-    {
-      "id": "router_while_mutations_in_loop_flow_line_15_while_1",
-      "label": "router_while_mutations_in_loop_flow_line_15_while_1",
-      "generated": true
-    },
-    {
-      "id": "router_while_mutations_in_loop_flow_line_16_seq_3",
-      "label": "router_while_mutations_in_loop_flow_line_16_seq_3",
+      "id": "router_while_mutations_in_loop_flow_seq_set_i",
+      "label": "router_while_mutations_in_loop_flow_seq_set_i",
       "generated": true,
       "mutations": [
         "p['i'] += 1",
@@ -39,12 +25,26 @@
       ]
     },
     {
-      "id": "router_while_mutations_in_loop_flow_line_20_seq_2",
-      "label": "router_while_mutations_in_loop_flow_line_20_seq_2",
+      "id": "router_while_mutations_in_loop_flow_seq_set_i_2",
+      "label": "router_while_mutations_in_loop_flow_seq_set_i_2",
+      "generated": true,
+      "mutations": [
+        "p['i'] = 0",
+        "p['sum'] = 0"
+      ]
+    },
+    {
+      "id": "router_while_mutations_in_loop_flow_seq_set_processed",
+      "label": "router_while_mutations_in_loop_flow_seq_set_processed",
       "generated": true,
       "mutations": [
         "p['processed'] = True"
       ]
+    },
+    {
+      "id": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
+      "label": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
+      "generated": true
     },
     {
       "id": "start_while_mutations_in_loop_flow",
@@ -62,43 +62,43 @@
     },
     {
       "from": "handler_init",
-      "to": "router_while_mutations_in_loop_flow_line_13_seq_4",
+      "to": "router_while_mutations_in_loop_flow_seq_set_i_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_16_seq_3",
+      "from": "router_while_mutations_in_loop_flow_seq_set_i",
       "to": "handler_process",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "handler_process",
-      "to": "router_while_mutations_in_loop_flow_line_20_seq_2",
+      "to": "router_while_mutations_in_loop_flow_seq_set_processed",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_15_while_1",
-      "to": "router_while_mutations_in_loop_flow_line_16_seq_3",
+      "from": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
+      "to": "router_while_mutations_in_loop_flow_seq_set_i",
       "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_15_while_1",
+      "from": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
       "to": "handler_finalize",
       "label": "else",
       "type": "set"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_13_seq_4",
-      "to": "router_while_mutations_in_loop_flow_line_15_while_1",
+      "from": "router_while_mutations_in_loop_flow_seq_set_i_2",
+      "to": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_while_mutations_in_loop_flow_line_20_seq_2",
-      "to": "router_while_mutations_in_loop_flow_line_15_while_1",
+      "from": "router_while_mutations_in_loop_flow_seq_set_processed",
+      "to": "router_while_mutations_in_loop_flow_while_i_lt_max_iterations",
       "label": null,
       "type": "continuation"
     }

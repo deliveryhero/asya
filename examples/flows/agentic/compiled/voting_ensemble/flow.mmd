@@ -4,21 +4,21 @@ flowchart TD
     analytical_writer[analytical_writer]
     concise_writer[concise_writer]
     creative_writer[creative_writer]
-    fanin_voting_ensemble_line_43[fanin_voting_ensemble_line_43]
+    fanin_voting_ensemble_candidates[fanin_voting_ensemble_candidates]
     judge[judge]
-    router_voting_ensemble_line_43_fanout_1{{router_voting_ensemble_line_43_fanout_1}}
+    router_voting_ensemble_fanout_candidates{{router_voting_ensemble_fanout_candidates}}
     start_voting_ensemble([start_voting_ensemble])
     __end__((( )))
 
-    start_voting_ensemble --> router_voting_ensemble_line_43_fanout_1
-    router_voting_ensemble_line_43_fanout_1 -->|"fanout"| fanin_voting_ensemble_line_43
-    fanin_voting_ensemble_line_43 --> judge
-    router_voting_ensemble_line_43_fanout_1 --> creative_writer
-    creative_writer --> fanin_voting_ensemble_line_43
-    router_voting_ensemble_line_43_fanout_1 --> analytical_writer
-    analytical_writer --> fanin_voting_ensemble_line_43
-    router_voting_ensemble_line_43_fanout_1 --> concise_writer
-    concise_writer --> fanin_voting_ensemble_line_43
+    start_voting_ensemble --> router_voting_ensemble_fanout_candidates
+    router_voting_ensemble_fanout_candidates -->|"fanout"| fanin_voting_ensemble_candidates
+    fanin_voting_ensemble_candidates --> judge
+    router_voting_ensemble_fanout_candidates --> creative_writer
+    creative_writer --> fanin_voting_ensemble_candidates
+    router_voting_ensemble_fanout_candidates --> analytical_writer
+    analytical_writer --> fanin_voting_ensemble_candidates
+    router_voting_ensemble_fanout_candidates --> concise_writer
+    concise_writer --> fanin_voting_ensemble_candidates
     judge --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -28,7 +28,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_voting_ensemble start
     class judge endnode
-    class router_voting_ensemble_line_43_fanout_1 router
-    class analytical_writer,concise_writer,creative_writer,fanin_voting_ensemble_line_43 handler
+    class router_voting_ensemble_fanout_candidates router
+    class analytical_writer,concise_writer,creative_writer,fanin_voting_ensemble_candidates handler
     class __end__ endpoint
     linkStyle 1 stroke:#7B68EE

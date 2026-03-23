@@ -6,7 +6,7 @@ x-logging: &default-logging
 
 services:
   sqs:
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.4.0
     logging: *default-logging
     networks:
       default:
@@ -27,7 +27,7 @@ services:
       start_period: 10s
 
   queue-setup:
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.4.0
     logging: *default-logging
     depends_on:
       sqs:

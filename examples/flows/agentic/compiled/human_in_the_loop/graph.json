@@ -23,40 +23,40 @@
       "label": "revision_agent"
     },
     {
-      "id": "router_human_in_the_loop_line_59_while_1",
-      "label": "router_human_in_the_loop_line_59_while_1",
+      "id": "router_human_in_the_loop_if_approval_eq_rejected",
+      "label": "router_human_in_the_loop_if_approval_eq_rejected",
       "generated": true
     },
     {
-      "id": "router_human_in_the_loop_line_60_seq_6",
-      "label": "router_human_in_the_loop_line_60_seq_6",
+      "id": "router_human_in_the_loop_if_approval_in_approved_modified",
+      "label": "router_human_in_the_loop_if_approval_in_approved_modified",
+      "generated": true
+    },
+    {
+      "id": "router_human_in_the_loop_if_attempt_ge_3",
+      "label": "router_human_in_the_loop_if_attempt_ge_3",
+      "generated": true
+    },
+    {
+      "id": "router_human_in_the_loop_seq_set_attempt",
+      "label": "router_human_in_the_loop_seq_set_attempt",
       "generated": true,
       "mutations": [
         "p['attempt'] += 1"
       ]
     },
     {
-      "id": "router_human_in_the_loop_line_69_if_5",
-      "label": "router_human_in_the_loop_line_69_if_5",
-      "generated": true
-    },
-    {
-      "id": "router_human_in_the_loop_line_74_if_4",
-      "label": "router_human_in_the_loop_line_74_if_4",
-      "generated": true
-    },
-    {
-      "id": "router_human_in_the_loop_line_78_if_3",
-      "label": "router_human_in_the_loop_line_78_if_3",
-      "generated": true
-    },
-    {
-      "id": "router_human_in_the_loop_line_79_seq_2",
-      "label": "router_human_in_the_loop_line_79_seq_2",
+      "id": "router_human_in_the_loop_seq_set_result",
+      "label": "router_human_in_the_loop_seq_set_result",
       "generated": true,
       "mutations": [
         "p['result'] = 'Max revision attempts reached'"
       ]
+    },
+    {
+      "id": "router_human_in_the_loop_while_loop",
+      "label": "router_human_in_the_loop_while_loop",
+      "generated": true
     },
     {
       "id": "start_human_in_the_loop",
@@ -71,36 +71,36 @@
   "edges": [
     {
       "from": "start_human_in_the_loop",
-      "to": "router_human_in_the_loop_line_59_while_1",
+      "to": "router_human_in_the_loop_while_loop",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_79_seq_2",
+      "from": "router_human_in_the_loop_seq_set_result",
       "to": "notifier",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_human_in_the_loop_line_78_if_3",
-      "to": "router_human_in_the_loop_line_79_seq_2",
+      "from": "router_human_in_the_loop_if_attempt_ge_3",
+      "to": "router_human_in_the_loop_seq_set_result",
       "label": "p['attempt'] >= 3",
       "type": "set"
     },
     {
-      "from": "router_human_in_the_loop_line_74_if_4",
+      "from": "router_human_in_the_loop_if_approval_eq_rejected",
       "to": "revision_agent",
       "label": "p.get('approval') == 'rejected'",
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_69_if_5",
-      "to": "router_human_in_the_loop_line_74_if_4",
+      "from": "router_human_in_the_loop_if_approval_in_approved_modified",
+      "to": "router_human_in_the_loop_if_approval_eq_rejected",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_human_in_the_loop_line_69_if_5",
+      "from": "router_human_in_the_loop_if_approval_in_approved_modified",
       "to": "executor",
       "label": "p.get('approval') in ('approved', 'modified')",
       "type": "set"
@@ -112,7 +112,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_60_seq_6",
+      "from": "router_human_in_the_loop_seq_set_attempt",
       "to": "proposal_generator",
       "label": null,
       "type": "prepend"
@@ -125,31 +125,31 @@
     },
     {
       "from": "approval_gate",
-      "to": "router_human_in_the_loop_line_69_if_5",
+      "to": "router_human_in_the_loop_if_approval_in_approved_modified",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_59_while_1",
-      "to": "router_human_in_the_loop_line_60_seq_6",
+      "from": "router_human_in_the_loop_while_loop",
+      "to": "router_human_in_the_loop_seq_set_attempt",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "revision_agent",
-      "to": "router_human_in_the_loop_line_78_if_3",
+      "to": "router_human_in_the_loop_if_attempt_ge_3",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_78_if_3",
-      "to": "router_human_in_the_loop_line_59_while_1",
+      "from": "router_human_in_the_loop_if_attempt_ge_3",
+      "to": "router_human_in_the_loop_while_loop",
       "label": "else",
       "type": "continuation"
     },
     {
-      "from": "router_human_in_the_loop_line_74_if_4",
-      "to": "router_human_in_the_loop_line_59_while_1",
+      "from": "router_human_in_the_loop_if_approval_eq_rejected",
+      "to": "router_human_in_the_loop_while_loop",
       "label": "else",
       "type": "continuation"
     }

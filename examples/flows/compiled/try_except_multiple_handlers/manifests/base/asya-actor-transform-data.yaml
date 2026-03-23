@@ -16,25 +16,25 @@ spec:
   env: []
   resiliency:
     policies:
-      try_except_line_6_0:
+      except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-9-except-1
-      try_except_line_6_1:
+        - router-data-pipeline-except-valueerror
+      except_typeerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-12-except-2
-      try_except_line_6_2:
+        - router-data-pipeline-except-typeerror
+      except_runtimeerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-15-except-3
+        - router-data-pipeline-except-runtimeerror
     rules:
     - errors:
       - ValueError
-      policy: try_except_line_6_0
+      policy: except_valueerror
     - errors:
       - TypeError
-      policy: try_except_line_6_1
+      policy: except_typeerror
     - errors:
       - RuntimeError
-      policy: try_except_line_6_2
+      policy: except_runtimeerror

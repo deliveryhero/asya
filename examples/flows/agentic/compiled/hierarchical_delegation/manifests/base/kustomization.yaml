@@ -12,11 +12,11 @@ resources:
 - asya-actor-root-agent.yaml
 - asya-actor-sql-specialist.yaml
 - asya-actor-writer.yaml
-- asya-router-hierarchical-delegation-line-60-if-6.yaml
-- asya-router-hierarchical-delegation-line-64-if-2.yaml
-- asya-router-hierarchical-delegation-line-66-if-1.yaml
-- asya-router-hierarchical-delegation-line-71-if-5.yaml
-- asya-router-hierarchical-delegation-line-75-if-4.yaml
-- asya-router-hierarchical-delegation-line-77-if-3.yaml
+- asya-router-hierarchical-delegation-if-domain-eq-content.yaml
+- asya-router-hierarchical-delegation-if-domain-eq-data.yaml
+- asya-router-hierarchical-delegation-if-subtask-eq-api.yaml
+- asya-router-hierarchical-delegation-if-subtask-eq-edit.yaml
+- asya-router-hierarchical-delegation-if-subtask-eq-sql.yaml
+- asya-router-hierarchical-delegation-if-subtask-eq-write.yaml
 - asya-start-hierarchical-delegation.yaml
 - configmap-routers.yaml

@@ -22,11 +22,11 @@ spec:
     value: planner
   - name: ASYA_HANDLER_ACTOR_RE_PLANNER
     value: re_planner
-  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_LINE_53_WHILE_2
-    value: routers.router_plan_and_execute_line_53_while_2
-  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_LINE_58_IF_3
-    value: routers.router_plan_and_execute_line_58_if_3
-  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_LINE_61_SEQ_1
-    value: routers.router_plan_and_execute_line_61_seq_1
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_IF_CURRENT_STEP_LT_LEN_P_GET_PLAN
+    value: routers.router_plan_and_execute_if_current_step_lt_len_p_get_plan
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_SEQ_SET_COMPLETED
+    value: routers.router_plan_and_execute_seq_set_completed
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_WHILE_CURRENT_STEP_LT_LEN_P_GET_PLAN
+    value: routers.router_plan_and_execute_while_current_step_lt_len_p_get_plan
   - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
     value: synthesizer

@@ -7,28 +7,28 @@ flowchart TD
     handler_b_y[handler_b_y]
     handler_finalize[handler_finalize]
     handler_validate[handler_validate]
-    router_nested_if_flow_line_13_if_7{{router_nested_if_flow_line_13_if_7}}
-    router_nested_if_flow_line_15_if_3{{"router_nested_if_flow_line_15_if_3<br/><br/>p['l1'] = 'A'"}}
-    router_nested_if_flow_line_16_seq_1{{"router_nested_if_flow_line_16_seq_1<br/><br/>p['l2'] = 'X'"}}
-    router_nested_if_flow_line_19_seq_2{{"router_nested_if_flow_line_19_seq_2<br/><br/>p['l2'] = 'Y'"}}
-    router_nested_if_flow_line_23_if_6{{"router_nested_if_flow_line_23_if_6<br/><br/>p['l1'] = 'B'"}}
-    router_nested_if_flow_line_24_seq_4{{"router_nested_if_flow_line_24_seq_4<br/><br/>p['l2'] = 'X'"}}
-    router_nested_if_flow_line_27_seq_5{{"router_nested_if_flow_line_27_seq_5<br/><br/>p['l2'] = 'Y'"}}
+    router_nested_if_flow_if_level1_eq_a{{router_nested_if_flow_if_level1_eq_a}}
+    router_nested_if_flow_if_level2_eq_x{{"router_nested_if_flow_if_level2_eq_x<br/><br/>p['l1'] = 'A'"}}
+    router_nested_if_flow_if_level2_eq_x_2{{"router_nested_if_flow_if_level2_eq_x_2<br/><br/>p['l1'] = 'B'"}}
+    router_nested_if_flow_seq_set_l2{{"router_nested_if_flow_seq_set_l2<br/><br/>p['l2'] = 'X'"}}
+    router_nested_if_flow_seq_set_l2_2{{"router_nested_if_flow_seq_set_l2_2<br/><br/>p['l2'] = 'Y'"}}
+    router_nested_if_flow_seq_set_l2_3{{"router_nested_if_flow_seq_set_l2_3<br/><br/>p['l2'] = 'X'"}}
+    router_nested_if_flow_seq_set_l2_4{{"router_nested_if_flow_seq_set_l2_4<br/><br/>p['l2'] = 'Y'"}}
     start_nested_if_flow([start_nested_if_flow])
     __end__((( )))
 
     start_nested_if_flow --> handler_validate
-    handler_validate --> router_nested_if_flow_line_13_if_7
-    router_nested_if_flow_line_16_seq_1 --> handler_a_x
-    router_nested_if_flow_line_19_seq_2 --> handler_a_y
-    router_nested_if_flow_line_15_if_3 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_16_seq_1
-    router_nested_if_flow_line_15_if_3 -->|"else"| router_nested_if_flow_line_19_seq_2
-    router_nested_if_flow_line_24_seq_4 --> handler_b_x
-    router_nested_if_flow_line_27_seq_5 --> handler_b_y
-    router_nested_if_flow_line_23_if_6 -->|"p['level2'] == 'X'"| router_nested_if_flow_line_24_seq_4
-    router_nested_if_flow_line_23_if_6 -->|"else"| router_nested_if_flow_line_27_seq_5
-    router_nested_if_flow_line_13_if_7 -->|"p['level1'] == 'A'"| router_nested_if_flow_line_15_if_3
-    router_nested_if_flow_line_13_if_7 -->|"else"| router_nested_if_flow_line_23_if_6
+    handler_validate --> router_nested_if_flow_if_level1_eq_a
+    router_nested_if_flow_seq_set_l2 --> handler_a_x
+    router_nested_if_flow_seq_set_l2_2 --> handler_a_y
+    router_nested_if_flow_if_level2_eq_x -->|"p['level2'] == 'X'"| router_nested_if_flow_seq_set_l2
+    router_nested_if_flow_if_level2_eq_x -->|"else"| router_nested_if_flow_seq_set_l2_2
+    router_nested_if_flow_seq_set_l2_3 --> handler_b_x
+    router_nested_if_flow_seq_set_l2_4 --> handler_b_y
+    router_nested_if_flow_if_level2_eq_x_2 -->|"p['level2'] == 'X'"| router_nested_if_flow_seq_set_l2_3
+    router_nested_if_flow_if_level2_eq_x_2 -->|"else"| router_nested_if_flow_seq_set_l2_4
+    router_nested_if_flow_if_level1_eq_a -->|"p['level1'] == 'A'"| router_nested_if_flow_if_level2_eq_x
+    router_nested_if_flow_if_level1_eq_a -->|"else"| router_nested_if_flow_if_level2_eq_x_2
     handler_a_x --> handler_finalize
     handler_a_y --> handler_finalize
     handler_b_x --> handler_finalize
@@ -42,7 +42,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_nested_if_flow start
     class handler_finalize endnode
-    class router_nested_if_flow_line_13_if_7,router_nested_if_flow_line_15_if_3,router_nested_if_flow_line_16_seq_1,router_nested_if_flow_line_19_seq_2,router_nested_if_flow_line_23_if_6,router_nested_if_flow_line_24_seq_4,router_nested_if_flow_line_27_seq_5 router
+    class router_nested_if_flow_if_level1_eq_a,router_nested_if_flow_if_level2_eq_x,router_nested_if_flow_if_level2_eq_x_2,router_nested_if_flow_seq_set_l2,router_nested_if_flow_seq_set_l2_2,router_nested_if_flow_seq_set_l2_3,router_nested_if_flow_seq_set_l2_4 router
     class handler_a_x,handler_a_y,handler_b_x,handler_b_y,handler_validate handler
     class __end__ endpoint
     linkStyle 4,8,10 stroke:#2E8B57

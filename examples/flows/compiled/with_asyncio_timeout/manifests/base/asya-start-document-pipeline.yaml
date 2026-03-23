@@ -20,10 +20,10 @@ spec:
     value: language_detector
   - name: ASYA_HANDLER_ACTOR_OCR_EXTRACTOR
     value: ocr_extractor
-  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_LINE_23_IF_2
-    value: routers.router_document_pipeline_line_23_if_2
-  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_LINE_27_SEQ_1
-    value: routers.router_document_pipeline_line_27_seq_1
+  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_IF_LANGUAGE_NE_EN
+    value: routers.router_document_pipeline_if_language_ne_en
+  - name: ASYA_HANDLER_ROUTER_DOCUMENT_PIPELINE_SEQ_SET_STATUS
+    value: routers.router_document_pipeline_seq_set_status
   - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER
     value: sentiment_analyzer
   - name: ASYA_HANDLER_ACTOR_TRANSLATOR

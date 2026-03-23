@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-routing-classifier-if-category-eq-technical
+  namespace: default
+  labels:
+    asya.sh/flow: routing-classifier
+    asya.sh/generated: 'true'
+spec:
+  actor: router-routing-classifier-if-category-eq-technical
+  image: python:3.13-slim
+  handler: routers.router_routing_classifier_if_category_eq_technical
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ACCOUNT_AGENT
+    value: account_agent
+  - name: ASYA_HANDLER_ACTOR_BILLING_AGENT
+    value: billing_agent
+  - name: ASYA_HANDLER_ACTOR_CLASSIFIER
+    value: classifier
+  - name: ASYA_HANDLER_ACTOR_FORMAT_REPLY
+    value: format_reply
+  - name: ASYA_HANDLER_ACTOR_GENERAL_AGENT
+    value: general_agent
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_ACCOUNT
+    value: routers.router_routing_classifier_if_category_eq_account
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_BILLING
+    value: routers.router_routing_classifier_if_category_eq_billing
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_TECHNICAL
+    value: routers.router_routing_classifier_if_category_eq_technical
+  - name: ASYA_HANDLER_ACTOR_TECHNICAL_AGENT
+    value: technical_agent

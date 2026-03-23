@@ -27,26 +27,26 @@
       "label": "retriever"
     },
     {
-      "id": "router_rag_pipeline_line_55_while_1",
-      "label": "router_rag_pipeline_line_55_while_1",
+      "id": "router_rag_pipeline_if_is_sufficient",
+      "label": "router_rag_pipeline_if_is_sufficient",
       "generated": true
     },
     {
-      "id": "router_rag_pipeline_line_56_seq_4",
-      "label": "router_rag_pipeline_line_56_seq_4",
+      "id": "router_rag_pipeline_if_retrieval_attempts_ge_3",
+      "label": "router_rag_pipeline_if_retrieval_attempts_ge_3",
+      "generated": true
+    },
+    {
+      "id": "router_rag_pipeline_seq_set_retrieval_attempts",
+      "label": "router_rag_pipeline_seq_set_retrieval_attempts",
       "generated": true,
       "mutations": [
         "p['retrieval_attempts'] += 1"
       ]
     },
     {
-      "id": "router_rag_pipeline_line_65_if_3",
-      "label": "router_rag_pipeline_line_65_if_3",
-      "generated": true
-    },
-    {
-      "id": "router_rag_pipeline_line_69_if_2",
-      "label": "router_rag_pipeline_line_69_if_2",
+      "id": "router_rag_pipeline_while_loop",
+      "label": "router_rag_pipeline_while_loop",
       "generated": true
     },
     {
@@ -68,18 +68,18 @@
     },
     {
       "from": "query_analyzer",
-      "to": "router_rag_pipeline_line_55_while_1",
+      "to": "router_rag_pipeline_while_loop",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_rag_pipeline_line_69_if_2",
+      "from": "router_rag_pipeline_if_retrieval_attempts_ge_3",
       "to": "query_refiner",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_rag_pipeline_line_69_if_2",
+      "from": "router_rag_pipeline_if_retrieval_attempts_ge_3",
       "to": "generator",
       "label": "p['retrieval_attempts'] >= 3",
       "type": "set"
@@ -91,19 +91,19 @@
       "type": "continuation"
     },
     {
-      "from": "router_rag_pipeline_line_65_if_3",
-      "to": "router_rag_pipeline_line_69_if_2",
+      "from": "router_rag_pipeline_if_is_sufficient",
+      "to": "router_rag_pipeline_if_retrieval_attempts_ge_3",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_rag_pipeline_line_65_if_3",
+      "from": "router_rag_pipeline_if_is_sufficient",
       "to": "generator",
       "label": "p.get('is_sufficient')",
       "type": "set"
     },
     {
-      "from": "router_rag_pipeline_line_56_seq_4",
+      "from": "router_rag_pipeline_seq_set_retrieval_attempts",
       "to": "retriever",
       "label": null,
       "type": "prepend"
@@ -116,19 +116,19 @@
     },
     {
       "from": "relevance_evaluator",
-      "to": "router_rag_pipeline_line_65_if_3",
+      "to": "router_rag_pipeline_if_is_sufficient",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_rag_pipeline_line_55_while_1",
-      "to": "router_rag_pipeline_line_56_seq_4",
+      "from": "router_rag_pipeline_while_loop",
+      "to": "router_rag_pipeline_seq_set_retrieval_attempts",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "query_refiner",
-      "to": "router_rag_pipeline_line_55_while_1",
+      "to": "router_rag_pipeline_while_loop",
       "label": null,
       "type": "continuation"
     }

@@ -7,8 +7,8 @@
       "role": "end"
     },
     {
-      "id": "router_order_processing_line_8_except_1",
-      "label": "router_order_processing_line_8_except_1",
+      "id": "router_order_processing_except_valueerror",
+      "label": "router_order_processing_except_valueerror",
       "generated": true,
       "mutations": [
         "p['status'] = 'invalid'"
@@ -33,14 +33,14 @@
       "type": "prepend"
     },
     {
-      "from": "router_order_processing_line_8_except_1",
+      "from": "router_order_processing_except_valueerror",
       "to": "notify_rejection",
       "label": null,
       "type": "set"
     },
     {
       "from": "validate_order",
-      "to": "router_order_processing_line_8_except_1",
+      "to": "router_order_processing_except_valueerror",
       "label": "ValueError",
       "type": "error"
     }

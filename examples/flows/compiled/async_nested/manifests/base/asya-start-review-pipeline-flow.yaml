@@ -16,5 +16,5 @@ spec:
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
-  - name: ASYA_HANDLER_ROUTER_REVIEW_PIPELINE_FLOW_LINE_16_IF_1
-    value: routers.router_review_pipeline_flow_line_16_if_1
+  - name: ASYA_HANDLER_ROUTER_REVIEW_PIPELINE_FLOW_IF_SCORE_LT_0.5
+    value: routers.router_review_pipeline_flow_if_score_lt_0.5

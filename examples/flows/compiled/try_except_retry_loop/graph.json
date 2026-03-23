@@ -19,26 +19,26 @@
       "label": "prepare_request"
     },
     {
-      "id": "router_retry_pipeline_line_15_while_1",
-      "label": "router_retry_pipeline_line_15_while_1",
+      "id": "router_retry_pipeline_except_connectionerror",
+      "label": "router_retry_pipeline_except_connectionerror",
       "generated": true
     },
     {
-      "id": "router_retry_pipeline_line_16_seq_4",
-      "label": "router_retry_pipeline_line_16_seq_4",
+      "id": "router_retry_pipeline_except_valueerror",
+      "label": "router_retry_pipeline_except_valueerror",
+      "generated": true
+    },
+    {
+      "id": "router_retry_pipeline_seq_set_attempt",
+      "label": "router_retry_pipeline_seq_set_attempt",
       "generated": true,
       "mutations": [
         "p['attempt'] += 1"
       ]
     },
     {
-      "id": "router_retry_pipeline_line_20_except_2",
-      "label": "router_retry_pipeline_line_20_except_2",
-      "generated": true
-    },
-    {
-      "id": "router_retry_pipeline_line_22_except_3",
-      "label": "router_retry_pipeline_line_22_except_3",
+      "id": "router_retry_pipeline_while_attempt_lt_3",
+      "label": "router_retry_pipeline_while_attempt_lt_3",
       "generated": true
     },
     {
@@ -60,18 +60,18 @@
     },
     {
       "from": "prepare_request",
-      "to": "router_retry_pipeline_line_15_while_1",
+      "to": "router_retry_pipeline_while_attempt_lt_3",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_retry_pipeline_line_20_except_2",
+      "from": "router_retry_pipeline_except_connectionerror",
       "to": "log_retry",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_retry_pipeline_line_16_seq_4",
+      "from": "router_retry_pipeline_seq_set_attempt",
       "to": "call_external_api",
       "label": null,
       "type": "prepend"
@@ -83,38 +83,38 @@
       "type": "continuation"
     },
     {
-      "from": "router_retry_pipeline_line_15_while_1",
-      "to": "router_retry_pipeline_line_16_seq_4",
+      "from": "router_retry_pipeline_while_attempt_lt_3",
+      "to": "router_retry_pipeline_seq_set_attempt",
       "label": "p['attempt'] < 3",
       "type": "prepend"
     },
     {
       "from": "call_external_api",
-      "to": "router_retry_pipeline_line_20_except_2",
+      "to": "router_retry_pipeline_except_connectionerror",
       "label": "ConnectionError",
       "type": "error"
     },
     {
       "from": "call_external_api",
-      "to": "router_retry_pipeline_line_22_except_3",
+      "to": "router_retry_pipeline_except_valueerror",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "call_another_api",
-      "to": "router_retry_pipeline_line_20_except_2",
+      "to": "router_retry_pipeline_except_connectionerror",
       "label": "ConnectionError",
       "type": "error"
     },
     {
       "from": "call_another_api",
-      "to": "router_retry_pipeline_line_22_except_3",
+      "to": "router_retry_pipeline_except_valueerror",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "call_another_api",
-      "to": "router_retry_pipeline_line_15_while_1",
+      "to": "router_retry_pipeline_while_attempt_lt_3",
       "label": null,
       "type": "continuation"
     }

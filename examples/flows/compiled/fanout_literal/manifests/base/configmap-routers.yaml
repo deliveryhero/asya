@@ -28,18 +28,18 @@ data:
     async def start_analysis_flow(payload: dict):
         """Entrypoint for flow 'analysis_flow'"""
         _next = []
-        _next.append(resolve("router_analysis_flow_line_13_fanout_1"))
+        _next.append(resolve("router_analysis_flow_fanout_analysis"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_analysis_flow_line_13_fanout_1(payload: dict):
-        """Fan-out router: dispatches to sub-agents and aggregator (line 13)"""
+    async def router_analysis_flow_fanout_analysis(payload: dict):
+        """Fan-out router: dispatches to sub-agents and aggregator (analysis)"""
         p = payload
 
         origin_id = yield "GET", ".id"
         _next_tail = yield "GET", ".route.next"
 
-        _agg = resolve("fanin_analysis_flow_line_13")
+        _agg = resolve("fanin_analysis_flow_analysis")
 
         _slices = []
         _slices.append((resolve("sentiment_analyzer"), p['text']))

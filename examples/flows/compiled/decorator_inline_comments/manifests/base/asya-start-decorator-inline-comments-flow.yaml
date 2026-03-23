@@ -20,7 +20,7 @@ spec:
     value: classifier
   - name: ASYA_HANDLER_ACTOR_FAST_HANDLER
     value: fast_handler
-  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_LINE_18_IF_1
-    value: routers.router_decorator_inline_comments_flow_line_18_if_1
+  - name: ASYA_HANDLER_ROUTER_DECORATOR_INLINE_COMMENTS_FLOW_IF_CATEGORY_EQ_PRIORITY
+    value: routers.router_decorator_inline_comments_flow_if_category_eq_priority
   - name: ASYA_HANDLER_ACTOR_STANDARD_HANDLER
     value: standard_handler

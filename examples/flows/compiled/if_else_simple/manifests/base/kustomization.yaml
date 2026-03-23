@@ -5,6 +5,6 @@ resources:
 - asya-actor-handler-setup.yaml
 - asya-actor-handler-type-a.yaml
 - asya-actor-handler-type-b.yaml
-- asya-router-if-else-simple-flow-line-13-if-1.yaml
+- asya-router-if-else-simple-flow-if-type-eq-a.yaml
 - asya-start-if-else-simple-flow.yaml
 - configmap-routers.yaml

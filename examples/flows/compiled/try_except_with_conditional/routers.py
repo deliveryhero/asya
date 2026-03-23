@@ -17,20 +17,20 @@ async def start_payment_flow(payload: dict):
     """Entrypoint for flow 'payment_flow'"""
     _next = []
     _next.append(resolve("validate_payment"))
-    _next.append(resolve("router_payment_flow_line_17_if_2"))
+    _next.append(resolve("router_payment_flow_if_method_eq_card"))
     _next.append(resolve("audit_log"))
     _next.append(resolve("send_receipt"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_payment_flow_line_22_except_1(payload: dict):
+async def router_payment_flow_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['status'] = 'payment_failed'
     yield "SET", ".route.next", [resolve('notify_payment_failure'), resolve('audit_log'), resolve('send_receipt')]
     yield payload
 
-async def router_payment_flow_line_17_if_2(payload: dict):
+async def router_payment_flow_if_method_eq_card(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []

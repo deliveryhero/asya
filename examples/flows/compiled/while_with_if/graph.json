@@ -19,25 +19,25 @@
       "label": "handler_odd"
     },
     {
-      "id": "router_if_inside_while_flow_line_13_seq_3",
-      "label": "router_if_inside_while_flow_line_13_seq_3",
+      "id": "router_if_inside_while_flow_if_p_i_2_eq_0",
+      "label": "router_if_inside_while_flow_if_p_i_2_eq_0",
+      "generated": true,
+      "mutations": [
+        "p['i'] += 1"
+      ]
+    },
+    {
+      "id": "router_if_inside_while_flow_seq_set_i",
+      "label": "router_if_inside_while_flow_seq_set_i",
       "generated": true,
       "mutations": [
         "p['i'] = 0"
       ]
     },
     {
-      "id": "router_if_inside_while_flow_line_14_while_1",
-      "label": "router_if_inside_while_flow_line_14_while_1",
+      "id": "router_if_inside_while_flow_while_i_lt_max_iterations",
+      "label": "router_if_inside_while_flow_while_i_lt_max_iterations",
       "generated": true
-    },
-    {
-      "id": "router_if_inside_while_flow_line_16_if_2",
-      "label": "router_if_inside_while_flow_line_16_if_2",
-      "generated": true,
-      "mutations": [
-        "p['i'] += 1"
-      ]
     },
     {
       "id": "start_if_inside_while_flow",
@@ -55,49 +55,49 @@
     },
     {
       "from": "handler_init",
-      "to": "router_if_inside_while_flow_line_13_seq_3",
+      "to": "router_if_inside_while_flow_seq_set_i",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_if_inside_while_flow_line_16_if_2",
+      "from": "router_if_inside_while_flow_if_p_i_2_eq_0",
       "to": "handler_even",
       "label": "p['i'] % 2 == 0",
       "type": "prepend"
     },
     {
-      "from": "router_if_inside_while_flow_line_16_if_2",
+      "from": "router_if_inside_while_flow_if_p_i_2_eq_0",
       "to": "handler_odd",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_if_inside_while_flow_line_14_while_1",
-      "to": "router_if_inside_while_flow_line_16_if_2",
+      "from": "router_if_inside_while_flow_while_i_lt_max_iterations",
+      "to": "router_if_inside_while_flow_if_p_i_2_eq_0",
       "label": "p['i'] < p['max_iterations']",
       "type": "prepend"
     },
     {
-      "from": "router_if_inside_while_flow_line_14_while_1",
+      "from": "router_if_inside_while_flow_while_i_lt_max_iterations",
       "to": "handler_finalize",
       "label": "else",
       "type": "set"
     },
     {
-      "from": "router_if_inside_while_flow_line_13_seq_3",
-      "to": "router_if_inside_while_flow_line_14_while_1",
+      "from": "router_if_inside_while_flow_seq_set_i",
+      "to": "router_if_inside_while_flow_while_i_lt_max_iterations",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "handler_even",
-      "to": "router_if_inside_while_flow_line_14_while_1",
+      "to": "router_if_inside_while_flow_while_i_lt_max_iterations",
       "label": null,
       "type": "continuation"
     },
     {
       "from": "handler_odd",
-      "to": "router_if_inside_while_flow_line_14_while_1",
+      "to": "router_if_inside_while_flow_while_i_lt_max_iterations",
       "label": null,
       "type": "continuation"
     }

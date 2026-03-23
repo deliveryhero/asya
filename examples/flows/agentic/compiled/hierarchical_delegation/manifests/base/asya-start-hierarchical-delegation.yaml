@@ -34,18 +34,18 @@ spec:
     value: generalist
   - name: ASYA_HANDLER_ACTOR_ROOT_AGENT
     value: root_agent
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_60_IF_6
-    value: routers.router_hierarchical_delegation_line_60_if_6
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_64_IF_2
-    value: routers.router_hierarchical_delegation_line_64_if_2
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_66_IF_1
-    value: routers.router_hierarchical_delegation_line_66_if_1
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_71_IF_5
-    value: routers.router_hierarchical_delegation_line_71_if_5
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_75_IF_4
-    value: routers.router_hierarchical_delegation_line_75_if_4
-  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_LINE_77_IF_3
-    value: routers.router_hierarchical_delegation_line_77_if_3
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_DOMAIN_EQ_CONTENT
+    value: routers.router_hierarchical_delegation_if_domain_eq_content
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_DOMAIN_EQ_DATA
+    value: routers.router_hierarchical_delegation_if_domain_eq_data
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_SUBTASK_EQ_API
+    value: routers.router_hierarchical_delegation_if_subtask_eq_api
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_SUBTASK_EQ_EDIT
+    value: routers.router_hierarchical_delegation_if_subtask_eq_edit
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_SUBTASK_EQ_SQL
+    value: routers.router_hierarchical_delegation_if_subtask_eq_sql
+  - name: ASYA_HANDLER_ROUTER_HIERARCHICAL_DELEGATION_IF_SUBTASK_EQ_WRITE
+    value: routers.router_hierarchical_delegation_if_subtask_eq_write
   - name: ASYA_HANDLER_ACTOR_SQL_SPECIALIST
     value: sql_specialist
   - name: ASYA_HANDLER_ACTOR_WRITER

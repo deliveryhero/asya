@@ -4,8 +4,8 @@ resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-init.yaml
 - asya-actor-handler-process.yaml
-- asya-router-while-with-continue-flow-line-13-seq-3.yaml
-- asya-router-while-with-continue-flow-line-14-while-1.yaml
-- asya-router-while-with-continue-flow-line-16-if-2.yaml
+- asya-router-while-with-continue-flow-if-skip-iteration.yaml
+- asya-router-while-with-continue-flow-seq-set-i.yaml
+- asya-router-while-with-continue-flow-while-i-lt-max-iterations.yaml
 - asya-start-while-with-continue-flow.yaml
 - configmap-routers.yaml

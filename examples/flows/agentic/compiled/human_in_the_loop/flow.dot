@@ -9,29 +9,29 @@ digraph "human_in_the_loop" {
     notifier [label="notifier", fillcolor=lightsalmon];
     proposal_generator [label="proposal_generator", fillcolor=lightblue];
     revision_agent [label="revision_agent", fillcolor=lightblue];
-    router_human_in_the_loop_line_59_while_1 [label="router_human_in_the_loop_line_59_while_1", fillcolor=wheat];
-    router_human_in_the_loop_line_60_seq_6 [label="router_human_in_the_loop_line_60_seq_6\n\np['attempt'] += 1", fillcolor=wheat];
-    router_human_in_the_loop_line_69_if_5 [label="router_human_in_the_loop_line_69_if_5", fillcolor=wheat];
-    router_human_in_the_loop_line_74_if_4 [label="router_human_in_the_loop_line_74_if_4", fillcolor=wheat];
-    router_human_in_the_loop_line_78_if_3 [label="router_human_in_the_loop_line_78_if_3", fillcolor=wheat];
-    router_human_in_the_loop_line_79_seq_2 [label="router_human_in_the_loop_line_79_seq_2\n\np['result'] = 'Max revision attempts reached'", fillcolor=wheat];
+    router_human_in_the_loop_if_approval_eq_rejected [label="router_human_in_the_loop_if_approval_eq_rejected", fillcolor=wheat];
+    router_human_in_the_loop_if_approval_in_approved_modified [label="router_human_in_the_loop_if_approval_in_approved_modified", fillcolor=wheat];
+    router_human_in_the_loop_if_attempt_ge_3 [label="router_human_in_the_loop_if_attempt_ge_3", fillcolor=wheat];
+    router_human_in_the_loop_seq_set_attempt [label="router_human_in_the_loop_seq_set_attempt\n\np['attempt'] += 1", fillcolor=wheat];
+    router_human_in_the_loop_seq_set_result [label="router_human_in_the_loop_seq_set_result\n\np['result'] = 'Max revision attempts reached'", fillcolor=wheat];
+    router_human_in_the_loop_while_loop [label="router_human_in_the_loop_while_loop", fillcolor=wheat];
     start_human_in_the_loop [label="start_human_in_the_loop\n\np['attempt'] = 0", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_human_in_the_loop -> router_human_in_the_loop_line_59_while_1;
-    router_human_in_the_loop_line_79_seq_2 -> notifier;
-    router_human_in_the_loop_line_78_if_3 -> router_human_in_the_loop_line_79_seq_2 [label="p['attempt'] >= 3", color="#2E8B57", fontcolor="#2E8B57"];
-    router_human_in_the_loop_line_74_if_4 -> revision_agent [label="p.get('approval') == 'rejected'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_human_in_the_loop_line_69_if_5 -> router_human_in_the_loop_line_74_if_4 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_human_in_the_loop_line_69_if_5 -> executor [label="p.get('approval') in ('approved', 'modified')", color="#2E8B57", fontcolor="#2E8B57"];
+    start_human_in_the_loop -> router_human_in_the_loop_while_loop;
+    router_human_in_the_loop_seq_set_result -> notifier;
+    router_human_in_the_loop_if_attempt_ge_3 -> router_human_in_the_loop_seq_set_result [label="p['attempt'] >= 3", color="#2E8B57", fontcolor="#2E8B57"];
+    router_human_in_the_loop_if_approval_eq_rejected -> revision_agent [label="p.get('approval') == 'rejected'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_human_in_the_loop_if_approval_in_approved_modified -> router_human_in_the_loop_if_approval_eq_rejected [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_if_approval_in_approved_modified -> executor [label="p.get('approval') in ('approved', 'modified')", color="#2E8B57", fontcolor="#2E8B57"];
     executor -> notifier;
-    router_human_in_the_loop_line_60_seq_6 -> proposal_generator;
+    router_human_in_the_loop_seq_set_attempt -> proposal_generator;
     proposal_generator -> approval_gate;
-    approval_gate -> router_human_in_the_loop_line_69_if_5;
-    router_human_in_the_loop_line_59_while_1 -> router_human_in_the_loop_line_60_seq_6;
-    revision_agent -> router_human_in_the_loop_line_78_if_3;
-    router_human_in_the_loop_line_78_if_3 -> router_human_in_the_loop_line_59_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
-    router_human_in_the_loop_line_74_if_4 -> router_human_in_the_loop_line_59_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    approval_gate -> router_human_in_the_loop_if_approval_in_approved_modified;
+    router_human_in_the_loop_while_loop -> router_human_in_the_loop_seq_set_attempt;
+    revision_agent -> router_human_in_the_loop_if_attempt_ge_3;
+    router_human_in_the_loop_if_attempt_ge_3 -> router_human_in_the_loop_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
+    router_human_in_the_loop_if_approval_eq_rejected -> router_human_in_the_loop_while_loop [label="else", color="#D35400", fontcolor="#D35400"];
     notifier -> __end__;
 }

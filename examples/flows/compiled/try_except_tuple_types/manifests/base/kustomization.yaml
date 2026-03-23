@@ -5,7 +5,7 @@ resources:
 - asya-actor-parse-data.yaml
 - asya-actor-queue-for-retry.yaml
 - asya-actor-reject-input.yaml
-- asya-router-ingestion-pipeline-line-16-except-1.yaml
-- asya-router-ingestion-pipeline-line-19-except-2.yaml
+- asya-router-ingestion-pipeline-except-connectionerror-timeouterror.yaml
+- asya-router-ingestion-pipeline-except-valueerror-keyerror.yaml
 - asya-start-ingestion-pipeline.yaml
 - configmap-routers.yaml

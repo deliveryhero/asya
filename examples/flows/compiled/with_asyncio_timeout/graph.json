@@ -10,13 +10,13 @@
       "label": "ocr_extractor"
     },
     {
-      "id": "router_document_pipeline_line_23_if_2",
-      "label": "router_document_pipeline_line_23_if_2",
+      "id": "router_document_pipeline_if_language_ne_en",
+      "label": "router_document_pipeline_if_language_ne_en",
       "generated": true
     },
     {
-      "id": "router_document_pipeline_line_27_seq_1",
-      "label": "router_document_pipeline_line_27_seq_1",
+      "id": "router_document_pipeline_seq_set_status",
+      "label": "router_document_pipeline_seq_set_status",
       "generated": true,
       "mutations": [
         "p['status'] = 'done'"
@@ -55,12 +55,12 @@
     },
     {
       "from": "language_detector",
-      "to": "router_document_pipeline_line_23_if_2",
+      "to": "router_document_pipeline_if_language_ne_en",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_document_pipeline_line_23_if_2",
+      "from": "router_document_pipeline_if_language_ne_en",
       "to": "translator",
       "label": "p.get('language') != 'en'",
       "type": "prepend"
@@ -73,12 +73,12 @@
     },
     {
       "from": "sentiment_analyzer",
-      "to": "router_document_pipeline_line_27_seq_1",
+      "to": "router_document_pipeline_seq_set_status",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_document_pipeline_line_23_if_2",
+      "from": "router_document_pipeline_if_language_ne_en",
       "to": "sentiment_analyzer",
       "label": "else",
       "type": "prepend"

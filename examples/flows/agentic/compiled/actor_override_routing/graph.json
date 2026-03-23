@@ -20,8 +20,8 @@
       "role": "end"
     },
     {
-      "id": "router_actor_override_flow_line_26_if_1",
-      "label": "router_actor_override_flow_line_26_if_1",
+      "id": "router_actor_override_flow_if_needs_tool",
+      "label": "router_actor_override_flow_if_needs_tool",
       "generated": true
     },
     {
@@ -43,7 +43,7 @@
       "type": "prepend"
     },
     {
-      "from": "router_actor_override_flow_line_26_if_1",
+      "from": "router_actor_override_flow_if_needs_tool",
       "to": "tool_executor",
       "label": "p.get('needs_tool')",
       "type": "prepend"
@@ -55,7 +55,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_actor_override_flow_line_26_if_1",
+      "from": "router_actor_override_flow_if_needs_tool",
       "to": "format_output",
       "label": "else",
       "type": "prepend"
@@ -76,7 +76,7 @@
     },
     {
       "from": "audit_logger",
-      "to": "router_actor_override_flow_line_26_if_1",
+      "to": "router_actor_override_flow_if_needs_tool",
       "label": null,
       "type": "continuation"
     }

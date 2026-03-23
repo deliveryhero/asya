@@ -10,8 +10,8 @@
       "label": "deep_analyzer"
     },
     {
-      "id": "fanin_adaptive_flow_line_16",
-      "label": "fanin_adaptive_flow_line_16"
+      "id": "fanin_adaptive_flow_results",
+      "label": "fanin_adaptive_flow_results"
     },
     {
       "id": "fast_analyzer",
@@ -23,13 +23,13 @@
       "role": "end"
     },
     {
-      "id": "router_adaptive_flow_line_15_if_2",
-      "label": "router_adaptive_flow_line_15_if_2",
+      "id": "router_adaptive_flow_fanout_results",
+      "label": "router_adaptive_flow_fanout_results",
       "generated": true
     },
     {
-      "id": "router_adaptive_flow_line_16_fanout_1",
-      "label": "router_adaptive_flow_line_16_fanout_1",
+      "id": "router_adaptive_flow_if_parallel",
+      "label": "router_adaptive_flow_if_parallel",
       "generated": true
     },
     {
@@ -52,54 +52,54 @@
     },
     {
       "from": "classifier",
-      "to": "router_adaptive_flow_line_15_if_2",
+      "to": "router_adaptive_flow_if_parallel",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_16_fanout_1",
-      "to": "fanin_adaptive_flow_line_16",
+      "from": "router_adaptive_flow_fanout_results",
+      "to": "fanin_adaptive_flow_results",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "router_adaptive_flow_line_16_fanout_1",
+      "from": "router_adaptive_flow_fanout_results",
       "to": "fast_analyzer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "fast_analyzer",
-      "to": "fanin_adaptive_flow_line_16",
+      "to": "fanin_adaptive_flow_results",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_16_fanout_1",
+      "from": "router_adaptive_flow_fanout_results",
       "to": "deep_analyzer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "deep_analyzer",
-      "to": "fanin_adaptive_flow_line_16",
+      "to": "fanin_adaptive_flow_results",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_15_if_2",
-      "to": "router_adaptive_flow_line_16_fanout_1",
+      "from": "router_adaptive_flow_if_parallel",
+      "to": "router_adaptive_flow_fanout_results",
       "label": "p['parallel']",
       "type": "prepend"
     },
     {
-      "from": "router_adaptive_flow_line_16_fanout_1",
+      "from": "router_adaptive_flow_fanout_results",
       "to": "formatter",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_adaptive_flow_line_15_if_2",
+      "from": "router_adaptive_flow_if_parallel",
       "to": "sequential_analyzer",
       "label": "else",
       "type": "prepend"
@@ -111,7 +111,7 @@
       "type": "continuation"
     },
     {
-      "from": "fanin_adaptive_flow_line_16",
+      "from": "fanin_adaptive_flow_results",
       "to": "formatter",
       "label": null,
       "type": "continuation"

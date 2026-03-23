@@ -6,8 +6,8 @@ resources:
 - asya-actor-handle-validation-error.yaml
 - asya-actor-parse-input.yaml
 - asya-actor-transform-data.yaml
-- asya-router-data-pipeline-line-12-except-2.yaml
-- asya-router-data-pipeline-line-15-except-3.yaml
-- asya-router-data-pipeline-line-9-except-1.yaml
+- asya-router-data-pipeline-except-runtimeerror.yaml
+- asya-router-data-pipeline-except-typeerror.yaml
+- asya-router-data-pipeline-except-valueerror.yaml
 - asya-start-data-pipeline.yaml
 - configmap-routers.yaml

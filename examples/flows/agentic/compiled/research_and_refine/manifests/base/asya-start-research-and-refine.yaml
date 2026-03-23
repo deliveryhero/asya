@@ -22,13 +22,13 @@ spec:
     value: refine_query
   - name: ASYA_HANDLER_ACTOR_RESEARCHER
     value: researcher
-  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_LINE_49_WHILE_1
-    value: routers.router_research_and_refine_line_49_while_1
-  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_LINE_50_SEQ_4
-    value: routers.router_research_and_refine_line_50_seq_4
-  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_LINE_54_IF_3
-    value: routers.router_research_and_refine_line_54_if_3
-  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_LINE_58_IF_2
-    value: routers.router_research_and_refine_line_58_if_2
+  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_IF_ITERATION_GE_5
+    value: routers.router_research_and_refine_if_iteration_ge_5
+  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_IF_NOT_GAPS_OR_QUALITY_SCORE_GE_85
+    value: routers.router_research_and_refine_if_not_gaps_or_quality_score_ge_85
+  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_SEQ_SET_ITERATION
+    value: routers.router_research_and_refine_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_RESEARCH_AND_REFINE_WHILE_LOOP
+    value: routers.router_research_and_refine_while_loop
   - name: ASYA_HANDLER_ACTOR_WRITE_REPORT
     value: write_report

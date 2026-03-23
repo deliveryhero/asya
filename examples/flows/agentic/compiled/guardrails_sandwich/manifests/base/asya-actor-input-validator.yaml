@@ -1,0 +1,26 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-input-validator
+  namespace: default
+  labels:
+    asya.sh/flow: guardrails-sandwich
+spec:
+  actor: actor-input-validator
+  image: examples.asya.sh/input-validator:latest
+  handler: input_validator
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []
+  resiliency:
+    policies:
+      except_exception:
+        maxAttempts: 1
+        thenRoute:
+        - router-guardrails-sandwich-except-exception
+    rules:
+    - errors:
+      - Exception
+      policy: except_exception

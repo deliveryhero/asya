@@ -18,12 +18,12 @@
       "label": "debater_c"
     },
     {
-      "id": "fanin_multi_agent_debate_line_56",
-      "label": "fanin_multi_agent_debate_line_56"
+      "id": "fanin_multi_agent_debate_positions",
+      "label": "fanin_multi_agent_debate_positions"
     },
     {
-      "id": "fanin_multi_agent_debate_line_75",
-      "label": "fanin_multi_agent_debate_line_75"
+      "id": "fanin_multi_agent_debate_positions_2",
+      "label": "fanin_multi_agent_debate_positions_2"
     },
     {
       "id": "final_judge",
@@ -43,36 +43,36 @@
       "label": "revise_c"
     },
     {
-      "id": "router_multi_agent_debate_line_56_fanout_6",
-      "label": "router_multi_agent_debate_line_56_fanout_6",
+      "id": "router_multi_agent_debate_fanout_positions",
+      "label": "router_multi_agent_debate_fanout_positions",
       "generated": true
     },
     {
-      "id": "router_multi_agent_debate_line_64_while_1",
-      "label": "router_multi_agent_debate_line_64_while_1",
+      "id": "router_multi_agent_debate_fanout_positions_2",
+      "label": "router_multi_agent_debate_fanout_positions_2",
       "generated": true
     },
     {
-      "id": "router_multi_agent_debate_line_65_seq_5",
-      "label": "router_multi_agent_debate_line_65_seq_5",
+      "id": "router_multi_agent_debate_if_converged",
+      "label": "router_multi_agent_debate_if_converged",
+      "generated": true
+    },
+    {
+      "id": "router_multi_agent_debate_if_round_ge_3",
+      "label": "router_multi_agent_debate_if_round_ge_3",
+      "generated": true
+    },
+    {
+      "id": "router_multi_agent_debate_seq_set_round",
+      "label": "router_multi_agent_debate_seq_set_round",
       "generated": true,
       "mutations": [
         "p['round'] += 1"
       ]
     },
     {
-      "id": "router_multi_agent_debate_line_69_if_4",
-      "label": "router_multi_agent_debate_line_69_if_4",
-      "generated": true
-    },
-    {
-      "id": "router_multi_agent_debate_line_72_if_3",
-      "label": "router_multi_agent_debate_line_72_if_3",
-      "generated": true
-    },
-    {
-      "id": "router_multi_agent_debate_line_75_fanout_2",
-      "label": "router_multi_agent_debate_line_75_fanout_2",
+      "id": "router_multi_agent_debate_while_loop",
+      "label": "router_multi_agent_debate_while_loop",
       "generated": true
     },
     {
@@ -88,151 +88,151 @@
   "edges": [
     {
       "from": "start_multi_agent_debate",
-      "to": "router_multi_agent_debate_line_56_fanout_6",
+      "to": "router_multi_agent_debate_fanout_positions_2",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_75_fanout_2",
-      "to": "fanin_multi_agent_debate_line_75",
+      "from": "router_multi_agent_debate_fanout_positions",
+      "to": "fanin_multi_agent_debate_positions",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "router_multi_agent_debate_line_75_fanout_2",
+      "from": "router_multi_agent_debate_fanout_positions",
       "to": "revise_a",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "revise_a",
-      "to": "fanin_multi_agent_debate_line_75",
+      "to": "fanin_multi_agent_debate_positions",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_75_fanout_2",
+      "from": "router_multi_agent_debate_fanout_positions",
       "to": "revise_b",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "revise_b",
-      "to": "fanin_multi_agent_debate_line_75",
+      "to": "fanin_multi_agent_debate_positions",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_75_fanout_2",
+      "from": "router_multi_agent_debate_fanout_positions",
       "to": "revise_c",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "revise_c",
-      "to": "fanin_multi_agent_debate_line_75",
+      "to": "fanin_multi_agent_debate_positions",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_72_if_3",
-      "to": "router_multi_agent_debate_line_75_fanout_2",
+      "from": "router_multi_agent_debate_if_round_ge_3",
+      "to": "router_multi_agent_debate_fanout_positions",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_72_if_3",
+      "from": "router_multi_agent_debate_if_round_ge_3",
       "to": "final_judge",
       "label": "p['round'] >= 3",
       "type": "set"
     },
     {
-      "from": "router_multi_agent_debate_line_69_if_4",
-      "to": "router_multi_agent_debate_line_72_if_3",
+      "from": "router_multi_agent_debate_if_converged",
+      "to": "router_multi_agent_debate_if_round_ge_3",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_69_if_4",
+      "from": "router_multi_agent_debate_if_converged",
       "to": "final_judge",
       "label": "p.get('converged')",
       "type": "set"
     },
     {
-      "from": "router_multi_agent_debate_line_65_seq_5",
+      "from": "router_multi_agent_debate_seq_set_round",
       "to": "convergence_checker",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "convergence_checker",
-      "to": "router_multi_agent_debate_line_69_if_4",
+      "to": "router_multi_agent_debate_if_converged",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_64_while_1",
-      "to": "router_multi_agent_debate_line_65_seq_5",
+      "from": "router_multi_agent_debate_while_loop",
+      "to": "router_multi_agent_debate_seq_set_round",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_multi_agent_debate_line_56_fanout_6",
-      "to": "fanin_multi_agent_debate_line_56",
+      "from": "router_multi_agent_debate_fanout_positions_2",
+      "to": "fanin_multi_agent_debate_positions_2",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "fanin_multi_agent_debate_line_56",
-      "to": "router_multi_agent_debate_line_64_while_1",
+      "from": "fanin_multi_agent_debate_positions_2",
+      "to": "router_multi_agent_debate_while_loop",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_56_fanout_6",
+      "from": "router_multi_agent_debate_fanout_positions_2",
       "to": "debater_a",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "debater_a",
-      "to": "fanin_multi_agent_debate_line_56",
+      "to": "fanin_multi_agent_debate_positions_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_56_fanout_6",
+      "from": "router_multi_agent_debate_fanout_positions_2",
       "to": "debater_b",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "debater_b",
-      "to": "fanin_multi_agent_debate_line_56",
+      "to": "fanin_multi_agent_debate_positions_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_56_fanout_6",
+      "from": "router_multi_agent_debate_fanout_positions_2",
       "to": "debater_c",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "debater_c",
-      "to": "fanin_multi_agent_debate_line_56",
+      "to": "fanin_multi_agent_debate_positions_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_multi_agent_debate_line_75_fanout_2",
-      "to": "router_multi_agent_debate_line_64_while_1",
+      "from": "router_multi_agent_debate_fanout_positions",
+      "to": "router_multi_agent_debate_while_loop",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "fanin_multi_agent_debate_line_75",
-      "to": "router_multi_agent_debate_line_64_while_1",
+      "from": "fanin_multi_agent_debate_positions",
+      "to": "router_multi_agent_debate_while_loop",
       "label": null,
       "type": "continuation"
     }

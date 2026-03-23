@@ -6,7 +6,7 @@ Verifies the gateway's A2A auth middleware with a real gateway process:
 - A2A endpoint requires auth when both API Key and JWT are configured
 - API key auth: valid passes, wrong key rejected
 - JWT auth: valid token passes; expired / wrong issuer / wrong audience rejected
-- /mesh/expose requires API key
+- /mesh/config-reload is accessible without auth (mesh-internal)
 """
 
 import os
@@ -153,16 +153,7 @@ class TestA2AAuth:
         )
         assert resp.status_code == 401
 
-    def test_expose_endpoint_requires_auth(self):
-        """/mesh/expose rejects unauthenticated GET requests."""
-        resp = requests.get(f"{GATEWAY_URL}/mesh/expose", timeout=5)
-        assert resp.status_code == 401
-
-    def test_expose_endpoint_with_api_key(self):
-        """/mesh/expose is accessible with a valid API key."""
-        resp = requests.get(
-            f"{GATEWAY_URL}/mesh/expose",
-            headers={"X-API-Key": API_KEY},
-            timeout=5,
-        )
+    def test_mesh_config_reload_no_auth_required(self):
+        """/mesh/config-reload is a mesh-internal endpoint, no auth needed."""
+        resp = requests.post(f"{GATEWAY_URL}/mesh/config-reload", timeout=5)
         assert resp.status_code != 401

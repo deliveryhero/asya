@@ -5,8 +5,8 @@ resources:
 - asya-actor-handler-setup.yaml
 - asya-actor-handler-type-a.yaml
 - asya-actor-handler-type-b.yaml
-- asya-router-if-mutations-in-branches-flow-line-13-if-3.yaml
-- asya-router-if-mutations-in-branches-flow-line-14-seq-1.yaml
-- asya-router-if-mutations-in-branches-flow-line-19-seq-2.yaml
+- asya-router-if-mutations-in-branches-flow-if-type-eq-a.yaml
+- asya-router-if-mutations-in-branches-flow-seq-set-branch-2.yaml
+- asya-router-if-mutations-in-branches-flow-seq-set-branch.yaml
 - asya-start-if-mutations-in-branches-flow.yaml
 - configmap-routers.yaml

@@ -5,8 +5,8 @@ resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-init.yaml
 - asya-actor-handler-odd.yaml
-- asya-router-if-inside-while-flow-line-13-seq-3.yaml
-- asya-router-if-inside-while-flow-line-14-while-1.yaml
-- asya-router-if-inside-while-flow-line-16-if-2.yaml
+- asya-router-if-inside-while-flow-if-p-i-2-eq-0.yaml
+- asya-router-if-inside-while-flow-seq-set-i.yaml
+- asya-router-if-inside-while-flow-while-i-lt-max-iterations.yaml
 - asya-start-if-inside-while-flow.yaml
 - configmap-routers.yaml

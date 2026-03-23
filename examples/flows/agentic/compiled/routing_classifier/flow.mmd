@@ -6,22 +6,22 @@ flowchart TD
     classifier[classifier]
     format_reply[format_reply]
     general_agent[general_agent]
-    router_routing_classifier_line_46_if_3{{router_routing_classifier_line_46_if_3}}
-    router_routing_classifier_line_48_if_2{{router_routing_classifier_line_48_if_2}}
-    router_routing_classifier_line_50_if_1{{router_routing_classifier_line_50_if_1}}
+    router_routing_classifier_if_category_eq_account{{router_routing_classifier_if_category_eq_account}}
+    router_routing_classifier_if_category_eq_billing{{router_routing_classifier_if_category_eq_billing}}
+    router_routing_classifier_if_category_eq_technical{{router_routing_classifier_if_category_eq_technical}}
     start_routing_classifier([start_routing_classifier])
     technical_agent[technical_agent]
     __end__((( )))
 
     start_routing_classifier --> classifier
-    classifier --> router_routing_classifier_line_46_if_3
-    router_routing_classifier_line_50_if_1 -->|"p.get('category') == 'account'"| account_agent
-    router_routing_classifier_line_50_if_1 -->|"else"| general_agent
-    router_routing_classifier_line_48_if_2 -->|"p.get('category') == 'technical'"| technical_agent
-    router_routing_classifier_line_48_if_2 -->|"else"| router_routing_classifier_line_50_if_1
-    router_routing_classifier_line_46_if_3 -->|"p.get('category') == 'billing'"| billing_agent
+    classifier --> router_routing_classifier_if_category_eq_billing
+    router_routing_classifier_if_category_eq_account -->|"p.get('category') == 'account'"| account_agent
+    router_routing_classifier_if_category_eq_account -->|"else"| general_agent
+    router_routing_classifier_if_category_eq_technical -->|"p.get('category') == 'technical'"| technical_agent
+    router_routing_classifier_if_category_eq_technical -->|"else"| router_routing_classifier_if_category_eq_account
+    router_routing_classifier_if_category_eq_billing -->|"p.get('category') == 'billing'"| billing_agent
     billing_agent --> format_reply
-    router_routing_classifier_line_46_if_3 -->|"else"| router_routing_classifier_line_48_if_2
+    router_routing_classifier_if_category_eq_billing -->|"else"| router_routing_classifier_if_category_eq_technical
     technical_agent --> format_reply
     account_agent --> format_reply
     general_agent --> format_reply
@@ -34,7 +34,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_routing_classifier start
     class format_reply endnode
-    class router_routing_classifier_line_46_if_3,router_routing_classifier_line_48_if_2,router_routing_classifier_line_50_if_1 router
+    class router_routing_classifier_if_category_eq_account,router_routing_classifier_if_category_eq_billing,router_routing_classifier_if_category_eq_technical router
     class account_agent,billing_agent,classifier,general_agent,technical_agent handler
     class __end__ endpoint
     linkStyle 2,4,6 stroke:#2E8B57

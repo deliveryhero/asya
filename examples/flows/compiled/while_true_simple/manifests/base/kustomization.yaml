@@ -4,7 +4,7 @@ resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-init.yaml
 - asya-actor-handler-process.yaml
-- asya-router-while-true-flow-line-13-while-1.yaml
-- asya-router-while-true-flow-line-15-if-2.yaml
+- asya-router-while-true-flow-if-done.yaml
+- asya-router-while-true-flow-while-loop.yaml
 - asya-start-while-true-flow.yaml
 - configmap-routers.yaml

@@ -7,22 +7,22 @@ digraph "while_with_break_flow" {
     handler_finalize [label="handler_finalize", fillcolor=lightsalmon];
     handler_init [label="handler_init", fillcolor=lightblue];
     handler_process [label="handler_process", fillcolor=lightblue];
-    router_while_with_break_flow_line_13_seq_4 [label="router_while_with_break_flow_line_13_seq_4\n\np['i'] = 0", fillcolor=wheat];
-    router_while_with_break_flow_line_14_while_1 [label="router_while_with_break_flow_line_14_while_1", fillcolor=wheat];
-    router_while_with_break_flow_line_15_seq_3 [label="router_while_with_break_flow_line_15_seq_3\n\np['i'] += 1", fillcolor=wheat];
-    router_while_with_break_flow_line_17_if_2 [label="router_while_with_break_flow_line_17_if_2", fillcolor=wheat];
+    router_while_with_break_flow_if_stop_condition [label="router_while_with_break_flow_if_stop_condition", fillcolor=wheat];
+    router_while_with_break_flow_seq_set_i [label="router_while_with_break_flow_seq_set_i\n\np['i'] += 1", fillcolor=wheat];
+    router_while_with_break_flow_seq_set_i_2 [label="router_while_with_break_flow_seq_set_i_2\n\np['i'] = 0", fillcolor=wheat];
+    router_while_with_break_flow_while_i_lt_max_iterations [label="router_while_with_break_flow_while_i_lt_max_iterations", fillcolor=wheat];
     start_while_with_break_flow [label="start_while_with_break_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_while_with_break_flow -> handler_init;
-    handler_init -> router_while_with_break_flow_line_13_seq_4;
-    router_while_with_break_flow_line_17_if_2 -> handler_finalize [label="p['stop_condition']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_while_with_break_flow_line_15_seq_3 -> handler_process;
-    handler_process -> router_while_with_break_flow_line_17_if_2;
-    router_while_with_break_flow_line_14_while_1 -> router_while_with_break_flow_line_15_seq_3 [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_while_with_break_flow_line_14_while_1 -> handler_finalize [label="else", color="#D35400", fontcolor="#D35400"];
-    router_while_with_break_flow_line_13_seq_4 -> router_while_with_break_flow_line_14_while_1;
-    router_while_with_break_flow_line_17_if_2 -> router_while_with_break_flow_line_14_while_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    handler_init -> router_while_with_break_flow_seq_set_i_2;
+    router_while_with_break_flow_if_stop_condition -> handler_finalize [label="p['stop_condition']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_with_break_flow_seq_set_i -> handler_process;
+    handler_process -> router_while_with_break_flow_if_stop_condition;
+    router_while_with_break_flow_while_i_lt_max_iterations -> router_while_with_break_flow_seq_set_i [label="p['i'] < p['max_iterations']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_while_with_break_flow_while_i_lt_max_iterations -> handler_finalize [label="else", color="#D35400", fontcolor="#D35400"];
+    router_while_with_break_flow_seq_set_i_2 -> router_while_with_break_flow_while_i_lt_max_iterations;
+    router_while_with_break_flow_if_stop_condition -> router_while_with_break_flow_while_i_lt_max_iterations [label="else", color="#D35400", fontcolor="#D35400"];
     handler_finalize -> __end__;
 }

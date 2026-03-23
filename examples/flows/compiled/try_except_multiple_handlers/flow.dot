@@ -8,9 +8,9 @@ digraph "data_pipeline" {
     handle_type_error [label="handle_type_error", fillcolor=lightsalmon];
     handle_validation_error [label="handle_validation_error", fillcolor=lightsalmon];
     parse_input [label="parse_input", fillcolor=lightblue];
-    router_data_pipeline_line_12_except_2 [label="router_data_pipeline_line_12_except_2\n\np['error_type'] = 'type_mismatch'", fillcolor=wheat];
-    router_data_pipeline_line_15_except_3 [label="router_data_pipeline_line_15_except_3\n\np['error_type'] = 'runtime'", fillcolor=wheat];
-    router_data_pipeline_line_9_except_1 [label="router_data_pipeline_line_9_except_1\n\np['error_type'] = 'validation'", fillcolor=wheat];
+    router_data_pipeline_except_runtimeerror [label="router_data_pipeline_except_runtimeerror\n\np['error_type'] = 'runtime'", fillcolor=wheat];
+    router_data_pipeline_except_typeerror [label="router_data_pipeline_except_typeerror\n\np['error_type'] = 'type_mismatch'", fillcolor=wheat];
+    router_data_pipeline_except_valueerror [label="router_data_pipeline_except_valueerror\n\np['error_type'] = 'validation'", fillcolor=wheat];
     start_data_pipeline [label="start_data_pipeline", fillcolor=palegreen];
     transform_data [label="transform_data", fillcolor=lightblue];
 
@@ -18,15 +18,15 @@ digraph "data_pipeline" {
 
     start_data_pipeline -> parse_input;
     parse_input -> transform_data;
-    router_data_pipeline_line_9_except_1 -> handle_validation_error;
-    router_data_pipeline_line_12_except_2 -> handle_type_error;
-    router_data_pipeline_line_15_except_3 -> handle_runtime_error;
-    parse_input -> router_data_pipeline_line_9_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    parse_input -> router_data_pipeline_line_12_except_2 [label="TypeError", color="#DC143C", fontcolor="#DC143C"];
-    parse_input -> router_data_pipeline_line_15_except_3 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
-    transform_data -> router_data_pipeline_line_9_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    transform_data -> router_data_pipeline_line_12_except_2 [label="TypeError", color="#DC143C", fontcolor="#DC143C"];
-    transform_data -> router_data_pipeline_line_15_except_3 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    router_data_pipeline_except_valueerror -> handle_validation_error;
+    router_data_pipeline_except_typeerror -> handle_type_error;
+    router_data_pipeline_except_runtimeerror -> handle_runtime_error;
+    parse_input -> router_data_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    parse_input -> router_data_pipeline_except_typeerror [label="TypeError", color="#DC143C", fontcolor="#DC143C"];
+    parse_input -> router_data_pipeline_except_runtimeerror [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    transform_data -> router_data_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    transform_data -> router_data_pipeline_except_typeerror [label="TypeError", color="#DC143C", fontcolor="#DC143C"];
+    transform_data -> router_data_pipeline_except_runtimeerror [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
     handle_runtime_error -> __end__;
     handle_type_error -> __end__;
     handle_validation_error -> __end__;

@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-decorator-definitions-flow-seq-p-inject-trace-p
+  namespace: default
+  labels:
+    asya.sh/flow: decorator-definitions-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-decorator-definitions-flow-seq-p-inject-trace-p
+  image: python:3.13-slim
+  handler: routers.router_decorator_definitions_flow_seq_p_inject_trace_p
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ENRICH
+    value: enrich
+  - name: ASYA_HANDLER_ACTOR_VALIDATE
+    value: validate

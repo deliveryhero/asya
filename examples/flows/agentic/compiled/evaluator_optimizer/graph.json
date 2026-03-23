@@ -15,26 +15,26 @@
       "role": "end"
     },
     {
-      "id": "router_evaluator_optimizer_line_58_while_1",
-      "label": "router_evaluator_optimizer_line_58_while_1",
+      "id": "router_evaluator_optimizer_if_iteration_ge_max_iterations",
+      "label": "router_evaluator_optimizer_if_iteration_ge_max_iterations",
       "generated": true
     },
     {
-      "id": "router_evaluator_optimizer_line_59_seq_4",
-      "label": "router_evaluator_optimizer_line_59_seq_4",
+      "id": "router_evaluator_optimizer_if_score_ge_score_threshold",
+      "label": "router_evaluator_optimizer_if_score_ge_score_threshold",
+      "generated": true
+    },
+    {
+      "id": "router_evaluator_optimizer_seq_set_iteration",
+      "label": "router_evaluator_optimizer_seq_set_iteration",
       "generated": true,
       "mutations": [
         "p['iteration'] += 1"
       ]
     },
     {
-      "id": "router_evaluator_optimizer_line_68_if_3",
-      "label": "router_evaluator_optimizer_line_68_if_3",
-      "generated": true
-    },
-    {
-      "id": "router_evaluator_optimizer_line_72_if_2",
-      "label": "router_evaluator_optimizer_line_72_if_2",
+      "id": "router_evaluator_optimizer_while_loop",
+      "label": "router_evaluator_optimizer_while_loop",
       "generated": true
     },
     {
@@ -50,30 +50,30 @@
   "edges": [
     {
       "from": "start_evaluator_optimizer",
-      "to": "router_evaluator_optimizer_line_58_while_1",
+      "to": "router_evaluator_optimizer_while_loop",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_evaluator_optimizer_line_72_if_2",
+      "from": "router_evaluator_optimizer_if_iteration_ge_max_iterations",
       "to": "polisher",
       "label": "p['iteration'] >= MAX_ITERATIONS",
       "type": "set"
     },
     {
-      "from": "router_evaluator_optimizer_line_68_if_3",
-      "to": "router_evaluator_optimizer_line_72_if_2",
+      "from": "router_evaluator_optimizer_if_score_ge_score_threshold",
+      "to": "router_evaluator_optimizer_if_iteration_ge_max_iterations",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_evaluator_optimizer_line_68_if_3",
+      "from": "router_evaluator_optimizer_if_score_ge_score_threshold",
       "to": "polisher",
       "label": "p.get('score', 0) >= SCORE_THRESHOLD",
       "type": "set"
     },
     {
-      "from": "router_evaluator_optimizer_line_59_seq_4",
+      "from": "router_evaluator_optimizer_seq_set_iteration",
       "to": "generator",
       "label": null,
       "type": "prepend"
@@ -86,19 +86,19 @@
     },
     {
       "from": "evaluator",
-      "to": "router_evaluator_optimizer_line_68_if_3",
+      "to": "router_evaluator_optimizer_if_score_ge_score_threshold",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_evaluator_optimizer_line_58_while_1",
-      "to": "router_evaluator_optimizer_line_59_seq_4",
+      "from": "router_evaluator_optimizer_while_loop",
+      "to": "router_evaluator_optimizer_seq_set_iteration",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_evaluator_optimizer_line_72_if_2",
-      "to": "router_evaluator_optimizer_line_58_while_1",
+      "from": "router_evaluator_optimizer_if_iteration_ge_max_iterations",
+      "to": "router_evaluator_optimizer_while_loop",
       "label": "else",
       "type": "continuation"
     }

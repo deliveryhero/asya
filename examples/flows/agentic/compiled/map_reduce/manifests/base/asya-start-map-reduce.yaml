@@ -18,11 +18,11 @@ spec:
   env:
   - name: ASYA_HANDLER_ACTOR_CHUNK_PROCESSOR
     value: chunk_processor
-  - name: ASYA_HANDLER_FANIN_MAP_REDUCE_LINE_54
-    value: routers.fanin_map_reduce_line_54
+  - name: ASYA_HANDLER_FANIN_MAP_REDUCE_CHUNK_RESULTS
+    value: routers.fanin_map_reduce_chunk_results
   - name: ASYA_HANDLER_ACTOR_REDUCER
     value: reducer
-  - name: ASYA_HANDLER_ROUTER_MAP_REDUCE_LINE_54_FANOUT_1
-    value: routers.router_map_reduce_line_54_fanout_1
+  - name: ASYA_HANDLER_ROUTER_MAP_REDUCE_FANOUT_CHUNK_RESULTS
+    value: routers.router_map_reduce_fanout_chunk_results
   - name: ASYA_HANDLER_ACTOR_SPLITTER
     value: splitter

@@ -26,22 +26,22 @@ async def start_order_pipeline(payload: dict):
     _next = []
     p = normalize_keys(p)
     _next.append(resolve("validate_order"))
-    _next.append(resolve("router_order_pipeline_line_32_if_2"))
+    _next.append(resolve("router_order_pipeline_if_fraud_score_gt_0.8"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_pipeline_line_33_seq_1(payload: dict):
+async def router_order_pipeline_seq_set_status(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['status'] = 'rejected'
     yield p
 
-async def router_order_pipeline_line_32_if_2(payload: dict):
+async def router_order_pipeline_if_fraud_score_gt_0.8(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('fraud_score', 0) > 0.8:
-        yield "SET", ".route.next", [resolve("router_order_pipeline_line_33_seq_1")]
+        yield "SET", ".route.next", [resolve("router_order_pipeline_seq_set_status")]
         yield p
         return
     else:
