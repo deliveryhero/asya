@@ -1,0 +1,18 @@
+digraph "text_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_text_flow; }
+
+    analyze [label="analyze", fillcolor=lightblue];
+    analyze_2 [label="analyze", fillcolor=lightblue];
+    start_text_flow [label="start_text_flow", fillcolor=palegreen];
+    summarize [label="summarize", fillcolor=lightsalmon];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_text_flow -> analyze;
+    analyze -> analyze_2;
+    analyze_2 -> summarize;
+    summarize -> __end__;
+}

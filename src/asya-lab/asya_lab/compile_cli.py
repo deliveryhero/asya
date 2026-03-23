@@ -44,9 +44,7 @@ def _compile_flow_file(
     project = None
     rule_engine = None
     try:
-        project = AsyaProject.from_dir(
-            source_path.parent, arg_values={"flow_name": flow_name}
-        )
+        project = AsyaProject.from_dir(source_path.parent, arg_values={"flow_name": flow_name})
         rule_engine = project.load_rules()
     except FileNotFoundError:
         pass
@@ -58,7 +56,8 @@ def _compile_flow_file(
     if output_dir:
         routers_dir = artifacts_dir = Path(output_dir).resolve()
     else:
-        routers_dir = project.resolve_path("compiler.routers")
+        assert project is not None
+        routers_dir = project.resolve_path("compiler.code")
         artifacts_dir = project.resolve_path("compiler.artifacts")
 
     compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
@@ -86,9 +85,7 @@ def _compile_flow_file(
 
     click.echo(f"[+] Compiled flow '{flow_name}'")
     if result.num_actor_calls != len(handler_actors):
-        click.echo(
-            f"    actors:    {result.num_actor_calls} calls -> {len(handler_actors)} manifests [{actor_names}]"
-        )
+        click.echo(f"    actors:    {result.num_actor_calls} calls -> {len(handler_actors)} manifests [{actor_names}]")
     else:
         click.echo(f"    actors:    {len(handler_actors)} [{actor_names}]")
     if result.num_inline_mutations:

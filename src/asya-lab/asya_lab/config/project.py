@@ -10,15 +10,14 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-
-if TYPE_CHECKING:
-    from asya_lab.compiler.rules import RuleEngine
-    from asya_lab.flow.rules import CompilerRules
-
 from omegaconf import DictConfig, OmegaConf
 
 from asya_lab.config.store import ConfigStore
 
+
+if TYPE_CHECKING:
+    from asya_lab.compiler.rules import RuleEngine
+    from asya_lab.flow.rules import CompilerRules
 
 log = logging.getLogger(__name__)
 
@@ -112,9 +111,7 @@ class AsyaProject:
         2. Config build entries (legacy): module prefix match or wildcard.
         3. KeyError if nothing matches.
         """
-        image = self._resolve_image_from_skaffold(
-            handler_fqn or handler_name, source_path=handler_source
-        )
+        image = self._resolve_image_from_skaffold(handler_fqn or handler_name, source_path=handler_source)
         if image:
             return image
 
@@ -142,22 +139,20 @@ class AsyaProject:
             f"or add a build entry to .asya/config.yaml"
         )
 
-    def _resolve_image_from_skaffold(
-        self, handler_name: str, source_path: Path | None = None
-    ) -> str | None:
+    def _resolve_image_from_skaffold(self, handler_name: str, source_path: Path | None = None) -> str | None:
         """Resolve handler -> image via skaffold.yaml.
 
         If source_path is provided (from compiler's runtime import),
         matches it directly against artifact context dirs.
         """
         if source_path is None:
-            logger.debug(f"[skaffold] no source path for '{handler_name}', skipping")
+            log.debug(f"[skaffold] no source path for '{handler_name}', skipping")
             return None
 
         source_path = source_path.resolve()
         artifacts = self._collect_skaffold_artifacts()
         if not artifacts:
-            logger.debug("[skaffold] no skaffold.yaml artifacts found")
+            log.debug("[skaffold] no skaffold.yaml artifacts found")
             return None
 
         best_match: tuple[int, str] | None = None
@@ -171,9 +166,9 @@ class AsyaProject:
                 continue
 
         if best_match:
-            logger.debug(f"[skaffold] {handler_name} -> {best_match[1]} (via {source_path})")
+            log.debug(f"[skaffold] {handler_name} -> {best_match[1]} (via {source_path})")
         else:
-            logger.debug(f"[skaffold] no artifact context matches {source_path}")
+            log.debug(f"[skaffold] no artifact context matches {source_path}")
         return best_match[1] if best_match else None
 
     def _collect_skaffold_artifacts(self) -> list[tuple[Path, str]]:
@@ -231,6 +226,7 @@ class AsyaProject:
 # ---------------------------------------------------------------------------
 # Skaffold helpers (module-level)
 # ---------------------------------------------------------------------------
+
 
 def _find_skaffold_up(start_dir: Path, stop_dir: Path) -> Path | None:
     """Walk up from start_dir to stop_dir looking for skaffold.yaml."""

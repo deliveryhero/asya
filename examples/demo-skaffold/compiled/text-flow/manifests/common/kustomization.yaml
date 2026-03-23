@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: asya-demo
+resources:
+- ../base
+configurations:
+- kustomizeconfig.yaml
+images:
+- name: src-team-a-proper-package
+  newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/src-team-a-proper-package
+  newTag: "v0.5.9-41-g8d3308d8-dirty"

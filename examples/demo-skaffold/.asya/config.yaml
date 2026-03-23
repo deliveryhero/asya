@@ -4,7 +4,12 @@ templates:
   max_replicas: 5
 
 compiler:
-  routers: "./compiled/${arg:flow_name}"
-  artifacts: "./compiled/${arg:flow_name}"
+  code: "./compiled/${arg:flow_name}/code"
+  artifacts: "./compiled/${arg:flow_name}/artifacts"
   manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"
+
+contexts:
+  dev:
+    namespace: asya-demo
+default_context: dev

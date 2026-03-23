@@ -184,6 +184,10 @@ class ManifestTemplater:
         template_env = manifest["spec"].get("env") or []
         manifest["spec"]["env"] = template_env + actor.env
 
+        # Mount routers ConfigMap for generated router actors
+        if actor.generated:
+            self._inject_router_configmap_mount(manifest)
+
         # Inject compiler-generated resiliency config
         if not actor.generated:
             self._inject_retry_rules(manifest, actor)
@@ -325,14 +329,30 @@ Each overlay builds on top of `common/`.
 
     # -- common/ layer (created once, never overwritten) --------------------
 
+    _KUSTOMIZE_CONFIG = """\
+images:
+- path: spec/image
+  kind: AsyncActor
+"""
+
     def _stamp_common(self, common_dir: Path) -> list[str]:
         kust_path = common_dir / "kustomization.yaml"
         if kust_path.exists():
             return []
 
         common_dir.mkdir(parents=True, exist_ok=True)
-        self._write_kustomization(kust_path, ["../base"])
-        return ["common/kustomization.yaml"]
+
+        config_path = common_dir / "kustomizeconfig.yaml"
+        config_path.write_text(self._KUSTOMIZE_CONFIG)
+
+        kust = {
+            "apiVersion": "kustomize.config.k8s.io/v1beta1",
+            "kind": "Kustomization",
+            "resources": ["../base"],
+            "configurations": ["kustomizeconfig.yaml"],
+        }
+        kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
+        return ["common/kustomization.yaml", "common/kustomizeconfig.yaml"]
 
     # -- overlays/<context>/ layer (created once per context) ---------------
 
@@ -461,6 +481,28 @@ Each overlay builds on top of `common/`.
         for key in keys[:-1]:
             d = d.setdefault(key, {})
         d[keys[-1]] = value
+
+    def _inject_router_configmap_mount(self, manifest: dict) -> None:
+        """Mount the routers ConfigMap at /opt/asya/routers.py for generated router actors.
+
+        The runtime starts as `python3 /opt/asya/asya_runtime.py`, so /opt/asya/
+        is on sys.path — mounting routers.py there makes it directly importable.
+        """
+        cm_name = f"{self.flow_name}-routers"
+        spec = manifest.setdefault("spec", {})
+
+        volumes = spec.setdefault("volumes", [])
+        volumes.append({"name": "routers", "configMap": {"name": cm_name}})
+
+        mounts = spec.setdefault("volumeMounts", [])
+        mounts.append(
+            {
+                "name": "routers",
+                "mountPath": "/opt/asya/routers.py",
+                "subPath": "routers.py",
+                "readOnly": True,
+            }
+        )
 
     # -- actor collection ---------------------------------------------------
 

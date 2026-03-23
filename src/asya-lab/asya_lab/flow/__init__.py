@@ -62,7 +62,7 @@ def compile(  # noqa: A001
         if project:
             try:
                 flow_function = _infer_flow_function(source_path)
-                output_dir = str(project.resolve_path("compiler.routers") / (flow_function or source_path.stem))
+                output_dir = str(project.resolve_path("compiler.code") / (flow_function or source_path.stem))
             except (KeyError, FileNotFoundError):
                 output_dir = str(source_path.parent / "compiled" / source_path.stem)
         else:

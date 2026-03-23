@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-text-flow
+  namespace: default
+  labels:
+    asya.sh/flow: text-flow
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-text-flow
+  image: python:3.13-slim
+  handler: routers.start_text_flow
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  volumes:
+  - name: routers
+    configMap:
+      name: text-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true
+  env:
+  - name: ASYA_HANDLER_ACTOR_ANALYZE
+    value: nlp.analyzer.analyze
+  - name: ASYA_HANDLER_ACTOR_SUMMARIZE
+    value: nlp.summarizer.summarize

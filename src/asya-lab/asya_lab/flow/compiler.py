@@ -406,7 +406,9 @@ class FlowCompiler:
                 source_file = Path(inspect.getfile(func)).resolve()
                 self.handler_source_files[actor_name] = source_file
                 if self.verbose:
-                    logger.info(f"[.] {actor_name} -> {handler_fqn} ({source_file})")
+                    import click
+
+                    click.echo(f"    [.] {actor_name} -> {handler_fqn} ({source_file})")
             except (TypeError, OSError):
                 pass
 

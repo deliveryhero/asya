@@ -1,0 +1,45 @@
+{
+  "flow_name": "text_flow",
+  "nodes": [
+    {
+      "id": "analyze",
+      "label": "analyze"
+    },
+    {
+      "id": "analyze:2",
+      "label": "analyze"
+    },
+    {
+      "id": "start_text_flow",
+      "label": "start_text_flow",
+      "role": "start",
+      "generated": true
+    },
+    {
+      "id": "summarize",
+      "label": "summarize",
+      "role": "end"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_text_flow",
+      "to": "analyze",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "analyze",
+      "to": "analyze:2",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "analyze:2",
+      "to": "summarize",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

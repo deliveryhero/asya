@@ -102,17 +102,18 @@ class KubeRunner:
         return overlay
 
     @staticmethod
-    def run_cmd(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
+    def run_cmd(cmd: list[str], quiet: bool = False, **kwargs) -> subprocess.CompletedProcess:
         """Run a shell command, printing it first with + prefix."""
-        click.echo(f"+ {' '.join(cmd)}", err=True)
+        if not quiet:
+            click.echo(f"+ {' '.join(cmd)}", err=True)
         return subprocess.run(cmd, check=False, **kwargs)  # nosec B603
 
-    def kubectl(self, *args: str, **kwargs) -> subprocess.CompletedProcess:
+    def kubectl(self, *args: str, quiet: bool = False, **kwargs) -> subprocess.CompletedProcess:
         """Run kubectl with automatic namespace injection."""
         cmd = ["kubectl", *args]
         if self.namespace:
             cmd.extend(["-n", self.namespace])
-        return self.run_cmd(cmd, **kwargs)
+        return self.run_cmd(cmd, quiet=quiet, **kwargs)
 
     def kustomize_apply(self, overlay: Path, field_manager: str) -> None:
         """Run kustomize build piped to kubectl apply --server-side."""
@@ -256,36 +257,188 @@ def k_status(target: AsyaRef, ctx: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+_ACTOR_COLORS = [
+    "\033[36m",  # cyan
+    "\033[33m",  # yellow
+    "\033[32m",  # green
+    "\033[35m",  # magenta
+    "\033[34m",  # blue
+    "\033[91m",  # bright red
+    "\033[92m",  # bright green
+    "\033[93m",  # bright yellow
+    "\033[94m",  # bright blue
+    "\033[95m",  # bright magenta
+]
+_RESET = "\033[0m"
+
+
+def _get_flow_pods(runner: KubeRunner, flow_name: str) -> dict[str, str]:
+    """Get pod-name -> actor-name mapping for a flow.
+
+    Returns dict mapping pod names to actor names extracted from the
+    app.kubernetes.io/name label.
+    """
+    import json as _json
+
+    result = runner.kubectl(
+        "get",
+        "pods",
+        "-l",
+        f"asya.sh/flow={flow_name}",
+        "-o",
+        "json",
+        quiet=True,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return {}
+
+    data = _json.loads(result.stdout)
+    pod_actor: dict[str, str] = {}
+    for item in data.get("items", []):
+        pod_name = item["metadata"]["name"]
+        labels = item["metadata"].get("labels", {})
+        actor_name = labels.get("app.kubernetes.io/name", pod_name)
+        pod_actor[pod_name] = actor_name
+    return pod_actor
+
+
+def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
+    """Get or assign a color for an actor name."""
+    if actor not in actor_colors:
+        idx = len(actor_colors) % len(_ACTOR_COLORS)
+        actor_colors[actor] = _ACTOR_COLORS[idx]
+    return actor_colors[actor]
+
+
+def _stream_colored_logs(
+    runner: KubeRunner,
+    flow_name: str,
+    containers: list[str],
+    follow: bool,
+    tail: int | None,
+) -> None:
+    """Stream logs from all flow pods with colored actor-name prefixes.
+
+    Spawns one kubectl logs process per (pod, container) pair and
+    multiplexes output with colored actor-name prefixes, similar to
+    docker-compose log output.
+    """
+    import selectors
+    import signal
+
+    pod_actor = _get_flow_pods(runner, flow_name)
+    if not pod_actor:
+        click.echo("[-] No pods found for flow", err=True)
+        sys.exit(1)
+
+    actor_colors: dict[str, str] = {}
+    max_prefix_len = 0
+    for actor in sorted(set(pod_actor.values())):
+        _color_for(actor, actor_colors)
+        max_prefix_len = max(max_prefix_len, len(actor))
+
+    # Show multi-container suffix only when multiple containers requested
+    show_container_suffix = len(containers) > 1
+
+    procs: list[tuple[subprocess.Popen, str, str]] = []
+    ns_args = ["-n", runner.namespace] if runner.namespace else []
+
+    for pod_name, actor_name in sorted(pod_actor.items()):
+        for container in containers:
+            cmd = ["kubectl", "logs", *ns_args, pod_name, "-c", container]
+            if follow:
+                cmd.append("-f")
+            if tail is not None:
+                cmd.extend(["--tail", str(tail)])
+            else:
+                cmd.extend(["--tail", "100"])
+
+            try:
+                proc = subprocess.Popen(  # nosec B603, B607
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                )
+                procs.append((proc, actor_name, container))
+            except FileNotFoundError:
+                click.echo("[-] kubectl not found", err=True)
+                sys.exit(1)
+
+    if not procs:
+        click.echo("[-] No log streams started", err=True)
+        sys.exit(1)
+
+    sel = selectors.DefaultSelector()
+    for proc, actor_name, container in procs:
+        assert proc.stdout is not None
+        sel.register(proc.stdout, selectors.EVENT_READ, (actor_name, container))
+
+    def _cleanup(signum=None, frame=None):
+        for proc, _, _ in procs:
+            proc.terminate()
+        sel.close()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, _cleanup)
+    signal.signal(signal.SIGTERM, _cleanup)
+
+    try:
+        active = len(procs)
+        while active > 0:
+            events = sel.select(timeout=1.0)
+            for key, _mask in events:
+                actor_name, container = key.data
+                fobj = key.fileobj
+                assert hasattr(fobj, "readline")
+                line = fobj.readline()
+                if not line:
+                    sel.unregister(key.fileobj)
+                    active -= 1
+                    continue
+
+                text = line.decode("utf-8", errors="replace").rstrip("\n")
+                color = actor_colors[actor_name]
+                padded = actor_name.ljust(max_prefix_len)
+                if show_container_suffix:
+                    prefix = f"{color}{padded}|{container}{_RESET}"
+                else:
+                    prefix = f"{color}{padded}{_RESET}"
+                click.echo(f"{prefix} | {text}")
+    finally:
+        _cleanup()
+
+
 @click.command()
 @click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--follow", "-f", is_flag=True, help="Follow log output")
 @click.option("--tail", type=int, default=None, help="Number of lines to show from end")
-@click.option("--container", "-c", default="asya-runtime", help="Container name (default: asya-runtime)")
-def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, container: str) -> None:
-    """Stream logs for a deployed flow.
+@click.option(
+    "--container",
+    "-c",
+    "containers",
+    multiple=True,
+    help="Container(s) to show (default: asya-runtime). Use -c asya-sidecar to add sidecar logs.",
+)
+def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...]) -> None:
+    """Stream logs for a deployed flow with colored actor-name prefixes.
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
+    Output is styled like docker-compose, with each actor in a different color.
+
+    \b
+    Examples:
+      asya k logs text-flow              # runtime logs from all actors
+      asya k logs text-flow -f           # follow mode
+      asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
+    if not containers:
+        containers = ("asya-runtime",)
+
     runner = KubeRunner(ctx)
-
-    extra_args: list[str] = []
-    if follow:
-        extra_args.append("-f")
-    if tail is not None:
-        extra_args.extend(["--tail", str(tail)])
-
-    result = runner.kubectl(
-        "logs",
-        "-l",
-        f"asya.sh/flow={target.name}",
-        "-c",
-        container,
-        "--prefix",
-        *extra_args,
-    )
-    if result.returncode != 0:
-        sys.exit(result.returncode)
+    _stream_colored_logs(runner, target.name, list(containers), follow, tail)
 
 
 # ---------------------------------------------------------------------------

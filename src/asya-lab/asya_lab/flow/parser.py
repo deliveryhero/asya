@@ -350,13 +350,6 @@ class FlowParser:
     def _collect_imports(self, tree: ast.Module) -> None:
         for node in tree.body:
             if isinstance(node, ast.ImportFrom) and node.module:
-                if node.level > 0:
-                    self.warnings.append(
-                        f"{self.filename}:{node.lineno}: relative import "
-                        f"'from {('.' * node.level)}{node.module} import ...' "
-                        f"cannot be resolved to an image. "
-                        f"Use absolute imports (e.g. 'from nlp.analyzer import analyze')."
-                    )
                 for alias in node.names:
                     local_name = alias.asname if alias.asname else alias.name
                     self.import_map[local_name] = f"{node.module}.{alias.name}"

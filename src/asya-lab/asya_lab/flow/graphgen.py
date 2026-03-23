@@ -329,7 +329,7 @@ def _display_name(name: str) -> str:
 
 def _dot_node_label(node: dict) -> str:
     """Build a DOT node label, including mutations for generated routers."""
-    name = _display_name(node["id"])
+    name = _display_name(node.get("label", node["id"]))
     mutations = node.get("mutations", [])
     if not mutations:
         return _escape_dot(name)
@@ -339,7 +339,7 @@ def _dot_node_label(node: dict) -> str:
 
 def _mermaid_node_label(node: dict) -> str:
     """Build a Mermaid node label, including mutations for generated routers."""
-    name = _display_name(node["id"])
+    name = _display_name(node.get("label", node["id"]))
     mutations = node.get("mutations", [])
     if not mutations:
         return name

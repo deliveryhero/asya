@@ -156,12 +156,10 @@ class TestCompilerConfig:
         (tmp_path / ".git").mkdir()
         asya_dir = tmp_path / ".asya"
         asya_dir.mkdir()
-        (asya_dir / "config.yaml").write_text(
-            "compiler:\n  routers: ./r\n  manifests: ./m\n  templates: ./t\n"
-        )
+        (asya_dir / "config.yaml").write_text("compiler:\n  code: ./r\n  manifests: ./m\n  templates: ./t\n")
         project = AsyaProject.from_dir(tmp_path)
         # ./ paths are resolved to absolute by ConfigStore
-        assert str(project.resolve_path("compiler.routers")).endswith("/r")
+        assert str(project.resolve_path("compiler.code")).endswith("/r")
         assert str(project.resolve_path("compiler.manifests")).endswith("/m")
         assert str(project.resolve_path("compiler.templates")).endswith("/t")
 
@@ -172,7 +170,7 @@ class TestCompilerConfig:
         (asya_dir / "config.yaml").write_text("templates:\n  namespace: test\n")
         project = AsyaProject.from_dir(tmp_path)
         with pytest.raises(KeyError, match="compiler"):
-            project.resolve_path("compiler.routers")
+            project.resolve_path("compiler.code")
 
 
 class TestSectionMerge:

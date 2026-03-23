@@ -1,0 +1,18 @@
+flowchart TD
+    %% Flow: greet_flow
+
+    router_greet_flow_line_13_seq_1{{"router_greet_flow_line_13_seq_1<br/><br/>p['greet'] = greet(p)<br/>p['shout'] = shout(p)"}}
+    start_greet_flow([start_greet_flow])
+    __end__((( )))
+
+    start_greet_flow --> router_greet_flow_line_13_seq_1
+    router_greet_flow_line_13_seq_1 --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_greet_flow start
+    class router_greet_flow_line_13_seq_1 router
+    class __end__ endpoint

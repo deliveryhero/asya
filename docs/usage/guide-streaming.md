@@ -232,6 +232,97 @@ FLY events bypass message queues entirely — they travel from the sidecar direc
 
 ---
 
+## MCP vs A2A: when to use which
+
+Both protocols expose your flows to external clients, but they serve different
+audiences and have different streaming semantics.
+
+| Aspect | MCP | A2A |
+|--------|-----|-----|
+| **Audience** | LLM clients, developer tools | AI agents, orchestrators |
+| **Interaction** | Tool invocation (call + result) | Task lifecycle (send, subscribe, cancel) |
+| **Streaming** | SSE on same connection | SSE via subscribe endpoint |
+| **FLY events** | Delivered as `event: partial` (or `artifact_update`/`status_update` if payload matches A2A shapes) | Same SSE event types |
+| **Session** | Requires MCP session (initialize handshake) | Stateless per-request |
+| **Pause/resume** | Not supported | Built-in (`input_required` state) |
+| **Multi-turn** | Not natively supported | Context ID tracks conversation |
+
+**Use MCP when:**
+- Building LLM tool integrations (Claude, GPT, Gemini)
+- Your flow is a single request-response operation
+- You want standard MCP client compatibility
+
+**Use A2A when:**
+- Building agent-to-agent communication
+- Your flow involves pause/resume (human-in-the-loop)
+- You need multi-turn conversations
+- You want structured streaming with `TaskArtifactUpdateEvent`
+
+**Use both when:**
+- You want maximum interoperability
+
+Register your flow with both protocols:
+
+```bash
+asya expose my-flow -d "Description" --mcp --a2a
+```
+
+### FLY event shapes for A2A compatibility
+
+If you want FLY events to appear as standard A2A SSE event types (not just
+`event: partial`), structure the payload with the appropriate top-level key:
+
+```python
+# Standard A2A artifact streaming (event type: artifact_update)
+yield "FLY", {
+    "artifact_update": {
+        "artifact": {
+            "parts": [{"kind": "text", "text": "token"}]
+        }
+    }
+}
+
+# Standard A2A status update (event type: status_update)
+yield "FLY", {
+    "status_update": {
+        "state": "working",
+        "message": {"role": "agent", "parts": [{"kind": "text", "text": "Processing..."}]}
+    }
+}
+
+# Non-standard (event type: partial) — works with custom clients
+yield "FLY", {"partial": True, "text": "token"}
+```
+
+---
+
+## Dual-gateway streaming latency
+
+In dual-gateway mode (separate api + mesh pods), FLY events are relayed
+via PostgreSQL:
+
+```
+Sidecar ---POST /mesh/{id}/fly---> Gateway mesh
+                                       |
+                                   writes to PostgreSQL
+                                       |
+Gateway api <---polls DB (500ms)-------+
+    |
+SSE client
+```
+
+This adds up to **500ms latency** per FLY event. For progress updates and
+stage transitions this is acceptable. For per-token LLM streaming
+(~30 tokens/sec), events arrive in batches rather than individually.
+
+**Workarounds:**
+- Run in **single-gateway mode** (api + mesh in one pod) for near-zero FLY
+  latency via in-process channels
+- A future improvement will add a direct pub/sub relay (Redis/NATS) between
+  mesh and api pods for sub-millisecond FLY delivery (see aint `debt/jhre`)
+
+---
+
 ## Client-side consumption
 
 ### MCP SSE

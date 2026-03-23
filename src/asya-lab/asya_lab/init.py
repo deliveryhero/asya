@@ -15,8 +15,8 @@ templates:
   max_replicas: 5
 
 compiler:
-  routers: "./compiled/${arg:flow_name}"
-  artifacts: "./compiled/${arg:flow_name}"
+  code: "./compiled/${arg:flow_name}/code"
+  artifacts: "./compiled/${arg:flow_name}/artifacts"
   manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"
 """
@@ -193,15 +193,27 @@ def init_project(
 # Skaffold scan
 # ---------------------------------------------------------------------------
 
-_SKIP_DIRS = frozenset({
-    ".git", ".asya", ".venv", "node_modules", "__pycache__",
-    "compiled", "build", "dist", ".tox", ".mypy_cache", ".ruff_cache",
-})
+_SKIP_DIRS = frozenset(
+    {
+        ".git",
+        ".asya",
+        ".venv",
+        "node_modules",
+        "__pycache__",
+        "compiled",
+        "build",
+        "dist",
+        ".tox",
+        ".mypy_cache",
+        ".ruff_cache",
+    }
+)
 
 
 @dataclass
 class ScaffoldedSkaffold:
     """Result of generating one skaffold.yaml."""
+
     path: Path
     image: str
     context: str
@@ -225,14 +237,16 @@ def scan_and_generate_skaffold(target_dir: Path) -> list[ScaffoldedSkaffold]:
 
         if skaffold_file.exists():
             existing = yaml.safe_load(skaffold_file.read_text()) or {}
-            existing_images = {
-                a.get("image") for a in existing.get("build", {}).get("artifacts", [])
-            }
+            existing_images = {a.get("image") for a in existing.get("build", {}).get("artifacts", [])}
             if image_name in existing_images:
-                results.append(ScaffoldedSkaffold(
-                    path=skaffold_file, image=image_name,
-                    context=rel_context, created=False,
-                ))
+                results.append(
+                    ScaffoldedSkaffold(
+                        path=skaffold_file,
+                        image=image_name,
+                        context=rel_context,
+                        created=False,
+                    )
+                )
                 continue
 
         artifact = {
@@ -254,10 +268,14 @@ def scan_and_generate_skaffold(target_dir: Path) -> list[ScaffoldedSkaffold]:
             }
 
         skaffold_file.write_text(yaml.dump(config, default_flow_style=False, sort_keys=False))
-        results.append(ScaffoldedSkaffold(
-            path=skaffold_file, image=image_name,
-            context=rel_context, created=True,
-        ))
+        results.append(
+            ScaffoldedSkaffold(
+                path=skaffold_file,
+                image=image_name,
+                context=rel_context,
+                created=True,
+            )
+        )
 
     return results
 
