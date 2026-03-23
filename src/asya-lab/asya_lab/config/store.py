@@ -121,7 +121,7 @@ class ConfigStore:
                     continue
                 self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
                 self._sources[f] = cfg
-                result = OmegaConf.merge(result, cfg)
+                result = OmegaConf.merge(result, cfg, list_merge_mode=ListMergeMode.EXTEND)
             else:
                 if isinstance(cfg, DictConfig):
                     self._resolve_relative_paths(cfg, base_dir=asya_dir.parent)
@@ -137,7 +137,7 @@ class ConfigStore:
                 if leaf_key in current:
                     existing = OmegaConf.create({leaf_key: current[leaf_key]})
                     new = OmegaConf.create({leaf_key: cfg})
-                    merged = OmegaConf.merge(existing, new)
+                    merged = OmegaConf.merge(existing, new, list_merge_mode=ListMergeMode.EXTEND)
                     current[leaf_key] = merged[leaf_key]
                 else:
                     current[leaf_key] = cfg

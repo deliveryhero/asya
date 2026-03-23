@@ -22,6 +22,7 @@ Patterns and techniques for actor development:
 - **[Pause/Resume](guide-pause-resume.md)** — Yield SET to x-pause, handle resume input
 - **[Timeouts](guide-timeouts.md)** — Set actorTimeout, understand deadline behavior
 - **[Error Handling](guide-error-handling.md)** — try/except in flows, error routing, finally blocks
+- **[Compiler Rules](guide-compiler-rules.md)** — Extend the compiler with custom rules for decorators, context managers, and calls
 
 ## Operations
 
