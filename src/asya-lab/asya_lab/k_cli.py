@@ -426,36 +426,18 @@ _ACTOR_COLORS = [
 _RESET = "\033[0m"
 
 
-def _get_flow_pods(runner: KubeRunner, flow_name: str) -> dict[str, str]:
-    """Get pod-name -> actor-name mapping for a flow.
-
-    Returns dict mapping pod names to actor names extracted from the
-    app.kubernetes.io/name label.
-    """
+def _get_flow_deployments(runner: KubeRunner, flow_name: str) -> list[str]:
+    """Get deployment names for a flow from AsyncActor resources."""
     import json as _json
 
     result = runner.kubectl(
-        "get",
-        "pods",
-        "-l",
-        f"asya.sh/flow={flow_name}",
-        "-o",
-        "json",
-        quiet=True,
-        capture_output=True,
-        text=True,
+        "get", "deploy", "-l", f"asya.sh/flow={flow_name}",
+        "-o", "jsonpath={.items[*].metadata.name}",
+        quiet=True, capture_output=True, text=True,
     )
-    if result.returncode != 0:
-        return {}
-
-    data = _json.loads(result.stdout)
-    pod_actor: dict[str, str] = {}
-    for item in data.get("items", []):
-        pod_name = item["metadata"]["name"]
-        labels = item["metadata"].get("labels", {})
-        actor_name = labels.get("app.kubernetes.io/name", pod_name)
-        pod_actor[pod_name] = actor_name
-    return pod_actor
+    if result.returncode != 0 or not result.stdout.strip():
+        return []
+    return result.stdout.strip().split()
 
 
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
@@ -466,6 +448,26 @@ def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
     return actor_colors[actor]
 
 
+def _pod_prefix_to_deploy(prefix: str) -> str:
+    """Extract deployment name from kubectl --prefix pod name.
+
+    kubectl --prefix outputs: [pod/start-text-flow-6f7f7f7579-lzlfw/asya-runtime]
+    Deployment name is everything before the last two hash segments.
+    """
+    # Remove pod/ prefix and container suffix
+    parts = prefix.strip("[]").split("/")
+    if len(parts) >= 2:
+        pod_name = parts[1]
+    else:
+        pod_name = parts[0]
+
+    # Strip replicaset hash + pod hash (last two -segments)
+    segments = pod_name.rsplit("-", 2)
+    if len(segments) >= 3:
+        return segments[0]
+    return pod_name
+
+
 def _stream_colored_logs(
     runner: KubeRunner,
     flow_name: str,
@@ -473,95 +475,115 @@ def _stream_colored_logs(
     follow: bool,
     tail: int | None,
 ) -> None:
-    """Stream logs from all flow pods with colored actor-name prefixes.
+    """Stream logs with colored actor-name prefixes using kubectl -l selector.
 
-    Spawns one kubectl logs process per (pod, container) pair and
-    multiplexes output with colored actor-name prefixes, similar to
-    docker-compose log output.
+    Uses a single kubectl logs process per container with label selector,
+    which handles dynamic pod discovery natively in follow mode.
     """
-    import selectors
     import signal
 
-    pod_actor = _get_flow_pods(runner, flow_name)
-    if not pod_actor:
-        click.echo("[-] No pods found for flow", err=True)
+    deploys = _get_flow_deployments(runner, flow_name)
+    if not deploys:
+        click.echo("[-] No deployments found for flow", err=True)
         sys.exit(1)
 
     actor_colors: dict[str, str] = {}
-    max_prefix_len = 0
-    for actor in sorted(set(pod_actor.values())):
-        _color_for(actor, actor_colors)
-        max_prefix_len = max(max_prefix_len, len(actor))
+    max_prefix_len = max(len(d) for d in deploys)
+    for d in sorted(deploys):
+        _color_for(d, actor_colors)
 
-    # Show multi-container suffix only when multiple containers requested
     show_container_suffix = len(containers) > 1
-
-    procs: list[tuple[subprocess.Popen, str, str]] = []
     ns_args = ["-n", runner.namespace] if runner.namespace else []
 
-    for pod_name, actor_name in sorted(pod_actor.items()):
-        for container in containers:
-            cmd = ["kubectl", "logs", *ns_args, pod_name, "-c", container]
-            if follow:
-                cmd.append("-f")
-            if tail is not None:
-                cmd.extend(["--tail", str(tail)])
-            else:
-                cmd.extend(["--tail", "100"])
+    procs: list[subprocess.Popen] = []
+    for container in containers:
+        cmd = [
+            "kubectl", "logs", *ns_args,
+            "-l", f"asya.sh/flow={flow_name}",
+            "-c", container,
+            "--prefix",
+            "--tail", str(tail if tail is not None else 100),
+        ]
+        if follow:
+            cmd.append("-f")
 
-            try:
-                proc = subprocess.Popen(  # nosec B603, B607
-                    cmd,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL,
-                )
-                procs.append((proc, actor_name, container))
-            except FileNotFoundError:
-                click.echo("[-] kubectl not found", err=True)
-                sys.exit(1)
-
-    if not procs:
-        click.echo("[-] No log streams started", err=True)
-        sys.exit(1)
-
-    sel = selectors.DefaultSelector()
-    for proc, actor_name, container in procs:
-        assert proc.stdout is not None
-        sel.register(proc.stdout, selectors.EVENT_READ, (actor_name, container))
+        proc = subprocess.Popen(  # nosec B603, B607
+            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+        )
+        procs.append(proc)
 
     def _cleanup(signum=None, frame=None):
-        for proc, _, _ in procs:
-            proc.terminate()
-        sel.close()
+        for p in procs:
+            p.terminate()
         sys.exit(0)
 
     signal.signal(signal.SIGINT, _cleanup)
     signal.signal(signal.SIGTERM, _cleanup)
 
-    try:
-        active = len(procs)
-        while active > 0:
-            events = sel.select(timeout=1.0)
-            for key, _mask in events:
-                actor_name, container = key.data
-                fobj = key.fileobj
-                assert hasattr(fobj, "readline")
-                line = fobj.readline()
-                if not line:
-                    sel.unregister(key.fileobj)
-                    active -= 1
-                    continue
-
-                text = line.decode("utf-8", errors="replace").rstrip("\n")
-                color = actor_colors[actor_name]
-                padded = actor_name.ljust(max_prefix_len)
-                if show_container_suffix:
-                    prefix = f"{color}{padded}|{container}{_RESET}"
+    # For single-container (common case), read directly
+    # For multi-container, use selectors
+    if len(procs) == 1:
+        proc = procs[0]
+        assert proc.stdout is not None
+        try:
+            for raw_line in proc.stdout:
+                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                # Parse: [pod/name-hash-hash/container] log text
+                if line.startswith("["):
+                    bracket_end = line.index("]") + 1
+                    prefix_str = line[:bracket_end]
+                    text = line[bracket_end:].lstrip()
+                    deploy_name = _pod_prefix_to_deploy(prefix_str)
+                    color = _color_for(deploy_name, actor_colors)
+                    padded = deploy_name.ljust(max_prefix_len)
+                    if show_container_suffix:
+                        # Extract container from prefix
+                        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
+                        click.echo(f"{color}{padded}|{container_name}{_RESET} | {text}")
+                    else:
+                        click.echo(f"{color}{padded}{_RESET} | {text}")
                 else:
-                    prefix = f"{color}{padded}{_RESET}"
-                click.echo(f"{prefix} | {text}")
-    finally:
-        _cleanup()
+                    click.echo(line)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            _cleanup()
+    else:
+        import selectors
+
+        sel = selectors.DefaultSelector()
+        for proc in procs:
+            assert proc.stdout is not None
+            sel.register(proc.stdout, selectors.EVENT_READ)
+
+        try:
+            active = len(procs)
+            while active > 0:
+                events = sel.select(timeout=1.0)
+                for key, _mask in events:
+                    fobj = key.fileobj
+                    assert hasattr(fobj, "readline")
+                    raw_line = fobj.readline()
+                    if not raw_line:
+                        sel.unregister(fobj)
+                        active -= 1
+                        continue
+                    line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                    if line.startswith("["):
+                        bracket_end = line.index("]") + 1
+                        prefix_str = line[:bracket_end]
+                        text = line[bracket_end:].lstrip()
+                        deploy_name = _pod_prefix_to_deploy(prefix_str)
+                        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
+                        color = _color_for(deploy_name, actor_colors)
+                        padded = deploy_name.ljust(max_prefix_len)
+                        click.echo(f"{color}{padded}|{container_name}{_RESET} | {text}")
+                    else:
+                        click.echo(line)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            _cleanup()
 
 
 @click.command()
