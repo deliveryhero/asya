@@ -1,10 +1,12 @@
-# Skaffold Demo Log
+# GKE Demo: Cluster Preparation Log
 
-**Date**: 2026-03-22
+This file documents GKE cluster setup steps. For the actual demo steps,
+see [STEPS.md](STEPS.md).
+
 **Cluster**: gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
 **kubectl context**: gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
 **Registry**: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo
-**Asya version**: v0.5.8 (published charts from asya.sh/charts)
+**Asya version**: v0.5.10 (published charts from asya.sh/charts)
 
 ---
 
@@ -61,10 +63,46 @@ x-sink-749bf87bdf-v6ptq              2/2     Running   0          4m23s
 x-sump-6f6c58dd55-clddz              2/2     Running   0          4m23s
 
 $ helm -n asya-demo list
-NAME            CHART                 APP VERSION
-asya-crossplane asya-crossplane-0.5.8 0.5.8
-asya-crew       asya-crew-0.5.8       0.5.8
-asya-gateway    asya-gateway-0.5.8    0.5.8
+NAME            CHART                  APP VERSION
+asya-crossplane asya-crossplane-0.5.10 0.5.10
+asya-crew       asya-crew-0.5.10       0.5.10
+asya-gateway    asya-gateway-0.5.10    0.5.10
+```
+
+### Demo tuning
+
+After initial platform install, apply these optimizations for demo speed:
+
+```bash
+# 1. Crossplane poll interval: 10s instead of default 1m
+kubectl patch deployment crossplane -n crossplane-system --type=json \
+  -p '[{"op":"replace","path":"/spec/template/spec/containers/0/args","value":["core","start","--poll-interval=10s"]}]'
+
+# 2. Gateway SA: use default KSA (has WI binding)
+helm upgrade asya-gateway asya/asya-gateway -n asya-demo --version 0.5.10 \
+  --reuse-values \
+  --set serviceAccount.create=false \
+  --set serviceAccount.name=default
+
+# 3. KEDA: create gcp-keda-secret + add monitoring.viewer role
+gcloud iam service-accounts keys create /tmp/keda-key.json \
+  --iam-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
+kubectl create secret generic gcp-keda-secret -n asya-demo \
+  --from-file=credentials.json=/tmp/keda-key.json
+rm /tmp/keda-key.json
+
+# 4. KEDA WI (optional — alternative to key file)
+kubectl annotate sa keda-operator -n keda \
+  iam.gke.io/gcp-service-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
+gcloud iam service-accounts add-iam-policy-binding \
+  asya-demo-actor@${PROJECT}.iam.gserviceaccount.com \
+  --role=roles/iam.workloadIdentityUser \
+  --member="serviceAccount:${PROJECT}.svc.id.goog[keda/keda-operator]" \
+  --project=$PROJECT
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member="serviceAccount:asya-demo-actor@${PROJECT}.iam.gserviceaccount.com" \
+  --role="roles/monitoring.viewer"
+kubectl rollout restart deployment/keda-operator -n keda
 ```
 
 ---

@@ -116,30 +116,13 @@ asya k status text-flow
 kubectl get pods -n asya-demo -l asya.sh/flow=text-flow
 ```
 
-### 7. Test via A2A
+### 7. Test
 
 ```bash
-# Port-forward the gateway
-kubectl port-forward -n asya-demo svc/asya-gateway-api 8080:80 &
-
-# Send a message
-curl -s -X POST http://localhost:8080/a2a/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "test-1",
-    "method": "message/send",
-    "params": {
-      "message": {
-        "messageId": "msg-001",
-        "role": "user",
-        "parts": [{"kind": "text", "text": "The quick brown fox jumps over the lazy dog. Analyze and summarize."}]
-      }
-    }
-  }' | python3 -m json.tool
+asya k send text-flow "The quick brown fox jumps over the lazy dog. Analyze and summarize."
 ```
 
-Expected: `"state": "completed"`
+Auto-detects gateway via port-forward. Expected: `[+] Task ...: completed`
 
 ### 8. View logs
 
@@ -243,24 +226,10 @@ asya k apply greet-flow --context dev
 ### 5. Test
 
 ```bash
-curl -s -X POST http://localhost:8080/a2a/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "id": "test-greet",
-    "method": "message/send",
-    "params": {
-      "message": {
-        "messageId": "msg-greet-001",
-        "role": "user",
-        "parts": [{"kind": "text", "text": "Hello from the greet flow"}]
-      },
-      "metadata": {"skill": "greet-flow"}
-    }
-  }' | python3 -m json.tool
+asya k send greet-flow "Hello from the greet flow" --skill greet-flow
 ```
 
-Note: `metadata.skill` is needed when multiple flows are registered -- it tells
+`--skill` is needed when multiple flows are registered -- it tells
 the gateway which flow to route to.
 
 ### 6. View logs
