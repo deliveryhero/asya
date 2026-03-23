@@ -324,6 +324,55 @@ class GatewayTestHelper:
         )
         return result
 
+    def stream_task_events_live(
+        self,
+        task_id: str,
+        timeout: int = 30,
+    ) -> dict[str, list]:
+        """
+        Stream task events via SSE in real-time, collecting partial and update events.
+        Connects immediately and blocks until terminal status or timeout.
+
+        Use this for ephemeral FLY events that are not persisted for replay.
+        """
+        logger.debug(f"Starting live SSE stream for task: {task_id}")
+        result: dict[str, list] = {"partial": [], "update": []}
+
+        response = requests.get(
+            f"{self.tasks_url}/{task_id}/stream",
+            stream=True,
+            timeout=timeout,
+            headers={"Accept": "text/event-stream"},
+        )
+        response.raise_for_status()
+
+        client = SSEClient(response)
+
+        try:
+            for event in client.events():
+                logger.debug(
+                    f"SSE event type={event.event} data={event.data[:100] if event.data and len(event.data) > 100 else event.data}"
+                )
+
+                if event.event == "partial" and event.data:
+                    data = json.loads(event.data)
+                    if "payload" in data and len(data) == 1:
+                        data = data["payload"]
+                    result["partial"].append(data)
+                elif event.event == "update" and event.data:
+                    data = json.loads(event.data)
+                    if "actor" not in data and "current_actor_name" in data:
+                        data["actor"] = data["current_actor_name"]
+                    result["update"].append(data)
+
+                    if data.get("status") in ["succeeded", "failed"]:
+                        logger.debug(f"Final status reached: {data.get('status')}")
+                        break
+        except Exception as e:
+            logger.debug(f"SSE stream ended: {e}")
+
+        return result
+
     def wait_for_task_completion(
         self,
         task_id: str,

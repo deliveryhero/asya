@@ -38,12 +38,8 @@ def test_streaming_partial_events(gateway_helper):
     task_id = response["result"]["id"]
     logger.info(f"Task ID: {task_id}")
 
-    # Wait for task to complete first (so all events are stored)
-    final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
-    assert final_task["status"] == "succeeded", f"Task should succeed, got {final_task}"
-
-    # Now stream all events (historical replay) and verify partials
-    events = gateway_helper.stream_task_events(task_id, timeout=10)
+    # Stream events live — FLY events are ephemeral, not available for replay
+    events = gateway_helper.stream_task_events_live(task_id, timeout=30)
 
     logger.info(f"Partial events: {len(events['partial'])}")
     logger.info(f"Update events: {len(events['update'])}")
@@ -53,12 +49,13 @@ def test_streaming_partial_events(gateway_helper):
         f"Expected {token_count} partial events, got {len(events['partial'])}"
     )
 
-    # Verify partial event content
     for i, partial in enumerate(events["partial"]):
         assert partial.get("type") == "text_delta", f"Partial {i} should have type text_delta"
         assert partial.get("token") == f"token_{i}", f"Partial {i} should have token token_{i}"
 
-    # Verify final result
+    # Wait for completion and verify final result
+    final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
+    assert final_task["status"] == "succeeded", f"Task should succeed, got {final_task}"
     result = final_task["result"]
     assert result is not None, "Should have a final result"
     assert result.get("summary") == "streaming complete"
@@ -75,12 +72,8 @@ def test_streaming_default_token_count(gateway_helper):
     task_id = response["result"]["id"]
     logger.info(f"Task ID: {task_id}")
 
-    final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
-    assert final_task["status"] == "succeeded", f"Task should succeed, got {final_task}"
+    events = gateway_helper.stream_task_events_live(task_id, timeout=30)
 
-    events = gateway_helper.stream_task_events(task_id, timeout=10)
-
-    # Default token_count is 3
     assert len(events["partial"]) == 3, (
         f"Expected 3 partial events (default), got {len(events['partial'])}"
     )
@@ -96,12 +89,8 @@ def test_streaming_midstream_error(gateway_helper):
     task_id = response["result"]["id"]
     logger.info(f"Task ID: {task_id}")
 
-    # Wait for task to reach terminal state
-    final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
-    assert final_task["status"] == "failed", f"Task should fail, got {final_task}"
-
-    # Stream events and check partials were still delivered
-    events = gateway_helper.stream_task_events(task_id, timeout=10)
+    # Stream events live
+    events = gateway_helper.stream_task_events_live(task_id, timeout=30)
 
     logger.info(f"Partial events: {len(events['partial'])}")
     logger.info(f"Update events: {len(events['update'])}")
@@ -111,5 +100,8 @@ def test_streaming_midstream_error(gateway_helper):
         f"Expected at least 1 partial event before error, got {len(events['partial'])}"
     )
 
-    # The partial event before error should contain the expected token
     assert events["partial"][0].get("token") == "before_error"
+
+    # Verify task failed
+    final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
+    assert final_task["status"] == "failed", f"Task should fail, got {final_task}"
