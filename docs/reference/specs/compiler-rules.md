@@ -443,17 +443,90 @@ engine = RuleEngine(rules)  # dict keyed by match → last write wins
 
 ## Shipped default rules
 
-Four rules ship with asya-lab:
+Seven rules ship with asya-lab:
 
-| Rule | Symbol | Extracts to |
-|------|--------|-------------|
-| asyncio.timeout | `asyncio.timeout` | `spec.resiliency.timeout.actor` |
-| tenacity.retry | `tenacity.retry` | `maxAttempts`, `maxDuration`, `initialDelay`, `maxInterval` |
-| timeout_decorator | `timeout_decorator.timeout` | `spec.resiliency.timeout.actor` |
-| stamina.retry | `stamina.retry` | `maxAttempts`, `maxDuration` |
+| Rule | Symbol | TreatAs | Effect |
+|------|--------|---------|--------|
+| asyncio.timeout | `asyncio.timeout` | `config` | Extracts `spec.resiliency.timeout.actor` |
+| tenacity.retry | `tenacity.retry` | `config` | Extracts `maxAttempts`, `maxDuration`, `initialDelay`, `maxInterval` |
+| timeout_decorator | `timeout_decorator.timeout` | `config` | Extracts `spec.resiliency.timeout.actor` |
+| stamina.retry | `stamina.retry` | `config` | Extracts `maxAttempts`, `maxDuration` |
+| claude_agent_sdk.tool | `claude_agent_sdk.tool` | `actor` | Classifies as actor, generates adapter if non-standard signature |
+| langchain.tools.tool | `langchain.tools.tool` | `actor` | Classifies as actor, generates adapter if non-standard signature |
+| langchain_core.tools.tool | `langchain_core.tools.tool` | `actor` | Classifies as actor, generates adapter if non-standard signature |
+
+The `config` rules extract parameter values into manifest fields. The `actor`
+rules classify decorated functions as actors and strip the decorator at runtime
+via `ASYA_IGNORE_DECORATORS`. When actor-classified functions use non-standard
+call patterns (e.g. `p["result"] = fn(p["city"])` instead of `p = fn(p)`), the
+compiler generates an **adapter file** — see [Adapter generation](#adapter-generation).
 
 See the full YAML in
 `src/asya-lab/asya_lab/defaults/compiler.rules.yaml`.
+
+---
+
+## Adapter generation
+
+When a function classified as `actor` (via rule, decorator, or `# asya: actor`
+directive) is called with a non-standard pattern, the compiler generates an
+adapter wrapper that bridges the function's typed signature to Asya's
+`dict -> dict` envelope protocol.
+
+### Standard vs non-standard calls
+
+**Standard call** — no adapter needed:
+
+```python
+p = handler(p)           # ActorCall: dict -> dict, deployed directly
+```
+
+**Non-standard call** — adapter generated:
+
+```python
+p["weather"] = get_weather(p["city"])           # AdapterCall: typed args + subscript target
+p["greeting"] = format_greeting(p["user_name"]) # AdapterCall: typed args + subscript target
+```
+
+### Generated adapter file
+
+For `p["weather"] = await get_weather(p["city"])`, the compiler produces
+`adapter_get_weather.py`:
+
+```python
+"""Auto-generated adapter for get_weather"""
+from module import get_weather                # added when function is imported
+
+async def adapter_get_weather(payload: dict):
+    """Adapter: wraps get_weather() for dict-in/dict-out protocol"""
+    _result = await get_weather(payload["city"])
+    payload["weather"] = _result
+    yield payload
+```
+
+Key properties:
+- **Argument denormalization**: internal `p["key"]` references are expanded to
+  `payload["key"]` in the adapter
+- **Import injection**: when the function is imported from another module, the
+  adapter includes the appropriate `from module import func` statement (with
+  `as alias` when the local name differs from the original)
+- **Async preservation**: async functions get `async def` + `await`; sync
+  functions get plain `def`
+- **Output routing**: subscript targets (`p["key"] = ...`) store the result at
+  that key; bare assignment (`p = fn(...)`) replaces the entire payload
+
+### Deployment
+
+The adapter file is deployed as a ConfigMap alongside the actor's handler code.
+At runtime, the adapter function is loaded as the actor's handler instead of the
+original function. The adapter calls the original function, wrapping its inputs
+and outputs for the envelope protocol.
+
+### Example
+
+See [`examples/flows/tool_adapter.py`](../../../examples/flows/tool_adapter.py)
+and its compiled output in
+[`examples/flows/compiled/tool_adapter/`](../../../examples/flows/compiled/tool_adapter/).
 
 ---
 

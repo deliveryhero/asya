@@ -283,9 +283,61 @@ p = actor(validator)(p)          # force actor regardless of definition
 
 ## Built-in rules
 
-Four rules ship with asya-lab and apply automatically (no configuration needed).
+Seven rules ship with asya-lab and apply automatically (no configuration needed).
 See the full YAML in
 [`src/asya-lab/asya_lab/defaults/compiler.rules.yaml`](../../src/asya-lab/asya_lab/defaults/compiler.rules.yaml).
+
+### Tool decorator rules (claude_agent_sdk.tool, langchain.tools.tool, langchain_core.tools.tool)
+
+Functions decorated with `@tool` from supported frameworks are classified as
+actors. When called with non-standard signatures, the compiler generates an
+adapter wrapper.
+
+Source: [`examples/flows/tool_adapter.py`](../../examples/flows/tool_adapter.py)
+
+```python
+from claude_agent_sdk import tool
+
+@tool
+async def get_weather(city: str) -> dict:
+    """Get current weather for a city."""
+    return {"temp": 22, "condition": "sunny"}
+
+@tool
+def format_greeting(name: str) -> str:
+    """Format a personalized greeting."""
+    return f"Hello, {name}!"
+
+@flow
+async def tool_adapter(p: dict) -> dict:
+    p = await validate_input(p)
+    p["weather"] = await get_weather(p["city"])        # adapter generated
+    p["greeting"] = format_greeting(p["user_name"])    # adapter generated
+    p = await compose_response(p)
+    return p
+```
+
+The compiler:
+1. Resolves `tool` to `claude_agent_sdk.tool` via the import map
+2. Classifies `get_weather` and `format_greeting` as actors (treat-as: actor)
+3. Detects non-standard call patterns (`p["weather"] = get_weather(p["city"])`)
+4. Generates adapter files: `adapter_get_weather.py` and `adapter_format_greeting.py`
+5. Adds `claude_agent_sdk.tool` to `ASYA_IGNORE_DECORATORS` so the runtime strips `@tool`
+
+Generated adapter (`adapter_get_weather.py`):
+
+```python
+async def adapter_get_weather(payload: dict):
+    """Adapter: wraps get_weather() for dict-in/dict-out protocol"""
+    _result = await get_weather(payload["city"])
+    payload["weather"] = _result
+    yield payload
+```
+
+Standard `p = fn(p)` calls with `@tool` are treated as regular actor calls
+(no adapter needed). The adapter is only generated for non-standard patterns.
+
+Compiled output: [`examples/flows/compiled/tool_adapter/`](../../examples/flows/compiled/tool_adapter/)
 
 ### asyncio.timeout
 
@@ -539,6 +591,7 @@ can see input and output side by side.
 | [`decorator_definitions.py`](../../examples/flows/decorator_definitions.py) | [`compiled/decorator_definitions/`](../../examples/flows/compiled/decorator_definitions/) | `@actor` and `@inline` on function definitions |
 | [`decorator_callsite.py`](../../examples/flows/decorator_callsite.py) | [`compiled/decorator_callsite/`](../../examples/flows/compiled/decorator_callsite/) | `actor(fn)(p)` and `inline(fn)(p)` wrappers |
 | [`inline_comment_overrides.py`](../../examples/flows/inline_comment_overrides.py) | [`compiled/inline_comment_overrides/`](../../examples/flows/compiled/inline_comment_overrides/) | `# asya: actor` / `# asya: inline` directives |
+| [`tool_adapter.py`](../../examples/flows/tool_adapter.py) | [`compiled/tool_adapter/`](../../examples/flows/compiled/tool_adapter/) | `@tool` adapter generation for non-standard signatures |
 
 Compile any example yourself:
 
