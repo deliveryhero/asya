@@ -169,8 +169,12 @@ func (s *PubSubScaler) pullAndNack(ctx context.Context, subscription string, max
 	if err != nil {
 		// Subscription may not exist yet (Crossplane still creating it).
 		// Return 0 instead of an error so KEDA reports inactive, not failed.
-		if status.Code(err) == codes.NotFound {
-			slog.Debug("Subscription not found, reporting 0 messages", "subscription", subscription)
+		// NotFound: subscription not created yet (Crossplane still provisioning).
+		// DeadlineExceeded: Pub/Sub Pull is a long-poll — on empty queues the
+		// server holds the connection until the context deadline, then returns
+		// DeadlineExceeded. Both mean "no messages available".
+		if status.Code(err) == codes.NotFound || status.Code(err) == codes.DeadlineExceeded {
+			slog.Debug("No messages available", "subscription", subscription, "reason", status.Code(err))
 			return 0, nil
 		}
 		return 0, fmt.Errorf("pull from %s: %w", subscription, err)
