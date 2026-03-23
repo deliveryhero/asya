@@ -593,8 +593,63 @@
             section { padding: 40px 0; }
             .two-col { grid-template-columns: 1fr; gap: 2rem; }
             .two-col.reverse { direction: ltr; }
-            .hero-buttons { flex-direction: column; align-items: center; }
-            .btn { width: 100%; max-width: 300px; justify-content: center; }
+            .hero-buttons { flex-direction: column; align-items: stretch; }
+            .btn { justify-content: center; }
+
+            /* Feature cards: full width on mobile */
+            .feature-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .feature-group .feature-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            /* Quickstart steps: single column */
+            .quickstart-steps {
+                grid-template-columns: 1fr;
+            }
+
+            /* Protocol groups: single column */
+            .protocol-groups {
+                grid-template-columns: 1fr;
+            }
+
+            /* Feature groups: reduce padding on mobile */
+            .feature-group {
+                padding: 1rem;
+            }
+
+            /* Code blocks: prevent overflow */
+            .code-example {
+                font-size: 0.75rem;
+                padding: 1rem;
+                white-space: pre-wrap;
+                overflow-wrap: break-word;
+            }
+
+            .quickstart-step .code-block {
+                font-size: 0.7rem;
+                white-space: pre-wrap;
+                word-break: break-all;
+            }
+
+            /* Announcement bar: smaller text, more padding for close btn */
+            .announcement-bar {
+                font-size: 0.8rem;
+                padding: 8px 40px 8px 12px;
+            }
+
+            /* Page padding tighter on mobile */
+            .page {
+                padding: 0 16px;
+            }
+
+            /* Dict entry: full width */
+            .dict-headline,
+            .dict-entry {
+                max-width: 100%;
+            }
         }
     </style>
 </head>
