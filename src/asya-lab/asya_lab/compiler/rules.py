@@ -86,11 +86,16 @@ class WhereNode:
 
 @dataclass
 class CompilerRule:
-    """A single compiler classification rule."""
+    """A single compiler classification rule.
+
+    By default, matched decorators are stripped (added to ignore_decorators).
+    Set ``keep_decorator=True`` to preserve the decorator at runtime.
+    """
 
     match: str
     treat_as: TreatAs
     where: list[WhereNode] | None = None
+    keep_decorator: bool = False
 
     @classmethod
     def from_dict(cls, d: dict) -> CompilerRule:
@@ -100,7 +105,12 @@ class CompilerRule:
             treat_as = TreatAs(d.get("treat-as", "config"))
         else:
             treat_as = TreatAs(d["treat-as"])
-        return cls(match=d["match"], treat_as=treat_as, where=where)
+        return cls(
+            match=d["match"],
+            treat_as=treat_as,
+            where=where,
+            keep_decorator=d.get("keep-decorator", False),
+        )
 
 
 def _load_default_rules() -> list[dict]:
@@ -143,7 +153,7 @@ class RuleEngine:
         User rules take precedence (overwrite defaults for the same match key).
         Defaults are loaded from ``asya_lab/defaults/compiler.rules.yaml``.
         """
-        defaults = [CompilerRule.from_dict(d) for d in _load_default_rules() if "where" in d]
+        defaults = [CompilerRule.from_dict(d) for d in _load_default_rules()]
         rules = defaults + list(extra_rules or [])
         return cls(rules)
 

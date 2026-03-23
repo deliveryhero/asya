@@ -86,6 +86,11 @@ class FlowCompiler:
         compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
         compiled_file.write_text(compiled_code)
 
+        # Write adapter files alongside routers.py
+        if self._codegen_meta and self._codegen_meta.adapter_files:
+            for af in self._codegen_meta.adapter_files:
+                (output_path / af.filename).write_text(af.code)
+
         manifests_dir = self._stamp_manifests(output_path)
         dot, mermaid_content, json_content = self._generate_outputs(output_path)
 
@@ -184,11 +189,11 @@ class FlowCompiler:
         """Returns the actor name if this is a single-actor flow, else None."""
         if self._parse_result is None:
             return None
-        from asya_lab.flow.parser import ActorCall, Return
+        from asya_lab.flow.parser import ActorCall, AdapterCall, Return
 
         ops = self._parse_result.operations
-        actor_calls = [op for op in ops if isinstance(op, ActorCall)]
-        non_actor = [op for op in ops if not isinstance(op, ActorCall | Return)]
+        actor_calls = [op for op in ops if isinstance(op, ActorCall | AdapterCall)]
+        non_actor = [op for op in ops if not isinstance(op, ActorCall | AdapterCall | Return)]
         if len(actor_calls) == 1 and len(non_actor) == 0:
             return actor_calls[0].name
         return None

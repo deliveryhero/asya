@@ -15,6 +15,7 @@ from textwrap import dedent
 
 from asya_lab.flow.parser import (
     ActorCall,
+    AdapterCall,
     Break,
     Conditional,
     Continue,
@@ -231,6 +232,15 @@ class ActorRetryRule:
 
 
 @dataclass
+class AdapterFile:
+    """A generated adapter file for a non-standard actor call."""
+
+    actor_name: str  # Python function name
+    filename: str  # e.g. "adapter_get_weather.py"
+    code: str  # generated adapter function code
+
+
+@dataclass
 class CodegenMeta:
     """Metadata about generated code, used by manifest templater."""
 
@@ -241,6 +251,7 @@ class CodegenMeta:
     actor_retry_rules: dict[str, list[ActorRetryRule]] | None = None  # actor_name -> rules
     extracted_configs: list[dict] | None = None  # [{spec_values, scope_actors, ...}]
     ignore_decorators: list[str] | None = None  # FQNs for ASYA_IGNORE_DECORATORS env var
+    adapter_files: list[AdapterFile] | None = None  # generated adapter files
 
 
 class CodeGenerator:
@@ -262,6 +273,7 @@ class CodeGenerator:
         self._all_handlers: set[str] = set()
         self._used_names: dict[str, int] = {}
         self._actor_retry_rules: dict[str, list[ActorRetryRule]] = {}  # actor_name -> rules
+        self._adapter_files: list[AdapterFile] = []
 
     def generate(self) -> str:
         if self._is_single_actor_flow():
@@ -286,12 +298,14 @@ class CodeGenerator:
     def get_meta(self) -> CodegenMeta:
         """Return metadata about the generated code."""
         if self._is_single_actor_flow():
-            actor = next(op for op in self.result.operations if isinstance(op, ActorCall))
+            actor = next(op for op in self.result.operations if isinstance(op, ActorCall | AdapterCall))
             return CodegenMeta(
                 router_names=[],
                 all_handler_names=set(),
                 router_refs={},
                 single_actor=actor.name,
+                adapter_files=self._adapter_files if self._adapter_files else None,
+                ignore_decorators=self.result.ignore_decorators if self.result.ignore_decorators else None,
             )
 
         start_name = f"start_{self.flow_name}"
@@ -313,18 +327,21 @@ class CodeGenerator:
             actor_retry_rules=self._actor_retry_rules if self._actor_retry_rules else None,
             extracted_configs=self.result.extracted_configs if self.result.extracted_configs else None,
             ignore_decorators=self.result.ignore_decorators if self.result.ignore_decorators else None,
+            adapter_files=self._adapter_files if self._adapter_files else None,
         )
 
     # -- Single-actor optimization --
 
     def _is_single_actor_flow(self) -> bool:
         ops = self.result.operations
-        actor_calls = [op for op in ops if isinstance(op, ActorCall)]
-        non_actor = [op for op in ops if not isinstance(op, ActorCall | Return)]
+        actor_calls = [op for op in ops if isinstance(op, ActorCall | AdapterCall)]
+        non_actor = [op for op in ops if not isinstance(op, ActorCall | AdapterCall | Return)]
         return len(actor_calls) == 1 and len(non_actor) == 0
 
     def _generate_single_actor_flow(self) -> str:
-        actor = next(op for op in self.result.operations if isinstance(op, ActorCall))
+        actor = next(op for op in self.result.operations if isinstance(op, ActorCall | AdapterCall))
+        if isinstance(actor, AdapterCall):
+            self._emit_adapter_file(actor)
         parts = []
         parts.append(self._generate_header())
         parts.append(
@@ -392,7 +409,9 @@ class CodeGenerator:
         op = ops[i]
         rest = ops[i + 1 :]
 
-        if isinstance(op, ActorCall):
+        if isinstance(op, ActorCall | AdapterCall):
+            if isinstance(op, AdapterCall):
+                self._emit_adapter_file(op)
             rest_chain = self._process_ops(rest, loop_ctx, continuation)
             chain = [op.name, *rest_chain]
             self._all_handlers.add(op.name)
@@ -535,6 +554,43 @@ class CodeGenerator:
         if count == 1:
             return base
         return f"{base}_{count}"
+
+    # -- Adapter file generation --
+
+    def _emit_adapter_file(self, op: AdapterCall) -> None:
+        """Generate an adapter wrapper file for a non-standard actor call."""
+        adapter_name = f"adapter_{op.name}"
+        filename = f"{adapter_name}.py"
+
+        # Replace 'p[' with 'payload[' since the adapter uses 'payload' as param name
+        adapted_args = [arg.replace("p[", "payload[", 1) if arg.startswith("p[") else arg for arg in op.input_args]
+        args_str = ", ".join(adapted_args)
+        func_keyword = "async def" if op.is_async else "def"
+        await_keyword = "await " if op.is_async else ""
+
+        lines = [
+            "# fmt: off",
+            "# ruff: noqa",
+            f'"""Auto-generated adapter for {op.name}"""',
+            "",
+            f"{func_keyword} {adapter_name}(payload: dict):",
+            f'    """Adapter: wraps {op.name}() for dict-in/dict-out protocol"""',
+            f"    _result = {await_keyword}{op.name}({args_str})",
+        ]
+
+        if op.output_path is not None:
+            # p["result"] = fn(...) -> payload["result"] = _result
+            # Replace leading 'p' with 'payload' in the output path
+            out_expr = "payload" + op.output_path[1:] if op.output_path.startswith("p") else op.output_path
+            lines.append(f"    {out_expr} = _result")
+        else:
+            lines.append("    payload = _result")
+
+        lines.append("    yield payload")
+        lines.append("")
+
+        code = "\n".join(lines)
+        self._adapter_files.append(AdapterFile(actor_name=op.name, filename=filename, code=code))
 
     # -- Router function generation --
 
@@ -808,7 +864,7 @@ class CodeGenerator:
         """Collect all actor names from an operation list, recursing into nested structures."""
         names: list[str] = []
         for op in ops:
-            if isinstance(op, ActorCall):
+            if isinstance(op, ActorCall | AdapterCall):
                 names.append(op.name)
             elif isinstance(op, Conditional):
                 names.extend(CodeGenerator._collect_actor_names(op.true_branch))
@@ -824,7 +880,7 @@ class CodeGenerator:
     @staticmethod
     def _is_flat_body(ops: list[Operation]) -> bool:
         """Check if ops are a flat sequence of Mutations, ActorCalls, and Returns."""
-        return all(isinstance(o, Mutation | ActorCall | Return) for o in ops)
+        return all(isinstance(o, Mutation | ActorCall | AdapterCall | Return) for o in ops)
 
     def _emit_except_router_inline(self, name: str, mutations: list[Mutation], handler_chain: list[str]) -> None:
         """Generate an except_router with inlined mutations and route overwrite."""

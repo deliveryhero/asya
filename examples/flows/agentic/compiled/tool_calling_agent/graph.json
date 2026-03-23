@@ -1,0 +1,203 @@
+{
+  "flow_name": "tool_calling_agent",
+  "nodes": [
+    {
+      "id": "calculate",
+      "label": "calculate"
+    },
+    {
+      "id": "format_response",
+      "label": "format_response",
+      "role": "end"
+    },
+    {
+      "id": "get_weather",
+      "label": "get_weather"
+    },
+    {
+      "id": "list_gcs_files",
+      "label": "list_gcs_files"
+    },
+    {
+      "id": "llm_reason",
+      "label": "llm_reason"
+    },
+    {
+      "id": "router_tool_calling_agent_if_not_tool_name",
+      "label": "router_tool_calling_agent_if_not_tool_name",
+      "generated": true
+    },
+    {
+      "id": "router_tool_calling_agent_if_tool_name_eq_calculate",
+      "label": "router_tool_calling_agent_if_tool_name_eq_calculate",
+      "generated": true
+    },
+    {
+      "id": "router_tool_calling_agent_if_tool_name_eq_get_weather",
+      "label": "router_tool_calling_agent_if_tool_name_eq_get_weather",
+      "generated": true
+    },
+    {
+      "id": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
+      "label": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
+      "generated": true
+    },
+    {
+      "id": "router_tool_calling_agent_if_tool_name_eq_web_search",
+      "label": "router_tool_calling_agent_if_tool_name_eq_web_search",
+      "generated": true
+    },
+    {
+      "id": "router_tool_calling_agent_seq_set_iteration",
+      "label": "router_tool_calling_agent_seq_set_iteration",
+      "generated": true,
+      "mutations": [
+        "p['iteration'] += 1"
+      ]
+    },
+    {
+      "id": "router_tool_calling_agent_seq_set_messages",
+      "label": "router_tool_calling_agent_seq_set_messages",
+      "generated": true,
+      "mutations": [
+        "p['messages'] = p['messages'] + [{'role': 'tool', 'content': p['tool_result']}]"
+      ]
+    },
+    {
+      "id": "router_tool_calling_agent_while_loop",
+      "label": "router_tool_calling_agent_while_loop",
+      "generated": true
+    },
+    {
+      "id": "start_tool_calling_agent",
+      "label": "start_tool_calling_agent",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['messages'] = p.get('messages', [])",
+        "p['iteration'] = 0"
+      ]
+    },
+    {
+      "id": "web_search",
+      "label": "web_search"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_tool_calling_agent",
+      "to": "router_tool_calling_agent_while_loop",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
+      "to": "list_gcs_files",
+      "label": "p['tool_name'] == 'list_gcs_files'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_calculate",
+      "to": "calculate",
+      "label": "p['tool_name'] == 'calculate'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_calculate",
+      "to": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_web_search",
+      "to": "web_search",
+      "label": "p['tool_name'] == 'web_search'",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_web_search",
+      "to": "router_tool_calling_agent_if_tool_name_eq_calculate",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_get_weather",
+      "to": "get_weather",
+      "label": "p['tool_name'] == 'get_weather'",
+      "type": "prepend"
+    },
+    {
+      "from": "get_weather",
+      "to": "router_tool_calling_agent_seq_set_messages",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_get_weather",
+      "to": "router_tool_calling_agent_if_tool_name_eq_web_search",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_not_tool_name",
+      "to": "router_tool_calling_agent_if_tool_name_eq_get_weather",
+      "label": "else",
+      "type": "prepend"
+    },
+    {
+      "from": "router_tool_calling_agent_if_not_tool_name",
+      "to": "format_response",
+      "label": "not p.get('tool_name')",
+      "type": "set"
+    },
+    {
+      "from": "router_tool_calling_agent_seq_set_iteration",
+      "to": "llm_reason",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "llm_reason",
+      "to": "router_tool_calling_agent_if_not_tool_name",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_tool_calling_agent_while_loop",
+      "to": "router_tool_calling_agent_seq_set_iteration",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "web_search",
+      "to": "router_tool_calling_agent_seq_set_messages",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "calculate",
+      "to": "router_tool_calling_agent_seq_set_messages",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "list_gcs_files",
+      "to": "router_tool_calling_agent_seq_set_messages",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_tool_calling_agent_seq_set_messages",
+      "to": "router_tool_calling_agent_while_loop",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_tool_calling_agent_if_tool_name_eq_list_gcs_files",
+      "to": "router_tool_calling_agent_while_loop",
+      "label": "else",
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}
