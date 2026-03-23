@@ -846,3 +846,146 @@ class TestBackwardsCompatibility:
 
         assert "started" in code, code
         _assert_actor(code, "handler")
+
+
+class TestAdapterGeneration:
+    """End-to-end adapter generation from @tool-decorated functions."""
+
+    def test_tool_decorator_with_adapter_call(self, tmp_path: Path) -> None:
+        rules = dedent("""\
+            - match: "claude_agent_sdk.tool"
+              treat-as: actor
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        source = dedent("""\
+            from claude_agent_sdk import tool
+
+            @tool
+            async def get_weather(city: str) -> dict:
+                ...
+
+            @flow
+            async def my_flow(p: dict) -> dict:
+                p["weather"] = await get_weather(p["city"])
+                p = handler(p)
+                return p
+        """)
+        engine = project.load_rules()
+        compiler = FlowCompiler(rule_engine=engine)
+        code = compiler.compile(source, "test_flow.py")
+
+        _assert_actor(code, "get_weather")
+        _assert_actor(code, "handler")
+
+        meta = compiler._codegen_meta
+        assert meta is not None
+        assert meta.adapter_files is not None
+        assert len(meta.adapter_files) == 1
+        af = meta.adapter_files[0]
+        assert af.actor_name == "get_weather"
+        assert "async def adapter_get_weather" in af.code
+        assert "await get_weather" in af.code
+
+    def test_directive_adapter_call(self, tmp_path: Path) -> None:
+        project = _scaffold_project(tmp_path)
+        source = dedent("""\
+            @flow
+            def my_flow(p: dict) -> dict:
+                p["result"] = process(p["x"], p["y"])  # asya: actor
+                p = handler(p)
+                return p
+        """)
+        engine = project.load_rules()
+        compiler = FlowCompiler(rule_engine=engine)
+        code = compiler.compile(source, "test_flow.py")
+
+        _assert_actor(code, "process")
+        _assert_actor(code, "handler")
+
+        meta = compiler._codegen_meta
+        assert meta is not None
+        assert meta.adapter_files is not None
+        assert meta.adapter_files[0].actor_name == "process"
+
+    def test_tool_decorator_auto_stripped(self, tmp_path: Path) -> None:
+        rules = dedent("""\
+            - match: "claude_agent_sdk.tool"
+              treat-as: actor
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        source = dedent("""\
+            from claude_agent_sdk import tool
+
+            @tool
+            def get_weather(city: str) -> dict:
+                ...
+
+            @flow
+            def my_flow(p: dict) -> dict:
+                p["weather"] = get_weather(p["city"])
+                return p
+        """)
+        engine = project.load_rules()
+        compiler = FlowCompiler(rule_engine=engine)
+        compiler.compile(source, "test_flow.py")
+
+        meta = compiler._codegen_meta
+        assert meta is not None
+        assert meta.ignore_decorators is not None
+        assert "claude_agent_sdk.tool" in meta.ignore_decorators
+
+    def test_keep_decorator_not_stripped(self, tmp_path: Path) -> None:
+        rules = dedent("""\
+            - match: "functools.lru_cache"
+              treat-as: inline
+              keep-decorator: true
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        source = dedent("""\
+            from functools import lru_cache
+
+            @lru_cache
+            def cached_fn(p: dict) -> dict:
+                ...
+
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+        """)
+        engine = project.load_rules()
+        compiler = FlowCompiler(rule_engine=engine)
+        compiler.compile(source, "test_flow.py")
+
+        meta = compiler._codegen_meta
+        assert meta is not None
+        # keep-decorator: true means NOT in ignore list
+        assert meta.ignore_decorators is None or "functools.lru_cache" not in meta.ignore_decorators
+
+    def test_adapter_with_standard_p_call_not_adapter(self, tmp_path: Path) -> None:
+        """Standard p = fn(p) with @tool decorator is ActorCall, not AdapterCall."""
+        rules = dedent("""\
+            - match: "claude_agent_sdk.tool"
+              treat-as: actor
+        """)
+        project = _scaffold_project(tmp_path, rules_yaml=rules)
+        source = dedent("""\
+            from claude_agent_sdk import tool
+
+            @tool
+            def process(payload: dict) -> dict:
+                ...
+
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = process(p)
+                return p
+        """)
+        engine = project.load_rules()
+        compiler = FlowCompiler(rule_engine=engine)
+        compiler.compile(source, "test_flow.py")
+
+        meta = compiler._codegen_meta
+        assert meta is not None
+        # Standard call -> no adapter needed
+        assert meta.adapter_files is None

@@ -18,7 +18,7 @@ import yaml
 
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR
 from asya_lab.config.project import AsyaProject
-from asya_lab.flow.codegen import ROUTER_PREFIXES, CodegenMeta
+from asya_lab.flow.codegen import ROUTER_PREFIXES, AdapterFile, CodegenMeta
 from asya_lab.flow.result_types import ActorInfo
 
 
@@ -162,6 +162,14 @@ class ManifestTemplater:
         resources.append(cm_filename)
         generated.append(f"base/{cm_filename}")
 
+        # Generate ConfigMaps for adapter files
+        if self.codegen_meta.adapter_files:
+            for af in self.codegen_meta.adapter_files:
+                adapter_cm_filename = f"configmap-{self._to_k8s_name(af.actor_name)}-adapter.yaml"
+                self._stamp_adapter_configmap(base_dir / adapter_cm_filename, af)
+                resources.append(adapter_cm_filename)
+                generated.append(f"base/{adapter_cm_filename}")
+
         kust_filename = "kustomization.yaml"
         self._write_kustomization(base_dir / kust_filename, resources)
         generated.append(f"base/{kust_filename}")
@@ -242,6 +250,29 @@ class ManifestTemplater:
             }
         cm.setdefault("data", {})
         cm["data"]["routers.py"] = self.router_code
+        path.write_text(yaml.dump(cm, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
+
+    def _stamp_adapter_configmap(self, path: Path, af: AdapterFile) -> None:
+        """Generate a ConfigMap containing adapter code for a non-standard actor."""
+        context = self.project.build_template_context()
+        namespace = context.get("namespace", "default")
+        k8s_name = self._to_k8s_name(af.actor_name)
+        cm = {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "metadata": {
+                "name": f"{self.flow_name}-{k8s_name}-adapter",
+                "namespace": namespace,
+                "labels": {
+                    "asya.sh/flow": self.flow_name,
+                    "asya.sh/managed-by": "asya-compiler",
+                    "asya.sh/adapter-for": k8s_name,
+                },
+            },
+            "data": {
+                af.filename: af.code,
+            },
+        }
         path.write_text(yaml.dump(cm, Dumper=_Dumper, default_flow_style=False, sort_keys=False))
 
     def _resolve_configmap_template(self) -> dict:

@@ -92,7 +92,23 @@ class TryExcept:
     lineno: int
 
 
-Operation = ActorCall | Mutation | Conditional | Loop | FanOut | Break | Continue | Return | TryExcept
+@dataclass
+class AdapterCall:
+    """An actor call that needs a generated adapter wrapper.
+
+    Created when a call classified as actor uses a non-standard pattern
+    (e.g. ``p["result"] = fn(p["city"], p["time"])`` instead of ``p = fn(p)``).
+    """
+
+    name: str
+    lineno: int
+    input_args: list[str] = field(default_factory=list)
+    output_path: str | None = None  # None when target is p (not p["key"])
+    is_async: bool = False
+    source_file: str = ""
+
+
+Operation = ActorCall | AdapterCall | Mutation | Conditional | Loop | FanOut | Break | Continue | Return | TryExcept
 
 
 @dataclass
@@ -269,7 +285,8 @@ class FlowParser:
         """Map function name to treat-as value for same-file definitions.
 
         Also extracts config from decorators matched by compiler rules
-        (e.g. @retry(max_attempts=3)).
+        (e.g. @retry(max_attempts=3)) and auto-strips decorators unless
+        the rule has keep-decorator: true.
         """
         index: dict[str, str] = {}
         for node in tree.body:
@@ -284,9 +301,10 @@ class FlowParser:
                 if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
 
+                fqn = self.import_map.get(dec_name, dec_name)
+
                 # Check for config decorators via rules registries
                 if isinstance(dec, ast.Call):
-                    fqn = self.import_map.get(dec_name, dec_name)
                     spec_values = self._extract_config_decorator(dec, fqn)
                     if spec_values is not None:
                         if spec_values:
@@ -299,7 +317,34 @@ class FlowParser:
                                 }
                             )
                         self.ignore_decorators.append(fqn)
+                        continue
+
+                # Auto-strip: if rule engine matches and keep_decorator is False
+                if self._should_strip_decorator(fqn):
+                    if fqn not in self.ignore_decorators:
+                        self.ignore_decorators.append(fqn)
+                    # Classify function per rule treat-as
+                    if node.name not in index:
+                        treat_as = self._rule_engine_treat_as(fqn)
+                        if treat_as is not None:
+                            index[node.name] = treat_as
         return index
+
+    def _should_strip_decorator(self, fqn: str) -> bool:
+        """Check if a decorator should be stripped based on rule engine."""
+        if self._rule_engine is not None:
+            rule = self._rule_engine.get_rule(fqn)
+            if rule is not None and not rule.keep_decorator:
+                return True
+        return False
+
+    def _rule_engine_treat_as(self, fqn: str) -> str | None:
+        """Get the treat-as string for a symbol from the rule engine."""
+        if self._rule_engine is not None:
+            treat_as = self._rule_engine.classify(fqn)
+            if treat_as is not None:
+                return treat_as.value
+        return None
 
     @staticmethod
     def _decorator_name(dec: ast.expr) -> str | None:
@@ -539,13 +584,11 @@ class FlowParser:
                     return [self._parse_fanout_literal(stmt, target, value)]
                 elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
                     return [self._parse_fanout_gather(stmt, target, value)]
-            directive = self._directives.get(stmt.lineno)
-            if directive is not None and directive.treat_as == "actor":
-                raise FlowCompileError(
-                    f"{self.filename}:{stmt.lineno}: subscript assignment with '# asya: actor' "
-                    f"is not supported. Use 'p = func(p)' instead of 'p[\"key\"] = func(p)'. "
-                    f"Adapter generation for non-standard call patterns is planned (aint syop)."
-                )
+                # Check for adapter call: p["key"] = fn(args) where fn is actor
+                if isinstance(value, ast.Call):
+                    adapter = self._try_parse_adapter_call(stmt, value, target)
+                    if adapter is not None:
+                        return adapter
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
         elif isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):
@@ -610,6 +653,10 @@ class FlowParser:
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Unsupported call type")
 
         if len(call.args) != 1:
+            # Check if this is an adapter call: p = fn(p["x"], p["y"])
+            adapter = self._try_parse_adapter_call(stmt, call, stmt.targets[0])
+            if adapter is not None:
+                return adapter
             raise FlowCompileError(f"{self.filename}:{stmt.lineno}: Actor call must have exactly one argument (p)")
 
         # Inline comment directive takes priority
@@ -667,6 +714,62 @@ class FlowParser:
 
         self._actors.append(actor_name)
         return [ActorCall(lineno=stmt.lineno, name=actor_name)]
+
+    def _try_parse_adapter_call(self, stmt: ast.Assign, call: ast.Call, target: ast.expr) -> list[Operation] | None:
+        """Try to parse a non-standard call as an adapter actor call.
+
+        Returns AdapterCall ops if the function is classified as actor
+        (via directive or rule), None otherwise (falls through to Mutation).
+        """
+        # Extract function name
+        if isinstance(call.func, ast.Name):
+            func_name = call.func.id
+        elif isinstance(call.func, ast.Attribute):
+            func_name = ast.unparse(call.func)
+        else:
+            return None
+
+        # Check inline directive first
+        directive = self._directives.get(stmt.lineno)
+        is_actor = directive is not None and directive.treat_as == "actor"
+
+        # Check decorator index
+        if not is_actor and func_name in self._decorator_index:
+            is_actor = self._decorator_index[func_name] == "actor"
+
+        # Check rule engine
+        if not is_actor and self._rule_engine is not None:
+            from asya_lab.compiler.rules import TreatAs
+
+            qualified = self.import_map.get(func_name, func_name)
+            treat_as = self._rule_engine.classify(qualified, module_path=self.module_path or None)
+            if treat_as == TreatAs.ACTOR:
+                is_actor = True
+
+        if not is_actor:
+            return None
+
+        # Detect async from the original statement value
+        is_async = isinstance(stmt.value, ast.Await)
+
+        # Extract input args as source strings
+        input_args = [ast.unparse(arg) for arg in call.args]
+
+        # Extract output path from target
+        output_path: str | None = None
+        if isinstance(target, ast.Subscript):
+            output_path = ast.unparse(target)
+
+        self._actors.append(func_name)
+        return [
+            AdapterCall(
+                name=func_name,
+                lineno=stmt.lineno,
+                input_args=input_args,
+                output_path=output_path,
+                is_async=is_async,
+            )
+        ]
 
     def _parse_wrapper_call(self, stmt: ast.Assign, outer_call: ast.Call, *, is_await: bool = False) -> list[Operation]:
         """Parse call-site wrapper patterns: actor(handler)(p), inline(fn)(p)."""
@@ -996,7 +1099,7 @@ class FlowParser:
         """Collect actor names from operations, recursing into nested structures."""
         actors: list[str] = []
         for op in ops:
-            if isinstance(op, ActorCall):
+            if isinstance(op, ActorCall | AdapterCall):
                 actors.append(op.name)
             elif isinstance(op, Conditional):
                 actors.extend(FlowParser._collect_scope_actors(op.true_branch))

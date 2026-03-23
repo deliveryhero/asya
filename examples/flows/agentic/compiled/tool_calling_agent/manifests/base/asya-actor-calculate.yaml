@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-calculate
+  namespace: default
+  labels:
+    asya.sh/flow: tool-calling-agent
+spec:
+  actor: actor-calculate
+  image: examples.asya.sh/calculate:latest
+  handler: calculate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

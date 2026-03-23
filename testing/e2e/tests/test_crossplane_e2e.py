@@ -1797,7 +1797,11 @@ def test_asyncactor_flavors_resolved(e2e_helper):
     actor_list_append = f"test-flavor-append-{e2e_helper.namespace[-4:]}"
 
     try:
-        # --- Scenario 1: single flavor ---
+        # Create all actors up front so Crossplane reconciles them in parallel.
+        # Flavor resolution needs two reconciliation cycles (request -> merge),
+        # and serial 180s waits can exceed the 600s test timeout under CI load.
+
+        # --- Create Scenario 1: single flavor ---
         logger.info("Creating actor with single flavor...")
         kubectl_apply_raw(
             _actor_manifest(
@@ -1808,11 +1812,54 @@ def test_asyncactor_flavors_resolved(e2e_helper):
             namespace=e2e_helper.namespace,
         )
 
-        assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=180), (
-            "Flavor actor should reach Ready=True"
+        # --- Create Scenario 2: multiple flavors + env var override ---
+        logger.info("Creating actor with multiple flavors and env var override...")
+        override_env = """\
+  - name: FLAVOR_EXTRA_VAR
+    value: from-actor"""
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_multi,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-env-vars"],
+                extra_runtime_env=override_env,
+            ),
+            namespace=e2e_helper.namespace,
         )
 
-        # Verify the Deployment has resources applied by the flavor
+        # --- Create Scenario 3: no flavors (backward compat) ---
+        logger.info("Creating actor without flavors...")
+        kubectl_apply_raw(
+            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
+            namespace=e2e_helper.namespace,
+        )
+
+        # --- Create Scenario 4: list append (tolerations from two flavors) ---
+        logger.info("Creating actor with two toleration flavors (list append)...")
+        kubectl_apply_raw(
+            _actor_manifest(
+                actor_list_append,
+                e2e_helper.namespace,
+                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
+            ),
+            namespace=e2e_helper.namespace,
+        )
+
+        # Wait for all actors to become ready (parallel reconciliation)
+        assert wait_for_asyncactor_ready(actor_single, namespace=e2e_helper.namespace, timeout=300), (
+            "Flavor actor should reach Ready=True"
+        )
+        assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=300), (
+            "Multi-flavor actor should reach Ready=True"
+        )
+        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=300), (
+            "Non-overlaid actor should reach Ready=True (backward compat)"
+        )
+        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=300), (
+            "List-append actor should reach Ready=True"
+        )
+
+        # --- Verify Scenario 1: single flavor ---
         deployment = kubectl_get("deployment", actor_single, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
@@ -1826,23 +1873,7 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] Single flavor: resources correctly applied from flavor")
 
-        # --- Scenario 2: multiple flavors + env var override ---
-        logger.info("Creating actor with multiple flavors and env var override...")
-        override_env = """\
-  - name: FLAVOR_EXTRA_VAR
-    value: from-actor"""
-        manifest = _actor_manifest(
-            actor_multi,
-            e2e_helper.namespace,
-            flavors=["asya-test-actor", "asya-test-env-vars"],
-            extra_runtime_env=override_env,
-        )
-        kubectl_apply_raw(manifest, namespace=e2e_helper.namespace)
-
-        assert wait_for_asyncactor_ready(actor_multi, namespace=e2e_helper.namespace, timeout=180), (
-            "Multi-flavor actor should reach Ready=True"
-        )
-
+        # --- Verify Scenario 2: multiple flavors + env var override ---
         deployment = kubectl_get("deployment", actor_multi, namespace=e2e_helper.namespace)
         containers = deployment.get("spec", {}).get("template", {}).get("spec", {}).get("containers", [])
         runtime = next((c for c in containers if c["name"] == "asya-runtime"), None)
@@ -1853,33 +1884,10 @@ def test_asyncactor_flavors_resolved(e2e_helper):
         )
         logger.info("[+] Multi-flavor: env var override correctly applied")
 
-        # --- Scenario 3: no flavors (backward compat) ---
-        logger.info("Creating actor without flavors...")
-        kubectl_apply_raw(
-            _actor_manifest(actor_no_flavor, e2e_helper.namespace),
-            namespace=e2e_helper.namespace,
-        )
-
-        assert wait_for_asyncactor_ready(actor_no_flavor, namespace=e2e_helper.namespace, timeout=180), (
-            "Non-overlaid actor should reach Ready=True (backward compat)"
-        )
+        # --- Verify Scenario 3: no flavors (backward compat) ---
         logger.info("[+] No-flavor actor: backward compat confirmed")
 
-        # --- Scenario 4: list append (tolerations from two flavors) ---
-        logger.info("Creating actor with two toleration flavors (list append)...")
-        kubectl_apply_raw(
-            _actor_manifest(
-                actor_list_append,
-                e2e_helper.namespace,
-                flavors=["asya-test-actor", "asya-test-toleration-gpu", "asya-test-toleration-spot"],
-            ),
-            namespace=e2e_helper.namespace,
-        )
-
-        assert wait_for_asyncactor_ready(actor_list_append, namespace=e2e_helper.namespace, timeout=180), (
-            "List-append actor should reach Ready=True"
-        )
-
+        # --- Verify Scenario 4: list append (tolerations from two flavors) ---
         deployment = kubectl_get("deployment", actor_list_append, namespace=e2e_helper.namespace)
         pod_spec = deployment.get("spec", {}).get("template", {}).get("spec", {})
         tolerations = pod_spec.get("tolerations", [])
@@ -1987,3 +1995,86 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
         raise
     finally:
         _cleanup_actor(actor_name, e2e_helper.namespace)
+
+
+@pytest.mark.core
+@pytest.mark.timeout(450)
+def test_asyncactor_infrastructure_keda_ready_updates(e2e_helper):
+    """
+    E2E: Test that status.infrastructure.keda.ready transitions to true.
+
+    Regression test for mqd9: the composition status pipeline was not observing
+    ScaledObject status changes because the Crossplane Object resource had
+    watch: false. This caused infrastructure.keda.ready to stay false forever,
+    keeping the actor phase stuck at Creating.
+
+    Scenario:
+    1. Create AsyncActor with scaling enabled
+    2. Wait for AsyncActor to reach Ready condition (Crossplane)
+    3. Verify status.infrastructure.keda.ready is true
+    4. Verify status.infrastructure.workload.ready is true
+    5. Verify status.phase is Ready or Napping (not Creating)
+
+    Expected: All infrastructure status fields reflect actual resource states
+
+    Skipped on pubsub: KEDA's gcp-pubsub trigger never reaches READY=True
+    with the pubsub emulator, so keda.ready correctly stays false.
+    """
+    if TRANSPORT == "pubsub":
+        pytest.skip("KEDA ScaledObject never reaches READY=True with pubsub emulator")
+    name = "test-keda-status"
+    manifest = _actor_manifest(
+        name, e2e_helper.namespace, scaling_enabled=True, min_replicas=1, max_replicas=3
+    )
+
+    try:
+        logger.info("Creating AsyncActor with scaling enabled...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(
+            name,
+            namespace=e2e_helper.namespace,
+            timeout=270,
+        ), "AsyncActor should reach Ready=True"
+
+        logger.info("Verifying ScaledObject exists and is ready...")
+        assert wait_for_resource(
+            "scaledobject", name, namespace=e2e_helper.namespace, timeout=60
+        ), "ScaledObject should exist"
+
+        # Poll for infrastructure status to be populated by the composition
+        actor = None
+        infrastructure = None
+        for _attempt in range(30):
+            time.sleep(5)  # Poll every 5s for status pipeline to observe ScaledObject readiness
+            actor = kubectl_get("asyncactor", name, namespace=e2e_helper.namespace)
+            infrastructure = actor.get("status", {}).get("infrastructure", {})
+            keda_ready = infrastructure.get("keda", {}).get("ready")
+            if keda_ready is True:
+                break
+
+        logger.info(f"AsyncActor status: {actor.get('status', {})}")
+
+        assert infrastructure.get("keda", {}).get("ready") is True, (
+            f"infrastructure.keda.ready should be true after ScaledObject becomes Ready, "
+            f"got: {infrastructure.get('keda')}"
+        )
+
+        assert infrastructure.get("workload", {}).get("ready") is True, (
+            f"infrastructure.workload.ready should be true, got: {infrastructure.get('workload')}"
+        )
+
+        phase = actor.get("status", {}).get("phase")
+        assert phase in ("Ready", "Napping"), (
+            f"Phase should be Ready or Napping (not Creating), got: {phase}"
+        )
+
+        logger.info(f"[+] Infrastructure status pipeline verified: phase={phase}, "
+                     f"keda.ready={infrastructure.get('keda', {}).get('ready')}")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)

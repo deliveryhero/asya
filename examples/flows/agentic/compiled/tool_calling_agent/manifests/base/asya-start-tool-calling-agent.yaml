@@ -1,0 +1,46 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-tool-calling-agent
+  namespace: default
+  labels:
+    asya.sh/flow: tool-calling-agent
+    asya.sh/role: start
+    asya.sh/generated: 'true'
+spec:
+  actor: start-tool-calling-agent
+  image: python:3.13-slim
+  handler: routers.start_tool_calling_agent
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CALCULATE
+    value: calculate
+  - name: ASYA_HANDLER_ACTOR_FORMAT_RESPONSE
+    value: format_response
+  - name: ASYA_HANDLER_ACTOR_GET_WEATHER
+    value: get_weather
+  - name: ASYA_HANDLER_ACTOR_LIST_GCS_FILES
+    value: list_gcs_files
+  - name: ASYA_HANDLER_ACTOR_LLM_REASON
+    value: llm_reason
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_NOT_TOOL_NAME
+    value: routers.router_tool_calling_agent_if_not_tool_name
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_TOOL_NAME_EQ_CALCULATE
+    value: routers.router_tool_calling_agent_if_tool_name_eq_calculate
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_TOOL_NAME_EQ_GET_WEATHER
+    value: routers.router_tool_calling_agent_if_tool_name_eq_get_weather
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_TOOL_NAME_EQ_LIST_GCS_FILES
+    value: routers.router_tool_calling_agent_if_tool_name_eq_list_gcs_files
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_IF_TOOL_NAME_EQ_WEB_SEARCH
+    value: routers.router_tool_calling_agent_if_tool_name_eq_web_search
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_SEQ_SET_ITERATION
+    value: routers.router_tool_calling_agent_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_SEQ_SET_MESSAGES
+    value: routers.router_tool_calling_agent_seq_set_messages
+  - name: ASYA_HANDLER_ROUTER_TOOL_CALLING_AGENT_WHILE_LOOP
+    value: routers.router_tool_calling_agent_while_loop
+  - name: ASYA_HANDLER_ACTOR_WEB_SEARCH
+    value: web_search
