@@ -1415,11 +1415,12 @@ def test_keda_scaledobject_detailed_configuration(e2e_helper):
                 f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
             )
         elif transport == "pubsub":
-            assert trigger["type"] == "gcp-pubsub", f"Trigger type should be gcp-pubsub, got {trigger['type']}"
-            assert trigger["metadata"]["value"] == "15", (
-                f"Queue length value should be '15', got {trigger['metadata'].get('value')}"
+            assert trigger["type"] == "external", f"Trigger type should be external, got {trigger['type']}"
+            assert trigger["metadata"]["targetValue"] == "15", (
+                f"targetValue should be '15', got {trigger['metadata'].get('targetValue')}"
             )
             assert "subscriptionName" in trigger["metadata"], "Pub/Sub trigger should have subscriptionName"
+            assert "scalerAddress" in trigger["metadata"], "External trigger should have scalerAddress"
 
         logger.info(f"ScaledObject trigger config: {json.dumps(trigger, indent=2)}")
         logger.info("[+] KEDA ScaledObject configuration verified")
