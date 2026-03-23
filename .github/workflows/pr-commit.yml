@@ -5,9 +5,8 @@ on:
     types: [opened, edited, synchronize, reopened]
 
 permissions:
-  # Read permission is enough for the title check.
-  # Write permission is needed for the autolabeler job below.
   pull-requests: write
+  contents: read
 
 jobs:
   validate-title:
@@ -36,18 +35,43 @@ jobs:
         requireScope: false
 
   autolabeler:
-    name: Apply Labels from Title/Files
+    name: Apply labels
     runs-on: ubuntu-latest
-    # Needs to run after title validation, but can run in parallel if validation is removed
     needs: validate-title
 
     steps:
-    - name: Auto-label PR using Release Drafter config
-      uses: release-drafter/release-drafter@v6
+    - uses: actions/checkout@v4
+
+    - name: Label PR by changed files
+      uses: actions/labeler@v5
       with:
-        # The action will read the 'autolabeler' section of this config file
-        config-name: release-drafter.yml
-        disable-releaser: true
-      env:
-        # Requires write permission for pull-requests (set at job/workflow level)
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        sync-labels: true
+
+    - name: Label PR by conventional commit title
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = context.payload.pull_request.title;
+          const match = title.match(/^([a-z]+)(\(.*\))?(!)?:/);
+          if (!match) return;
+
+          const labels = new Set();
+          const type = match[1];
+          const breaking = match[3] === '!';
+
+          const typeLabels = {
+            feat: 'feat', fix: 'fix', docs: 'docs', style: 'style',
+            refactor: 'refactor', perf: 'perf', test: 'test',
+            build: 'build', ci: 'ci', chore: 'chore', charts: 'charts'
+          };
+          if (typeLabels[type]) labels.add(typeLabels[type]);
+          if (breaking) labels.add('breaking');
+
+          if (labels.size > 0) {
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              labels: [...labels]
+            });
+          }
