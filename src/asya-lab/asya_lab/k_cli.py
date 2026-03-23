@@ -892,20 +892,6 @@ def _send_a2a(
     if api_key:
         headers["X-API-Key"] = api_key
 
-    import threading
-    import time as _time
-
-    stop_dots = threading.Event()
-
-    def _print_dots():
-        while not stop_dots.is_set():
-            _time.sleep(0.5)
-            if not stop_dots.is_set():
-                click.echo(".", nl=False, err=True)
-
-    dots_thread = threading.Thread(target=_print_dots, daemon=True)
-    dots_thread.start()
-
     try:
         req = urllib.request.Request(
             f"{url}/a2a/",
@@ -915,13 +901,8 @@ def _send_a2a(
         with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
             body = _json.loads(resp.read())
     except Exception as e:
-        stop_dots.set()
-        click.echo("", err=True)
         click.echo(f"[-] Request failed: {e}", err=True)
         sys.exit(1)
-
-    stop_dots.set()
-    click.echo(" [100%]", err=True)
 
     if "error" in body:
         click.echo(f"[-] {body['error'].get('message', body['error'])}", err=True)
