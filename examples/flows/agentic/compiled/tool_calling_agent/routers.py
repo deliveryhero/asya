@@ -19,11 +19,11 @@ async def start_tool_calling_agent(payload: dict):
     _next = []
     p['messages'] = p.get('messages', [])
     p['iteration'] = 0
-    _next.append(resolve("router_tool_calling_agent_line_103_while_1"))
+    _next.append(resolve("router_tool_calling_agent_while_loop"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_127_seq_2(payload: dict):
+async def router_tool_calling_agent_seq_set_messages(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,7 +32,7 @@ async def router_tool_calling_agent_line_127_seq_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_122_if_3(payload: dict):
+async def router_tool_calling_agent_if_tool_name_eq_list_gcs_files(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -44,45 +44,45 @@ async def router_tool_calling_agent_line_122_if_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_119_if_4(payload: dict):
+async def router_tool_calling_agent_if_tool_name_eq_calculate(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['tool_name'] == 'calculate':
         _next.append(resolve("calculate"))
     else:
-        _next.append(resolve("router_tool_calling_agent_line_122_if_3"))
+        _next.append(resolve("router_tool_calling_agent_if_tool_name_eq_list_gcs_files"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_117_if_5(payload: dict):
+async def router_tool_calling_agent_if_tool_name_eq_web_search(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['tool_name'] == 'web_search':
         _next.append(resolve("web_search"))
     else:
-        _next.append(resolve("router_tool_calling_agent_line_119_if_4"))
+        _next.append(resolve("router_tool_calling_agent_if_tool_name_eq_calculate"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_115_if_6(payload: dict):
+async def router_tool_calling_agent_if_tool_name_eq_get_weather(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['tool_name'] == 'get_weather':
         _next.append(resolve("get_weather"))
-        _next.append(resolve("router_tool_calling_agent_line_127_seq_2"))
+        _next.append(resolve("router_tool_calling_agent_seq_set_messages"))
     else:
-        _next.append(resolve("router_tool_calling_agent_line_117_if_5"))
-        _next.append(resolve("router_tool_calling_agent_line_127_seq_2"))
+        _next.append(resolve("router_tool_calling_agent_if_tool_name_eq_web_search"))
+        _next.append(resolve("router_tool_calling_agent_seq_set_messages"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_109_if_7(payload: dict):
+async def router_tool_calling_agent_if_not_tool_name(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -91,28 +91,28 @@ async def router_tool_calling_agent_line_109_if_7(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_tool_calling_agent_line_115_if_6"))
+        _next.append(resolve("router_tool_calling_agent_if_tool_name_eq_get_weather"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_104_seq_8(payload: dict):
+async def router_tool_calling_agent_seq_set_iteration(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("llm_reason"))
-    _next.append(resolve("router_tool_calling_agent_line_109_if_7"))
+    _next.append(resolve("router_tool_calling_agent_if_not_tool_name"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_tool_calling_agent_line_103_while_1(payload: dict):
+async def router_tool_calling_agent_while_loop(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_tool_calling_agent_line_104_seq_8"))
-    _next.append(resolve("router_tool_calling_agent_line_103_while_1"))
+    _next.append(resolve("router_tool_calling_agent_seq_set_iteration"))
+    _next.append(resolve("router_tool_calling_agent_while_loop"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

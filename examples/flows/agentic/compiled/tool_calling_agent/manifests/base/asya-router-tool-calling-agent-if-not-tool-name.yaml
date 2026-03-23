@@ -1,16 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: start-tool-calling-agent
+  name: router-tool-calling-agent-if-not-tool-name
   namespace: default
   labels:
     asya.sh/flow: tool-calling-agent
-    asya.sh/role: start
     asya.sh/generated: 'true'
 spec:
-  actor: start-tool-calling-agent
+  actor: router-tool-calling-agent-if-not-tool-name
   image: python:3.13-slim
-  handler: routers.start_tool_calling_agent
+  handler: routers.router_tool_calling_agent_if_not_tool_name
   scaling:
     enabled: true
     minReplicaCount: 0
