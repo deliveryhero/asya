@@ -26,8 +26,18 @@ def _compile_flow_file(
     strict: bool = False,
     plot: bool = False,
     plot_format: str = "png",
+    python_path: tuple[str, ...] = (),
 ) -> None:
     """Compile a flow from a .py source file."""
+    if python_path:
+        import sys as _sys
+
+        for p in reversed(python_path):
+            resolved = str(Path(p).resolve())
+            if resolved not in _sys.path:
+                _sys.path.insert(0, resolved)
+                if verbose:
+                    click.echo(f"    [.] Added to sys.path: {resolved}")
 
     def _rel(p: Path) -> str:
         try:
@@ -129,7 +139,14 @@ def _compile_flow_file(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, strict):
+@click.option(
+    "--python-path",
+    "-I",
+    "python_path",
+    multiple=True,
+    help="Add directory to Python import path for compile-time resolution (repeatable).",
+)
+def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, strict, python_path):
     """Compile a flow into Kubernetes manifests.
 
     FLOW_NAME is a kebab-case identifier used consistently across all commands:
@@ -139,6 +156,11 @@ def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, 
       asya k apply text-flow
       asya k status text-flow
       asya k logs text-flow
+
+    For bare scripts not on sys.path, use -I to add import directories:
+
+    \b
+      asya compile greet-flow -f scripts/greet_flow.py -I scripts/
     """
     # Validate flow name is kebab-case
     if not all(c.isalnum() or c == "-" for c in flow_name) or flow_name.startswith("-"):
@@ -158,6 +180,7 @@ def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, 
             strict,
             plot=plot,
             plot_format=plot_format,
+            python_path=python_path,
         )
     except FlowCompileError as e:
         click.echo(f"[-] Compilation failed for {flow_name}\n", err=True)
