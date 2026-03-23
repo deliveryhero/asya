@@ -322,112 +322,112 @@ defaults — they do not replace them.
 
 ### Simple decorator extraction
 
-Map a custom decorator to a manifest field:
+Map a custom timeout decorator to a manifest field:
 
 ```yaml
-# @rate_limit(qps=10) -> spec.scaling.rateLimit: 10
-- match: "mylib.rate_limit"
+# @my_timeout(seconds=30) -> spec.resiliency.actorTimeout: 30
+- match: "mylib.my_timeout"
   treat-as: config
   where:
-  - param: qps
-    assign-to: spec.scaling.rateLimit
+  - param: seconds
+    assign-to: spec.resiliency.actorTimeout
 ```
 
 Given:
 
 ```python
-from mylib import rate_limit
+from mylib import my_timeout
 
-@rate_limit(qps=10)
-def api_handler(p: dict) -> dict: ...
+@my_timeout(seconds=30)
+def slow_handler(p: dict) -> dict: ...
 ```
 
-The compiler extracts `10` and writes `spec.scaling.rateLimit: 10` to the
-actor's manifest. The `@rate_limit` decorator is stripped at runtime via
+The compiler extracts `30` and writes `spec.resiliency.actorTimeout: 30` to the
+actor's manifest. The `@my_timeout` decorator is stripped at runtime via
 `ASYA_IGNORE_DECORATORS`.
 
 ### Nested extraction with where-trees
 
 For decorators with nested function calls as arguments, use a `where:` tree to
-navigate into the call structure:
-
-```yaml
-- match: "mylib.circuit_breaker"
-  treat-as: config
-  where:
-  - param: threshold
-    assign-to: spec.resiliency.circuitBreaker.threshold
-  - param: recovery
-    where:
-    - match: "exponential_backoff"
-      where:
-      - param: base
-        assign-to: spec.resiliency.circuitBreaker.backoffBase
-      - param: max_delay
-        assign-to: spec.resiliency.circuitBreaker.backoffMax
-```
-
-This handles:
-
-```python
-@circuit_breaker(
-    threshold=5,
-    recovery=exponential_backoff(base=2, max_delay=120)
-)
-def fragile_service(p: dict) -> dict: ...
-```
-
-Result: `{threshold: 5, backoffBase: 2, backoffMax: 120}`.
-
-### Handling operator-combined arguments
-
-Some libraries combine parameters with `|`, `&`, or `+` operators. Use
-`flatten-on` to flatten the expression tree before matching:
+navigate into the call structure. The built-in `tenacity.retry` rule is the
+canonical example:
 
 ```yaml
 - match: "mylib.retry"
   treat-as: config
   where:
-  - param: condition
-    flatten-on: "|"
+  - param: attempts
+    assign-to: spec.resiliency.policies.default.maxAttempts
+  - param: backoff
     where:
-    - match: "on_status"
+    - match: "exponential"
       where:
-      - param: code
-        assign-to: spec.resiliency.retryOnStatus
-    - match: "on_exception"
-      where:
-      - param: exc_type
-        assign-to: spec.resiliency.retryOnException
+      - param: base
+        assign-to: spec.resiliency.policies.default.initialDelay
+      - param: cap
+        assign-to: spec.resiliency.policies.default.maxInterval
 ```
 
 This handles:
 
 ```python
-@retry(condition=on_status(429) | on_exception(TimeoutError))
+@retry(attempts=5, backoff=exponential(base=1, cap=60))
+def fragile_service(p: dict) -> dict: ...
+```
+
+Result: `{maxAttempts: 5, initialDelay: 1, maxInterval: 60}`.
+
+### Handling operator-combined arguments
+
+Some libraries combine parameters with `|`, `&`, or `+` operators. Use
+`flatten-on` to flatten the expression tree before matching. This is how the
+built-in `tenacity.retry` rule handles combined stop conditions:
+
+```yaml
+- match: "mylib.retry"
+  treat-as: config
+  where:
+  - param: stop
+    flatten-on: "|"
+    where:
+    - match: "after_attempts"
+      where:
+      - param: n
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "after_delay"
+      where:
+      - param: seconds
+        assign-to: spec.resiliency.policies.default.maxDuration
+```
+
+This handles:
+
+```python
+@retry(stop=after_attempts(5) | after_delay(30))
 def api_call(p: dict) -> dict: ...
 ```
 
 ### Context manager rules
 
 Context manager rules work the same way — the parser auto-detects that a `with`
-statement triggers the rule:
+statement triggers the rule. The built-in `asyncio.timeout` rule is the
+canonical example:
 
 ```yaml
-- match: "mylib.batch_config"
+- match: "mylib.deadline"
   treat-as: config
   where:
-  - param: size
-    assign-to: spec.scaling.batchSize
+  - param: seconds
+    assign-to: spec.resiliency.actorTimeout
 ```
 
 ```python
-async with mylib.batch_config(size=50):
-    p = process_batch(p)
-    p = store_batch(p)
+async with mylib.deadline(seconds=30):
+    p = process(p)
+    p = validate(p)
 ```
 
-Both `process_batch` and `store_batch` get `spec.scaling.batchSize: 50` in
+Both `process` and `validate` get `spec.resiliency.actorTimeout: 30` in
 their manifests.
 
 ---
