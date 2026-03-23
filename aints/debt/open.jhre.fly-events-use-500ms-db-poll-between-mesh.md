@@ -1,266 +1,249 @@
 ---
-title: FLY events use 500ms DB poll between mesh and api gateways — route directly to SSE clients
+title: Ephemeral FLY streaming via PG LISTEN/NOTIFY with A2A artifact chunking
 priority: 1 # high
 ---
 
-In dual-gateway mode (api + mesh), FLY events from actors go: sidecar -> mesh gateway -> PostgreSQL (UpdateProgress) -> api gateway polls DB every 500ms -> SSE client. This adds up to 500ms latency per FLY event, making per-token LLM streaming choppy. FLY events are ephemeral by design (not persisted). They should be relayed directly to SSE clients without touching PostgreSQL. Options: Redis pub/sub, NATS, or shared in-memory channel.
+## Problem
 
+In dual-gateway mode, FLY events (per-token LLM streaming) have two problems:
 
+1. **FLY events write to PostgreSQL** (`task_updates.partial_payload` via `UpdateProgress()`) — violates "PG = metadata only" and will kill PG under LLM streaming load (30+ tokens/sec per task)
+2. **500ms DB poll** in `waitAndRelayEvents` is the only cross-process detection — batches ~15 tokens per poll tick instead of individual token events
 
-The gateway mesh does NOT send SSE to the gateway API. They share PostgreSQL.
+Current path (broken):
+```
+Sidecar → POST /mesh/{id}/fly → Mesh GW → INSERT into PG → API GW polls DB every 500ms → SSE client
+```
 
-Here's the actual architecture:
+Target path:
+```
+Sidecar → POST /mesh/{id}/fly → Mesh GW → pg_notify (no storage) → API GW → SSE client
+```
 
-Client ──SSE──→ Gateway API (blocks in waitAndRelayEvents)
-                    │
-                    ├─ DB poll every 500ms (cross-process detection)
-                    └─ In-process subscription channel (same-pod only)
+## Constraints
 
-Sidecar ──POST /mesh/{id}/fly──→ Gateway Mesh
-                                    │
-                                    └─ Writes to PostgreSQL (envelope_updates table)
+- Mesh and API gateways are **separate deployments** (independent scaling)
+- Both share **PostgreSQL only** — no Redis, NATS, or other new infra
+- **Multi-replica** on both sides
+- Sidecars remain dumb — POST to `/mesh/{id}/fly`, no sticky sessions, no direct pod addressing
+- FLY events are **ephemeral** — must never be persisted to any storage
+- Gateway does NOT access state proxy — state proxy is an actor-level sidecar only
 
-For FLY events specifically:
-1. Sidecar POSTs FLY payload → gateway mesh → UpdateProgress() writes to PostgreSQL
-2. Gateway API polls DB every 500ms → detects the update → relays to SSE client
+## Key Architectural Decisions
 
-For terminal status (succeeded/failed):
-1. x-sink sidecar POSTs final status → gateway mesh → writes succeeded to PostgreSQL
-2. Gateway API detects via DB poll (500ms) → writes TaskStatusUpdateEvent → SSE stream ends
+### Why PG LISTEN/NOTIFY
 
-Latency:
-- FLY event latency = 500ms worst case (DB poll interval) + DB write time
-- This means per-token LLM streaming at ~30 tokens/sec would actually be batched — you'd get ~15 tokens every 500ms poll tick, not
-individual token events
-- For the "fast path" (in-process subscription channel), latency is near-zero, but only works when api + mesh run in the same pod
-(single-gateway mode)
+Multi-replica requires a broadcast mechanism (FLY POST may hit mesh replica A, but SSE client is on API replica B). PG LISTEN/NOTIFY is:
+- Pure in-memory pub/sub — no WAL, no disk, no table writes
+- Built into pgx/v5 (already used) — no new dependencies
+- Broadcasts to all listeners automatically — handles multi-replica without sticky routing
+- Fire-and-forget — if no listener is connected, notifications are silently dropped (perfect for ephemeral)
 
-Implication for token streaming: The 500ms DB poll is fine for progress updates but adds noticeable latency for real-time token
-streaming. To make per-token streaming smooth, the dual-gateway setup would need either:
-- A shared pub/sub channel (Redis, NATS) between mesh and api pods
-- Or running in single-gateway mode (both api+mesh in one pod)
+Limitations: 8KB payload limit (fine for LLM tokens at ~50-200 bytes), notifications lost during PG reconnect (acceptable for ephemeral data).
 
+### Three-Layer Streaming Model
 
----
+```
+FLY Layer (ephemeral, in-memory)              ← per-token streaming, 30+ events/sec
+  PG LISTEN/NOTIFY broadcast, zero storage       Uses: pg_notify + notifyListeners
 
- Design Summary: Ephemeral FLY Streaming with A2A Artifact Chunking
+Protocol Layer (A2A / MCP)                    ← task lifecycle, ~5 events/task
+  A2A: TaskStatusUpdateEvent (from /progress, /final)
+  A2A: TaskArtifactUpdateEvent{Append} (from FLY, in-memory only)
+  MCP: Streamable HTTP response
 
-  Problem Statement
+Artifact Layer (durable, S3/object store)     ← final results, on completion
+  Written by actors via state-proxy sidecar
+  Gateway never accesses state proxy directly
+```
 
-  In dual-gateway mode, FLY events (per-token LLM streaming) follow a path with ~500ms latency:
+### A2A Streaming Semantics
 
-  Sidecar → POST /mesh/{id}/fly → Mesh GW → INSERT into PG → API GW polls DB every 500ms → SSE client
+A2A's `TaskArtifactUpdateEvent` with `Append: true` / `LastChunk: true` IS the protocol's intended mechanism for LLM text chunking (equivalent to ADK's `partial: true`). Each chunk is a `TextPart` appended to a named artifact.
 
-  Two problems:
-  1. FLY events are written to PostgreSQL (task_updates.partial_payload) — violates "PG = metadata only" and will kill PG under LLM
-  streaming load
-  2. 500ms DB poll is the only cross-process detection mechanism — makes token streaming choppy
+However, a2a-go's `Manager.Process()` calls `Save()` on every event, which writes to PG. To use artifact chunking without PG writes, `StoreAdapter.Save()` must return early for append events (accumulate in-memory only).
 
-  Architecture Constraints
+FLY events and A2A artifact chunks serve different audiences:
+- **FLY SSE** — raw ephemeral stream for Asya-native clients (protocol-agnostic)
+- **A2A artifact chunking** — protocol-compliant streaming for standard A2A clients
 
-  - Mesh and API gateways are separate deployments (independent scaling, security boundary)
-  - Both share PostgreSQL only — no Redis, NATS, or other infra
-  - Multi-replica on both sides
-  - Sidecars remain dumb — POST to /mesh/{id}/fly, no sticky sessions
-  - FLY events are ephemeral by design — must never be persisted
+## Implementation
 
-  Three-Layer Streaming Model
+### 1. Make FLY ephemeral in HandleMeshFly
 
-  ┌─────────────────────────────────────────────────────┐
-  │  FLY Layer (ephemeral, in-memory)                   │  ← per-token streaming
-  │  PG LISTEN/NOTIFY broadcast, zero storage            │     30+ events/sec
-  ├─────────────────────────────────────────────────────┤
-  │  Protocol Layer (A2A / MCP)                         │  ← task lifecycle
-  │  TaskStatusUpdateEvent via sidecar /progress+/final  │     ~5 events/task
-  │  TaskArtifactUpdateEvent from FLY (in-memory only)   │     PG metadata only
-  ├─────────────────────────────────────────────────────┤
-  │  State Proxy Layer (durable, S3/object store)        │  ← payload & artifacts
-  │  Written by actors via state-proxy sidecar           │     on completion
-  │  Read by gateway on tasks/get                        │
-  └─────────────────────────────────────────────────────┘
+**File**: `src/asya-gateway/internal/mcp/handlers.go` — `HandleMeshFly` (~line 657)
 
-  Protocol Streaming Semantics
+Current: creates `EnvelopeUpdate` with `PartialPayload` and calls `h.taskStore.UpdateProgress(update)` which INSERTs into `task_updates`.
 
-  ┌──────────┬─────────────────────┬──────────────────────────────────────────────────┬─────────────┬──────────────────────────────┐
-  │ Protocol │    What streams     │                       How                        │  Frequency  │          Durability          │
-  ├──────────┼─────────────────────┼──────────────────────────────────────────────────┼─────────────┼──────────────────────────────┤
-  │ A2A      │ Task lifecycle +    │ TaskStatusUpdateEvent +                          │ Low-medium  │ Status → PG; artifact chunks │
-  │          │ artifact chunks     │ TaskArtifactUpdateEvent{Append: true, LastChunk} │             │  → in-memory only            │
-  ├──────────┼─────────────────────┼──────────────────────────────────────────────────┼─────────────┼──────────────────────────────┤
-  │ MCP      │ Tool results        │ MCP Streamable HTTP response                     │ Low         │ Response-scoped              │
-  ├──────────┼─────────────────────┼──────────────────────────────────────────────────┼─────────────┼──────────────────────────────┤
-  │ FLY      │ Raw ephemeral       │ Separate SSE endpoint on API gateway             │ High        │ None                         │
-  │          │ events (LLM tokens) │                                                  │ (30+/sec)   │                              │
-  └──────────┴─────────────────────┴──────────────────────────────────────────────────┴─────────────┴──────────────────────────────┘
+Change:
+- Remove `UpdateProgress()` call entirely
+- Call `pg_notify('fly', 'task_id:payload_json')` via a pool connection
+- Call `notifyListeners()` for in-process subscribers (testing/single-gateway mode)
+- Return HTTP 200
 
-  A2A's TaskArtifactUpdateEvent with Append/LastChunk IS the protocol's intended mechanism for LLM text chunking — equivalent to ADK's
-  partial: true.
+```go
+// Broadcast via PG NOTIFY for cross-process delivery (dual-gateway mode)
+_, err := h.pool.Exec(ctx, "SELECT pg_notify('fly', $1)", taskID+":"+string(body))
 
-  Design: Component Changes
+// Also notify in-process subscribers (testing/single-gateway mode)
+h.taskStore.NotifyFLY(taskID, body)
+```
 
-  1. Mesh Gateway — Make FLY Ephemeral + PG NOTIFY
+### 2. Add PG LISTEN goroutine to API gateway
 
-  File: handlers.go — HandleMeshFly
+**File**: new file `src/asya-gateway/internal/envelopestore/pg_listener.go` (or in `pg_store.go`)
 
-  Current: calls UpdateProgress() → INSERTs into task_updates table
-  Change: remove DB write, call pg_notify('fly', 'task_id:payload_json') instead
+A dedicated `*pgx.Conn` (NOT from pool — pool connections lose LISTEN state when returned) runs a LISTEN loop:
 
-  Sidecar → POST /mesh/{id}/fly → HandleMeshFly
-      → pg_notify('fly', 'task_id:json_payload')   // broadcast, no storage
-      → notifyListeners()                            // in-process (for testing mode)
-      → HTTP 200
-
-  No INSERT, no UPDATE, no task_updates row. PG NOTIFY is pure in-memory pub/sub — no WAL, no disk.
-
-  2. API Gateway — PG LISTEN Goroutine
-
-  New: dedicated LISTEN fly goroutine on a held *pgx.Conn (not from pool)
-
-  // Lifecycle: starts on gateway boot, reconnects on failure
-  for {
-      conn := pgx.Connect(ctx, connString)
-      conn.Exec(ctx, "LISTEN fly")
-      for {
-          notification := conn.WaitForNotification(ctx)
-          taskID, payload := parseNotification(notification.Payload)
-          store.dispatchFLY(taskID, payload)  // → notifyListeners for that task
-      }
-      // on error: reconnect loop with backoff
-  }
-
-  When a notification arrives, dispatch to in-process Subscribe() channels. Replicas that don't have a subscriber for that task_id do an
-   O(1) map lookup and discard.
-
-  3. API Gateway — FLY SSE Endpoint
-
-  New endpoint: register a FLY SSE stream on the API gateway (e.g., reuse /mesh/{id}/stream pattern but on the API side, or a new path
-  like /stream/{id})
-
-  - Protocol-agnostic: any client (A2A, MCP, custom UI) can subscribe with just the task ID
-  - Uses the existing Subscribe() → sseWriter.writeEvent() pattern from HandleMeshStream
-  - This is the fast path for Asya-native clients
-
-  4. A2A Path — Artifact Chunking via Event Queue
-
-  File: blocking.go — waitAndRelayEvents
-
-  Current: only relays terminal TaskStatusUpdateEvent, drops all non-terminal updates
-  Change: also relay FLY events as TaskArtifactUpdateEvent{Append: true} to eq.Write()
-
-  When the PG NOTIFY listener dispatches a FLY event to the subscription channel:
-
-  case update := <-ch:
-      if update.PartialPayload != nil {
-          // Convert FLY to A2A artifact chunk
-          artifactEvent := convertFLYToArtifactUpdate(reqCtx, update)
-          eq.Write(ctx, artifactEvent)  // → a2a-go sends SSE to client
-          continue
-      }
-      if terminalOrInterrupted(update.Status) {
-          return writeTerminalEvent(...)
-      }
-      // Non-terminal status updates still dropped (feedback loop prevention)
-
-  The FLY → TaskArtifactUpdateEvent conversion:
-  - First FLY: {Append: false, Artifact: {ID: deterministic, Parts: [TextPart(payload)]}}
-  - Subsequent: {Append: true, Artifact: {ID: same, Parts: [TextPart(payload)]}}
-  - On task completion: {Append: true, LastChunk: true, ...} (or just the terminal status event)
-
-  5. StoreAdapter — Skip PG Writes for Artifact Appends~~ (unchanged logic, corrected context)
-
-  Save() returns early for artifact append events. No state proxy involvement. The in-memory accumulated artifact in Manager.lastSaved
-  serves only the active SSE stream — it's not persisted anywhere by the gateway. When the task completes, the final result delivery is
-  handled by whatever mechanism already exists (envelope payload in PG, actor-provided URLs, etc.) — that's outside this aint's scope.
-
-
-   The gateway does NOT access the state proxy directly. The state proxy is an actor-level sidecar. Actors read/write /state/... paths,
-  and actors can return URLs to stored data. The gateway never reads from the state proxy storage backend.
-
-  (I was confused by the existing stateproxy.Reader in store_adapter.go:21 — but if that's not the intended architecture, it's a
-  separate concern.)
-
-  This correction actually simplifies our design for this aint. The artifact delivery question ("how does tasks/get return final
-  results?") is entirely separate from the FLY streaming problem. For this aint, we only care about:
-
-  1. FLY events become ephemeral — remove PG INSERT, use PG NOTIFY
-  2. FLY SSE endpoint on API gateway — for Asya-native clients
-  3. A2A artifact chunking — convert FLY to TaskArtifactUpdateEvent{Append} in waitAndRelayEvents
-  4. Save() skips PG for artifact appends — returns early, in-memory only
-
-  None of these touch the state proxy. The final artifact delivery mechanism (how tasks/get returns results) is orthogonal and can stay
-  as-is or be addressed in a separate aint.
-
-
-
-  6. Remove FLY from task_updates Table
-
-  FLY events no longer write to task_updates.partial_payload. The column stays (for GetUpdates replay of progress events) but FLY events
-   never populate it.
-
-  In testing/single-gateway mode: notifyListeners() (in-process) handles FLY directly — no PG NOTIFY needed, no DB write.
-
-  Data Flow Diagram
-
-                           DUAL-GATEWAY MODE
-
-  Sidecar ──POST /mesh/{id}/fly──→ Mesh Gateway
-                                        │
-                                        ├─ pg_notify('fly', 'task_id:payload')
-                                        └─ notifyListeners() [in-process, testing mode only]
-
-                                        │ PG LISTEN/NOTIFY (in-memory, no storage)
-                                        ▼
-                                   API Gateway
-                                        │
-                           ┌────────────┼────────────┐
-                           │            │            │
-                      FLY SSE      A2A SSE       (discard if
-                      endpoint    event queue     no subscriber)
-                           │            │
-                      Raw FLY      TaskArtifact
-                      payload      UpdateEvent
-                           │       {Append: true}
-                           │            │
-                           ▼            ▼
-                      Asya-native   Standard A2A
-                      clients       clients
-
-  Risk Mitigations
-
-  ┌──────────────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────┐
-  │                   Risk                   │                                    Mitigation                                     │
-  ├──────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
-  │ PG NOTIFY 8KB limit                      │ LLM tokens are tiny (~50-200 bytes). For rare large FLY events: truncate or skip  │
-  ├──────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
-  │ Lost notifications during PG reconnect   │ Acceptable — FLY is ephemeral. Client sees brief gap in tokens                    │
-  ├──────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
-  │ Fan-out to all API replicas              │ O(1) map lookup to filter. Optimize with channeled notifications later if needed  │
-  ├──────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
-  │ Pod crash loses in-memory artifact state │ Final artifact lives in state proxy. tasks/get always works                       │
-  ├──────────────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────┤
-  │ Save() feedback loop                     │ Artifact append → Save() returns early → no PG write → no notifyListeners cascade │
-  └──────────────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────┘
-
-  What Changes, What Doesn't
-
-  ┌─────────────────────┬────────────────────────────────────────────────────────────────────┐
-  │      Component      │                               Change                               │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ HandleMeshFly       │ Remove UpdateProgress() INSERT, add pg_notify()                    │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ PgStore             │ Add PG LISTEN goroutine + dispatch to subscribers                  │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ waitAndRelayEvents  │ Relay FLY events as TaskArtifactUpdateEvent{Append} via eq.Write() │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ StoreAdapter.Save() │ Skip PG write for artifact append events                           │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ API gateway routes  │ Add FLY SSE endpoint (protocol-agnostic)                           │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ Sidecar             │ No changes — still POSTs to /mesh/{id}/fly                         │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ State proxy         │ No changes — still handles final artifact persistence              │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ /mesh/{id}/progress │ No changes — still writes status metadata to PG                    │
-  ├─────────────────────┼────────────────────────────────────────────────────────────────────┤
-  │ /mesh/{id}/final    │ No changes — still writes terminal status to PG                    │
-  └─────────────────────┴────────────────────────────────────────────────────────────────────┘
+```go
+func (s *PgStore) StartFLYListener(ctx context.Context, connString string) {
+    for {
+        conn, err := pgx.Connect(ctx, connString)
+        // on error: log, backoff, retry
+        conn.Exec(ctx, "LISTEN fly")
+        for {
+            notification, err := conn.WaitForNotification(ctx)
+            // on error: break to reconnect
+            taskID, payload := parseFLYNotification(notification.Payload)
+            s.notifyFLY(taskID, payload) // dispatch to in-process Subscribe() channels
+        }
+    }
+}
+```
+
+The `notifyFLY` method creates an `EnvelopeUpdate` with `PartialPayload` and dispatches via the existing `notifyListeners()` mechanism. Replicas without a subscriber for that task_id do an O(1) map lookup and discard.
+
+Start this goroutine on API gateway boot (mode=api or mode=testing). Not needed for mode=mesh.
+
+### 3. Add FLY SSE endpoint on API gateway
+
+**File**: `src/asya-gateway/cmd/gateway/main.go` — `registerAPIRoutes`
+
+Register a streaming endpoint on the API gateway (e.g., `/stream/{id}` or reuse `/mesh/{id}/stream` pattern on the API side).
+
+- Protocol-agnostic: any client can subscribe with just the task ID
+- Reuses the existing `Subscribe()` → `sseWriter.writeEvent()` pattern from `HandleMeshStream`
+- This is the fast path for Asya-native clients (custom UIs, chatbots)
+
+### 4. Relay FLY as A2A artifact chunks in waitAndRelayEvents
+
+**File**: `src/asya-gateway/internal/a2a/blocking.go` — `waitAndRelayEvents` (~line 82)
+
+Current: only relays terminal `TaskStatusUpdateEvent`, drops all non-terminal updates (line 95).
+
+Change: when subscription channel delivers a FLY event (has `PartialPayload`), convert to `TaskArtifactUpdateEvent{Append: true}` and write to `eq`:
+
+```go
+case update, ok := <-ch:
+    if !ok {
+        return nil
+    }
+    if update.PartialPayload != nil {
+        artifactEvent := convertFLYToArtifactUpdate(reqCtx, update)
+        if err := eq.Write(ctx, artifactEvent); err != nil {
+            slog.Warn("Failed to relay FLY as artifact", "task_id", taskID, "error", err)
+        }
+        continue
+    }
+    if terminalOrInterrupted(update.Status) {
+        return writeTerminalEvent(ctx, reqCtx, eq, update.Status)
+    }
+    // Non-terminal status updates still dropped (feedback loop prevention)
+```
+
+The `convertFLYToArtifactUpdate` function:
+- Uses a deterministic artifact ID per task (e.g., `"fly-stream"`)
+- First chunk: `Append: false` (creates artifact)
+- Subsequent chunks: `Append: true`
+- Track first-vs-subsequent via a local boolean in the `for` loop
+
+### 5. Skip PG writes for artifact appends in StoreAdapter.Save()
+
+**File**: `src/asya-gateway/internal/a2a/store_adapter.go` — `Save()` (~line 34)
+
+Current: every event triggers `a.internal.Update(update)` → PG write.
+
+Change: return early for artifact append events:
+
+```go
+func (a *StoreAdapter) Save(ctx context.Context, task *a2alib.Task, event a2alib.Event, prev a2alib.TaskVersion) (a2alib.TaskVersion, error) {
+    // Streaming artifact chunks are ephemeral — accumulate in-memory only, no PG write.
+    // Manager.lastSaved still accumulates parts via updateArtifact().
+    // Final artifact delivery is handled by actors via state proxy, not by the gateway.
+    if _, ok := event.(*a2alib.TaskArtifactUpdateEvent); ok {
+        return prev, nil
+    }
+    // ... existing Save logic for status changes
+}
+```
+
+This breaks the feedback loop: `eq.Write()` → a2a-go SSE → `Manager.Process()` → `updateArtifact()` → `saveTask()` → `Save()` → **returns early** → no `internal.Update()` → no `notifyListeners()` cascade → no PG write.
+
+### 6. Stop writing FLY to task_updates table
+
+The `partial_payload` column in `task_updates` stays (existing rows, used by `GetUpdates` for progress replay) but FLY events no longer populate it. The `HandleMeshFly` change in step 1 handles this — no separate migration needed.
+
+In testing/single-gateway mode: `notifyListeners()` (in-process) handles FLY directly. No PG NOTIFY needed, no DB write.
+
+## Data Flow
+
+```
+                        DUAL-GATEWAY MODE
+
+Sidecar ──POST /mesh/{id}/fly──→ Mesh Gateway
+                                      |
+                                      |── pg_notify('fly', 'task_id:payload')  [no storage]
+                                      +── notifyListeners()                    [testing mode]
+                                      |
+                                      | PG LISTEN/NOTIFY (in-memory broadcast)
+                                      v
+                                 API Gateway (LISTEN goroutine receives notification)
+                                      |
+                         +------------+------------+
+                         |            |            |
+                    FLY SSE      A2A SSE       (discard if
+                    endpoint    event queue     no subscriber)
+                         |            |
+                    Raw FLY      TaskArtifact
+                    payload      UpdateEvent
+                         |       {Append: true}
+                         v            v
+                    Asya-native   Standard A2A
+                    clients       clients
+```
+
+## Risks
+
+| Risk | Severity | Mitigation |
+|---|---|---|
+| PG NOTIFY 8KB payload limit | Low | LLM tokens are ~50-200 bytes. Truncate/skip rare large events |
+| Lost notifications during PG reconnect | Low | Acceptable — FLY is ephemeral. Brief gap in tokens during PG failover |
+| Fan-out to all API replicas | Low | O(1) map lookup to filter. Optimize with per-task channels later if needed |
+| Pod crash loses in-memory artifact state | Low | Final artifacts delivered by actors via state proxy. Gateway never persists artifacts |
+| Save() feedback loop | None | Artifact append Save() returns early — no PG write, no notifyListeners cascade |
+| Extra PG connection per API replica | Low | 1 dedicated LISTEN conn per replica — negligible vs pool size |
+
+## What Changes vs What Doesn't
+
+**Changes:**
+- `HandleMeshFly` — remove `UpdateProgress()`, add `pg_notify()`
+- `PgStore` — add PG LISTEN goroutine + FLY dispatch to subscribers
+- `waitAndRelayEvents` — relay FLY events as `TaskArtifactUpdateEvent{Append}` via `eq.Write()`
+- `StoreAdapter.Save()` — skip PG write for `TaskArtifactUpdateEvent`
+- API gateway routes — add FLY SSE endpoint
+
+**No changes:**
+- Sidecar — still POSTs to `/mesh/{id}/fly`
+- `/mesh/{id}/progress` — still writes status metadata to PG
+- `/mesh/{id}/final` — still writes terminal status to PG
+- State proxy — actor-level sidecar, gateway does not access it
+- `task_updates` schema — column stays, just no longer populated by FLY
+
+## Key Source Files
+
+- `src/asya-gateway/internal/mcp/handlers.go` — HandleMeshFly (line ~657), HandleMeshStream (line ~246)
+- `src/asya-gateway/internal/a2a/blocking.go` — waitAndRelayEvents (line ~42)
+- `src/asya-gateway/internal/a2a/store_adapter.go` — Save() (line ~34)
+- `src/asya-gateway/internal/a2a/fly.go` — DetectFLYEventType
+- `src/asya-gateway/internal/envelopestore/pg_store.go` — Subscribe/notifyListeners (line ~634)
+- `src/asya-gateway/cmd/gateway/main.go` — route registration (line ~281)
