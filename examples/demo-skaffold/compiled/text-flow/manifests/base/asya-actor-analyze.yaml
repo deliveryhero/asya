@@ -13,4 +13,6 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 5
-  env: []
+  env:
+  - name: PYTHONUNBUFFERED
+    value: '1'
