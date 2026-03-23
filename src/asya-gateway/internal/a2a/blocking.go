@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,6 +14,28 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+// flyArtifactID is the deterministic artifact ID used for FLY streaming chunks.
+const flyArtifactID = "fly-stream"
+
+// convertFLYToArtifactUpdate converts a FLY event (PartialPayload) to an A2A
+// TaskArtifactUpdateEvent. The first event creates the artifact (Append=false),
+// subsequent events append to it (Append=true).
+func convertFLYToArtifactUpdate(
+	reqCtx *a2asrv.RequestContext,
+	payload json.RawMessage,
+	isFirst bool,
+) *a2alib.TaskArtifactUpdateEvent {
+	return &a2alib.TaskArtifactUpdateEvent{
+		TaskID:    reqCtx.TaskID,
+		ContextID: reqCtx.ContextID,
+		Append:    !isFirst,
+		Artifact: &a2alib.Artifact{
+			ID:    a2alib.ArtifactID(flyArtifactID),
+			Parts: a2alib.ContentParts{a2alib.TextPart{Text: string(payload)}},
+		},
+	}
+}
 
 // terminalOrInterrupted returns true if the status represents a terminal
 // or interrupted state that should stop the blocking wait loop.
@@ -79,12 +102,24 @@ func waitAndRelayEvents(
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	firstFLY := true
+
 	for {
 		select {
 		case update, ok := <-ch:
 			if !ok {
 				// Channel closed — subscription ended
 				return nil
+			}
+
+			// FLY events: relay as A2A artifact chunks
+			if update.PartialPayload != nil {
+				evt := convertFLYToArtifactUpdate(reqCtx, update.PartialPayload, firstFLY)
+				firstFLY = false
+				if err := eq.Write(ctx, evt); err != nil {
+					slog.Warn("Failed to relay FLY as artifact", "task_id", taskID, "error", err)
+				}
+				continue
 			}
 
 			if terminalOrInterrupted(update.Status) {

@@ -392,3 +392,135 @@ func TestBlockingModeRelaysIntermediateEvents(t *testing.T) {
 		t.Error("completed event Final = false, want true")
 	}
 }
+
+func TestBlockingModeRelaysFLYAsArtifactChunks(t *testing.T) {
+	store := envelopestore.NewStore()
+	taskID := "fly-relay-task"
+
+	err := store.Create(&types.Envelope{
+		ID:     taskID,
+		Status: types.EnvelopeStatusPending,
+	})
+	if err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	reqCtx := &a2asrv.RequestContext{
+		TaskID:    a2alib.TaskID(taskID),
+		ContextID: "fly-ctx",
+		Message:   a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"}),
+	}
+
+	eq := &mockEventQueue{}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond) // wait for subscription
+
+		store.NotifyFLY(taskID, []byte(`{"text":"Hello"}`))
+		time.Sleep(20 * time.Millisecond)
+		store.NotifyFLY(taskID, []byte(`{"text":" world"}`))
+		time.Sleep(20 * time.Millisecond)
+
+		_ = store.Update(types.EnvelopeUpdate{
+			ID:        taskID,
+			Status:    types.EnvelopeStatusSucceeded,
+			Timestamp: time.Now(),
+		})
+	}()
+
+	waitErr := waitAndRelayEvents(
+		context.Background(),
+		store, taskID,
+		10*time.Second,
+		reqCtx, eq,
+	)
+
+	if waitErr != nil {
+		t.Fatalf("waitAndRelayEvents failed: %v", waitErr)
+	}
+
+	// Should have: artifact events + terminal status event
+	if len(eq.events) < 2 {
+		t.Fatalf("expected at least 2 events (artifact + terminal), got %d", len(eq.events))
+	}
+
+	// First event should be TaskArtifactUpdateEvent with Append=false
+	firstEvt, ok := eq.events[0].(*a2alib.TaskArtifactUpdateEvent)
+	if !ok {
+		t.Fatalf("first event type = %T, want *TaskArtifactUpdateEvent", eq.events[0])
+	}
+	if firstEvt.Append {
+		t.Error("first artifact event should have Append=false")
+	}
+
+	// If we got a second FLY event, it should be an append
+	if len(eq.events) >= 3 {
+		secondEvt, ok := eq.events[1].(*a2alib.TaskArtifactUpdateEvent)
+		if !ok {
+			t.Fatalf("second event type = %T, want *TaskArtifactUpdateEvent", eq.events[1])
+		}
+		if !secondEvt.Append {
+			t.Error("second artifact event should have Append=true")
+		}
+	}
+
+	// Last event should be terminal
+	lastEvt, ok := eq.events[len(eq.events)-1].(*a2alib.TaskStatusUpdateEvent)
+	if !ok {
+		t.Fatalf("last event type = %T, want *TaskStatusUpdateEvent", eq.events[len(eq.events)-1])
+	}
+	if !lastEvt.Final {
+		t.Error("last event Final = false, want true")
+	}
+}
+
+func TestBlockingModeNonTerminalStatusStillDropped(t *testing.T) {
+	store := envelopestore.NewStore()
+	taskID := "no-feedback-task"
+
+	err := store.Create(&types.Envelope{
+		ID:     taskID,
+		Status: types.EnvelopeStatusPending,
+	})
+	if err != nil {
+		t.Fatalf("create task: %v", err)
+	}
+
+	reqCtx := &a2asrv.RequestContext{
+		TaskID:    a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Message:   a2alib.NewMessage(a2alib.MessageRoleUser, &a2alib.TextPart{Text: "hello"}),
+	}
+
+	eq := &mockEventQueue{}
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		_ = store.Update(types.EnvelopeUpdate{
+			ID:        taskID,
+			Status:    types.EnvelopeStatusRunning,
+			Timestamp: time.Now(),
+		})
+		time.Sleep(50 * time.Millisecond)
+		_ = store.Update(types.EnvelopeUpdate{
+			ID:        taskID,
+			Status:    types.EnvelopeStatusSucceeded,
+			Timestamp: time.Now(),
+		})
+	}()
+
+	waitErr := waitAndRelayEvents(
+		context.Background(),
+		store, taskID,
+		10*time.Second,
+		reqCtx, eq,
+	)
+
+	if waitErr != nil {
+		t.Fatalf("waitAndRelayEvents failed: %v", waitErr)
+	}
+
+	if len(eq.events) != 1 {
+		t.Fatalf("expected 1 event (terminal only), got %d", len(eq.events))
+	}
+}
