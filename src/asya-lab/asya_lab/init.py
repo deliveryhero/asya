@@ -103,7 +103,7 @@ _RULES_YAML = """\
 - match: "contextlib.suppress"
   treat-as: inline
   imports:
-    - "import contextlib"
+  - "import contextlib"
 
 # -- Decorators --
 
@@ -113,28 +113,28 @@ _RULES_YAML = """\
 - match: "tenacity.retry"
   treat-as: config
   where:
-    - param: stop
+  - param: stop
+    where:
+    - match: "stop_after_attempt"
       where:
-        - match: "stop_after_attempt"
-          where:
-            - param: max_attempt_number
-              assign-to: spec.resiliency.policies.default.maxAttempts
-        - match: "stop_after_delay"
-          where:
-            - param: max_delay
-              assign-to: spec.resiliency.policies.default.maxDuration
-    - param: wait
+      - param: max_attempt_number
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "stop_after_delay"
       where:
-        - match: "wait_exponential"
-          where:
-            - param: min
-              assign-to: spec.resiliency.policies.default.initialDelay
-            - param: max
-              assign-to: spec.resiliency.policies.default.maxInterval
-        - match: "wait_fixed"
-          where:
-            - param: wait
-              assign-to: spec.resiliency.policies.default.initialDelay
+      - param: max_delay
+        assign-to: spec.resiliency.policies.default.maxDuration
+  - param: wait
+    where:
+    - match: "wait_exponential"
+      where:
+      - param: min
+        assign-to: spec.resiliency.policies.default.initialDelay
+      - param: max
+        assign-to: spec.resiliency.policies.default.maxInterval
+    - match: "wait_fixed"
+      where:
+      - param: wait
+        assign-to: spec.resiliency.policies.default.initialDelay
 
 # timeout_decorator.timeout — @timeout(30)
 - match: "timeout_decorator.timeout"
