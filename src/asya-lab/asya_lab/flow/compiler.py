@@ -344,11 +344,34 @@ class FlowCompiler:
                 roles[node_id] = role
         return roles
 
+    def _add_skaffold_dirs_to_path(self) -> list[str]:
+        """Add skaffold artifact context dirs to sys.path for compile-time imports.
+
+        Bare-script handlers (no __init__.py, no pip install) live in skaffold
+        build context dirs. Adding these to sys.path lets the compiler import
+        them at compile time to resolve handler FQNs and source files.
+
+        Returns the list of added paths so callers can clean up.
+        """
+        import sys as _sys
+
+        if self._project is None:
+            return []
+
+        added: list[str] = []
+        for context_dir, _image in self._project._collect_skaffold_artifacts():
+            ctx_str = str(context_dir)
+            if ctx_str not in _sys.path:
+                _sys.path.insert(0, ctx_str)
+                added.append(ctx_str)
+        return added
+
     def _resolve_handler_sources(self, flow_source: Path) -> None:
         """Import the flow module and resolve each handler's FQN and source file.
 
         Uses the running Python interpreter — the same environment the user
-        tested their flow in locally.
+        tested their flow in locally. Skaffold artifact context dirs are
+        temporarily added to sys.path so bare-script handlers are importable.
         """
         import importlib
         import importlib.util
@@ -360,6 +383,9 @@ class FlowCompiler:
         actor_names = self._parse_result.actors
         if not actor_names:
             return
+
+        # Add skaffold build context dirs to sys.path for bare-script imports
+        added_paths = self._add_skaffold_dirs_to_path()
 
         # Import the flow file as a proper module
         # Try to find its package by looking for __init__.py
@@ -385,6 +411,7 @@ class FlowCompiler:
                     mod = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(mod)
                 else:
+                    self._cleanup_sys_path(added_paths)
                     return
             except Exception:
                 self.warnings.append(
@@ -392,6 +419,7 @@ class FlowCompiler:
                     f"handler source files will not be resolved for skaffold image mapping. "
                     f"Ensure the flow file is importable in the current Python environment."
                 )
+                self._cleanup_sys_path(added_paths)
                 return
 
         for actor_name in actor_names:
@@ -411,6 +439,17 @@ class FlowCompiler:
                     click.echo(f"    [.] {actor_name} -> {handler_fqn} ({source_file})")
             except (TypeError, OSError):
                 pass
+
+        self._cleanup_sys_path(added_paths)
+
+    @staticmethod
+    def _cleanup_sys_path(added_paths: list[str]) -> None:
+        import contextlib
+        import sys as _sys
+
+        for p in added_paths:
+            with contextlib.suppress(ValueError):
+                _sys.path.remove(p)
 
     @staticmethod
     def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:

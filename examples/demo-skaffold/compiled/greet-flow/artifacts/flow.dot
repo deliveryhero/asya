@@ -4,11 +4,13 @@ digraph "greet_flow" {
 
     { rank=source; start_greet_flow; }
 
-    router_greet_flow_seq_set_greet [label="router_greet_flow_seq_set_greet\n\np['greet'] = greet(p)\np['shout'] = shout(p)", fillcolor=wheat];
+    greet [label="greet", fillcolor=lightblue];
+    shout [label="shout", fillcolor=lightsalmon];
     start_greet_flow [label="start_greet_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_greet_flow -> router_greet_flow_seq_set_greet;
-    router_greet_flow_seq_set_greet -> __end__;
+    start_greet_flow -> greet;
+    greet -> shout;
+    shout -> __end__;
 }

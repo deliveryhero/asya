@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-greet
+  namespace: default
+  labels:
+    asya.sh/flow: greet-flow
+spec:
+  actor: actor-greet
+  image: src-team-b-bare-scripts
+  handler: greeter.greet
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []
