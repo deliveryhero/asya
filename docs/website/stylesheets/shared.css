@@ -69,6 +69,7 @@ body {
   color: var(--text-primary);
   background: var(--bg-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
 }
 
 /* Code blocks */
