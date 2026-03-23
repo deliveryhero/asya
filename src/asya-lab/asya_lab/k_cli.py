@@ -427,11 +427,15 @@ _RESET = "\033[0m"
 
 
 def _get_flow_deployments(runner: KubeRunner, flow_name: str) -> list[str]:
-    """Get deployment names for a flow from AsyncActor resources."""
+    """Get actor names for a flow from AsyncActor CRDs.
+
+    Queries AsyncActors (always have the flow label) rather than
+    Deployments (Crossplane-created, may lack the label).
+    """
     import json as _json
 
     result = runner.kubectl(
-        "get", "deploy", "-l", f"asya.sh/flow={flow_name}",
+        "get", "asyncactor", "-l", f"asya.sh/flow={flow_name}",
         "-o", "jsonpath={.items[*].metadata.name}",
         quiet=True, capture_output=True, text=True,
     )
