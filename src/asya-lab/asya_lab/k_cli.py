@@ -761,6 +761,55 @@ def context_use(name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# asya k port-forward
+# ---------------------------------------------------------------------------
+
+
+_PORT_FORWARD_TARGETS: dict[str, tuple[str, int, int]] = {
+    # name: (service/deployment, remote_port, default_local_port)
+    "gateway": ("svc/asya-gateway-api", 80, 8080),
+    "gateway-mesh": ("svc/asya-gateway-mesh", 80, 8081),
+    "grafana": ("svc/grafana", 80, 3000),
+    "jaeger": ("svc/jaeger-query", 16686, 16686),
+    "prometheus": ("svc/prometheus-server", 80, 9090),
+}
+
+
+@click.command("port-forward")
+@click.argument("target", type=click.Choice(list(_PORT_FORWARD_TARGETS.keys())))
+@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
+@click.option("--port", "-p", type=int, default=None, help="Local port (default: per-target)")
+def port_forward(target: str, ctx: str, port: int | None) -> None:
+    """Port-forward a service to localhost.
+
+    \b
+    Targets:
+      gateway        asya-gateway-api → localhost:8080
+      gateway-mesh   asya-gateway-mesh → localhost:8081
+      grafana        grafana → localhost:3000
+      jaeger         jaeger-query → localhost:16686
+      prometheus     prometheus-server → localhost:9090
+
+    \b
+    Examples:
+      asya k port-forward gateway
+      asya k port-forward grafana --port 3001
+    """
+    svc, remote_port, default_local = _PORT_FORWARD_TARGETS[target]
+    local_port = port or default_local
+
+    runner = KubeRunner(ctx)
+    ns = runner.namespace or "default"
+
+    cmd = ["kubectl", "port-forward", "-n", ns, svc, f"{local_port}:{remote_port}"]
+    click.echo(f"[.] {target}: localhost:{local_port} -> {svc} ({ns})")
+    try:
+        subprocess.run(cmd, check=False)  # nosec B603, B607
+    except KeyboardInterrupt:
+        click.echo("\n[+] Stopped")
+
+
+# ---------------------------------------------------------------------------
 # asya k send
 # ---------------------------------------------------------------------------
 
@@ -847,6 +896,8 @@ def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | 
 
 def _detect_gateway_url(runner: KubeRunner) -> str:
     """Detect gateway URL: check if port-forward is active, otherwise start one."""
+    from asya_lab.mcp.port_forward import find_free_port, start_port_forward
+
     import socket
 
     # Check if localhost:8080 is already forwarded
@@ -856,29 +907,11 @@ def _detect_gateway_url(runner: KubeRunner) -> str:
     except OSError:
         pass
 
-    # Start port-forward in background
-    click.echo("[.] Starting port-forward to asya-gateway-api...", err=True)
-    proc = subprocess.Popen(  # nosec B603, B607
-        ["kubectl", "port-forward", "svc/asya-gateway-api", "8080:80"]
-        + (["-n", runner.namespace] if runner.namespace else []),
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-
-    # Wait for port to open
-    import time
-
-    for _ in range(10):
-        time.sleep(1)  # wait for port-forward to establish
-        try:
-            with socket.create_connection(("127.0.0.1", 8080), timeout=1):
-                return "http://127.0.0.1:8080"
-        except OSError:
-            continue
-
-    proc.terminate()
-    click.echo("[-] Could not establish port-forward. Use --url to specify gateway URL.", err=True)
-    sys.exit(1)
+    ns = runner.namespace or "default"
+    local_port = find_free_port()
+    click.echo(f"[.] Starting port-forward to asya-gateway-api ({ns})...", err=True)
+    start_port_forward(ns, "asya-gateway-api", local_port, 80, check_health_enabled=True)
+    return f"http://127.0.0.1:{local_port}"
 
 
 # ---------------------------------------------------------------------------
@@ -895,6 +928,7 @@ k.add_command(apply)
 k.add_command(delete)
 k.add_command(k_status)
 k.add_command(logs)
+k.add_command(port_forward)
 k.add_command(send)
 k.add_command(edit)
 k.add_command(context_group)
