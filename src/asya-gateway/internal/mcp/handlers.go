@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
@@ -682,6 +683,13 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 		} else {
 			http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		}
+		return
+	}
+
+	// Reject task IDs containing the notification delimiter to prevent
+	// an attacker from spoofing FLY events for arbitrary tasks.
+	if strings.Contains(taskID, ":") {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
 		return
 	}
 
