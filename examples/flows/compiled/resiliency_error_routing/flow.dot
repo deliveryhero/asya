@@ -8,19 +8,19 @@ digraph "failover_pipeline" {
     call_primary [label="call_primary", fillcolor=lightblue];
     finalize [label="finalize", fillcolor=lightsalmon];
     handle_validation_error [label="handle_validation_error", fillcolor=lightblue];
-    router_failover_pipeline_line_27_except_1 [label="router_failover_pipeline_line_27_except_1\n\np['fallback'] = True", fillcolor=wheat];
-    router_failover_pipeline_line_30_except_2 [label="router_failover_pipeline_line_30_except_2\n\np['error_type'] = 'validation'", fillcolor=wheat];
+    router_failover_pipeline_line_29_except_1 [label="router_failover_pipeline_line_29_except_1\n\np['fallback'] = True", fillcolor=wheat];
+    router_failover_pipeline_line_32_except_2 [label="router_failover_pipeline_line_32_except_2\n\np['error_type'] = 'validation'", fillcolor=wheat];
     start_failover_pipeline [label="start_failover_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_failover_pipeline -> call_primary;
     call_primary -> finalize;
-    router_failover_pipeline_line_27_except_1 -> call_fallback;
+    router_failover_pipeline_line_29_except_1 -> call_fallback;
     call_fallback -> finalize;
-    router_failover_pipeline_line_30_except_2 -> handle_validation_error;
+    router_failover_pipeline_line_32_except_2 -> handle_validation_error;
     handle_validation_error -> finalize;
-    call_primary -> router_failover_pipeline_line_27_except_1 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
-    call_primary -> router_failover_pipeline_line_30_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    call_primary -> router_failover_pipeline_line_29_except_1 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    call_primary -> router_failover_pipeline_line_32_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     finalize -> __end__;
 }

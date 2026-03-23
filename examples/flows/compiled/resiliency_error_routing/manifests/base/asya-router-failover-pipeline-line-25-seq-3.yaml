@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-failover-pipeline-line-23-seq-3
+  name: router-failover-pipeline-line-25-seq-3
   namespace: default
   labels:
     asya.sh/flow: failover-pipeline
     asya.sh/generated: 'true'
 spec:
-  actor: router-failover-pipeline-line-23-seq-3
+  actor: router-failover-pipeline-line-25-seq-3
   image: python:3.13-slim
-  handler: routers.router_failover_pipeline_line_23_seq_3
+  handler: routers.router_failover_pipeline_line_25_seq_3
   scaling:
     enabled: true
     minReplicaCount: 0

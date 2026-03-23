@@ -19,16 +19,16 @@
       "label": "handle_validation_error"
     },
     {
-      "id": "router_failover_pipeline_line_27_except_1",
-      "label": "router_failover_pipeline_line_27_except_1",
+      "id": "router_failover_pipeline_line_29_except_1",
+      "label": "router_failover_pipeline_line_29_except_1",
       "generated": true,
       "mutations": [
         "p['fallback'] = True"
       ]
     },
     {
-      "id": "router_failover_pipeline_line_30_except_2",
-      "label": "router_failover_pipeline_line_30_except_2",
+      "id": "router_failover_pipeline_line_32_except_2",
+      "label": "router_failover_pipeline_line_32_except_2",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'validation'"
@@ -58,7 +58,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_failover_pipeline_line_27_except_1",
+      "from": "router_failover_pipeline_line_29_except_1",
       "to": "call_fallback",
       "label": null,
       "type": "set"
@@ -70,7 +70,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_failover_pipeline_line_30_except_2",
+      "from": "router_failover_pipeline_line_32_except_2",
       "to": "handle_validation_error",
       "label": null,
       "type": "set"
@@ -83,13 +83,13 @@
     },
     {
       "from": "call_primary",
-      "to": "router_failover_pipeline_line_27_except_1",
+      "to": "router_failover_pipeline_line_29_except_1",
       "label": "ConnectionError",
       "type": "error"
     },
     {
       "from": "call_primary",
-      "to": "router_failover_pipeline_line_30_except_2",
+      "to": "router_failover_pipeline_line_32_except_2",
       "label": "ValueError",
       "type": "error"
     }

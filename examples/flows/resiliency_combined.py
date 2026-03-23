@@ -16,6 +16,7 @@ Compile with:
 """
 
 import asyncio
+import random
 
 from _asya_utils import actor, flow
 from tenacity import retry, stop_after_attempt, stop_after_delay
@@ -41,7 +42,12 @@ async def data_pipeline(p: dict) -> dict:
 @actor
 @retry(stop=stop_after_attempt(5) | stop_after_delay(30))
 def fetch_data(p: dict) -> dict:
-    """Fetch from unreliable API — retries up to 5 times, max 30s total."""
+    """Fetch from unreliable API — retries up to 5 times, max 30s total.
+
+    Simulates flaky API (~40% failure rate).
+    """
+    if random.random() < 0.4:
+        raise ConnectionError("simulated API failure")
     p["raw_data"] = "fetched"
     return p
 
@@ -49,7 +55,12 @@ def fetch_data(p: dict) -> dict:
 @actor
 @timeout(10)
 def parse_data(p: dict) -> dict:
-    """Parse raw data — timeout after 10s per execution."""
+    """Parse raw data — timeout after 10s per execution.
+
+    Simulates occasional bad data that raises ValueError (~30% chance).
+    """
+    if random.random() < 0.3:
+        raise ValueError("simulated bad data format")
     p["parsed"] = True
     return p
 

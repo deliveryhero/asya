@@ -23,14 +23,14 @@ async def start_failover_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_failover_pipeline_line_27_except_1(payload: dict):
+async def router_failover_pipeline_line_29_except_1(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['fallback'] = True
     yield "SET", ".route.next", [resolve('call_fallback'), resolve('finalize')]
     yield payload
 
-async def router_failover_pipeline_line_30_except_2(payload: dict):
+async def router_failover_pipeline_line_32_except_2(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error_type'] = 'validation'

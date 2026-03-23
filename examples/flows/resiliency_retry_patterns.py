@@ -1,19 +1,20 @@
-"""Flow example: common retry patterns with @retry decorator.
+"""Flow example: common retry patterns with simulated failures.
 
 Demonstrates real-world retry configurations for different failure modes:
 - API calls: retry with backoff, capped attempts
-- Rate limits: patient retry with long max_delay
 - Transient errors: fast retry, few attempts
-- Critical operations: no retry, fail immediately
+- Storage: patient retry with long timeout
+- Validation: no retry, fail fast
 
-Each @retry decorator's args are extracted into the actor manifest's
-spec.resiliency.policies.default section by the compiler.
+Handler functions simulate failures with random errors so tenacity
+retry logic fires when running locally.
 
 Compile with:
     asya compile resiliency_retry_patterns.py --output-dir compiled/
 """
 
 import asyncio
+import random
 
 from _asya_utils import actor, flow
 from tenacity import retry, stop_after_attempt, stop_after_delay, wait_exponential
@@ -53,8 +54,10 @@ def validate_input(p: dict) -> dict:
 async def call_llm(p: dict) -> dict:
     """Call LLM API — retry up to 3 times or 60s, exponential backoff 1-30s.
 
-    Handles transient API errors, rate limits, and network timeouts.
+    Simulates flaky LLM API (~40% failure rate).
     """
+    if random.random() < 0.4:
+        raise ConnectionError("simulated LLM API timeout")
     p["response"] = "LLM response"
     return p
 
@@ -64,9 +67,10 @@ async def call_llm(p: dict) -> dict:
 async def parse_response(p: dict) -> dict:
     """Parse structured output — retry up to 5 times.
 
-    JSON parsing can fail on malformed LLM output; retry triggers
-    a fresh LLM call upstream via the sidecar's retry mechanism.
+    Simulates occasional JSON parsing failures (~25% chance).
     """
+    if random.random() < 0.25:
+        raise ValueError("simulated malformed JSON from LLM")
     p["parsed"] = True
     return p
 
@@ -76,8 +80,10 @@ async def parse_response(p: dict) -> dict:
 def store_result(p: dict) -> dict:
     """Store results — retry up to 3 times or 5 min total.
 
-    Patient retry for storage backends that may be temporarily unavailable.
+    Simulates intermittent storage failures (~20% chance).
     """
+    if random.random() < 0.2:
+        raise ConnectionError("simulated storage backend unavailable")
     p["stored"] = True
     p["status"] = "completed"
     return p

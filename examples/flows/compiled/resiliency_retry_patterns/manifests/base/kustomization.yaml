@@ -5,6 +5,6 @@ resources:
 - asya-actor-parse-response.yaml
 - asya-actor-store-result.yaml
 - asya-actor-validate-input.yaml
-- asya-router-llm-pipeline-line-25-seq-1.yaml
+- asya-router-llm-pipeline-line-26-seq-1.yaml
 - asya-start-llm-pipeline.yaml
 - configmap-routers.yaml

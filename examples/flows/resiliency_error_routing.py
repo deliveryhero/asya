@@ -14,6 +14,8 @@ Compile with:
     asya compile resiliency_error_routing.py --output-dir compiled/
 """
 
+import random
+
 from _asya_utils import actor, flow
 from tenacity import retry, stop_after_attempt
 
@@ -38,7 +40,15 @@ async def failover_pipeline(p: dict) -> dict:
 @actor
 @retry(stop=stop_after_attempt(3))
 async def call_primary(p: dict) -> dict:
-    """Call primary service — retry 3 times before routing to error handler."""
+    """Call primary service — retry 3 times before routing to error handler.
+
+    Simulates mixed failures: ConnectionError (~30%), ValueError (~20%), success (~50%).
+    """
+    roll = random.random()
+    if roll < 0.3:
+        raise ConnectionError("simulated primary service down")
+    if roll < 0.5:
+        raise ValueError("simulated invalid response from primary")
     p["result"] = "primary_response"
     return p
 
@@ -46,7 +56,12 @@ async def call_primary(p: dict) -> dict:
 @actor
 @retry(stop=stop_after_attempt(2))
 async def call_fallback(p: dict) -> dict:
-    """Fallback service — retry twice on failure."""
+    """Fallback service — retry twice on failure.
+
+    Simulates occasional failures (~25% chance).
+    """
+    if random.random() < 0.25:
+        raise ConnectionError("simulated fallback service down")
     p["result"] = "fallback_response"
     return p
 
