@@ -45,7 +45,11 @@
 | `deploy/helm-charts/asya-gateway/values.yaml` | Add `tracing:` section |
 | `deploy/helm-charts/asya-gateway/templates/deployment-api.yaml` | Inject tracing env vars (~line 113) |
 | `deploy/helm-charts/asya-gateway/templates/deployment-mesh.yaml` | Inject tracing env vars (~line 105) |
-| `deploy/helm-charts/asya-crew/values.yaml` | Document tracing endpoint per-actor |
+| `deploy/helm-charts/asya-crew/values.yaml` | Add `tracing.endpoint` field per-actor |
+| `deploy/helm-charts/asya-crew/templates/sink.yaml` | Inject `spec.tracing.endpoint` into AsyncActor CR |
+| `deploy/helm-charts/asya-crew/templates/sump.yaml` | Same |
+| `deploy/helm-charts/asya-crew/templates/pause.yaml` | Same |
+| `deploy/helm-charts/asya-crew/templates/resume.yaml` | Same |
 | `deploy/helm-charts/asya-playground/Chart.yaml` | Add Tempo subchart dependency |
 | `deploy/helm-charts/asya-playground/values.yaml` | Add `sampleTracing` config, Grafana Tempo datasource |
 | `docs/concepts/observability.md` | Update tracing section from aspirational to actual |
@@ -68,10 +72,11 @@
 cd src/asya-sidecar
 go get go.opentelemetry.io/otel/sdk@latest
 go get go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc@latest
-go get go.opentelemetry.io/otel/sdk/resource@latest
-go get go.opentelemetry.io/otel/semconv/v1.26.0@latest
 go mod tidy
 ```
+
+Note: `sdk/resource` is part of `otel/sdk`, no separate `go get` needed.
+Use the semconv version matching the installed SDK (check `go list -m go.opentelemetry.io/otel/sdk`).
 
 - [ ] **Step 2: Write failing test for tracing init**
 
@@ -89,7 +94,18 @@ import (
 	"go.opentelemetry.io/otel/trace/noop"
 )
 
+// resetGlobalTracer restores the global OTEL state after each test.
+// Tests that call Init() modify global state, so cleanup is required.
+func resetGlobalTracer(t *testing.T) {
+	t.Helper()
+	t.Cleanup(func() {
+		otel.SetTracerProvider(noop.NewTracerProvider())
+	})
+}
+
 func TestInit_NoEndpoint_ReturnsNoopTracer(t *testing.T) {
+	resetGlobalTracer(t)
+
 	shutdown, err := Init("", "test-actor", "test-ns")
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
@@ -100,14 +116,14 @@ func TestInit_NoEndpoint_ReturnsNoopTracer(t *testing.T) {
 	_, span := tracer.Start(context.Background(), "test-span")
 	defer span.End()
 
-	// Noop tracer produces non-recording spans
 	if span.IsRecording() {
 		t.Error("expected non-recording span when endpoint is empty")
 	}
 }
 
 func TestInit_WithEndpoint_ReturnsRecordingTracer(t *testing.T) {
-	// Use a dummy endpoint — exporter will fail to connect but tracer still records
+	resetGlobalTracer(t)
+
 	shutdown, err := Init("localhost:4317", "test-actor", "test-ns")
 	if err != nil {
 		t.Fatalf("Init() error = %v", err)
@@ -512,59 +528,121 @@ In `handleSuccessResponse()` (~line 613), after merging headers from runtime res
 
 Verify by reading the code flow: `handleSuccessResponse()` → `routeResponse()` → `InjectTraceContext()`.
 
-- [ ] **Step 5: Instrument resiliency retry spans**
+- [ ] **Step 5: Instrument resiliency spans**
 
-In `applyPolicy()` (~line 351), wrap each retry attempt:
+Note: `applyPolicy()` does NOT contain a retry loop. It checks if attempts are
+exhausted and either calls `retryMessage()` (which re-enqueues the message for
+the next dequeue) or routes to `onExhausted`/failure. The retry happens on the
+_next_ dequeue, where `ProcessMessage` runs again with an incremented attempt count.
+
+In `applyPolicy()` (~line 351), add a span around the resiliency decision:
 
 ```go
 func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, policy *config.PolicyConfig, response runtime.RuntimeResponse) error {
-	// ... existing setup ...
+	_, policySpan := r.tracer.Start(ctx, "actor.resiliency.policy",
+		trace.WithAttributes(
+			attribute.Int("asya.retry.attempt", msg.Status.Attempt),
+			attribute.String("asya.retry.policy", policy.Name),
+			attribute.Int("asya.retry.max_attempts", policy.MaxAttempts),
+		),
+	)
+	defer policySpan.End()
 
-	for attempt := 1; attempt <= maxAttempts; attempt++ {
-		_, retrySpan := r.tracer.Start(ctx, "actor.resiliency.retry",
-			trace.WithAttributes(
-				attribute.Int("asya.retry.attempt", attempt),
-				attribute.String("asya.retry.policy", policy.Name),
-				attribute.Int("asya.retry.max_attempts", maxAttempts),
-			),
-		)
-
-		// ... existing retry logic (sleep, re-call runtime) ...
-
-		if err != nil {
-			retrySpan.RecordError(err)
-			retrySpan.SetStatus(codes.Error, err.Error())
-		}
-		retrySpan.End()
-
-		if success {
-			break
-		}
+	if msg.Status.Attempt >= policy.MaxAttempts {
+		policySpan.SetAttributes(attribute.String("asya.retry.outcome", "exhausted"))
+		// ... existing exhausted handling ...
+	} else {
+		policySpan.SetAttributes(attribute.String("asya.retry.outcome", "retry"))
+		// ... existing retryMessage call (re-enqueues for next attempt) ...
 	}
-
-	// ... existing exhausted handling ...
 }
 ```
 
-- [ ] **Step 6: Add span event for timeout**
+The `actor.process` root span in `ProcessMessage` already carries `msg.Status.Attempt`
+as an attribute, so multiple retries show as separate traces with incrementing attempt
+numbers, all sharing the same trace ID (because `traceparent` is preserved in headers
+across re-enqueues).
 
-Where the sidecar handles timeout (~line for `os.Exit(1)` calls), add ForceFlush before exit:
+- [ ] **Step 6: Add ForceFlush before os.Exit calls**
+
+The sidecar calls `os.Exit(1)` in helper methods (`processEndActorEnvelope`,
+`handleRuntimeCallError`) that are NOT inside `ProcessMessage` directly. The
+deferred `span.End()` and `tracingShutdown()` in main.go won't run on `os.Exit`.
+
+Solution: use the global TracerProvider (no span reference needed). Create a
+helper in `tracing/tracing.go`:
 
 ```go
-// Before os.Exit(1) for timeout
-span.RecordError(fmt.Errorf("runtime timeout after %v", timeout))
-span.SetStatus(codes.Error, "timeout")
-span.End()
-
-// Flush all pending spans before exit
-tp, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider)
-if ok {
-	tp.ForceFlush(context.Background())
+// ForceFlush flushes all pending spans. Call before os.Exit().
+func ForceFlush(ctx context.Context) {
+	if tp, ok := otel.GetTracerProvider().(*sdktrace.TracerProvider); ok {
+		tp.ForceFlush(ctx)
+	}
 }
+```
+
+Then at each `os.Exit(1)` call site in router.go, add before the exit:
+
+```go
+tracing.ForceFlush(context.Background())
 os.Exit(1)
 ```
 
-- [ ] **Step 7: Run sidecar unit tests**
+- [ ] **Step 7: Add span-verification unit tests with in-memory exporter**
+
+Add to `tracing_test.go` or create `src/asya-sidecar/internal/router/router_tracing_test.go`:
+
+```go
+import (
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace/tracetest"
+)
+
+func setupTestTracer(t *testing.T) *tracetest.InMemoryExporter {
+	t.Helper()
+	exporter := tracetest.NewInMemoryExporter()
+	tp := sdktrace.NewTracerProvider(sdktrace.WithSyncer(exporter))
+	otel.SetTracerProvider(tp)
+	t.Cleanup(func() {
+		tp.Shutdown(context.Background())
+		otel.SetTracerProvider(noop.NewTracerProvider())
+	})
+	return exporter
+}
+
+func TestProcessMessage_CreatesExpectedSpans(t *testing.T) {
+	exporter := setupTestTracer(t)
+
+	// ... set up router with mock transport and runtime ...
+	// ... call ProcessMessage with an envelope containing traceparent ...
+
+	spans := exporter.GetSpans()
+	// Verify span names and parent-child relationships
+	var processSpan, sendSpan tracetest.SpanStub
+	for _, s := range spans {
+		switch s.Name {
+		case "actor.process":
+			processSpan = s
+		case "actor.queue.send":
+			sendSpan = s
+		}
+	}
+	if processSpan.Name == "" {
+		t.Fatal("missing actor.process span")
+	}
+	if sendSpan.Name == "" {
+		t.Fatal("missing actor.queue.send span")
+	}
+	// Verify send span is child of process span
+	if sendSpan.Parent.SpanID() != processSpan.SpanContext.SpanID() {
+		t.Error("actor.queue.send should be child of actor.process")
+	}
+}
+```
+
+Adapt this pattern for fan-out tests (verify multiple send spans with same trace ID).
+
+- [ ] **Step 8: Run sidecar unit tests**
 
 ```bash
 cd src/asya-sidecar && go test ./... -count=1
@@ -572,7 +650,7 @@ cd src/asya-sidecar && go test ./... -count=1
 
 Expected: all pass. Some tests may need context parameters updated.
 
-- [ ] **Step 8: Commit**
+- [ ] **Step 9: Commit**
 
 ```bash
 git add src/asya-sidecar/internal/router/ src/asya-sidecar/internal/tracing/
@@ -604,13 +682,11 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 	tracer := otel.Tracer("asya-sidecar")
 	ctx, span := tracer.Start(ctx, "actor.runtime.call",
 		trace.WithAttributes(
-			attribute.String("http.method", "POST"),
-			attribute.String("http.url", "http://localhost/invoke"),
+			semconv.HTTPRequestMethodKey.String("POST"),
+			attribute.String("url.path", "/invoke"),
 		),
 	)
-	defer func() {
-		span.End()
-	}()
+	defer span.End()
 
 	// ... existing timeout context setup ...
 	// ... existing HTTP POST ...
@@ -622,7 +698,7 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 		return err
 	}
 
-	span.SetAttributes(attribute.Int("http.status_code", resp.StatusCode))
+	span.SetAttributes(semconv.HTTPResponseStatusCodeKey.Int(resp.StatusCode))
 
 	// ... existing response handling ...
 }
@@ -747,18 +823,24 @@ In `main.go`, after logging setup (~line 48) and before envelope store init (~li
 	defer tracingShutdown(context.Background())
 ```
 
-- [ ] **Step 5: Add otelhttp middleware to route handlers**
+- [ ] **Step 5: Add otelhttp middleware at server level**
 
-In `registerAPIRoutes()` (~line 266), wrap the mux or individual handlers:
+Wrap the entire mux at the HTTP server creation point (~line 238 in main.go),
+not per-handler. This avoids conflicts with existing auth middleware chain:
 
 ```go
 import "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-// In registerAPIRoutes, wrap handlers:
-mux.Handle("/a2a/", otelhttp.NewHandler(a2aRootHandler, "a2a"))
-mux.Handle("/mcp", otelhttp.NewHandler(mcpHandler, "mcp"))
-// etc.
+// When creating the HTTP server, wrap the mux:
+handler := otelhttp.NewHandler(mux, "asya-gateway")
+srv := &http.Server{
+	Addr:    ":" + port,
+	Handler: handler,
+}
 ```
+
+This gives every HTTP route automatic request/response spans with no
+per-handler wrapping needed.
 
 - [ ] **Step 6: Run gateway tests**
 
@@ -1016,19 +1098,38 @@ After `ASYA_NAMESPACE` env var (~line 105), before `{{- with .Values.env }}`:
         {{- end }}
 ```
 
-- [ ] **Step 4: Update crew values.yaml documentation**
+- [ ] **Step 4: Add tracing.endpoint to crew values.yaml**
 
-Update the sidecar example comments to mention tracing:
+Add a `tracing` section at the top level of crew `values.yaml`:
 
 ```yaml
-  sidecar: {}
-  # Example:
-  #   env:
-  #   - name: OTEL_EXPORTER_OTLP_ENDPOINT
-  #     value: "http://tempo:4317"
+tracing:
+  endpoint: ""
 ```
 
-- [ ] **Step 5: Run Helm template validation**
+- [ ] **Step 5: Inject spec.tracing.endpoint into crew actor templates**
+
+For each crew actor template (`sink.yaml`, `sump.yaml`, `pause.yaml`, `resume.yaml`),
+add `spec.tracing.endpoint` to the AsyncActor CR. Example for `sink.yaml`:
+
+```yaml
+spec:
+  # ... existing fields ...
+  {{- if .Values.tracing.endpoint }}
+  tracing:
+    endpoint: {{ .Values.tracing.endpoint | quote }}
+  {{- end }}
+  {{- with $sink.sidecar }}
+  sidecar:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+```
+
+Apply the same pattern to all 4 crew actor templates. This completes the chain:
+crew `values.yaml` -> crew templates -> AsyncActor CR `spec.tracing.endpoint` ->
+XRD validates -> Crossplane composition injects `OTEL_EXPORTER_OTLP_ENDPOINT`.
+
+- [ ] **Step 6: Run Helm template validation**
 
 ```bash
 cd deploy/helm-charts/asya-gateway && helm template . --set tracing.endpoint=http://tempo:4317 | grep OTEL
@@ -1126,13 +1227,41 @@ kube-prometheus-stack:
             enabled: true
 ```
 
-- [ ] **Step 5: Verify Helm template renders**
+- [ ] **Step 5: Auto-wire gateway tracing endpoint when sampleTracing is enabled**
+
+In the `asya-gateway` subchart values section of playground `values.yaml`, add
+conditional tracing endpoint that points to the Tempo service:
+
+```yaml
+asya-gateway:
+  tracing:
+    endpoint: ""  # overridden when sampleTracing.enabled=true
+```
+
+Also add conditional wiring. If the playground chart supports value overrides via
+templates, create a helper template. Otherwise, document that users must set
+`asya-gateway.tracing.endpoint: "tempo:4317"` alongside `sampleTracing.enabled: true`.
+
+Similarly, wire crew chart tracing:
+
+```yaml
+asya-crew:
+  tracing:
+    endpoint: ""  # set to "tempo:4317" when sampleTracing.enabled=true
+```
+
+- [ ] **Step 6: Verify Helm template renders**
 
 ```bash
 cd deploy/helm-charts/asya-playground && helm template . --set sampleTracing.enabled=true --set sampleMonitoring.enabled=true | grep -A5 "tempo"
 ```
 
-- [ ] **Step 6: Commit**
+Also verify gateway gets the OTEL endpoint:
+```bash
+helm template . --set sampleTracing.enabled=true --set asya-gateway.tracing.endpoint=tempo:4317 | grep OTEL_EXPORTER
+```
+
+- [ ] **Step 7: Commit**
 
 ```bash
 git add deploy/helm-charts/asya-playground/
@@ -1166,6 +1295,21 @@ import time
 import requests
 import pytest
 
+def _poll_tempo_for_traces(tempo_url, service_name, timeout=30, interval=2):
+    """Poll Tempo API until traces appear for the given service."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        resp = requests.get(
+            f"{tempo_url}/api/search",
+            params={"q": f'{{resource.service.name="{service_name}"}}', "limit": 10},
+        )
+        if resp.status_code == 200:
+            traces = resp.json().get("traces", [])
+            if traces:
+                return traces
+        time.sleep(interval)  # polling for Tempo indexing
+    return []
+
 def test_trace_propagation_across_actors(rabbitmq_connection, tempo_url):
     """Send envelope through actor-a -> actor-b, verify connected trace in Tempo."""
     envelope = {
@@ -1178,33 +1322,26 @@ def test_trace_propagation_across_actors(rabbitmq_connection, tempo_url):
     # Publish to actor-a queue
     publish_to_queue(rabbitmq_connection, "asya-actor-a", json.dumps(envelope))
 
-    # Wait for processing
-    time.sleep(5)  # allow spans to be flushed and indexed
+    # Poll Tempo until traces are indexed
+    traces = _poll_tempo_for_traces(tempo_url, "actor-a", timeout=30)
+    assert len(traces) > 0, "No traces found for actor-a after 30s"
 
-    # Query Tempo for traces with actor-a service
-    resp = requests.get(
-        f"{tempo_url}/api/search",
-        params={"q": '{resource.service.name="actor-a"}', "limit": 10},
-    )
-    assert resp.status_code == 200
-    traces = resp.json().get("traces", [])
-    assert len(traces) > 0, "No traces found for actor-a"
-
-    # Fetch full trace
+    # Fetch full trace via Tempo HTTP API (OTLP JSON format)
     trace_id = traces[0]["traceID"]
     trace_resp = requests.get(f"{tempo_url}/api/traces/{trace_id}")
     assert trace_resp.status_code == 200
 
+    # Tempo returns OTLP format: { "resourceSpans": [...] }
     trace_data = trace_resp.json()
-    services = {
-        span["resource"]["service.name"]
-        for batch in trace_data.get("batches", [])
-        for span in batch.get("scopeSpans", [])
-    }
+    services = set()
+    for rs in trace_data.get("resourceSpans", []):
+        for attr in rs.get("resource", {}).get("attributes", []):
+            if attr.get("key") == "service.name":
+                services.add(attr["value"]["stringValue"])
 
     # Both actors should appear in the same trace
-    assert "actor-a" in services, "actor-a not in trace"
-    assert "actor-b" in services, "actor-b not in trace"
+    assert "actor-a" in services, f"actor-a not in trace, found: {services}"
+    assert "actor-b" in services, f"actor-b not in trace, found: {services}"
 ```
 
 - [ ] **Step 3: Add Makefile target**

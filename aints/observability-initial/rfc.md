@@ -137,8 +137,6 @@ The gateway creates the **root span** — where `traceparent` is born:
 gateway.task.execute                       <- root span (Executor.Execute())
 |-- attributes: asya.task_id, asya.context_id, asya.actor, asya.flow
 |
-|-- gateway.envelope.build                 <- payload + header assembly
-|
 +-- gateway.queue.send                     <- dispatch to actor queue
     +-- attributes: asya.destination_queue
 ```
