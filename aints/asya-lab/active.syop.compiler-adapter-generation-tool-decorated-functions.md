@@ -34,76 +34,125 @@ def get_weather_actor(p: dict) -> dict:
 
 This is boilerplate that the compiler can generate automatically.
 
-## Proposed design
+## Design
 
-Allow direct tool usage in flows with non-standard signatures:
+### 1. Implicit Adapter Detection (Parser)
 
-```python
-@flow
-async def agent_flow(p: dict) -> dict:
-    p["tool_result"] = await get_weather(p["city"], p["time"])  # asya: actor
-    return p
-```
+Adapter need is detected from the AST call pattern — no config flag required.
 
-The compiler:
+**Trigger**: A call classified as `treat-as: actor` (via directive or rule)
+where the call site is NOT the standard `p = fn(p)` pattern:
 
-1. **Detects** non-`p = fn(p)` call pattern (assignment to `p["key"]`, multiple
-   args, or args that aren't just `p`)
-2. **Infers** input paths from AST: `p["city"]`, `p["time"]`
-3. **Infers** output path from AST: `p["tool_result"]`
-4. **Generates** an adapter actor with the inferred mapping:
+- `p["result"] = fn(p["city"], p["time"])` — subscript target, multiple args
+- `p["result"] = fn(p["x"])` — subscript target, single extracted arg
+- `p = fn(p["x"], p["y"])` — standard target but non-`p` args
 
-```python
-# Auto-generated adapter
-async def adapter_get_weather(p: dict) -> dict:
-    result = await get_weather(p["city"], p["time"])
-    p["tool_result"] = result
-    return p
-```
+**Detection logic**: In `_parse_assign`, when `p["key"] = fn(args)` or
+`p = fn(non-p-args)` is encountered, check if `fn` has `# asya: actor`
+directive or is classified as `treat-as: actor` by rules. If yes, create
+`AdapterCall`. If no, remain a `Mutation`.
 
-5. **Deploys** the adapter as a router-like actor (uses the generated code)
+Async detection: if the original call site uses `await`, the adapter emits
+`async def` + `await`. Otherwise plain `def`.
 
-### Scope detection
-
-The parser already classifies calls. For adapter generation, the trigger is:
-- Assignment to `p["key"] = fn(...)` where `fn` has `# asya: actor` directive
-- OR `fn` is decorated with `@tool` (matched by a config rule)
-- The function takes args other than just `p`
-
-### Config rule for @tool
-
-```yaml
-- match: "claude_agent_sdk.tool"
-  treat-as: actor
-  adapter: true
-
-- match: "langchain.tools.tool"
-  treat-as: actor
-  adapter: true
-```
-
-The `adapter: true` flag tells the compiler to generate an adapter wrapper
-instead of expecting `dict -> dict` conformance.
-
-### IR extension
-
-`ActorCall` gets optional fields:
-- `input_paths: list[str]` — e.g. `["p['city']", "p['time']"]`
-- `output_path: str` — e.g. `"p['tool_result']"`
-- `adapter: bool` — whether to generate adapter code
-
-### What the codegen emits
-
-For each adapter actor, the codegen emits:
+### 2. New IR Type: AdapterCall
 
 ```python
+@dataclass
+class AdapterCall:
+    name: str           # function name (e.g. "get_weather")
+    lineno: int
+    source_file: str = ""
+    input_args: list[str] = field(default_factory=list)   # ["p['city']", "p['time']"]
+    output_path: str | None = None                         # "p['tool_result']" or None for p = fn(...)
+    is_async: bool = False
+```
+
+Added to the `Operation` union. Codegen treats it like an `ActorCall` for
+routing but also emits an adapter wrapper function.
+
+### 3. Codegen: Separate Adapter File
+
+Adapter code cannot go in `routers.py` (runs in generic `python:3` image).
+Adapter actors need user dependencies (imports, packages).
+
+For each `AdapterCall`, codegen emits a separate file:
+`adapter_<actor_name>.py`
+
+```python
+# Auto-generated adapter for get_weather
 async def adapter_get_weather(payload: dict):
     _result = await get_weather(payload["city"], payload["time"])
     payload["tool_result"] = _result
     yield payload
 ```
 
-This is included in the generated `routers.py` alongside router functions.
+The main `routers.py` references the adapter actor by name for routing
+(same as any other actor — resolved via `ASYA_HANDLER_*` env vars).
+
+### 4. Templater: ConfigMap Mounting
+
+The templater generates for each adapter actor:
+
+- A ConfigMap containing the adapter code
+- The actor manifest with a volume mount for this ConfigMap
+
+This enables the "fast experimentation" workflow: users pick a base image
+and mount minimal code as ConfigMap — no image build needed.
+
+**Scope note**: The Crossplane/Helm infrastructure to actually mount
+ConfigMaps into custom images may require separate infrastructure work.
+This aint covers the compiler-side: detection, codegen, templater manifests.
+
+### 5. Rules: Default Decorator Stripping
+
+**New behavior**: All rules with `treat-as` automatically add the matched
+symbol to `ignore_decorators`, so the runtime does not see it.
+
+**Opt-out syntax**: `keep-decorator: true` — for cases where the decorator
+has runtime meaning (e.g. `@lru_cache`, `@staticmethod`).
+
+```yaml
+# Stripped by default (no extra syntax needed)
+- match: "tenacity.retry"
+  treat-as: config
+  where: [...]
+
+# Preserved at runtime
+- match: "functools.lru_cache"
+  treat-as: inline
+  keep-decorator: true
+
+# @tool — stripped by default
+- match: "claude_agent_sdk.tool"
+  treat-as: actor
+```
+
+The `ignore_decorators` list is appended to (merged with any existing entries).
+
+### 6. Default Rules for @tool
+
+Added to `compiler.rules.yaml`:
+
+```yaml
+- match: "claude_agent_sdk.tool"
+  treat-as: actor
+
+- match: "langchain.tools.tool"
+  treat-as: actor
+```
+
+## Components Changed
+
+| File | Change |
+|------|--------|
+| `asya_lab/flow/parser.py` | `AdapterCall` type, detection in `_parse_assign` |
+| `asya_lab/flow/codegen.py` | Adapter file generation, `AdapterCall` in routing |
+| `asya_lab/compiler/rules.py` | `keep_decorator` field on `CompilerRule` |
+| `asya_lab/flow/rules.py` | `keep_decorator` field on flow `CompilerRule` |
+| `asya_lab/defaults/compiler.rules.yaml` | `@tool` rules |
+| `asya_lab/compiler/templater.py` | ConfigMap + mount for adapter actors |
+| `asya_lab/flow/result_types.py` | `ActorInfo` adapter metadata |
 
 ## References
 
