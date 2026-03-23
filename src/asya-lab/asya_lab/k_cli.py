@@ -905,7 +905,10 @@ def _send_a2a(
         sys.exit(1)
 
     if "error" in body:
-        click.echo(f"[-] {body['error'].get('message', body['error'])}", err=True)
+        err = body["error"]
+        msg = err.get("message", str(err))
+        detail = err.get("data", {}).get("error", "")
+        click.echo(f"[-] {msg}: {detail}" if detail else f"[-] {msg}", err=True)
         sys.exit(1)
 
     result = body.get("result", {})
