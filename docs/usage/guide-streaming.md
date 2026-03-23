@@ -332,6 +332,7 @@ async def test_streaming():
 
 | Topic | Document |
 |-------|----------|
+| **Streaming events reference** (all event types, protocol mapping) | [docs/reference/specs/streaming-events.md](../reference/specs/streaming-events.md) |
 | ABI protocol reference | [docs/reference/specs/abi-protocol.md](../reference/specs/abi-protocol.md) |
 | Gateway SSE endpoints | [docs/reference/components/core-gateway.md](../reference/components/core-gateway.md) |
 | Agentic patterns (pause/resume, history) | [docs/usage/guide-agentic-patterns.md](guide-agentic-patterns.md) |
