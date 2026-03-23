@@ -344,9 +344,18 @@ class FlowParser:
         for name, fqn in self.import_map.items():
             if name in self._decorator_index or name in self._local_functions:
                 continue
+            module_name = fqn.rsplit(".", 1)[0]
+            func_name = fqn.rsplit(".", 1)[1]
             try:
-                mod = importlib.import_module(fqn.rsplit(".", 1)[0])
-                func = getattr(mod, fqn.rsplit(".", 1)[1], None)
+                mod = importlib.import_module(module_name)
+            except ImportError:
+                self.warnings.append(
+                    f"Cannot import '{module_name}' for directive scan of '{name}'. "
+                    f"Ensure the module is importable at compile time (use -I to add import paths)."
+                )
+                continue
+            try:
+                func = getattr(mod, func_name, None)
                 if func is None or not callable(func):
                     continue
                 source_lines, _ = _inspect.getsourcelines(func)
