@@ -12,7 +12,9 @@ import (
 
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
 	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
+	"google.golang.org/api/option"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -55,7 +57,18 @@ func main() {
 	emulatorHost := os.Getenv("PUBSUB_EMULATOR_HOST")
 	slog.Info("Pub/Sub client config", "PUBSUB_EMULATOR_HOST", emulatorHost)
 
-	client, err := pubsub.NewSubscriptionAdminClient(ctx)
+	var clientOpts []option.ClientOption
+	if emulatorHost != "" {
+		// The low-level apiv1 client does not respect PUBSUB_EMULATOR_HOST.
+		// Manually configure endpoint and disable auth for emulator mode.
+		clientOpts = append(clientOpts,
+			option.WithEndpoint(emulatorHost),
+			option.WithoutAuthentication(),
+			option.WithGRPCDialOption(grpc.WithTransportCredentials(insecure.NewCredentials())),
+		)
+	}
+
+	client, err := pubsub.NewSubscriptionAdminClient(ctx, clientOpts...)
 	if err != nil {
 		slog.Error("Failed to create Pub/Sub client", "error", err)
 		os.Exit(1)
@@ -70,7 +83,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := grpc.NewServer() //#nosec G114 -- in-cluster plaintext gRPC, TLS via service mesh
+	srv := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 	pb.RegisterExternalScalerServer(srv, scaler)
 
 	healthSrv := health.NewServer()
