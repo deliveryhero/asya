@@ -3,9 +3,7 @@ services:
   # then serves the JWKS document so the gateway can validate JWTs.
   jwks-server:
     image: python:3.13-slim
-    command: >
-      sh -c "pip install cryptography --quiet --no-cache-dir
-             && python3 /scripts/generate_and_serve_jwks.py"
+    command: sh -c "pip install cryptography --quiet --no-cache-dir && python3 /scripts/generate_and_serve_jwks.py"
     volumes:
     - ./scripts/generate_and_serve_jwks.py:/scripts/generate_and_serve_jwks.py:ro
     - key-data:/key-data

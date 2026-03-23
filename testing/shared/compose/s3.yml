@@ -6,7 +6,7 @@ x-logging: &default-logging
 
 services:
   s3:
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.4.0
     logging: *default-logging
     environment:
     - SERVICES=s3
@@ -23,7 +23,7 @@ services:
       start_period: 10s
 
   storage-setup:
-    image: localstack/localstack:latest
+    image: localstack/localstack:4.4.0
     logging: *default-logging
     depends_on:
       s3:
