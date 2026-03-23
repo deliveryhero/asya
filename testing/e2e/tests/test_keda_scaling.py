@@ -24,13 +24,6 @@ import time
 
 import pytest
 
-if os.getenv("ASYA_TRANSPORT") == "pubsub":
-    pytest.skip(
-        "KEDA gcp-pubsub scaler cannot query the Pub/Sub emulator for subscription metrics; "
-        "ScaledObjects are created by Crossplane but KEDA triggers show TriggerError",
-        allow_module_level=True,
-    )
-
 from asya_testing.utils.kubectl import (
     kubectl_apply,
     kubectl_delete,
@@ -118,6 +111,12 @@ spec:
             assert "queueURL" in trigger["metadata"]
         elif transport == "rabbitmq":
             assert trigger["type"] == "rabbitmq"
+        elif transport == "pubsub":
+            assert trigger["type"] == "external", \
+                "Pub/Sub should use external scaler (not gcp-pubsub)"
+            assert "scalerAddress" in trigger["metadata"]
+            assert "subscriptionName" in trigger["metadata"]
+            assert trigger["metadata"]["targetValue"] == "5"
 
         logger.info("[+] ScaledObject created with correct configuration")
 
@@ -323,8 +322,11 @@ def test_triggerauthentication_created(ensure_keda_installed, namespace):
 
     The Composition always creates TriggerAuthentication when scaling is
     enabled. The auth method depends on the Helm values (podIdentity or secret).
+    Skipped for pubsub: external scaler handles auth internally.
     """
     transport = os.getenv("ASYA_TRANSPORT", "sqs")
+    if transport == "pubsub":
+        pytest.skip("External scaler handles auth internally; no TriggerAuthentication created")
     actor_name = "test-trigger-auth"
 
     actor_manifest = f"""
@@ -611,11 +613,21 @@ spec:
             assert expected_queue_name in queue_url, \
                 f"Queue URL should contain '{expected_queue_name}', got: {queue_url}"
             logger.info(f"[+] ScaledObject trigger has queue URL: {queue_url}")
+        elif transport == "pubsub":
+            sub_name = trigger["metadata"].get("subscriptionName", "")
+            assert sub_name, "External trigger should have subscriptionName"
+            expected_sub = f"asya-{namespace}-{actor_name}"
+            assert expected_sub in sub_name, \
+                f"Subscription name should contain '{expected_sub}', got: {sub_name}"
+            logger.info(f"[+] ScaledObject trigger has subscription: {sub_name}")
 
         actor = kubectl_get("asyncactor", actor_name, namespace=namespace)
         actor_queue_url = actor.get("status", {}).get("queueUrl", "")
-        assert actor_queue_url, "AsyncActor status should have queueUrl"
-        logger.info(f"[+] AsyncActor status has queue URL: {actor_queue_url}")
+        if transport == "sqs":
+            assert actor_queue_url, "AsyncActor status should have queueUrl"
+            logger.info(f"[+] AsyncActor status has queue URL: {actor_queue_url}")
+        else:
+            logger.info(f"[.] AsyncActor queueUrl status: {actor_queue_url or '(not set for this transport)'}")
 
     except Exception:
         log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)

@@ -132,6 +132,16 @@ crossplane:
       secretRef:
         name: gcp-keda-secret
         credentialsKey: credentials.json
+      scaler:
+        enabled: true
+        address: "asya-scaler-pubsub.asya-system.svc.cluster.local:6000"
+        image:
+          repository: ghcr.io/deliveryhero/asya-crew
+          tag: latest
+          pullPolicy: Never
+        env:
+        - name: PUBSUB_EMULATOR_HOST
+          value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
   actorNamespace: asya-e2e
   irsa:
     enabled: false

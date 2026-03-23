@@ -180,3 +180,27 @@ pubsub:
     secretRef:
       name: "gcp-keda-secret"
       credentialsKey: "credentials.json"
+    # External scaler for Pub/Sub (bypasses Cloud Monitoring 2-4min lag)
+    # When enabled, ScaledObjects use type: external instead of type: gcp-pubsub,
+    # querying Pub/Sub subscription directly via Pull API for instant metric detection.
+    scaler:
+      enabled: false
+      # gRPC address of the scaler service (host:port).
+      # Auto-computed as asya-scaler-pubsub.{actorNamespace}.svc.cluster.local:6000 if empty.
+      address: ""
+      # Container image (temporarily uses asya-crew until asya-scalers image is published)
+      image:
+        repository: ghcr.io/deliveryhero/asya-crew
+        tag: ""
+        pullPolicy: IfNotPresent
+      # K8s ServiceAccount for Workload Identity
+      serviceAccountName: ""
+      logLevel: "INFO"
+      env: []
+      resources:
+        requests:
+          cpu: 50m
+          memory: 32Mi
+        limits:
+          cpu: 200m
+          memory: 64Mi

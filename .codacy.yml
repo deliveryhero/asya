@@ -1,6 +1,7 @@
 exclude_paths:
 - ".worktrees/**"
 - "**/*_test.go"
+- "**/*.pb.go"
 - "**/tests/**"
 - "docs/**"
 - "examples/**"
