@@ -271,7 +271,7 @@ func registerAPIRoutes(mux *http.ServeMux, meshHandler *mcp.Handler, mcpServer *
 	}
 	if meshHandler != nil {
 		mux.Handle("/tools/call", mcpMiddleware(http.HandlerFunc(meshHandler.HandleToolCall)))
-		mux.HandleFunc("/stream/", meshHandler.HandleMeshStream) // FLY SSE for API clients
+		mux.Handle("/stream/", mcpMiddleware(http.HandlerFunc(meshHandler.HandleMeshStream)))
 	}
 	if a2aHandler != nil {
 		mux.Handle("/a2a/", a2aHandler)

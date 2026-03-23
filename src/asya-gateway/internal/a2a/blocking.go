@@ -104,6 +104,27 @@ func waitAndRelayEvents(
 
 	firstFLY := true
 
+	// closeArtifactStream sends a LastChunk event to signal the end of the FLY
+	// artifact stream. Only called if FLY events were actually sent (!firstFLY).
+	closeArtifactStream := func() {
+		if firstFLY {
+			return
+		}
+		lastChunk := &a2alib.TaskArtifactUpdateEvent{
+			TaskID:    reqCtx.TaskID,
+			ContextID: reqCtx.ContextID,
+			Append:    true,
+			LastChunk: true,
+			Artifact: &a2alib.Artifact{
+				ID:    a2alib.ArtifactID(flyArtifactID),
+				Parts: a2alib.ContentParts{},
+			},
+		}
+		if err := eq.Write(ctx, lastChunk); err != nil {
+			slog.Warn("Failed to write LastChunk artifact event", "task_id", taskID, "error", err)
+		}
+	}
+
 	for {
 		select {
 		case update, ok := <-ch:
@@ -123,22 +144,7 @@ func waitAndRelayEvents(
 			}
 
 			if terminalOrInterrupted(update.Status) {
-				// Close the artifact stream with LastChunk before the terminal event
-				if !firstFLY {
-					lastChunk := &a2alib.TaskArtifactUpdateEvent{
-						TaskID:    reqCtx.TaskID,
-						ContextID: reqCtx.ContextID,
-						Append:    true,
-						LastChunk: true,
-						Artifact: &a2alib.Artifact{
-							ID:    a2alib.ArtifactID(flyArtifactID),
-							Parts: a2alib.ContentParts{},
-						},
-					}
-					if err := eq.Write(ctx, lastChunk); err != nil {
-						slog.Warn("Failed to write LastChunk artifact event", "task_id", taskID, "error", err)
-					}
-				}
+				closeArtifactStream()
 				slog.Debug("Blocking wait: terminal event relayed via subscription",
 					"task_id", taskID, "status", update.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, update.Status)
@@ -152,22 +158,7 @@ func waitAndRelayEvents(
 				continue
 			}
 			if terminalOrInterrupted(current.Status) {
-				// Close the artifact stream with LastChunk before the terminal event
-				if !firstFLY {
-					lastChunk := &a2alib.TaskArtifactUpdateEvent{
-						TaskID:    reqCtx.TaskID,
-						ContextID: reqCtx.ContextID,
-						Append:    true,
-						LastChunk: true,
-						Artifact: &a2alib.Artifact{
-							ID:    a2alib.ArtifactID(flyArtifactID),
-							Parts: a2alib.ContentParts{},
-						},
-					}
-					if err := eq.Write(ctx, lastChunk); err != nil {
-						slog.Warn("Failed to write LastChunk artifact event", "task_id", taskID, "error", err)
-					}
-				}
+				closeArtifactStream()
 				slog.Debug("Blocking wait: terminal status detected via DB poll",
 					"task_id", taskID, "status", current.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, current.Status)
@@ -176,22 +167,7 @@ func waitAndRelayEvents(
 		case <-timer.C:
 			// Timeout: get current state and write as final event
 			slog.Warn("Blocking wait timed out", "task_id", taskID, "timeout", timeout)
-			// Close the artifact stream with LastChunk before the timeout event
-			if !firstFLY {
-				lastChunk := &a2alib.TaskArtifactUpdateEvent{
-					TaskID:    reqCtx.TaskID,
-					ContextID: reqCtx.ContextID,
-					Append:    true,
-					LastChunk: true,
-					Artifact: &a2alib.Artifact{
-						ID:    a2alib.ArtifactID(flyArtifactID),
-						Parts: a2alib.ContentParts{},
-					},
-				}
-				if err := eq.Write(ctx, lastChunk); err != nil {
-					slog.Warn("Failed to write LastChunk artifact event", "task_id", taskID, "error", err)
-				}
-			}
+			closeArtifactStream()
 			current, getErr := store.Get(taskID)
 			if getErr != nil {
 				return fmt.Errorf("get task on timeout: %w", getErr)
