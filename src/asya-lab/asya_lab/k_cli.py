@@ -890,11 +890,11 @@ def _start_port_forward(target: str, ns: str, port: int | None) -> int:
         except OSError:
             _kill_port_forward(target)
 
-    # Check port availability — try connecting first (something listening?)
+    # If port is already listening, assume it's a working port-forward
     try:
         with socket.create_connection(("127.0.0.1", local_port), timeout=1):
-            click.echo(f"[-] Port {local_port} is in use (something is listening). Use --port to override.", err=True)
-            sys.exit(1)
+            click.echo(f"[.] {target}: already listening on localhost:{local_port}")
+            return local_port
     except OSError:
         pass  # port is free
 
