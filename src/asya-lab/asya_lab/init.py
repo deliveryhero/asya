@@ -90,15 +90,17 @@ _RULES_YAML = """\
 #   inline - paste code into router body
 #   config - extract values into manifest, strip at runtime
 #
-# extract: maps parameter names to spec paths (direct keyword args).
-# where:   navigates nested calls (e.g. stop=stop_after_attempt(3)).
+# where: navigates call arguments and nested calls.
+# assign-to: terminal — extract value and write to this spec path.
 
 # -- Context managers --
 
+# asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
 - match: "asyncio.timeout"
   treat-as: config
-  extract:
-    delay: spec.resiliency.timeout.actor
+  where:
+  - param: delay
+    assign-to: spec.resiliency.timeout.actor
 
 # -- Decorators --
 
@@ -134,15 +136,18 @@ _RULES_YAML = """\
 # timeout_decorator.timeout — @timeout(30)
 - match: "timeout_decorator.timeout"
   treat-as: config
-  extract:
-    seconds: spec.resiliency.timeout.actor
+  where:
+  - param: seconds
+    assign-to: spec.resiliency.timeout.actor
 
 # stamina.retry — @stamina.retry(attempts=3, timeout=60)
 - match: "stamina.retry"
   treat-as: config
-  extract:
-    attempts: spec.resiliency.policies.default.maxAttempts
-    timeout: spec.resiliency.policies.default.maxDuration
+  where:
+  - param: attempts
+    assign-to: spec.resiliency.policies.default.maxAttempts
+  - param: timeout
+    assign-to: spec.resiliency.policies.default.maxDuration
 
 # -- Add your project-specific rules below --
 """

@@ -15,13 +15,15 @@ from pathlib import Path
 
 import yaml
 
+from asya_lab.compiler.rules import WhereNode
+
 
 @dataclass
 class CompilerRule:
     """Classification rule for a single symbol (context manager, decorator, etc.)."""
 
     treat_as: str  # "config" | "inline"
-    extract: dict[str, str] = field(default_factory=dict)  # param_name -> spec_path
+    where: list[WhereNode] | None = None  # extraction tree
     imports: list[str] = field(default_factory=list)  # import statements for generated code
 
 
@@ -35,9 +37,12 @@ def _load_default_rules() -> list[dict]:
 
 def _rule_from_dict(d: dict) -> CompilerRule:
     """Convert a YAML rule dict to a CompilerRule."""
+    where = None
+    if "where" in d:
+        where = [WhereNode.from_dict(w) for w in d["where"]]
     return CompilerRule(
         treat_as=d.get("treat-as", "config"),
-        extract=d.get("extract", {}),
+        where=where,
         imports=d.get("imports", []),
     )
 

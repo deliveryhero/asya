@@ -11,16 +11,18 @@
 
 # -- Context manager rules --
 
+# asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
 - match: "asyncio.timeout"
   treat-as: config
-  extract:
-    delay: spec.resiliency.timeout.actor
+  where:
+  - param: delay
+    assign-to: spec.resiliency.timeout.actor
 
-# -- Decorator rules (with nested extraction via where: trees) --
+# -- Decorator rules --
 
 # tenacity.retry — extract nested stop/wait args into resiliency policy.
-# Handles: @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
-# Also handles BinOp: stop=stop_after_attempt(3) | stop_after_delay(60)
+# @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
+# @retry(stop=stop_after_attempt(5) | stop_after_delay(30))
 - match: "tenacity.retry"
   treat-as: config
   where:
@@ -47,17 +49,18 @@
       - param: wait
         assign-to: spec.resiliency.policies.default.initialDelay
 
-# timeout_decorator.timeout — extract timeout seconds.
-# Usage: @timeout(30)
+# timeout_decorator.timeout — @timeout(30)
 - match: "timeout_decorator.timeout"
   treat-as: config
-  extract:
-    seconds: spec.resiliency.timeout.actor
+  where:
+  - param: seconds
+    assign-to: spec.resiliency.timeout.actor
 
-# stamina.retry — extract direct keyword args.
-# Usage: @stamina.retry(attempts=3, timeout=60)
+# stamina.retry — @stamina.retry(attempts=3, timeout=60)
 - match: "stamina.retry"
   treat-as: config
-  extract:
-    attempts: spec.resiliency.policies.default.maxAttempts
-    timeout: spec.resiliency.policies.default.maxDuration
+  where:
+  - param: attempts
+    assign-to: spec.resiliency.policies.default.maxAttempts
+  - param: timeout
+    assign-to: spec.resiliency.policies.default.maxDuration
