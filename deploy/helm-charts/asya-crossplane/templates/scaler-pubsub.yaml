@@ -46,15 +46,15 @@ spec:
         resources:
           {{- toYaml .Values.pubsub.keda.scaler.resources | nindent 10 }}
         livenessProbe:
-          grpc:
+          tcpSocket:
             port: {{ $grpcPort }}
           initialDelaySeconds: 5
           periodSeconds: 10
         readinessProbe:
-          grpc:
+          tcpSocket:
             port: {{ $grpcPort }}
-          initialDelaySeconds: 3
-          periodSeconds: 5
+          initialDelaySeconds: 2
+          periodSeconds: 3
 ---
 apiVersion: v1
 kind: Service
