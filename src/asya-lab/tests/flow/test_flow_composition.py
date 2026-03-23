@@ -3,6 +3,8 @@
 import textwrap
 
 import pytest
+from asya_lab.compiler.rules import CompilerRule as EngineRule
+from asya_lab.compiler.rules import RuleEngine, TreatAs, WhereNode
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.parser import ActorCall, Conditional, FlowParser, Loop, Mutation
 
@@ -346,3 +348,108 @@ class TestFlowCompositionE2E:
         assert len(graph_data.groups) == 1
         assert graph_data.groups[0]["id"] == "inner"
         assert graph_data.groups[0]["nodes"] == ["actor_a", "actor_b"]
+
+
+class TestUnfoldDecoratorReScoping:
+    """Decorated unfold functions re-scope extracted config to expanded actors."""
+
+    def _retry_engine(self) -> RuleEngine:
+        rule = EngineRule(
+            match="tenacity.retry",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param="stop",
+                    where=[
+                        WhereNode(
+                            match="stop_after_attempt",
+                            where=[
+                                WhereNode(
+                                    param="max_attempt_number",
+                                    assign_to="spec.resiliency.policies.default.maxAttempts",
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+        )
+        return RuleEngine([rule])
+
+    def test_unfold_rescopes_decorator_config_to_expanded_actors(self):
+        """@retry on an unfold function applies config to all actors inside."""
+        source = textwrap.dedent("""
+            from tenacity import retry, stop_after_attempt
+
+            @flow
+            def pipeline(p: dict) -> dict:
+                p = resilient_work(p)
+                return p
+
+            @unfold
+            @retry(stop=stop_after_attempt(3))
+            def resilient_work(p: dict) -> dict:
+                p = actor_a(p)
+                p = actor_b(p)
+                return p
+        """)
+        engine = self._retry_engine()
+        result = FlowParser(source, "test.py", rule_engine=engine).parse()
+
+        # The decorator config should be re-scoped to the expanded actors
+        decorator_configs = [c for c in result.extracted_configs if c["scope_type"] == "decorator"]
+        assert len(decorator_configs) == 1
+        config = decorator_configs[0]
+        assert config["scope_actors"] == ["actor_a", "actor_b"]
+        assert config["spec_values"]["spec.resiliency.policies.default.maxAttempts"] == 3
+
+    def test_unfold_rescopes_preserves_non_unfolded_decorator_configs(self):
+        """Decorator config on a non-unfolded function stays scoped to itself."""
+        source = textwrap.dedent("""
+            from tenacity import retry, stop_after_attempt
+
+            @flow
+            def pipeline(p: dict) -> dict:
+                p = actor_c(p)
+                return p
+
+            @actor
+            @retry(stop=stop_after_attempt(5))
+            def actor_c(p: dict) -> dict:
+                return p
+        """)
+        engine = self._retry_engine()
+        result = FlowParser(source, "test.py", rule_engine=engine).parse()
+
+        decorator_configs = [c for c in result.extracted_configs if c["scope_type"] == "decorator"]
+        assert len(decorator_configs) == 1
+        config = decorator_configs[0]
+        # Not unfolded, so scope stays on the function name
+        assert config["scope_actors"] == ["actor_c"]
+        assert config["spec_values"]["spec.resiliency.policies.default.maxAttempts"] == 5
+
+    def test_flow_decorated_function_rescopes_decorator_config(self):
+        """@retry on a @flow function also re-scopes (same mechanism as unfold)."""
+        source = textwrap.dedent("""
+            from tenacity import retry, stop_after_attempt
+
+            @flow
+            @retry(stop=stop_after_attempt(7))
+            def inner_flow(p: dict) -> dict:
+                p = handler_x(p)
+                p = handler_y(p)
+                return p
+
+            @flow
+            def pipeline(p: dict) -> dict:
+                p = inner_flow(p)
+                return p
+        """)
+        engine = self._retry_engine()
+        result = FlowParser(source, "test.py", rule_engine=engine).parse()
+
+        decorator_configs = [c for c in result.extracted_configs if c["scope_type"] == "decorator"]
+        assert len(decorator_configs) == 1
+        config = decorator_configs[0]
+        assert config["scope_actors"] == ["handler_x", "handler_y"]
+        assert config["spec_values"]["spec.resiliency.policies.default.maxAttempts"] == 7
