@@ -908,6 +908,21 @@ func (s *PgStore) isFinal(status types.EnvelopeStatus) bool {
 	return status == types.EnvelopeStatusSucceeded || status == types.EnvelopeStatusFailed || status == types.EnvelopeStatusCanceled
 }
 
+// NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
+// Used for streaming LLM tokens and real-time progress updates.
+func (s *PgStore) NotifyFLY(id string, payload []byte) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	update := types.EnvelopeUpdate{
+		ID:             id,
+		Status:         types.EnvelopeStatusRunning,
+		PartialPayload: json.RawMessage(payload),
+		Timestamp:      time.Now(),
+	}
+	s.notifyListeners(update)
+}
+
 // cleanupOldUpdates periodically removes old task updates (keep last 24 hours)
 func (s *PgStore) cleanupOldUpdates() {
 	ticker := time.NewTicker(1 * time.Hour)

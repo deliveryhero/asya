@@ -120,6 +120,8 @@ func (m *MockTaskStore) List(params envelopestore.EnvelopeListParams) ([]*types.
 	return nil, 0, nil
 }
 
+func (m *MockTaskStore) NotifyFLY(id string, payload []byte) {}
+
 // TestNewRegistry tests registry initialization
 func TestNewRegistry(t *testing.T) {
 	taskStore := envelopestore.NewStore()

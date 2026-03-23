@@ -46,4 +46,8 @@ type EnvelopeStore interface {
 
 	// List returns tasks filtered by params, with pagination. Returns (tasks, totalCount, error).
 	List(params EnvelopeListParams) ([]*types.Envelope, int, error)
+
+	// NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
+	// Used for streaming LLM tokens and real-time progress updates.
+	NotifyFLY(id string, payload []byte)
 }

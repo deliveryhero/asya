@@ -897,3 +897,44 @@ func floatPtr(f float64) *float64 {
 func strPtr(s string) *string {
 	return &s
 }
+
+func TestNotifyFLY_DispatchesToSubscribers(t *testing.T) {
+	store := NewStore()
+
+	taskID := "fly-test"
+	err := store.Create(&types.Envelope{
+		ID:     taskID,
+		Status: types.EnvelopeStatusRunning,
+		Route:  types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+	})
+	if err != nil {
+		t.Fatalf("create: %v", err)
+	}
+
+	ch := store.Subscribe(taskID)
+	defer store.Unsubscribe(taskID, ch)
+
+	payload := []byte(`{"text":"hello"}`)
+	store.NotifyFLY(taskID, payload)
+
+	select {
+	case update := <-ch:
+		if update.PartialPayload == nil {
+			t.Fatal("expected PartialPayload to be set")
+		}
+		if string(update.PartialPayload) != `{"text":"hello"}` {
+			t.Errorf("payload = %s, want %s", update.PartialPayload, payload)
+		}
+		if update.Status != types.EnvelopeStatusRunning {
+			t.Errorf("status = %v, want Running", update.Status)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("timed out waiting for FLY notification")
+	}
+}
+
+func TestNotifyFLY_NoSubscriber_NoError(t *testing.T) {
+	store := NewStore()
+	// No subscriber — should not panic or error
+	store.NotifyFLY("nonexistent", []byte(`{"text":"dropped"}`))
+}

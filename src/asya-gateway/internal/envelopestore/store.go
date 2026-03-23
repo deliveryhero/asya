@@ -1,6 +1,7 @@
 package envelopestore
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -454,4 +455,19 @@ func (s *Store) List(params EnvelopeListParams) ([]*types.Envelope, int, error) 
 // isFinal checks if a status is final (must hold lock)
 func (s *Store) isFinal(status types.EnvelopeStatus) bool {
 	return status == types.EnvelopeStatusSucceeded || status == types.EnvelopeStatusFailed || status == types.EnvelopeStatusCanceled
+}
+
+// NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
+// Used for streaming LLM tokens and real-time progress updates.
+func (s *Store) NotifyFLY(id string, payload []byte) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	update := types.EnvelopeUpdate{
+		ID:             id,
+		Status:         types.EnvelopeStatusRunning,
+		PartialPayload: json.RawMessage(payload),
+		Timestamp:      time.Now(),
+	}
+	s.notifyListeners(update)
 }
