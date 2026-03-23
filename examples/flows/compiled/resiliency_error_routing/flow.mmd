@@ -5,23 +5,19 @@ flowchart TD
     call_primary[call_primary]
     finalize[finalize]
     handle_validation_error[handle_validation_error]
-    router_failover_pipeline_line_27_except_2{{router_failover_pipeline_line_27_except_2}}
-    router_failover_pipeline_line_28_seq_1{{"router_failover_pipeline_line_28_seq_1<br/><br/>p['fallback'] = True"}}
-    router_failover_pipeline_line_30_except_4{{router_failover_pipeline_line_30_except_4}}
-    router_failover_pipeline_line_31_seq_3{{"router_failover_pipeline_line_31_seq_3<br/><br/>p['error_type'] = 'validation'"}}
+    router_failover_pipeline_line_27_except_1{{"router_failover_pipeline_line_27_except_1<br/><br/>p['fallback'] = True"}}
+    router_failover_pipeline_line_30_except_2{{"router_failover_pipeline_line_30_except_2<br/><br/>p['error_type'] = 'validation'"}}
     start_failover_pipeline(["start_failover_pipeline<br/><br/>p['status'] = 'started'"])
     __end__((( )))
 
     start_failover_pipeline --> call_primary
     call_primary --> finalize
-    router_failover_pipeline_line_28_seq_1 --> call_fallback
-    router_failover_pipeline_line_27_except_2 --> router_failover_pipeline_line_28_seq_1
-    router_failover_pipeline_line_31_seq_3 --> handle_validation_error
-    router_failover_pipeline_line_30_except_4 --> router_failover_pipeline_line_31_seq_3
-    call_primary -->|"ConnectionError"| router_failover_pipeline_line_27_except_2
-    call_primary -->|"ValueError"| router_failover_pipeline_line_30_except_4
+    router_failover_pipeline_line_27_except_1 --> call_fallback
     call_fallback --> finalize
+    router_failover_pipeline_line_30_except_2 --> handle_validation_error
     handle_validation_error --> finalize
+    call_primary -->|"ConnectionError"| router_failover_pipeline_line_27_except_1
+    call_primary -->|"ValueError"| router_failover_pipeline_line_30_except_2
     finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -31,7 +27,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_failover_pipeline start
     class finalize endnode
-    class router_failover_pipeline_line_27_except_2,router_failover_pipeline_line_28_seq_1,router_failover_pipeline_line_30_except_4,router_failover_pipeline_line_31_seq_3 router
+    class router_failover_pipeline_line_27_except_1,router_failover_pipeline_line_30_except_2 router
     class call_fallback,call_primary,handle_validation_error handler
     class __end__ endpoint
     linkStyle 6,7 stroke:#DC143C

@@ -21,11 +21,11 @@ spec:
       try_except_line_25_0:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-27-except-2
+        - router-failover-pipeline-line-27-except-1
       try_except_line_25_1:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-30-except-4
+        - router-failover-pipeline-line-30-except-2
       default:
         maxAttempts: '3'
     rules:
