@@ -1,0 +1,8 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: start-text-flow
+spec:
+  env:
+  - name: SHARED
+    value: '1'

@@ -1,0 +1,8 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-analyze
+spec:
+  env:
+  - name: OTEL_ENDPOINT
+    value: http://otel:4317
