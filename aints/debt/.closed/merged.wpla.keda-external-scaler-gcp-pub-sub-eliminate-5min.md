@@ -10,6 +10,7 @@ tags:
 
 
 
+
 ## Problem
 
 KEDA's built-in `gcp-pubsub` scaler uses Cloud Monitoring (Stackdriver) API for
