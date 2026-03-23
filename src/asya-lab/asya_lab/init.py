@@ -37,7 +37,7 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: "{{ max_replicas }}"
+    maxReplicaCount: {{ max_replicas }}
 """
 
 _ROUTER_TEMPLATE = """\

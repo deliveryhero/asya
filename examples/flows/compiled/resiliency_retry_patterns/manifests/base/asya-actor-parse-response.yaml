@@ -12,7 +12,7 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env:
   - name: ASYA_IGNORE_DECORATORS
     value: tenacity.retry
