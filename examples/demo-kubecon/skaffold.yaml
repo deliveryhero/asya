@@ -1,8 +1,0 @@
-apiVersion: skaffold/v4beta6
-kind: Config
-build:
-  artifacts:
-  - image: demo-kubecon
-    context: src
-    docker:
-      dockerfile: ../Dockerfile
