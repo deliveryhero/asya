@@ -16,11 +16,6 @@
   extract:
     delay: spec.resiliency.timeout.actor
 
-- match: "contextlib.suppress"
-  treat-as: inline
-  imports:
-  - "import contextlib"
-
 # -- Decorator rules (with nested extraction via where: trees) --
 
 # tenacity.retry — extract nested stop/wait args into resiliency policy.

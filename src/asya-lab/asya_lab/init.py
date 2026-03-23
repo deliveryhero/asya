@@ -100,11 +100,6 @@ _RULES_YAML = """\
   extract:
     delay: spec.resiliency.timeout.actor
 
-- match: "contextlib.suppress"
-  treat-as: inline
-  imports:
-  - "import contextlib"
-
 # -- Decorators --
 
 # tenacity.retry — nested extraction via where: trees.
