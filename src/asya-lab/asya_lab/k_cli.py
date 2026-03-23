@@ -920,7 +920,7 @@ def _send_a2a(
         sys.exit(1)
 
     stop_dots.set()
-    click.echo("", err=True)
+    click.echo(" [100%]", err=True)
 
     if "error" in body:
         click.echo(f"[-] {body['error'].get('message', body['error'])}", err=True)
@@ -1044,10 +1044,10 @@ def send(
 
     # Default to A2A
     if not use_mcp:
-        click.echo(f"[.] Sending to {target.name} via {url}/a2a/", err=True)
+        click.echo(f"[.] {target.name} -> {url}/a2a/", err=True)
         _send_a2a(url, message, skill or target.name, api_key, stream)
     else:
-        click.echo(f"[.] Sending to {target.name} via {url}/mcp", err=True)
+        click.echo(f"[.] {target.name} -> {url}/mcp", err=True)
         _send_mcp(url, target.name, message, api_key, stream)
 
 
