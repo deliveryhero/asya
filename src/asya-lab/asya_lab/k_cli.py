@@ -766,7 +766,7 @@ def context_use(name: str) -> None:
 
 
 _PORT_FORWARD_TARGETS: dict[str, tuple[str, int, int]] = {
-    # name: (service/deployment, remote_port, default_local_port)
+    # name: (service, remote_port, default_local_port)
     "gateway": ("svc/asya-gateway-api", 80, 8080),
     "gateway-mesh": ("svc/asya-gateway-mesh", 80, 8081),
     "grafana": ("svc/grafana", 80, 3000),
@@ -775,12 +775,121 @@ _PORT_FORWARD_TARGETS: dict[str, tuple[str, int, int]] = {
 }
 
 
+def _pf_pid_dir() -> Path:
+    """Get the PID file directory for port-forwards."""
+    asya_dir = find_asya_dir(Path.cwd())
+    if asya_dir is None:
+        return Path.home() / ".asya" / "pf"
+    return asya_dir / ".pf"
+
+
+def _pf_pid_path(target: str) -> Path:
+    return _pf_pid_dir() / f"{target}.pid"
+
+
+def _is_port_forward_running(target: str) -> int | None:
+    """Check if a port-forward is running. Returns local port or None."""
+    pid_path = _pf_pid_path(target)
+    if not pid_path.exists():
+        return None
+    try:
+        lines = pid_path.read_text().strip().split("\n")
+        pid = int(lines[0])
+        local_port = int(lines[1]) if len(lines) > 1 else None
+        import os
+
+        os.kill(pid, 0)  # check if process exists
+        return local_port
+    except (ValueError, ProcessLookupError, OSError):
+        pid_path.unlink(missing_ok=True)
+        return None
+
+
+def _start_port_forward(target: str, ns: str, port: int | None) -> int:
+    """Start a detached port-forward. Returns local port."""
+    import socket
+
+    svc, remote_port, default_local = _PORT_FORWARD_TARGETS[target]
+    local_port = port or default_local
+
+    # Check if already running
+    existing = _is_port_forward_running(target)
+    if existing is not None:
+        try:
+            with socket.create_connection(("127.0.0.1", existing), timeout=1):
+                click.echo(f"[.] {target}: already running on localhost:{existing}")
+                return existing
+        except OSError:
+            _kill_port_forward(target)
+
+    # Check port availability
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", local_port))
+    except OSError:
+        click.echo(f"[-] Port {local_port} is in use. Use --port to specify a different port.", err=True)
+        sys.exit(1)
+
+    cmd = ["kubectl", "port-forward", "-n", ns, svc, f"{local_port}:{remote_port}"]
+    proc = subprocess.Popen(  # nosec B603, B607
+        cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+
+    # Save PID
+    pid_dir = _pf_pid_dir()
+    pid_dir.mkdir(parents=True, exist_ok=True)
+    (_pf_pid_path(target)).write_text(f"{proc.pid}\n{local_port}")
+
+    # Wait for port to open
+    import time
+
+    for _ in range(10):
+        time.sleep(1)  # wait for port-forward to establish
+        if proc.poll() is not None:
+            click.echo(f"[-] Port-forward exited (code {proc.returncode}). Is {svc} deployed in {ns}?", err=True)
+            _pf_pid_path(target).unlink(missing_ok=True)
+            sys.exit(1)
+        try:
+            with socket.create_connection(("127.0.0.1", local_port), timeout=1):
+                click.echo(f"[+] {target}: localhost:{local_port} -> {svc} ({ns}) [pid {proc.pid}]")
+                return local_port
+        except OSError:
+            continue
+
+    proc.terminate()
+    _pf_pid_path(target).unlink(missing_ok=True)
+    click.echo(f"[-] Port-forward timed out for {svc}", err=True)
+    sys.exit(1)
+
+
+def _kill_port_forward(target: str) -> bool:
+    """Kill a running port-forward. Returns True if killed."""
+    pid_path = _pf_pid_path(target)
+    if not pid_path.exists():
+        return False
+    try:
+        import os
+        import signal as _signal
+
+        pid = int(pid_path.read_text().strip().split("\n")[0])
+        os.kill(pid, _signal.SIGTERM)
+        click.echo(f"[+] Killed {target} port-forward (pid {pid})")
+        pid_path.unlink(missing_ok=True)
+        return True
+    except (ValueError, ProcessLookupError, OSError):
+        pid_path.unlink(missing_ok=True)
+        return False
+
+
 @click.command("port-forward")
 @click.argument("target", type=click.Choice(list(_PORT_FORWARD_TARGETS.keys())))
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--port", "-p", type=int, default=None, help="Local port (default: per-target)")
 def port_forward(target: str, ctx: str, port: int | None) -> None:
-    """Port-forward a service to localhost.
+    """Port-forward a service to localhost (detached).
+
+    Starts in background and returns immediately. Idempotent — if already
+    running, prints the URL.
 
     \b
     Targets:
@@ -794,19 +903,37 @@ def port_forward(target: str, ctx: str, port: int | None) -> None:
     Examples:
       asya k port-forward gateway
       asya k port-forward grafana --port 3001
+      asya k kill-port-forward gateway
+      asya k kill-port-forward --all
     """
-    svc, remote_port, default_local = _PORT_FORWARD_TARGETS[target]
-    local_port = port or default_local
-
     runner = KubeRunner(ctx)
-    ns = runner.namespace or "default"
+    _start_port_forward(target, runner.namespace or "default", port)
 
-    cmd = ["kubectl", "port-forward", "-n", ns, svc, f"{local_port}:{remote_port}"]
-    click.echo(f"[.] {target}: localhost:{local_port} -> {svc} ({ns})")
-    try:
-        subprocess.run(cmd, check=False)  # nosec B603, B607
-    except KeyboardInterrupt:
-        click.echo("\n[+] Stopped")
+
+@click.command("kill-port-forward")
+@click.argument("target", type=click.Choice(list(_PORT_FORWARD_TARGETS.keys())), required=False)
+@click.option("--all", "kill_all", is_flag=True, help="Kill all port-forwards")
+def kill_port_forward(target: str | None, kill_all: bool) -> None:
+    """Stop a port-forward started by `asya k port-forward`.
+
+    \b
+    Examples:
+      asya k kill-port-forward gateway
+      asya k kill-port-forward --all
+    """
+    if kill_all:
+        killed = 0
+        for t in _PORT_FORWARD_TARGETS:
+            if _kill_port_forward(t):
+                killed += 1
+        if killed == 0:
+            click.echo("[.] No port-forwards running")
+        return
+
+    if target is None:
+        raise click.UsageError("Specify a target or --all")
+    if not _kill_port_forward(target):
+        click.echo(f"[.] {target}: not running")
 
 
 # ---------------------------------------------------------------------------
@@ -896,21 +1023,12 @@ def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | 
 
 def _detect_gateway_url(runner: KubeRunner) -> str:
     """Detect gateway URL: check if port-forward is active, otherwise start one."""
-    from asya_lab.mcp.port_forward import find_free_port, start_port_forward
-
-    import socket
-
-    # Check if localhost:8080 is already forwarded
-    try:
-        with socket.create_connection(("127.0.0.1", 8080), timeout=1):
-            return "http://127.0.0.1:8080"
-    except OSError:
-        pass
+    existing = _is_port_forward_running("gateway")
+    if existing is not None:
+        return f"http://127.0.0.1:{existing}"
 
     ns = runner.namespace or "default"
-    local_port = find_free_port()
-    click.echo(f"[.] Starting port-forward to asya-gateway-api ({ns})...", err=True)
-    start_port_forward(ns, "asya-gateway-api", local_port, 80, check_health_enabled=True)
+    local_port = _start_port_forward("gateway", ns, None)
     return f"http://127.0.0.1:{local_port}"
 
 
@@ -929,6 +1047,7 @@ k.add_command(delete)
 k.add_command(k_status)
 k.add_command(logs)
 k.add_command(port_forward)
+k.add_command(kill_port_forward)
 k.add_command(send)
 k.add_command(edit)
 k.add_command(context_group)
