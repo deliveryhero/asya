@@ -43,10 +43,16 @@ Each component has its own `internal/tracing/` package:
 func Init(serviceName, namespace string) (shutdown func(context.Context) error, err error)
 ```
 
-- Creates `TracerProvider` with `autoexport` (reads `OTEL_EXPORTER_OTLP_ENDPOINT`)
-- Sets resource attributes: `service.name` (from `ASYA_ACTOR_NAME`), `service.namespace`
-- No-op when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset — zero overhead
+- Creates `TracerProvider` with explicit `otlptracegrpc.New()` exporter, reading
+  `OTEL_EXPORTER_OTLP_ENDPOINT` from config. ~40-50 lines of init code.
+- Sets resource attributes: `service.name` (programmatically from `ASYA_ACTOR_NAME`),
+  `service.namespace` (from `ASYA_NAMESPACE`). Users can override via `OTEL_SERVICE_NAME`
+  env var if needed (standard OTEL SDK precedence).
+- No-op when `OTEL_EXPORTER_OTLP_ENDPOINT` is unset — zero overhead, returns noop tracer
 - Called in `main.go` after config load; `defer shutdown(ctx)` on exit
+- **Timeout edge case**: Sidecar calls `os.Exit(1)` on runtime timeout, which
+  bypasses deferred shutdown. `ForceFlush(ctx)` must be called before `os.Exit`
+  to ensure the timed-out span is exported.
 
 **Gateway** (`src/asya-gateway/internal/tracing/tracing.go`):
 
@@ -55,14 +61,17 @@ func Init(serviceName, namespace string) (shutdown func(context.Context) error, 
 
 ### Environment Variables
 
-All standard OTEL env vars — no custom ones:
+Standard OTEL env vars — no custom ones:
 
 | Var | Example | Source |
 |---|---|---|
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://tempo:4317` | `spec.tracing.endpoint` or Helm value |
-| `OTEL_SERVICE_NAME` | `my-actor` | Auto-set from `ASYA_ACTOR_NAME` |
-| `OTEL_TRACES_SAMPLER` | `parentbased_traceidratio` | Optional |
-| `OTEL_TRACES_SAMPLER_ARG` | `0.1` | Optional |
+| `OTEL_TRACES_SAMPLER` | `parentbased_traceidratio` | Optional, via `spec.sidecar.env[]` passthrough |
+| `OTEL_TRACES_SAMPLER_ARG` | `0.1` | Optional, via `spec.sidecar.env[]` passthrough |
+
+`service.name` is set programmatically from `ASYA_ACTOR_NAME` (sidecar) or the
+gateway mode (gateway). Users can override via `OTEL_SERVICE_NAME` through the
+standard sidecar env passthrough if needed.
 
 ### Sidecar Span Structure
 
@@ -88,19 +97,34 @@ actor.process                              <- root span per envelope
     +-- attributes: asya.destination_queue, asya.message_type (routing/sink/sump)
 ```
 
-**Trace context propagation**:
+**Trace context propagation** (async messaging model):
+
+Asya uses asynchronous queue-based messaging. OTEL span kinds reflect this:
+- Gateway `queue.send` spans use `SpanKindProducer` — they end when the message
+  is enqueued.
+- Sidecar `actor.process` spans use `SpanKindConsumer` — they extract the
+  parent trace context from the envelope, continuing the same trace (same trace
+  ID) but as a new span tree. The consumer span does not extend the producer
+  span's duration.
+
+This is the standard OTEL messaging instrumentation pattern (same as Kafka,
+RabbitMQ, SQS OTEL instrumentation libraries).
 
 - **Inbound**: Extract `traceparent` + `tracestate` from `envelope.headers`
-  using W3C `propagation.TraceContext` propagator. Creates a child span linked
-  to the upstream actor's span.
-- **Outbound**: Inject updated `traceparent` + `tracestate` into outgoing
-  envelope's `headers` map before queue send.
+  using W3C `propagation.TraceContext` propagator. Creates a `SpanKindConsumer`
+  span continuing the trace from the upstream producer.
+- **Outbound**: `actor.queue.send` uses `SpanKindProducer`. Inject updated
+  `traceparent` + `tracestate` into outgoing envelope's `headers` map before
+  queue send. The producer span ends when the message is enqueued.
 - **Fan-out**: First yield keeps the current span context (preserves `msg.id`).
-  Each child envelope gets a new child span with its own `traceparent`, all
-  sharing the same trace ID. This mirrors the `msg.id` / `msg.parent_id` pattern.
+  Each child envelope gets a new child `SpanKindProducer` span with its own
+  `traceparent`, all sharing the same trace ID. This mirrors the `msg.id` /
+  `msg.parent_id` pattern.
 - **Handler header override**: If a handler overwrites headers via
   `yield "SET", ".headers", {...}`, the sidecar re-injects trace context into
-  the outgoing envelope. Trace context is sidecar-managed.
+  the outgoing envelope **after** the header merge logic in
+  `handleSuccessResponse` / `routeResponse`. Trace context is sidecar-managed
+  and always takes precedence over handler-set `traceparent`/`tracestate`.
 
 **User access**: Handlers can read trace context via
 `yield "GET", ".headers.traceparent"` for custom instrumentation.
@@ -131,20 +155,32 @@ spans via `otelhttp` middleware for free. No custom spans needed.
 
 ### End-to-End Trace Example
 
-A 3-actor flow (`actor-a -> actor-b -> actor-c`) produces this trace:
+A 3-actor flow (`actor-a -> actor-b -> actor-c`) produces this trace.
+All spans share the same trace ID. Producer spans end at enqueue time;
+consumer spans start when the sidecar dequeues. Tempo/Grafana renders
+them as a connected waterfall despite the async gaps:
 
 ```
-gateway.task.execute -------------------------------------------------------
-  +-- gateway.queue.send --
-       +-- actor-a.process ------------------------------------------
-            |-- actor-a.runtime.call ---------------------------
-            +-- actor-a.queue.send --
-                 +-- actor-b.process ----------------------------
-                      |-- actor-b.runtime.call ----------------
-                      +-- actor-b.queue.send --
-                           +-- actor-c.process -----------------
-                                |-- actor-c.runtime.call -----
-                                +-- actor-c.queue.send (to x-sink) --
+[gateway]  gateway.task.execute -----
+             +-- gateway.queue.send -   (SpanKindProducer, ends at enqueue)
+
+                     ... queue transit ...
+
+[actor-a]  actor-a.process ---------    (SpanKindConsumer, extracts traceparent)
+             |-- actor-a.runtime.call ---
+             +-- actor-a.queue.send -   (SpanKindProducer)
+
+                     ... queue transit ...
+
+[actor-b]  actor-b.process ---------    (SpanKindConsumer)
+             |-- actor-b.runtime.call ---
+             +-- actor-b.queue.send -   (SpanKindProducer)
+
+                     ... queue transit ...
+
+[actor-c]  actor-c.process ---------    (SpanKindConsumer)
+             |-- actor-c.runtime.call ---
+             +-- actor-c.queue.send -   (SpanKindProducer, to x-sink)
 ```
 
 ## Tempo Deployment (Playground Chart)
@@ -162,6 +198,11 @@ dependencies:
 
 ### Values
 
+Approximate values for the `grafana/tempo` chart (single-binary / monolithic mode).
+Exact schema must be verified against `helm show values grafana/tempo` during
+implementation — the Prometheus remote-write URL depends on the kube-prometheus-stack
+release name (e.g. `http://asya-monitoring-prometheus:9090/api/v1/write`).
+
 ```yaml
 sampleTracing:
   enabled: false
@@ -174,10 +215,7 @@ tempo:
     retention: 24h
     metricsGenerator:
       enabled: true
-      remoteWriteUrl: "http://prometheus:9090/api/v1/write"
-  server:
-    grpc_listen_port: 9095
-  distributor:
+      remoteWriteUrl: "http://<prometheus-service>:9090/api/v1/write"
     receivers:
       otlp:
         protocols:
@@ -254,8 +292,14 @@ tracing:
 
 ### Crew Chart (`asya-crew`)
 
-Crew actors are AsyncActor CRDs. Set `tracing.endpoint` per-actor in values so
-x-sink, x-sump, x-pause, x-resume participate in traces.
+Crew actors are AsyncActor CRDs rendered by Crossplane. The full config chain:
+1. Crew chart `values.yaml` gets a `tracing.endpoint` field
+2. Crew chart templates inject it into each AsyncActor CR's `spec.tracing.endpoint`
+3. The XRD validates the field
+4. The Crossplane composition injects `OTEL_EXPORTER_OTLP_ENDPOINT` into the
+   sidecar env block
+
+This enables x-sink, x-sump, x-pause, x-resume to participate in traces.
 
 ### Playground Chart
 
@@ -297,7 +341,9 @@ the Tempo service URL for gateway values.
 | No-op when endpoint unset | Zero overhead for users who don't need tracing |
 | Direct OTLP to Tempo (no Collector) | Simpler, Tempo accepts OTLP natively, users can point at any OTLP backend |
 | Official Tempo Helm subchart | Maintained by Grafana, no custom templates needed |
-| `autoexport` for SDK init | Reads standard OTEL env vars, ~20-30 lines of init code |
+| Explicit `otlptracegrpc` exporter | Stable, well-documented, ~40-50 lines init code |
+| `SpanKindProducer`/`Consumer` | Correct OTEL semantics for async queue-based messaging |
+| Trace ID stored in envelope headers | Gateway can store trace ID in PostgreSQL for direct "View Trace" links |
 
 ## Related Aints
 
@@ -315,12 +361,12 @@ the Tempo service URL for gateway values.
 | `src/asya-sidecar/internal/tracing/tracing.go` | New: OTEL SDK init |
 | `src/asya-sidecar/internal/router/router.go` | Span instrumentation in ProcessMessage |
 | `src/asya-sidecar/internal/runtime/client.go` | Span around CallRuntime |
-| `src/asya-sidecar/go.mod` | Add OTEL SDK + autoexport deps |
+| `src/asya-sidecar/go.mod` | Add OTEL SDK + otlptracegrpc deps |
 | `src/asya-gateway/internal/tracing/tracing.go` | New: OTEL SDK init |
 | `src/asya-gateway/internal/a2a/executor.go` | Root span in Execute |
 | `src/asya-gateway/internal/a2a/translator.go` | traceparent injection |
 | `src/asya-gateway/cmd/gateway/main.go` | Init tracing, otelhttp middleware |
-| `src/asya-gateway/go.mod` | Add OTEL SDK + autoexport deps |
+| `src/asya-gateway/go.mod` | Add OTEL SDK + otlptracegrpc deps |
 | `deploy/helm-charts/asya-crossplane/templates/xrd-asyncactor.yaml` | `spec.tracing.endpoint` field |
 | `deploy/helm-charts/asya-crossplane/templates/composition-*.yaml` | OTEL env var injection (x3) |
 | `deploy/helm-charts/asya-gateway/values.yaml` | `tracing.endpoint` |
