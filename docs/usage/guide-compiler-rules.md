@@ -46,6 +46,28 @@ Rules live in `.asya/config.compiler.rules.yaml` — a file delivered to you via
 compiler's knowledge base is not locked inside a package; it is a project
 artifact you read, modify, and version alongside your flow code.
 
+**Why the long filename?** Asya uses a filename-to-key convention: dotted parts
+in the filename become nested config keys. `config.compiler.rules.yaml`
+automatically maps to `compiler.rules` in the merged config tree. This means
+you can also define rules inside `config.yaml` under `compiler.rules:` — both
+sources are merged (extended, not replaced).
+
+**Subdirectory merging.** Asya walks up from the current directory to the git
+root, collecting all `.asya/` directories it finds. Config files are merged
+root-first, nearest-wins. Lists (like rules) are **extended** across
+directories, so a subdirectory's rules add to the parent's rules rather than
+replacing them:
+
+```
+project/
+  .asya/config.compiler.rules.yaml      # 2 rules (root)
+  pipelines/
+    .asya/config.compiler.rules.yaml    # 1 rule (subdirectory)
+```
+
+Compiling from `pipelines/` sees all 3 rules. Compiling from `project/` sees
+only the root 2.
+
 ### Pure syntactic mapping
 
 Rules operate on AST structure, not runtime values.
