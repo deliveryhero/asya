@@ -12,6 +12,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+
+import yaml
 
 
 class TreatAs(Enum):
@@ -100,6 +103,14 @@ class CompilerRule:
         return cls(match=d["match"], treat_as=treat_as, where=where)
 
 
+def _load_default_rules() -> list[dict]:
+    """Load default rules from the shipped YAML file."""
+    defaults_path = Path(__file__).parent.parent / "defaults" / "compiler.rules.yaml"
+    if defaults_path.exists():
+        return yaml.safe_load(defaults_path.read_text()) or []
+    return []
+
+
 class RuleEngine:
     """Classifies symbols against an ordered list of compiler rules.
 
@@ -132,8 +143,6 @@ class RuleEngine:
         User rules take precedence (overwrite defaults for the same match key).
         Defaults are loaded from ``asya_lab/defaults/compiler.rules.yaml``.
         """
-        from asya_lab.flow.rules import _load_default_rules
-
         defaults = [CompilerRule.from_dict(d) for d in _load_default_rules() if "where" in d]
         rules = defaults + list(extra_rules or [])
         return cls(rules)
