@@ -581,16 +581,24 @@ class CodeGenerator:
 
         # Generate one except_router per handler
         for handler_idx, handler in enumerate(op.handlers):
-            handler_inner = self._process_ops(handler.body, loop_ctx, continuation)
-            handler_terminal = self._is_terminal(handler.body)
-
-            if handler_terminal:
-                handler_chain = handler_inner
-            else:
-                handler_chain = handler_inner + after_try
-
             router_name = self._router_name("except", handler.lineno)
-            self._emit_except_router(router_name, handler_chain)
+
+            # Optimization: if handler body is flat (mutations + actor calls only),
+            # inline directly into the except router instead of creating a seq router.
+            if self._is_flat_body(handler.body):
+                handler_terminal = self._is_terminal(handler.body)
+                tail = [] if handler_terminal else after_try
+                mutations = [o for o in handler.body if isinstance(o, Mutation)]
+                actors = [o.name for o in handler.body if isinstance(o, ActorCall)]
+                self._emit_except_router_inline(router_name, mutations, actors + tail)
+            else:
+                handler_inner = self._process_ops(handler.body, loop_ctx, continuation)
+                handler_terminal = self._is_terminal(handler.body)
+                if handler_terminal:
+                    handler_chain = handler_inner
+                else:
+                    handler_chain = handler_inner + after_try
+                self._emit_except_router(router_name, handler_chain)
 
             if handler.error_types is not None:
                 policy_name = f"try_except_line_{op.lineno}_{handler_idx}"
@@ -629,6 +637,34 @@ class CodeGenerator:
             elif isinstance(op, TryExcept):
                 names.extend(CodeGenerator._collect_actor_names(op.body))
         return names
+
+    @staticmethod
+    def _is_flat_body(ops: list[Operation]) -> bool:
+        """Check if ops are a flat sequence of Mutations, ActorCalls, and Returns."""
+        return all(isinstance(o, Mutation | ActorCall | Return) for o in ops)
+
+    def _emit_except_router_inline(self, name: str, mutations: list[Mutation], handler_chain: list[str]) -> None:
+        """Generate an except_router with inlined mutations and route overwrite."""
+        lines = []
+        lines.append(f"async def {name}(payload: dict):")
+        lines.append('    """Router for error handling (except clause)"""')
+
+        if mutations:
+            lines.append("    p = payload")
+            for m in mutations:
+                lines.append(f"    {m.code}")
+
+        if handler_chain:
+            resolved = ", ".join(f"resolve({a!r})" for a in handler_chain)
+            self._all_handlers.update(handler_chain)
+            lines.append(f'    yield "SET", ".route.next", [{resolved}]')
+        else:
+            lines.append('    yield "SET", ".route.next", []')
+
+        lines.append("    yield payload")
+        lines.append("")
+
+        self._functions.append(_RouterFunc(name=name, code="\n".join(lines)))
 
     def _emit_except_router(self, name: str, handler_chain: list[str]) -> None:
         """Generate an except_router that overwrites route.next with the handler's path."""
