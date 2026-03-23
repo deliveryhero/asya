@@ -347,72 +347,65 @@ jobs:
   update-release-body:
     name: Append deployed versions to release
     runs-on: ubuntu-latest
-    needs: [build-and-publish, publish-helm-charts]
+    needs: [build-and-publish, publish-helm-charts, publish-pypi]
     if: github.event.action == 'published'
     permissions:
       contents: write
 
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
     steps:
     - name: Append versions footer
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const version = '${{ github.event.release.tag_name }}'.replace(/^v/, '');
-          const owner = '${{ github.repository_owner }}';
+      run: |
+        TAG="${{ github.event.release.tag_name }}"
+        VERSION="${TAG#v}"
+        OWNER="${{ github.repository_owner }}"
+        REPO="${{ github.repository }}"
 
-          const footer = [
-            '',
-            '---',
-            '',
-            '## Deployed Versions',
-            '',
-            '### Helm Charts',
-            '',
-            `All charts published at version \`${version}\` to [asya.sh/charts](https://asya.sh/charts).`,
-            '',
-            '| Chart | Version |',
-            '|-------|---------|',
-            `| asya-crossplane | \`${version}\` |`,
-            `| asya-crew | \`${version}\` |`,
-            `| asya-gateway | \`${version}\` |`,
-            `| asya-playground | \`${version}\` |`,
-            '',
-            '### Docker Images',
-            '',
-            '| Image | Tag |',
-            '|-------|-----|',
-            `| \`ghcr.io/${owner}/asya-gateway\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/asya-sidecar\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/asya-crew\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/asya-lab\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/asya-scalers\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/asya-ui\` | \`${version}\` |`,
-            `| \`ghcr.io/${owner}/function-asya-flavors\` | \`${version}\` |`,
-            '',
-            '### PyPI',
-            '',
-            `| Package | Version |`,
-            `|---------|---------|`,
-            `| [asya-lab](https://pypi.org/project/asya-lab/${version}/) | \`${version}\` |`,
-            '',
-            `For installation instructions, see [asya.sh](https://asya.sh).`,
-          ].join('\n');
+        BODY=$(gh release view "$TAG" --repo "$REPO" --json body -q .body)
+        if echo "$BODY" | grep -q '## Deployed Versions'; then
+          echo "[!] Release body already contains deployed versions, skipping"
+          exit 0
+        fi
 
-          const release = await github.rest.repos.getRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            release_id: context.payload.release.id,
-          });
+        FOOTER=$(cat <<EOF
 
-          const currentBody = release.data.body || '';
-          if (currentBody.includes('## Deployed Versions')) {
-            core.info('Release body already contains deployed versions, skipping');
-            return;
-          }
+        ---
 
-          await github.rest.repos.updateRelease({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            release_id: context.payload.release.id,
-            body: currentBody + footer,
-          });
+        ## Deployed Versions
+
+        ### Helm Charts
+
+        All charts published at version \`${VERSION}\` to [asya.sh/charts](https://asya.sh/charts).
+
+        | Chart | Version |
+        |-------|---------|
+        | asya-crossplane | \`${VERSION}\` |
+        | asya-crew | \`${VERSION}\` |
+        | asya-gateway | \`${VERSION}\` |
+        | asya-playground | \`${VERSION}\` |
+
+        ### Docker Images
+
+        | Image | Tag |
+        |-------|-----|
+        | \`ghcr.io/${OWNER}/asya-gateway\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/asya-sidecar\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/asya-crew\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/asya-lab\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/asya-scalers\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/asya-ui\` | \`${VERSION}\` |
+        | \`ghcr.io/${OWNER}/function-asya-flavors\` | \`${VERSION}\` |
+
+        ### PyPI
+
+        | Package | Version |
+        |---------|---------|
+        | [asya-lab](https://pypi.org/project/asya-lab/${VERSION}/) | \`${VERSION}\` |
+
+        For installation instructions, see [asya.sh](https://asya.sh).
+        EOF
+        )
+
+        echo "${BODY}${FOOTER}" | gh release edit "$TAG" --repo "$REPO" --notes-file -
