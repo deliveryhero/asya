@@ -137,9 +137,16 @@ spec:
         {{- end }}
       volumes:
       - name: gateway-flows
-        configMap:
-          name: {{ include "asya-gateway.fullname" . }}-flows
-          optional: true
+        projected:
+          sources:
+          - configMap:
+              name: {{ include "asya-gateway.fullname" . }}-flows
+              optional: true
+          {{- range .Values.flowConfigMaps }}
+          - configMap:
+              name: {{ . | quote }}
+              optional: true
+          {{- end }}
       {{- with .Values.volumes }}
       {{- toYaml . | nindent 6 }}
       {{- end }}

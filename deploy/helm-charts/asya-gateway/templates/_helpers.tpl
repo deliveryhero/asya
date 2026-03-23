@@ -146,7 +146,7 @@ Validate transport configuration - ensure exactly one transport is enabled
 {{- end }}
 
 {{/*
-Fully qualified name for the api deployment/service.
+Fully qualified name for the API deployment/service.
 */}}
 {{- define "asya-gateway.api.fullname" -}}
 {{- printf "%s-api" (include "asya-gateway.fullname" .) | trunc 63 | trimSuffix "-" }}
