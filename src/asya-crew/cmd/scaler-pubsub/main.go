@@ -67,7 +67,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := grpc.NewServer()
+	// In-cluster gRPC server — TLS is handled by the service mesh / network policy.
+	// KEDA external scalers use plaintext gRPC by convention.
+	srv := grpc.NewServer() // #nosec G114 -- in-cluster only, no TLS needed
 	pb.RegisterExternalScalerServer(srv, scaler)
 
 	healthSrv := health.NewServer()
