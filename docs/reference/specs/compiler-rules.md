@@ -17,19 +17,64 @@ maps a fully-qualified Python symbol to a compiler behavior (`treat-as`) and
 optionally extracts parameter values into AsyncActor manifest fields via a
 `where:` tree.
 
-The design principles:
-
-- **Pure syntactic mapping** — rules operate on AST nodes, not runtime values.
-  No hidden magic; every extraction is declared in YAML.
-- **Extensible knowledge base** — shipped defaults cover common libraries
-  (tenacity, asyncio, stamina). Users add project-specific rules without
-  modifying compiler code.
-- **Scope auto-detection** — the parser infers scope from Python syntax
-  (`with` = context manager, `@` = decorator, `p = call(p)` = call-site).
-  No `scope:` field in rules.
-
 Source: `src/asya-lab/asya_lab/compiler/rules.py`,
 `src/asya-lab/asya_lab/compiler/extractor.py`
+
+---
+
+## Design principles
+
+### Explicit over implicit
+
+The rules file is the single source of truth for how the compiler interprets
+Python constructs. There is no hardcoded behavior inside the compiler for any
+specific library — tenacity, asyncio, stamina are all handled through the same
+rule mechanism that users extend. If a rule is not declared, the construct is
+not recognized.
+
+This means you can always answer "what does the compiler do with `@retry`?" by
+reading the YAML:
+
+```yaml
+- match: "tenacity.retry"
+  treat-as: config
+  where:
+  - param: stop
+    ...
+```
+
+No source diving, no special cases, no hidden logic.
+
+### User-accessible configuration
+
+Rules live in `.asya/config.compiler.rules.yaml` — a file delivered to the user
+via `asya init`, checked into their project, and fully under their control. The
+compiler's knowledge base is not locked inside a package; it is a project
+artifact that users read, modify, and version alongside their flow code.
+
+Shipped defaults extend automatically (users do not need to copy them), but
+they can be inspected at any time in
+`src/asya-lab/asya_lab/defaults/compiler.rules.yaml` and overridden per-project
+by declaring a rule with the same `match` key.
+
+### Pure syntactic mapping
+
+Rules operate on AST nodes, not runtime values. The extractor reads literal
+constants, names, and operator trees directly from the Python syntax tree.
+There is no import execution, no decorator invocation, no side effects during
+compilation. The mapping from Python construct to manifest field is a static,
+deterministic transformation.
+
+### Scope auto-detection
+
+The parser infers scope from Python syntax — no `scope:` field in rules:
+
+- `with foo():` = context manager (applies to all actors in the body)
+- `@foo(...)` = decorator (applies to the decorated function)
+- `p = foo(p)` = call-site
+
+The rule author declares *what* to match and *what* to extract. The compiler
+determines *where* the construct appears.
 
 ---
 

@@ -20,15 +20,38 @@ Compiler rules answer these questions. Each rule maps a Python symbol to a
 compiler behavior and optionally tells the compiler how to extract parameter
 values into AsyncActor manifest fields.
 
-The key design points:
+### Explicit over implicit
 
-- **No hidden magic** — every extraction is declared in YAML. You can read the
-  rules file and know exactly what the compiler will do.
-- **Pure syntactic mapping** — rules operate on AST structure, not runtime
-  values. `@retry(stop=stop_after_attempt(3))` is matched and extracted at
-  compile time; `3` is a literal the compiler reads from the syntax tree.
-- **Extensible** — defaults cover common libraries. Add your own rules for
-  project-specific decorators without touching compiler code.
+The central design principle: **the rules file is the single source of truth**.
+There is no hardcoded behavior for any specific library inside the compiler.
+Tenacity, asyncio, stamina — all handled through the same rule mechanism that
+you extend for your own project.
+
+If you want to know what the compiler does with `@retry(...)`, read the YAML:
+
+```yaml
+- match: "tenacity.retry"
+  treat-as: config
+  where:
+  - param: stop
+    ...
+```
+
+No source diving required. No hidden magic.
+
+### User-accessible configuration
+
+Rules live in `.asya/config.compiler.rules.yaml` — a file delivered to you via
+`asya init`, checked into your project, fully under your control. The
+compiler's knowledge base is not locked inside a package; it is a project
+artifact you read, modify, and version alongside your flow code.
+
+### Pure syntactic mapping
+
+Rules operate on AST structure, not runtime values.
+`@retry(stop=stop_after_attempt(3))` is matched and extracted at compile time;
+`3` is a literal the compiler reads directly from the syntax tree. No decorator
+invocation, no imports executed, no side effects.
 
 ---
 
