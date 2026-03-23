@@ -613,6 +613,10 @@ def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: 
     if not containers:
         containers = ("asya-runtime",)
 
+    # Follow mode: show only new logs (no history dump)
+    if follow and tail is None:
+        tail = 0
+
     runner = KubeRunner(ctx)
     _stream_colored_logs(runner, target.name, list(containers), follow, tail)
 

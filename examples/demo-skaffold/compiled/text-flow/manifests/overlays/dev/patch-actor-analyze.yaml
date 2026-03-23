@@ -1,0 +1,7 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-analyze
+spec:
+  scaling:
+    minReplicaCount: 1
