@@ -7,7 +7,7 @@ metadata:
 spec:
   actor: actor-generate
   image: demo-kubecon
-  handler: actors.generate.generate
+  handler: adapter_generate.adapter_generate
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -15,3 +15,12 @@ spec:
   env:
   - name: PYTHONUNBUFFERED
     value: '1'
+  volumes:
+  - name: adapter
+    configMap:
+      name: text-improver-generate-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_generate.py
+    subPath: adapter_generate.py
+    readOnly: true

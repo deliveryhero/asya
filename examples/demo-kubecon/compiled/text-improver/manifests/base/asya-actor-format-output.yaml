@@ -8,7 +8,7 @@ metadata:
 spec:
   actor: actor-format-output
   image: demo-kubecon
-  handler: actors.format_output.format_output
+  handler: adapter_format_output.adapter_format_output
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -16,3 +16,12 @@ spec:
   env:
   - name: PYTHONUNBUFFERED
     value: '1'
+  volumes:
+  - name: adapter
+    configMap:
+      name: text-improver-format-output-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_format_output.py
+    subPath: adapter_format_output.py
+    readOnly: true

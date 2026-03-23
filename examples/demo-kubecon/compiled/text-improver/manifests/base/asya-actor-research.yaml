@@ -7,7 +7,7 @@ metadata:
 spec:
   actor: actor-research
   image: demo-kubecon
-  handler: actors.research.research
+  handler: adapter_research.adapter_research
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -15,3 +15,12 @@ spec:
   env:
   - name: PYTHONUNBUFFERED
     value: '1'
+  volumes:
+  - name: adapter
+    configMap:
+      name: text-improver-research-adapter
+  volumeMounts:
+  - name: adapter
+    mountPath: /opt/asya/adapter_research.py
+    subPath: adapter_research.py
+    readOnly: true

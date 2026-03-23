@@ -196,6 +196,13 @@ class ManifestTemplater:
         if actor.generated:
             self._inject_router_configmap_mount(manifest)
 
+        # Mount adapter ConfigMap for adapter actors
+        if not actor.generated and self.codegen_meta.adapter_files:
+            for af in self.codegen_meta.adapter_files:
+                if af.actor_name == actor.name.replace("actor-", "").replace("-", "_"):
+                    self._inject_adapter_configmap_mount(manifest, af)
+                    break
+
         # Inject compiler-generated resiliency config
         if not actor.generated:
             self._inject_retry_rules(manifest, actor)
@@ -539,6 +546,29 @@ images:
             }
         )
 
+    def _inject_adapter_configmap_mount(self, manifest: dict, af: "AdapterFile") -> None:
+        """Mount an adapter ConfigMap at /opt/asya/<adapter>.py for adapter actors.
+
+        The adapter wraps the original function to conform to dict-in/dict-out protocol.
+        Mounted at /opt/asya/ which is on sys.path (runtime starts from /opt/asya/).
+        """
+        k8s_name = self._to_k8s_name(af.actor_name)
+        cm_name = f"{self.flow_name}-{k8s_name}-adapter"
+        spec = manifest.setdefault("spec", {})
+
+        volumes = spec.setdefault("volumes", [])
+        volumes.append({"name": "adapter", "configMap": {"name": cm_name}})
+
+        mounts = spec.setdefault("volumeMounts", [])
+        mounts.append(
+            {
+                "name": "adapter",
+                "mountPath": f"/opt/asya/{af.filename}",
+                "subPath": af.filename,
+                "readOnly": True,
+            }
+        )
+
     # -- actor collection ---------------------------------------------------
 
     def _collect_actors(self) -> list[ActorInfo]:
@@ -577,6 +607,13 @@ images:
                     )
                     k8s_name = f"actor-{self._to_k8s_name(actor_name)}"
                     handler = handler_fqn
+                    # Use adapter handler if an adapter was generated
+                    if self.codegen_meta.adapter_files:
+                        for af in self.codegen_meta.adapter_files:
+                            if af.actor_name == actor_name:
+                                adapter_fn = f"adapter_{actor_name}"
+                                handler = f"{adapter_fn}.{adapter_fn}"
+                                break
                     # Graph-derived role overrides the default "actor" role
                     role = self.flow_roles.get(actor_name, "actor")
                     handler_actors[actor_name] = ActorInfo(
