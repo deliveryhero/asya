@@ -17,9 +17,15 @@ async def start_greet_flow(payload: dict):
     """Entrypoint for flow 'greet_flow'"""
     _next = []
     _next.append(resolve("greet"))
-    _next.append(resolve("shout"))
+    _next.append(resolve("router_greet_flow_seq_p_shout_p"))
     yield "SET", ".route.next[:0]", _next
     yield payload
+
+async def router_greet_flow_seq_p_shout_p(payload: dict):
+    """Router for control flow and payload mutations"""
+    p = payload
+    p = shout(p)
+    yield p
 
 
 # ======================================================================

@@ -2,13 +2,13 @@ flowchart TD
     %% Flow: greet_flow
 
     greet[greet]
-    shout[shout]
+    router_greet_flow_seq_p_shout_p{{router_greet_flow_seq_p_shout_p}}
     start_greet_flow([start_greet_flow])
     __end__((( )))
 
     start_greet_flow --> greet
-    greet --> shout
-    shout --> __end__
+    greet --> router_greet_flow_seq_p_shout_p
+    router_greet_flow_seq_p_shout_p --> __end__
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -16,6 +16,6 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_greet_flow start
-    class shout endnode
+    class router_greet_flow_seq_p_shout_p router
     class greet handler
     class __end__ endpoint

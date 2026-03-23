@@ -18,8 +18,8 @@ spec:
   env:
   - name: ASYA_HANDLER_ACTOR_GREET
     value: greeter.greet
-  - name: ASYA_HANDLER_ACTOR_SHOUT
-    value: shouter.shout
+  - name: ASYA_HANDLER_ROUTER_GREET_FLOW_SEQ_P_SHOUT_P
+    value: routers.router_greet_flow_seq_p_shout_p
   volumes:
   - name: routers
     configMap:

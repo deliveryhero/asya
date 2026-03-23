@@ -14,8 +14,8 @@ compile, build, expose, deploy, test, observe.
 # Set your registry (Artifact Registry, GCR, etc.)
 export REGISTRY=europe-west1-docker.pkg.dev/YOUR_PROJECT/YOUR_REPO
 
-# Install asya CLI
-uv pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
+# # Install asya CLI
+# uv pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
 ```
 
 All commands run from `examples/demo-skaffold/`.
@@ -35,7 +35,7 @@ cd examples/demo-skaffold
 ### 1. Compile
 
 ```bash
-asya compile text-flow -f src/team-a/proper-package/nlp/text_flow.py
+uv run --project ../../src/asya-lab asya compile text-flow -f src/team-a/proper-package/nlp/text_flow.py
 ```
 
 Output:
@@ -81,7 +81,7 @@ that `AsyncActor.spec.image` is an image field.
 ### 4. Expose via gateway
 
 ```bash
-asya expose text-flow -d "Analyze text sentiment and summarize" --mcp --a2a --context dev
+uv run --project ../../src/asya-lab asya expose text-flow -d "Analyze text sentiment and summarize" --mcp --a2a --context dev
 ```
 
 This creates the gateway-flows ConfigMap in `common/flow-expose.yaml` and
@@ -90,7 +90,7 @@ enables it for the `dev` context (copies to `overlays/dev/`).
 ### 5. Deploy
 
 ```bash
-asya k apply text-flow --context dev
+uv run --project ../../src/asya-lab asya k apply text-flow --context dev
 ```
 
 This does three things:
@@ -102,7 +102,7 @@ This does three things:
 
 ```bash
 # Check actors
-asya k status text-flow
+uv run --project ../../src/asya-lab asya k status text-flow
 
 # Check pods
 kubectl get pods -n asya-demo -l asya.sh/flow=text-flow
@@ -137,20 +137,20 @@ Expected: `"state": "completed"`
 
 ```bash
 # Tail last 5 lines per actor
-asya k logs text-flow --tail 5
+uv run --project ../../src/asya-lab asya k logs text-flow --tail 5
 
 # Follow mode (live streaming)
-asya k logs text-flow -f
+uv run --project ../../src/asya-lab asya k logs text-flow -f
 
 # Both runtime and sidecar containers
-asya k logs text-flow -f -c asya-runtime -c asya-sidecar
+uv run --project ../../src/asya-lab asya k logs text-flow -f -c asya-runtime -c asya-sidecar
 ```
 
 ### 9. Clean up
 
 ```bash
-asya k delete text-flow
-asya unexpose text-flow --context dev
+uv run --project ../../src/asya-lab asya k delete text-flow
+uv run --project ../../src/asya-lab asya unexpose text-flow --context dev
 ```
 
 ---
@@ -171,7 +171,7 @@ This flow demonstrates:
 ### 1. Compile
 
 ```bash
-asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py
+uv run --project ../../src/asya-lab asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py
 ```
 
 The compiler automatically:
@@ -201,7 +201,7 @@ wrapper for the `payload["greeting"] = greet(payload)` call pattern.
 If you need to add import paths manually (e.g. for cross-team imports):
 
 ```bash
-asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py -I src/team-b/bare-scripts
+uv run --project ../../src/asya-lab asya compile greet-flow -f src/team-b/bare-scripts/greet_flow.py -I src/team-b/bare-scripts
 ```
 
 ### 2. Build and push image
@@ -228,8 +228,8 @@ images:
 ### 4. Expose and deploy
 
 ```bash
-asya expose greet-flow -d "Greet and shout" --mcp --a2a --context dev
-asya k apply greet-flow --context dev
+uv run --project ../../src/asya-lab asya expose greet-flow -d "Greet and shout" --mcp --a2a --context dev
+uv run --project ../../src/asya-lab asya k apply greet-flow --context dev
 ```
 
 ### 5. Test
@@ -258,7 +258,7 @@ the gateway which flow to route to.
 ### 6. View logs
 
 ```bash
-asya k logs greet-flow -f
+uv run --project ../../src/asya-lab asya k logs greet-flow -f
 ```
 
 ---
@@ -272,10 +272,10 @@ compiled/<flow>/manifests/
   base/                    # Compiler-generated, regenerated on every compile
   common/                  # User customizations, preserved across recompiles
     kustomizeconfig.yaml   # Teaches kustomize about AsyncActor.spec.image
-    flow-expose.yaml       # Gateway flow config (created by asya expose)
+    flow-expose.yaml       # Gateway flow config (created by uv run --project ../../src/asya-lab asya expose)
   overlays/
     dev/                   # Per-environment overrides
-      flow-expose.yaml     # Enabled for dev (copied by asya expose --context dev)
+      flow-expose.yaml     # Enabled for dev (copied by uv run --project ../../src/asya-lab asya expose --context dev)
 ```
 
 ### Image resolution
@@ -293,7 +293,7 @@ image names with full registry paths at deploy time.
 
 ### Gateway flow registration
 
-`asya k apply` automatically patches the gateway deployment to mount per-flow
+`uv run --project ../../src/asya-lab asya k apply` automatically patches the gateway deployment to mount per-flow
 ConfigMaps via projected volumes. No Helm upgrade needed. The gateway reads all
 `*.yaml` files in `/etc/asya/flows/` and hot-reloads every 10 seconds.
 

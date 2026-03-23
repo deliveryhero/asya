@@ -8,4 +8,4 @@ configurations:
 images:
 - name: src-team-a-proper-package
   newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/src-team-a-proper-package
-  newTag: "v0.5.9-41-g8d3308d8-dirty"
+  newTag: v0.5.10-51-g6706917a

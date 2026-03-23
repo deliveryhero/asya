@@ -271,3 +271,82 @@ Updated `docs/setup/start-aws-eks.md`:
 
 - **debt/mqd9**: Composition status pipeline never updates infrastructure.keda.ready
 - **debt/msic**: Sidecar + runtime don't log error content before routing to x-sump
+
+---
+
+## Session 2: 2026-03-23 — skaffold integration + CLI features
+
+### Platform upgrade
+
+- Upgraded all charts to v0.5.10 (asya-crossplane, asya-crew, asya-gateway)
+- Gateway SA patched to use `default` KSA (has WI binding) via Helm values:
+  `serviceAccount.create=false, serviceAccount.name=default`
+
+### KEDA fix
+
+KEDA ScaledObjects were `Ready: False` due to two issues:
+
+1. **Missing `gcp-keda-secret`** in `asya-demo` namespace — created from actor SA key
+2. **Missing `monitoring.viewer` role** on actor SA — KEDA needs this to read
+   Pub/Sub subscription metrics via Cloud Monitoring API
+
+Fix:
+```bash
+gcloud projects add-iam-policy-binding $PROJECT \
+  --member="serviceAccount:asya-demo-actor@${PROJECT}.iam.gserviceaccount.com" \
+  --role="roles/monitoring.viewer"
+
+gcloud iam service-accounts keys create /tmp/keda-key.json \
+  --iam-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
+kubectl create secret generic gcp-keda-secret -n asya-demo \
+  --from-file=credentials.json=/tmp/keda-key.json
+
+kubectl rollout restart deployment/keda-operator -n keda
+```
+
+After fix: all ScaledObjects `Ready: True`.
+
+Key learning: use a **single GCP SA** for actors and KEDA (not separate SAs).
+The actor SA needs `monitoring.viewer` + `pubsub.viewer` in addition to
+`pubsub.publisher` + `pubsub.subscriber`.
+
+### Namespace lesson
+
+Gateway and actors MUST share the same `ASYA_NAMESPACE` for Pub/Sub topic routing.
+Topic format: `asya-{namespace}-{actor-name}`. Originally deployed actors to
+`demo-skaffold` namespace but gateway uses `ASYA_NAMESPACE=asya-demo`. Messages
+never arrived. Fixed by deploying actors to `asya-demo`.
+
+### New CLI features implemented
+
+1. **`asya k logs <flow>`** — docker-compose-style colored actor-name prefixes,
+   `-f` follow, `-c` multi-container
+2. **`asya compile -I <dir>`** — add import paths for bare-script handlers
+3. **`asya expose <flow> --context dev`** — kustomize-native flow registration
+   with per-environment toggle
+4. **`asya k apply`** — auto-registers per-flow CMs with gateway (patches
+   projected volume)
+5. **Compiler: skaffold sys.path** — auto-adds skaffold artifact context dirs
+   to sys.path for bare-script imports
+6. **Compiler: router ConfigMap mount** — generated router actors now mount
+   the routers ConfigMap at `/opt/asya/routers.py`
+7. **Compiler: kustomizeconfig.yaml** — generated in common/ so kustomize
+   `images:` transformer works with AsyncActor CRD
+
+### Gateway Helm chart change
+
+- Changed volume from `configMap` to `projected` — supports multiple per-flow CMs
+- Added `flowConfigMaps: []` values field for listing additional flow CMs
+- `asya k apply` auto-patches the deployment to add new flow CMs
+
+### Bugs filed
+
+- **debt/jhre**: FLY events use 500ms DB poll between mesh and api gateways
+- **asya-lab/asse**: Document skaffold as Python source resolver
+
+### Docs updated
+
+- `docs/usage/guide-streaming.md`: MCP vs A2A comparison, FLY latency section
+- `docs/setup/guide-gateway.md`: CLI-first flow registration workflow
+- `docs/install/gcp-gke.md`: KEDA auth fix (single SA, WI support)
+- `examples/demo-skaffold/STEPS.md`: full step-by-step for both flows
