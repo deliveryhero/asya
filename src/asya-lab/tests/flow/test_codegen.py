@@ -425,3 +425,117 @@ class TestAsyncFlows:
         """)
         funcs = _func_names(code)
         assert "start_my_flow" in funcs
+
+
+class TestAdapterCodegen:
+    """Adapter calls generate adapter files and route correctly."""
+
+    def test_adapter_call_generates_adapter_file(self):
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="get_weather",
+                    lineno=3,
+                    input_args=["p['city']", "p['time']"],
+                    output_path="p['result']",
+                    is_async=True,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["get_weather"],
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        assert len(meta.adapter_files) == 1
+        af = meta.adapter_files[0]
+        assert af.actor_name == "get_weather"
+        assert af.filename == "adapter_get_weather.py"
+        assert "async def adapter_get_weather(payload: dict):" in af.code
+        assert "await get_weather(p['city'], p['time'])" in af.code
+        assert "payload['result'] = _result" in af.code
+        assert "yield payload" in af.code
+
+    def test_adapter_call_sync(self):
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="process",
+                    lineno=3,
+                    input_args=["p['x']"],
+                    output_path="p['out']",
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["process"],
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "def adapter_process(payload: dict):" in af.code
+        assert "await" not in af.code
+
+    def test_adapter_no_output_path(self):
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="transform",
+                    lineno=3,
+                    input_args=["p['a']", "p['b']"],
+                    output_path=None,
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["transform"],
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "payload = _result" in af.code
+
+    def test_adapter_appears_in_routing(self):
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import ActorCall, AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="get_weather",
+                    lineno=3,
+                    input_args=["p['city']"],
+                    output_path="p['weather']",
+                ),
+                ActorCall(name="handler_b", lineno=4),
+                Return(lineno=5),
+            ],
+            actors=["get_weather", "handler_b"],
+        )
+        codegen = CodeGenerator(result, "test.py")
+        code = codegen.generate()
+
+        # Adapter actor should appear in routing like any other actor
+        assert 'resolve("get_weather")' in code
+        assert 'resolve("handler_b")' in code

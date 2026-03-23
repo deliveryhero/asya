@@ -1089,7 +1089,7 @@ class FlowParser:
         """Collect actor names from operations, recursing into nested structures."""
         actors: list[str] = []
         for op in ops:
-            if isinstance(op, ActorCall):
+            if isinstance(op, ActorCall | AdapterCall):
                 actors.append(op.name)
             elif isinstance(op, Conditional):
                 actors.extend(FlowParser._collect_scope_actors(op.true_branch))

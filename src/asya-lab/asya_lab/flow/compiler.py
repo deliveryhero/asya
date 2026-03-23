@@ -184,11 +184,11 @@ class FlowCompiler:
         """Returns the actor name if this is a single-actor flow, else None."""
         if self._parse_result is None:
             return None
-        from asya_lab.flow.parser import ActorCall, Return
+        from asya_lab.flow.parser import ActorCall, AdapterCall, Return
 
         ops = self._parse_result.operations
-        actor_calls = [op for op in ops if isinstance(op, ActorCall)]
-        non_actor = [op for op in ops if not isinstance(op, ActorCall | Return)]
+        actor_calls = [op for op in ops if isinstance(op, ActorCall | AdapterCall)]
+        non_actor = [op for op in ops if not isinstance(op, ActorCall | AdapterCall | Return)]
         if len(actor_calls) == 1 and len(non_actor) == 0:
             return actor_calls[0].name
         return None
