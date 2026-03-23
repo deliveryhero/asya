@@ -6,10 +6,6 @@
       "label": "analyze"
     },
     {
-      "id": "analyze:2",
-      "label": "analyze"
-    },
-    {
       "id": "start_text_flow",
       "label": "start_text_flow",
       "role": "start",
@@ -30,12 +26,6 @@
     },
     {
       "from": "analyze",
-      "to": "analyze:2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "analyze:2",
       "to": "summarize",
       "label": null,
       "type": "continuation"

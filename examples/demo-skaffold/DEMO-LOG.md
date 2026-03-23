@@ -76,7 +76,7 @@ After initial platform install, apply these optimizations for demo speed:
 ```bash
 export CTX=gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
 export PROJECT=foodsci-img-gen-dev-1407-1448
-export ASYA_VERSION=0.5.11
+export ASYA_VEdRSION=0.5.11
 
 # 1. Crossplane poll interval: 10s instead of default 1m
 kubectl --context $CTX patch deployment crossplane -n crossplane-system --type=json \

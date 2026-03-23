@@ -2,14 +2,12 @@ flowchart TD
     %% Flow: text_flow
 
     analyze[analyze]
-    analyze_2[analyze]
     start_text_flow([start_text_flow])
     summarize[summarize]
     __end__((( )))
 
     start_text_flow --> analyze
-    analyze --> analyze_2
-    analyze_2 --> summarize
+    analyze --> summarize
     summarize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -19,5 +17,5 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_text_flow start
     class summarize endnode
-    class analyze,analyze_2 handler
+    class analyze handler
     class __end__ endpoint

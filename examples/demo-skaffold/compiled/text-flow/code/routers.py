@@ -17,7 +17,6 @@ async def start_text_flow(payload: dict):
     """Entrypoint for flow 'text_flow'"""
     _next = []
     _next.append(resolve("analyze"))
-    _next.append(resolve("analyze"))
     _next.append(resolve("summarize"))
     yield "SET", ".route.next[:0]", _next
     yield payload

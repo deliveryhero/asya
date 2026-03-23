@@ -239,8 +239,11 @@ def _register_flow_with_gateway(runner: KubeRunner, flow_name: str) -> None:
     if vol_idx is None:
         return
 
-    # Count existing sources to append at the end
-    sources = volumes[vol_idx].get("projected", {}).get("sources", [])
+    # Only works with projected volumes (requires chart change)
+    if "projected" not in volumes[vol_idx]:
+        return
+
+    sources = volumes[vol_idx]["projected"].get("sources", [])
     source_idx = len(sources)
 
     patch = [
@@ -262,8 +265,6 @@ def _register_flow_with_gateway(runner: KubeRunner, flow_name: str) -> None:
     )
     if patch_result.returncode == 0:
         click.echo(f"[+] Registered flow '{flow_name}' with gateway (projected volume)")
-    else:
-        click.echo(f"[!] Could not register flow with gateway: {patch_result.stderr.strip()}", err=True)
 
 
 @click.command()

@@ -12,7 +12,11 @@ compile, build, expose, deploy, test, observe.
 
 ```bash
 # Set your registry (Artifact Registry, GCR, etc.)
-export REGISTRY=europe-west1-docker.pkg.dev/YOUR_PROJECT/YOUR_REPO
+export GCP_PROJECT=foodsci-img-gen-dev-1407-1448
+export REGION=europe-west1
+export REPO=asya-demo
+export REGISTRY=${REGION}-docker.pkg.dev/${GCP_PROJECT}/${REPO}
+
 
 # # Install asya CLI
 # uv pip install git+https://github.com/deliveryhero/asya.git#subdirectory=src/asya-lab
