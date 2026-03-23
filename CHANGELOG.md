@@ -6,6 +6,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.10] - 2026-03-23
+
+## What's Changed
+* docs: add governance files and update copyright by @atemate in https://github.com/deliveryhero/asya/pull/358
+* Update CHANGELOG.md for v0.5.9 by @github-actions[bot] in https://github.com/deliveryhero/asya/pull/359
+* docs: use sun/moon icons for theme toggle on landing page by @atemate in https://github.com/deliveryhero/asya/pull/360
+* fix(docs): align header logo with sidebar nav on desktop by @atemate in https://github.com/deliveryhero/asya/pull/361
+* feat(compiler): unify rules — config-driven, no wildcards [hppv] by @atemate in https://github.com/deliveryhero/asya/pull/356
+* feat(compiler): fix def-line directives, tenacity where-tree extraction, resiliency examples [o05n] by @atemate in https://github.com/deliveryhero/asya/pull/362
+* fix: Semantic router naming: AST-based instead of line-number-based [tos9] by @atemate in https://github.com/deliveryhero/asya/pull/366
+* fix(website): mobile responsive layout for landing page and docs by @atemate in https://github.com/deliveryhero/asya/pull/367
+* docs(compiler): add compiler rules reference spec and usage guide [7wcf] by @atemate in https://github.com/deliveryhero/asya/pull/363
+* fix(testing): pin LocalStack 4.4.0, fix JWKS startup & stale expose test by @atemate in https://github.com/deliveryhero/asya/pull/369
+* fix(crossplane): enable watch on ScaledObject for status pipeline updates [mqd9] by @atemate in https://github.com/deliveryhero/asya/pull/364
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.9...v0.5.10
+
+
+
 ## [0.5.9] - 2026-03-22
 
 ## What's Changed
@@ -1303,6 +1323,9 @@ All images are published to GitHub Container Registry:
 [0.5.8]: https://github.com/deliveryhero/asya/releases/tag/v0.5.8
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.9...HEAD
 [0.5.9]: https://github.com/deliveryhero/asya/releases/tag/v0.5.9
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.10...HEAD
+[0.5.10]: https://github.com/deliveryhero/asya/releases/tag/v0.5.10
 
