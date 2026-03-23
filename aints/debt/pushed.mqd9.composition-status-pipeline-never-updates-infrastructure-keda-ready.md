@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready
   - branch:debt/mqd9.composition-status-pipeline-never-updates-infrastructure-keda-ready
+  - pr:364
 ---
+
 
 
 ## Bug
