@@ -2,5 +2,6 @@
 # KEDA external scalers are currently built into the asya-crew image.
 # This will become a standalone image once the registry name is approved.
 FROM alpine:3.21
-RUN echo "asya-scalers placeholder" > /etc/asya-scalers
+RUN adduser -D -u 65534 nonroot
+USER nonroot
 ENTRYPOINT ["echo", "asya-scalers: use asya-crew image for now"]

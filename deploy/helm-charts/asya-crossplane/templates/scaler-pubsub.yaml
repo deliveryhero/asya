@@ -1,4 +1,5 @@
 {{- if .Values.pubsub.keda.scaler.enabled }}
+{{- $grpcPort := 6000 }}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -30,12 +31,12 @@ spec:
         imagePullPolicy: {{ .Values.pubsub.keda.scaler.image.pullPolicy | default "IfNotPresent" }}
         command: ["/scaler-pubsub"]
         ports:
-        - containerPort: 6000
+        - containerPort: {{ $grpcPort }}
           name: grpc
           protocol: TCP
         env:
         - name: SCALER_PORT
-          value: "6000"
+          value: "{{ $grpcPort }}"
         - name: LOG_LEVEL
           value: {{ .Values.pubsub.keda.scaler.logLevel | default "INFO" | quote }}
         {{- range .Values.pubsub.keda.scaler.env }}
@@ -46,12 +47,12 @@ spec:
           {{- toYaml .Values.pubsub.keda.scaler.resources | nindent 10 }}
         livenessProbe:
           grpc:
-            port: 6000
+            port: {{ $grpcPort }}
           initialDelaySeconds: 5
           periodSeconds: 10
         readinessProbe:
           grpc:
-            port: 6000
+            port: {{ $grpcPort }}
           initialDelaySeconds: 3
           periodSeconds: 5
 ---
@@ -68,8 +69,8 @@ spec:
   selector:
     app.kubernetes.io/name: asya-scaler-pubsub
   ports:
-  - port: 6000
-    targetPort: 6000
+  - port: {{ $grpcPort }}
+    targetPort: {{ $grpcPort }}
     protocol: TCP
     name: grpc
 {{- end }}

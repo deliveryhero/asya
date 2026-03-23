@@ -81,7 +81,7 @@ func (s *PubSubScaler) StreamIsActive(ref *pb.ScaledObjectRef, stream pb.Externa
 	intervalStr := ref.ScalerMetadata["streamInterval"]
 	interval := 5 * time.Second
 	if intervalStr != "" {
-		if d, err := time.ParseDuration(intervalStr); err == nil {
+		if d, err := time.ParseDuration(intervalStr); err == nil && d > 0 {
 			interval = d
 		}
 	}

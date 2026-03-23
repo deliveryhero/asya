@@ -13,6 +13,7 @@ import (
 	pubsub "cloud.google.com/go/pubsub/v2/apiv1"
 	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/health"
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/reflection"
@@ -69,7 +70,7 @@ func main() {
 
 	// In-cluster gRPC server — TLS is handled by the service mesh / network policy.
 	// KEDA external scalers use plaintext gRPC by convention.
-	srv := grpc.NewServer() // #nosec G114 -- in-cluster only, no TLS needed
+	srv := grpc.NewServer(grpc.Creds(insecure.NewCredentials()))
 	pb.RegisterExternalScalerServer(srv, scaler)
 
 	healthSrv := health.NewServer()

@@ -263,10 +263,12 @@ spec:
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
                       {{- if .Values.pubsub.keda.scaler.enabled }}
+                      {{- $scalerNs := .Values.actorNamespace | default .Release.Namespace }}
+                      {{- $scalerAddr := .Values.pubsub.keda.scaler.address | default (printf "asya-scaler-pubsub.%s.svc.cluster.local:6000" $scalerNs) }}
                       - type: external
                         name: queue
                         metadata:
-                          scalerAddress: "{{ .Values.pubsub.keda.scaler.address }}"
+                          scalerAddress: "{{ $scalerAddr }}"
                           subscriptionName: projects/{{`{{ $gcpProject }}`}}/subscriptions/asya-{{`{{ $namespace }}`}}-{{`{{ $actorName }}`}}
                           targetValue: "{{`{{ $queueLength }}`}}"
                       {{- else }}

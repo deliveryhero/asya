@@ -185,8 +185,9 @@ pubsub:
     # querying Pub/Sub subscription directly via Pull API for instant metric detection.
     scaler:
       enabled: false
-      # gRPC address of the scaler service (host:port)
-      address: "asya-scaler-pubsub.asya-system.svc.cluster.local:6000"
+      # gRPC address of the scaler service (host:port).
+      # Auto-computed as asya-scaler-pubsub.{actorNamespace}.svc.cluster.local:6000 if empty.
+      address: ""
       # Container image (temporarily uses asya-crew until asya-scalers image is published)
       image:
         repository: ghcr.io/deliveryhero/asya-crew
