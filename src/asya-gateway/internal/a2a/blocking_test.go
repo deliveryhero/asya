@@ -439,9 +439,9 @@ func TestBlockingModeRelaysFLYAsArtifactChunks(t *testing.T) {
 		t.Fatalf("waitAndRelayEvents failed: %v", waitErr)
 	}
 
-	// Should have: artifact events + terminal status event
-	if len(eq.events) < 2 {
-		t.Fatalf("expected at least 2 events (artifact + terminal), got %d", len(eq.events))
+	// Should have: artifact events + LastChunk + terminal status event
+	if len(eq.events) < 3 {
+		t.Fatalf("expected at least 3 events (artifacts + LastChunk + terminal), got %d", len(eq.events))
 	}
 
 	// First event should be TaskArtifactUpdateEvent with Append=false
@@ -454,7 +454,7 @@ func TestBlockingModeRelaysFLYAsArtifactChunks(t *testing.T) {
 	}
 
 	// If we got a second FLY event, it should be an append
-	if len(eq.events) >= 3 {
+	if len(eq.events) >= 4 {
 		secondEvt, ok := eq.events[1].(*a2alib.TaskArtifactUpdateEvent)
 		if !ok {
 			t.Fatalf("second event type = %T, want *TaskArtifactUpdateEvent", eq.events[1])
@@ -464,7 +464,19 @@ func TestBlockingModeRelaysFLYAsArtifactChunks(t *testing.T) {
 		}
 	}
 
-	// Last event should be terminal
+	// Second-to-last event should be LastChunk artifact
+	lastChunkEvt, ok := eq.events[len(eq.events)-2].(*a2alib.TaskArtifactUpdateEvent)
+	if !ok {
+		t.Fatalf("second-to-last event type = %T, want *TaskArtifactUpdateEvent", eq.events[len(eq.events)-2])
+	}
+	if !lastChunkEvt.LastChunk {
+		t.Error("second-to-last event LastChunk = false, want true")
+	}
+	if !lastChunkEvt.Append {
+		t.Error("LastChunk event should have Append=true")
+	}
+
+	// Last event should be terminal status
 	lastEvt, ok := eq.events[len(eq.events)-1].(*a2alib.TaskStatusUpdateEvent)
 	if !ok {
 		t.Fatalf("last event type = %T, want *TaskStatusUpdateEvent", eq.events[len(eq.events)-1])

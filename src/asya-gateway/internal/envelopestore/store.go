@@ -253,7 +253,7 @@ func (s *Store) Subscribe(id string) chan types.EnvelopeUpdate {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch := make(chan types.EnvelopeUpdate, 10)
+	ch := make(chan types.EnvelopeUpdate, 100)
 	s.listeners[id] = append(s.listeners[id], ch)
 
 	return ch
@@ -285,7 +285,7 @@ func (s *Store) notifyListeners(update types.EnvelopeUpdate) {
 		select {
 		case ch <- update:
 		default:
-			// Channel full, skip
+			slog.Warn("FLY event dropped: subscriber channel full", "task_id", update.ID)
 		}
 	}
 }
