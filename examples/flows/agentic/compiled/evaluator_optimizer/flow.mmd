@@ -4,22 +4,22 @@ flowchart TD
     evaluator[evaluator]
     generator[generator]
     polisher[polisher]
-    router_evaluator_optimizer_line_58_while_1{{router_evaluator_optimizer_line_58_while_1}}
-    router_evaluator_optimizer_line_59_seq_4{{"router_evaluator_optimizer_line_59_seq_4<br/><br/>p['iteration'] += 1"}}
-    router_evaluator_optimizer_line_68_if_3{{router_evaluator_optimizer_line_68_if_3}}
-    router_evaluator_optimizer_line_72_if_2{{router_evaluator_optimizer_line_72_if_2}}
+    router_evaluator_optimizer_if_iteration_ge_max_iterations{{router_evaluator_optimizer_if_iteration_ge_max_iterations}}
+    router_evaluator_optimizer_if_score_ge_score_threshold{{router_evaluator_optimizer_if_score_ge_score_threshold}}
+    router_evaluator_optimizer_seq_set_iteration{{"router_evaluator_optimizer_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_evaluator_optimizer_while_loop{{router_evaluator_optimizer_while_loop}}
     start_evaluator_optimizer(["start_evaluator_optimizer<br/><br/>p['iteration'] = 0"])
     __end__((( )))
 
-    start_evaluator_optimizer --> router_evaluator_optimizer_line_58_while_1
-    router_evaluator_optimizer_line_72_if_2 -->|"p['iteration'] >= MAX_ITERATIONS"| polisher
-    router_evaluator_optimizer_line_68_if_3 -->|"else"| router_evaluator_optimizer_line_72_if_2
-    router_evaluator_optimizer_line_68_if_3 -->|"p.get('score', 0) >= SCORE_THRESHOLD"| polisher
-    router_evaluator_optimizer_line_59_seq_4 --> generator
+    start_evaluator_optimizer --> router_evaluator_optimizer_while_loop
+    router_evaluator_optimizer_if_iteration_ge_max_iterations -->|"p['iteration'] >= MAX_ITERATIONS"| polisher
+    router_evaluator_optimizer_if_score_ge_score_threshold -->|"else"| router_evaluator_optimizer_if_iteration_ge_max_iterations
+    router_evaluator_optimizer_if_score_ge_score_threshold -->|"p.get('score', 0) >= SCORE_THRESHOLD"| polisher
+    router_evaluator_optimizer_seq_set_iteration --> generator
     generator --> evaluator
-    evaluator --> router_evaluator_optimizer_line_68_if_3
-    router_evaluator_optimizer_line_58_while_1 --> router_evaluator_optimizer_line_59_seq_4
-    router_evaluator_optimizer_line_72_if_2 -->|"else"| router_evaluator_optimizer_line_58_while_1
+    evaluator --> router_evaluator_optimizer_if_score_ge_score_threshold
+    router_evaluator_optimizer_while_loop --> router_evaluator_optimizer_seq_set_iteration
+    router_evaluator_optimizer_if_iteration_ge_max_iterations -->|"else"| router_evaluator_optimizer_while_loop
     polisher --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -29,7 +29,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_evaluator_optimizer start
     class polisher endnode
-    class router_evaluator_optimizer_line_58_while_1,router_evaluator_optimizer_line_59_seq_4,router_evaluator_optimizer_line_68_if_3,router_evaluator_optimizer_line_72_if_2 router
+    class router_evaluator_optimizer_if_iteration_ge_max_iterations,router_evaluator_optimizer_if_score_ge_score_threshold,router_evaluator_optimizer_seq_set_iteration,router_evaluator_optimizer_while_loop router
     class evaluator,generator handler
     class __end__ endpoint
     linkStyle 1,3 stroke:#2E8B57

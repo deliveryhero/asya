@@ -24,21 +24,21 @@ spec:
     value: format_response
   - name: ASYA_HANDLER_ACTOR_LLM_REASON
     value: llm_reason
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_49_WHILE_1
-    value: routers.router_react_tool_loop_line_49_while_1
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_50_SEQ_8
-    value: routers.router_react_tool_loop_line_50_seq_8
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_56_IF_7
-    value: routers.router_react_tool_loop_line_56_if_7
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_62_IF_6
-    value: routers.router_react_tool_loop_line_62_if_6
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_64_IF_5
-    value: routers.router_react_tool_loop_line_64_if_5
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_66_IF_4
-    value: routers.router_react_tool_loop_line_66_if_4
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_69_SEQ_3
-    value: routers.router_react_tool_loop_line_69_seq_3
-  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_LINE_75_IF_2
-    value: routers.router_react_tool_loop_line_75_if_2
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_ITERATION_GE_10
+    value: routers.router_react_tool_loop_if_iteration_ge_10
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_NOT_TOOL_CALLS
+    value: routers.router_react_tool_loop_if_not_tool_calls
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_TOOL_NAME_EQ_CALCULATOR
+    value: routers.router_react_tool_loop_if_tool_name_eq_calculator
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_TOOL_NAME_EQ_CODE_EXEC
+    value: routers.router_react_tool_loop_if_tool_name_eq_code_exec
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_IF_TOOL_NAME_EQ_WEB_SEARCH
+    value: routers.router_react_tool_loop_if_tool_name_eq_web_search
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_SEQ_SET_ITERATION
+    value: routers.router_react_tool_loop_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_SEQ_SET_OBSERVATION
+    value: routers.router_react_tool_loop_seq_set_observation
+  - name: ASYA_HANDLER_ROUTER_REACT_TOOL_LOOP_WHILE_LOOP
+    value: routers.router_react_tool_loop_while_loop
   - name: ASYA_HANDLER_ACTOR_WEB_SEARCH
     value: web_search

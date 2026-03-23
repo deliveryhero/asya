@@ -18,10 +18,10 @@ spec:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-9-if-7
+  name: router-test-nested-flow-if-level1-eq-a
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-9-if-7
+  actor: router-test-nested-flow-if-level1-eq-a
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -30,15 +30,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_9_if_7
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_if_level1_eq_a
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-11-if-3
+  name: router-test-nested-flow-if-level2-eq-x
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-11-if-3
+  actor: router-test-nested-flow-if-level2-eq-x
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -47,15 +47,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_11_if_3
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_if_level2_eq_x
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-12-seq-1
+  name: router-test-nested-flow-seq-set-route
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-12-seq-1
+  actor: router-test-nested-flow-seq-set-route
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -64,15 +64,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_12_seq_1
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_seq_set_route
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-15-seq-2
+  name: router-test-nested-flow-seq-set-route-2
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-15-seq-2
+  actor: router-test-nested-flow-seq-set-route-2
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -81,15 +81,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_15_seq_2
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_seq_set_route_2
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-19-if-6
+  name: router-test-nested-flow-if-level2-eq-x-2
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-19-if-6
+  actor: router-test-nested-flow-if-level2-eq-x-2
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -98,15 +98,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_19_if_6
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_if_level2_eq_x_2
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-20-seq-4
+  name: router-test-nested-flow-seq-set-route-3
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-20-seq-4
+  actor: router-test-nested-flow-seq-set-route-3
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -115,15 +115,15 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_20_seq_4
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_seq_set_route_3
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-23-seq-5
+  name: router-test-nested-flow-seq-set-route-4
   namespace: asya-e2e
 spec:
-  actor: router-test-nested-flow-line-23-seq-5
+  actor: router-test-nested-flow-seq-set-route-4
   scaling:
     enabled: true
     minReplicaCount: 1
@@ -132,7 +132,7 @@ spec:
 
   image: IMAGE_PLACEHOLDER
   imagePullPolicy: IfNotPresent
-  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_line_23_seq_5
+  handler: testing.e2e.flows.nested_if.compiled_routers.router_test_nested_flow_seq_set_route_4
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor

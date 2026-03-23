@@ -4,21 +4,28 @@ flowchart TD
     core_agent[core_agent]
     input_validator[input_validator]
     output_validator[output_validator]
-    router_guardrails_sandwich_line_47_except_dispatch_0{{router_guardrails_sandwich_line_47_except_dispatch_0}}
-    router_guardrails_sandwich_line_47_reraise_0{{router_guardrails_sandwich_line_47_reraise_0}}
-    router_guardrails_sandwich_line_47_try_enter_0{{router_guardrails_sandwich_line_47_try_enter_0}}
-    router_guardrails_sandwich_line_47_try_exit_0{{router_guardrails_sandwich_line_47_try_exit_0}}
+    router_guardrails_sandwich_except_exception{{router_guardrails_sandwich_except_exception}}
     safe_fallback[safe_fallback]
     start_guardrails_sandwich([start_guardrails_sandwich])
     __end__((( )))
 
-    start_guardrails_sandwich --> router_guardrails_sandwich_line_47_try_enter_0
-    router_guardrails_sandwich_line_47_try_enter_0 --> input_validator
+    start_guardrails_sandwich --> input_validator
     input_validator --> core_agent
     core_agent --> output_validator
-    output_validator --> router_guardrails_sandwich_line_47_try_exit_0
-    router_guardrails_sandwich_line_47_except_dispatch_0 -->|'Exception' in _all_types| safe_fallback
-    router_guardrails_sandwich_line_47_except_dispatch_0 -->|not ('Exception' in _all_types)| router_guardrails_sandwich_line_47_reraise_0
-    router_guardrails_sandwich_line_47_reraise_0 --> __end__
-    router_guardrails_sandwich_line_47_try_exit_0 --> __end__
+    router_guardrails_sandwich_except_exception --> safe_fallback
+    input_validator -->|"Exception"| router_guardrails_sandwich_except_exception
+    core_agent -->|"Exception"| router_guardrails_sandwich_except_exception
+    output_validator -->|"Exception"| router_guardrails_sandwich_except_exception
     safe_fallback --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_guardrails_sandwich start
+    class safe_fallback endnode
+    class router_guardrails_sandwich_except_exception router
+    class core_agent,input_validator,output_validator handler
+    class __end__ endpoint
+    linkStyle 4,5,6 stroke:#DC143C

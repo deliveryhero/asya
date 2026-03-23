@@ -4,6 +4,6 @@ resources:
 - asya-actor-handler-finalize.yaml
 - asya-actor-handler-process.yaml
 - asya-actor-handler-setup.yaml
-- asya-router-if-empty-branches-flow-line-13-if-1.yaml
+- asya-router-if-empty-branches-flow-if-skip-processing.yaml
 - asya-start-if-empty-branches-flow.yaml
 - configmap-routers.yaml

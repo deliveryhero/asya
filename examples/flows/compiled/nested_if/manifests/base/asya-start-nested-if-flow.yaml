@@ -28,17 +28,17 @@ spec:
     value: handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
     value: handler_validate
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_13_IF_7
-    value: routers.router_nested_if_flow_line_13_if_7
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_15_IF_3
-    value: routers.router_nested_if_flow_line_15_if_3
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_16_SEQ_1
-    value: routers.router_nested_if_flow_line_16_seq_1
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_19_SEQ_2
-    value: routers.router_nested_if_flow_line_19_seq_2
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_23_IF_6
-    value: routers.router_nested_if_flow_line_23_if_6
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_24_SEQ_4
-    value: routers.router_nested_if_flow_line_24_seq_4
-  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_LINE_27_SEQ_5
-    value: routers.router_nested_if_flow_line_27_seq_5
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL1_EQ_A
+    value: routers.router_nested_if_flow_if_level1_eq_a
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL2_EQ_X
+    value: routers.router_nested_if_flow_if_level2_eq_x
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL2_EQ_X_2
+    value: routers.router_nested_if_flow_if_level2_eq_x_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2
+    value: routers.router_nested_if_flow_seq_set_l2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_2
+    value: routers.router_nested_if_flow_seq_set_l2_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_3
+    value: routers.router_nested_if_flow_seq_set_l2_3
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_4
+    value: routers.router_nested_if_flow_seq_set_l2_4

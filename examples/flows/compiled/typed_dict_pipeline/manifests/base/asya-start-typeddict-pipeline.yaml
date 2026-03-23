@@ -20,8 +20,8 @@ spec:
     value: error_handler
   - name: ASYA_HANDLER_ACTOR_PARSER
     value: parser
-  - name: ASYA_HANDLER_ROUTER_TYPEDDICT_PIPELINE_LINE_76_IF_1
-    value: routers.router_typeddict_pipeline_line_76_if_1
+  - name: ASYA_HANDLER_ROUTER_TYPEDDICT_PIPELINE_IF_NOT_VALID
+    value: routers.router_typeddict_pipeline_if_not_valid
   - name: ASYA_HANDLER_ACTOR_SINK_ADAPTER
     value: sink_adapter
   - name: ASYA_HANDLER_ACTOR_TRANSFORMER

@@ -24,9 +24,9 @@ spec:
     value: handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_ODD
     value: handler_odd
-  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_LINE_13_SEQ_3
-    value: routers.router_if_inside_while_flow_line_13_seq_3
-  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_LINE_14_WHILE_1
-    value: routers.router_if_inside_while_flow_line_14_while_1
-  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_LINE_16_IF_2
-    value: routers.router_if_inside_while_flow_line_16_if_2
+  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_IF_P_I_2_EQ_0
+    value: routers.router_if_inside_while_flow_if_p_i_2_eq_0
+  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_SEQ_SET_I
+    value: routers.router_if_inside_while_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_IF_INSIDE_WHILE_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_if_inside_while_flow_while_i_lt_max_iterations

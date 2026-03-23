@@ -25,7 +25,7 @@ async def start_resource_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resource_pipeline_line_10_except_1(payload: dict):
+async def router_resource_pipeline_except_runtimeerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['status'] = 'failed'

@@ -1,0 +1,27 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-map-reduce-fanout-chunk-results
+  namespace: default
+  labels:
+    asya.sh/flow: map-reduce
+    asya.sh/generated: 'true'
+spec:
+  actor: router-map-reduce-fanout-chunk-results
+  image: python:3.13-slim
+  handler: routers.router_map_reduce_fanout_chunk_results
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CHUNK_PROCESSOR
+    value: chunk_processor
+  - name: ASYA_HANDLER_FANIN_MAP_REDUCE_CHUNK_RESULTS
+    value: routers.fanin_map_reduce_chunk_results
+  - name: ASYA_HANDLER_ACTOR_REDUCER
+    value: reducer
+  - name: ASYA_HANDLER_ROUTER_MAP_REDUCE_FANOUT_CHUNK_RESULTS
+    value: routers.router_map_reduce_fanout_chunk_results
+  - name: ASYA_HANDLER_ACTOR_SPLITTER
+    value: splitter

@@ -22,11 +22,11 @@ spec:
     value: generator
   - name: ASYA_HANDLER_ACTOR_POLISHER
     value: polisher
-  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_LINE_58_WHILE_1
-    value: routers.router_evaluator_optimizer_line_58_while_1
-  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_LINE_59_SEQ_4
-    value: routers.router_evaluator_optimizer_line_59_seq_4
-  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_LINE_68_IF_3
-    value: routers.router_evaluator_optimizer_line_68_if_3
-  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_LINE_72_IF_2
-    value: routers.router_evaluator_optimizer_line_72_if_2
+  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_IF_ITERATION_GE_MAX_ITERATIONS
+    value: routers.router_evaluator_optimizer_if_iteration_ge_max_iterations
+  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_IF_SCORE_GE_SCORE_THRESHOLD
+    value: routers.router_evaluator_optimizer_if_score_ge_score_threshold
+  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_SEQ_SET_ITERATION
+    value: routers.router_evaluator_optimizer_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_EVALUATOR_OPTIMIZER_WHILE_LOOP
+    value: routers.router_evaluator_optimizer_while_loop

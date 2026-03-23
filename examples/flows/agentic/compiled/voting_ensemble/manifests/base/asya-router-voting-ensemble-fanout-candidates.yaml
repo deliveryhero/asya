@@ -1,0 +1,29 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-voting-ensemble-fanout-candidates
+  namespace: default
+  labels:
+    asya.sh/flow: voting-ensemble
+    asya.sh/generated: 'true'
+spec:
+  actor: router-voting-ensemble-fanout-candidates
+  image: python:3.13-slim
+  handler: routers.router_voting_ensemble_fanout_candidates
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ANALYTICAL_WRITER
+    value: analytical_writer
+  - name: ASYA_HANDLER_ACTOR_CONCISE_WRITER
+    value: concise_writer
+  - name: ASYA_HANDLER_ACTOR_CREATIVE_WRITER
+    value: creative_writer
+  - name: ASYA_HANDLER_FANIN_VOTING_ENSEMBLE_CANDIDATES
+    value: routers.fanin_voting_ensemble_candidates
+  - name: ASYA_HANDLER_ACTOR_JUDGE
+    value: judge
+  - name: ASYA_HANDLER_ROUTER_VOTING_ENSEMBLE_FANOUT_CANDIDATES
+    value: routers.router_voting_ensemble_fanout_candidates

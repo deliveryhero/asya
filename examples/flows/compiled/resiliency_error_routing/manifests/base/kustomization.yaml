@@ -5,8 +5,8 @@ resources:
 - asya-actor-call-primary.yaml
 - asya-actor-finalize.yaml
 - asya-actor-handle-validation-error.yaml
-- asya-router-failover-pipeline-line-25-seq-3.yaml
-- asya-router-failover-pipeline-line-29-except-1.yaml
-- asya-router-failover-pipeline-line-32-except-2.yaml
+- asya-router-failover-pipeline-except-connectionerror.yaml
+- asya-router-failover-pipeline-except-valueerror.yaml
+- asya-router-failover-pipeline-seq-set-status.yaml
 - asya-start-failover-pipeline.yaml
 - configmap-routers.yaml

@@ -10,13 +10,13 @@
       "label": "llm_call"
     },
     {
-      "id": "router_agent_with_tools_line_17_while_1",
-      "label": "router_agent_with_tools_line_17_while_1",
+      "id": "router_agent_with_tools_if_tool_calls",
+      "label": "router_agent_with_tools_if_tool_calls",
       "generated": true
     },
     {
-      "id": "router_agent_with_tools_line_19_if_2",
-      "label": "router_agent_with_tools_line_19_if_2",
+      "id": "router_agent_with_tools_while_loop",
+      "label": "router_agent_with_tools_while_loop",
       "generated": true
     },
     {
@@ -32,37 +32,37 @@
   "edges": [
     {
       "from": "start_agent_with_tools",
-      "to": "router_agent_with_tools_line_17_while_1",
+      "to": "router_agent_with_tools_while_loop",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_agent_with_tools_line_19_if_2",
+      "from": "router_agent_with_tools_if_tool_calls",
       "to": "execute_tool",
       "label": "p.get('tool_calls')",
       "type": "prepend"
     },
     {
-      "from": "router_agent_with_tools_line_17_while_1",
+      "from": "router_agent_with_tools_while_loop",
       "to": "llm_call",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "llm_call",
-      "to": "router_agent_with_tools_line_19_if_2",
+      "to": "router_agent_with_tools_if_tool_calls",
       "label": null,
       "type": "continuation"
     },
     {
       "from": "execute_tool",
-      "to": "router_agent_with_tools_line_17_while_1",
+      "to": "router_agent_with_tools_while_loop",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_agent_with_tools_line_19_if_2",
-      "to": "router_agent_with_tools_line_17_while_1",
+      "from": "router_agent_with_tools_if_tool_calls",
+      "to": "router_agent_with_tools_while_loop",
       "label": "else",
       "type": "continuation"
     }

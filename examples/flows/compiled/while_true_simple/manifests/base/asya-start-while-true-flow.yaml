@@ -22,7 +22,7 @@ spec:
     value: handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
     value: handler_process
-  - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_LINE_13_WHILE_1
-    value: routers.router_while_true_flow_line_13_while_1
-  - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_LINE_15_IF_2
-    value: routers.router_while_true_flow_line_15_if_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_IF_DONE
+    value: routers.router_while_true_flow_if_done
+  - name: ASYA_HANDLER_ROUTER_WHILE_TRUE_FLOW_WHILE_LOOP
+    value: routers.router_while_true_flow_while_loop

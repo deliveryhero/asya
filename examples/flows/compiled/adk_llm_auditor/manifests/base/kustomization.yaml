@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asya-actor-accuracy-scorer.yaml
+- asya-actor-adk-llm-auditor.QualityScorer.aggregate.yaml
+- asya-actor-completeness-scorer.yaml
+- asya-router-llm-auditor-except-all.yaml
+- asya-router-llm-auditor-fanout-scores.yaml
+- asya-router-llm-auditor-if-aggregate-score-ge-70.yaml
+- asya-router-llm-auditor-if-aggregate-score-ge-90.yaml
+- asya-router-llm-auditor-if-aggregate-score-gt-prev-score-and-7a47b9.yaml
+- asya-router-llm-auditor-if-iteration-ge-max-iterations.yaml
+- asya-router-llm-auditor-if-not-claims.yaml
+- asya-router-llm-auditor-seq-set-iteration.yaml
+- asya-router-llm-auditor-seq-set-partial.yaml
+- asya-router-llm-auditor-seq-set-prev-score-2.yaml
+- asya-router-llm-auditor-seq-set-prev-score.yaml
+- asya-router-llm-auditor-seq-set-status-2.yaml
+- asya-router-llm-auditor-seq-set-status-3.yaml
+- asya-router-llm-auditor-seq-set-status.yaml
+- asya-router-llm-auditor-while-loop.yaml
+- asya-start-llm-auditor.yaml
+- configmap-routers.yaml

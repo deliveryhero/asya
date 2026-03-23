@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handler-type-b
+  namespace: default
+  labels:
+    asya.sh/flow: sample-flow
+spec:
+  actor: actor-handler-type-b
+  image: examples.asya.sh/handler-type-b:latest
+  handler: handler_type_b
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

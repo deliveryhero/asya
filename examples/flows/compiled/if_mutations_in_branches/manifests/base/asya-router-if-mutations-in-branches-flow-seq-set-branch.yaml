@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-if-mutations-in-branches-flow-seq-set-branch
+  namespace: default
+  labels:
+    asya.sh/flow: if-mutations-in-branches-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-if-mutations-in-branches-flow-seq-set-branch
+  image: python:3.13-slim
+  handler: routers.router_if_mutations_in_branches_flow_seq_set_branch
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
+    value: handler_setup
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
+    value: handler_type_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
+    value: handler_type_b
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_IF_TYPE_EQ_A
+    value: routers.router_if_mutations_in_branches_flow_if_type_eq_a
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_SEQ_SET_BRANCH
+    value: routers.router_if_mutations_in_branches_flow_seq_set_branch
+  - name: ASYA_HANDLER_ROUTER_IF_MUTATIONS_IN_BRANCHES_FLOW_SEQ_SET_BRANCH_2
+    value: routers.router_if_mutations_in_branches_flow_seq_set_branch_2

@@ -6,29 +6,29 @@ flowchart TD
     route_a_y[route_a_y]
     route_b_x[route_b_x]
     route_b_y[route_b_y]
-    router_test_nested_flow_line_13_if_7{{router_test_nested_flow_line_13_if_7}}
-    router_test_nested_flow_line_15_if_3{{"router_test_nested_flow_line_15_if_3<br/><br/>p['path'] = 'A'"}}
-    router_test_nested_flow_line_16_seq_1{{"router_test_nested_flow_line_16_seq_1<br/><br/>p['route'] = 'A-X'"}}
-    router_test_nested_flow_line_19_seq_2{{"router_test_nested_flow_line_19_seq_2<br/><br/>p['route'] = 'A-Y'"}}
-    router_test_nested_flow_line_23_if_6{{"router_test_nested_flow_line_23_if_6<br/><br/>p['path'] = 'B'"}}
-    router_test_nested_flow_line_24_seq_4{{"router_test_nested_flow_line_24_seq_4<br/><br/>p['route'] = 'B-X'"}}
-    router_test_nested_flow_line_27_seq_5{{"router_test_nested_flow_line_27_seq_5<br/><br/>p['route'] = 'B-Y'"}}
+    router_test_nested_flow_if_level1_eq_a{{router_test_nested_flow_if_level1_eq_a}}
+    router_test_nested_flow_if_level2_eq_x{{"router_test_nested_flow_if_level2_eq_x<br/><br/>p['path'] = 'A'"}}
+    router_test_nested_flow_if_level2_eq_x_2{{"router_test_nested_flow_if_level2_eq_x_2<br/><br/>p['path'] = 'B'"}}
+    router_test_nested_flow_seq_set_route{{"router_test_nested_flow_seq_set_route<br/><br/>p['route'] = 'A-X'"}}
+    router_test_nested_flow_seq_set_route_2{{"router_test_nested_flow_seq_set_route_2<br/><br/>p['route'] = 'A-Y'"}}
+    router_test_nested_flow_seq_set_route_3{{"router_test_nested_flow_seq_set_route_3<br/><br/>p['route'] = 'B-X'"}}
+    router_test_nested_flow_seq_set_route_4{{"router_test_nested_flow_seq_set_route_4<br/><br/>p['route'] = 'B-Y'"}}
     start_test_nested_flow([start_test_nested_flow])
     validate_input[validate_input]
     __end__((( )))
 
     start_test_nested_flow --> validate_input
-    validate_input --> router_test_nested_flow_line_13_if_7
-    router_test_nested_flow_line_16_seq_1 --> route_a_x
-    router_test_nested_flow_line_19_seq_2 --> route_a_y
-    router_test_nested_flow_line_15_if_3 -->|"p['level2'] == 'X'"| router_test_nested_flow_line_16_seq_1
-    router_test_nested_flow_line_15_if_3 -->|"else"| router_test_nested_flow_line_19_seq_2
-    router_test_nested_flow_line_24_seq_4 --> route_b_x
-    router_test_nested_flow_line_27_seq_5 --> route_b_y
-    router_test_nested_flow_line_23_if_6 -->|"p['level2'] == 'X'"| router_test_nested_flow_line_24_seq_4
-    router_test_nested_flow_line_23_if_6 -->|"else"| router_test_nested_flow_line_27_seq_5
-    router_test_nested_flow_line_13_if_7 -->|"p['level1'] == 'A'"| router_test_nested_flow_line_15_if_3
-    router_test_nested_flow_line_13_if_7 -->|"else"| router_test_nested_flow_line_23_if_6
+    validate_input --> router_test_nested_flow_if_level1_eq_a
+    router_test_nested_flow_seq_set_route --> route_a_x
+    router_test_nested_flow_seq_set_route_2 --> route_a_y
+    router_test_nested_flow_if_level2_eq_x -->|"p['level2'] == 'X'"| router_test_nested_flow_seq_set_route
+    router_test_nested_flow_if_level2_eq_x -->|"else"| router_test_nested_flow_seq_set_route_2
+    router_test_nested_flow_seq_set_route_3 --> route_b_x
+    router_test_nested_flow_seq_set_route_4 --> route_b_y
+    router_test_nested_flow_if_level2_eq_x_2 -->|"p['level2'] == 'X'"| router_test_nested_flow_seq_set_route_3
+    router_test_nested_flow_if_level2_eq_x_2 -->|"else"| router_test_nested_flow_seq_set_route_4
+    router_test_nested_flow_if_level1_eq_a -->|"p['level1'] == 'A'"| router_test_nested_flow_if_level2_eq_x
+    router_test_nested_flow_if_level1_eq_a -->|"else"| router_test_nested_flow_if_level2_eq_x_2
     route_a_x --> finalize_result
     route_a_y --> finalize_result
     route_b_x --> finalize_result
@@ -42,7 +42,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_test_nested_flow start
     class finalize_result endnode
-    class router_test_nested_flow_line_13_if_7,router_test_nested_flow_line_15_if_3,router_test_nested_flow_line_16_seq_1,router_test_nested_flow_line_19_seq_2,router_test_nested_flow_line_23_if_6,router_test_nested_flow_line_24_seq_4,router_test_nested_flow_line_27_seq_5 router
+    class router_test_nested_flow_if_level1_eq_a,router_test_nested_flow_if_level2_eq_x,router_test_nested_flow_if_level2_eq_x_2,router_test_nested_flow_seq_set_route,router_test_nested_flow_seq_set_route_2,router_test_nested_flow_seq_set_route_3,router_test_nested_flow_seq_set_route_4 router
     class route_a_x,route_a_y,route_b_x,route_b_y,validate_input handler
     class __end__ endpoint
     linkStyle 4,8,10 stroke:#2E8B57

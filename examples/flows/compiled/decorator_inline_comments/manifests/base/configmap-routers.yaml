@@ -39,11 +39,11 @@ data:
         _next = []
         p = inject_id(p)
         _next.append(resolve("classifier"))
-        _next.append(resolve("router_decorator_inline_comments_flow_line_18_if_1"))
+        _next.append(resolve("router_decorator_inline_comments_flow_if_category_eq_priority"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_decorator_inline_comments_flow_line_18_if_1(payload: dict):
+    async def router_decorator_inline_comments_flow_if_category_eq_priority(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []

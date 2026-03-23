@@ -1,0 +1,43 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-nested-if-flow-if-level2-eq-x
+  namespace: default
+  labels:
+    asya.sh/flow: nested-if-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-nested-if-flow-if-level2-eq-x
+  image: python:3.13-slim
+  handler: routers.router_nested_if_flow_if_level2_eq_x
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_A_X
+    value: handler_a_x
+  - name: ASYA_HANDLER_ACTOR_HANDLER_A_Y
+    value: handler_a_y
+  - name: ASYA_HANDLER_ACTOR_HANDLER_B_X
+    value: handler_b_x
+  - name: ASYA_HANDLER_ACTOR_HANDLER_B_Y
+    value: handler_b_y
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
+    value: handler_validate
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL1_EQ_A
+    value: routers.router_nested_if_flow_if_level1_eq_a
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL2_EQ_X
+    value: routers.router_nested_if_flow_if_level2_eq_x
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_IF_LEVEL2_EQ_X_2
+    value: routers.router_nested_if_flow_if_level2_eq_x_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2
+    value: routers.router_nested_if_flow_seq_set_l2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_2
+    value: routers.router_nested_if_flow_seq_set_l2_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_3
+    value: routers.router_nested_if_flow_seq_set_l2_3
+  - name: ASYA_HANDLER_ROUTER_NESTED_IF_FLOW_SEQ_SET_L2_4
+    value: routers.router_nested_if_flow_seq_set_l2_4

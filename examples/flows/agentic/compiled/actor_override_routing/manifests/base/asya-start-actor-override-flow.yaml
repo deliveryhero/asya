@@ -20,7 +20,7 @@ spec:
     value: classify
   - name: ASYA_HANDLER_ACTOR_FORMAT_OUTPUT
     value: format_output
-  - name: ASYA_HANDLER_ROUTER_ACTOR_OVERRIDE_FLOW_LINE_26_IF_1
-    value: routers.router_actor_override_flow_line_26_if_1
+  - name: ASYA_HANDLER_ROUTER_ACTOR_OVERRIDE_FLOW_IF_NEEDS_TOOL
+    value: routers.router_actor_override_flow_if_needs_tool
   - name: ASYA_HANDLER_ACTOR_TOOL_EXECUTOR
     value: tool_executor

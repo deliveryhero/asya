@@ -1,5 +1,5 @@
 {
-  "flow_name": "adk_llm_auditor",
+  "flow_name": "llm_auditor",
   "nodes": [
     {
       "id": "accuracy_scorer",
@@ -14,156 +14,113 @@
       "label": "completeness_scorer"
     },
     {
-      "id": "critique",
-      "label": "critique"
+      "id": "fanin_llm_auditor_scores",
+      "label": "fanin_llm_auditor_scores"
     },
     {
-      "id": "deep_reviser",
-      "label": "deep_reviser"
-    },
-    {
-      "id": "extract_claims",
-      "label": "extract_claims"
-    },
-    {
-      "id": "fallback_generate",
-      "label": "fallback_generate",
-      "role": "end"
-    },
-    {
-      "id": "fanin_llm_auditor_line_56",
-      "label": "fanin_llm_auditor_line_56"
-    },
-    {
-      "id": "fanout_llm_auditor_line_56",
-      "label": "fanout_llm_auditor_line_56",
+      "id": "router_llm_auditor_except_all",
+      "label": "router_llm_auditor_except_all",
       "generated": true
     },
     {
-      "id": "finalize",
-      "label": "finalize",
-      "role": "end"
-    },
-    {
-      "id": "llm_generate",
-      "label": "llm_generate"
-    },
-    {
-      "id": "reviser",
-      "label": "reviser"
-    },
-    {
-      "id": "router_llm_auditor_line_41_if",
-      "label": "router_llm_auditor_line_41_if",
+      "id": "router_llm_auditor_fanout_scores",
+      "label": "router_llm_auditor_fanout_scores",
       "generated": true
     },
     {
-      "id": "router_llm_auditor_line_42_seq",
-      "label": "router_llm_auditor_line_42_seq",
+      "id": "router_llm_auditor_if_aggregate_score_ge_70",
+      "label": "router_llm_auditor_if_aggregate_score_ge_70",
+      "generated": true
+    },
+    {
+      "id": "router_llm_auditor_if_aggregate_score_ge_90",
+      "label": "router_llm_auditor_if_aggregate_score_ge_90",
+      "generated": true
+    },
+    {
+      "id": "router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9",
+      "label": "router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9",
+      "generated": true
+    },
+    {
+      "id": "router_llm_auditor_if_iteration_ge_max_iterations",
+      "label": "router_llm_auditor_if_iteration_ge_max_iterations",
+      "generated": true
+    },
+    {
+      "id": "router_llm_auditor_if_not_claims",
+      "label": "router_llm_auditor_if_not_claims",
+      "generated": true,
       "mutations": [
-        "p['status'] = 'no_claims'"
-      ],
-      "role": "end",
-      "generated": true
+        "p['iteration'] = 0",
+        "p['status'] = 'started'",
+        "p['partial'] = True"
+      ]
     },
     {
-      "id": "router_llm_auditor_line_46_loop_back_0",
-      "label": "router_llm_auditor_line_46_loop_back_0",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_47_seq",
-      "label": "router_llm_auditor_line_47_seq",
+      "id": "router_llm_auditor_seq_set_iteration",
+      "label": "router_llm_auditor_seq_set_iteration",
+      "generated": true,
       "mutations": [
         "p['iteration'] += 1"
-      ],
-      "generated": true
+      ]
     },
     {
-      "id": "router_llm_auditor_line_50_except_dispatch_0",
-      "label": "router_llm_auditor_line_50_except_dispatch_0",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_50_try_enter_0",
-      "label": "router_llm_auditor_line_50_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_50_try_exit_0",
-      "label": "router_llm_auditor_line_50_try_exit_0",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_65_if",
-      "label": "router_llm_auditor_line_65_if",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_66_seq",
-      "label": "router_llm_auditor_line_66_seq",
-      "mutations": [
-        "p['prev_score'] = p['aggregate_score']"
-      ],
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_70_if",
-      "label": "router_llm_auditor_line_70_if",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_71_seq",
-      "label": "router_llm_auditor_line_71_seq",
-      "mutations": [
-        "p['status'] = 'approved'"
-      ],
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_73_if",
-      "label": "router_llm_auditor_line_73_if",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_83_if",
-      "label": "router_llm_auditor_line_83_if",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_84_seq",
-      "label": "router_llm_auditor_line_84_seq",
-      "mutations": [
-        "p['status'] = 'max_iterations'"
-      ],
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_87_seq",
-      "label": "router_llm_auditor_line_87_seq",
-      "mutations": [
-        "p['prev_score'] = p['aggregate_score']"
-      ],
-      "role": "end",
-      "generated": true
-    },
-    {
-      "id": "router_llm_auditor_line_90_seq",
-      "label": "router_llm_auditor_line_90_seq",
+      "id": "router_llm_auditor_seq_set_partial",
+      "label": "router_llm_auditor_seq_set_partial",
+      "generated": true,
       "mutations": [
         "p['partial'] = False"
-      ],
+      ]
+    },
+    {
+      "id": "router_llm_auditor_seq_set_prev_score",
+      "label": "router_llm_auditor_seq_set_prev_score",
+      "generated": true,
+      "mutations": [
+        "p['prev_score'] = p['aggregate_score']"
+      ]
+    },
+    {
+      "id": "router_llm_auditor_seq_set_prev_score_2",
+      "label": "router_llm_auditor_seq_set_prev_score_2",
+      "generated": true,
+      "mutations": [
+        "p['prev_score'] = p['aggregate_score']"
+      ]
+    },
+    {
+      "id": "router_llm_auditor_seq_set_status",
+      "label": "router_llm_auditor_seq_set_status",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'max_iterations'"
+      ]
+    },
+    {
+      "id": "router_llm_auditor_seq_set_status_2",
+      "label": "router_llm_auditor_seq_set_status_2",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'approved'"
+      ]
+    },
+    {
+      "id": "router_llm_auditor_seq_set_status_3",
+      "label": "router_llm_auditor_seq_set_status_3",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'no_claims'"
+      ]
+    },
+    {
+      "id": "router_llm_auditor_while_loop",
+      "label": "router_llm_auditor_while_loop",
       "generated": true
     },
     {
       "id": "start_llm_auditor",
       "label": "start_llm_auditor",
-      "mutations": [
-        "p['iteration'] = 0",
-        "p['status'] = 'started'",
-        "p['partial'] = True"
-      ],
       "role": "start",
       "generated": true
     }
@@ -171,213 +128,146 @@
   "edges": [
     {
       "from": "start_llm_auditor",
-      "to": "extract_claims",
+      "to": "router_llm_auditor_if_not_claims",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "extract_claims",
-      "to": "router_llm_auditor_line_41_if",
+      "from": "router_llm_auditor_seq_set_status",
+      "to": "router_llm_auditor_seq_set_partial",
       "label": null,
-      "type": "continuation"
+      "type": "set"
     },
     {
-      "from": "router_llm_auditor_line_90_seq",
-      "to": "finalize",
-      "label": null,
+      "from": "router_llm_auditor_if_iteration_ge_max_iterations",
+      "to": "router_llm_auditor_seq_set_prev_score",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_66_seq",
-      "to": "router_llm_auditor_line_46_loop_back_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_73_if",
-      "to": "critique",
-      "label": "p['aggregate_score'] >= 70",
-      "type": "prepend"
-    },
-    {
-      "from": "critique",
-      "to": "reviser",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "reviser",
-      "to": "router_llm_auditor_line_83_if",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_73_if",
-      "to": "critique",
-      "label": "not (p['aggregate_score'] >= 70)",
-      "type": "prepend"
-    },
-    {
-      "from": "critique",
-      "to": "deep_reviser",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "deep_reviser",
-      "to": "router_llm_auditor_line_83_if",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_84_seq",
-      "to": "router_llm_auditor_line_90_seq",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_83_if",
-      "to": "router_llm_auditor_line_84_seq",
+      "from": "router_llm_auditor_if_iteration_ge_max_iterations",
+      "to": "router_llm_auditor_seq_set_status",
       "label": "p['iteration'] >= p.get('max_iterations', 5)",
+      "type": "set"
+    },
+    {
+      "from": "router_llm_auditor_if_aggregate_score_ge_90",
+      "to": "router_llm_auditor_if_aggregate_score_ge_70",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_83_if",
-      "to": "router_llm_auditor_line_87_seq",
-      "label": "not (p['iteration'] >= p.get('max_iterations', 5))",
-      "type": "prepend"
+      "from": "router_llm_auditor_if_aggregate_score_ge_70",
+      "to": "router_llm_auditor_if_iteration_ge_max_iterations",
+      "label": null,
+      "type": "continuation"
     },
     {
-      "from": "router_llm_auditor_line_70_if",
-      "to": "router_llm_auditor_line_71_seq",
+      "from": "router_llm_auditor_if_aggregate_score_ge_90",
+      "to": "router_llm_auditor_seq_set_status_2",
       "label": "p['aggregate_score'] >= 90",
+      "type": "set"
+    },
+    {
+      "from": "router_llm_auditor_seq_set_prev_score_2",
+      "to": "router_llm_auditor_while_loop",
+      "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_70_if",
-      "to": "router_llm_auditor_line_73_if",
-      "label": "not (p['aggregate_score'] >= 90)",
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_65_if",
-      "to": "router_llm_auditor_line_66_seq",
+      "from": "router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9",
+      "to": "router_llm_auditor_seq_set_prev_score_2",
       "label": "p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70",
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_65_if",
-      "to": "router_llm_auditor_line_70_if",
-      "label": "not (p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70)",
+      "from": "router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9",
+      "to": "router_llm_auditor_if_aggregate_score_ge_90",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "fanout_llm_auditor_line_56",
-      "to": "fanin_llm_auditor_line_56",
+      "from": "router_llm_auditor_fanout_scores",
+      "to": "fanin_llm_auditor_scores",
       "label": "fanout",
       "type": "set"
     },
     {
-      "from": "fanin_llm_auditor_line_56",
+      "from": "fanin_llm_auditor_scores",
       "to": "adk_llm_auditor.QualityScorer.aggregate",
       "label": null,
       "type": "continuation"
     },
     {
       "from": "adk_llm_auditor.QualityScorer.aggregate",
-      "to": "router_llm_auditor_line_65_if",
+      "to": "router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "fanout_llm_auditor_line_56",
+      "from": "router_llm_auditor_fanout_scores",
       "to": "accuracy_scorer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "accuracy_scorer",
-      "to": "fanin_llm_auditor_line_56",
+      "to": "fanin_llm_auditor_scores",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "fanout_llm_auditor_line_56",
+      "from": "router_llm_auditor_fanout_scores",
       "to": "completeness_scorer",
       "label": null,
       "type": "fanout"
     },
     {
       "from": "completeness_scorer",
-      "to": "fanin_llm_auditor_line_56",
+      "to": "fanin_llm_auditor_scores",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_llm_auditor_line_50_try_enter_0",
-      "to": "llm_generate",
+      "from": "router_llm_auditor_except_all",
+      "to": "router_llm_auditor_fanout_scores",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "router_llm_auditor_seq_set_iteration",
+      "to": "router_llm_auditor_fanout_scores",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "llm_generate",
-      "to": "router_llm_auditor_line_50_try_exit_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_llm_auditor_line_50_try_exit_0",
-      "to": "fanout_llm_auditor_line_56",
+      "from": "router_llm_auditor_while_loop",
+      "to": "router_llm_auditor_seq_set_iteration",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_50_except_dispatch_0",
-      "to": "fanout_llm_auditor_line_56",
-      "label": null,
+      "from": "router_llm_auditor_if_not_claims",
+      "to": "router_llm_auditor_while_loop",
+      "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_llm_auditor_line_50_except_dispatch_0",
-      "to": "fallback_generate",
-      "label": "True",
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_47_seq",
-      "to": "router_llm_auditor_line_50_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_46_loop_back_0",
-      "to": "router_llm_auditor_line_47_seq",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_41_if",
-      "to": "router_llm_auditor_line_42_seq",
+      "from": "router_llm_auditor_if_not_claims",
+      "to": "router_llm_auditor_seq_set_status_3",
       "label": "not p.get('claims')",
-      "type": "prepend"
+      "type": "set"
     },
     {
-      "from": "router_llm_auditor_line_41_if",
-      "to": "router_llm_auditor_line_46_loop_back_0",
-      "label": "not (not p.get('claims'))",
-      "type": "prepend"
-    },
-    {
-      "from": "router_llm_auditor_line_50_try_enter_0",
-      "to": "router_llm_auditor_line_46_loop_back_0",
+      "from": "router_llm_auditor_fanout_scores",
+      "to": "router_llm_auditor_while_loop",
       "label": null,
       "type": "continuation"
     }
   ],
   "groups": [],
   "warnings": [
-    "node 'fallback_generate' is not reachable from entrypoint",
-    "node 'router_llm_auditor_line_50_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_llm_auditor_line_50_except_dispatch_0' has no incoming edges but is not an entrypoint"
+    "node 'router_llm_auditor_except_all' is not reachable from start",
+    "node 'router_llm_auditor_except_all' has no incoming edges but is not an entry"
   ]
 }

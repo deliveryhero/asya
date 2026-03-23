@@ -6,11 +6,11 @@ resources:
 - asya-actor-handler-inner.yaml
 - asya-actor-handler-outer-end.yaml
 - asya-actor-handler-outer.yaml
-- asya-router-while-nested-flow-line-13-seq-6.yaml
-- asya-router-while-nested-flow-line-14-while-1.yaml
-- asya-router-while-nested-flow-line-15-seq-5.yaml
-- asya-router-while-nested-flow-line-17-seq-4.yaml
-- asya-router-while-nested-flow-line-18-while-2.yaml
-- asya-router-while-nested-flow-line-19-seq-3.yaml
+- asya-router-while-nested-flow-seq-set-i-2.yaml
+- asya-router-while-nested-flow-seq-set-i.yaml
+- asya-router-while-nested-flow-seq-set-j-2.yaml
+- asya-router-while-nested-flow-seq-set-j.yaml
+- asya-router-while-nested-flow-while-i-lt-max-i.yaml
+- asya-router-while-nested-flow-while-j-lt-max-j.yaml
 - asya-start-while-nested-flow.yaml
 - configmap-routers.yaml

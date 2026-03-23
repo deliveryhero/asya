@@ -1,20 +1,20 @@
 flowchart TD
     %% Flow: research_flow
 
-    fanin_research_flow_line_14[fanin_research_flow_line_14]
+    fanin_research_flow_results[fanin_research_flow_results]
     post_processor[post_processor]
     preprocessor[preprocessor]
     research_agent[research_agent]
-    router_research_flow_line_14_fanout_1{{router_research_flow_line_14_fanout_1}}
+    router_research_flow_fanout_results{{router_research_flow_fanout_results}}
     start_research_flow([start_research_flow])
     __end__((( )))
 
     start_research_flow --> preprocessor
-    preprocessor --> router_research_flow_line_14_fanout_1
-    router_research_flow_line_14_fanout_1 -->|"fanout: p['topics']"| fanin_research_flow_line_14
-    fanin_research_flow_line_14 --> post_processor
-    router_research_flow_line_14_fanout_1 --> research_agent
-    research_agent --> fanin_research_flow_line_14
+    preprocessor --> router_research_flow_fanout_results
+    router_research_flow_fanout_results -->|"fanout: p['topics']"| fanin_research_flow_results
+    fanin_research_flow_results --> post_processor
+    router_research_flow_fanout_results --> research_agent
+    research_agent --> fanin_research_flow_results
     post_processor --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -24,7 +24,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_research_flow start
     class post_processor endnode
-    class router_research_flow_line_14_fanout_1 router
-    class fanin_research_flow_line_14,preprocessor,research_agent handler
+    class router_research_flow_fanout_results router
+    class fanin_research_flow_results,preprocessor,research_agent handler
     class __end__ endpoint
     linkStyle 2 stroke:#7B68EE

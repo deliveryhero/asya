@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-safe-fallback
+  namespace: default
+  labels:
+    asya.sh/flow: guardrails-sandwich
+    asya.sh/role: end
+spec:
+  actor: actor-safe-fallback
+  image: examples.asya.sh/safe-fallback:latest
+  handler: safe_fallback
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

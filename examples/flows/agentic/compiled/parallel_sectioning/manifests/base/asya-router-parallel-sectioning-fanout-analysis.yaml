@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-parallel-sectioning-fanout-analysis
+  namespace: default
+  labels:
+    asya.sh/flow: parallel-sectioning
+    asya.sh/generated: 'true'
+spec:
+  actor: router-parallel-sectioning-fanout-analysis
+  image: python:3.13-slim
+  handler: routers.router_parallel_sectioning_fanout_analysis
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_AGGREGATOR
+    value: aggregator
+  - name: ASYA_HANDLER_ACTOR_ENTITY_RECOGNIZER
+    value: entity_recognizer
+  - name: ASYA_HANDLER_FANIN_PARALLEL_SECTIONING_ANALYSIS
+    value: routers.fanin_parallel_sectioning_analysis
+  - name: ASYA_HANDLER_ACTOR_PREPROCESSOR
+    value: preprocessor
+  - name: ASYA_HANDLER_ROUTER_PARALLEL_SECTIONING_FANOUT_ANALYSIS
+    value: routers.router_parallel_sectioning_fanout_analysis
+  - name: ASYA_HANDLER_ACTOR_SENTIMENT_ANALYZER
+    value: sentiment_analyzer
+  - name: ASYA_HANDLER_ACTOR_TOPIC_EXTRACTOR
+    value: topic_extractor

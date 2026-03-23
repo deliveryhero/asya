@@ -18,11 +18,11 @@ async def start_research_agent(payload: dict):
     p = payload
     _next = []
     p['messages'] = p.get('messages', [])
-    _next.append(resolve("router_research_agent_line_15_while_1"))
+    _next.append(resolve("router_research_agent_while_loop"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_agent_line_21_if_2(payload: dict):
+async def router_research_agent_if_tool_name_eq_code_exec(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -35,36 +35,36 @@ async def router_research_agent_line_21_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_agent_line_19_if_3(payload: dict):
+async def router_research_agent_if_tool_name_eq_calculator(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('tool_name') == 'calculator':
         pass
     else:
-        _next.append(resolve("router_research_agent_line_21_if_2"))
+        _next.append(resolve("router_research_agent_if_tool_name_eq_code_exec"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_agent_line_17_if_4(payload: dict):
+async def router_research_agent_if_tool_name_eq_search(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('tool_name') == 'search':
         pass
     else:
-        _next.append(resolve("router_research_agent_line_19_if_3"))
+        _next.append(resolve("router_research_agent_if_tool_name_eq_calculator"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_research_agent_line_15_while_1(payload: dict):
+async def router_research_agent_while_loop(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_research_agent_line_17_if_4"))
-    _next.append(resolve("router_research_agent_line_15_while_1"))
+    _next.append(resolve("router_research_agent_if_tool_name_eq_search"))
+    _next.append(resolve("router_research_agent_while_loop"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

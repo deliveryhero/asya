@@ -10,19 +10,19 @@
       "label": "handler_b"
     },
     {
-      "id": "router_mutations_before_after_handler_flow_line_14_seq_2",
-      "label": "router_mutations_before_after_handler_flow_line_14_seq_2",
-      "generated": true,
-      "mutations": [
-        "p['step'] = 2"
-      ]
-    },
-    {
-      "id": "router_mutations_before_after_handler_flow_line_16_seq_1",
-      "label": "router_mutations_before_after_handler_flow_line_16_seq_1",
+      "id": "router_mutations_before_after_handler_flow_seq_set_step",
+      "label": "router_mutations_before_after_handler_flow_seq_set_step",
       "generated": true,
       "mutations": [
         "p['step'] = 3"
+      ]
+    },
+    {
+      "id": "router_mutations_before_after_handler_flow_seq_set_step_2",
+      "label": "router_mutations_before_after_handler_flow_seq_set_step_2",
+      "generated": true,
+      "mutations": [
+        "p['step'] = 2"
       ]
     },
     {
@@ -44,19 +44,19 @@
     },
     {
       "from": "handler_a",
-      "to": "router_mutations_before_after_handler_flow_line_14_seq_2",
+      "to": "router_mutations_before_after_handler_flow_seq_set_step_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_mutations_before_after_handler_flow_line_14_seq_2",
+      "from": "router_mutations_before_after_handler_flow_seq_set_step_2",
       "to": "handler_b",
       "label": null,
       "type": "prepend"
     },
     {
       "from": "handler_b",
-      "to": "router_mutations_before_after_handler_flow_line_16_seq_1",
+      "to": "router_mutations_before_after_handler_flow_seq_set_step",
       "label": null,
       "type": "continuation"
     }

@@ -2,23 +2,23 @@
   "flow_name": "research_agent",
   "nodes": [
     {
-      "id": "router_research_agent_line_15_while_1",
-      "label": "router_research_agent_line_15_while_1",
+      "id": "router_research_agent_if_tool_name_eq_calculator",
+      "label": "router_research_agent_if_tool_name_eq_calculator",
       "generated": true
     },
     {
-      "id": "router_research_agent_line_17_if_4",
-      "label": "router_research_agent_line_17_if_4",
+      "id": "router_research_agent_if_tool_name_eq_code_exec",
+      "label": "router_research_agent_if_tool_name_eq_code_exec",
       "generated": true
     },
     {
-      "id": "router_research_agent_line_19_if_3",
-      "label": "router_research_agent_line_19_if_3",
+      "id": "router_research_agent_if_tool_name_eq_search",
+      "label": "router_research_agent_if_tool_name_eq_search",
       "generated": true
     },
     {
-      "id": "router_research_agent_line_21_if_2",
-      "label": "router_research_agent_line_21_if_2",
+      "id": "router_research_agent_while_loop",
+      "label": "router_research_agent_while_loop",
       "generated": true
     },
     {
@@ -34,31 +34,31 @@
   "edges": [
     {
       "from": "start_research_agent",
-      "to": "router_research_agent_line_15_while_1",
+      "to": "router_research_agent_while_loop",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_agent_line_19_if_3",
-      "to": "router_research_agent_line_21_if_2",
+      "from": "router_research_agent_if_tool_name_eq_calculator",
+      "to": "router_research_agent_if_tool_name_eq_code_exec",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_research_agent_line_17_if_4",
-      "to": "router_research_agent_line_19_if_3",
+      "from": "router_research_agent_if_tool_name_eq_search",
+      "to": "router_research_agent_if_tool_name_eq_calculator",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_research_agent_line_15_while_1",
-      "to": "router_research_agent_line_17_if_4",
+      "from": "router_research_agent_while_loop",
+      "to": "router_research_agent_if_tool_name_eq_search",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_research_agent_line_21_if_2",
-      "to": "router_research_agent_line_15_while_1",
+      "from": "router_research_agent_if_tool_name_eq_code_exec",
+      "to": "router_research_agent_while_loop",
       "label": null,
       "type": "continuation"
     }

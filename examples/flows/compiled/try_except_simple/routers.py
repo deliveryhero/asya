@@ -20,7 +20,7 @@ async def start_order_processing(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_order_processing_line_8_except_1(payload: dict):
+async def router_order_processing_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['status'] = 'invalid'

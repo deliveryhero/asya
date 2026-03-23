@@ -27,53 +27,53 @@
       "label": "handler_validate"
     },
     {
-      "id": "router_nested_if_flow_line_13_if_7",
-      "label": "router_nested_if_flow_line_13_if_7",
+      "id": "router_nested_if_flow_if_level1_eq_a",
+      "label": "router_nested_if_flow_if_level1_eq_a",
       "generated": true
     },
     {
-      "id": "router_nested_if_flow_line_15_if_3",
-      "label": "router_nested_if_flow_line_15_if_3",
+      "id": "router_nested_if_flow_if_level2_eq_x",
+      "label": "router_nested_if_flow_if_level2_eq_x",
       "generated": true,
       "mutations": [
         "p['l1'] = 'A'"
       ]
     },
     {
-      "id": "router_nested_if_flow_line_16_seq_1",
-      "label": "router_nested_if_flow_line_16_seq_1",
-      "generated": true,
-      "mutations": [
-        "p['l2'] = 'X'"
-      ]
-    },
-    {
-      "id": "router_nested_if_flow_line_19_seq_2",
-      "label": "router_nested_if_flow_line_19_seq_2",
-      "generated": true,
-      "mutations": [
-        "p['l2'] = 'Y'"
-      ]
-    },
-    {
-      "id": "router_nested_if_flow_line_23_if_6",
-      "label": "router_nested_if_flow_line_23_if_6",
+      "id": "router_nested_if_flow_if_level2_eq_x_2",
+      "label": "router_nested_if_flow_if_level2_eq_x_2",
       "generated": true,
       "mutations": [
         "p['l1'] = 'B'"
       ]
     },
     {
-      "id": "router_nested_if_flow_line_24_seq_4",
-      "label": "router_nested_if_flow_line_24_seq_4",
+      "id": "router_nested_if_flow_seq_set_l2",
+      "label": "router_nested_if_flow_seq_set_l2",
       "generated": true,
       "mutations": [
         "p['l2'] = 'X'"
       ]
     },
     {
-      "id": "router_nested_if_flow_line_27_seq_5",
-      "label": "router_nested_if_flow_line_27_seq_5",
+      "id": "router_nested_if_flow_seq_set_l2_2",
+      "label": "router_nested_if_flow_seq_set_l2_2",
+      "generated": true,
+      "mutations": [
+        "p['l2'] = 'Y'"
+      ]
+    },
+    {
+      "id": "router_nested_if_flow_seq_set_l2_3",
+      "label": "router_nested_if_flow_seq_set_l2_3",
+      "generated": true,
+      "mutations": [
+        "p['l2'] = 'X'"
+      ]
+    },
+    {
+      "id": "router_nested_if_flow_seq_set_l2_4",
+      "label": "router_nested_if_flow_seq_set_l2_4",
       "generated": true,
       "mutations": [
         "p['l2'] = 'Y'"
@@ -95,67 +95,67 @@
     },
     {
       "from": "handler_validate",
-      "to": "router_nested_if_flow_line_13_if_7",
+      "to": "router_nested_if_flow_if_level1_eq_a",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_nested_if_flow_line_16_seq_1",
+      "from": "router_nested_if_flow_seq_set_l2",
       "to": "handler_a_x",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_19_seq_2",
+      "from": "router_nested_if_flow_seq_set_l2_2",
       "to": "handler_a_y",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_15_if_3",
-      "to": "router_nested_if_flow_line_16_seq_1",
+      "from": "router_nested_if_flow_if_level2_eq_x",
+      "to": "router_nested_if_flow_seq_set_l2",
       "label": "p['level2'] == 'X'",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_15_if_3",
-      "to": "router_nested_if_flow_line_19_seq_2",
+      "from": "router_nested_if_flow_if_level2_eq_x",
+      "to": "router_nested_if_flow_seq_set_l2_2",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_24_seq_4",
+      "from": "router_nested_if_flow_seq_set_l2_3",
       "to": "handler_b_x",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_27_seq_5",
+      "from": "router_nested_if_flow_seq_set_l2_4",
       "to": "handler_b_y",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_23_if_6",
-      "to": "router_nested_if_flow_line_24_seq_4",
+      "from": "router_nested_if_flow_if_level2_eq_x_2",
+      "to": "router_nested_if_flow_seq_set_l2_3",
       "label": "p['level2'] == 'X'",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_23_if_6",
-      "to": "router_nested_if_flow_line_27_seq_5",
+      "from": "router_nested_if_flow_if_level2_eq_x_2",
+      "to": "router_nested_if_flow_seq_set_l2_4",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_13_if_7",
-      "to": "router_nested_if_flow_line_15_if_3",
+      "from": "router_nested_if_flow_if_level1_eq_a",
+      "to": "router_nested_if_flow_if_level2_eq_x",
       "label": "p['level1'] == 'A'",
       "type": "prepend"
     },
     {
-      "from": "router_nested_if_flow_line_13_if_7",
-      "to": "router_nested_if_flow_line_23_if_6",
+      "from": "router_nested_if_flow_if_level1_eq_a",
+      "to": "router_nested_if_flow_if_level2_eq_x_2",
       "label": "else",
       "type": "prepend"
     },

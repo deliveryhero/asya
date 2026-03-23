@@ -20,5 +20,5 @@ spec:
     value: handler_finalize
   - name: ASYA_HANDLER_ACTOR_HANDLER_SETUP
     value: handler_setup
-  - name: ASYA_HANDLER_ROUTER_IF_EMPTY_BRANCHES_FLOW_LINE_13_IF_1
-    value: routers.router_if_empty_branches_flow_line_13_if_1
+  - name: ASYA_HANDLER_ROUTER_IF_EMPTY_BRANCHES_FLOW_IF_SKIP_PROCESSING
+    value: routers.router_if_empty_branches_flow_if_skip_processing

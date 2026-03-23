@@ -5,10 +5,10 @@ resources:
 - asya-actor-refine-query.yaml
 - asya-actor-researcher.yaml
 - asya-actor-write-report.yaml
-- asya-router-research-and-refine-line-46-seq-5.yaml
-- asya-router-research-and-refine-line-49-while-1.yaml
-- asya-router-research-and-refine-line-50-seq-4.yaml
-- asya-router-research-and-refine-line-54-if-3.yaml
-- asya-router-research-and-refine-line-58-if-2.yaml
+- asya-router-research-and-refine-if-iteration-ge-5.yaml
+- asya-router-research-and-refine-if-not-gaps-or-quality-score-ge-85.yaml
+- asya-router-research-and-refine-seq-set-iteration-2.yaml
+- asya-router-research-and-refine-seq-set-iteration.yaml
+- asya-router-research-and-refine-while-loop.yaml
 - asya-start-research-and-refine.yaml
 - configmap-routers.yaml

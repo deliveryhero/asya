@@ -2,19 +2,19 @@ flowchart TD
     %% Flow: map_reduce
 
     chunk_processor[chunk_processor]
-    fanin_map_reduce_line_54[fanin_map_reduce_line_54]
+    fanin_map_reduce_chunk_results[fanin_map_reduce_chunk_results]
     reducer[reducer]
-    router_map_reduce_line_54_fanout_1{{router_map_reduce_line_54_fanout_1}}
+    router_map_reduce_fanout_chunk_results{{router_map_reduce_fanout_chunk_results}}
     splitter[splitter]
     start_map_reduce([start_map_reduce])
     __end__((( )))
 
     start_map_reduce --> splitter
-    splitter --> router_map_reduce_line_54_fanout_1
-    router_map_reduce_line_54_fanout_1 -->|"fanout: p['chunks']"| fanin_map_reduce_line_54
-    fanin_map_reduce_line_54 --> reducer
-    router_map_reduce_line_54_fanout_1 --> chunk_processor
-    chunk_processor --> fanin_map_reduce_line_54
+    splitter --> router_map_reduce_fanout_chunk_results
+    router_map_reduce_fanout_chunk_results -->|"fanout: p['chunks']"| fanin_map_reduce_chunk_results
+    fanin_map_reduce_chunk_results --> reducer
+    router_map_reduce_fanout_chunk_results --> chunk_processor
+    chunk_processor --> fanin_map_reduce_chunk_results
     reducer --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -24,7 +24,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_map_reduce start
     class reducer endnode
-    class router_map_reduce_line_54_fanout_1 router
-    class chunk_processor,fanin_map_reduce_line_54,splitter handler
+    class router_map_reduce_fanout_chunk_results router
+    class chunk_processor,fanin_map_reduce_chunk_results,splitter handler
     class __end__ endpoint
     linkStyle 2 stroke:#7B68EE

@@ -15,8 +15,8 @@
       "label": "handler_setup"
     },
     {
-      "id": "router_if_empty_branches_flow_line_13_if_1",
-      "label": "router_if_empty_branches_flow_line_13_if_1",
+      "id": "router_if_empty_branches_flow_if_skip_processing",
+      "label": "router_if_empty_branches_flow_if_skip_processing",
       "generated": true
     },
     {
@@ -35,18 +35,18 @@
     },
     {
       "from": "handler_setup",
-      "to": "router_if_empty_branches_flow_line_13_if_1",
+      "to": "router_if_empty_branches_flow_if_skip_processing",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_if_empty_branches_flow_line_13_if_1",
+      "from": "router_if_empty_branches_flow_if_skip_processing",
       "to": "handler_finalize",
       "label": "p['skip_processing']",
       "type": "prepend"
     },
     {
-      "from": "router_if_empty_branches_flow_line_13_if_1",
+      "from": "router_if_empty_branches_flow_if_skip_processing",
       "to": "handler_process",
       "label": "else",
       "type": "prepend"

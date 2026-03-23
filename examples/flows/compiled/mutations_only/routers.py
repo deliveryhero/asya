@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile mutations_only.py
 async def start_mutations_only_flow(payload: dict):
     """Entrypoint for flow 'mutations_only_flow'"""
     _next = []
-    _next.append(resolve("router_mutations_only_flow_line_13_seq_1"))
+    _next.append(resolve("router_mutations_only_flow_seq_set_step"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_mutations_only_flow_line_13_seq_1(payload: dict):
+async def router_mutations_only_flow_seq_set_step(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['step'] = 1

@@ -4,19 +4,19 @@ flowchart TD
     handler_finalize[handler_finalize]
     handler_init[handler_init]
     handler_process[handler_process]
-    router_while_simple_flow_line_13_seq_3{{"router_while_simple_flow_line_13_seq_3<br/><br/>p['i'] = 0"}}
-    router_while_simple_flow_line_14_while_1{{router_while_simple_flow_line_14_while_1}}
-    router_while_simple_flow_line_15_seq_2{{"router_while_simple_flow_line_15_seq_2<br/><br/>p['i'] += 1"}}
+    router_while_simple_flow_seq_set_i{{"router_while_simple_flow_seq_set_i<br/><br/>p['i'] += 1"}}
+    router_while_simple_flow_seq_set_i_2{{"router_while_simple_flow_seq_set_i_2<br/><br/>p['i'] = 0"}}
+    router_while_simple_flow_while_i_lt_max_iterations{{router_while_simple_flow_while_i_lt_max_iterations}}
     start_while_simple_flow([start_while_simple_flow])
     __end__((( )))
 
     start_while_simple_flow --> handler_init
-    handler_init --> router_while_simple_flow_line_13_seq_3
-    router_while_simple_flow_line_15_seq_2 --> handler_process
-    router_while_simple_flow_line_14_while_1 -->|"p['i'] < p['max_iterations']"| router_while_simple_flow_line_15_seq_2
-    router_while_simple_flow_line_14_while_1 -->|"else"| handler_finalize
-    router_while_simple_flow_line_13_seq_3 --> router_while_simple_flow_line_14_while_1
-    handler_process --> router_while_simple_flow_line_14_while_1
+    handler_init --> router_while_simple_flow_seq_set_i_2
+    router_while_simple_flow_seq_set_i --> handler_process
+    router_while_simple_flow_while_i_lt_max_iterations -->|"p['i'] < p['max_iterations']"| router_while_simple_flow_seq_set_i
+    router_while_simple_flow_while_i_lt_max_iterations -->|"else"| handler_finalize
+    router_while_simple_flow_seq_set_i_2 --> router_while_simple_flow_while_i_lt_max_iterations
+    handler_process --> router_while_simple_flow_while_i_lt_max_iterations
     handler_finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -26,7 +26,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_while_simple_flow start
     class handler_finalize endnode
-    class router_while_simple_flow_line_13_seq_3,router_while_simple_flow_line_14_while_1,router_while_simple_flow_line_15_seq_2 router
+    class router_while_simple_flow_seq_set_i,router_while_simple_flow_seq_set_i_2,router_while_simple_flow_while_i_lt_max_iterations router
     class handler_init,handler_process handler
     class __end__ endpoint
     linkStyle 3 stroke:#2E8B57

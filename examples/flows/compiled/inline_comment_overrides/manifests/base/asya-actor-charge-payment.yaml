@@ -5,7 +5,6 @@ metadata:
   namespace: default
   labels:
     asya.sh/flow: order-pipeline
-    asya.sh/role: end
 spec:
   actor: actor-charge-payment
   image: examples.asya.sh/charge-payment:latest

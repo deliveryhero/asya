@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-text-analysis-flow-if-language-eq-es
+  namespace: default
+  labels:
+    asya.sh/flow: text-analysis-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-text-analysis-flow-if-language-eq-es
+  image: python:3.13-slim
+  handler: routers.router_text_analysis_flow_if_language_eq_es
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CLEAN_TEXT
+    value: clean_text
+  - name: ASYA_HANDLER_ACTOR_ENGLISH_SENTIMENT
+    value: english_sentiment
+  - name: ASYA_HANDLER_ACTOR_EXTRACT_ENTITIES
+    value: extract_entities
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_IF_LANGUAGE_EQ_EN
+    value: routers.router_text_analysis_flow_if_language_eq_en
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_IF_LANGUAGE_EQ_ES
+    value: routers.router_text_analysis_flow_if_language_eq_es
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_SEQ_SET_EXTRACTED
+    value: routers.router_text_analysis_flow_seq_set_extracted
+  - name: ASYA_HANDLER_ROUTER_TEXT_ANALYSIS_FLOW_SEQ_SET_SENTIMENT
+    value: routers.router_text_analysis_flow_seq_set_sentiment
+  - name: ASYA_HANDLER_ACTOR_SPANISH_SENTIMENT
+    value: spanish_sentiment
+  - name: ASYA_HANDLER_ACTOR_TOKENIZE
+    value: tokenize

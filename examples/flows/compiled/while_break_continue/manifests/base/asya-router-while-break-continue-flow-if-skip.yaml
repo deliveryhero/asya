@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-while-break-continue-flow-if-skip
+  namespace: default
+  labels:
+    asya.sh/flow: while-break-continue-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-while-break-continue-flow-if-skip
+  image: python:3.13-slim
+  handler: routers.router_while_break_continue_flow_if_skip
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_CHECK
+    value: handler_check
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_SKIP
+    value: routers.router_while_break_continue_flow_if_skip
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_STOP
+    value: routers.router_while_break_continue_flow_if_stop
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_SEQ_SET_I
+    value: routers.router_while_break_continue_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_SEQ_SET_I_2
+    value: routers.router_while_break_continue_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_while_break_continue_flow_while_i_lt_max_iterations

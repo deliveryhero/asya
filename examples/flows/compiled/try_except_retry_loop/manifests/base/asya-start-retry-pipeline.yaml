@@ -24,7 +24,7 @@ spec:
     value: log_retry
   - name: ASYA_HANDLER_ACTOR_PREPARE_REQUEST
     value: prepare_request
-  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_LINE_15_WHILE_1
-    value: routers.router_retry_pipeline_line_15_while_1
-  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_LINE_16_SEQ_4
-    value: routers.router_retry_pipeline_line_16_seq_4
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_SEQ_SET_ATTEMPT
+    value: routers.router_retry_pipeline_seq_set_attempt
+  - name: ASYA_HANDLER_ROUTER_RETRY_PIPELINE_WHILE_ATTEMPT_LT_3
+    value: routers.router_retry_pipeline_while_attempt_lt_3

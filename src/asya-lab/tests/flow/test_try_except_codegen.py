@@ -37,7 +37,7 @@ class TestTryExceptCodegen:
         rules = meta.actor_retry_rules["validate"]
         assert len(rules) == 1
         assert rules[0].error_types == ["ValueError"]
-        assert rules[0].policy_name.startswith("try_except_line_")
+        assert rules[0].policy_name == "except_valueerror"
 
     def test_multiple_handlers_generate_multiple_routers(self):
         code, codegen = _compile("""

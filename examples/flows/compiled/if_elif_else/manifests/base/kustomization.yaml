@@ -6,7 +6,7 @@ resources:
 - asya-actor-handler-type-a.yaml
 - asya-actor-handler-type-b.yaml
 - asya-actor-handler-validate.yaml
-- asya-router-if-elif-else-flow-line-13-if-2.yaml
-- asya-router-if-elif-else-flow-line-15-if-1.yaml
+- asya-router-if-elif-else-flow-if-type-eq-a.yaml
+- asya-router-if-elif-else-flow-if-type-eq-b.yaml
 - asya-start-if-elif-else-flow.yaml
 - configmap-routers.yaml

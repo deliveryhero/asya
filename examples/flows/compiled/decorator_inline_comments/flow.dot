@@ -6,16 +6,16 @@ digraph "decorator_inline_comments_flow" {
 
     classifier [label="classifier", fillcolor=lightblue];
     fast_handler [label="fast_handler", fillcolor=lightsalmon];
-    router_decorator_inline_comments_flow_line_18_if_1 [label="router_decorator_inline_comments_flow_line_18_if_1", fillcolor=wheat];
+    router_decorator_inline_comments_flow_if_category_eq_priority [label="router_decorator_inline_comments_flow_if_category_eq_priority", fillcolor=wheat];
     standard_handler [label="standard_handler", fillcolor=lightsalmon];
     start_decorator_inline_comments_flow [label="start_decorator_inline_comments_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_decorator_inline_comments_flow -> classifier;
-    classifier -> router_decorator_inline_comments_flow_line_18_if_1;
-    router_decorator_inline_comments_flow_line_18_if_1 -> fast_handler [label="p['category'] == 'priority'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_decorator_inline_comments_flow_line_18_if_1 -> standard_handler [label="else", color="#D35400", fontcolor="#D35400"];
+    classifier -> router_decorator_inline_comments_flow_if_category_eq_priority;
+    router_decorator_inline_comments_flow_if_category_eq_priority -> fast_handler [label="p['category'] == 'priority'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_decorator_inline_comments_flow_if_category_eq_priority -> standard_handler [label="else", color="#D35400", fontcolor="#D35400"];
     fast_handler -> __end__;
     standard_handler -> __end__;
 }

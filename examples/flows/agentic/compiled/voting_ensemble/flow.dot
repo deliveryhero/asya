@@ -7,21 +7,21 @@ digraph "voting_ensemble" {
     analytical_writer [label="analytical_writer", fillcolor=lightblue];
     concise_writer [label="concise_writer", fillcolor=lightblue];
     creative_writer [label="creative_writer", fillcolor=lightblue];
-    fanin_voting_ensemble_line_43 [label="fanin_voting_ensemble_line_43", fillcolor=lightblue];
+    fanin_voting_ensemble_candidates [label="fanin_voting_ensemble_candidates", fillcolor=lightblue];
     judge [label="judge", fillcolor=lightsalmon];
-    router_voting_ensemble_line_43_fanout_1 [label="router_voting_ensemble_line_43_fanout_1", fillcolor=wheat];
+    router_voting_ensemble_fanout_candidates [label="router_voting_ensemble_fanout_candidates", fillcolor=wheat];
     start_voting_ensemble [label="start_voting_ensemble", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_voting_ensemble -> router_voting_ensemble_line_43_fanout_1;
-    router_voting_ensemble_line_43_fanout_1 -> fanin_voting_ensemble_line_43 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_voting_ensemble_line_43 -> judge;
-    router_voting_ensemble_line_43_fanout_1 -> creative_writer;
-    creative_writer -> fanin_voting_ensemble_line_43;
-    router_voting_ensemble_line_43_fanout_1 -> analytical_writer;
-    analytical_writer -> fanin_voting_ensemble_line_43;
-    router_voting_ensemble_line_43_fanout_1 -> concise_writer;
-    concise_writer -> fanin_voting_ensemble_line_43;
+    start_voting_ensemble -> router_voting_ensemble_fanout_candidates;
+    router_voting_ensemble_fanout_candidates -> fanin_voting_ensemble_candidates [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_voting_ensemble_candidates -> judge;
+    router_voting_ensemble_fanout_candidates -> creative_writer;
+    creative_writer -> fanin_voting_ensemble_candidates;
+    router_voting_ensemble_fanout_candidates -> analytical_writer;
+    analytical_writer -> fanin_voting_ensemble_candidates;
+    router_voting_ensemble_fanout_candidates -> concise_writer;
+    concise_writer -> fanin_voting_ensemble_candidates;
     judge -> __end__;
 }

@@ -1,60 +1,6 @@
 {
   "flow_name": "order_pipeline",
-  "nodes": [
-    {
-      "id": "charge_payment",
-      "label": "charge_payment",
-      "role": "end"
-    },
-    {
-      "id": "router_order_pipeline_line_32_if_2",
-      "label": "router_order_pipeline_line_32_if_2",
-      "generated": true
-    },
-    {
-      "id": "router_order_pipeline_line_33_seq_1",
-      "label": "router_order_pipeline_line_33_seq_1",
-      "generated": true,
-      "mutations": [
-        "p['status'] = 'rejected'"
-      ]
-    },
-    {
-      "id": "start_order_pipeline",
-      "label": "start_order_pipeline",
-      "role": "start",
-      "generated": true
-    },
-    {
-      "id": "validate_order",
-      "label": "validate_order"
-    }
-  ],
-  "edges": [
-    {
-      "from": "start_order_pipeline",
-      "to": "validate_order",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "validate_order",
-      "to": "router_order_pipeline_line_32_if_2",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_order_pipeline_line_32_if_2",
-      "to": "charge_payment",
-      "label": "else",
-      "type": "prepend"
-    },
-    {
-      "from": "router_order_pipeline_line_32_if_2",
-      "to": "router_order_pipeline_line_33_seq_1",
-      "label": "p.get('fraud_score', 0) > 0.8",
-      "type": "set"
-    }
-  ],
+  "nodes": [],
+  "edges": [],
   "groups": []
 }

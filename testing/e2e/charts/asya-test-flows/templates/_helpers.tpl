@@ -39,20 +39,20 @@ These environment variables allow routers to resolve handler names to actor name
   value: asya_testing.flows.nested_if.flow.route_b_y
 - name: ASYA_HANDLER_FINALIZE_RESULT
   value: asya_testing.flows.nested_if.flow.finalize_result
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_9_IF_7
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_9_if_7
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_11_IF_3
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_11_if_3
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_12_SEQ_1
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_12_seq_1
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_15_SEQ_2
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq_2
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_19_IF_6
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_19_if_6
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_20_SEQ_4
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_20_seq_4
-- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_LINE_23_SEQ_5
-  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_23_seq_5
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_IF_LEVEL1_EQ_A
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level1_eq_a
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_IF_LEVEL2_EQ_X
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level2_eq_x
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_SEQ_SET_ROUTE
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_SEQ_SET_ROUTE_2
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_2
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_IF_LEVEL2_EQ_X_2
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level2_eq_x_2
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_SEQ_SET_ROUTE_3
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_3
+- name: ASYA_HANDLER_ROUTER_TEST_NESTED_FLOW_SEQ_SET_ROUTE_4
+  value: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_4
 {{- end }}
 
 {{/*
@@ -61,13 +61,13 @@ These env vars allow routers to resolve handler names to actor queue names.
 
 Handler-to-actor name mapping (via ASYA_HANDLER_<ACTOR_NAME_UPPER> env vars):
   ASYA_HANDLER_START_RESEARCH_FLOW      -> actor "start-research-flow"
-  ASYA_HANDLER_ROUTER_RESEARCH_FLOW_LINE_7_FANOUT_1 -> actor "router-research-flow-line-7-fanout-1"
+  ASYA_HANDLER_ROUTER_RESEARCH_FLOW_FANOUT_RESULTS -> actor "router-research-flow-fanout-results"
   ASYA_HANDLER_END_RESEARCH_FLOW        -> actor "end-research-flow"
   ASYA_HANDLER_RESEARCH_AGENT           -> actor "research-agent"
   ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR -> actor "research-flow-aggregator"
   ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER -> actor "research-flow-summarizer"
 
-resolve("fanin_research_flow_line_7") -> "research-flow-aggregator"
+resolve("fanin_research_flow_results") -> "research-flow-aggregator"
   (fan-in destination: crew split_key aggregator)
 resolve("summarizer") -> "research-flow-summarizer"
   (post-aggregation handler from flow.py)
@@ -75,14 +75,14 @@ resolve("summarizer") -> "research-flow-summarizer"
 {{- define "asya-test-flows.research-flow-handler-env" -}}
 - name: ASYA_HANDLER_START_RESEARCH_FLOW
   value: asya_testing.flows.research_flow.compiled.routers.start_research_flow
-- name: ASYA_HANDLER_ROUTER_RESEARCH_FLOW_LINE_7_FANOUT_1
-  value: asya_testing.flows.research_flow.compiled.routers.router_research_flow_line_7_fanout_1
+- name: ASYA_HANDLER_ROUTER_RESEARCH_FLOW_FANOUT_RESULTS
+  value: asya_testing.flows.research_flow.compiled.routers.router_research_flow_fanout_results
 - name: ASYA_HANDLER_END_RESEARCH_FLOW
   value: asya_testing.flows.research_flow.compiled.routers.end_research_flow
 - name: ASYA_HANDLER_RESEARCH_AGENT
   value: asya_testing.flows.research_flow.flow.research_agent
 - name: ASYA_HANDLER_RESEARCH_FLOW_AGGREGATOR
-  value: asya_testing.flows.research_flow.compiled.routers.fanin_research_flow_line_7
+  value: asya_testing.flows.research_flow.compiled.routers.fanin_research_flow_results
 - name: ASYA_HANDLER_RESEARCH_FLOW_SUMMARIZER
   value: asya_testing.flows.research_flow.flow.summarizer
 {{- end }}

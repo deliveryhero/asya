@@ -2,13 +2,13 @@
   "flow_name": "content_pipeline_flow",
   "nodes": [
     {
-      "id": "router_content_pipeline_flow_line_15_if_2",
-      "label": "router_content_pipeline_flow_line_15_if_2",
+      "id": "router_content_pipeline_flow_if_content_type_eq_image",
+      "label": "router_content_pipeline_flow_if_content_type_eq_image",
       "generated": true
     },
     {
-      "id": "router_content_pipeline_flow_line_17_if_1",
-      "label": "router_content_pipeline_flow_line_17_if_1",
+      "id": "router_content_pipeline_flow_if_content_type_eq_text",
+      "label": "router_content_pipeline_flow_if_content_type_eq_text",
       "generated": true
     },
     {
@@ -21,13 +21,13 @@
   "edges": [
     {
       "from": "start_content_pipeline_flow",
-      "to": "router_content_pipeline_flow_line_15_if_2",
+      "to": "router_content_pipeline_flow_if_content_type_eq_text",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_content_pipeline_flow_line_15_if_2",
-      "to": "router_content_pipeline_flow_line_17_if_1",
+      "from": "router_content_pipeline_flow_if_content_type_eq_text",
+      "to": "router_content_pipeline_flow_if_content_type_eq_image",
       "label": "else",
       "type": "prepend"
     }

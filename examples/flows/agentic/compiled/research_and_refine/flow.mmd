@@ -4,24 +4,24 @@ flowchart TD
     critic[critic]
     refine_query[refine_query]
     researcher[researcher]
-    router_research_and_refine_line_49_while_1{{router_research_and_refine_line_49_while_1}}
-    router_research_and_refine_line_50_seq_4{{"router_research_and_refine_line_50_seq_4<br/><br/>p['iteration'] += 1"}}
-    router_research_and_refine_line_54_if_3{{router_research_and_refine_line_54_if_3}}
-    router_research_and_refine_line_58_if_2{{router_research_and_refine_line_58_if_2}}
+    router_research_and_refine_if_iteration_ge_5{{router_research_and_refine_if_iteration_ge_5}}
+    router_research_and_refine_if_not_gaps_or_quality_score_ge_85{{router_research_and_refine_if_not_gaps_or_quality_score_ge_85}}
+    router_research_and_refine_seq_set_iteration{{"router_research_and_refine_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_research_and_refine_while_loop{{router_research_and_refine_while_loop}}
     start_research_and_refine(["start_research_and_refine<br/><br/>p['iteration'] = 0<br/>p['search_query'] = p.get('question', '')"])
     write_report[write_report]
     __end__((( )))
 
-    start_research_and_refine --> router_research_and_refine_line_49_while_1
-    router_research_and_refine_line_58_if_2 -->|"p['iteration'] >= 5"| write_report
-    router_research_and_refine_line_54_if_3 -->|"else"| refine_query
-    refine_query --> router_research_and_refine_line_58_if_2
-    router_research_and_refine_line_54_if_3 -->|"not p.get('gaps') or p.get('quality_score', 0) >= 85"| write_report
-    router_research_and_refine_line_50_seq_4 --> researcher
+    start_research_and_refine --> router_research_and_refine_while_loop
+    router_research_and_refine_if_iteration_ge_5 -->|"p['iteration'] >= 5"| write_report
+    router_research_and_refine_if_not_gaps_or_quality_score_ge_85 -->|"else"| refine_query
+    refine_query --> router_research_and_refine_if_iteration_ge_5
+    router_research_and_refine_if_not_gaps_or_quality_score_ge_85 -->|"not p.get('gaps') or p.get('quality_score', 0) >= 85"| write_report
+    router_research_and_refine_seq_set_iteration --> researcher
     researcher --> critic
-    critic --> router_research_and_refine_line_54_if_3
-    router_research_and_refine_line_49_while_1 --> router_research_and_refine_line_50_seq_4
-    router_research_and_refine_line_58_if_2 -->|"else"| router_research_and_refine_line_49_while_1
+    critic --> router_research_and_refine_if_not_gaps_or_quality_score_ge_85
+    router_research_and_refine_while_loop --> router_research_and_refine_seq_set_iteration
+    router_research_and_refine_if_iteration_ge_5 -->|"else"| router_research_and_refine_while_loop
     write_report --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -31,7 +31,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_research_and_refine start
     class write_report endnode
-    class router_research_and_refine_line_49_while_1,router_research_and_refine_line_50_seq_4,router_research_and_refine_line_54_if_3,router_research_and_refine_line_58_if_2 router
+    class router_research_and_refine_if_iteration_ge_5,router_research_and_refine_if_not_gaps_or_quality_score_ge_85,router_research_and_refine_seq_set_iteration,router_research_and_refine_while_loop router
     class critic,refine_query,researcher handler
     class __end__ endpoint
     linkStyle 1,4 stroke:#2E8B57

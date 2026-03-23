@@ -16,11 +16,11 @@ spec:
   env: []
   resiliency:
     policies:
-      try_except_line_24_0:
+      except_connectionerror:
         maxAttempts: 1
         thenRoute:
-        - router-nested-error-handling-line-33-except-1
+        - router-nested-error-handling-except-connectionerror
     rules:
     - errors:
       - ConnectionError
-      policy: try_except_line_24_0
+      policy: except_connectionerror

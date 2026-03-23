@@ -39,33 +39,33 @@
       "label": "root_agent"
     },
     {
-      "id": "router_hierarchical_delegation_line_60_if_6",
-      "label": "router_hierarchical_delegation_line_60_if_6",
+      "id": "router_hierarchical_delegation_if_domain_eq_content",
+      "label": "router_hierarchical_delegation_if_domain_eq_content",
       "generated": true
     },
     {
-      "id": "router_hierarchical_delegation_line_64_if_2",
-      "label": "router_hierarchical_delegation_line_64_if_2",
+      "id": "router_hierarchical_delegation_if_domain_eq_data",
+      "label": "router_hierarchical_delegation_if_domain_eq_data",
       "generated": true
     },
     {
-      "id": "router_hierarchical_delegation_line_66_if_1",
-      "label": "router_hierarchical_delegation_line_66_if_1",
+      "id": "router_hierarchical_delegation_if_subtask_eq_api",
+      "label": "router_hierarchical_delegation_if_subtask_eq_api",
       "generated": true
     },
     {
-      "id": "router_hierarchical_delegation_line_71_if_5",
-      "label": "router_hierarchical_delegation_line_71_if_5",
+      "id": "router_hierarchical_delegation_if_subtask_eq_edit",
+      "label": "router_hierarchical_delegation_if_subtask_eq_edit",
       "generated": true
     },
     {
-      "id": "router_hierarchical_delegation_line_75_if_4",
-      "label": "router_hierarchical_delegation_line_75_if_4",
+      "id": "router_hierarchical_delegation_if_subtask_eq_sql",
+      "label": "router_hierarchical_delegation_if_subtask_eq_sql",
       "generated": true
     },
     {
-      "id": "router_hierarchical_delegation_line_77_if_3",
-      "label": "router_hierarchical_delegation_line_77_if_3",
+      "id": "router_hierarchical_delegation_if_subtask_eq_write",
+      "label": "router_hierarchical_delegation_if_subtask_eq_write",
       "generated": true
     },
     {
@@ -92,91 +92,91 @@
     },
     {
       "from": "root_agent",
-      "to": "router_hierarchical_delegation_line_60_if_6",
+      "to": "router_hierarchical_delegation_if_domain_eq_data",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_hierarchical_delegation_line_66_if_1",
+      "from": "router_hierarchical_delegation_if_subtask_eq_api",
       "to": "api_specialist",
       "label": "p.get('subtask') == 'api'",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_66_if_1",
+      "from": "router_hierarchical_delegation_if_subtask_eq_api",
       "to": "data_generalist",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_64_if_2",
+      "from": "router_hierarchical_delegation_if_subtask_eq_sql",
       "to": "sql_specialist",
       "label": "p.get('subtask') == 'sql'",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_64_if_2",
-      "to": "router_hierarchical_delegation_line_66_if_1",
+      "from": "router_hierarchical_delegation_if_subtask_eq_sql",
+      "to": "router_hierarchical_delegation_if_subtask_eq_api",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_77_if_3",
+      "from": "router_hierarchical_delegation_if_subtask_eq_edit",
       "to": "editor",
       "label": "p.get('subtask') == 'edit'",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_77_if_3",
+      "from": "router_hierarchical_delegation_if_subtask_eq_edit",
       "to": "content_generalist",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_75_if_4",
+      "from": "router_hierarchical_delegation_if_subtask_eq_write",
       "to": "writer",
       "label": "p.get('subtask') == 'write'",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_75_if_4",
-      "to": "router_hierarchical_delegation_line_77_if_3",
+      "from": "router_hierarchical_delegation_if_subtask_eq_write",
+      "to": "router_hierarchical_delegation_if_subtask_eq_edit",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_71_if_5",
+      "from": "router_hierarchical_delegation_if_domain_eq_content",
       "to": "content_team_lead",
       "label": "p.get('domain') == 'content'",
       "type": "prepend"
     },
     {
       "from": "content_team_lead",
-      "to": "router_hierarchical_delegation_line_75_if_4",
+      "to": "router_hierarchical_delegation_if_subtask_eq_write",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_hierarchical_delegation_line_71_if_5",
+      "from": "router_hierarchical_delegation_if_domain_eq_content",
       "to": "generalist",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_hierarchical_delegation_line_60_if_6",
+      "from": "router_hierarchical_delegation_if_domain_eq_data",
       "to": "data_team_lead",
       "label": "p.get('domain') == 'data'",
       "type": "prepend"
     },
     {
       "from": "data_team_lead",
-      "to": "router_hierarchical_delegation_line_64_if_2",
+      "to": "router_hierarchical_delegation_if_subtask_eq_sql",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_hierarchical_delegation_line_60_if_6",
-      "to": "router_hierarchical_delegation_line_71_if_5",
+      "from": "router_hierarchical_delegation_if_domain_eq_data",
+      "to": "router_hierarchical_delegation_if_domain_eq_content",
       "label": "else",
       "type": "prepend"
     },

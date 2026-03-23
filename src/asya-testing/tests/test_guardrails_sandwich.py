@@ -134,8 +134,8 @@ async def test_guardrails_sandwich_injection_triggers_fallback(run_handler):
 # ── compiled routers (sync generators) ───────────────────────────────────────
 
 
-async def test_start_router_routes_to_try_enter(run_handler, monkeypatch, load_routers):
-    """start_guardrails_sandwich delegates to the try-enter router."""
+async def test_start_router_chains_validators_and_core_agent(run_handler, monkeypatch, load_routers):
+    """start_guardrails_sandwich chains input_validator, core_agent, and output_validator."""
     routers = load_routers("guardrails_sandwich")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
@@ -143,50 +143,27 @@ async def test_start_router_routes_to_try_enter(run_handler, monkeypatch, load_r
 
     set_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next[:0]"]
     assert len(set_cmds) == 1
-    assert "actor-router_guardrails_sandwich_line_47_try_enter_0" in set_cmds[0][2]
-
-
-async def test_try_enter_router_sets_on_error_header_and_actor_chain(run_handler, monkeypatch, load_routers):
-    """try-enter router sets _on_error header and the 3-actor try-body chain."""
-    routers = load_routers("guardrails_sandwich")
-    monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
-
-    result = await run_handler(routers.router_guardrails_sandwich_line_47_try_enter_0({"user_input": "hi"}))
-
-    # _on_error header must be set to the except-dispatch router
-    on_error_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".headers._on_error"]
-    assert len(on_error_cmds) == 1
-    assert "except_dispatch" in on_error_cmds[0][2]
-
-    # route.next must include the three handler actors + try-exit router
-    route_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next[:0]"]
-    assert len(route_cmds) == 1
-    actors = route_cmds[0][2]
+    actors = set_cmds[0][2]
     assert "actor-input_validator" in actors
     assert "actor-core_agent" in actors
     assert "actor-output_validator" in actors
-    assert any("try_exit" in a for a in actors)
 
 
-async def test_except_dispatch_routes_to_safe_fallback(run_handler, monkeypatch, load_routers):
-    """except-dispatch router always routes to safe_fallback (catches Exception)."""
+async def test_except_handler_routes_to_safe_fallback(run_handler, monkeypatch, load_routers):
+    """except handler router always routes to safe_fallback (catches Exception)."""
     routers = load_routers("guardrails_sandwich")
     monkeypatch.setattr(routers, "resolve", lambda name: f"actor-{name}")
 
     payload = {"user_input": "bad input", "violation_type": "prompt_injection"}
     result = await run_handler(
-        routers.router_guardrails_sandwich_line_47_except_dispatch_0(payload),
+        routers.router_guardrails_sandwich_except_exception(payload),
         get_responses={
             ".status.error.type": "RuntimeError",
             ".status.error.mro": ["Exception", "BaseException"],
         },
     )
 
-    # Error status must be deleted before routing to fallback
-    del_cmds = [e for e in result.abi if e[0] == "DEL"]
-    assert any(".status.error" in e[1] for e in del_cmds)
-
     # Routes to safe_fallback
-    route_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next[:0]"]
+    route_cmds = [e for e in result.abi if e[0] == "SET" and e[1] == ".route.next"]
     assert len(route_cmds) == 1
     assert "actor-safe_fallback" in route_cmds[0][2]

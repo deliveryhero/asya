@@ -6,8 +6,8 @@ digraph "document_pipeline" {
 
     language_detector [label="language_detector", fillcolor=lightblue];
     ocr_extractor [label="ocr_extractor", fillcolor=lightblue];
-    router_document_pipeline_line_23_if_2 [label="router_document_pipeline_line_23_if_2", fillcolor=wheat];
-    router_document_pipeline_line_27_seq_1 [label="router_document_pipeline_line_27_seq_1\n\np['status'] = 'done'", fillcolor=wheat];
+    router_document_pipeline_if_language_ne_en [label="router_document_pipeline_if_language_ne_en", fillcolor=wheat];
+    router_document_pipeline_seq_set_status [label="router_document_pipeline_seq_set_status\n\np['status'] = 'done'", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_document_pipeline [label="start_document_pipeline\n\np['status'] = 'processing'", fillcolor=palegreen];
     translator [label="translator", fillcolor=lightblue];
@@ -16,12 +16,12 @@ digraph "document_pipeline" {
 
     start_document_pipeline -> ocr_extractor;
     ocr_extractor -> language_detector;
-    language_detector -> router_document_pipeline_line_23_if_2;
-    router_document_pipeline_line_23_if_2 -> translator [label="p.get('language') != 'en'", color="#2E8B57", fontcolor="#2E8B57"];
+    language_detector -> router_document_pipeline_if_language_ne_en;
+    router_document_pipeline_if_language_ne_en -> translator [label="p.get('language') != 'en'", color="#2E8B57", fontcolor="#2E8B57"];
     translator -> sentiment_analyzer;
-    sentiment_analyzer -> router_document_pipeline_line_27_seq_1;
-    router_document_pipeline_line_23_if_2 -> sentiment_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
-    router_document_pipeline_line_27_seq_1 -> __end__;
+    sentiment_analyzer -> router_document_pipeline_seq_set_status;
+    router_document_pipeline_if_language_ne_en -> sentiment_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
+    router_document_pipeline_seq_set_status -> __end__;
     subgraph cluster_asyncio_timeout_30_ {
         label="asyncio.timeout(30)";
         style=dashed;

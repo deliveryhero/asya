@@ -3,15 +3,15 @@ flowchart TD
 
     classifier[classifier]
     fast_handler[fast_handler]
-    router_decorator_inline_comments_flow_line_18_if_1{{router_decorator_inline_comments_flow_line_18_if_1}}
+    router_decorator_inline_comments_flow_if_category_eq_priority{{router_decorator_inline_comments_flow_if_category_eq_priority}}
     standard_handler[standard_handler]
     start_decorator_inline_comments_flow([start_decorator_inline_comments_flow])
     __end__((( )))
 
     start_decorator_inline_comments_flow --> classifier
-    classifier --> router_decorator_inline_comments_flow_line_18_if_1
-    router_decorator_inline_comments_flow_line_18_if_1 -->|"p['category'] == 'priority'"| fast_handler
-    router_decorator_inline_comments_flow_line_18_if_1 -->|"else"| standard_handler
+    classifier --> router_decorator_inline_comments_flow_if_category_eq_priority
+    router_decorator_inline_comments_flow_if_category_eq_priority -->|"p['category'] == 'priority'"| fast_handler
+    router_decorator_inline_comments_flow_if_category_eq_priority -->|"else"| standard_handler
     fast_handler --> __end__
     standard_handler --> __end__
 
@@ -22,7 +22,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_decorator_inline_comments_flow start
     class fast_handler,standard_handler endnode
-    class router_decorator_inline_comments_flow_line_18_if_1 router
+    class router_decorator_inline_comments_flow_if_category_eq_priority router
     class classifier handler
     class __end__ endpoint
     linkStyle 2 stroke:#2E8B57

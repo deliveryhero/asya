@@ -3,7 +3,7 @@ flowchart TD
 
     error_handler[error_handler]
     parser[parser]
-    router_typeddict_pipeline_line_76_if_1{{router_typeddict_pipeline_line_76_if_1}}
+    router_typeddict_pipeline_if_not_valid{{router_typeddict_pipeline_if_not_valid}}
     sink_adapter[sink_adapter]
     start_typeddict_pipeline([start_typeddict_pipeline])
     transformer[transformer]
@@ -12,10 +12,10 @@ flowchart TD
 
     start_typeddict_pipeline --> parser
     parser --> validator
-    validator --> router_typeddict_pipeline_line_76_if_1
-    router_typeddict_pipeline_line_76_if_1 -->|"else"| transformer
+    validator --> router_typeddict_pipeline_if_not_valid
+    router_typeddict_pipeline_if_not_valid -->|"else"| transformer
     transformer --> sink_adapter
-    router_typeddict_pipeline_line_76_if_1 -->|"not p.get('valid', True)"| error_handler
+    router_typeddict_pipeline_if_not_valid -->|"not p.get('valid', True)"| error_handler
     error_handler --> __end__
     sink_adapter --> __end__
 
@@ -26,7 +26,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_typeddict_pipeline start
     class error_handler,sink_adapter endnode
-    class router_typeddict_pipeline_line_76_if_1 router
+    class router_typeddict_pipeline_if_not_valid router
     class parser,transformer,validator handler
     class __end__ endpoint
     linkStyle 5 stroke:#2E8B57

@@ -5,6 +5,6 @@ resources:
 - asya-actor-concise-writer.yaml
 - asya-actor-creative-writer.yaml
 - asya-actor-judge.yaml
-- asya-router-voting-ensemble-line-43-fanout-1.yaml
+- asya-router-voting-ensemble-fanout-candidates.yaml
 - asya-start-voting-ensemble.yaml
 - configmap-routers.yaml

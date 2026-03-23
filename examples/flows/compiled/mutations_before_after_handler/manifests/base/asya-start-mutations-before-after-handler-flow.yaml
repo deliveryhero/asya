@@ -20,7 +20,7 @@ spec:
     value: handler_a
   - name: ASYA_HANDLER_ACTOR_HANDLER_B
     value: handler_b
-  - name: ASYA_HANDLER_ROUTER_MUTATIONS_BEFORE_AFTER_HANDLER_FLOW_LINE_14_SEQ_2
-    value: routers.router_mutations_before_after_handler_flow_line_14_seq_2
-  - name: ASYA_HANDLER_ROUTER_MUTATIONS_BEFORE_AFTER_HANDLER_FLOW_LINE_16_SEQ_1
-    value: routers.router_mutations_before_after_handler_flow_line_16_seq_1
+  - name: ASYA_HANDLER_ROUTER_MUTATIONS_BEFORE_AFTER_HANDLER_FLOW_SEQ_SET_STEP
+    value: routers.router_mutations_before_after_handler_flow_seq_set_step
+  - name: ASYA_HANDLER_ROUTER_MUTATIONS_BEFORE_AFTER_HANDLER_FLOW_SEQ_SET_STEP_2
+    value: routers.router_mutations_before_after_handler_flow_seq_set_step_2

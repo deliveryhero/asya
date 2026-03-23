@@ -3,8 +3,8 @@ kind: Kustomization
 resources:
 - asya-actor-handler-a.yaml
 - asya-actor-handler-b.yaml
-- asya-router-mutations-before-after-handler-flow-line-12-seq-3.yaml
-- asya-router-mutations-before-after-handler-flow-line-14-seq-2.yaml
-- asya-router-mutations-before-after-handler-flow-line-16-seq-1.yaml
+- asya-router-mutations-before-after-handler-flow-seq-set-step-2.yaml
+- asya-router-mutations-before-after-handler-flow-seq-set-step-3.yaml
+- asya-router-mutations-before-after-handler-flow-seq-set-step.yaml
 - asya-start-mutations-before-after-handler-flow.yaml
 - configmap-routers.yaml

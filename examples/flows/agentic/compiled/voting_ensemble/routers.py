@@ -18,18 +18,18 @@ import copy
 async def start_voting_ensemble(payload: dict):
     """Entrypoint for flow 'voting_ensemble'"""
     _next = []
-    _next.append(resolve("router_voting_ensemble_line_43_fanout_1"))
+    _next.append(resolve("router_voting_ensemble_fanout_candidates"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_voting_ensemble_line_43_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 43)"""
+async def router_voting_ensemble_fanout_candidates(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (candidates)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_voting_ensemble_line_43")
+    _agg = resolve("fanin_voting_ensemble_candidates")
 
     _slices = []
     _slices.append((resolve("creative_writer"), p['prompt']))

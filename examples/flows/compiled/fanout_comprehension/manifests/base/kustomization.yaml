@@ -4,6 +4,6 @@ resources:
 - asya-actor-post-processor.yaml
 - asya-actor-preprocessor.yaml
 - asya-actor-research-agent.yaml
-- asya-router-research-flow-line-14-fanout-1.yaml
+- asya-router-research-flow-fanout-results.yaml
 - asya-start-research-flow.yaml
 - configmap-routers.yaml

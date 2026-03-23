@@ -9,19 +9,19 @@ digraph "if_elif_else_flow" {
     handler_type_a [label="handler_type_a", fillcolor=lightblue];
     handler_type_b [label="handler_type_b", fillcolor=lightblue];
     handler_validate [label="handler_validate", fillcolor=lightblue];
-    router_if_elif_else_flow_line_13_if_2 [label="router_if_elif_else_flow_line_13_if_2", fillcolor=wheat];
-    router_if_elif_else_flow_line_15_if_1 [label="router_if_elif_else_flow_line_15_if_1", fillcolor=wheat];
+    router_if_elif_else_flow_if_type_eq_a [label="router_if_elif_else_flow_if_type_eq_a", fillcolor=wheat];
+    router_if_elif_else_flow_if_type_eq_b [label="router_if_elif_else_flow_if_type_eq_b", fillcolor=wheat];
     start_if_elif_else_flow [label="start_if_elif_else_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_if_elif_else_flow -> handler_validate;
-    handler_validate -> router_if_elif_else_flow_line_13_if_2;
-    router_if_elif_else_flow_line_15_if_1 -> handler_type_b [label="p['type'] == 'B'", color="#2E8B57", fontcolor="#2E8B57"];
-    router_if_elif_else_flow_line_15_if_1 -> handler_default [label="else", color="#D35400", fontcolor="#D35400"];
-    router_if_elif_else_flow_line_13_if_2 -> handler_type_a [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
+    handler_validate -> router_if_elif_else_flow_if_type_eq_a;
+    router_if_elif_else_flow_if_type_eq_b -> handler_type_b [label="p['type'] == 'B'", color="#2E8B57", fontcolor="#2E8B57"];
+    router_if_elif_else_flow_if_type_eq_b -> handler_default [label="else", color="#D35400", fontcolor="#D35400"];
+    router_if_elif_else_flow_if_type_eq_a -> handler_type_a [label="p['type'] == 'A'", color="#2E8B57", fontcolor="#2E8B57"];
     handler_type_a -> handler_finalize;
-    router_if_elif_else_flow_line_13_if_2 -> router_if_elif_else_flow_line_15_if_1 [label="else", color="#D35400", fontcolor="#D35400"];
+    router_if_elif_else_flow_if_type_eq_a -> router_if_elif_else_flow_if_type_eq_b [label="else", color="#D35400", fontcolor="#D35400"];
     handler_type_b -> handler_finalize;
     handler_default -> handler_finalize;
     handler_finalize -> __end__;

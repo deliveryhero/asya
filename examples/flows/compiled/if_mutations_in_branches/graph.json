@@ -19,13 +19,13 @@
       "label": "handler_type_b"
     },
     {
-      "id": "router_if_mutations_in_branches_flow_line_13_if_3",
-      "label": "router_if_mutations_in_branches_flow_line_13_if_3",
+      "id": "router_if_mutations_in_branches_flow_if_type_eq_a",
+      "label": "router_if_mutations_in_branches_flow_if_type_eq_a",
       "generated": true
     },
     {
-      "id": "router_if_mutations_in_branches_flow_line_14_seq_1",
-      "label": "router_if_mutations_in_branches_flow_line_14_seq_1",
+      "id": "router_if_mutations_in_branches_flow_seq_set_branch",
+      "label": "router_if_mutations_in_branches_flow_seq_set_branch",
       "generated": true,
       "mutations": [
         "p['branch'] = 'A'",
@@ -33,8 +33,8 @@
       ]
     },
     {
-      "id": "router_if_mutations_in_branches_flow_line_19_seq_2",
-      "label": "router_if_mutations_in_branches_flow_line_19_seq_2",
+      "id": "router_if_mutations_in_branches_flow_seq_set_branch_2",
+      "label": "router_if_mutations_in_branches_flow_seq_set_branch_2",
       "generated": true,
       "mutations": [
         "p['branch'] = 'B'",
@@ -57,36 +57,36 @@
     },
     {
       "from": "handler_setup",
-      "to": "router_if_mutations_in_branches_flow_line_13_if_3",
+      "to": "router_if_mutations_in_branches_flow_if_type_eq_a",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_if_mutations_in_branches_flow_line_14_seq_1",
+      "from": "router_if_mutations_in_branches_flow_seq_set_branch",
       "to": "handler_type_a",
       "label": null,
       "type": "prepend"
     },
     {
-      "from": "router_if_mutations_in_branches_flow_line_13_if_3",
-      "to": "router_if_mutations_in_branches_flow_line_14_seq_1",
+      "from": "router_if_mutations_in_branches_flow_if_type_eq_a",
+      "to": "router_if_mutations_in_branches_flow_seq_set_branch",
       "label": "p['type'] == 'A'",
       "type": "prepend"
     },
     {
-      "from": "router_if_mutations_in_branches_flow_line_13_if_3",
+      "from": "router_if_mutations_in_branches_flow_if_type_eq_a",
       "to": "handler_type_b",
       "label": "else",
       "type": "prepend"
     },
     {
       "from": "handler_type_b",
-      "to": "router_if_mutations_in_branches_flow_line_19_seq_2",
+      "to": "router_if_mutations_in_branches_flow_seq_set_branch_2",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_if_mutations_in_branches_flow_line_19_seq_2",
+      "from": "router_if_mutations_in_branches_flow_seq_set_branch_2",
       "to": "handler_finalize",
       "label": null,
       "type": "continuation"

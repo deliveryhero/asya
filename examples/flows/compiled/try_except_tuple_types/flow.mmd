@@ -5,19 +5,19 @@ flowchart TD
     parse_data[parse_data]
     queue_for_retry[queue_for_retry]
     reject_input[reject_input]
-    router_ingestion_pipeline_line_16_except_1{{"router_ingestion_pipeline_line_16_except_1<br/><br/>p['retry_reason'] = 'transient'"}}
-    router_ingestion_pipeline_line_19_except_2{{"router_ingestion_pipeline_line_19_except_2<br/><br/>p['status'] = 'bad_input'"}}
+    router_ingestion_pipeline_except_connectionerror_timeouterror{{"router_ingestion_pipeline_except_connectionerror_timeouterror<br/><br/>p['retry_reason'] = 'transient'"}}
+    router_ingestion_pipeline_except_valueerror_keyerror{{"router_ingestion_pipeline_except_valueerror_keyerror<br/><br/>p['status'] = 'bad_input'"}}
     start_ingestion_pipeline([start_ingestion_pipeline])
     __end__((( )))
 
     start_ingestion_pipeline --> fetch_data
     fetch_data --> parse_data
-    router_ingestion_pipeline_line_16_except_1 --> queue_for_retry
-    router_ingestion_pipeline_line_19_except_2 --> reject_input
-    fetch_data -->|"ConnectionError, TimeoutError"| router_ingestion_pipeline_line_16_except_1
-    fetch_data -->|"ValueError, KeyError"| router_ingestion_pipeline_line_19_except_2
-    parse_data -->|"ConnectionError, TimeoutError"| router_ingestion_pipeline_line_16_except_1
-    parse_data -->|"ValueError, KeyError"| router_ingestion_pipeline_line_19_except_2
+    router_ingestion_pipeline_except_connectionerror_timeouterror --> queue_for_retry
+    router_ingestion_pipeline_except_valueerror_keyerror --> reject_input
+    fetch_data -->|"ConnectionError, TimeoutError"| router_ingestion_pipeline_except_connectionerror_timeouterror
+    fetch_data -->|"ValueError, KeyError"| router_ingestion_pipeline_except_valueerror_keyerror
+    parse_data -->|"ConnectionError, TimeoutError"| router_ingestion_pipeline_except_connectionerror_timeouterror
+    parse_data -->|"ValueError, KeyError"| router_ingestion_pipeline_except_valueerror_keyerror
     queue_for_retry --> __end__
     reject_input --> __end__
 
@@ -28,7 +28,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_ingestion_pipeline start
     class queue_for_retry,reject_input endnode
-    class router_ingestion_pipeline_line_16_except_1,router_ingestion_pipeline_line_19_except_2 router
+    class router_ingestion_pipeline_except_connectionerror_timeouterror,router_ingestion_pipeline_except_valueerror_keyerror router
     class fetch_data,parse_data handler
     class __end__ endpoint
     linkStyle 4,5,6,7 stroke:#DC143C

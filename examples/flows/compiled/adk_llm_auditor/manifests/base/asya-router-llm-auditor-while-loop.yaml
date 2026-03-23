@@ -1,0 +1,53 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-llm-auditor-while-loop
+  namespace: default
+  labels:
+    asya.sh/flow: llm-auditor
+    asya.sh/generated: 'true'
+spec:
+  actor: router-llm-auditor-while-loop
+  image: python:3.13-slim
+  handler: routers.router_llm_auditor_while_loop
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ACCURACY_SCORER
+    value: accuracy_scorer
+  - name: ASYA_HANDLER_ACTOR_ADK_LLM_AUDITOR.QUALITYSCORER.AGGREGATE
+    value: adk_llm_auditor.QualityScorer.aggregate
+  - name: ASYA_HANDLER_ACTOR_COMPLETENESS_SCORER
+    value: completeness_scorer
+  - name: ASYA_HANDLER_FANIN_LLM_AUDITOR_SCORES
+    value: routers.fanin_llm_auditor_scores
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_FANOUT_SCORES
+    value: routers.router_llm_auditor_fanout_scores
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_IF_AGGREGATE_SCORE_GE_70
+    value: routers.router_llm_auditor_if_aggregate_score_ge_70
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_IF_AGGREGATE_SCORE_GE_90
+    value: routers.router_llm_auditor_if_aggregate_score_ge_90
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_IF_AGGREGATE_SCORE_GT_PREV_SCORE_AND_7A47B9
+    value: routers.router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_IF_ITERATION_GE_MAX_ITERATIONS
+    value: routers.router_llm_auditor_if_iteration_ge_max_iterations
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_IF_NOT_CLAIMS
+    value: routers.router_llm_auditor_if_not_claims
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_ITERATION
+    value: routers.router_llm_auditor_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_PARTIAL
+    value: routers.router_llm_auditor_seq_set_partial
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_PREV_SCORE
+    value: routers.router_llm_auditor_seq_set_prev_score
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_PREV_SCORE_2
+    value: routers.router_llm_auditor_seq_set_prev_score_2
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_STATUS
+    value: routers.router_llm_auditor_seq_set_status
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_STATUS_2
+    value: routers.router_llm_auditor_seq_set_status_2
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_SEQ_SET_STATUS_3
+    value: routers.router_llm_auditor_seq_set_status_3
+  - name: ASYA_HANDLER_ROUTER_LLM_AUDITOR_WHILE_LOOP
+    value: routers.router_llm_auditor_while_loop

@@ -1,25 +1,6 @@
 {
   "flow_name": "review_pipeline_flow",
-  "nodes": [
-    {
-      "id": "router_review_pipeline_flow_line_16_if_1",
-      "label": "router_review_pipeline_flow_line_16_if_1",
-      "generated": true
-    },
-    {
-      "id": "start_review_pipeline_flow",
-      "label": "start_review_pipeline_flow",
-      "role": "start",
-      "generated": true
-    }
-  ],
-  "edges": [
-    {
-      "from": "start_review_pipeline_flow",
-      "to": "router_review_pipeline_flow_line_16_if_1",
-      "label": null,
-      "type": "prepend"
-    }
-  ],
+  "nodes": [],
+  "edges": [],
   "groups": []
 }

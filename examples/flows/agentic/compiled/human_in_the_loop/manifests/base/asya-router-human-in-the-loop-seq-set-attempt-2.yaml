@@ -1,0 +1,39 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-human-in-the-loop-seq-set-attempt-2
+  namespace: default
+  labels:
+    asya.sh/flow: human-in-the-loop
+    asya.sh/generated: 'true'
+spec:
+  actor: router-human-in-the-loop-seq-set-attempt-2
+  image: python:3.13-slim
+  handler: routers.router_human_in_the_loop_seq_set_attempt_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_APPROVAL_GATE
+    value: approval_gate
+  - name: ASYA_HANDLER_ACTOR_EXECUTOR
+    value: executor
+  - name: ASYA_HANDLER_ACTOR_NOTIFIER
+    value: notifier
+  - name: ASYA_HANDLER_ACTOR_PROPOSAL_GENERATOR
+    value: proposal_generator
+  - name: ASYA_HANDLER_ACTOR_REVISION_AGENT
+    value: revision_agent
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_APPROVAL_EQ_REJECTED
+    value: routers.router_human_in_the_loop_if_approval_eq_rejected
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_APPROVAL_IN_APPROVED_MODIFIED
+    value: routers.router_human_in_the_loop_if_approval_in_approved_modified
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_ATTEMPT_GE_3
+    value: routers.router_human_in_the_loop_if_attempt_ge_3
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_SEQ_SET_ATTEMPT
+    value: routers.router_human_in_the_loop_seq_set_attempt
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_SEQ_SET_RESULT
+    value: routers.router_human_in_the_loop_seq_set_result
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_WHILE_LOOP
+    value: routers.router_human_in_the_loop_while_loop

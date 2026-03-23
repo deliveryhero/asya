@@ -4,8 +4,8 @@ resources:
 - asya-actor-call-fallback-llm.yaml
 - asya-actor-call-llm.yaml
 - asya-actor-notify-admin.yaml
-- asya-router-llm-pipeline-line-13-seq-3.yaml
-- asya-router-llm-pipeline-line-16-except-1.yaml
-- asya-router-llm-pipeline-line-19-except-2.yaml
+- asya-router-llm-pipeline-except-authenticationerror.yaml
+- asya-router-llm-pipeline-except-ratelimiterror.yaml
+- asya-router-llm-pipeline-seq-set-model.yaml
 - asya-start-llm-pipeline.yaml
 - configmap-routers.yaml

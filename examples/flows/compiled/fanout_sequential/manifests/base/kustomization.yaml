@@ -4,7 +4,7 @@ resources:
 - asya-actor-research-agent.yaml
 - asya-actor-review-agent.yaml
 - asya-actor-summarizer.yaml
-- asya-router-multi-stage-flow-line-14-fanout-2.yaml
-- asya-router-multi-stage-flow-line-15-fanout-1.yaml
+- asya-router-multi-stage-flow-fanout-research.yaml
+- asya-router-multi-stage-flow-fanout-reviews.yaml
 - asya-start-multi-stage-flow.yaml
 - configmap-routers.yaml

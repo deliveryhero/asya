@@ -4,17 +4,17 @@ flowchart TD
     handler_finalize[handler_finalize]
     handler_init[handler_init]
     handler_process[handler_process]
-    router_while_true_flow_line_13_while_1{{router_while_true_flow_line_13_while_1}}
-    router_while_true_flow_line_15_if_2{{router_while_true_flow_line_15_if_2}}
+    router_while_true_flow_if_done{{router_while_true_flow_if_done}}
+    router_while_true_flow_while_loop{{router_while_true_flow_while_loop}}
     start_while_true_flow([start_while_true_flow])
     __end__((( )))
 
     start_while_true_flow --> handler_init
-    handler_init --> router_while_true_flow_line_13_while_1
-    router_while_true_flow_line_15_if_2 -->|"p.get('done', False)"| handler_finalize
-    router_while_true_flow_line_13_while_1 --> handler_process
-    handler_process --> router_while_true_flow_line_15_if_2
-    router_while_true_flow_line_15_if_2 -->|"else"| router_while_true_flow_line_13_while_1
+    handler_init --> router_while_true_flow_while_loop
+    router_while_true_flow_if_done -->|"p.get('done', False)"| handler_finalize
+    router_while_true_flow_while_loop --> handler_process
+    handler_process --> router_while_true_flow_if_done
+    router_while_true_flow_if_done -->|"else"| router_while_true_flow_while_loop
     handler_finalize --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -24,7 +24,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_while_true_flow start
     class handler_finalize endnode
-    class router_while_true_flow_line_13_while_1,router_while_true_flow_line_15_if_2 router
+    class router_while_true_flow_if_done,router_while_true_flow_while_loop router
     class handler_init,handler_process handler
     class __end__ endpoint
     linkStyle 2 stroke:#2E8B57

@@ -6,8 +6,8 @@ flowchart TD
     handle_connection_error[handle_connection_error]
     handle_parse_error[handle_parse_error]
     parse_data[parse_data]
-    router_nested_error_handling_line_29_except_2{{"router_nested_error_handling_line_29_except_2<br/><br/>p['parse_status'] = 'invalid'"}}
-    router_nested_error_handling_line_33_except_1{{"router_nested_error_handling_line_33_except_1<br/><br/>p['status'] = 'connection_failed'"}}
+    router_nested_error_handling_except_connectionerror{{"router_nested_error_handling_except_connectionerror<br/><br/>p['status'] = 'connection_failed'"}}
+    router_nested_error_handling_except_valueerror{{"router_nested_error_handling_except_valueerror<br/><br/>p['parse_status'] = 'invalid'"}}
     start_nested_error_handling([start_nested_error_handling])
     store_results[store_results]
     transform_data[transform_data]
@@ -20,16 +20,16 @@ flowchart TD
     validate_data --> transform_data
     transform_data --> cleanup
     cleanup --> store_results
-    router_nested_error_handling_line_33_except_1 --> handle_connection_error
+    router_nested_error_handling_except_connectionerror --> handle_connection_error
     handle_connection_error --> cleanup
-    router_nested_error_handling_line_29_except_2 --> handle_parse_error
+    router_nested_error_handling_except_valueerror --> handle_parse_error
     handle_parse_error --> transform_data
-    fetch_data -->|"ConnectionError"| router_nested_error_handling_line_33_except_1
-    parse_data -->|"ConnectionError"| router_nested_error_handling_line_33_except_1
-    parse_data -->|"ValueError"| router_nested_error_handling_line_29_except_2
-    validate_data -->|"ConnectionError"| router_nested_error_handling_line_33_except_1
-    validate_data -->|"ValueError"| router_nested_error_handling_line_29_except_2
-    transform_data -->|"ConnectionError"| router_nested_error_handling_line_33_except_1
+    fetch_data -->|"ConnectionError"| router_nested_error_handling_except_connectionerror
+    parse_data -->|"ConnectionError"| router_nested_error_handling_except_connectionerror
+    parse_data -->|"ValueError"| router_nested_error_handling_except_valueerror
+    validate_data -->|"ConnectionError"| router_nested_error_handling_except_connectionerror
+    validate_data -->|"ValueError"| router_nested_error_handling_except_valueerror
+    transform_data -->|"ConnectionError"| router_nested_error_handling_except_connectionerror
     store_results --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -39,7 +39,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_nested_error_handling start
     class store_results endnode
-    class router_nested_error_handling_line_29_except_2,router_nested_error_handling_line_33_except_1 router
+    class router_nested_error_handling_except_connectionerror,router_nested_error_handling_except_valueerror router
     class cleanup,fetch_data,handle_connection_error,handle_parse_error,parse_data,transform_data,validate_data handler
     class __end__ endpoint
     linkStyle 10,11,12,13,14,15 stroke:#DC143C
