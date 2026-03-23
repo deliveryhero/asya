@@ -698,18 +698,140 @@ def context_use(name: str) -> None:
 
 
 # ---------------------------------------------------------------------------
+# asya k send
+# ---------------------------------------------------------------------------
+
+
+@click.command()
+@click.argument("target", type=ASYA_REF)
+@click.argument("message", required=True)
+@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
+@click.option("--url", default=None, help="Gateway URL (default: auto-detect via port-forward)")
+@click.option("--skill", default=None, help="Skill hint when multiple flows are registered")
+@click.option("--follow", "-f", is_flag=True, help="Stream FLY events (not yet implemented)")
+def send(target: AsyaRef, message: str, ctx: str, url: str | None, skill: str | None, follow: bool) -> None:
+    """Send a message to a deployed flow via A2A.
+
+    TARGET is the flow name. MESSAGE is the text payload.
+
+    \b
+    Examples:
+      asya k send text-flow "Analyze this text"
+      asya k send text-flow '{"key": "value"}'
+      asya k send greet-flow "Hello" --skill greet-flow
+    """
+    import json as _json
+    import uuid
+
+    if url is None:
+        runner = KubeRunner(ctx)
+        # Try to detect gateway URL from port-forward or service
+        url = _detect_gateway_url(runner)
+
+    task_id = str(uuid.uuid4())
+    msg_id = str(uuid.uuid4())
+
+    parts = [{"kind": "text", "text": message}]
+
+    request = {
+        "jsonrpc": "2.0",
+        "id": task_id,
+        "method": "message/send",
+        "params": {
+            "message": {
+                "messageId": msg_id,
+                "role": "user",
+                "parts": parts,
+            },
+        },
+    }
+    if skill:
+        request["params"]["metadata"] = {"skill": skill}
+
+    click.echo(f"[.] Sending to {target.name} via {url}/a2a/", err=True)
+
+    try:
+        import urllib.request
+
+        req = urllib.request.Request(
+            f"{url}/a2a/",
+            data=_json.dumps(request).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
+            body = _json.loads(resp.read())
+    except Exception as e:
+        click.echo(f"[-] Request failed: {e}", err=True)
+        sys.exit(1)
+
+    if "error" in body:
+        click.echo(f"[-] {body['error'].get('message', body['error'])}", err=True)
+        sys.exit(1)
+
+    result = body.get("result", {})
+    state = result.get("status", {}).get("state", "unknown")
+    result_id = result.get("id", "?")
+
+    if state == "completed":
+        click.echo(f"[+] Task {result_id}: {state}")
+    elif state == "failed":
+        click.echo(f"[-] Task {result_id}: {state}", err=True)
+    else:
+        click.echo(f"[.] Task {result_id}: {state}")
+
+    click.echo(_json.dumps(result, indent=2))
+
+
+def _detect_gateway_url(runner: KubeRunner) -> str:
+    """Detect gateway URL: check if port-forward is active, otherwise start one."""
+    import socket
+
+    # Check if localhost:8080 is already forwarded
+    try:
+        with socket.create_connection(("127.0.0.1", 8080), timeout=1):
+            return "http://127.0.0.1:8080"
+    except OSError:
+        pass
+
+    # Start port-forward in background
+    click.echo("[.] Starting port-forward to asya-gateway-api...", err=True)
+    proc = subprocess.Popen(  # nosec B603, B607
+        ["kubectl", "port-forward", "svc/asya-gateway-api", "8080:80"]
+        + (["-n", runner.namespace] if runner.namespace else []),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+    # Wait for port to open
+    import time
+
+    for _ in range(10):
+        time.sleep(1)  # wait for port-forward to establish
+        try:
+            with socket.create_connection(("127.0.0.1", 8080), timeout=1):
+                return "http://127.0.0.1:8080"
+        except OSError:
+            continue
+
+    proc.terminate()
+    click.echo("[-] Could not establish port-forward. Use --url to specify gateway URL.", err=True)
+    sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # asya k (group)
 # ---------------------------------------------------------------------------
 
 
 @click.group("k")
 def k() -> None:
-    """Kubernetes commands (apply, delete, status, logs, edit, context)."""
+    """Kubernetes commands (apply, delete, status, logs, send, edit, context)."""
 
 
 k.add_command(apply)
 k.add_command(delete)
 k.add_command(k_status)
 k.add_command(logs)
+k.add_command(send)
 k.add_command(edit)
 k.add_command(context_group)

@@ -8,13 +8,12 @@ Compiles to distributed actor graph via `asya flow compile flow.py`.
 from demo_actors.generator import generator
 from demo_actors.evaluator import evaluator
 from demo_actors.polisher import polisher
-from .asya_utils import flow
 
 SCORE_THRESHOLD = 90
 MAX_ITERATIONS = 3
 
-@flow
-async def text_improver(state: dict) -> dict:
+
+async def agentic_flow(state: dict) -> dict:  # asya: flow
     state["iteration"] = 0
 
     while True:

@@ -1,0 +1,12 @@
+[project]
+name = "sample-actors"
+version = "0.1.0"
+description = "Sample asya actors for demo"
+requires-python = ">=3.13"
+dependencies = [
+    "litellm[google]>=1.82.2",
+    "tenacity>=9.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]

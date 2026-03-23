@@ -11,5 +11,3 @@ images:
   newTag: v0.5.10-51-g6706917a
 patches:
 - path: patch-actor-analyze.yaml
-- path: patch-actor-summarize.yaml
-- path: patch-start-text-flow.yaml
