@@ -1,0 +1,20 @@
+digraph "tool_adapter" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_tool_adapter; }
+
+    compose_response [label="compose_response", fillcolor=lightsalmon];
+    format_greeting [label="format_greeting", fillcolor=lightblue];
+    get_weather [label="get_weather", fillcolor=lightblue];
+    start_tool_adapter [label="start_tool_adapter", fillcolor=palegreen];
+    validate_input [label="validate_input", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_tool_adapter -> validate_input;
+    validate_input -> get_weather;
+    get_weather -> format_greeting;
+    format_greeting -> compose_response;
+    compose_response -> __end__;
+}

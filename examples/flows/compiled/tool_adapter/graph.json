@@ -1,0 +1,55 @@
+{
+  "flow_name": "tool_adapter",
+  "nodes": [
+    {
+      "id": "compose_response",
+      "label": "compose_response",
+      "role": "end"
+    },
+    {
+      "id": "format_greeting",
+      "label": "format_greeting"
+    },
+    {
+      "id": "get_weather",
+      "label": "get_weather"
+    },
+    {
+      "id": "start_tool_adapter",
+      "label": "start_tool_adapter",
+      "role": "start",
+      "generated": true
+    },
+    {
+      "id": "validate_input",
+      "label": "validate_input"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_tool_adapter",
+      "to": "validate_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_input",
+      "to": "get_weather",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "get_weather",
+      "to": "format_greeting",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "format_greeting",
+      "to": "compose_response",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}

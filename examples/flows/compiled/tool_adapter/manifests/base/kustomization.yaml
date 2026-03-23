@@ -1,0 +1,11 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- asya-actor-compose-response.yaml
+- asya-actor-format-greeting.yaml
+- asya-actor-get-weather.yaml
+- asya-actor-validate-input.yaml
+- asya-start-tool-adapter.yaml
+- configmap-format-greeting-adapter.yaml
+- configmap-get-weather-adapter.yaml
+- configmap-routers.yaml
