@@ -1014,9 +1014,7 @@ def send(
       asya k send text-flow '{"key":"val"}' --mcp
     """
     runner = KubeRunner(ctx)
-
-    if url is None:
-        url = _detect_gateway_url()
+    url = _resolve_gateway_url(runner, url)
 
     # Auto-fetch API key from K8s secret
     if api_key is None:
@@ -1034,10 +1032,27 @@ def send(
         _send_mcp(url, target.name, message, api_key, stream)
 
 
-def _detect_gateway_url() -> str:
-    """Detect gateway URL by probing common localhost ports."""
+def _resolve_gateway_url(runner: KubeRunner, url_override: str | None) -> str:
+    """Resolve gateway URL: --url > ASYA_GATEWAY_URL > config > auto-detect."""
+    import os
     import socket
 
+    # 1. Explicit --url flag
+    if url_override:
+        return url_override
+
+    # 2. Environment variable
+    env_url = os.environ.get("ASYA_GATEWAY_URL")
+    if env_url:
+        return env_url
+
+    # 3. Context config (.asya/config.yaml contexts.<ctx>.gateway)
+    if runner._context_config:
+        config_url = runner._context_config.get("gateway")
+        if config_url:
+            return str(config_url)
+
+    # 4. Auto-detect from localhost
     for port in (18080, 8080, 8888, 80):
         try:
             with socket.create_connection(("127.0.0.1", port), timeout=0.5):
@@ -1046,9 +1061,11 @@ def _detect_gateway_url() -> str:
             continue
 
     click.echo(
-        "[-] No gateway found on localhost. Start a port-forward first:\n"
-        "    kubectl port-forward -n <ns> svc/asya-gateway-api 18080:80\n"
-        "    Or use --url http://your-gateway:port",
+        "[-] No gateway URL configured. Options:\n"
+        "    1. Set in .asya/config.yaml: contexts.dev.gateway: http://...\n"
+        "    2. Set env: export ASYA_GATEWAY_URL=http://...\n"
+        "    3. Use flag: --url http://...\n"
+        "    4. Start port-forward: kubectl port-forward -n <ns> svc/asya-gateway-api 18080:80",
         err=True,
     )
     sys.exit(1)
