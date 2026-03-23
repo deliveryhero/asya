@@ -69,6 +69,13 @@ func main() {
 		}
 		defer pgStore.Close()
 		envelopeStore = pgStore
+
+		// Start FLY listener in api/testing modes for SSE streaming
+		mode := os.Getenv("ASYA_GATEWAY_MODE")
+		if mode == "api" || mode == "testing" {
+			go pgStore.StartFLYListener(ctx, dbURL)
+			slog.Info("Started FLY listener goroutine", "mode", mode)
+		}
 	} else {
 		slog.Info("Using in-memory envelope store (not recommended for production)")
 		envelopeStore = envelopestore.NewStore()
@@ -264,6 +271,7 @@ func registerAPIRoutes(mux *http.ServeMux, meshHandler *mcp.Handler, mcpServer *
 	}
 	if meshHandler != nil {
 		mux.Handle("/tools/call", mcpMiddleware(http.HandlerFunc(meshHandler.HandleToolCall)))
+		mux.HandleFunc("/stream/", meshHandler.HandleMeshStream) // FLY SSE for API clients
 	}
 	if a2aHandler != nil {
 		mux.Handle("/a2a/", a2aHandler)
