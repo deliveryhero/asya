@@ -2008,7 +2008,12 @@ def test_asyncactor_infrastructure_keda_ready_updates(e2e_helper):
     5. Verify status.phase is Ready or Napping (not Creating)
 
     Expected: All infrastructure status fields reflect actual resource states
+
+    Skipped on pubsub: KEDA's gcp-pubsub trigger never reaches READY=True
+    with the pubsub emulator, so keda.ready correctly stays false.
     """
+    if TRANSPORT == "pubsub":
+        pytest.skip("KEDA ScaledObject never reaches READY=True with pubsub emulator")
     name = "test-keda-status"
     manifest = _actor_manifest(
         name, e2e_helper.namespace, scaling_enabled=True, min_replicas=1, max_replicas=3
