@@ -378,3 +378,6 @@ the Tempo service URL for gateway values.
 | `src/asya-sidecar/internal/tracing/tracing_test.go` | Unit tests |
 | `src/asya-gateway/internal/tracing/tracing_test.go` | Unit tests |
 | `testing/component/tracing/` | Component test with Tempo |
+| `docs/concepts/observability.md` | Update: distributed tracing section — currently aspirational ("every envelope carries a trace_id"), rewrite to reflect actual implementation (W3C traceparent, OTEL spans, Tempo backend) |
+| `docs/setup/ops-observability.md` | Update: remove "Future: OpenTelemetry tracing" item, add tracing setup section (env vars, Tempo config, Grafana datasource, example TraceQL queries) |
+| `docs/reference/specs/envelope.md` | Update: document `traceparent` and `tracestate` as sidecar-managed headers in the envelope headers spec |
