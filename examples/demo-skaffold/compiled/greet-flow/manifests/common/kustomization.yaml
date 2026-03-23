@@ -6,11 +6,11 @@ resources:
 - flow-expose.yaml
 configurations:
 - kustomizeconfig.yaml
-patches:
-- path: patch-actor-greet.yaml
-- path: patch-actor-shout.yaml
-- path: patch-start-greet-flow.yaml
 images:
 - name: src-team-b-bare-scripts
   newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/src-team-b-bare-scripts
   newTag: v0.5.10-85-g36498701-dirty
+patches:
+- path: patch-actor-greet.yaml
+- path: patch-actor-shout.yaml
+- path: patch-start-greet-flow.yaml

@@ -375,7 +375,6 @@ def _rel(p: Path) -> str:
 @click.argument("flow_name", type=ASYA_REF)
 @click.argument("key_values", nargs=-1)
 @click.option("--actor", "-a", "actor_ref", default=None, help="Target a specific actor")
-@click.option("--all-actors", is_flag=True, help="Target all actors in the flow")
 @click.option("--gateway", is_flag=True, help="Target gateway flow registration")
 @click.option("--context", "ctx", default=None, help="Write to overlay (default: common/)")
 @click.option("-p", "raw_patch", default=None, help="Raw JSON patch (escape hatch, actors only)")
@@ -384,7 +383,6 @@ def patch(
     flow_name: AsyaRef,
     key_values: tuple[str, ...],
     actor_ref: str | None,
-    all_actors: bool,
     gateway: bool,
     ctx: str | None,
     raw_patch: str | None,
@@ -392,7 +390,7 @@ def patch(
 ) -> None:
     """Patch compiled flow manifests with kustomize overrides.
 
-    Requires exactly one scope: --actor, --all-actors, or --gateway.
+    Requires exactly one scope: --actor or --gateway.
 
     \b
     Actor patches:
@@ -400,7 +398,6 @@ def patch(
       asya patch text-flow --actor analyze env.MY_VAR=value
       asya patch text-flow --actor analyze env.API_KEY=secret:my-secret:key
       asya patch text-flow --actor analyze --remove env.OLD_VAR
-      asya patch text-flow --all-actors env.LOG_LEVEL=DEBUG
       asya patch text-flow --actor analyze -p '{"scaling":{"minReplicaCount":1}}'
 
     \b
@@ -421,11 +418,10 @@ def patch(
       scaling.max=20    maxReplicaCount
     """
     # Validate scope
-    scopes = sum([actor_ref is not None, all_actors, gateway])
-    if scopes == 0:
-        raise click.UsageError("Specify a scope: --actor <name>, --all-actors, or --gateway")
-    if scopes > 1:
-        raise click.UsageError("Specify only one scope: --actor, --all-actors, or --gateway")
+    if not actor_ref and not gateway:
+        raise click.UsageError("Specify a scope: --actor <name> or --gateway")
+    if actor_ref and gateway:
+        raise click.UsageError("Specify only one scope: --actor or --gateway")
 
     if not key_values and not raw_patch and not remove_keys:
         raise click.UsageError("Provide key=value pairs, --remove keys, or -p '{json}'")
@@ -479,13 +475,7 @@ def patch(
         return
 
     # -- Actor scope ---------------------------------------------------------
-    if actor_ref:
-        actor_names = [_resolve_actor_name(actor_ref, base_dir)]
-    else:
-        actor_names = _resolve_actors(base_dir)
-        if not actor_names:
-            click.echo("[-] No actors found in compiled manifests", err=True)
-            sys.exit(1)
+    actor_names = [_resolve_actor_name(actor_ref, base_dir)]
 
     env_remove = [k[4:] for k in remove_keys if k.startswith("env.")]
 
