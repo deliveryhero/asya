@@ -108,7 +108,7 @@ func TestHandleMeshProgress(t *testing.T) {
 			}
 
 			// Create handler
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			// Create request
 			var req *http.Request
@@ -201,7 +201,7 @@ func TestHandleMeshProgress_ProgressCalculation(t *testing.T) {
 	for i, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			taskID := fmt.Sprintf("test-task-%d", i)
 			task := &types.Envelope{
@@ -251,7 +251,7 @@ func TestHandleMeshProgress_ProgressCalculation(t *testing.T) {
 
 func TestHandleMeshProgress_SSENotification(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	taskID := "test-task-sse"
 	task := &types.Envelope{
@@ -409,7 +409,7 @@ func TestHandleToolCall(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			if tt.setupMCP {
 				queueClient := &MockQueueClient{}
@@ -523,7 +523,7 @@ func TestHandleMeshStatus(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			if tt.setupTask {
 				task := &types.Envelope{
@@ -652,7 +652,7 @@ func TestHandleMeshActive(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			if tt.setupTask {
 				task := &types.Envelope{
@@ -849,7 +849,7 @@ func TestHandleMeshFinal(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			if tt.setupTask {
 				task := &types.Envelope{
@@ -1080,7 +1080,7 @@ func TestMeshPathRegex(t *testing.T) {
 
 func TestMeshPathRegex_EdgeCases(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	tests := []struct {
 		name        string
@@ -1197,7 +1197,7 @@ func TestHandleMeshCreate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			store := envelopestore.NewStore()
-			handler := NewHandler(store)
+			handler := NewHandler(store, nil)
 
 			var body []byte
 			var err error
@@ -1250,7 +1250,7 @@ func TestHandleMeshCreate(t *testing.T) {
 
 func TestHandleMeshCreate_DuplicateID(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	// Create first task
 	task := &types.Envelope{

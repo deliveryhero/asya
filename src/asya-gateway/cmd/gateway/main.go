@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/a2aproject/a2a-go/a2asrv"
+	"github.com/jackc/pgx/v5/pgxpool"
 	mcpserver "github.com/mark3labs/mcp-go/server"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
@@ -57,9 +58,11 @@ func main() {
 
 	// Initialize envelope store (PostgreSQL or in-memory)
 	var envelopeStore envelopestore.EnvelopeStore
+	var pgStore *envelopestore.PgStore
 	if dbURL != "" {
 		slog.Info("Using PostgreSQL envelope store")
-		pgStore, err := envelopestore.NewPgStore(ctx, dbURL)
+		var err error
+		pgStore, err = envelopestore.NewPgStore(ctx, dbURL)
 		if err != nil {
 			slog.Error("Failed to create PostgreSQL store", "error", err)
 			os.Exit(1)
@@ -106,7 +109,12 @@ func main() {
 	mcpServer := mcp.NewServer(envelopeStore, queueClient, registry)
 
 	// Create mesh handler for /mesh/* and /tools/call endpoints
-	meshHandler := mcp.NewHandler(envelopeStore)
+	// Pass pool for pg_notify (FLY events); nil when using in-memory store
+	var pool *pgxpool.Pool
+	if pgStore != nil {
+		pool = pgStore.Pool()
+	}
+	meshHandler := mcp.NewHandler(envelopeStore, pool)
 	meshHandler.SetServer(mcpServer) // For REST tool calls
 	if configPath != "" {
 		meshHandler.SetConfigReloader(func() error { return registry.LoadFromDir(configPath) })

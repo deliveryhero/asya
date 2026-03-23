@@ -14,6 +14,7 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -26,18 +27,22 @@ var (
 	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
 )
 
+const flyChannel = "fly"
+
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
 	taskStore      envelopestore.EnvelopeStore
-	server         *Server      // For direct tool calls
-	configReloadFn func() error // Optional: triggers immediate ConfigMap reload
+	server         *Server       // For direct tool calls
+	configReloadFn func() error  // Optional: triggers immediate ConfigMap reload
+	pool           *pgxpool.Pool // For pg_notify (FLY events); nil when using in-memory store
 }
 
 // NewHandler creates a new HTTP handler for task management
-func NewHandler(taskStore envelopestore.EnvelopeStore) *Handler {
+func NewHandler(taskStore envelopestore.EnvelopeStore, pool *pgxpool.Pool) *Handler {
 	return &Handler{
 		taskStore: taskStore,
+		pool:      pool,
 	}
 }
 
@@ -667,10 +672,8 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 	}
 	taskID := matches[1]
 
-	// Limit request body size to prevent resource exhaustion (1MB)
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 
-	// Read raw payload body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		var maxBytesError *http.MaxBytesError
@@ -682,20 +685,17 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a TaskUpdate with PartialPayload for SSE broadcasting
-	update := types.EnvelopeUpdate{
-		ID:             taskID,
-		Status:         types.EnvelopeStatusRunning,
-		PartialPayload: json.RawMessage(body),
-		Timestamp:      time.Now(),
+	// Broadcast via PG NOTIFY for cross-process delivery (dual-gateway mode).
+	// FLY events are ephemeral — no INSERT, no UPDATE, no DB storage.
+	if h.pool != nil {
+		notification := taskID + ":" + string(body)
+		if _, err := h.pool.Exec(r.Context(), "SELECT pg_notify($1, $2)", flyChannel, notification); err != nil {
+			slog.Warn("Failed to pg_notify FLY event", "task_id", taskID, "error", err)
+		}
 	}
 
-	// Store and broadcast to SSE subscribers
-	if err := h.taskStore.UpdateProgress(update); err != nil {
-		slog.Error("Failed to store FLY event", "task_id", taskID, "error", err)
-		http.Error(w, "Failed to store FLY event", http.StatusInternalServerError)
-		return
-	}
+	// Notify in-process subscribers (single-gateway/testing mode)
+	h.taskStore.NotifyFLY(taskID, body)
 
 	w.WriteHeader(http.StatusOK)
 }
