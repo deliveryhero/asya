@@ -1048,7 +1048,7 @@ def _resolve_gateway_url(runner: KubeRunner, url_override: str | None) -> str:
 
     # 3. Context config (.asya/config.yaml contexts.<ctx>.gateway)
     if runner._context_config:
-        config_url = runner._context_config.get("gateway")
+        config_url = runner._context_config.get("gateway_url")
         if config_url:
             return str(config_url)
 

@@ -12,5 +12,5 @@ compiler:
 contexts:
   dev:
     namespace: asya-demo
-    gateway: http://localhost:18080
+    gateway_url: http://localhost:18080
 default_context: dev
