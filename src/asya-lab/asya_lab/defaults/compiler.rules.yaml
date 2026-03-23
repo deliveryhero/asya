@@ -65,3 +65,18 @@
     assign-to: spec.resiliency.policies.default.maxAttempts
   - param: timeout
     assign-to: spec.resiliency.policies.default.maxDuration
+
+# -- Tool decorator rules --
+# Decorators classified as actor; stripped by default so runtime ignores them.
+
+# Claude Agent SDK @tool
+- match: "claude_agent_sdk.tool"
+  treat-as: actor
+
+# LangChain @tool
+- match: "langchain.tools.tool"
+  treat-as: actor
+
+# LangChain core @tool
+- match: "langchain_core.tools.tool"
+  treat-as: actor

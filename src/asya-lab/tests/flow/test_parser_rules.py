@@ -83,3 +83,69 @@ class TestRuleClassification:
         assert len(ops) == 3  # 2 actor calls + return
         assert isinstance(ops[0], ActorCall)
         assert isinstance(ops[1], ActorCall)
+
+
+class TestAutoDecoratorStripping:
+    def test_rule_match_auto_strips_decorator(self) -> None:
+        source = (
+            "from claude_agent_sdk import tool\n"
+            "@tool\n"
+            "def get_weather(city: str) -> dict:\n"
+            "    ...\n\n"
+            "@flow\n"
+            "def flow(p: dict) -> dict:\n"
+            "    p = handler(p)\n"
+            "    return p\n"
+        )
+        engine = RuleEngine([CompilerRule(match="claude_agent_sdk.tool", treat_as=TreatAs.ACTOR)])
+        parser = FlowParser(source, "test.py", rule_engine=engine)
+        result = parser.parse()
+        assert "claude_agent_sdk.tool" in result.ignore_decorators
+
+    def test_keep_decorator_prevents_stripping(self) -> None:
+        source = (
+            "from functools import lru_cache\n"
+            "@lru_cache\n"
+            "def cached_fn(p: dict) -> dict:\n"
+            "    ...\n\n"
+            "@flow\n"
+            "def flow(p: dict) -> dict:\n"
+            "    p = handler(p)\n"
+            "    return p\n"
+        )
+        engine = RuleEngine([CompilerRule(match="functools.lru_cache", treat_as=TreatAs.INLINE, keep_decorator=True)])
+        parser = FlowParser(source, "test.py", rule_engine=engine)
+        result = parser.parse()
+        assert "functools.lru_cache" not in result.ignore_decorators
+
+    def test_no_rule_engine_no_stripping(self) -> None:
+        source = (
+            "from claude_agent_sdk import tool\n"
+            "@tool\n"
+            "def get_weather(city: str) -> dict:\n"
+            "    ...\n\n"
+            "@flow\n"
+            "def flow(p: dict) -> dict:\n"
+            "    p = handler(p)\n"
+            "    return p\n"
+        )
+        parser = FlowParser(source, "test.py")
+        result = parser.parse()
+        assert "claude_agent_sdk.tool" not in result.ignore_decorators
+
+    def test_tool_decorator_classifies_function_as_actor(self) -> None:
+        source = (
+            "from claude_agent_sdk import tool\n"
+            "@tool\n"
+            "def get_weather(city: str) -> dict:\n"
+            "    ...\n\n"
+            "@flow\n"
+            "def flow(p: dict) -> dict:\n"
+            "    p = get_weather(p)\n"
+            "    return p\n"
+        )
+        engine = RuleEngine([CompilerRule(match="claude_agent_sdk.tool", treat_as=TreatAs.ACTOR)])
+        parser = FlowParser(source, "test.py", rule_engine=engine)
+        result = parser.parse()
+        assert isinstance(result.operations[0], ActorCall)
+        assert result.operations[0].name == "get_weather"

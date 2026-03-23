@@ -22,6 +22,7 @@ class CompilerRule:
     treat_as: str  # "config" | "inline"
     where: list[WhereNode] | None = None  # extraction tree
     imports: list[str] = field(default_factory=list)  # import statements for generated code
+    keep_decorator: bool = False  # if True, decorator is preserved at runtime
 
 
 def _rule_from_dict(d: dict) -> CompilerRule:
@@ -33,6 +34,7 @@ def _rule_from_dict(d: dict) -> CompilerRule:
         treat_as=d.get("treat-as", "config"),
         where=where,
         imports=d.get("imports", []),
+        keep_decorator=d.get("keep-decorator", False),
     )
 
 

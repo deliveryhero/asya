@@ -183,6 +183,34 @@ class TestRuleEngineFromConfig:
         assert rule.where[0].assign_to == "retry.wait"
 
 
+class TestKeepDecorator:
+    def test_keep_decorator_defaults_to_false(self) -> None:
+        rule = CompilerRule.from_dict({"match": "tenacity.retry", "treat-as": "config"})
+        assert rule.keep_decorator is False
+
+    def test_keep_decorator_true_from_dict(self) -> None:
+        rule = CompilerRule.from_dict({"match": "functools.lru_cache", "treat-as": "inline", "keep-decorator": True})
+        assert rule.keep_decorator is True
+
+    def test_keep_decorator_false_from_dict(self) -> None:
+        rule = CompilerRule.from_dict({"match": "tool", "treat-as": "actor", "keep-decorator": False})
+        assert rule.keep_decorator is False
+
+
+class TestDefaultToolRules:
+    def test_defaults_include_tool_rules(self) -> None:
+        engine = RuleEngine.with_defaults()
+        assert engine.classify("claude_agent_sdk.tool") is TreatAs.ACTOR
+        assert engine.classify("langchain.tools.tool") is TreatAs.ACTOR
+        assert engine.classify("langchain_core.tools.tool") is TreatAs.ACTOR
+
+    def test_tool_rules_have_keep_decorator_false(self) -> None:
+        engine = RuleEngine.with_defaults()
+        rule = engine.get_rule("claude_agent_sdk.tool")
+        assert rule is not None
+        assert rule.keep_decorator is False
+
+
 class TestRuleEngineNoMatch:
     def test_empty_engine_returns_none(self) -> None:
         engine = RuleEngine([])

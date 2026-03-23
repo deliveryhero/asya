@@ -266,7 +266,8 @@ class FlowParser:
         """Map function name to treat-as value for same-file definitions.
 
         Also extracts config from decorators matched by compiler rules
-        (e.g. @retry(max_attempts=3)).
+        (e.g. @retry(max_attempts=3)) and auto-strips decorators unless
+        the rule has keep-decorator: true.
         """
         index: dict[str, str] = {}
         for node in tree.body:
@@ -281,9 +282,10 @@ class FlowParser:
                 if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
 
+                fqn = self.import_map.get(dec_name, dec_name)
+
                 # Check for config decorators via rules registries
                 if isinstance(dec, ast.Call):
-                    fqn = self.import_map.get(dec_name, dec_name)
                     spec_values = self._extract_config_decorator(dec, fqn)
                     if spec_values is not None:
                         if spec_values:
@@ -296,7 +298,34 @@ class FlowParser:
                                 }
                             )
                         self.ignore_decorators.append(fqn)
+                        continue
+
+                # Auto-strip: if rule engine matches and keep_decorator is False
+                if self._should_strip_decorator(fqn):
+                    if fqn not in self.ignore_decorators:
+                        self.ignore_decorators.append(fqn)
+                    # Classify function per rule treat-as
+                    if node.name not in index:
+                        treat_as = self._rule_engine_treat_as(fqn)
+                        if treat_as is not None:
+                            index[node.name] = treat_as
         return index
+
+    def _should_strip_decorator(self, fqn: str) -> bool:
+        """Check if a decorator should be stripped based on rule engine."""
+        if self._rule_engine is not None:
+            rule = self._rule_engine.get_rule(fqn)
+            if rule is not None and not rule.keep_decorator:
+                return True
+        return False
+
+    def _rule_engine_treat_as(self, fqn: str) -> str | None:
+        """Get the treat-as string for a symbol from the rule engine."""
+        if self._rule_engine is not None:
+            treat_as = self._rule_engine.classify(fqn)
+            if treat_as is not None:
+                return treat_as.value
+        return None
 
     @staticmethod
     def _decorator_name(dec: ast.expr) -> str | None:
