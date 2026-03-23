@@ -4,4 +4,5 @@ resources:
 - asya-actor-greet.yaml
 - asya-actor-shout.yaml
 - asya-start-greet-flow.yaml
+- configmap-greet-adapter.yaml
 - configmap-routers.yaml

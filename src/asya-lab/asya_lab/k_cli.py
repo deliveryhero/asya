@@ -126,6 +126,7 @@ class KubeRunner:
             "kubectl",
             "apply",
             "--server-side",
+            "--force-conflicts",
             f"--field-manager={field_manager}",
             "-f",
             "-",

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: asya-gateway-flows
+  labels:
+    app.kubernetes.io/component: flows
+    app.kubernetes.io/name: asya-gateway
+    asya.sh/config-type: flows
+data:
+  flows.yaml: |
+    flows:
+    - name: text-flow
+      entrypoint: start-text-flow
+      description: "Analyze text sentiment and summarize"
+      mcp: {}
+      a2a: {}

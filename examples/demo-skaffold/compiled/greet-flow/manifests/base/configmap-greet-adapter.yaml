@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: greet-flow-greet-adapter
+  namespace: default
+  labels:
+    asya.sh/flow: greet-flow
+    asya.sh/managed-by: asya-compiler
+    asya.sh/adapter-for: greet
+data:
+  adapter_greet.py: |
+    # fmt: off
+    # ruff: noqa
+    """Auto-generated adapter for greet"""
+    from greeter import greet
+
+    def adapter_greet(payload: dict):
+        """Adapter: wraps greet() for dict-in/dict-out protocol"""
+        _result = greet(payload)
+        payload['greeting'] = _result
+        yield payload
