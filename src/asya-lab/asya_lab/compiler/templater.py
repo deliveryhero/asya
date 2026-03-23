@@ -195,12 +195,15 @@ class ManifestTemplater:
         # Mount routers ConfigMap for generated router actors
         if actor.generated:
             self._inject_router_configmap_mount(manifest)
+            # Hash of routers.py triggers rolling update on code change
+            self._inject_configmap_hash(manifest, self.router_code)
 
         # Mount adapter ConfigMap for adapter actors
         if not actor.generated and self.codegen_meta.adapter_files:
             for af in self.codegen_meta.adapter_files:
                 if af.actor_name == actor.name.replace("actor-", "").replace("-", "_"):
                     self._inject_adapter_configmap_mount(manifest, af)
+                    self._inject_configmap_hash(manifest, af.code)
                     break
 
         # Inject compiler-generated resiliency config
@@ -545,6 +548,15 @@ images:
                 "readOnly": True,
             }
         )
+
+    @staticmethod
+    def _inject_configmap_hash(manifest: dict, code: str) -> None:
+        """Add ASYA_CODE_HASH env var so Crossplane triggers rollout on code change."""
+        import hashlib
+
+        code_hash = hashlib.sha256(code.encode()).hexdigest()[:12]
+        env = manifest["spec"].setdefault("env", [])
+        env.append({"name": "ASYA_CODE_HASH", "value": code_hash})
 
     def _inject_adapter_configmap_mount(self, manifest: dict, af: "AdapterFile") -> None:
         """Mount an adapter ConfigMap at /opt/asya/<adapter>.py for adapter actors.

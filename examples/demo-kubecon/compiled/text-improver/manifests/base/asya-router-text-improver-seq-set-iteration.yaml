@@ -36,6 +36,8 @@ spec:
     value: routers.router_text_improver_seq_set_iteration
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_WHILE_LOOP
     value: routers.router_text_improver_while_loop
+  - name: ASYA_CODE_HASH
+    value: e99d6861e9d4
   volumes:
   - name: routers
     configMap:
