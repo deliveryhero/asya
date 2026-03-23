@@ -625,3 +625,31 @@ class TestAdapterCodegen:
         af = meta.adapter_files[0]
         assert "from " not in af.code
         assert "import " not in af.code
+
+    def test_adapter_aliased_import(self):
+        """Adapter generates 'import X as Y' when function name differs from FQN."""
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="my_greet",
+                    lineno=3,
+                    input_args=["p"],
+                    output_path="p['greeting']",
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["my_greet"],
+            import_map={"my_greet": "greeter.greet"},
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "from greeter import greet as my_greet" in af.code
