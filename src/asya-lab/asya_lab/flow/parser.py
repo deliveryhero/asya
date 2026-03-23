@@ -312,7 +312,7 @@ class FlowParser:
                 return ast.unparse(dec.func)
         return None
 
-    def _extract_config_decorator(self, dec: ast.Call, fqn: str) -> dict[str, str] | None:
+    def _extract_config_decorator(self, dec: ast.Call, fqn: str) -> dict[str, object] | None:
         """Extract config from a decorator via where: tree.
 
         Checks both the rule engine and flow rules for a matching config rule.
@@ -327,14 +327,14 @@ class FlowParser:
             engine_rule = self._rule_engine.get_rule(fqn)
             if engine_rule is not None and engine_rule.treat_as == TreatAs.CONFIG and engine_rule.where:
                 extractor = ValueExtractor(imports=self.import_map)
-                return {str(k): str(v) for k, v in extractor.extract(dec, engine_rule).items()}
+                return {str(k): v for k, v in extractor.extract(dec, engine_rule).items()}
 
         # Fall back to flow rules (shipped defaults)
         flow_rule = self.rules.lookup(fqn)
         if flow_rule is not None and flow_rule.treat_as == "config" and flow_rule.where:
             engine_rule = EngineRule(match=fqn, treat_as=TreatAs.CONFIG, where=flow_rule.where)
             extractor = ValueExtractor(imports=self.import_map)
-            return {str(k): str(v) for k, v in extractor.extract(dec, engine_rule).items()}
+            return {str(k): v for k, v in extractor.extract(dec, engine_rule).items()}
 
         return None
 
@@ -952,7 +952,7 @@ class FlowParser:
             return ast.unparse(ctx_expr.func)
         return ast.unparse(ctx_expr)
 
-    def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
+    def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, object]:
         """Extract args from a context manager call via where: tree."""
         if not isinstance(ctx_expr, ast.Call) or not rule.where:
             return {}
@@ -963,7 +963,7 @@ class FlowParser:
 
         engine_rule = EngineRule(match="", treat_as=TreatAs.CONFIG, where=rule.where)
         extractor = ValueExtractor(imports=self.import_map)
-        return {str(k): str(v) for k, v in extractor.extract(ctx_expr, engine_rule).items()}
+        return {str(k): v for k, v in extractor.extract(ctx_expr, engine_rule).items()}
 
     @staticmethod
     def _collect_scope_actors(ops: list[Operation]) -> list[str]:
