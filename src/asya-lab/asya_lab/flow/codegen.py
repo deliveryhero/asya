@@ -198,7 +198,7 @@ def _truncate_slug(slug: str) -> str:
     """Truncate slug at _MAX_SLUG_LEN, appending hash if truncated."""
     if len(slug) <= _MAX_SLUG_LEN:
         return slug
-    h = hashlib.md5(slug.encode(), usedforsecurity=False).hexdigest()[:6]
+    h = hashlib.sha256(slug.encode()).hexdigest()[:6]
     return f"{slug[: _MAX_SLUG_LEN - 7]}_{h}"
 
 
