@@ -459,6 +459,11 @@ time {
     echo "=== Gateway Current Logs ==="
     kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/name=asya-gateway --tail=100 --all-containers=true || true
     echo ""
+    echo "=== Scaler Pod Logs ==="
+    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-scaler-pubsub --tail=50 --all-containers=true --previous || true
+    kubectl logs -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-scaler-pubsub --tail=50 --all-containers=true || true
+    kubectl describe pod -n "$SYSTEM_NAMESPACE" -l app.kubernetes.io/name=asya-scaler-pubsub || true
+    echo ""
     echo "=== Crossplane Provider Logs ==="
     kubectl logs -n crossplane-system -l pkg.crossplane.io/revision --tail=50 --all-containers=true || true
     echo ""
