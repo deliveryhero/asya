@@ -1039,18 +1039,18 @@ def _resolve_gateway_url(runner: KubeRunner, url_override: str | None) -> str:
 
     # 1. Explicit --url flag
     if url_override:
-        return url_override
+        return url_override.rstrip("/")
 
     # 2. Environment variable
     env_url = os.environ.get("ASYA_GATEWAY_URL")
     if env_url:
-        return env_url
+        return env_url.rstrip("/")
 
-    # 3. Context config (.asya/config.yaml contexts.<ctx>.gateway)
+    # 3. Context config (.asya/config.yaml contexts.<ctx>.gateway_url)
     if runner._context_config:
         config_url = runner._context_config.get("gateway_url")
         if config_url:
-            return str(config_url)
+            return str(config_url).rstrip("/")
 
     # 4. Auto-detect from localhost
     for port in (18080, 8080, 8888, 80):
