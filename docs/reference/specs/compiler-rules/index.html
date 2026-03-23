@@ -36,11 +36,11 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Overview - Asya Docs</title>
+    <title>Compiler rules - Asya Docs</title>
     
 
 
-<title>Overview</title>
+<title>Compiler rules</title>
 
 
 
@@ -50,18 +50,18 @@
 
 
 
-<link rel="canonical" href="https://asya.sh/docs/reference/specs/">
+<link rel="canonical" href="https://asya.sh/docs/reference/specs/compiler-rules/">
 
 
 <!-- Open Graph (Facebook, LinkedIn) -->
 
-<meta property="og:title" content="Overview">
+<meta property="og:title" content="Compiler rules">
 
 
 
 
 
-<meta property="og:url" content="https://asya.sh/docs/reference/specs/">
+<meta property="og:url" content="https://asya.sh/docs/reference/specs/compiler-rules/">
 
 
 
@@ -70,7 +70,7 @@
 
 <!-- Twitter Card -->
 
-<meta name="twitter:title" content="Overview">
+<meta name="twitter:title" content="Compiler rules">
 
 
 
@@ -81,17 +81,17 @@
 
 
 
-    <link rel="icon" href="../../website/img/favicon.ico">
+    <link rel="icon" href="../../../website/img/favicon.ico">
 
-    <link href="../../css/base.css" rel="stylesheet">
-    <link href="../../css/geist.css" rel="stylesheet">
-
-    
-    <link href="../../website/stylesheets/extra.css" rel="stylesheet">
+    <link href="../../../css/base.css" rel="stylesheet">
+    <link href="../../../css/geist.css" rel="stylesheet">
 
     
+    <link href="../../../website/stylesheets/extra.css" rel="stylesheet">
 
-    <script src="../../js/callbacks.js"></script>
+    
+
+    <script src="../../../js/callbacks.js"></script>
 
     
 
@@ -178,9 +178,9 @@
             <!-- Logo — links to asya.sh landing page -->
             <a class="asya-home-link hidden lg:flex items-center justify-center rounded-md size-8 transition-all hover:bg-accent dark:hover:bg-accent/50"
                 href="https://asya.sh" title="asya.sh">
-                <img class="asya-home-logo asya-logo-gray" src="../../website/img/logo_gray.png" alt="Asya" />
-                <img class="asya-home-logo asya-logo-light" src="../../website/img/logo_light_gray.png" alt="Asya" />
-                <img class="asya-home-logo asya-logo-color" src="../../website/img/logo_colored_with_borders.png" alt="Asya" />
+                <img class="asya-home-logo asya-logo-gray" src="../../../website/img/logo_gray.png" alt="Asya" />
+                <img class="asya-home-logo asya-logo-light" src="../../../website/img/logo_light_gray.png" alt="Asya" />
+                <img class="asya-home-logo asya-logo-color" src="../../../website/img/logo_colored_with_borders.png" alt="Asya" />
             </a>
 
             <!-- Asya Docs button -->
@@ -1405,7 +1405,7 @@
 
 
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
-    <details data-section-id="reference" open class="sidebar-tree-section">
+    <details data-section-id="reference"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
             class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
@@ -1659,7 +1659,7 @@
 
 
 <div data-slot="sidebar-group" data-sidebar="group" class="relative flex w-full min-w-0 flex-col p-1">
-    <details data-section-id="specs" open class="sidebar-tree-section">
+    <details data-section-id="specs"  class="sidebar-tree-section">
         <summary data-slot="sidebar-group-label" data-sidebar="group-label"
             class="ring-sidebar-ring flex h-8 shrink-0 items-center rounded-md px-2 text-xs outline-hidden cursor-pointer select-none transition-[margin,opacity] duration-200 ease-linear focus-visible:ring-2 text-muted-foreground font-medium hover:text-foreground">
             <svg class="sidebar-tree-arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" style="margin-right: 4px; flex-shrink: 0;">
@@ -1676,7 +1676,7 @@
 <ul data-slot="sidebar-menu" data-sidebar="menu" class="flex w-full min-w-0 flex-col gap-0.5">
     
     <li data-slot="sidebar-menu-item" data-sidebar="menu-item" class="group/menu-item relative">
-    <a data-slot="sidebar-menu-button" data-active="true" data-sidebar="menu-button"
+    <a data-slot="sidebar-menu-button" data-active="false" data-sidebar="menu-button"
         data-size="default" href="/docs/reference/specs/"
         class="hover:bg-sidebar-accent hover:text-sidebar-accent-foreground peer/menu-button flex items-center gap-2 rounded-md p-2 text-left outline-hidden ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-data-[sidebar=menu-action]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:p-2! [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 data-[active=true]:bg-accent data-[active=true]:border-accent 3xl:fixed:w-full 3xl:fixed:max-w-48 relative h-[30px] w-fit overflow-visible border border-transparent text-[0.8rem] font-medium after:absolute after:inset-x-0 after:-inset-y-1 after:z-0 after:rounded-md">
 
@@ -2442,18 +2442,18 @@
                             <div class="flex min-w-0 flex-1 flex-col">
                                 <div class="h-(--top-spacing) shrink-0"></div>
                                 <article class="w-full" view-transition-name="page">
-  <!-- Envelope route navigator --><nav class="envelope-route" id="envelope-route" aria-label="Navigation history"><div class="route-line"><span class="route-bracket">"route":</span> <span class="route-bracket">{</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"prev":</span> <span class="route-bracket">[</span><span id="route-prev" class="route-prev"></span><span class="route-bracket">]</span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"curr":</span> <span class="route-curr" id="route-curr"></span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"next":</span> <span class="route-bracket">[</span><span id="route-next" class="route-next"><a href="/docs/reference/specs/envelope/" class="route-link">"Envelope"</a></span><span class="route-bracket">]</span></div><div class="route-line"><span class="route-bracket">}</span></div></nav>
+  <!-- Envelope route navigator --><nav class="envelope-route" id="envelope-route" aria-label="Navigation history"><div class="route-line"><span class="route-bracket">"route":</span> <span class="route-bracket">{</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"prev":</span> <span class="route-bracket">[</span><span id="route-prev" class="route-prev"></span><span class="route-bracket">]</span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"curr":</span> <span class="route-curr" id="route-curr"></span><span class="route-comma">,</span></div><div class="route-line route-indent"><span class="route-label">&nbsp;&nbsp;"next":</span> <span class="route-bracket">[</span><span id="route-next" class="route-next"></span><span class="route-bracket">]</span></div><div class="route-line"><span class="route-bracket">}</span></div></nav>
 
   <div class="flex flex-col gap-2">
     <div class="flex flex-col gap-2">
       <div id="page-header" class="flex items-start justify-between">
         <h1 class="scroll-m-20 text-4xl font-semibold tracking-tight sm:text-3xl xl:text-4xl">
-          Overview<a class="headerlink" href="#" title="Permanent link">#</a>
+          Compiler rules<a class="headerlink" href="#" title="Permanent link">#</a>
         </h1>
 
         <div class="flex items-center gap-2 pt-1.5">
           
-<button onclick="fetch(`https://asya.sh/docs/reference/specs/README.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
+<button onclick="fetch(`https://asya.sh/docs/reference/specs/compiler-rules.md`).then((r) => r.blob()).then((blob) => navigator.clipboard.write([new ClipboardItem({ 'text/plain': blob })]))" 
         data-slot="button" 
         class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 rounded-md gap-1.5 px-3 has-[&>svg]:px-2.5 h-8 shadow-none md:h-7 md:text-[0.8rem]">
 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="tabler-icon tabler-icon-copy ">
@@ -2470,49 +2470,539 @@
     </div>
   </div>
   <div class="typography w-full flex-1 *:data-[slot=alert]:first:mt-0">
-    <p>Protocols, interfaces, and formal specifications for the Asya framework.</p>
+    <p>Formal specification for the compiler rules system — the extensible knowledge
+base that maps Python AST elements (decorators, context managers, function calls)
+to AsyncActor manifest fields.</p>
+<p>For a practical guide with examples, see
+<a href="../../../usage/guide-compiler-rules/">usage/guide-compiler-rules.md</a>.</p>
+<hr />
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">#</a></h2>
+<p>Compiler rules are a config-driven mechanism for teaching the flow compiler how
+to interpret Python constructs it encounters in flow source files. Each rule
+maps a fully-qualified Python symbol to a compiler behavior (<code>treat-as</code>) and
+optionally extracts parameter values into AsyncActor manifest fields via a
+<code>where:</code> tree.</p>
+<p>Source: <code>src/asya-lab/asya_lab/compiler/rules.py</code>,
+<code>src/asya-lab/asya_lab/compiler/extractor.py</code></p>
+<hr />
+<h2 id="design-principles">Design principles<a class="headerlink" href="#design-principles" title="Permanent link">#</a></h2>
+<h3 id="explicit-over-implicit">Explicit over implicit<a class="headerlink" href="#explicit-over-implicit" title="Permanent link">#</a></h3>
+<p>The rules file is the single source of truth for how the compiler interprets
+Python constructs. There is no hardcoded behavior inside the compiler for any
+specific library — tenacity, asyncio, stamina are all handled through the same
+rule mechanism that users extend. If a rule is not declared, the construct is
+not recognized.</p>
+<p>This means you can always answer "what does the compiler do with <code>@retry</code>?" by
+reading the YAML:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">    </span><span class="l l-Scalar l-Scalar-Plain">...</span>
+</code></pre></div>
+<p>No source diving, no special cases, no hidden logic.</p>
+<h3 id="user-accessible-configuration">User-accessible configuration<a class="headerlink" href="#user-accessible-configuration" title="Permanent link">#</a></h3>
+<p>Rules live in <code>.asya/config.compiler.rules.yaml</code> — a file delivered to the user
+via <code>asya init</code>, checked into their project, and fully under their control. The
+compiler's knowledge base is not locked inside a package; it is a project
+artifact that users read, modify, and version alongside their flow code.</p>
+<p>Shipped defaults extend automatically (users do not need to copy them), but
+they can be inspected at any time in
+<code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code> and overridden per-project
+by declaring a rule with the same <code>match</code> key.</p>
+<h3 id="pure-syntactic-mapping">Pure syntactic mapping<a class="headerlink" href="#pure-syntactic-mapping" title="Permanent link">#</a></h3>
+<p>Rules operate on AST nodes, not runtime values. The extractor reads literal
+constants, names, and operator trees directly from the Python syntax tree.
+There is no import execution, no decorator invocation, no side effects during
+compilation. The mapping from Python construct to manifest field is a static,
+deterministic transformation.</p>
+<h3 id="scope-auto-detection">Scope auto-detection<a class="headerlink" href="#scope-auto-detection" title="Permanent link">#</a></h3>
+<p>The parser infers scope from Python syntax — no <code>scope:</code> field in rules:</p>
+<ul>
+<li><code>with foo():</code> = context manager (applies to all actors in the body)</li>
+<li><code>@foo(...)</code> = decorator (applies to the decorated function)</li>
+<li><code>p = foo(p)</code> = call-site</li>
+</ul>
+<p>The rule author declares <em>what</em> to match and <em>what</em> to extract. The compiler
+determines <em>where</em> the construct appears.</p>
+<hr />
+<h2 id="rule-schema">Rule schema<a class="headerlink" href="#rule-schema" title="Permanent link">#</a></h2>
+<p>Each rule is a YAML dict with the following fields:</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span><span class="w">          </span><span class="c1"># required: FQN of Python symbol</span>
+<span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span><span class="w">                 </span><span class="c1"># required (unless where: is present, then defaults to config)</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span><span class="w">                           </span><span class="c1"># optional: extraction tree</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span><span class="w">                    </span><span class="c1">#   navigate into this parameter</span>
+<span class="w">    </span><span class="nt">flatten-on</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;|&quot;</span><span class="w">                </span><span class="c1">#   flatten BinOp before recursing</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span><span class="w">                         </span><span class="c1">#   child extraction nodes</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_attempt&quot;</span><span class="w">  </span><span class="c1">#   discriminator: only recurse if call matches</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_attempt_number</span>
+<span class="w">        </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span><span class="w">  </span><span class="c1"># terminal: extract value</span>
+</code></pre></div>
+<h3 id="fields">Fields<a class="headerlink" href="#fields" title="Permanent link">#</a></h3>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
-<th>Spec</th>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
 <th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><a href="envelope/">envelope.md</a></td>
-<td>Envelope structure, queue naming, routing logic</td>
+<td><code>match</code></td>
+<td>string</td>
+<td>yes</td>
+<td>Fully-qualified symbol name (e.g. <code>asyncio.timeout</code>, <code>tenacity.retry</code>). Matching is <strong>exact</strong> — no wildcards or patterns.</td>
 </tr>
 <tr>
-<td><a href="sidecar-runtime/">sidecar-runtime.md</a></td>
-<td>Sidecar-runtime HTTP endpoints, error codes, timeout strategy</td>
+<td><code>treat-as</code></td>
+<td>string</td>
+<td>yes*</td>
+<td>One of: <code>actor</code>, <code>inline</code>, <code>unfold</code>, <code>flow</code>, <code>config</code>. *Defaults to <code>config</code> when <code>where:</code> is present.</td>
 </tr>
 <tr>
-<td><a href="gateway-api/">gateway-api.md</a></td>
-<td>Full HTTP API reference — A2A, MCP, mesh, OAuth</td>
-</tr>
-<tr>
-<td><a href="abi-protocol/">abi-protocol.md</a></td>
-<td>ABI yield forms — GET, SET, DEL, FLY</td>
-</tr>
-<tr>
-<td><a href="flow-dsl/">flow-dsl.md</a></td>
-<td>Flow DSL syntax, supported constructs, compilation rules</td>
-</tr>
-<tr>
-<td><a href="compiler-rules/">compiler-rules.md</a></td>
-<td>Compiler rules — extensible AST-to-manifest mapping system</td>
-</tr>
-<tr>
-<td><a href="error-handling/">error-handling.md</a></td>
-<td>Error routing — policy exhaustion, DLQ, x-sump termination chain</td>
-</tr>
-<tr>
-<td><a href="asyncactor-crd/">asyncactor-crd.md</a></td>
-<td>Full CRD field reference from XRD</td>
+<td><code>where</code></td>
+<td>list[WhereNode]</td>
+<td>no</td>
+<td>Extraction tree for pulling values from call arguments.</td>
 </tr>
 </tbody>
 </table></div>
+<hr />
+<h2 id="treatas-values">TreatAs values<a class="headerlink" href="#treatas-values" title="Permanent link">#</a></h2>
+<p>Every function call in a flow is classified into one of five behaviors:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Effect</th>
+<th>Use case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>actor</code></td>
+<td>Separate K8s deployment with its own queue</td>
+<td>Business logic handlers</td>
+</tr>
+<tr>
+<td><code>flow</code></td>
+<td>Sub-flow — compile recursively, create visual group in graph</td>
+<td>Reusable flow compositions</td>
+</tr>
+<tr>
+<td><code>unfold</code></td>
+<td>Expand function body into current flow (no visual group)</td>
+<td>Local helper functions</td>
+</tr>
+<tr>
+<td><code>inline</code></td>
+<td>Paste code into router body — runs inside the router process</td>
+<td>Fast local transformations</td>
+</tr>
+<tr>
+<td><code>config</code></td>
+<td>Extract values into manifest, strip decorator/context manager at runtime</td>
+<td>Resiliency, timeouts, library-specific config</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="classification-priority">Classification priority<a class="headerlink" href="#classification-priority" title="Permanent link">#</a></h3>
+<p>When the compiler encounters a symbol, it resolves classification in this order
+(highest to lowest priority):</p>
+<ol>
+<li><strong>Inline comment</strong> — <code># asya: &lt;action&gt;</code> on the statement</li>
+<li><strong>Definition-site decorator</strong> — <code>@actor</code>, <code>@flow</code>, <code>@inline</code>, <code>@unfold</code> on the function definition</li>
+<li><strong>Call-site wrapper</strong> — <code>actor(fn)(p)</code>, <code>inline(fn)(p)</code></li>
+<li><strong>Compiler rule</strong> — exact-match rules from <code>.asya/config.compiler.rules.yaml</code> + shipped defaults</li>
+<li><strong>Implicit defaults</strong> — local function = <code>unfold</code>, imported = <code>inline</code>, bare name = <code>actor</code></li>
+</ol>
+<hr />
+<h2 id="wherenode-specification">WhereNode specification<a class="headerlink" href="#wherenode-specification" title="Permanent link">#</a></h2>
+<p>The <code>where:</code> tree guides value extraction from AST call nodes. Each node in the
+tree is a <code>WhereNode</code> with the following fields:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>param</code></td>
+<td>string, int, or ParamSpec</td>
+<td>Parameter to navigate into. String = keyword name, int = positional index, dict = ParamSpec (see below).</td>
+</tr>
+<tr>
+<td><code>match</code></td>
+<td>string</td>
+<td>Discriminator — only recurse into this node if the current call's function name equals this value. Used for polymorphic parameters (e.g. <code>stop=stop_after_attempt(...)</code> vs <code>stop=stop_after_delay(...)</code>).</td>
+</tr>
+<tr>
+<td><code>assign-to</code></td>
+<td>string</td>
+<td>Terminal — extract the parameter value and write it to this spec path in the AsyncActor manifest.</td>
+</tr>
+<tr>
+<td><code>flatten-on</code></td>
+<td>string</td>
+<td>Before recursing into children, flatten a BinOp tree using this operator. Supported: <code>"\|"</code> (BitOr), <code>"&amp;"</code> (BitAnd), <code>"+"</code> (Add).</td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td>list[string]</td>
+<td>Field access chain for navigating into nested attributes (reserved for future use).</td>
+</tr>
+<tr>
+<td><code>example</code></td>
+<td>string</td>
+<td>Documentation string (not used by the engine).</td>
+</tr>
+<tr>
+<td><code>where</code></td>
+<td>list[WhereNode]</td>
+<td>Child extraction nodes — recurse after navigating into <code>param</code>.</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="node-types">Node types<a class="headerlink" href="#node-types" title="Permanent link">#</a></h3>
+<p>The where-tree walker recognizes three node patterns:</p>
+<p><strong>Terminal node</strong> (<code>param</code> + <code>assign-to</code>, no <code>where</code>):</p>
+<p>Extract the literal value from the bound argument and store it at the spec path.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">delay</span>
+<span class="w">  </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.timeout.actor</span>
+</code></pre></div>
+<p>Given <code>asyncio.timeout(30)</code>, extracts <code>30</code> and writes
+<code>spec.resiliency.timeout.actor: 30</code>.</p>
+<p><strong>Non-terminal node</strong> (<code>param</code> + <code>where</code>):</p>
+<p>The bound argument is itself a call. Bind its arguments and recurse into
+children.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_attempt&quot;</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_attempt_number</span>
+<span class="w">      </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+</code></pre></div>
+<p>Given <code>retry(stop=stop_after_attempt(3))</code>, navigates into the <code>stop</code> argument,
+finds <code>stop_after_attempt(3)</code>, binds <code>max_attempt_number=3</code>, extracts <code>3</code>.</p>
+<p><strong>Match-only node</strong> (<code>match</code> + <code>where</code>, no <code>param</code>):</p>
+<p>Discriminator — only recurse if the current call's function name matches. Used
+when a parameter can hold different function calls (polymorphic dispatch).</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wait</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;wait_exponential&quot;</span><span class="w">     </span><span class="c1"># only if wait=wait_exponential(...)</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">min</span>
+<span class="w">      </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.initialDelay</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;wait_fixed&quot;</span><span class="w">           </span><span class="c1"># only if wait=wait_fixed(...)</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wait</span>
+<span class="w">      </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.initialDelay</span>
+</code></pre></div>
+<hr />
+<h2 id="paramspec">ParamSpec<a class="headerlink" href="#paramspec" title="Permanent link">#</a></h2>
+<p>For parameters that can be passed both positionally and as keywords, rules can
+declare a <code>ParamSpec</code> dict instead of a plain string:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;delay&quot;</span><span class="p p-Indicator">,</span><span class="nt"> type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;int&quot;</span><span class="p p-Indicator">}</span>
+</code></pre></div>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>arg</code></td>
+<td>int</td>
+<td>Positional argument index (0-based)</td>
+</tr>
+<tr>
+<td><code>kwarg</code></td>
+<td>string</td>
+<td>Keyword argument name</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>Optional type annotation (metadata, not enforced)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Resolution order: try <code>kwarg</code> first (always known from keyword arguments), then
+fall back to positional <code>arg</code> index.</p>
+<p>This handles functions where the same parameter can be passed either way:</p>
+<div class="highlight"><pre><span></span><code><span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>          <span class="c1"># positional: arg=0</span>
+<span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="n">delay</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span>    <span class="c1"># keyword: kwarg=&quot;delay&quot;</span>
+</code></pre></div>
+<p>When <code>param</code> is a plain string, only keyword matching is used. When <code>param</code> is
+an integer, only positional matching is used.</p>
+<hr />
+<h2 id="binop-flattening">BinOp flattening<a class="headerlink" href="#binop-flattening" title="Permanent link">#</a></h2>
+<p>When a parameter's value is a binary operation (e.g.
+<code>stop_after_attempt(5) | stop_after_delay(30)</code>), the <code>flatten-on</code> field
+instructs the extractor to flatten the expression tree into a list of calls
+before matching children.</p>
+<div class="highlight"><pre><span></span><code><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">  </span><span class="nt">flatten-on</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;|&quot;</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_attempt&quot;</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_attempt_number</span>
+<span class="w">      </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_delay&quot;</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_delay</span>
+<span class="w">      </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxDuration</span>
+</code></pre></div>
+<p>Given <code>stop=stop_after_attempt(5) | stop_after_delay(30)</code>:</p>
+<ol>
+<li>The extractor sees a <code>BinOp</code> with <code>BitOr</code> operator</li>
+<li>Flattens into <code>[stop_after_attempt(5), stop_after_delay(30)]</code></li>
+<li>Each call is matched against the <code>match:</code> discriminators independently</li>
+<li>Result: <code>{maxAttempts: 5, maxDuration: 30}</code></li>
+</ol>
+<p>Without <code>flatten-on</code>, BinOp expressions are not traversed.</p>
+<p>Supported operators:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th><code>flatten-on</code></th>
+<th>Python operator</th>
+<th>AST type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"\|"</code></td>
+<td><code>\|</code> (bitwise OR)</td>
+<td><code>ast.BitOr</code></td>
+</tr>
+<tr>
+<td><code>"&amp;"</code></td>
+<td><code>&amp;</code> (bitwise AND)</td>
+<td><code>ast.BitAnd</code></td>
+</tr>
+<tr>
+<td><code>"+"</code></td>
+<td><code>+</code> (addition)</td>
+<td><code>ast.Add</code></td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="value-extraction">Value extraction<a class="headerlink" href="#value-extraction" title="Permanent link">#</a></h2>
+<p>The extractor handles these AST expression types when resolving terminal
+<code>assign-to</code> nodes:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>AST type</th>
+<th>Python example</th>
+<th>Extracted value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ast.Constant</code></td>
+<td><code>30</code>, <code>"hello"</code>, <code>True</code></td>
+<td>Literal value (int, float, str, bool)</td>
+</tr>
+<tr>
+<td><code>ast.Name</code></td>
+<td><code>ValueError</code></td>
+<td>Identifier as string</td>
+</tr>
+<tr>
+<td><code>ast.Tuple</code></td>
+<td><code>(ValueError, TypeError)</code></td>
+<td>Comma-joined string</td>
+</tr>
+<tr>
+<td><code>ast.UnaryOp(USub)</code></td>
+<td><code>-5</code></td>
+<td>Negated number</td>
+</tr>
+<tr>
+<td>Complex expressions</td>
+<td><code>foo()</code>, <code>x + y</code></td>
+<td><code>None</code> (not extractable — silently skipped)</td>
+</tr>
+</tbody>
+</table></div>
+<hr />
+<h2 id="argument-binding">Argument binding<a class="headerlink" href="#argument-binding" title="Permanent link">#</a></h2>
+<p>The extractor first binds call arguments to parameter names, then rules look
+up values from the resulting map.</p>
+<p><strong>Binding</strong> (call arguments to names):</p>
+<ol>
+<li><strong>Keywords</strong> — arguments passed with a keyword (e.g. <code>func(delay=30)</code>) are
+   bound directly to their name (<code>delay</code>)</li>
+<li><strong>Positional + <code>inspect.signature</code></strong> — for positional arguments, the
+   extractor imports the called function at compile time and uses its signature
+   to map arguments to parameter names</li>
+<li><strong>Positional fallback</strong> — if introspection fails (e.g. the function cannot
+   be imported), positional arguments are bound using their 0-based index as a
+   string key (<code>"0"</code>, <code>"1"</code>, ...)</li>
+</ol>
+<p>The import map from the flow file's <code>import</code> statements resolves bare names to
+FQNs (e.g. <code>stop_after_attempt</code> to <code>tenacity.stop_after_attempt</code>) for
+<code>inspect.signature</code> lookups.</p>
+<p><strong>Lookup</strong> (rule navigates the bound map):</p>
+<p>After binding, rules use <code>param</code> to look up values. A plain string looks up by
+keyword name, an integer by positional index, and a <code>ParamSpec</code> tries keyword
+first then falls back to positional index (see <a href="#paramspec">ParamSpec</a>).</p>
+<hr />
+<h2 id="where-rules-apply-flows-vs-actor-definitions">Where rules apply: flows vs actor definitions<a class="headerlink" href="#where-rules-apply-flows-vs-actor-definitions" title="Permanent link">#</a></h2>
+<p>Rules operate in two distinct contexts within the same compilation. The
+compiler auto-detects which context applies from Python syntax.</p>
+<h3 id="context-managers-in-flow-bodies">Context managers in flow bodies<a class="headerlink" href="#context-managers-in-flow-bodies" title="Permanent link">#</a></h3>
+<p>When a <code>with</code> statement appears inside the flow function, the compiler:</p>
+<ol>
+<li>Matches the context manager symbol against rules</li>
+<li>Strips the <code>with</code> block from generated routers (no trace in compiled output)</li>
+<li>Extracts config values via the where-tree</li>
+<li>Injects extracted values into manifests for <strong>all actors inside the scope</strong></li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">with</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>    <span class="c1"># scope covers both actors below</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">ocr_extractor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>           <span class="c1"># gets spec.resiliency.timeout.actor: 30</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">language_detector</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>       <span class="c1"># gets spec.resiliency.timeout.actor: 30</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">sentiment_analyzer</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>         <span class="c1"># outside scope — no timeout injected</span>
+</code></pre></div>
+<p>The extracted config record includes scope metadata:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;asyncio.timeout&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spec_values&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;spec.resiliency.timeout.actor&quot;</span><span class="p">:</span> <span class="mi">30</span><span class="p">},</span>
+    <span class="s2">&quot;scope_type&quot;</span><span class="p">:</span> <span class="s2">&quot;context_manager&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;scope_actors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;ocr_extractor&quot;</span><span class="p">,</span> <span class="s2">&quot;language_detector&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>Nested scopes are tracked independently — each <code>with</code> block produces a separate
+config record with its own <code>scope_actors</code> list.</p>
+<p>See <a href="../../../examples/flows/with_asyncio_timeout.py"><code>examples/flows/with_asyncio_timeout.py</code></a>
+and its compiled output in
+<a href="../../../examples/flows/compiled/with_asyncio_timeout/"><code>examples/flows/compiled/with_asyncio_timeout/</code></a>
+for a full walkthrough.</p>
+<h3 id="decorators-on-actor-definitions">Decorators on actor definitions<a class="headerlink" href="#decorators-on-actor-definitions" title="Permanent link">#</a></h3>
+<p>When a decorator appears on a function definition (in the same file or an
+imported module), the compiler:</p>
+<ol>
+<li>Matches the decorator symbol against rules</li>
+<li>Extracts config values via the where-tree</li>
+<li>Injects extracted values into the manifest for <strong>that single actor</strong></li>
+<li>Adds the decorator FQN to <code>ASYA_IGNORE_DECORATORS</code> env var in the manifest</li>
+</ol>
+<div class="highlight"><pre><span></span><code><span class="nd">@retry</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop_after_attempt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>   <span class="c1"># extracted for fetch_data only</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_data</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span> <span class="c1"># gets maxAttempts: 5 + ASYA_IGNORE_DECORATORS</span>
+</code></pre></div>
+<p>The extracted config record includes scope metadata:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;tenacity.retry&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;spec_values&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;spec.resiliency.policies.default.maxAttempts&quot;</span><span class="p">:</span> <span class="mi">5</span><span class="p">},</span>
+    <span class="s2">&quot;scope_type&quot;</span><span class="p">:</span> <span class="s2">&quot;decorator&quot;</span><span class="p">,</span>
+    <span class="s2">&quot;scope_actors&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;fetch_data&quot;</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The <code>ASYA_IGNORE_DECORATORS</code> env var tells asya-runtime to strip the decorator
+before loading the handler module, so <code>@retry(...)</code> does not execute at runtime.</p>
+<p>See <a href="../../../examples/flows/decorator_retry.py"><code>examples/flows/decorator_retry.py</code></a>
+and its compiled output in
+<a href="../../../examples/flows/compiled/decorator_retry/"><code>examples/flows/compiled/decorator_retry/</code></a>
+for a full walkthrough.</p>
+<h3 id="both-mechanisms-in-one-flow">Both mechanisms in one flow<a class="headerlink" href="#both-mechanisms-in-one-flow" title="Permanent link">#</a></h3>
+<p>Context managers and decorators can work together on the same flow. The
+templater applies scope configs first (context managers), then decorator configs.
+Decorator configs are more specific and override scope values for the same
+spec path.</p>
+<div class="highlight"><pre><span></span><code><span class="nd">@flow</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">resilient_pipeline</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">async</span> <span class="k">with</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>        <span class="c1"># scope: fetch_data, transform_data</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="k">await</span> <span class="n">fetch_data</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>            <span class="c1"># timeout: 30 + maxAttempts: 5</span>
+        <span class="n">p</span> <span class="o">=</span> <span class="k">await</span> <span class="n">transform_data</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>        <span class="c1"># timeout: 30</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="k">await</span> <span class="n">store_results</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>             <span class="c1"># no extracted config</span>
+    <span class="k">return</span> <span class="n">p</span>
+
+<span class="nd">@actor</span>
+<span class="nd">@retry</span><span class="p">(</span><span class="n">stop</span><span class="o">=</span><span class="n">stop_after_attempt</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">fetch_data</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+</code></pre></div>
+<h3 id="inline-comment-overrides">Inline comment overrides<a class="headerlink" href="#inline-comment-overrides" title="Permanent link">#</a></h3>
+<p>The <code># asya: &lt;action&gt;</code> comment on any flow statement overrides all rules and
+defaults. Supported actions: <code>actor</code>, <code>inline</code>, <code>unfold</code>, <code>flow</code>, <code>config</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">normalize</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>  <span class="c1"># asya: inline    — force inline, no actor boundary</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">validate</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>   <span class="c1"># asya: actor     — force separate actor</span>
+</code></pre></div>
+<p>See <a href="../../../examples/flows/inline_comment_overrides.py"><code>examples/flows/inline_comment_overrides.py</code></a>
+for a working example.</p>
+<hr />
+<h2 id="rule-loading-and-precedence">Rule loading and precedence<a class="headerlink" href="#rule-loading-and-precedence" title="Permanent link">#</a></h2>
+<p>Rules are loaded from two sources:</p>
+<ol>
+<li><strong>Shipped defaults</strong> — <code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code></li>
+<li><strong>User rules</strong> — <code>.asya/config.compiler.rules.yaml</code> (created by <code>asya init</code>)</li>
+</ol>
+<p>User rules <strong>extend</strong> (not replace) defaults. When both define a rule for the
+same <code>match</code> key, the user rule takes precedence (overwrites the default).</p>
+<p>Loading order in <code>RuleEngine.with_defaults()</code>:</p>
+<div class="highlight"><pre><span></span><code>defaults = load(&quot;defaults/compiler.rules.yaml&quot;)
+rules = defaults + user_rules
+engine = RuleEngine(rules)  # dict keyed by match → last write wins
+</code></pre></div>
+<hr />
+<h2 id="shipped-default-rules">Shipped default rules<a class="headerlink" href="#shipped-default-rules" title="Permanent link">#</a></h2>
+<p>Four rules ship with asya-lab:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Rule</th>
+<th>Symbol</th>
+<th>Extracts to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>asyncio.timeout</td>
+<td><code>asyncio.timeout</code></td>
+<td><code>spec.resiliency.timeout.actor</code></td>
+</tr>
+<tr>
+<td>tenacity.retry</td>
+<td><code>tenacity.retry</code></td>
+<td><code>maxAttempts</code>, <code>maxDuration</code>, <code>initialDelay</code>, <code>maxInterval</code></td>
+</tr>
+<tr>
+<td>timeout_decorator</td>
+<td><code>timeout_decorator.timeout</code></td>
+<td><code>spec.resiliency.timeout.actor</code></td>
+</tr>
+<tr>
+<td>stamina.retry</td>
+<td><code>stamina.retry</code></td>
+<td><code>maxAttempts</code>, <code>maxDuration</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>See the full YAML in
+<code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code>.</p>
+<hr />
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<ul>
+<li><a href="../../../usage/guide-compiler-rules/">Compiler Rules Guide</a> — practical guide
+  with step-by-step examples</li>
+<li><a href="../flow-dsl/">Flow DSL Reference</a> — flow syntax, symbol classification,
+  value extractor details</li>
+<li><a href="../../components/lab-flow-compiler/">Flow Compiler Architecture</a> — compiler
+  internals, pipeline stages</li>
+<li><a href="../asyncactor-crd/">AsyncActor CRD Reference</a> — manifest field paths
+  used in <code>assign-to</code></li>
+</ul>
   </div>
 </article>
 
@@ -2612,32 +3102,6 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 </script>
                                 <div class="mx-auto flex flex-wrap h-16 w-full max-w-2xl items-center gap-2 px-4 md:px-0">
     
-    <a data-slot="button"
-        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 shadow-none"
-        href="/docs/reference/components/lab-cli/">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            class="tabler-icon tabler-icon-arrow-left ">
-            <path d="M5 12l14 0"></path>
-            <path d="M5 12l6 6"></path>
-            <path d="M5 12l6 -6"></path>
-        </svg>
-        <span class="max-[500px]:hidden">CLI</span>
-    </a>
-    
-    
-    <a data-slot="button"
-        class="inline-flex items-center justify-center whitespace-nowrap text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&amp;_svg]:pointer-events-none [&amp;_svg:not([class*='size-'])]:size-4 shrink-0 [&amp;_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive bg-secondary text-secondary-foreground hover:bg-secondary/80 h-8 rounded-md gap-1.5 px-3 has-[&gt;svg]:px-2.5 ml-auto shadow-none"
-        href="/docs/reference/specs/envelope/">
-        <span class="max-[500px]:hidden">Envelope</span>
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-            class="tabler-icon tabler-icon-arrow-right ">
-            <path d="M5 12l14 0"></path>
-            <path d="M13 18l6 -6"></path>
-            <path d="M13 6l6 6"></path>
-        </svg>
-    </a>
     
 </div>
                                 
@@ -2672,14 +3136,14 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../motivation/"
+<a class="text-lg font-medium" href="../../../motivation/"
     style="padding-left: 16px">
     Motivation
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../architecture/"
+<a class="text-lg font-medium" href="../../../architecture/"
     style="padding-left: 16px">
     Architecture
 </a>
@@ -2707,105 +3171,105 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../concepts/actor-mesh/"
+<a class="text-lg font-medium" href="../../../concepts/actor-mesh/"
     style="padding-left: 16px">
     Actor Mesh
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/message-knows-the-way/"
+<a class="text-lg font-medium" href="../../../concepts/message-knows-the-way/"
     style="padding-left: 16px">
     Message Knows the Way
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/virtual-actors/"
+<a class="text-lg font-medium" href="../../../concepts/virtual-actors/"
     style="padding-left: 16px">
     Virtual Actors
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/separation-of-concerns/"
+<a class="text-lg font-medium" href="../../../concepts/separation-of-concerns/"
     style="padding-left: 16px">
     Separation of Concerns
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/dynamic-routing/"
+<a class="text-lg font-medium" href="../../../concepts/dynamic-routing/"
     style="padding-left: 16px">
     Dynamic Routing
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/flow-compiler/"
+<a class="text-lg font-medium" href="../../../concepts/flow-compiler/"
     style="padding-left: 16px">
     Flow Compiler
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/scale-to-zero/"
+<a class="text-lg font-medium" href="../../../concepts/scale-to-zero/"
     style="padding-left: 16px">
     Scale Zero to Infinity
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/pluggable-transport/"
+<a class="text-lg font-medium" href="../../../concepts/pluggable-transport/"
     style="padding-left: 16px">
     Pluggable Transports
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/pluggable-storage/"
+<a class="text-lg font-medium" href="../../../concepts/pluggable-storage/"
     style="padding-left: 16px">
     Pluggable Storage
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/kubernetes-native/"
+<a class="text-lg font-medium" href="../../../concepts/kubernetes-native/"
     style="padding-left: 16px">
     Kubernetes Native
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/built-in-resiliency/"
+<a class="text-lg font-medium" href="../../../concepts/built-in-resiliency/"
     style="padding-left: 16px">
     Built-in Resiliency
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/http-gateway/"
+<a class="text-lg font-medium" href="../../../concepts/http-gateway/"
     style="padding-left: 16px">
     HTTP Gateway
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/agentic-native/"
+<a class="text-lg font-medium" href="../../../concepts/agentic-native/"
     style="padding-left: 16px">
     Agentic Native
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/observability/"
+<a class="text-lg font-medium" href="../../../concepts/observability/"
     style="padding-left: 16px">
     Built-in Observability
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../concepts/developer-experience/"
+<a class="text-lg font-medium" href="../../../concepts/developer-experience/"
     style="padding-left: 16px">
     Developer Experience
 </a>
@@ -2847,21 +3311,21 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../setup/start-quickstart/"
+<a class="text-lg font-medium" href="../../../setup/start-quickstart/"
     style="padding-left: 32px">
     Quickstart (Kind)
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/start-aws-eks/"
+<a class="text-lg font-medium" href="../../../setup/start-aws-eks/"
     style="padding-left: 32px">
     AWS EKS
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/start-gcp-gke/"
+<a class="text-lg font-medium" href="../../../setup/start-gcp-gke/"
     style="padding-left: 32px">
     GCP GKE
 </a>
@@ -2887,49 +3351,49 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-helm-charts/"
+<a class="text-lg font-medium" href="../../../setup/guide-helm-charts/"
     style="padding-left: 32px">
     Helm Charts
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-autoscaling/"
+<a class="text-lg font-medium" href="../../../setup/guide-autoscaling/"
     style="padding-left: 32px">
     Autoscaling
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-actor-flavors/"
+<a class="text-lg font-medium" href="../../../setup/guide-actor-flavors/"
     style="padding-left: 32px">
     Actor Flavors
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-state-proxy/"
+<a class="text-lg font-medium" href="../../../setup/guide-state-proxy/"
     style="padding-left: 32px">
     State Proxy
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-pause-resume/"
+<a class="text-lg font-medium" href="../../../setup/guide-pause-resume/"
     style="padding-left: 32px">
     Pause/Resume
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-timeouts/"
+<a class="text-lg font-medium" href="../../../setup/guide-timeouts/"
     style="padding-left: 32px">
     Timeouts
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/guide-gateway/"
+<a class="text-lg font-medium" href="../../../setup/guide-gateway/"
     style="padding-left: 32px">
     Gateway
 </a>
@@ -2957,21 +3421,21 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../setup/ops-observability/"
+<a class="text-lg font-medium" href="../../../setup/ops-observability/"
     style="padding-left: 32px">
     Observability
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/ops-troubleshooting/"
+<a class="text-lg font-medium" href="../../../setup/ops-troubleshooting/"
     style="padding-left: 32px">
     Troubleshooting
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../setup/ops-upgrades/"
+<a class="text-lg font-medium" href="../../../setup/ops-upgrades/"
     style="padding-left: 32px">
     Upgrades
 </a>
@@ -3018,21 +3482,21 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../usage/start-first-actor/"
+<a class="text-lg font-medium" href="../../../usage/start-first-actor/"
     style="padding-left: 32px">
     First Actor
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/start-first-actor-mesh/"
+<a class="text-lg font-medium" href="../../../usage/start-first-actor-mesh/"
     style="padding-left: 32px">
     First Actor Mesh
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/start-first-flow/"
+<a class="text-lg font-medium" href="../../../usage/start-first-flow/"
     style="padding-left: 32px">
     First Flow
 </a>
@@ -3058,56 +3522,56 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-actor-xrd/"
+<a class="text-lg font-medium" href="../../../usage/guide-actor-xrd/"
     style="padding-left: 32px">
     AsyncActor Spec
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-handler-patterns/"
+<a class="text-lg font-medium" href="../../../usage/guide-handler-patterns/"
     style="padding-left: 32px">
     Handler Patterns
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-agentic-patterns/"
+<a class="text-lg font-medium" href="../../../usage/guide-agentic-patterns/"
     style="padding-left: 32px">
     Agentic Patterns
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-streaming/"
+<a class="text-lg font-medium" href="../../../usage/guide-streaming/"
     style="padding-left: 32px">
     Streaming
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-actor-flavors/"
+<a class="text-lg font-medium" href="../../../usage/guide-actor-flavors/"
     style="padding-left: 32px">
     Actor Flavors
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-state-proxy/"
+<a class="text-lg font-medium" href="../../../usage/guide-state-proxy/"
     style="padding-left: 32px">
     State Proxy
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-pause-resume/"
+<a class="text-lg font-medium" href="../../../usage/guide-pause-resume/"
     style="padding-left: 32px">
     Pause/Resume
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../usage/guide-timeouts/"
+<a class="text-lg font-medium" href="../../../usage/guide-timeouts/"
     style="padding-left: 32px">
     Timeouts
 </a>
@@ -3133,7 +3597,7 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../usage/ops-debugging/"
+<a class="text-lg font-medium" href="../../../usage/ops-debugging/"
     style="padding-left: 32px">
     Debugging
 </a>
@@ -3166,7 +3630,7 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../env-vars/"
+<a class="text-lg font-medium" href="../../env-vars/"
     style="padding-left: 16px">
     Environment Variables
 </a>
@@ -3189,63 +3653,63 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../components/core-actor/"
+<a class="text-lg font-medium" href="../../components/core-actor/"
     style="padding-left: 32px">
     Actor
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-sidecar/"
+<a class="text-lg font-medium" href="../../components/core-sidecar/"
     style="padding-left: 32px">
     Sidecar
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-runtime/"
+<a class="text-lg font-medium" href="../../components/core-runtime/"
     style="padding-left: 32px">
     Runtime
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-gateway/"
+<a class="text-lg font-medium" href="../../components/core-gateway/"
     style="padding-left: 32px">
     Gateway
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-crew/"
+<a class="text-lg font-medium" href="../../components/core-crew/"
     style="padding-left: 32px">
     Crew
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-crossplane/"
+<a class="text-lg font-medium" href="../../components/core-crossplane/"
     style="padding-left: 32px">
     Crossplane
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/core-state-proxy/"
+<a class="text-lg font-medium" href="../../components/core-state-proxy/"
     style="padding-left: 32px">
     State Proxy
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/lab-flow-compiler/"
+<a class="text-lg font-medium" href="../../components/lab-flow-compiler/"
     style="padding-left: 32px">
     Flow Compiler
 </a>
 
 
 
-<a class="text-lg font-medium" href="../components/lab-cli/"
+<a class="text-lg font-medium" href="../../components/lab-cli/"
     style="padding-left: 32px">
     CLI
 </a>
@@ -3273,49 +3737,49 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="envelope/"
+<a class="text-lg font-medium" href="../envelope/"
     style="padding-left: 32px">
     Envelope
 </a>
 
 
 
-<a class="text-lg font-medium" href="asyncactor-crd/"
+<a class="text-lg font-medium" href="../asyncactor-crd/"
     style="padding-left: 32px">
     AsyncActor CRD
 </a>
 
 
 
-<a class="text-lg font-medium" href="abi-protocol/"
+<a class="text-lg font-medium" href="../abi-protocol/"
     style="padding-left: 32px">
     ABI Protocol
 </a>
 
 
 
-<a class="text-lg font-medium" href="sidecar-runtime/"
+<a class="text-lg font-medium" href="../sidecar-runtime/"
     style="padding-left: 32px">
     Sidecar-Runtime
 </a>
 
 
 
-<a class="text-lg font-medium" href="gateway-api/"
+<a class="text-lg font-medium" href="../gateway-api/"
     style="padding-left: 32px">
     Gateway API
 </a>
 
 
 
-<a class="text-lg font-medium" href="flow-dsl/"
+<a class="text-lg font-medium" href="../flow-dsl/"
     style="padding-left: 32px">
     Flow DSL
 </a>
 
 
 
-<a class="text-lg font-medium" href="error-handling/"
+<a class="text-lg font-medium" href="../error-handling/"
     style="padding-left: 32px">
     Error Handling
 </a>
@@ -3343,28 +3807,28 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../transports/sqs/"
+<a class="text-lg font-medium" href="../../transports/sqs/"
     style="padding-left: 32px">
     SQS
 </a>
 
 
 
-<a class="text-lg font-medium" href="../transports/rabbitmq/"
+<a class="text-lg font-medium" href="../../transports/rabbitmq/"
     style="padding-left: 32px">
     RabbitMQ
 </a>
 
 
 
-<a class="text-lg font-medium" href="../transports/pubsub/"
+<a class="text-lg font-medium" href="../../transports/pubsub/"
     style="padding-left: 32px">
     Pub/Sub
 </a>
 
 
 
-<a class="text-lg font-medium" href="../transports/socket/"
+<a class="text-lg font-medium" href="../../transports/socket/"
     style="padding-left: 32px">
     Socket
 </a>
@@ -3392,28 +3856,28 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../state-proxy-connectors/s3/"
+<a class="text-lg font-medium" href="../../state-proxy-connectors/s3/"
     style="padding-left: 32px">
     S3
 </a>
 
 
 
-<a class="text-lg font-medium" href="../state-proxy-connectors/gcs/"
+<a class="text-lg font-medium" href="../../state-proxy-connectors/gcs/"
     style="padding-left: 32px">
     GCS
 </a>
 
 
 
-<a class="text-lg font-medium" href="../state-proxy-connectors/redis/"
+<a class="text-lg font-medium" href="../../state-proxy-connectors/redis/"
     style="padding-left: 32px">
     Redis
 </a>
 
 
 
-<a class="text-lg font-medium" href="../state-proxy-connectors/nats-kv/"
+<a class="text-lg font-medium" href="../../state-proxy-connectors/nats-kv/"
     style="padding-left: 32px">
     NATS KV
 </a>
@@ -3460,49 +3924,49 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-workflow-orchestrator/"
+<a class="text-lg font-medium" href="../../../comparisons/as-workflow-orchestrator/"
     style="padding-left: 32px">
     Workflow Orchestrators
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-actor-framework/"
+<a class="text-lg font-medium" href="../../../comparisons/as-actor-framework/"
     style="padding-left: 32px">
     Actor Frameworks
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-agentic-framework/"
+<a class="text-lg font-medium" href="../../../comparisons/as-agentic-framework/"
     style="padding-left: 32px">
     Agentic Frameworks
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-ml-pipeline-tool/"
+<a class="text-lg font-medium" href="../../../comparisons/as-ml-pipeline-tool/"
     style="padding-left: 32px">
     ML Pipeline Tools
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-stream-processing/"
+<a class="text-lg font-medium" href="../../../comparisons/as-stream-processing/"
     style="padding-left: 32px">
     Stream Processing
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-ai-serving/"
+<a class="text-lg font-medium" href="../../../comparisons/as-ai-serving/"
     style="padding-left: 32px">
     AI/ML Serving
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/as-k8s-scheduler/"
+<a class="text-lg font-medium" href="../../../comparisons/as-k8s-scheduler/"
     style="padding-left: 32px">
     K8s Job Schedulers
 </a>
@@ -3528,49 +3992,49 @@ document.querySelectorAll('.typography img').forEach(function(img) {
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-temporal/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-temporal/"
     style="padding-left: 32px">
     vs Temporal
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-dapr/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-dapr/"
     style="padding-left: 32px">
     vs Dapr
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-langgraph/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-langgraph/"
     style="padding-left: 32px">
     vs LangGraph
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-google-adk/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-google-adk/"
     style="padding-left: 32px">
     vs Google ADK
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-kagent/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-kagent/"
     style="padding-left: 32px">
     vs KAgent
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-ray-serve/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-ray-serve/"
     style="padding-left: 32px">
     vs Ray Serve
 </a>
 
 
 
-<a class="text-lg font-medium" href="../../comparisons/vs-kubeflow-pipelines/"
+<a class="text-lg font-medium" href="../../../comparisons/vs-kubeflow-pipelines/"
     style="padding-left: 32px">
     vs Kubeflow Pipelines
 </a>
@@ -3601,6 +4065,192 @@ document.querySelectorAll('.typography img').forEach(function(img) {
     <div class="flex flex-col gap-2 p-4 pt-0 text-sm">
         <p class="text-muted-foreground bg-background sticky top-0 h-6 text-xs">On This Page</p>
         
+        
+        
+        
+        <a href="#overview"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Overview
+        </a>
+        
+
+        
+        <a href="#design-principles"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Design principles
+        </a>
+        
+        
+        <a href="#explicit-over-implicit"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Explicit over implicit
+        </a>
+        
+        <a href="#user-accessible-configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            User-accessible configuration
+        </a>
+        
+        <a href="#pure-syntactic-mapping"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Pure syntactic mapping
+        </a>
+        
+        <a href="#scope-auto-detection"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Scope auto-detection
+        </a>
+        
+        
+
+        
+        <a href="#rule-schema"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Rule schema
+        </a>
+        
+        
+        <a href="#fields"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Fields
+        </a>
+        
+        
+
+        
+        <a href="#treatas-values"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            TreatAs values
+        </a>
+        
+        
+        <a href="#classification-priority"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Classification priority
+        </a>
+        
+        
+
+        
+        <a href="#wherenode-specification"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            WhereNode specification
+        </a>
+        
+        
+        <a href="#node-types"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Node types
+        </a>
+        
+        
+
+        
+        <a href="#paramspec"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            ParamSpec
+        </a>
+        
+
+        
+        <a href="#binop-flattening"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            BinOp flattening
+        </a>
+        
+
+        
+        <a href="#value-extraction"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Value extraction
+        </a>
+        
+
+        
+        <a href="#argument-binding"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Argument binding
+        </a>
+        
+
+        
+        <a href="#where-rules-apply-flows-vs-actor-definitions"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Where rules apply: flows vs actor definitions
+        </a>
+        
+        
+        <a href="#context-managers-in-flow-bodies"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Context managers in flow bodies
+        </a>
+        
+        <a href="#decorators-on-actor-definitions"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Decorators on actor definitions
+        </a>
+        
+        <a href="#both-mechanisms-in-one-flow"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Both mechanisms in one flow
+        </a>
+        
+        <a href="#inline-comment-overrides"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Inline comment overrides
+        </a>
+        
+        
+
+        
+        <a href="#rule-loading-and-precedence"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Rule loading and precedence
+        </a>
+        
+
+        
+        <a href="#shipped-default-rules"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Shipped default rules
+        </a>
+        
+
+        
+        <a href="#see-also"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            See also
+        </a>
+        
+
+        
+        
+        
+        
 
     </div>
     <div class="h-12"></div>
@@ -3615,12 +4265,12 @@ document.querySelectorAll('.typography img').forEach(function(img) {
     </div>
      
 
-<script src="../../search/main.js"></script>
+<script src="../../../search/main.js"></script>
 
 
     
 
-    <script src="../../js/copy-button.js"></script>
+    <script src="../../../js/copy-button.js"></script>
     <script>updatePygmentsStylesheet();</script>
     
     <script>fetchStargazers("https://github.com/deliveryhero/asya");</script>
