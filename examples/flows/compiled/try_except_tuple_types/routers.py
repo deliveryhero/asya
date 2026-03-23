@@ -21,34 +21,18 @@ async def start_ingestion_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_ingestion_pipeline_line_17_seq_1(payload: dict):
-    """Router for control flow and payload mutations"""
+async def router_ingestion_pipeline_line_16_except_1(payload: dict):
+    """Router for error handling (except clause)"""
     p = payload
-    _next = []
     p['retry_reason'] = 'transient'
-    _next.append(resolve("queue_for_retry"))
-
-    yield "SET", ".route.next[:0]", _next
+    yield "SET", ".route.next", [resolve('queue_for_retry')]
     yield payload
 
-async def router_ingestion_pipeline_line_16_except_2(payload: dict):
+async def router_ingestion_pipeline_line_19_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_ingestion_pipeline_line_17_seq_1')]
-    yield payload
-
-async def router_ingestion_pipeline_line_20_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
     p = payload
-    _next = []
     p['status'] = 'bad_input'
-    _next.append(resolve("reject_input"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_ingestion_pipeline_line_19_except_4(payload: dict):
-    """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_ingestion_pipeline_line_20_seq_3')]
+    yield "SET", ".route.next", [resolve('reject_input')]
     yield payload
 
 

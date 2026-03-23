@@ -3,7 +3,6 @@ kind: Kustomization
 resources:
 - asya-actor-notify-rejection.yaml
 - asya-actor-validate-order.yaml
-- asya-router-order-processing-line-8-except-2.yaml
-- asya-router-order-processing-line-9-seq-1.yaml
+- asya-router-order-processing-line-8-except-1.yaml
 - asya-start-order-processing.yaml
 - configmap-routers.yaml

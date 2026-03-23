@@ -12,5 +12,5 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []

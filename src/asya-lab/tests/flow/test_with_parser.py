@@ -3,6 +3,7 @@
 import textwrap
 
 import pytest
+from asya_lab.compiler.rules import WhereNode
 from asya_lab.flow.errors import FlowCompileError
 from asya_lab.flow.parser import ActorCall, FlowParser, Mutation, Return
 from asya_lab.flow.rules import CompilerRule, CompilerRules
@@ -13,7 +14,7 @@ def _make_rules(**overrides: CompilerRule) -> CompilerRules:
     base = {
         "asyncio.timeout": CompilerRule(
             treat_as="config",
-            extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+            where=[WhereNode(param="delay", assign_to="spec.resiliency.timeout.actor")],
         ),
     }
     base.update(overrides)
@@ -140,7 +141,7 @@ class TestConfigRuleWith:
         assert len(parser.extracted_configs) == 1
         config = parser.extracted_configs[0]
         assert config["symbol"] == "asyncio.timeout"
-        assert config["spec_values"]["spec.resiliency.timeout.actor"] == "30"
+        assert config["spec_values"]["spec.resiliency.timeout.actor"] == 30
 
 
 class TestPerScopeSemantics:
@@ -217,10 +218,10 @@ class TestPerScopeSemantics:
         outer = parser.extracted_configs[1]
         assert inner["scope_type"] == "context_manager"
         assert inner["scope_actors"] == ["inner_handler"]
-        assert inner["spec_values"]["spec.resiliency.timeout.actor"] == "10"
+        assert inner["spec_values"]["spec.resiliency.timeout.actor"] == 10
         assert outer["scope_type"] == "context_manager"
         assert outer["scope_actors"] == ["outer_handler", "inner_handler"]
-        assert outer["spec_values"]["spec.resiliency.timeout.actor"] == "60"
+        assert outer["spec_values"]["spec.resiliency.timeout.actor"] == 60
 
     def test_multiple_with_items_share_scope(self):
         """Multiple context managers in one `with` share the same scope_actors."""
@@ -228,9 +229,9 @@ class TestPerScopeSemantics:
             {
                 "asyncio.timeout": CompilerRule(
                     treat_as="config",
-                    extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+                    where=[WhereNode(param="delay", assign_to="spec.resiliency.timeout.actor")],
                 ),
-                "another_config": CompilerRule(treat_as="config", extract={}),
+                "another_config": CompilerRule(treat_as="config", where=None),
             }
         )
         source = textwrap.dedent("""
@@ -270,7 +271,7 @@ class TestPerScopeSemantics:
         rules = _make_rules(
             my_timeout=CompilerRule(
                 treat_as="config",
-                extract={"seconds": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+                where=[WhereNode(param="seconds", assign_to="spec.resiliency.timeout.actor")],
             )
         )
         source = textwrap.dedent("""
@@ -326,7 +327,7 @@ class TestNestedWith:
     def test_nested_config_managers_both_stripped(self):
         """Outer config + inner config → all stripped, body ops returned."""
         rules = _make_rules(
-            outer_timeout=CompilerRule(treat_as="config", extract={}),
+            outer_timeout=CompilerRule(treat_as="config", where=None),
         )
         source = textwrap.dedent("""
             @flow
@@ -373,7 +374,9 @@ class TestNestedWith:
         """)
         rules2 = CompilerRules(
             {
-                "asyncio.timeout": CompilerRule(treat_as="config", extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"}),
+                "asyncio.timeout": CompilerRule(
+                    treat_as="config", where=[WhereNode(param="delay", assign_to="spec.resiliency.timeout.actor")]
+                ),
                 "custom_ctx": CompilerRule(treat_as="inline"),
             }
         )
@@ -391,9 +394,9 @@ class TestMultipleWithItems:
             {
                 "asyncio.timeout": CompilerRule(
                     treat_as="config",
-                    extract={"delay": "ASYA_RESILIENCY_ACTOR_TIMEOUT"},
+                    where=[WhereNode(param="delay", assign_to="spec.resiliency.timeout.actor")],
                 ),
-                "another_config": CompilerRule(treat_as="config", extract={}),
+                "another_config": CompilerRule(treat_as="config", where=None),
             }
         )
         source = textwrap.dedent("""
@@ -437,7 +440,7 @@ class TestMultipleWithItems:
         """)
         rules = CompilerRules(
             {
-                "asyncio.timeout": CompilerRule(treat_as="config", extract={}),
+                "asyncio.timeout": CompilerRule(treat_as="config", where=None),
                 "custom_ctx": CompilerRule(treat_as="inline"),
             }
         )

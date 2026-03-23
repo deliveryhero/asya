@@ -21,49 +21,25 @@ async def start_data_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_10_seq_1(payload: dict):
-    """Router for control flow and payload mutations"""
+async def router_data_pipeline_line_9_except_1(payload: dict):
+    """Router for error handling (except clause)"""
     p = payload
-    _next = []
     p['error_type'] = 'validation'
-    _next.append(resolve("handle_validation_error"))
-
-    yield "SET", ".route.next[:0]", _next
+    yield "SET", ".route.next", [resolve('handle_validation_error')]
     yield payload
 
-async def router_data_pipeline_line_9_except_2(payload: dict):
+async def router_data_pipeline_line_12_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_10_seq_1')]
-    yield payload
-
-async def router_data_pipeline_line_13_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
     p = payload
-    _next = []
     p['error_type'] = 'type_mismatch'
-    _next.append(resolve("handle_type_error"))
-
-    yield "SET", ".route.next[:0]", _next
+    yield "SET", ".route.next", [resolve('handle_type_error')]
     yield payload
 
-async def router_data_pipeline_line_12_except_4(payload: dict):
+async def router_data_pipeline_line_15_except_3(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_13_seq_3')]
-    yield payload
-
-async def router_data_pipeline_line_16_seq_5(payload: dict):
-    """Router for control flow and payload mutations"""
     p = payload
-    _next = []
     p['error_type'] = 'runtime'
-    _next.append(resolve("handle_runtime_error"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_data_pipeline_line_15_except_6(payload: dict):
-    """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_data_pipeline_line_16_seq_5')]
+    yield "SET", ".route.next", [resolve('handle_runtime_error')]
     yield payload
 
 

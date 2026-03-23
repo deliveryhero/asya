@@ -55,13 +55,12 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     [[ "$flow_name" == _asya_utils ]] && continue
 
     # Flows requiring unsupported syntax (inline with)
-    [[ "$flow_name" == with_inline_ctx ]] && continue
     [[ "$flow_name" == adk_llm_auditor ]] && continue
     [[ "$flow_name" == guardrails_sandwich ]] && continue
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
-  uv run --with-editable src/asya-lab --with pydantic asya compile "$flow_file" -o "$output_dir" --plot &
+  uv run --with-editable src/asya-lab --with-requirements examples/flows/requirements.txt asya compile "$flow_file" -o "$output_dir" --plot &
 
   # Store the process ID of the background task
   pids+=("$!")

@@ -1,0 +1,22 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-call-fallback
+  namespace: default
+  labels:
+    asya.sh/flow: failover-pipeline
+spec:
+  actor: actor-call-fallback
+  image: examples.asya.sh/call-fallback:latest
+  handler: call_fallback
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: tenacity.retry
+  resiliency:
+    policies:
+      default:
+        maxAttempts: 2

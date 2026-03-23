@@ -12,18 +12,18 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []
   resiliency:
     policies:
       try_except_line_14_0:
         maxAttempts: 1
         thenRoute:
-        - router-llm-pipeline-line-16-except-2
+        - router-llm-pipeline-line-16-except-1
       try_except_line_14_1:
         maxAttempts: 1
         thenRoute:
-        - router-llm-pipeline-line-19-except-4
+        - router-llm-pipeline-line-19-except-2
     rules:
     - errors:
       - openai.RateLimitError

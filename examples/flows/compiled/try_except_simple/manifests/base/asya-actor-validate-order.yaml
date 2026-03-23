@@ -12,14 +12,14 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []
   resiliency:
     policies:
       try_except_line_6_0:
         maxAttempts: 1
         thenRoute:
-        - router-order-processing-line-8-except-2
+        - router-order-processing-line-8-except-1
     rules:
     - errors:
       - ValueError

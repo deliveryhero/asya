@@ -1,0 +1,98 @@
+{
+  "flow_name": "failover_pipeline",
+  "nodes": [
+    {
+      "id": "call_fallback",
+      "label": "call_fallback"
+    },
+    {
+      "id": "call_primary",
+      "label": "call_primary"
+    },
+    {
+      "id": "finalize",
+      "label": "finalize",
+      "role": "end"
+    },
+    {
+      "id": "handle_validation_error",
+      "label": "handle_validation_error"
+    },
+    {
+      "id": "router_failover_pipeline_line_29_except_1",
+      "label": "router_failover_pipeline_line_29_except_1",
+      "generated": true,
+      "mutations": [
+        "p['fallback'] = True"
+      ]
+    },
+    {
+      "id": "router_failover_pipeline_line_32_except_2",
+      "label": "router_failover_pipeline_line_32_except_2",
+      "generated": true,
+      "mutations": [
+        "p['error_type'] = 'validation'"
+      ]
+    },
+    {
+      "id": "start_failover_pipeline",
+      "label": "start_failover_pipeline",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'started'"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_failover_pipeline",
+      "to": "call_primary",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "call_primary",
+      "to": "finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_failover_pipeline_line_29_except_1",
+      "to": "call_fallback",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "call_fallback",
+      "to": "finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "router_failover_pipeline_line_32_except_2",
+      "to": "handle_validation_error",
+      "label": null,
+      "type": "set"
+    },
+    {
+      "from": "handle_validation_error",
+      "to": "finalize",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "call_primary",
+      "to": "router_failover_pipeline_line_29_except_1",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "call_primary",
+      "to": "router_failover_pipeline_line_32_except_2",
+      "label": "ValueError",
+      "type": "error"
+    }
+  ],
+  "groups": []
+}

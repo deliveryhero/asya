@@ -26,10 +26,6 @@ spec:
     value: handle_parse_error
   - name: ASYA_HANDLER_ACTOR_PARSE_DATA
     value: parse_data
-  - name: ASYA_HANDLER_ROUTER_NESTED_ERROR_HANDLING_LINE_30_SEQ_3
-    value: routers.router_nested_error_handling_line_30_seq_3
-  - name: ASYA_HANDLER_ROUTER_NESTED_ERROR_HANDLING_LINE_34_SEQ_1
-    value: routers.router_nested_error_handling_line_34_seq_1
   - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
     value: store_results
   - name: ASYA_HANDLER_ACTOR_TRANSFORM_DATA

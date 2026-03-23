@@ -1,0 +1,19 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-handle-bad-data
+  namespace: default
+  labels:
+    asya.sh/flow: data-pipeline
+spec:
+  actor: actor-handle-bad-data
+  image: examples.asya.sh/handle-bad-data:latest
+  handler: handle_bad_data
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []
+  resiliency:
+    timeout:
+      actor: 60

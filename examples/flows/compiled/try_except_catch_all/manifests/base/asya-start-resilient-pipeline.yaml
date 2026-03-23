@@ -22,7 +22,3 @@ spec:
     value: handle_unknown_error
   - name: ASYA_HANDLER_ACTOR_RISKY_OPERATION
     value: risky_operation
-  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_12_SEQ_3
-    value: routers.router_resilient_pipeline_line_12_seq_3
-  - name: ASYA_HANDLER_ROUTER_RESILIENT_PIPELINE_LINE_9_SEQ_1
-    value: routers.router_resilient_pipeline_line_9_seq_1

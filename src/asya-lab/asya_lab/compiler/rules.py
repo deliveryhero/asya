@@ -12,6 +12,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
+
+import yaml
 
 
 class TreatAs(Enum):
@@ -57,6 +60,7 @@ class WhereNode:
     match: str | None = None
     assign_to: str | None = None
     example: str | None = None
+    flatten_on: str | None = None
     where: list[WhereNode] | None = None
 
     @classmethod
@@ -75,6 +79,7 @@ class WhereNode:
             match=d.get("match"),
             assign_to=d.get("assign-to"),
             example=d.get("example"),
+            flatten_on=d.get("flatten-on"),
             where=children,
         )
 
@@ -96,6 +101,14 @@ class CompilerRule:
         else:
             treat_as = TreatAs(d["treat-as"])
         return cls(match=d["match"], treat_as=treat_as, where=where)
+
+
+def _load_default_rules() -> list[dict]:
+    """Load default rules from the shipped YAML file."""
+    defaults_path = Path(__file__).parent.parent / "defaults" / "compiler.rules.yaml"
+    if defaults_path.exists():
+        return yaml.safe_load(defaults_path.read_text()) or []
+    return []
 
 
 class RuleEngine:
@@ -125,13 +138,18 @@ class RuleEngine:
 
     @classmethod
     def with_defaults(cls, *, extra_rules: list[CompilerRule] | None = None) -> RuleEngine:
-        """Create an engine with optional rules (no built-in defaults)."""
-        rules = list(extra_rules or [])
+        """Create an engine with shipped defaults + optional user rules.
+
+        User rules take precedence (overwrite defaults for the same match key).
+        Defaults are loaded from ``asya_lab/defaults/compiler.rules.yaml``.
+        """
+        defaults = [CompilerRule.from_dict(d) for d in _load_default_rules() if "where" in d]
+        rules = defaults + list(extra_rules or [])
         return cls(rules)
 
     @classmethod
     def from_config(cls, rules_cfg: list[dict] | None) -> RuleEngine:
-        """Load rules from config dicts."""
+        """Load rules from config dicts + shipped defaults."""
         extra: list[CompilerRule] = []
         if rules_cfg:
             extra = [CompilerRule.from_dict(d) for d in rules_cfg]

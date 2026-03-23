@@ -9,9 +9,7 @@ resources:
 - asya-actor-store-results.yaml
 - asya-actor-transform-data.yaml
 - asya-actor-validate-data.yaml
-- asya-router-nested-error-handling-line-29-except-4.yaml
-- asya-router-nested-error-handling-line-30-seq-3.yaml
-- asya-router-nested-error-handling-line-33-except-2.yaml
-- asya-router-nested-error-handling-line-34-seq-1.yaml
+- asya-router-nested-error-handling-line-29-except-2.yaml
+- asya-router-nested-error-handling-line-33-except-1.yaml
 - asya-start-nested-error-handling.yaml
 - configmap-routers.yaml
