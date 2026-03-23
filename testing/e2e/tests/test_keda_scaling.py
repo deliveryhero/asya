@@ -116,6 +116,7 @@ spec:
                 "Pub/Sub should use external scaler (not gcp-pubsub)"
             assert "scalerAddress" in trigger["metadata"]
             assert "subscriptionName" in trigger["metadata"]
+            assert trigger["metadata"]["targetValue"] == "5"
 
         logger.info("[+] ScaledObject created with correct configuration")
 

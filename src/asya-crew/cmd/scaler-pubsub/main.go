@@ -57,6 +57,7 @@ func main() {
 		slog.Error("Failed to create Pub/Sub client", "error", err)
 		os.Exit(1)
 	}
+	defer client.Close()
 
 	scaler := NewPubSubScaler(&subscriberAdapter{client: client})
 
