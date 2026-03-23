@@ -121,6 +121,10 @@ sidecar at three checkpoints as each actor processes an envelope.
 
 ### How they flow
 
+Unlike FLY events (which use PG LISTEN/NOTIFY for instant cross-process delivery),
+progress events use a traditional write-then-poll pattern. This is acceptable because
+progress events are low-frequency (~3 per actor) and must be durable.
+
 ```
 Sidecar
     POST /mesh/{task_id}/progress
@@ -128,11 +132,11 @@ Sidecar
          |
     Mesh Gateway (HandleMeshProgress)
          | writes to PostgreSQL (tasks + task_updates tables)
-         | notifyListeners() for live SSE subscribers
+         | notifyListeners() for same-process SSE subscribers
          v
-    API Gateway
-         | detects via 500ms DB poll (cross-process)
-         | or in-process subscription (same-pod)
+    API Gateway (separate process in dual-gateway mode)
+         | detects new status via 500ms DB poll
+         | (in single-gateway/testing mode: instant via in-process subscription)
          v
     SSE clients / A2A event queue
 ```
@@ -173,6 +177,10 @@ Terminal events report the final outcome of a task. They are sent by crew actors
 
 ### How they flow
 
+Terminal events follow the same write-then-poll pattern as progress events (not
+the instant PG NOTIFY path used by FLY). Terminal events are rare (once per task)
+so the 500ms poll latency is negligible.
+
 ```
 x-sink / x-sump
     POST /mesh/{task_id}/final
@@ -180,10 +188,11 @@ x-sink / x-sump
          |
     Mesh Gateway (HandleMeshFinal)
          | writes to PostgreSQL
-         | notifyListeners() for in-process subscribers
+         | notifyListeners() for same-process subscribers
          v
-    API Gateway
-         | detects via DB poll or subscription channel
+    API Gateway (separate process in dual-gateway mode)
+         | detects terminal status via 500ms DB poll
+         | (in single-gateway/testing mode: instant via in-process subscription)
          | writes TaskStatusUpdateEvent{Final: true} to A2A event queue
          v
     A2A SSE / MCP response
@@ -287,12 +296,12 @@ ephemeral and are never replayed.
 +-----------------------------------------------------------+
 |  Protocol Layer (metadata)                                |
 |  Sidecar /progress -> mesh gw -> PostgreSQL               |
-|  -> API gw DB poll -> A2A TaskStatusUpdateEvent           |
+|  -> API gw 500ms DB poll -> A2A TaskStatusUpdateEvent     |
 |  PG stores: status, route, progress %. ~3 events/actor.   |
 +-----------------------------------------------------------+
 |  Artifact Layer (durable)                                 |
 |  Actors write to state-proxy sidecar -> S3/GCS            |
-|  Gateway reads on tasks/get -> hydrates A2A response      |
+|  Actors return URLs or structured results in payload      |
 |  Full payload. On completion only.                        |
 +-----------------------------------------------------------+
 ```
