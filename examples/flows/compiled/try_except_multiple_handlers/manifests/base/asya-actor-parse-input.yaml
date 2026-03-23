@@ -19,15 +19,15 @@ spec:
       try_except_line_6_0:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-9-except-2
+        - router-data-pipeline-line-9-except-1
       try_except_line_6_1:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-12-except-4
+        - router-data-pipeline-line-12-except-2
       try_except_line_6_2:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-15-except-6
+        - router-data-pipeline-line-15-except-3
     rules:
     - errors:
       - ValueError

@@ -21,43 +21,28 @@
       "label": "parse_input"
     },
     {
-      "id": "router_data_pipeline_line_10_seq_1",
-      "label": "router_data_pipeline_line_10_seq_1",
-      "generated": true,
-      "mutations": [
-        "p['error_type'] = 'validation'"
-      ]
-    },
-    {
-      "id": "router_data_pipeline_line_12_except_4",
-      "label": "router_data_pipeline_line_12_except_4",
-      "generated": true
-    },
-    {
-      "id": "router_data_pipeline_line_13_seq_3",
-      "label": "router_data_pipeline_line_13_seq_3",
+      "id": "router_data_pipeline_line_12_except_2",
+      "label": "router_data_pipeline_line_12_except_2",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'type_mismatch'"
       ]
     },
     {
-      "id": "router_data_pipeline_line_15_except_6",
-      "label": "router_data_pipeline_line_15_except_6",
-      "generated": true
-    },
-    {
-      "id": "router_data_pipeline_line_16_seq_5",
-      "label": "router_data_pipeline_line_16_seq_5",
+      "id": "router_data_pipeline_line_15_except_3",
+      "label": "router_data_pipeline_line_15_except_3",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'runtime'"
       ]
     },
     {
-      "id": "router_data_pipeline_line_9_except_2",
-      "label": "router_data_pipeline_line_9_except_2",
-      "generated": true
+      "id": "router_data_pipeline_line_9_except_1",
+      "label": "router_data_pipeline_line_9_except_1",
+      "generated": true,
+      "mutations": [
+        "p['error_type'] = 'validation'"
+      ]
     },
     {
       "id": "start_data_pipeline",
@@ -84,74 +69,56 @@
       "type": "continuation"
     },
     {
-      "from": "router_data_pipeline_line_10_seq_1",
+      "from": "router_data_pipeline_line_9_except_1",
       "to": "handle_validation_error",
       "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_data_pipeline_line_9_except_2",
-      "to": "router_data_pipeline_line_10_seq_1",
-      "label": null,
       "type": "set"
     },
     {
-      "from": "router_data_pipeline_line_13_seq_3",
+      "from": "router_data_pipeline_line_12_except_2",
       "to": "handle_type_error",
       "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_data_pipeline_line_12_except_4",
-      "to": "router_data_pipeline_line_13_seq_3",
-      "label": null,
       "type": "set"
     },
     {
-      "from": "router_data_pipeline_line_16_seq_5",
+      "from": "router_data_pipeline_line_15_except_3",
       "to": "handle_runtime_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_data_pipeline_line_15_except_6",
-      "to": "router_data_pipeline_line_16_seq_5",
       "label": null,
       "type": "set"
     },
     {
       "from": "parse_input",
-      "to": "router_data_pipeline_line_9_except_2",
+      "to": "router_data_pipeline_line_9_except_1",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "parse_input",
-      "to": "router_data_pipeline_line_12_except_4",
+      "to": "router_data_pipeline_line_12_except_2",
       "label": "TypeError",
       "type": "error"
     },
     {
       "from": "parse_input",
-      "to": "router_data_pipeline_line_15_except_6",
+      "to": "router_data_pipeline_line_15_except_3",
       "label": "RuntimeError",
       "type": "error"
     },
     {
       "from": "transform_data",
-      "to": "router_data_pipeline_line_9_except_2",
+      "to": "router_data_pipeline_line_9_except_1",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "transform_data",
-      "to": "router_data_pipeline_line_12_except_4",
+      "to": "router_data_pipeline_line_12_except_2",
       "label": "TypeError",
       "type": "error"
     },
     {
       "from": "transform_data",
-      "to": "router_data_pipeline_line_15_except_6",
+      "to": "router_data_pipeline_line_15_except_3",
       "label": "RuntimeError",
       "type": "error"
     }

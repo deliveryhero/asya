@@ -27,7 +27,7 @@ spec:
         thenRoute:
         - router-failover-pipeline-line-30-except-2
       default:
-        maxAttempts: '3'
+        maxAttempts: 3
     rules:
     - errors:
       - ConnectionError

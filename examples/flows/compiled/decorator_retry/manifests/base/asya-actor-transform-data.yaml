@@ -16,4 +16,4 @@ spec:
   env: []
   resiliency:
     timeout:
-      actor: '30'
+      actor: 30

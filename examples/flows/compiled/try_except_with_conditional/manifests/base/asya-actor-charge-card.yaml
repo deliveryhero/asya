@@ -19,7 +19,7 @@ spec:
       try_except_line_16_0:
         maxAttempts: 1
         thenRoute:
-        - router-payment-flow-line-22-except-2
+        - router-payment-flow-line-22-except-1
     rules:
     - errors:
       - ValueError

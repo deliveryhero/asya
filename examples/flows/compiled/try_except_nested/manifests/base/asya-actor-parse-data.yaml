@@ -19,11 +19,11 @@ spec:
       try_except_line_24_0:
         maxAttempts: 1
         thenRoute:
-        - router-nested-error-handling-line-33-except-2
+        - router-nested-error-handling-line-33-except-1
       try_except_line_26_0:
         maxAttempts: 1
         thenRoute:
-        - router-nested-error-handling-line-29-except-4
+        - router-nested-error-handling-line-29-except-2
     rules:
     - errors:
       - ConnectionError

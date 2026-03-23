@@ -16,26 +16,16 @@
       "label": "risky_operation"
     },
     {
-      "id": "router_resilient_pipeline_line_11_except_4",
-      "label": "router_resilient_pipeline_line_11_except_4",
-      "generated": true
-    },
-    {
-      "id": "router_resilient_pipeline_line_12_seq_3",
-      "label": "router_resilient_pipeline_line_12_seq_3",
+      "id": "router_resilient_pipeline_line_11_except_2",
+      "label": "router_resilient_pipeline_line_11_except_2",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'unknown'"
       ]
     },
     {
-      "id": "router_resilient_pipeline_line_8_except_2",
-      "label": "router_resilient_pipeline_line_8_except_2",
-      "generated": true
-    },
-    {
-      "id": "router_resilient_pipeline_line_9_seq_1",
-      "label": "router_resilient_pipeline_line_9_seq_1",
+      "id": "router_resilient_pipeline_line_8_except_1",
+      "label": "router_resilient_pipeline_line_8_except_1",
       "generated": true,
       "mutations": [
         "p['error_type'] = 'known'"
@@ -56,38 +46,26 @@
       "type": "prepend"
     },
     {
-      "from": "router_resilient_pipeline_line_9_seq_1",
+      "from": "router_resilient_pipeline_line_8_except_1",
       "to": "handle_known_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_8_except_2",
-      "to": "router_resilient_pipeline_line_9_seq_1",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_resilient_pipeline_line_12_seq_3",
+      "from": "router_resilient_pipeline_line_11_except_2",
       "to": "handle_unknown_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_resilient_pipeline_line_11_except_4",
-      "to": "router_resilient_pipeline_line_12_seq_3",
       "label": null,
       "type": "set"
     },
     {
       "from": "risky_operation",
-      "to": "router_resilient_pipeline_line_8_except_2",
+      "to": "router_resilient_pipeline_line_8_except_1",
       "label": "ValueError",
       "type": "error"
     },
     {
       "from": "risky_operation",
-      "to": "router_resilient_pipeline_line_11_except_4",
+      "to": "router_resilient_pipeline_line_11_except_2",
       "label": "except *",
       "type": "error"
     }

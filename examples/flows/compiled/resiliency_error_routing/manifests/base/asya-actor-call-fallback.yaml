@@ -19,4 +19,4 @@ spec:
   resiliency:
     policies:
       default:
-        maxAttempts: '2'
+        maxAttempts: 2

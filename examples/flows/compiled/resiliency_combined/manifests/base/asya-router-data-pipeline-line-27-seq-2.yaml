@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-data-pipeline-line-34-seq-1
+  name: router-data-pipeline-line-27-seq-2
   namespace: default
   labels:
     asya.sh/flow: data-pipeline
     asya.sh/generated: 'true'
 spec:
-  actor: router-data-pipeline-line-34-seq-1
+  actor: router-data-pipeline-line-27-seq-2
   image: python:3.13-slim
-  handler: routers.router_data_pipeline_line_34_seq_1
+  handler: routers.router_data_pipeline_line_27_seq_2
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -21,7 +21,5 @@ spec:
     value: handle_bad_data
   - name: ASYA_HANDLER_ACTOR_PARSE_DATA
     value: parse_data
-  - name: ASYA_HANDLER_ROUTER_DATA_PIPELINE_LINE_34_SEQ_1
-    value: routers.router_data_pipeline_line_34_seq_1
   - name: ASYA_HANDLER_ACTOR_STORE_RESULTS
     value: store_results

@@ -18,10 +18,10 @@ spec:
     value: tenacity.retry
   resiliency:
     timeout:
-      actor: '120'
+      actor: 120
     policies:
       default:
-        maxAttempts: '3'
-        maxDuration: '60'
-        initialDelay: '1'
-        maxInterval: '30'
+        maxAttempts: 3
+        maxDuration: 60
+        initialDelay: 1
+        maxInterval: 30

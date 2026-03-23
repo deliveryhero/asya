@@ -19,11 +19,11 @@ spec:
       try_except_line_6_0:
         maxAttempts: 1
         thenRoute:
-        - router-resilient-pipeline-line-8-except-2
+        - router-resilient-pipeline-line-8-except-1
       default:
         maxAttempts: 1
         thenRoute:
-        - router-resilient-pipeline-line-11-except-4
+        - router-resilient-pipeline-line-11-except-2
     rules:
     - errors:
       - ValueError

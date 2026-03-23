@@ -4,20 +4,16 @@ flowchart TD
     handle_known_error[handle_known_error]
     handle_unknown_error[handle_unknown_error]
     risky_operation[risky_operation]
-    router_resilient_pipeline_line_11_except_4{{router_resilient_pipeline_line_11_except_4}}
-    router_resilient_pipeline_line_12_seq_3{{"router_resilient_pipeline_line_12_seq_3<br/><br/>p['error_type'] = 'unknown'"}}
-    router_resilient_pipeline_line_8_except_2{{router_resilient_pipeline_line_8_except_2}}
-    router_resilient_pipeline_line_9_seq_1{{"router_resilient_pipeline_line_9_seq_1<br/><br/>p['error_type'] = 'known'"}}
+    router_resilient_pipeline_line_11_except_2{{"router_resilient_pipeline_line_11_except_2<br/><br/>p['error_type'] = 'unknown'"}}
+    router_resilient_pipeline_line_8_except_1{{"router_resilient_pipeline_line_8_except_1<br/><br/>p['error_type'] = 'known'"}}
     start_resilient_pipeline([start_resilient_pipeline])
     __end__((( )))
 
     start_resilient_pipeline --> risky_operation
-    router_resilient_pipeline_line_9_seq_1 --> handle_known_error
-    router_resilient_pipeline_line_8_except_2 --> router_resilient_pipeline_line_9_seq_1
-    router_resilient_pipeline_line_12_seq_3 --> handle_unknown_error
-    router_resilient_pipeline_line_11_except_4 --> router_resilient_pipeline_line_12_seq_3
-    risky_operation -->|"ValueError"| router_resilient_pipeline_line_8_except_2
-    risky_operation -->|"except *"| router_resilient_pipeline_line_11_except_4
+    router_resilient_pipeline_line_8_except_1 --> handle_known_error
+    router_resilient_pipeline_line_11_except_2 --> handle_unknown_error
+    risky_operation -->|"ValueError"| router_resilient_pipeline_line_8_except_1
+    risky_operation -->|"except *"| router_resilient_pipeline_line_11_except_2
     handle_known_error --> __end__
     handle_unknown_error --> __end__
 
@@ -28,7 +24,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_resilient_pipeline start
     class handle_known_error,handle_unknown_error endnode
-    class router_resilient_pipeline_line_11_except_4,router_resilient_pipeline_line_12_seq_3,router_resilient_pipeline_line_8_except_2,router_resilient_pipeline_line_9_seq_1 router
+    class router_resilient_pipeline_line_11_except_2,router_resilient_pipeline_line_8_except_1 router
     class risky_operation handler
     class __end__ endpoint
-    linkStyle 5,6 stroke:#DC143C
+    linkStyle 3,4 stroke:#DC143C

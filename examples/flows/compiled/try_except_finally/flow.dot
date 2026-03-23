@@ -9,8 +9,7 @@ digraph "resource_pipeline" {
     handle_failure [label="handle_failure", fillcolor=lightblue];
     process_with_resource [label="process_with_resource", fillcolor=lightblue];
     release_resource [label="release_resource", fillcolor=lightblue];
-    router_resource_pipeline_line_10_except_2 [label="router_resource_pipeline_line_10_except_2", fillcolor=wheat];
-    router_resource_pipeline_line_11_seq_1 [label="router_resource_pipeline_line_11_seq_1\n\np['status'] = 'failed'", fillcolor=wheat];
+    router_resource_pipeline_line_10_except_1 [label="router_resource_pipeline_line_10_except_1\n\np['status'] = 'failed'", fillcolor=wheat];
     start_resource_pipeline [label="start_resource_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
@@ -19,10 +18,9 @@ digraph "resource_pipeline" {
     acquire_resource -> process_with_resource;
     process_with_resource -> release_resource;
     release_resource -> finalize;
-    router_resource_pipeline_line_11_seq_1 -> handle_failure;
-    router_resource_pipeline_line_10_except_2 -> router_resource_pipeline_line_11_seq_1;
-    acquire_resource -> router_resource_pipeline_line_10_except_2 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
-    process_with_resource -> router_resource_pipeline_line_10_except_2 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    router_resource_pipeline_line_10_except_1 -> handle_failure;
     handle_failure -> release_resource;
+    acquire_resource -> router_resource_pipeline_line_10_except_1 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
+    process_with_resource -> router_resource_pipeline_line_10_except_1 [label="RuntimeError", color="#DC143C", fontcolor="#DC143C"];
     finalize -> __end__;
 }

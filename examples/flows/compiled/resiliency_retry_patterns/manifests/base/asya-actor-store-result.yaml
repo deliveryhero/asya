@@ -20,5 +20,5 @@ spec:
   resiliency:
     policies:
       default:
-        maxAttempts: '3'
-        maxDuration: '300'
+        maxAttempts: 3
+        maxDuration: 300

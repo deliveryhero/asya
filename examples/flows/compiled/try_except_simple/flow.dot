@@ -5,16 +5,14 @@ digraph "order_processing" {
     { rank=source; start_order_processing; }
 
     notify_rejection [label="notify_rejection", fillcolor=lightsalmon];
-    router_order_processing_line_8_except_2 [label="router_order_processing_line_8_except_2", fillcolor=wheat];
-    router_order_processing_line_9_seq_1 [label="router_order_processing_line_9_seq_1\n\np['status'] = 'invalid'", fillcolor=wheat];
+    router_order_processing_line_8_except_1 [label="router_order_processing_line_8_except_1\n\np['status'] = 'invalid'", fillcolor=wheat];
     start_order_processing [label="start_order_processing", fillcolor=palegreen];
     validate_order [label="validate_order", fillcolor=lightblue];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_order_processing -> validate_order;
-    router_order_processing_line_9_seq_1 -> notify_rejection;
-    router_order_processing_line_8_except_2 -> router_order_processing_line_9_seq_1;
-    validate_order -> router_order_processing_line_8_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    router_order_processing_line_8_except_1 -> notify_rejection;
+    validate_order -> router_order_processing_line_8_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     notify_rejection -> __end__;
 }

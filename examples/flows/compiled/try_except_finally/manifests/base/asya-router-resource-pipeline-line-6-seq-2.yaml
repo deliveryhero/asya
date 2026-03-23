@@ -1,15 +1,15 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-resource-pipeline-line-11-seq-1
+  name: router-resource-pipeline-line-6-seq-2
   namespace: default
   labels:
     asya.sh/flow: resource-pipeline
     asya.sh/generated: 'true'
 spec:
-  actor: router-resource-pipeline-line-11-seq-1
+  actor: router-resource-pipeline-line-6-seq-2
   image: python:3.13-slim
-  handler: routers.router_resource_pipeline_line_11_seq_1
+  handler: routers.router_resource_pipeline_line_6_seq_2
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -25,5 +25,3 @@ spec:
     value: process_with_resource
   - name: ASYA_HANDLER_ACTOR_RELEASE_RESOURCE
     value: release_resource
-  - name: ASYA_HANDLER_ROUTER_RESOURCE_PIPELINE_LINE_11_SEQ_1
-    value: routers.router_resource_pipeline_line_11_seq_1

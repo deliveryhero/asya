@@ -7,8 +7,7 @@ digraph "data_pipeline" {
     fetch_data [label="fetch_data", fillcolor=lightblue];
     handle_bad_data [label="handle_bad_data", fillcolor=lightblue];
     parse_data [label="parse_data", fillcolor=lightblue];
-    router_data_pipeline_line_33_except_2 [label="router_data_pipeline_line_33_except_2", fillcolor=wheat];
-    router_data_pipeline_line_34_seq_1 [label="router_data_pipeline_line_34_seq_1\n\np['error'] = 'bad_data'", fillcolor=wheat];
+    router_data_pipeline_line_33_except_1 [label="router_data_pipeline_line_33_except_1\n\np['error'] = 'bad_data'", fillcolor=wheat];
     start_data_pipeline [label="start_data_pipeline\n\np['status'] = 'started'", fillcolor=palegreen];
     store_results [label="store_results", fillcolor=lightsalmon];
 
@@ -17,11 +16,10 @@ digraph "data_pipeline" {
     start_data_pipeline -> fetch_data;
     fetch_data -> parse_data;
     parse_data -> store_results;
-    router_data_pipeline_line_34_seq_1 -> handle_bad_data;
-    router_data_pipeline_line_33_except_2 -> router_data_pipeline_line_34_seq_1;
-    fetch_data -> router_data_pipeline_line_33_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    parse_data -> router_data_pipeline_line_33_except_2 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    router_data_pipeline_line_33_except_1 -> handle_bad_data;
     handle_bad_data -> store_results;
+    fetch_data -> router_data_pipeline_line_33_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    parse_data -> router_data_pipeline_line_33_except_1 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
     store_results -> __end__;
     subgraph cluster_asyncio_timeout_60_ {
         label="asyncio.timeout(60)";

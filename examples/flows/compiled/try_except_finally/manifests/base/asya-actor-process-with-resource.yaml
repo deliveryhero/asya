@@ -19,7 +19,7 @@ spec:
       try_except_line_7_0:
         maxAttempts: 1
         thenRoute:
-        - router-resource-pipeline-line-10-except-2
+        - router-resource-pipeline-line-10-except-1
     rules:
     - errors:
       - RuntimeError

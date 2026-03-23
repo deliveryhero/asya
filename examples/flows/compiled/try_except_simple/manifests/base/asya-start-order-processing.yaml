@@ -18,7 +18,5 @@ spec:
   env:
   - name: ASYA_HANDLER_ACTOR_NOTIFY_REJECTION
     value: notify_rejection
-  - name: ASYA_HANDLER_ROUTER_ORDER_PROCESSING_LINE_9_SEQ_1
-    value: routers.router_order_processing_line_9_seq_1
   - name: ASYA_HANDLER_ACTOR_VALIDATE_ORDER
     value: validate_order
