@@ -26,7 +26,6 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: "{{ actor_name }}"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
 
@@ -48,7 +47,6 @@ apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
   name: "{{ actor_name }}"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
 
@@ -70,7 +68,6 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: "{{ flow_name }}-routers"
-  namespace: "{{ namespace }}"
   labels:
     asya.sh/flow: "{{ flow_name }}"
     asya.sh/managed-by: asya-compiler

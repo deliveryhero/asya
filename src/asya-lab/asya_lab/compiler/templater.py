@@ -233,14 +233,11 @@ class ManifestTemplater:
         if self.configmap_routers_template_path and self.configmap_routers_template_path.exists():
             cm = self._resolve_configmap_template()
         else:
-            context = self.project.build_template_context()
-            namespace = context.get("namespace", "default")
             cm = {
                 "apiVersion": "v1",
                 "kind": "ConfigMap",
                 "metadata": {
                     "name": f"{self.flow_name}-routers",
-                    "namespace": namespace,
                     "labels": {
                         "asya.sh/flow": self.flow_name,
                         "asya.sh/managed-by": "asya-compiler",
@@ -254,15 +251,12 @@ class ManifestTemplater:
 
     def _stamp_adapter_configmap(self, path: Path, af: AdapterFile) -> None:
         """Generate a ConfigMap containing adapter code for a non-standard actor."""
-        context = self.project.build_template_context()
-        namespace = context.get("namespace", "default")
         k8s_name = self._to_k8s_name(af.actor_name)
         cm = {
             "apiVersion": "v1",
             "kind": "ConfigMap",
             "metadata": {
                 "name": f"{self.flow_name}-{k8s_name}-adapter",
-                "namespace": namespace,
                 "labels": {
                     "asya.sh/flow": self.flow_name,
                     "asya.sh/managed-by": "asya-compiler",

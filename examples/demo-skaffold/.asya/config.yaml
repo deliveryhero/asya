@@ -1,5 +1,4 @@
 templates:
-  namespace: default
   router_image: "python:3.13-slim"
   max_replicas: 5
 

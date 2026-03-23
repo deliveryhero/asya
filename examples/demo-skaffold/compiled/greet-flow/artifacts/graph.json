@@ -6,9 +6,9 @@
       "label": "greet"
     },
     {
-      "id": "router_greet_flow_seq_p_shout_p",
-      "label": "router_greet_flow_seq_p_shout_p",
-      "generated": true
+      "id": "shout",
+      "label": "shout",
+      "role": "end"
     },
     {
       "id": "start_greet_flow",
@@ -26,7 +26,7 @@
     },
     {
       "from": "greet",
-      "to": "router_greet_flow_seq_p_shout_p",
+      "to": "shout",
       "label": null,
       "type": "continuation"
     }

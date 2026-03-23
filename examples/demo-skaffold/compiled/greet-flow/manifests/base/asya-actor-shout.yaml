@@ -1,13 +1,14 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: actor-greet
+  name: actor-shout
   labels:
     asya.sh/flow: greet-flow
+    asya.sh/role: end
 spec:
-  actor: actor-greet
+  actor: actor-shout
   image: src-team-b-bare-scripts
-  handler: greeter.greet
+  handler: shouter.shout
   scaling:
     enabled: true
     minReplicaCount: 0

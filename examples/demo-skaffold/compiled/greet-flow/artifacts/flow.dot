@@ -5,12 +5,12 @@ digraph "greet_flow" {
     { rank=source; start_greet_flow; }
 
     greet [label="greet", fillcolor=lightblue];
-    router_greet_flow_seq_p_shout_p [label="router_greet_flow_seq_p_shout_p", fillcolor=wheat];
+    shout [label="shout", fillcolor=lightsalmon];
     start_greet_flow [label="start_greet_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_greet_flow -> greet;
-    greet -> router_greet_flow_seq_p_shout_p;
-    router_greet_flow_seq_p_shout_p -> __end__;
+    greet -> shout;
+    shout -> __end__;
 }
