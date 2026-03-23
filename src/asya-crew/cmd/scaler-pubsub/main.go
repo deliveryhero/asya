@@ -70,7 +70,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := grpc.NewServer() // nolint:gosec // in-cluster plaintext gRPC, TLS via service mesh
+	srv := grpc.NewServer() //#nosec G114 -- in-cluster plaintext gRPC, TLS via service mesh
 	pb.RegisterExternalScalerServer(srv, scaler)
 
 	healthSrv := health.NewServer()
