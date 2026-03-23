@@ -61,54 +61,79 @@ class FlowCompiler:
         self.class_methods: set[str] = set()
         self.is_async: bool = False
         self.import_map: dict[str, str] = {}
+        self.handler_source_files: dict[str, Path] = {}  # actor_name -> source file
         self.module_constants: list[str] = []
         self._parse_result: ParseResult | None = None
         self._generated_code: str | None = None
         self._graph_data: GraphData | None = None
         self._codegen_meta: CodegenMeta | None = None
 
-    def compile_file(self, source_file: str, output_dir: str, overwrite: bool = False) -> FlowInfo:
+    def compile_file(
+        self,
+        source_file: str,
+        output_dir: str,
+        overwrite: bool = False,
+        flow_name: str | None = None,
+        *,
+        routers_dir: str | None = None,
+        artifacts_dir: str | None = None,
+    ) -> FlowInfo:
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
 
-        output_path = Path(output_dir)
-        if output_path.exists():
-            if not output_path.is_dir():
-                raise ValueError(f"Output path exists and is not a directory: {output_dir}")
-            if not overwrite and any(output_path.iterdir()):
-                raise ValueError(f"Output directory is not empty: {output_dir}")
+        # Resolve output directories — all default to output_dir if not specified
+        routers_path = Path(routers_dir) if routers_dir else Path(output_dir)
+        artifacts_path = Path(artifacts_dir) if artifacts_dir else Path(output_dir)
 
-        output_path.mkdir(parents=True, exist_ok=True)
+        for d in (routers_path, artifacts_path):
+            if d.exists() and not d.is_dir():
+                raise ValueError(f"Output path exists and is not a directory: {d}")
+            d.mkdir(parents=True, exist_ok=True)
 
         source_code = source_path.read_text()
-        compiled_file = output_path / "routers.py"
+        compiled_file = routers_path / "routers.py"
         compiled_code = self.compile(source_code, str(source_path), str(compiled_file))
         compiled_file.write_text(compiled_code)
 
-        manifests_dir = self._stamp_manifests(output_path)
-        dot, mermaid_content, json_content = self._generate_outputs(output_path)
+        # Resolve handler FQNs and source files by importing the flow module
+        self._resolve_handler_sources(source_path)
 
-        flow_function = self.flow_name or source_path.stem
-        flow_name = flow_function.replace("_", "-")
+        manifests_dir = self._stamp_manifests(routers_path)
+        dot, mermaid_content, json_content = self._generate_outputs(artifacts_path)
+
+        if flow_name is None:
+            flow_function = self.flow_name or source_path.stem
+            flow_name = flow_function.replace("_", "-")
+        flow_function = flow_name.replace("-", "_")
         actors = self._build_actor_infos()
+
+        from asya_lab.flow.parser import ActorCall, Mutation
+
+        ops = self._parse_result.operations if self._parse_result else []
+        num_actor_calls = sum(1 for op in ops if isinstance(op, ActorCall))
+        num_inline_mutations = sum(1 for op in ops if isinstance(op, Mutation))
 
         return FlowInfo(
             flow_name=flow_name,
             flow_function=flow_function,
             routers_path=compiled_file,
-            manifests_dir=manifests_dir or output_path,
+            artifacts_dir=artifacts_path,
+            manifests_dir=manifests_dir or routers_path,
             graph=to_json(self._graph_data, flow_function) if self._graph_data else {},
             dot=dot,
             mermaid=mermaid_content,
             actors=actors,
             warnings=list(self.warnings),
+            num_actor_calls=num_actor_calls,
+            num_inline_mutations=num_inline_mutations,
         )
 
     def compile(self, source_code: str, filename: str, output_file: str | None = None) -> str:
         # Step 1: Parse
         result = self._parse(source_code, filename)
         self._parse_result = result
+        self.warnings.extend(result.warnings)
 
         # Step 2: CodeGen
         codegen = CodeGenerator(result, filename, output_file)
@@ -242,12 +267,11 @@ class FlowCompiler:
         flow_name = flow_function.replace("_", "-")
 
         try:
-            self._project.resolve_path("compiler.manifests")  # check config exists
+            # flow_name already interpolated via ${arg:flow_name} in config
+            manifests_dir = self._project.resolve_path("compiler.manifests")
             templates_dir = self._project.resolve_path("compiler.templates")
         except KeyError:
             return None
-
-        manifests_dir = compiled_dir / "manifests"
 
         router_code = self._generated_code or ""
         actor_template = templates_dir / "actor.yaml"
@@ -269,6 +293,7 @@ class FlowCompiler:
             configmap_routers_template_path=_opt("configmap-routers.yaml"),
             kustomization_template_path=_opt("kustomization.yaml"),
             import_map=self.import_map,
+            handler_source_files=self.handler_source_files,
             flow_roles=self._detect_flow_roles(),
         )
         templater.stamp(manifests_dir)
@@ -318,6 +343,72 @@ class FlowCompiler:
             if role:
                 roles[node_id] = role
         return roles
+
+    def _resolve_handler_sources(self, flow_source: Path) -> None:
+        """Import the flow module and resolve each handler's FQN and source file.
+
+        Uses the running Python interpreter — the same environment the user
+        tested their flow in locally.
+        """
+        import importlib
+        import importlib.util
+        import inspect
+
+        if not self._parse_result:
+            return
+
+        actor_names = self._parse_result.actors
+        if not actor_names:
+            return
+
+        # Import the flow file as a proper module
+        # Try to find its package by looking for __init__.py
+        flow_dir = flow_source.parent
+        module_name = flow_source.stem
+
+        # Walk up to find the package root (directory with __init__.py whose parent has none)
+        package_parts: list[str] = [module_name]
+        current = flow_dir
+        while (current / "__init__.py").exists():
+            package_parts.insert(0, current.name)
+            current = current.parent
+
+        fqn_module = ".".join(package_parts)
+
+        try:
+            mod = importlib.import_module(fqn_module)
+        except ImportError:
+            # Fall back: try importing from the file directly
+            try:
+                spec = importlib.util.spec_from_file_location(module_name, flow_source)
+                if spec and spec.loader:
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                else:
+                    return
+            except Exception:
+                self.warnings.append(
+                    f"Could not import flow module '{fqn_module}' — "
+                    f"handler source files will not be resolved for skaffold image mapping. "
+                    f"Ensure the flow file is importable in the current Python environment."
+                )
+                return
+
+        for actor_name in actor_names:
+            func = getattr(mod, actor_name, None)
+            if func is None or not callable(func):
+                continue
+
+            handler_fqn = f"{func.__module__}.{func.__qualname__}"
+            self.import_map[actor_name] = handler_fqn
+
+            try:
+                source_file = Path(inspect.getfile(func)).resolve()
+                self.handler_source_files[actor_name] = source_file
+                if self.verbose:
+                    logger.info(f"[.] {actor_name} -> {handler_fqn} ({source_file})")
+            except (TypeError, OSError):
+                pass
 
     @staticmethod
     def _extract_handler_sources(source_code: str, actor_names: list[str]) -> dict[str, str]:

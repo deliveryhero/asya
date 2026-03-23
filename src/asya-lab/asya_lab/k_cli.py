@@ -36,13 +36,13 @@ class KubeRunner:
     manifest directory lookup, and kubectl execution.
     """
 
-    def __init__(self, ctx: str | None = None) -> None:
+    def __init__(self, ctx: str | None = None, arg_values: dict[str, str] | None = None) -> None:
         asya_dir = find_asya_dir(Path.cwd())
         if asya_dir is None:
             click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
             sys.exit(1)
 
-        self.project = AsyaProject.from_dir(asya_dir.parent)
+        self.project = AsyaProject.from_dir(asya_dir.parent, arg_values=arg_values)
         self._ctx_name = ctx
         self._context_config = self._resolve_context(ctx)
         self.namespace: str | None = self._context_config.get("namespace") if self._context_config else None
@@ -75,7 +75,7 @@ class KubeRunner:
 
     def find_manifests(self, target: str) -> Path:
         """Locate the manifest directory for a compiled flow/actor."""
-        manifests_dir = self.project.resolve_path("compiler.manifests") / target
+        manifests_dir = self.project.resolve_path("compiler.manifests")
         if not manifests_dir.is_dir():
             click.echo(f"[-] Manifests not found: {manifests_dir}", err=True)
             click.echo("[-] Run 'asya compile' first.", err=True)
@@ -189,7 +189,7 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     Uses kustomize build piped to kubectl apply --server-side with
     per-flow field manager for safe, idempotent deploys.
     """
-    runner = KubeRunner(ctx)
+    runner = KubeRunner(ctx, arg_values={"flow_name": target.name})
     runner.check_readonly("apply")
 
     manifests_dir = runner.find_manifests(target.name)

@@ -4,7 +4,7 @@ POSITIVE = {"good", "great", "excellent", "happy", "wonderful", "love", "best"}
 NEGATIVE = {"bad", "terrible", "awful", "sad", "worst", "hate", "poor"}
 
 
-def analyze(payload: dict) -> dict:  # asya: actor
+def analyze(payload: dict) -> dict:
     text = payload.get("text", "")
     tokens = text.lower().split()
     total = max(len(tokens), 1)

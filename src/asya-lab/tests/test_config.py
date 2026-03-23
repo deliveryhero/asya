@@ -151,6 +151,30 @@ class TestCustomResolvers:
             _ = project.cfg.templates.tag
 
 
+class TestCompilerConfig:
+    def test_compiler_paths_resolved(self, tmp_path: Path) -> None:
+        (tmp_path / ".git").mkdir()
+        asya_dir = tmp_path / ".asya"
+        asya_dir.mkdir()
+        (asya_dir / "config.yaml").write_text(
+            "compiler:\n  routers: ./r\n  manifests: ./m\n  templates: ./t\n"
+        )
+        project = AsyaProject.from_dir(tmp_path)
+        # ./ paths are resolved to absolute by ConfigStore
+        assert str(project.resolve_path("compiler.routers")).endswith("/r")
+        assert str(project.resolve_path("compiler.manifests")).endswith("/m")
+        assert str(project.resolve_path("compiler.templates")).endswith("/t")
+
+    def test_missing_compiler_section_raises(self, tmp_path: Path) -> None:
+        (tmp_path / ".git").mkdir()
+        asya_dir = tmp_path / ".asya"
+        asya_dir.mkdir()
+        (asya_dir / "config.yaml").write_text("templates:\n  namespace: test\n")
+        project = AsyaProject.from_dir(tmp_path)
+        with pytest.raises(KeyError, match="compiler"):
+            project.resolve_path("compiler.routers")
+
+
 class TestSectionMerge:
     def test_config_section_and_dotted_file_merge(self, tmp_path: Path) -> None:
         (tmp_path / ".git").mkdir()

@@ -10,16 +10,6 @@ spec:
   actor: "{{ actor_name }}"
   image: "{{ router_image }}"
   handler: "{{ handler }}"
-  env:
-  - name: PYTHONPATH
-    value: /app
-  volumes:
-  - name: handler
-    configMap:
-      name: "{{ flow_name }}-routers"
-  volumeMounts:
-  - name: handler
-    mountPath: /app
   scaling:
     enabled: true
     minReplicaCount: 0

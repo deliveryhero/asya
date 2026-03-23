@@ -100,6 +100,7 @@ class ManifestTemplater:
         configmap_routers_template_path: Path | None = None,
         kustomization_template_path: Path | None = None,
         import_map: dict[str, str] | None = None,
+        handler_source_files: dict[str, Path] | None = None,
         flow_roles: dict[str, str] | None = None,
     ) -> None:
         self.flow_name = flow_name
@@ -112,6 +113,7 @@ class ManifestTemplater:
         self.configmap_routers_template_path = configmap_routers_template_path
         self.kustomization_template_path = kustomization_template_path
         self.import_map: dict[str, str] = import_map or {}
+        self.handler_source_files: dict[str, Path] = handler_source_files or {}
         self.flow_roles: dict[str, str] = flow_roles or {}
 
     def stamp(self, output_dir: Path) -> list[str]:
@@ -482,9 +484,13 @@ Each overlay builds on top of `common/`.
                 if self._is_router_name(actor_name):
                     continue
                 if actor_name not in handler_actors:
-                    image = self.project.resolve_image(actor_name)
+                    handler_fqn = self.import_map.get(actor_name, actor_name)
+                    handler_source = self.handler_source_files.get(actor_name)
+                    image = self.project.resolve_image(
+                        actor_name, handler_fqn=handler_fqn, handler_source=handler_source
+                    )
                     k8s_name = f"actor-{self._to_k8s_name(actor_name)}"
-                    handler = self.import_map.get(actor_name, actor_name)
+                    handler = handler_fqn
                     # Graph-derived role overrides the default "actor" role
                     role = self.flow_roles.get(actor_name, "actor")
                     handler_actors[actor_name] = ActorInfo(

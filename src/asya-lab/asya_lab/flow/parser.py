@@ -124,6 +124,7 @@ class ParseResult:
     class_methods: set[str] = field(default_factory=set)
     import_map: dict[str, str] = field(default_factory=dict)
     groups: list[dict] = field(default_factory=list)  # {"id": flow_name, "nodes": [actor_names]}
+    warnings: list[str] = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -190,6 +191,7 @@ class FlowParser:
         self._decorator_index: dict[str, str] = {}
         self._inline_funcs: set[str] = set()
         self._rule_engine: RuleEngine | None = rule_engine
+        self.warnings: list[str] = []
         self._groups: list[dict] = []
         self._expansion_depth: int = 0
         self._tree: ast.Module | None = None
@@ -242,6 +244,7 @@ class FlowParser:
             class_methods=self.class_methods.copy(),
             import_map=dict(self.import_map),
             groups=list(self._groups),
+            warnings=list(self.warnings),
         )
 
     # -- Compatibility methods for existing compiler.py --
@@ -348,6 +351,13 @@ class FlowParser:
     def _collect_imports(self, tree: ast.Module) -> None:
         for node in tree.body:
             if isinstance(node, ast.ImportFrom) and node.module:
+                if node.level > 0:
+                    self.warnings.append(
+                        f"{self.filename}:{node.lineno}: relative import "
+                        f"'from {('.' * node.level)}{node.module} import ...' "
+                        f"cannot be resolved to an image. "
+                        f"Use absolute imports (e.g. 'from nlp.analyzer import analyze')."
+                    )
                 for alias in node.names:
                     local_name = alias.asname if alias.asname else alias.name
                     self.import_map[local_name] = f"{node.module}.{alias.name}"
@@ -412,10 +422,17 @@ class FlowParser:
 
     # -- Flow function detection --
 
+    def _is_flow_by_directive(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """Check if function has ``# asya: flow`` comment on the def line."""
+        directive = self._directives.get(node.lineno)
+        return directive is not None and directive.treat_as == "flow"
+
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
         candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
         for node in tree.body:
-            if isinstance(node, _FUNC_DEF_TYPES) and self._has_flow_decorator(node):
+            if isinstance(node, _FUNC_DEF_TYPES) and (
+                self._has_flow_decorator(node) or self._is_flow_by_directive(node)
+            ):
                 candidates.append(node)
 
         if not candidates:
@@ -530,6 +547,13 @@ class FlowParser:
                     return [self._parse_fanout_literal(stmt, target, value)]
                 elif isinstance(value, ast.Call) and self._is_asyncio_gather(value):
                     return [self._parse_fanout_gather(stmt, target, value)]
+            directive = self._directives.get(stmt.lineno)
+            if directive is not None and directive.treat_as == "actor":
+                self.warnings.append(
+                    f"{self.filename}:{stmt.lineno}: '# asya: actor' ignored on subscript assignment "
+                    f"(p[\"key\"] = func(p)). Actor calls must use 'p = func(p)' — "
+                    f"the full payload is passed through the actor boundary."
+                )
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
         elif isinstance(target, ast.Name) and isinstance(stmt.value, ast.Call):

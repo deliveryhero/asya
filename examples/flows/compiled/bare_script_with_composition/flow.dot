@@ -1,0 +1,18 @@
+digraph "main_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_main_flow; }
+
+    enrich [label="enrich", fillcolor=lightblue];
+    format_output [label="format_output", fillcolor=lightsalmon];
+    start_main_flow [label="start_main_flow", fillcolor=palegreen];
+    validate [label="validate", fillcolor=lightblue];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_main_flow -> validate;
+    validate -> enrich;
+    enrich -> format_output;
+    format_output -> __end__;
+}

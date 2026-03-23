@@ -1,11 +1,10 @@
 apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
-  name: team-b
+  name: bare-scripts
 build:
   artifacts:
-  - image: team-b-greet
+  - image: src-team-b-bare-scripts
     context: .
-    buildpacks:
-      builder: paketobuildpacks/builder-jammy-base
-      trustBuilder: true
+    docker:
+      dockerfile: Dockerfile

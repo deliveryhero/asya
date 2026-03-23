@@ -1,0 +1,16 @@
+digraph "bare_script_flow" {
+    rankdir=TB;
+    node [shape=box, style=filled, fontname="Helvetica"];
+
+    { rank=source; start_bare_script_flow; }
+
+    greet [label="greet", fillcolor=lightblue];
+    shout [label="shout", fillcolor=lightsalmon];
+    start_bare_script_flow [label="start_bare_script_flow", fillcolor=palegreen];
+
+    __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
+
+    start_bare_script_flow -> greet;
+    greet -> shout;
+    shout -> __end__;
+}

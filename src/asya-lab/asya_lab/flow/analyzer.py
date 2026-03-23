@@ -260,9 +260,19 @@ def _chain_to_edges(source: str, targets: list[str], condition: str | None, edge
     """
     if not targets:
         return []
-    result: list[dict] = [{"from": source, "to": targets[0], "label": condition, "type": edge_type}]
-    for i in range(len(targets) - 1):
-        result.append({"from": targets[i], "to": targets[i + 1], "label": None, "type": "continuation"})
+
+    # Disambiguate duplicate names with :N suffix for graph node IDs.
+    # [analyze, analyze, summarize] -> [analyze, analyze:2, summarize]
+    # The label stays the original name; only the ID is suffixed.
+    counts: dict[str, int] = {}
+    indexed: list[str] = []
+    for t in targets:
+        counts[t] = counts.get(t, 0) + 1
+        indexed.append(f"{t}:{counts[t]}" if counts[t] > 1 else t)
+
+    result: list[dict] = [{"from": source, "to": indexed[0], "label": condition, "type": edge_type}]
+    for i in range(len(indexed) - 1):
+        result.append({"from": indexed[i], "to": indexed[i + 1], "label": None, "type": "continuation"})
     return result
 
 
@@ -580,18 +590,20 @@ def analyze(
 
     nodes = []
     for name in sorted(all_names):
-        generated = name in router_names
+        # Strip :N suffix to get the base name for label and lookups
+        base_name = name.split(":")[0] if ":" in name else name
+        generated = base_name in router_names
         flow_role = _determine_flow_role(name, router_names, all_edges)
         node_dict: dict = {
             "id": name,
-            "label": name,
+            "label": base_name,
         }
         if flow_role in ("start", "end"):
             node_dict["role"] = flow_role
         if generated:
             node_dict["generated"] = True
-        if name in router_mutations:
-            node_dict["mutations"] = router_mutations[name]
+        if base_name in router_mutations:
+            node_dict["mutations"] = router_mutations[base_name]
         nodes.append(node_dict)
 
     graph = GraphData(nodes=nodes, edges=all_edges)

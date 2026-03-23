@@ -1,19 +1,10 @@
 templates:
-  namespace: demo-skaffold
+  namespace: default
   router_image: "python:3.13-slim"
   max_replicas: 5
 
-build:
-- module: "analyze"
-  image: "team-a-nlp"
-- module: "summarize"
-  image: "team-a-nlp"
-- module: "greet"
-  image: "team-b-greet"
-- module: "shout"
-  image: "team-b-greet"
-
 compiler:
-  routers: "./compiled"
-  manifests: ".asya/manifests"
+  routers: "./compiled/${arg:flow_name}"
+  artifacts: "./compiled/${arg:flow_name}"
+  manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"

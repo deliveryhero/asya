@@ -38,9 +38,12 @@ class FlowInfo:
     flow_name: str
     flow_function: str
     routers_path: Path
+    artifacts_dir: Path
     manifests_dir: Path
     graph: dict
     dot: str
     mermaid: str
     actors: list[ActorInfo]
     warnings: list[str] = field(default_factory=list)
+    num_actor_calls: int = 0
+    num_inline_mutations: int = 0

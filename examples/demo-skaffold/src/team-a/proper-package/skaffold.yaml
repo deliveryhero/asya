@@ -1,10 +1,10 @@
 apiVersion: skaffold/v4beta13
 kind: Config
 metadata:
-  name: team-a
+  name: proper-package
 build:
   artifacts:
-  - image: team-a-nlp
-    context: proper-package
+  - image: src-team-a-proper-package
+    context: .
     docker:
       dockerfile: Dockerfile

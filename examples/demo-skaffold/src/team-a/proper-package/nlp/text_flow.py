@@ -13,5 +13,6 @@ def flow(f):
 @flow
 def text_flow(payload: dict) -> dict:
     payload = analyze(payload)    # asya: actor
+    payload = analyze(payload)    # asya: actor
     payload = summarize(payload)  # asya: actor
     return payload

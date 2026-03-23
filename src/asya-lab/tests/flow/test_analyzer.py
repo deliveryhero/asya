@@ -164,6 +164,38 @@ class TestAnalyzeIntegration:
         assert len(end_nodes) == 1
         assert end_nodes[0]["id"] == "handler_b"
 
+    def test_duplicate_sequential_actor_gets_suffix(self):
+        """Calling the same actor twice creates distinct graph nodes with same label."""
+        routers_source = textwrap.dedent("""
+            async def start_flow(payload):
+                p = payload
+                _next = []
+                _next.append(resolve("analyze"))
+                _next.append(resolve("analyze"))
+                _next.append(resolve("summarize"))
+                yield "SET", ".route.next[:0]", _next
+                yield p
+        """)
+        graph = analyze(routers_source)
+
+        # No self-loop edge
+        self_edges = [e for e in graph.edges if e["from"] == e["to"]]
+        assert self_edges == [], f"Unexpected self-loop edges: {self_edges}"
+
+        # Graph: start_flow -> analyze -> analyze:2 -> summarize
+        edge_pairs = [(e["from"], e["to"]) for e in graph.edges]
+        assert ("start_flow", "analyze") in edge_pairs
+        assert ("analyze", "analyze:2") in edge_pairs
+        assert ("analyze:2", "summarize") in edge_pairs
+
+        # 4 nodes with unique IDs
+        node_ids = {n["id"] for n in graph.nodes}
+        assert node_ids == {"start_flow", "analyze", "analyze:2", "summarize"}
+
+        # Both analyze nodes have the same label
+        analyze_nodes = [n for n in graph.nodes if n["label"] == "analyze"]
+        assert len(analyze_nodes) == 2
+
     def test_disconnected_node_warning(self):
         routers_source = textwrap.dedent("""
             async def start_flow(payload):

@@ -1,0 +1,35 @@
+{
+  "flow_name": "bare_script_flow",
+  "nodes": [
+    {
+      "id": "greet",
+      "label": "greet"
+    },
+    {
+      "id": "shout",
+      "label": "shout",
+      "role": "end"
+    },
+    {
+      "id": "start_bare_script_flow",
+      "label": "start_bare_script_flow",
+      "role": "start",
+      "generated": true
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_bare_script_flow",
+      "to": "greet",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "greet",
+      "to": "shout",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": []
+}
