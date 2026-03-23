@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-generate
+  labels:
+    asya.sh/flow: text-improver
+spec:
+  actor: actor-generate
+  image: demo-kubecon
+  handler: actors.generate.generate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 10
+  env:
+  - name: PYTHONUNBUFFERED
+    value: '1'

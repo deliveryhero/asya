@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-polish
+  labels:
+    asya.sh/flow: text-improver
+spec:
+  actor: actor-polish
+  image: demo-kubecon
+  handler: actors.polish.polish
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 10
+  env:
+  - name: PYTHONUNBUFFERED
+    value: '1'

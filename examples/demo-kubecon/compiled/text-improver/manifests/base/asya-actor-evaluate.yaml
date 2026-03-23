@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-evaluate
+  labels:
+    asya.sh/flow: text-improver
+spec:
+  actor: actor-evaluate
+  image: demo-kubecon
+  handler: actors.evaluate.evaluate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 10
+  env:
+  - name: PYTHONUNBUFFERED
+    value: '1'
