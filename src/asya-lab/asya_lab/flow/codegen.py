@@ -305,6 +305,7 @@ class CodeGenerator:
                 router_refs={},
                 single_actor=actor.name,
                 adapter_files=self._adapter_files if self._adapter_files else None,
+                ignore_decorators=self.result.ignore_decorators if self.result.ignore_decorators else None,
             )
 
         start_name = f"start_{self.flow_name}"
