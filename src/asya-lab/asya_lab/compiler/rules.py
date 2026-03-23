@@ -57,6 +57,7 @@ class WhereNode:
     match: str | None = None
     assign_to: str | None = None
     example: str | None = None
+    flatten_on: str | None = None
     where: list[WhereNode] | None = None
 
     @classmethod
@@ -75,6 +76,7 @@ class WhereNode:
             match=d.get("match"),
             assign_to=d.get("assign-to"),
             example=d.get("example"),
+            flatten_on=d.get("flatten-on"),
             where=children,
         )
 

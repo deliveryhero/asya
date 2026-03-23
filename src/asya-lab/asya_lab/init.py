@@ -111,6 +111,7 @@ _RULES_YAML = """\
   treat-as: config
   where:
   - param: stop
+    flatten-on: "|"
     where:
     - match: "stop_after_attempt"
       where:
