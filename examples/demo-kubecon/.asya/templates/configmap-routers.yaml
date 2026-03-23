@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: "{{ flow_name }}-routers"
+  labels:
+    asya.sh/flow: "{{ flow_name }}"
+    asya.sh/managed-by: asya-compiler
