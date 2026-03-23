@@ -3,6 +3,7 @@ kind: Kustomization
 namespace: asya-demo
 resources:
 - ../base
+- flow-expose.yaml
 configurations:
 - kustomizeconfig.yaml
 patches:

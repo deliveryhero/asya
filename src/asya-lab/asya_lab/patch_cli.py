@@ -155,15 +155,23 @@ def _build_gateway_config(
         return None
 
     description = str(kv_dict.pop("description", ""))
+    has_mcp = kv_dict.pop("mcp", None) is not None
+    has_a2a = kv_dict.pop("a2a", None) is not None
+
+    if not description:
+        raise click.UsageError("--gateway requires description=... (e.g. description=\"Analyze text\")")
+    if not has_mcp and not has_a2a:
+        raise click.UsageError("--gateway requires at least one protocol: mcp=true and/or a2a=true")
+
     flow_data: dict = {
         "name": flow_name,
         "entrypoint": entrypoint,
         "description": description,
     }
 
-    if kv_dict.pop("mcp", None) is not None:
+    if has_mcp:
         flow_data["mcp"] = {}
-    if kv_dict.pop("a2a", None) is not None:
+    if has_a2a:
         flow_data["a2a"] = {}
 
     timeout = kv_dict.pop("timeout", None)
