@@ -12,14 +12,14 @@ spec:
   scaling:
     enabled: true
     minReplicaCount: 0
-    maxReplicaCount: '5'
+    maxReplicaCount: 5
   env: []
   resiliency:
     policies:
       try_except_line_16_0:
         maxAttempts: 1
         thenRoute:
-        - router-payment-flow-line-22-except-2
+        - router-payment-flow-line-22-except-1
     rules:
     - errors:
       - ValueError

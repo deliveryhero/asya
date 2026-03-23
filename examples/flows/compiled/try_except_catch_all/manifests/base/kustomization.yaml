@@ -4,9 +4,7 @@ resources:
 - asya-actor-handle-known-error.yaml
 - asya-actor-handle-unknown-error.yaml
 - asya-actor-risky-operation.yaml
-- asya-router-resilient-pipeline-line-11-except-4.yaml
-- asya-router-resilient-pipeline-line-12-seq-3.yaml
-- asya-router-resilient-pipeline-line-8-except-2.yaml
-- asya-router-resilient-pipeline-line-9-seq-1.yaml
+- asya-router-resilient-pipeline-line-11-except-2.yaml
+- asya-router-resilient-pipeline-line-8-except-1.yaml
 - asya-start-resilient-pipeline.yaml
 - configmap-routers.yaml

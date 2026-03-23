@@ -4,29 +4,64 @@
 # defaults. User rules are checked first; these apply when no user rule matches.
 #
 # The parser auto-detects the scope from Python syntax:
-#   with foo():        -> context manager
-#   @foo               -> decorator
-#   p = foo(p)         -> call-site
+#   with foo():                 -> context manager
+#   @foo / def fn(): # asya:   -> decorator / definition-site directive
+#   p = foo(p)                  -> call-site
 # No need to declare scope in the rule.
 
 # -- Context manager rules --
 
+# asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
 - match: "asyncio.timeout"
   treat-as: config
-  extract:
-    delay: spec.resiliency.timeout.actor
-
-- match: "contextlib.suppress"
-  treat-as: inline
-  imports:
-  - "import contextlib"
+  where:
+  - param: delay
+    assign-to: spec.resiliency.timeout.actor
 
 # -- Decorator rules --
 
+# tenacity.retry — extract nested stop/wait args into resiliency policy.
+# @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=60))
+# @retry(stop=stop_after_attempt(5) | stop_after_delay(30))
 - match: "tenacity.retry"
   treat-as: config
-  extract:
-    max_attempt_number: spec.resiliency.policies.default.maxAttempts
-    # Nested extraction (stop=stop_after_attempt(3)) requires where: trees,
-    # which is a future enhancement. For now, use direct keyword args:
-    #   @retry(max_attempt_number=3)
+  where:
+  - param: stop
+    flatten-on: "|"
+    where:
+    - match: "stop_after_attempt"
+      where:
+      - param: max_attempt_number
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "stop_after_delay"
+      where:
+      - param: max_delay
+        assign-to: spec.resiliency.policies.default.maxDuration
+  - param: wait
+    where:
+    - match: "wait_exponential"
+      where:
+      - param: min
+        assign-to: spec.resiliency.policies.default.initialDelay
+      - param: max
+        assign-to: spec.resiliency.policies.default.maxInterval
+    - match: "wait_fixed"
+      where:
+      - param: wait
+        assign-to: spec.resiliency.policies.default.initialDelay
+
+# timeout_decorator.timeout — @timeout(30)
+- match: "timeout_decorator.timeout"
+  treat-as: config
+  where:
+  - param: seconds
+    assign-to: spec.resiliency.timeout.actor
+
+# stamina.retry — @stamina.retry(attempts=3, timeout=60)
+- match: "stamina.retry"
+  treat-as: config
+  where:
+  - param: attempts
+    assign-to: spec.resiliency.policies.default.maxAttempts
+  - param: timeout
+    assign-to: spec.resiliency.policies.default.maxDuration

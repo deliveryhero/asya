@@ -269,9 +269,7 @@ class FlowParser:
         """Map function name to treat-as value for same-file definitions.
 
         Also extracts config from decorators matched by compiler rules
-        (e.g. @retry(max_attempts=3) -> spec.resiliency.policies.default.maxAttempts).
-        All decorators are scanned for config extraction; the first known
-        wrapper (@actor, @inline, etc.) determines the function's classification.
+        (e.g. @retry(max_attempts=3)).
         """
         index: dict[str, str] = {}
         for node in tree.body:
@@ -286,12 +284,11 @@ class FlowParser:
                 if dec_name in self._known_wrappers and node.name not in index:
                     index[node.name] = dec_name
 
-                # Check for config decorators via rules registry
+                # Check for config decorators via rules registries
                 if isinstance(dec, ast.Call):
                     fqn = self.import_map.get(dec_name, dec_name)
-                    rule = self.rules.lookup(fqn)
-                    if rule is not None and rule.treat_as == "config":
-                        spec_values = self._extract_decorator_args(dec, rule)
+                    spec_values = self._extract_config_decorator(dec, fqn)
+                    if spec_values is not None:
                         if spec_values:
                             self.extracted_configs.append(
                                 {
@@ -318,33 +315,35 @@ class FlowParser:
                 return ast.unparse(dec.func)
         return None
 
+    def _extract_config_decorator(self, dec: ast.Call, fqn: str) -> dict[str, object] | None:
+        """Extract config from a decorator via where: tree.
+
+        Checks both the rule engine and flow rules for a matching config rule.
+        Returns extracted {spec_path: value} dict, or None if no rule matches.
+        """
+        from asya_lab.compiler.extractor import ValueExtractor
+        from asya_lab.compiler.rules import CompilerRule as EngineRule
+        from asya_lab.compiler.rules import TreatAs
+
+        # Try rule engine first (user config rules)
+        if self._rule_engine is not None:
+            engine_rule = self._rule_engine.get_rule(fqn)
+            if engine_rule is not None and engine_rule.treat_as == TreatAs.CONFIG and engine_rule.where:
+                extractor = ValueExtractor(imports=self.import_map)
+                return {str(k): v for k, v in extractor.extract(dec, engine_rule).items()}
+
+        # Fall back to flow rules (shipped defaults)
+        flow_rule = self.rules.lookup(fqn)
+        if flow_rule is not None and flow_rule.treat_as == "config" and flow_rule.where:
+            engine_rule = EngineRule(match=fqn, treat_as=TreatAs.CONFIG, where=flow_rule.where)
+            extractor = ValueExtractor(imports=self.import_map)
+            return {str(k): v for k, v in extractor.extract(dec, engine_rule).items()}
+
+        return None
+
     def _is_local_function(self, name: str) -> bool:
         """Check if a function is defined in the current source file."""
         return name in self._local_functions
-
-    def _extract_decorator_args(self, dec: ast.Call, rule: CompilerRule) -> dict[str, str]:
-        """Extract args from a decorator call, mapping to spec paths via rule.extract."""
-        if not rule.extract:
-            return {}
-
-        raw: dict[str, str] = {}
-        param_names = list(rule.extract.keys())
-
-        for i, arg in enumerate(dec.args):
-            if i < len(param_names):
-                raw[param_names[i]] = ast.unparse(arg)
-
-        for kw in dec.keywords:
-            if kw.arg and kw.arg in rule.extract:
-                raw[kw.arg] = ast.unparse(kw.value)
-
-        spec_values: dict[str, str] = {}
-        for param, value in raw.items():
-            spec_path = rule.extract.get(param)
-            if spec_path:
-                spec_values[spec_path] = value
-
-        return spec_values
 
     # -- Import/constant collection --
 
@@ -977,32 +976,18 @@ class FlowParser:
             return ast.unparse(ctx_expr.func)
         return ast.unparse(ctx_expr)
 
-    def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, str]:
-        """Extract args from a context manager call, mapping to spec paths via rule.extract."""
-        if not isinstance(ctx_expr, ast.Call) or not rule.extract:
+    def _extract_ctx_args(self, ctx_expr: ast.expr, rule: CompilerRule) -> dict[str, object]:
+        """Extract args from a context manager call via where: tree."""
+        if not isinstance(ctx_expr, ast.Call) or not rule.where:
             return {}
 
-        call = ctx_expr
-        # First pass: bind param_name -> raw_value
-        raw: dict[str, str] = {}
-        param_names = list(rule.extract.keys())
+        from asya_lab.compiler.extractor import ValueExtractor
+        from asya_lab.compiler.rules import CompilerRule as EngineRule
+        from asya_lab.compiler.rules import TreatAs
 
-        for i, arg in enumerate(call.args):
-            if i < len(param_names):
-                raw[param_names[i]] = ast.unparse(arg)
-
-        for kw in call.keywords:
-            if kw.arg and kw.arg in rule.extract:
-                raw[kw.arg] = ast.unparse(kw.value)
-
-        # Second pass: map param_name -> spec_path using rule.extract
-        spec_values: dict[str, str] = {}
-        for param, value in raw.items():
-            spec_path = rule.extract.get(param)
-            if spec_path:
-                spec_values[spec_path] = value
-
-        return spec_values
+        engine_rule = EngineRule(match="", treat_as=TreatAs.CONFIG, where=rule.where)
+        extractor = ValueExtractor(imports=self.import_map)
+        return {str(k): v for k, v in extractor.extract(ctx_expr, engine_rule).items()}
 
     @staticmethod
     def _collect_scope_actors(ops: list[Operation]) -> list[str]:

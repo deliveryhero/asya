@@ -11,9 +11,8 @@ decorator vs call-site) — rules do not need a ``scope`` field.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from pathlib import Path
 
-import yaml
+from asya_lab.compiler.rules import WhereNode, _load_default_rules
 
 
 @dataclass
@@ -21,23 +20,18 @@ class CompilerRule:
     """Classification rule for a single symbol (context manager, decorator, etc.)."""
 
     treat_as: str  # "config" | "inline"
-    extract: dict[str, str] = field(default_factory=dict)  # param_name -> spec_path
+    where: list[WhereNode] | None = None  # extraction tree
     imports: list[str] = field(default_factory=list)  # import statements for generated code
-
-
-def _load_default_rules() -> list[dict]:
-    """Load default rules from the shipped YAML file."""
-    defaults_path = Path(__file__).parent.parent / "defaults" / "compiler.rules.yaml"
-    if defaults_path.exists():
-        return yaml.safe_load(defaults_path.read_text()) or []
-    return []
 
 
 def _rule_from_dict(d: dict) -> CompilerRule:
     """Convert a YAML rule dict to a CompilerRule."""
+    where = None
+    if "where" in d:
+        where = [WhereNode.from_dict(w) for w in d["where"]]
     return CompilerRule(
         treat_as=d.get("treat-as", "config"),
-        extract=d.get("extract", {}),
+        where=where,
         imports=d.get("imports", []),
     )
 

@@ -146,8 +146,8 @@ class ValueExtractor:
                     child_name = self._resolve_func_name(ast_node.func)
                     for child in node.where:
                         self._walk(child, child_bound, result, call_name=child_name)
-                elif isinstance(ast_node, ast.BinOp):
-                    calls = self._flatten_binop(ast_node)
+                elif isinstance(ast_node, ast.BinOp) and node.flatten_on:
+                    calls = self._flatten_binop(ast_node, node.flatten_on)
                     for call in calls:
                         child_bound = self._bind_args(call)
                         child_name = self._resolve_func_name(call.func)
@@ -165,14 +165,24 @@ class ValueExtractor:
     # -- BinOp flattening ---------------------------------------------------
 
     @staticmethod
-    def _flatten_binop(node: ast.expr) -> list[ast.Call]:
-        """Flatten ``a | b | c`` BinOp tree into a list of Call nodes."""
+    def _flatten_binop(node: ast.expr, operator: str) -> list[ast.Call]:
+        """Flatten a BinOp tree into a list of Call nodes.
+
+        Only flattens nodes using the specified operator (e.g. ``"|"`` for
+        ``ast.BitOr``).  Unrecognized operators are not traversed.
+        """
+        op_types: dict[str, type] = {
+            "|": ast.BitOr,
+            "&": ast.BitAnd,
+            "+": ast.Add,
+        }
+        expected_op = op_types.get(operator)
         result: list[ast.Call] = []
 
         def _collect(n: ast.expr) -> None:
             if isinstance(n, ast.Call):
                 result.append(n)
-            elif isinstance(n, ast.BinOp):
+            elif isinstance(n, ast.BinOp) and expected_op and isinstance(n.op, expected_op):
                 _collect(n.left)
                 _collect(n.right)
 

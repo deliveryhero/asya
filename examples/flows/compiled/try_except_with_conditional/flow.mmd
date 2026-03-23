@@ -6,28 +6,26 @@ flowchart TD
     notify_payment_failure[notify_payment_failure]
     process_bank_transfer[process_bank_transfer]
     record_transaction[record_transaction]
-    router_payment_flow_line_17_if_3{{router_payment_flow_line_17_if_3}}
-    router_payment_flow_line_22_except_2{{router_payment_flow_line_22_except_2}}
-    router_payment_flow_line_23_seq_1{{"router_payment_flow_line_23_seq_1<br/><br/>p['status'] = 'payment_failed'"}}
+    router_payment_flow_line_17_if_2{{router_payment_flow_line_17_if_2}}
+    router_payment_flow_line_22_except_1{{"router_payment_flow_line_22_except_1<br/><br/>p['status'] = 'payment_failed'"}}
     send_receipt[send_receipt]
     start_payment_flow([start_payment_flow])
     validate_payment[validate_payment]
     __end__((( )))
 
     start_payment_flow --> validate_payment
-    validate_payment --> router_payment_flow_line_17_if_3
+    validate_payment --> router_payment_flow_line_17_if_2
     audit_log --> send_receipt
-    router_payment_flow_line_23_seq_1 --> notify_payment_failure
-    router_payment_flow_line_22_except_2 --> router_payment_flow_line_23_seq_1
-    router_payment_flow_line_17_if_3 -->|"p['method'] == 'card'"| charge_card
-    charge_card --> record_transaction
-    router_payment_flow_line_17_if_3 -->|"else"| process_bank_transfer
-    process_bank_transfer --> record_transaction
-    charge_card -->|"ValueError"| router_payment_flow_line_22_except_2
-    process_bank_transfer -->|"ValueError"| router_payment_flow_line_22_except_2
-    record_transaction -->|"ValueError"| router_payment_flow_line_22_except_2
-    record_transaction --> audit_log
+    router_payment_flow_line_22_except_1 --> notify_payment_failure
     notify_payment_failure --> audit_log
+    router_payment_flow_line_17_if_2 -->|"p['method'] == 'card'"| charge_card
+    charge_card --> record_transaction
+    router_payment_flow_line_17_if_2 -->|"else"| process_bank_transfer
+    process_bank_transfer --> record_transaction
+    charge_card -->|"ValueError"| router_payment_flow_line_22_except_1
+    process_bank_transfer -->|"ValueError"| router_payment_flow_line_22_except_1
+    record_transaction -->|"ValueError"| router_payment_flow_line_22_except_1
+    record_transaction --> audit_log
     send_receipt --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -37,7 +35,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_payment_flow start
     class send_receipt endnode
-    class router_payment_flow_line_17_if_3,router_payment_flow_line_22_except_2,router_payment_flow_line_23_seq_1 router
+    class router_payment_flow_line_17_if_2,router_payment_flow_line_22_except_1 router
     class audit_log,charge_card,notify_payment_failure,process_bank_transfer,record_transaction,validate_payment handler
     class __end__ endpoint
     linkStyle 5 stroke:#2E8B57

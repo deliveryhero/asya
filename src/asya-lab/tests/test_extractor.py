@@ -214,21 +214,28 @@ class TestNestedWhereTree:
 
 class TestBinOpFlattening:
     def test_flatten_pipe_operator(self):
-        """a | b | c should flatten to three Call nodes."""
+        """a | b | c should flatten to three Call nodes with operator='|'."""
         tree = ast.parse("a() | b() | c()", mode="eval")
-        calls = ValueExtractor._flatten_binop(tree.body)
+        calls = ValueExtractor._flatten_binop(tree.body, "|")
         assert len(calls) == 3
         func_names = [ValueExtractor._resolve_func_name(c.func) for c in calls]
         assert func_names == ["a", "b", "c"]
 
+    def test_flatten_wrong_operator_returns_empty(self):
+        """BinOp with & should not flatten when flatten-on is '|'."""
+        tree = ast.parse("a() & b()", mode="eval")
+        calls = ValueExtractor._flatten_binop(tree.body, "|")
+        assert len(calls) == 0
+
     def test_binop_param_extraction(self):
-        """Where node whose param points to a BinOp should extract from each call."""
+        """Where node with flatten-on='|' extracts from each call in BinOp."""
         rule = CompilerRule(
             match="tenacity.retry",
             treat_as=TreatAs.CONFIG,
             where=[
                 WhereNode(
                     param="wait",
+                    flatten_on="|",
                     where=[
                         WhereNode(
                             param="min",
@@ -249,6 +256,25 @@ class TestBinOpFlattening:
             "spec.resiliency.retry.waitMin": 1,
             "spec.resiliency.retry.waitMax": 10,
         }
+
+    def test_binop_without_flatten_on_is_ignored(self):
+        """BinOp param without flatten-on is not traversed."""
+        rule = CompilerRule(
+            match="tenacity.retry",
+            treat_as=TreatAs.CONFIG,
+            where=[
+                WhereNode(
+                    param="wait",
+                    where=[
+                        WhereNode(param="min", assign_to="spec.min"),
+                    ],
+                ),
+            ],
+        )
+        node = _parse_call("tenacity.retry(wait=wait_a(min=1) | wait_b(min=2))")
+        extractor = ValueExtractor()
+        result = extractor.extract(node, rule)
+        assert result == {}
 
 
 # -- _resolve_func_name ---------------------------------------------------

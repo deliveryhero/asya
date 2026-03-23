@@ -1,0 +1,66 @@
+{
+  "flow_name": "llm_pipeline",
+  "nodes": [
+    {
+      "id": "call_llm",
+      "label": "call_llm"
+    },
+    {
+      "id": "parse_response",
+      "label": "parse_response"
+    },
+    {
+      "id": "start_llm_pipeline",
+      "label": "start_llm_pipeline",
+      "role": "start",
+      "generated": true,
+      "mutations": [
+        "p['status'] = 'started'"
+      ]
+    },
+    {
+      "id": "store_result",
+      "label": "store_result",
+      "role": "end"
+    },
+    {
+      "id": "validate_input",
+      "label": "validate_input"
+    }
+  ],
+  "edges": [
+    {
+      "from": "start_llm_pipeline",
+      "to": "validate_input",
+      "label": null,
+      "type": "prepend"
+    },
+    {
+      "from": "validate_input",
+      "to": "call_llm",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "call_llm",
+      "to": "parse_response",
+      "label": null,
+      "type": "continuation"
+    },
+    {
+      "from": "parse_response",
+      "to": "store_result",
+      "label": null,
+      "type": "continuation"
+    }
+  ],
+  "groups": [
+    {
+      "id": "asyncio.timeout(120)",
+      "nodes": [
+        "call_llm",
+        "parse_response"
+      ]
+    }
+  ]
+}

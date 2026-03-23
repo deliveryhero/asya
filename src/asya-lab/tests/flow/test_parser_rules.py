@@ -38,8 +38,7 @@ class TestRuleClassification:
         assert isinstance(ops[0], Mutation)
 
     def test_no_rule_defaults_to_actor(self) -> None:
-        # Without a matching rule, the parser falls through to ActorCall.
-        source = "@flow\ndef flow(p: dict) -> dict:\n    p = tenacity.retry(p)\n    return p\n"
+        source = "@flow\ndef flow(p: dict) -> dict:\n    p = unknown_lib.func(p)\n    return p\n"
         engine = RuleEngine.with_defaults()
         parser = FlowParser(source, "test.py", rule_engine=engine)
         ops = parser.parse().operations

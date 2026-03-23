@@ -20,34 +20,18 @@ async def start_resilient_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_resilient_pipeline_line_9_seq_1(payload: dict):
-    """Router for control flow and payload mutations"""
+async def router_resilient_pipeline_line_8_except_1(payload: dict):
+    """Router for error handling (except clause)"""
     p = payload
-    _next = []
     p['error_type'] = 'known'
-    _next.append(resolve("handle_known_error"))
-
-    yield "SET", ".route.next[:0]", _next
+    yield "SET", ".route.next", [resolve('handle_known_error')]
     yield payload
 
-async def router_resilient_pipeline_line_8_except_2(payload: dict):
+async def router_resilient_pipeline_line_11_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_resilient_pipeline_line_9_seq_1')]
-    yield payload
-
-async def router_resilient_pipeline_line_12_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
     p = payload
-    _next = []
     p['error_type'] = 'unknown'
-    _next.append(resolve("handle_unknown_error"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_resilient_pipeline_line_11_except_4(payload: dict):
-    """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_resilient_pipeline_line_12_seq_3')]
+    yield "SET", ".route.next", [resolve('handle_unknown_error')]
     yield payload
 
 

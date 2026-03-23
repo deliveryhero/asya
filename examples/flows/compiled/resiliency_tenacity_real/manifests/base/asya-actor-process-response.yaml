@@ -1,0 +1,25 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-process-response
+  namespace: default
+  labels:
+    asya.sh/flow: api-pipeline
+spec:
+  actor: actor-process-response
+  image: examples.asya.sh/process-response:latest
+  handler: process_response
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env:
+  - name: ASYA_IGNORE_DECORATORS
+    value: tenacity.retry
+  resiliency:
+    timeout:
+      actor: 120
+    policies:
+      default:
+        maxAttempts: 5
+        maxDuration: 30

@@ -121,21 +121,22 @@ class TestRuleEngineGetRule:
 
 
 class TestRuleEngineWithDefaults:
-    def test_defaults_has_no_builtin_rules(self) -> None:
+    def test_defaults_loads_shipped_where_rules(self) -> None:
         engine = RuleEngine.with_defaults()
-        assert engine.rules == []
+        assert engine.classify("tenacity.retry") is TreatAs.CONFIG
         assert engine.classify("my_func") is None
-        assert engine.classify("external.lib") is None
 
     def test_extra_rules_are_used(self) -> None:
-        extra = [CompilerRule(match="tenacity.retry", treat_as=TreatAs.CONFIG)]
+        extra = [CompilerRule(match="custom.lib", treat_as=TreatAs.INLINE)]
         engine = RuleEngine.with_defaults(extra_rules=extra)
+        assert engine.classify("custom.lib") is TreatAs.INLINE
         assert engine.classify("tenacity.retry") is TreatAs.CONFIG
         assert engine.classify("other.lib") is None
 
     def test_defaults_rules_property(self) -> None:
         engine = RuleEngine.with_defaults()
-        assert engine.rules == []
+        assert len(engine.rules) > 0
+        assert any(r.match == "tenacity.retry" for r in engine.rules)
 
 
 class TestRuleEngineFromConfig:

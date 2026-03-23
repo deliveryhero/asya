@@ -22,26 +22,16 @@
       "label": "parse_data"
     },
     {
-      "id": "router_nested_error_handling_line_29_except_4",
-      "label": "router_nested_error_handling_line_29_except_4",
-      "generated": true
-    },
-    {
-      "id": "router_nested_error_handling_line_30_seq_3",
-      "label": "router_nested_error_handling_line_30_seq_3",
+      "id": "router_nested_error_handling_line_29_except_2",
+      "label": "router_nested_error_handling_line_29_except_2",
       "generated": true,
       "mutations": [
         "p['parse_status'] = 'invalid'"
       ]
     },
     {
-      "id": "router_nested_error_handling_line_33_except_2",
-      "label": "router_nested_error_handling_line_33_except_2",
-      "generated": true
-    },
-    {
-      "id": "router_nested_error_handling_line_34_seq_1",
-      "label": "router_nested_error_handling_line_34_seq_1",
+      "id": "router_nested_error_handling_line_33_except_1",
+      "label": "router_nested_error_handling_line_33_except_1",
       "generated": true,
       "mutations": [
         "p['status'] = 'connection_failed'"
@@ -105,64 +95,10 @@
       "type": "continuation"
     },
     {
-      "from": "router_nested_error_handling_line_34_seq_1",
+      "from": "router_nested_error_handling_line_33_except_1",
       "to": "handle_connection_error",
       "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_nested_error_handling_line_33_except_2",
-      "to": "router_nested_error_handling_line_34_seq_1",
-      "label": null,
       "type": "set"
-    },
-    {
-      "from": "router_nested_error_handling_line_30_seq_3",
-      "to": "handle_parse_error",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_nested_error_handling_line_29_except_4",
-      "to": "router_nested_error_handling_line_30_seq_3",
-      "label": null,
-      "type": "set"
-    },
-    {
-      "from": "fetch_data",
-      "to": "router_nested_error_handling_line_33_except_2",
-      "label": "ConnectionError",
-      "type": "error"
-    },
-    {
-      "from": "parse_data",
-      "to": "router_nested_error_handling_line_33_except_2",
-      "label": "ConnectionError",
-      "type": "error"
-    },
-    {
-      "from": "parse_data",
-      "to": "router_nested_error_handling_line_29_except_4",
-      "label": "ValueError",
-      "type": "error"
-    },
-    {
-      "from": "validate_data",
-      "to": "router_nested_error_handling_line_33_except_2",
-      "label": "ConnectionError",
-      "type": "error"
-    },
-    {
-      "from": "validate_data",
-      "to": "router_nested_error_handling_line_29_except_4",
-      "label": "ValueError",
-      "type": "error"
-    },
-    {
-      "from": "transform_data",
-      "to": "router_nested_error_handling_line_33_except_2",
-      "label": "ConnectionError",
-      "type": "error"
     },
     {
       "from": "handle_connection_error",
@@ -171,10 +107,52 @@
       "type": "continuation"
     },
     {
+      "from": "router_nested_error_handling_line_29_except_2",
+      "to": "handle_parse_error",
+      "label": null,
+      "type": "set"
+    },
+    {
       "from": "handle_parse_error",
       "to": "transform_data",
       "label": null,
       "type": "continuation"
+    },
+    {
+      "from": "fetch_data",
+      "to": "router_nested_error_handling_line_33_except_1",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_nested_error_handling_line_33_except_1",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "parse_data",
+      "to": "router_nested_error_handling_line_29_except_2",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "validate_data",
+      "to": "router_nested_error_handling_line_33_except_1",
+      "label": "ConnectionError",
+      "type": "error"
+    },
+    {
+      "from": "validate_data",
+      "to": "router_nested_error_handling_line_29_except_2",
+      "label": "ValueError",
+      "type": "error"
+    },
+    {
+      "from": "transform_data",
+      "to": "router_nested_error_handling_line_33_except_1",
+      "label": "ConnectionError",
+      "type": "error"
     }
   ],
   "groups": []

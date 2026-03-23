@@ -25,34 +25,18 @@ async def start_nested_error_handling(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_nested_error_handling_line_34_seq_1(payload: dict):
-    """Router for control flow and payload mutations"""
+async def router_nested_error_handling_line_33_except_1(payload: dict):
+    """Router for error handling (except clause)"""
     p = payload
-    _next = []
     p['status'] = 'connection_failed'
-    _next.append(resolve("handle_connection_error"))
-
-    yield "SET", ".route.next[:0]", _next
+    yield "SET", ".route.next", [resolve('handle_connection_error'), resolve('cleanup'), resolve('store_results')]
     yield payload
 
-async def router_nested_error_handling_line_33_except_2(payload: dict):
+async def router_nested_error_handling_line_29_except_2(payload: dict):
     """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_nested_error_handling_line_34_seq_1'), resolve('cleanup'), resolve('store_results')]
-    yield payload
-
-async def router_nested_error_handling_line_30_seq_3(payload: dict):
-    """Router for control flow and payload mutations"""
     p = payload
-    _next = []
     p['parse_status'] = 'invalid'
-    _next.append(resolve("handle_parse_error"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_nested_error_handling_line_29_except_4(payload: dict):
-    """Router for error handling (except clause)"""
-    yield "SET", ".route.next", [resolve('router_nested_error_handling_line_30_seq_3'), resolve('transform_data')]
+    yield "SET", ".route.next", [resolve('handle_parse_error'), resolve('transform_data')]
     yield payload
 
 

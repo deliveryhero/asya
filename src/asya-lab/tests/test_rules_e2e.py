@@ -111,6 +111,7 @@ _TENACITY_RULES_YAML = dedent("""\
     - match: "tenacity.retry"
       where:
         - param: stop
+          flatten-on: "|"
           where:
             - param: max_attempt_number
               assign-to: spec.resiliency.retry.maxAttempts
