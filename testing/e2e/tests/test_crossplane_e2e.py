@@ -1987,3 +1987,86 @@ def test_asyncactor_flavor_conflict_rejected(e2e_helper):
         raise
     finally:
         _cleanup_actor(actor_name, e2e_helper.namespace)
+
+
+@pytest.mark.core
+@pytest.mark.timeout(450)
+def test_asyncactor_infrastructure_keda_ready_updates(e2e_helper):
+    """
+    E2E: Test that status.infrastructure.keda.ready transitions to true.
+
+    Regression test for mqd9: the composition status pipeline was not observing
+    ScaledObject status changes because the Crossplane Object resource had
+    watch: false. This caused infrastructure.keda.ready to stay false forever,
+    keeping the actor phase stuck at Creating.
+
+    Scenario:
+    1. Create AsyncActor with scaling enabled
+    2. Wait for AsyncActor to reach Ready condition (Crossplane)
+    3. Verify status.infrastructure.keda.ready is true
+    4. Verify status.infrastructure.workload.ready is true
+    5. Verify status.phase is Ready or Napping (not Creating)
+
+    Expected: All infrastructure status fields reflect actual resource states
+
+    Skipped on pubsub: KEDA's gcp-pubsub trigger never reaches READY=True
+    with the pubsub emulator, so keda.ready correctly stays false.
+    """
+    if TRANSPORT == "pubsub":
+        pytest.skip("KEDA ScaledObject never reaches READY=True with pubsub emulator")
+    name = "test-keda-status"
+    manifest = _actor_manifest(
+        name, e2e_helper.namespace, scaling_enabled=True, min_replicas=1, max_replicas=3
+    )
+
+    try:
+        logger.info("Creating AsyncActor with scaling enabled...")
+        kubectl_apply(manifest, namespace=e2e_helper.namespace)
+
+        logger.info("Waiting for AsyncActor to be ready...")
+        assert wait_for_asyncactor_ready(
+            name,
+            namespace=e2e_helper.namespace,
+            timeout=270,
+        ), "AsyncActor should reach Ready=True"
+
+        logger.info("Verifying ScaledObject exists and is ready...")
+        assert wait_for_resource(
+            "scaledobject", name, namespace=e2e_helper.namespace, timeout=60
+        ), "ScaledObject should exist"
+
+        # Poll for infrastructure status to be populated by the composition
+        actor = None
+        infrastructure = None
+        for _attempt in range(30):
+            time.sleep(5)  # Poll every 5s for status pipeline to observe ScaledObject readiness
+            actor = kubectl_get("asyncactor", name, namespace=e2e_helper.namespace)
+            infrastructure = actor.get("status", {}).get("infrastructure", {})
+            keda_ready = infrastructure.get("keda", {}).get("ready")
+            if keda_ready is True:
+                break
+
+        logger.info(f"AsyncActor status: {actor.get('status', {})}")
+
+        assert infrastructure.get("keda", {}).get("ready") is True, (
+            f"infrastructure.keda.ready should be true after ScaledObject becomes Ready, "
+            f"got: {infrastructure.get('keda')}"
+        )
+
+        assert infrastructure.get("workload", {}).get("ready") is True, (
+            f"infrastructure.workload.ready should be true, got: {infrastructure.get('workload')}"
+        )
+
+        phase = actor.get("status", {}).get("phase")
+        assert phase in ("Ready", "Napping"), (
+            f"Phase should be Ready or Napping (not Creating), got: {phase}"
+        )
+
+        logger.info(f"[+] Infrastructure status pipeline verified: phase={phase}, "
+                     f"keda.ready={infrastructure.get('keda', {}).get('ready')}")
+
+    except Exception:
+        log_asyncactor_workload_diagnostics(name, namespace=e2e_helper.namespace)
+        raise
+    finally:
+        _cleanup_actor(name, e2e_helper.namespace)
