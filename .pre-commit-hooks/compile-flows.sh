@@ -55,7 +55,6 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     [[ "$flow_name" == _asya_utils ]] && continue
 
     # Flows requiring unsupported syntax (inline with)
-    [[ "$flow_name" == with_inline_ctx ]] && continue
     [[ "$flow_name" == adk_llm_auditor ]] && continue
     [[ "$flow_name" == guardrails_sandwich ]] && continue
     output_dir="$flow_dir/compiled/$flow_name"
