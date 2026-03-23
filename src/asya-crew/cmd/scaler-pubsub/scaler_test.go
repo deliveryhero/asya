@@ -7,6 +7,8 @@ import (
 
 	pubsubpb "cloud.google.com/go/pubsub/v2/apiv1/pubsubpb"
 	pb "github.com/deliveryhero/asya/scaler-pubsub/externalscaler"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type mockPubSub struct {
@@ -98,6 +100,60 @@ func TestIsActive_PullError(t *testing.T) {
 	})
 	if err == nil {
 		t.Error("expected error when pull fails")
+	}
+}
+
+func TestIsActive_DeadlineExceeded_ReturnsInactive(t *testing.T) {
+	mock := &mockPubSub{
+		pullErr: status.Error(codes.DeadlineExceeded, "context deadline exceeded"),
+	}
+	scaler := NewPubSubScaler(mock)
+
+	resp, err := scaler.IsActive(context.Background(), &pb.ScaledObjectRef{
+		ScalerMetadata: map[string]string{"subscriptionName": "projects/p/subscriptions/s"},
+	})
+	if err != nil {
+		t.Fatalf("DeadlineExceeded should not return error, got: %v", err)
+	}
+	if resp.Result {
+		t.Error("expected IsActive=false for empty queue (DeadlineExceeded)")
+	}
+}
+
+func TestGetMetrics_DeadlineExceeded_ReturnsZero(t *testing.T) {
+	mock := &mockPubSub{
+		pullErr: status.Error(codes.DeadlineExceeded, "context deadline exceeded"),
+	}
+	scaler := NewPubSubScaler(mock)
+
+	resp, err := scaler.GetMetrics(context.Background(), &pb.GetMetricsRequest{
+		ScaledObjectRef: &pb.ScaledObjectRef{
+			ScalerMetadata: map[string]string{"subscriptionName": "projects/p/subscriptions/s"},
+		},
+		MetricName: metricName,
+	})
+	if err != nil {
+		t.Fatalf("DeadlineExceeded should not return error, got: %v", err)
+	}
+	if resp.MetricValues[0].MetricValue != 0 {
+		t.Errorf("expected 0 messages, got %d", resp.MetricValues[0].MetricValue)
+	}
+}
+
+func TestIsActive_NotFound_ReturnsInactive(t *testing.T) {
+	mock := &mockPubSub{
+		pullErr: status.Error(codes.NotFound, "resource not found"),
+	}
+	scaler := NewPubSubScaler(mock)
+
+	resp, err := scaler.IsActive(context.Background(), &pb.ScaledObjectRef{
+		ScalerMetadata: map[string]string{"subscriptionName": "projects/p/subscriptions/s"},
+	})
+	if err != nil {
+		t.Fatalf("NotFound should not return error, got: %v", err)
+	}
+	if resp.Result {
+		t.Error("expected IsActive=false for missing subscription")
 	}
 }
 
