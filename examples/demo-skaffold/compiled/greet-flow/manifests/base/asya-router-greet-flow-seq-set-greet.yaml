@@ -1,22 +1,22 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-greet-flow-line-13-seq-1
+  name: router-greet-flow-seq-set-greet
   namespace: default
   labels:
     asya.sh/flow: greet-flow
     asya.sh/generated: 'true'
 spec:
-  actor: router-greet-flow-line-13-seq-1
+  actor: router-greet-flow-seq-set-greet
   image: python:3.13-slim
-  handler: routers.router_greet_flow_line_13_seq_1
+  handler: routers.router_greet_flow_seq_set_greet
   scaling:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
   env:
-  - name: ASYA_HANDLER_ROUTER_GREET_FLOW_LINE_13_SEQ_1
-    value: routers.router_greet_flow_line_13_seq_1
+  - name: ASYA_HANDLER_ROUTER_GREET_FLOW_SEQ_SET_GREET
+    value: routers.router_greet_flow_seq_set_greet
   volumes:
   - name: routers
     configMap:

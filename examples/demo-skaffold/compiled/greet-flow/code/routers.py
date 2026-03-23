@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile greet_flow.py
 async def start_greet_flow(payload: dict):
     """Entrypoint for flow 'greet_flow'"""
     _next = []
-    _next.append(resolve("router_greet_flow_line_13_seq_1"))
+    _next.append(resolve("router_greet_flow_seq_set_greet"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_greet_flow_line_13_seq_1(payload: dict):
+async def router_greet_flow_seq_set_greet(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['greet'] = greet(p)

@@ -2,8 +2,8 @@
   "flow_name": "greet_flow",
   "nodes": [
     {
-      "id": "router_greet_flow_line_13_seq_1",
-      "label": "router_greet_flow_line_13_seq_1",
+      "id": "router_greet_flow_seq_set_greet",
+      "label": "router_greet_flow_seq_set_greet",
       "generated": true,
       "mutations": [
         "p['greet'] = greet(p)",
@@ -20,7 +20,7 @@
   "edges": [
     {
       "from": "start_greet_flow",
-      "to": "router_greet_flow_line_13_seq_1",
+      "to": "router_greet_flow_seq_set_greet",
       "label": null,
       "type": "prepend"
     }
