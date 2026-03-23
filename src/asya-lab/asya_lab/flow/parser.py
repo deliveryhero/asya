@@ -541,10 +541,10 @@ class FlowParser:
                     return [self._parse_fanout_gather(stmt, target, value)]
             directive = self._directives.get(stmt.lineno)
             if directive is not None and directive.treat_as == "actor":
-                self.warnings.append(
-                    f"{self.filename}:{stmt.lineno}: '# asya: actor' ignored on subscript assignment "
-                    f"(p[\"key\"] = func(p)). Actor calls must use 'p = func(p)' — "
-                    f"the full payload is passed through the actor boundary."
+                raise FlowCompileError(
+                    f"{self.filename}:{stmt.lineno}: subscript assignment with '# asya: actor' "
+                    f"is not supported. Use 'p = func(p)' instead of 'p[\"key\"] = func(p)'. "
+                    f"Adapter generation for non-standard call patterns is planned (aint syop)."
                 )
             code = ast.unparse(stmt)
             return [Mutation(lineno=stmt.lineno, code=code)]
