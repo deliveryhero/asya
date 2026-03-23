@@ -126,8 +126,7 @@ def _rel(p: Path) -> str:
 @click.argument("flow_name", type=ASYA_REF)
 @click.option("--actor", "-a", "actor_ref", default=None, help="Build only this actor's image")
 @click.option("--dir", "build_dir", default=None, type=click.Path(exists=True), help="Build from this skaffold directory")
-@click.option("--push", is_flag=True, default=True, help="Push to registry (default: true)")
-@click.option("--no-push", is_flag=True, help="Build locally without pushing")
+@click.option("--push", is_flag=True, default=False, help="Push to registry after build")
 @click.option("--tag", is_flag=True, help="Auto-update kustomize image tags after build")
 @click.option("--default-repo", "default_repo", default=None, help="Registry prefix (skaffold --default-repo)")
 def build(
@@ -135,7 +134,6 @@ def build(
     actor_ref: str | None,
     build_dir: str | None,
     push: bool,
-    no_push: bool,
     tag: bool,
     default_repo: str | None,
 ) -> None:
@@ -143,17 +141,15 @@ def build(
 
     Finds skaffold.yaml files referenced by the flow's actors and runs
     skaffold build. Use --tag to auto-update kustomize image entries.
+    Registry is read from .asya/config.yaml `registry:` field.
 
     \b
     Examples:
-      asya build text-flow --default-repo=$REGISTRY
-      asya build text-flow --actor analyze
+      asya build text-flow                    # build locally
+      asya build text-flow --push --tag       # build, push, update tags
+      asya build text-flow --actor analyze    # one actor only
       asya build text-flow --dir src/team-a/proper-package
-      asya build text-flow --tag --default-repo=$REGISTRY
-      asya build text-flow --no-push
     """
-    if no_push:
-        push = False
 
     asya_dir = find_asya_dir(Path.cwd())
     if asya_dir is None:

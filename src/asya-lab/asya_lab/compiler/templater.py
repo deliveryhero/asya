@@ -376,12 +376,21 @@ images:
         config_path = common_dir / "kustomizeconfig.yaml"
         config_path.write_text(self._KUSTOMIZE_CONFIG)
 
-        kust = {
+        # Resolve namespace from default context if configured
+        contexts = self.project.get_contexts()
+        default_ctx = self.project.cfg.get("default_context")
+        ns = None
+        if default_ctx and contexts and default_ctx in contexts:
+            ns = contexts[default_ctx].get("namespace")
+
+        kust: dict = {
             "apiVersion": "kustomize.config.k8s.io/v1beta1",
             "kind": "Kustomization",
-            "resources": ["../base"],
-            "configurations": ["kustomizeconfig.yaml"],
         }
+        if ns:
+            kust["namespace"] = str(ns)
+        kust["resources"] = ["../base"]
+        kust["configurations"] = ["kustomizeconfig.yaml"]
         kust_path.write_text(yaml.dump(kust, default_flow_style=False, sort_keys=False))
         return ["common/kustomization.yaml", "common/kustomizeconfig.yaml"]
 
