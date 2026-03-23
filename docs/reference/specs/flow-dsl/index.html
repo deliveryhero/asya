@@ -3206,14 +3206,26 @@ The <code>extract:</code> field maps parameter names to spec paths:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Context manager: asyncio.timeout(30) -&gt; spec.resiliency.timeout.actor: 30</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;asyncio.timeout&quot;</span>
 <span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
-<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">delay</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.timeout.actor</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">delay</span>
+<span class="w">    </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.timeout.actor</span>
 
-<span class="c1"># Decorator: @retry(max_attempt_number=5) -&gt; spec.resiliency.policies.default.maxAttempts: 5</span>
+<span class="c1"># Decorator: @retry(stop=stop_after_attempt(3)) -&gt; maxAttempts: 3</span>
+<span class="c1"># Supports BinOp: stop=stop_after_attempt(5) | stop_after_delay(30)</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tenacity.retry&quot;</span>
 <span class="w">  </span><span class="nt">treat-as</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">config</span>
-<span class="w">  </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">max_attempt_number</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+<span class="w">  </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">stop</span>
+<span class="w">    </span><span class="nt">flatten-on</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;|&quot;</span>
+<span class="w">    </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_attempt&quot;</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_attempt_number</span>
+<span class="w">        </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxAttempts</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;stop_after_delay&quot;</span>
+<span class="w">      </span><span class="nt">where</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">max_delay</span>
+<span class="w">        </span><span class="nt">assign-to</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.resiliency.policies.default.maxDuration</span>
 </code></pre></div>
 <p>The parser auto-detects scope from Python syntax — no <code>scope:</code> field needed:
 - Context managers (<code>with foo():</code>) apply config to all actors in the <code>with</code> body
@@ -3242,13 +3254,19 @@ writes into AsyncActor manifests.</p>
 <ul>
 <li><strong>Terminal node</strong> (<code>param</code> + <code>assign-to</code>): extract value from bound arg,
   store at spec path</li>
-<li><strong>Non-terminal node</strong> (<code>param</code> + <code>where</code>): bound arg is itself a Call or
-  BinOp; bind its args and recurse into children</li>
+<li><strong>Non-terminal node</strong> (<code>param</code> + <code>where</code>): bound arg is itself a Call;
+  bind its args and recurse into children</li>
 <li><strong>Match-only node</strong> (<code>match</code> + <code>where</code>, no <code>param</code>): discriminator — only
   recurse if the current AST call's function name matches <code>match</code></li>
-<li><strong>BinOp flattening</strong>: <code>a() | b() | c()</code> flattened into three calls, each
-  walked independently (tenacity's pipe combinator)</li>
+<li><strong>BinOp flattening</strong> (<code>flatten-on: "|"</code>): when a non-terminal param
+  resolves to a BinOp using the specified operator, flatten into a list of
+  calls and try each against the <code>where:</code> children independently. Without
+  <code>flatten-on</code>, BinOp expressions are not traversed.</li>
 </ul>
+<p>Example: <code>stop=stop_after_attempt(5) | stop_after_delay(30)</code> is flattened
+  into <code>[stop_after_attempt(5), stop_after_delay(30)]</code>, each matched
+  against the <code>match:</code> discriminators in the <code>where:</code> tree.</p>
+<p>Supported operators: <code>"|"</code> (BitOr), <code>"&amp;"</code> (BitAnd), <code>"+"</code> (Add).</p>
 <h3 id="paramspec">ParamSpec<a class="headerlink" href="#paramspec" title="Permanent link">#</a></h3>
 <p>Rules can declare both positional and keyword bindings:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">param</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="nt">arg</span><span class="p">:</span><span class="w"> </span><span class="nv">0</span><span class="p p-Indicator">,</span><span class="nt"> kwarg</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;name&quot;</span><span class="p p-Indicator">,</span><span class="nt"> type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;str&quot;</span><span class="p p-Indicator">}</span>

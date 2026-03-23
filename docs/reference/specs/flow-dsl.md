@@ -580,14 +580,26 @@ The `extract:` field maps parameter names to spec paths:
 # Context manager: asyncio.timeout(30) -> spec.resiliency.timeout.actor: 30
 - match: "asyncio.timeout"
   treat-as: config
-  extract:
-    delay: spec.resiliency.timeout.actor
+  where:
+  - param: delay
+    assign-to: spec.resiliency.timeout.actor
 
-# Decorator: @retry(max_attempt_number=5) -> spec.resiliency.policies.default.maxAttempts: 5
+# Decorator: @retry(stop=stop_after_attempt(3)) -> maxAttempts: 3
+# Supports BinOp: stop=stop_after_attempt(5) | stop_after_delay(30)
 - match: "tenacity.retry"
   treat-as: config
-  extract:
-    max_attempt_number: spec.resiliency.policies.default.maxAttempts
+  where:
+  - param: stop
+    flatten-on: "|"
+    where:
+    - match: "stop_after_attempt"
+      where:
+      - param: max_attempt_number
+        assign-to: spec.resiliency.policies.default.maxAttempts
+    - match: "stop_after_delay"
+      where:
+      - param: max_delay
+        assign-to: spec.resiliency.policies.default.maxDuration
 ```
 
 The parser auto-detects scope from Python syntax — no `scope:` field needed:
@@ -625,12 +637,20 @@ The `where:` tree is walked recursively:
 
 - **Terminal node** (`param` + `assign-to`): extract value from bound arg,
   store at spec path
-- **Non-terminal node** (`param` + `where`): bound arg is itself a Call or
-  BinOp; bind its args and recurse into children
+- **Non-terminal node** (`param` + `where`): bound arg is itself a Call;
+  bind its args and recurse into children
 - **Match-only node** (`match` + `where`, no `param`): discriminator — only
   recurse if the current AST call's function name matches `match`
-- **BinOp flattening**: `a() | b() | c()` flattened into three calls, each
-  walked independently (tenacity's pipe combinator)
+- **BinOp flattening** (`flatten-on: "|"`): when a non-terminal param
+  resolves to a BinOp using the specified operator, flatten into a list of
+  calls and try each against the `where:` children independently. Without
+  `flatten-on`, BinOp expressions are not traversed.
+
+  Example: `stop=stop_after_attempt(5) | stop_after_delay(30)` is flattened
+  into `[stop_after_attempt(5), stop_after_delay(30)]`, each matched
+  against the `match:` discriminators in the `where:` tree.
+
+  Supported operators: `"|"` (BitOr), `"&"` (BitAnd), `"+"` (Add).
 
 ### ParamSpec
 
