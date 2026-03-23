@@ -223,20 +223,33 @@ Actor handler
          │ HTTP POST /mesh/{task_id}/fly
          ▼
     Gateway (mesh mode)
-         │ fans out to all SSE subscribers
+         │ broadcasts via pg_notify (no DB write)
          ▼
-    Connected clients (SSE stream)
+    PG LISTEN/NOTIFY
+         │ cross-process delivery
+         ▼
+    Gateway (api mode)
+         │ in-process subscribers
+         ▼
+    Connected SSE clients (/stream/{id} or /mesh/{id}/stream)
 ```
 
-FLY events bypass message queues entirely — they travel from the sidecar directly to the gateway via HTTP, then to clients via SSE. This makes them fast but ephemeral.
+FLY events bypass message queues entirely — they travel from the sidecar directly to the mesh gateway via HTTP, then are broadcast to the API gateway via PG LISTEN/NOTIFY (in-memory, no disk persistence), and finally streamed to SSE clients. This makes them fast but ephemeral — clients connecting after task completion will NOT see historical FLY events.
 
 ---
 
 ## Client-side consumption
 
-### MCP SSE
+### Protocol-agnostic SSE
 
-Connect to `/mesh/{task_id}/stream` to receive FLY events:
+Connect to `/stream/{task_id}` (API gateway) for protocol-agnostic FLY event streaming:
+
+```bash
+curl -N -H "Accept: text/event-stream" \
+  http://gateway/stream/{task_id}
+```
+
+Or use `/mesh/{task_id}/stream` (mesh gateway) for internal mesh access:
 
 ```bash
 curl -N -H "Accept: text/event-stream" \
@@ -319,6 +332,7 @@ async def test_streaming():
 
 | Topic | Document |
 |-------|----------|
+| **Streaming events reference** (all event types, protocol mapping) | [docs/reference/specs/streaming-events.md](../reference/specs/streaming-events.md) |
 | ABI protocol reference | [docs/reference/specs/abi-protocol.md](../reference/specs/abi-protocol.md) |
 | Gateway SSE endpoints | [docs/reference/components/core-gateway.md](../reference/components/core-gateway.md) |
 | Agentic patterns (pause/resume, history) | [docs/usage/guide-agentic-patterns.md](guide-agentic-patterns.md) |

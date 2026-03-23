@@ -2520,6 +2520,13 @@
 </tr>
 <tr>
 <td><code>GET</code></td>
+<td><code>/stream/{id}</code></td>
+<td>api</td>
+<td>MCP/A2A auth</td>
+<td>Any client (A2A, MCP, UI)</td>
+</tr>
+<tr>
+<td><code>GET</code></td>
 <td><code>/.well-known/oauth-protected-resource</code></td>
 <td>api</td>
 <td>Public</td>
@@ -2736,6 +2743,18 @@
 <li><code>500</code> — tool handler failed</li>
 </ul>
 <p><strong>Auth</strong> — same as <code>POST /mcp</code>.</p>
+<hr />
+<h4 id="get-streamid"><code>GET /stream/{id}</code><a class="headerlink" href="#get-streamid" title="Permanent link">#</a></h4>
+<p>Protocol-agnostic SSE stream for ephemeral FLY events. Provides live per-token streaming for any client (A2A, MCP, UI) without protocol-specific wrapping. Complementary to <code>/mesh/{id}/stream</code> (internal mesh access) but exposed on the API gateway.</p>
+<p><strong>Response</strong> <code>200 text/event-stream</code>:</p>
+<div class="highlight"><pre><span></span><code>event: partial
+data: {&quot;type&quot;:&quot;text_delta&quot;,&quot;token&quot;:&quot;Hello&quot;}
+
+event: partial
+data: {&quot;type&quot;:&quot;text_delta&quot;,&quot;token&quot;:&quot; world&quot;}
+</code></pre></div>
+<p>⚠️ <strong>FLY events are ephemeral</strong> — clients must connect before or during task execution. Historical FLY replay is NOT supported.</p>
+<p><strong>Auth</strong> — Bearer token required when <code>ASYA_MCP_API_KEY</code> or <code>ASYA_MCP_OAUTH_ENABLED=true</code> is configured.</p>
 <hr />
 <h3 id="oauth-21-endpoints">OAuth 2.1 Endpoints<a class="headerlink" href="#oauth-21-endpoints" title="Permanent link">#</a></h3>
 <p>Only registered when <code>ASYA_MCP_OAUTH_ENABLED=true</code>. All public (called before auth is established).</p>
@@ -2992,7 +3011,7 @@
 <p><strong>Error</strong> <code>404</code> — task not found.</p>
 <hr />
 <h4 id="get-meshidstream"><code>GET /mesh/{id}/stream</code><a class="headerlink" href="#get-meshidstream" title="Permanent link">#</a></h4>
-<p>SSE stream of task update events. Replays historical updates first, then streams live updates. Sends keepalive comments every 15 seconds. Closes when task reaches a final status.</p>
+<p>SSE stream of task update events. Replays historical progress and status updates first, then streams live updates. Sends keepalive comments every 15 seconds. Closes when task reaches a final status.</p>
 <p><strong>Response</strong> <code>200 text/event-stream</code>:</p>
 <p>Progress update:</p>
 <div class="highlight"><pre><span></span><code>event: update
@@ -3002,6 +3021,7 @@ data: {&quot;id&quot;:&quot;task-abc&quot;,&quot;status&quot;:&quot;running&quot
 <div class="highlight"><pre><span></span><code>event: partial
 data: {&quot;type&quot;:&quot;text_delta&quot;,&quot;token&quot;:&quot;Hello&quot;}
 </code></pre></div>
+<p>⚠️ <strong>FLY events are ephemeral</strong> — they are broadcast in real-time via PG LISTEN/NOTIFY but not persisted. Clients connecting after task completion will NOT see historical FLY events, only progress and status updates.</p>
 <p>The SSE event type defaults to <code>partial</code>. If the FLY payload contains an A2A-specific key (<code>artifact_update</code>, <code>status_update</code>, or <code>message</code>), the event type matches that key.</p>
 <hr />
 <h4 id="get-meshidactive"><code>GET /mesh/{id}/active</code><a class="headerlink" href="#get-meshidactive" title="Permanent link">#</a></h4>
@@ -3059,7 +3079,8 @@ data: {&quot;type&quot;:&quot;text_delta&quot;,&quot;token&quot;:&quot;Hello&quo
 <p><strong>Response</strong> <code>200</code>: <code>{ "status": "ok" }</code></p>
 <hr />
 <h4 id="post-meshidfly"><code>POST /mesh/{id}/fly</code><a class="headerlink" href="#post-meshidfly" title="Permanent link">#</a></h4>
-<p>Forwards FLY (partial payload) events from the sidecar to SSE clients. Body limited to 1 MiB. The <code>type</code> field determines the SSE event type (defaults to <code>partial</code>).</p>
+<p>Broadcasts ephemeral FLY events from the sidecar to SSE clients. Body limited to 1 MiB. The <code>type</code> field determines the SSE event type (defaults to <code>partial</code>).</p>
+<p>FLY events are broadcast via PG LISTEN/NOTIFY for cross-process delivery (mesh → api gateway) and via in-process <code>NotifyFLY</code> channels for same-process subscribers. Events are NOT written to the database — they exist only in memory during task execution.</p>
 <p><strong>Request</strong> <code>application/json</code> — arbitrary JSON, passed through verbatim.</p>
 <p><strong>Response</strong> <code>200</code> — empty body.</p>
 <hr />
