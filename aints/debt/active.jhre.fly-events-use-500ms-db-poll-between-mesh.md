@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/debt/jhre.fly-events-use-500ms-db-poll-between-mesh
   - branch:debt/jhre.fly-events-use-500ms-db-poll-between-mesh
+  - pr:368
 ---
+
 
 
 ## Problem
