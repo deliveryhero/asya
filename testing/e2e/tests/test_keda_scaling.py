@@ -613,11 +613,21 @@ spec:
             assert expected_queue_name in queue_url, \
                 f"Queue URL should contain '{expected_queue_name}', got: {queue_url}"
             logger.info(f"[+] ScaledObject trigger has queue URL: {queue_url}")
+        elif transport == "pubsub":
+            sub_name = trigger["metadata"].get("subscriptionName", "")
+            assert sub_name, "External trigger should have subscriptionName"
+            expected_sub = f"asya-{namespace}-{actor_name}"
+            assert expected_sub in sub_name, \
+                f"Subscription name should contain '{expected_sub}', got: {sub_name}"
+            logger.info(f"[+] ScaledObject trigger has subscription: {sub_name}")
 
         actor = kubectl_get("asyncactor", actor_name, namespace=namespace)
         actor_queue_url = actor.get("status", {}).get("queueUrl", "")
-        assert actor_queue_url, "AsyncActor status should have queueUrl"
-        logger.info(f"[+] AsyncActor status has queue URL: {actor_queue_url}")
+        if transport == "sqs":
+            assert actor_queue_url, "AsyncActor status should have queueUrl"
+            logger.info(f"[+] AsyncActor status has queue URL: {actor_queue_url}")
+        else:
+            logger.info(f"[.] AsyncActor queueUrl status: {actor_queue_url or '(not set for this transport)'}")
 
     except Exception:
         log_asyncactor_workload_diagnostics(actor_name, namespace=namespace)

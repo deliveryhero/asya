@@ -344,7 +344,7 @@ spec:
         elif transport == "sqs":
             assert triggers[0]["metadata"]["queueLength"] == "5", "Queue length trigger should be updated"
         elif transport == "pubsub":
-            assert triggers[0]["metadata"]["value"] == "5", "Queue length trigger should be updated"
+            assert triggers[0]["metadata"]["targetValue"] == "5", "Queue length trigger should be updated"
 
         logger.info("[+] AsyncActor updates propagated successfully")
 
