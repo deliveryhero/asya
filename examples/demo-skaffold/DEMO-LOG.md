@@ -6,7 +6,7 @@ see [STEPS.md](STEPS.md).
 **Cluster**: gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
 **kubectl context**: gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
 **Registry**: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo
-**Asya version**: v0.5.10 (published charts from asya.sh/charts)
+**Asya version**: v0.5.11 (published charts from asya.sh/charts)
 
 ---
 
@@ -64,9 +64,9 @@ x-sump-6f6c58dd55-clddz              2/2     Running   0          4m23s
 
 $ helm -n asya-demo list
 NAME            CHART                  APP VERSION
-asya-crossplane asya-crossplane-0.5.10 0.5.10
-asya-crew       asya-crew-0.5.10       0.5.10
-asya-gateway    asya-gateway-0.5.10    0.5.10
+asya-crossplane asya-crossplane-0.5.11 0.5.11
+asya-crew       asya-crew-0.5.11       0.5.11
+asya-gateway    asya-gateway-0.5.11    0.5.11
 ```
 
 ### Demo tuning
@@ -74,25 +74,30 @@ asya-gateway    asya-gateway-0.5.10    0.5.10
 After initial platform install, apply these optimizations for demo speed:
 
 ```bash
+export CTX=gke_foodsci-img-gen-dev-1407-1448_europe-west1_asya-demo
+export PROJECT=foodsci-img-gen-dev-1407-1448
+export ASYA_VERSION=0.5.11
+
 # 1. Crossplane poll interval: 10s instead of default 1m
-kubectl patch deployment crossplane -n crossplane-system --type=json \
+kubectl --context $CTX patch deployment crossplane -n crossplane-system --type=json \
   -p '[{"op":"replace","path":"/spec/template/spec/containers/0/args","value":["core","start","--poll-interval=10s"]}]'
 
-# 2. Gateway SA: use default KSA (has WI binding)
-helm upgrade asya-gateway asya/asya-gateway -n asya-demo --version 0.5.10 \
-  --reuse-values \
+# 2. Gateway: use default KSA (has WI binding) + register flows
+helm upgrade asya-gateway asya/asya-gateway -n asya-demo --version $ASYA_VERSION \
+  --kube-context $CTX --reuse-values \
   --set serviceAccount.create=false \
-  --set serviceAccount.name=default
+  --set serviceAccount.name=default \
+  --set-json 'exposedFlows=[{"name":"text-flow","entrypoint":"start-text-flow","description":"Analyze text","mcp":{},"a2a":{}}]'
 
 # 3. KEDA: create gcp-keda-secret + add monitoring.viewer role
 gcloud iam service-accounts keys create /tmp/keda-key.json \
   --iam-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
-kubectl create secret generic gcp-keda-secret -n asya-demo \
+kubectl --context $CTX create secret generic gcp-keda-secret -n asya-demo \
   --from-file=credentials.json=/tmp/keda-key.json
 rm /tmp/keda-key.json
 
-# 4. KEDA WI (optional — alternative to key file)
-kubectl annotate sa keda-operator -n keda \
+# 4. KEDA WI (requires IAM admin — run from your workstation)
+kubectl --context $CTX annotate sa keda-operator -n keda \
   iam.gke.io/gcp-service-account=asya-demo-actor@${PROJECT}.iam.gserviceaccount.com
 gcloud iam service-accounts add-iam-policy-binding \
   asya-demo-actor@${PROJECT}.iam.gserviceaccount.com \
@@ -102,7 +107,10 @@ gcloud iam service-accounts add-iam-policy-binding \
 gcloud projects add-iam-policy-binding $PROJECT \
   --member="serviceAccount:asya-demo-actor@${PROJECT}.iam.gserviceaccount.com" \
   --role="roles/monitoring.viewer"
-kubectl rollout restart deployment/keda-operator -n keda
+kubectl --context $CTX rollout restart deployment/keda-operator -n keda
+
+# 5. Port-forward for local access
+kubectl --context $CTX -n asya-demo port-forward svc/asya-gateway-api 18080:80
 ```
 
 ---
