@@ -300,38 +300,113 @@ names to FQNs (e.g. `stop_after_attempt` to `tenacity.stop_after_attempt`) for
 
 ---
 
-## Scope semantics
+## Where rules apply: flows vs actor definitions
 
-The parser auto-detects scope from Python syntax — no `scope:` field in rules:
+Rules operate in two distinct contexts within the same compilation. The
+compiler auto-detects which context applies from Python syntax.
 
-| Python syntax | Scope | Config applies to |
-|---------------|-------|-------------------|
-| `with foo():` | Context manager | All actors in the `with` body |
-| `@foo(...)` on `def fn` | Decorator | The decorated function only |
-| `p = foo(p)` | Call-site | The call itself |
+### Context managers in flow bodies
 
-### Context manager scoping
+When a `with` statement appears inside the flow function, the compiler:
 
-Context managers can be nested. Each scope tracks its own actors:
+1. Matches the context manager symbol against rules
+2. Strips the `with` block from generated routers (no trace in compiled output)
+3. Extracts config values via the where-tree
+4. Injects extracted values into manifests for **all actors inside the scope**
 
 ```python
-async with asyncio.timeout(60):     # scope: fetch, parse, validate
-    p = fetch(p)
-    async with asyncio.timeout(10): # scope: parse, validate only
-        p = parse(p)
-        p = validate(p)
+async with asyncio.timeout(30):    # scope covers both actors below
+    p = ocr_extractor(p)           # gets spec.resiliency.timeout.actor: 30
+    p = language_detector(p)       # gets spec.resiliency.timeout.actor: 30
+p = sentiment_analyzer(p)         # outside scope — no timeout injected
 ```
 
-The compiler emits separate extracted configs for each scope with their
-respective `scope_actors` lists.
+The extracted config record includes scope metadata:
 
-### Decorator stripping
+```python
+{
+    "symbol": "asyncio.timeout",
+    "spec_values": {"spec.resiliency.timeout.actor": 30},
+    "scope_type": "context_manager",
+    "scope_actors": ["ocr_extractor", "language_detector"],
+}
+```
 
-Config rules with `treat-as: config` cause the matched decorator to be added
-to the `ASYA_IGNORE_DECORATORS` environment variable in the generated manifest.
-The asya-runtime reads this variable and strips matching decorators before
-loading the handler module, so decorators like `@retry(...)` do not execute at
-runtime.
+Nested scopes are tracked independently — each `with` block produces a separate
+config record with its own `scope_actors` list.
+
+See [`examples/flows/with_asyncio_timeout.py`](../../../examples/flows/with_asyncio_timeout.py)
+and its compiled output in
+[`examples/flows/compiled/with_asyncio_timeout/`](../../../examples/flows/compiled/with_asyncio_timeout/)
+for a full walkthrough.
+
+### Decorators on actor definitions
+
+When a decorator appears on a function definition (in the same file or an
+imported module), the compiler:
+
+1. Matches the decorator symbol against rules
+2. Extracts config values via the where-tree
+3. Injects extracted values into the manifest for **that single actor**
+4. Adds the decorator FQN to `ASYA_IGNORE_DECORATORS` env var in the manifest
+
+```python
+@retry(stop=stop_after_attempt(5))   # extracted for fetch_data only
+def fetch_data(p: dict) -> dict: ... # gets maxAttempts: 5 + ASYA_IGNORE_DECORATORS
+```
+
+The extracted config record includes scope metadata:
+
+```python
+{
+    "symbol": "tenacity.retry",
+    "spec_values": {"spec.resiliency.policies.default.maxAttempts": 5},
+    "scope_type": "decorator",
+    "scope_actors": ["fetch_data"],
+}
+```
+
+The `ASYA_IGNORE_DECORATORS` env var tells asya-runtime to strip the decorator
+before loading the handler module, so `@retry(...)` does not execute at runtime.
+
+See [`examples/flows/decorator_retry.py`](../../../examples/flows/decorator_retry.py)
+and its compiled output in
+[`examples/flows/compiled/decorator_retry/`](../../../examples/flows/compiled/decorator_retry/)
+for a full walkthrough.
+
+### Both mechanisms in one flow
+
+Context managers and decorators can work together on the same flow. The
+templater applies scope configs first (context managers), then decorator configs.
+Decorator configs are more specific and override scope values for the same
+spec path.
+
+```python
+@flow
+async def resilient_pipeline(p: dict) -> dict:
+    async with asyncio.timeout(30):        # scope: fetch_data, transform_data
+        p = await fetch_data(p)            # timeout: 30 + maxAttempts: 5
+        p = await transform_data(p)        # timeout: 30
+    p = await store_results(p)             # no extracted config
+    return p
+
+@actor
+@retry(stop=stop_after_attempt(5))
+def fetch_data(p: dict) -> dict: ...
+```
+
+### Inline comment overrides
+
+The `# asya: <action>` comment on any flow statement overrides all rules and
+defaults. Supported actions: `actor`, `inline`, `unfold`, `flow`, `config`.
+
+```python
+p = normalize(p)  # asya: inline    — force inline, no actor boundary
+p = validate(p)   # asya: actor     — force separate actor
+```
+
+See [`examples/flows/inline_comment_overrides.py`](../../../examples/flows/inline_comment_overrides.py)
+for a working example.
 
 ---
 

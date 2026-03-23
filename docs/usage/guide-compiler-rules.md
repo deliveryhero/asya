@@ -68,20 +68,211 @@ annotated examples. The file is ready to extend.
 
 ---
 
+## Where rules apply: flows vs actors
+
+Rules operate in two contexts. The same rule YAML works in both — the compiler
+auto-detects scope from Python syntax.
+
+### Context managers in flows
+
+Context managers appear inside the flow function body. The compiler strips the
+`with` block and injects extracted config into every actor within the scope.
+
+Source: [`examples/flows/with_asyncio_timeout.py`](../../examples/flows/with_asyncio_timeout.py)
+
+```python
+@flow
+async def document_pipeline(p: dict) -> dict:
+    p["status"] = "processing"
+
+    async with asyncio.timeout(30):
+        p = ocr_extractor(p)
+        p = language_detector(p)
+
+    if p.get("language") != "en":
+        p = translator(p)
+
+    p = sentiment_analyzer(p)
+    p["status"] = "done"
+    return p
+```
+
+The compiler:
+1. Strips `async with asyncio.timeout(30):` from the generated routers
+2. Extracts `30` via the `asyncio.timeout` rule's where-tree
+3. Writes `spec.resiliency.timeout.actor: 30` into the manifests for
+   `ocr_extractor` and `language_detector` (the actors inside the scope)
+4. Leaves `translator` and `sentiment_analyzer` unaffected (outside the scope)
+
+The generated router has no trace of the timeout — it is pure routing logic:
+
+Compiled output: [`examples/flows/compiled/with_asyncio_timeout/routers.py`](../../examples/flows/compiled/with_asyncio_timeout/routers.py)
+
+```python
+async def start_document_pipeline(payload: dict):
+    p = payload
+    _next = []
+    p['status'] = 'processing'
+    _next.append(resolve("ocr_extractor"))
+    _next.append(resolve("language_detector"))
+    _next.append(resolve("router_document_pipeline_line_23_if_2"))
+    yield "SET", ".route.next[:0]", _next
+    yield payload
+```
+
+Nested scopes are supported — each tracks its own actors independently.
+
+Source: [`examples/flows/with_nested_timeout_scopes.py`](../../examples/flows/with_nested_timeout_scopes.py)
+
+```python
+@flow
+async def ingestion_pipeline(p: dict) -> dict:
+    async with asyncio.timeout(60):        # scope: fetch, parse, validate
+        p = data_fetcher(p)
+        async with asyncio.timeout(10):    # scope: parse, validate only
+            p = data_parser(p)
+            p = data_validator(p)
+    p = data_writer(p)                     # no timeout scope
+    return p
+```
+
+### Decorators on actor definitions
+
+Decorators appear on handler function definitions — either in the same file as
+the flow or in imported modules. The compiler extracts config from the decorator
+arguments and applies it to that single actor's manifest.
+
+Source: [`examples/flows/decorator_retry.py`](../../examples/flows/decorator_retry.py)
+
+```python
+import asyncio
+from tenacity import retry, stop_after_attempt
+
+@flow
+async def resilient_pipeline(p: dict) -> dict:
+    p["status"] = "processing"
+
+    async with asyncio.timeout(30):
+        p = await fetch_data(p)
+        p = await transform_data(p)
+
+    p = await store_results(p)
+    return p
+
+
+@actor
+@retry(stop=stop_after_attempt(5))
+def fetch_data(p: dict) -> dict:
+    """Fetch data from external API — retries up to 5 times on failure."""
+    p["data"] = "fetched"
+    return p
+
+
+@actor
+def transform_data(p: dict) -> dict:
+    """Transform fetched data."""
+    p["transformed"] = True
+    return p
+
+
+@actor
+def store_results(p: dict) -> dict:
+    """Store final results."""
+    p["stored"] = True
+    return p
+```
+
+Here both mechanisms work together on the same flow:
+
+| Actor | Context manager scope | Decorator | Manifest result |
+|-------|----------------------|-----------|-----------------|
+| `fetch_data` | `asyncio.timeout(30)` | `@retry(stop=stop_after_attempt(5))` | `timeout.actor: 30` + `maxAttempts: 5` + `ASYA_IGNORE_DECORATORS=tenacity.retry` |
+| `transform_data` | `asyncio.timeout(30)` | (none) | `timeout.actor: 30` |
+| `store_results` | (outside scope) | (none) | (no extracted config) |
+
+The compiler:
+1. Scans `@retry(stop=stop_after_attempt(5))` on `fetch_data`
+2. Resolves `retry` to `tenacity.retry` via the import map
+3. Walks the where-tree: `param: stop` -> `match: stop_after_attempt` -> `param: max_attempt_number` -> `assign-to: spec.resiliency.policies.default.maxAttempts`
+4. Extracts `5` and stores it for `fetch_data`'s manifest
+5. Adds `tenacity.retry` to `ASYA_IGNORE_DECORATORS` so the runtime strips `@retry` before loading the handler
+
+Compiled output: [`examples/flows/compiled/decorator_retry/routers.py`](../../examples/flows/compiled/decorator_retry/routers.py)
+
+### Inline overrides on flow statements
+
+For per-call control without rules, use `# asya: <action>` comments directly
+on flow statements.
+
+Source: [`examples/flows/inline_comment_overrides.py`](../../examples/flows/inline_comment_overrides.py)
+
+```python
+@flow
+def order_pipeline(p: dict) -> dict:
+    p = normalize_keys(p)  # asya: inline   — runs inside the router process
+    p = validate_order(p)  # asya: actor    — separate actor with its own queue
+
+    if p.get("fraud_score", 0) > 0.8:
+        p["status"] = "rejected"
+        return p
+
+    p = charge_payment(p)
+    return p
+```
+
+Compiled output: [`examples/flows/compiled/inline_comment_overrides/routers.py`](../../examples/flows/compiled/inline_comment_overrides/routers.py)
+
+In the generated router, `normalize_keys` is inlined (its code runs inside the
+router function), while `validate_order` and `charge_payment` are resolved as
+separate actors via `resolve()`.
+
+### Definition-site decorators
+
+Functions decorated with `@actor`, `@inline`, `@flow`, or `@unfold` at their
+definition site carry that classification everywhere they are called.
+
+Source: [`examples/flows/decorator_definitions.py`](../../examples/flows/decorator_definitions.py)
+
+```python
+@inline
+def inject_trace(p: dict) -> dict:
+    """Runs inside the router — no actor boundary."""
+    p.setdefault("trace_id", str(uuid.uuid4()))
+    return p
+
+@actor
+def validate(p: dict) -> dict:
+    """Deployed as a separate actor."""
+    if "id" not in p:
+        raise ValueError("missing required field: id")
+    return p
+```
+
+And the equivalent call-site pattern for functions defined elsewhere:
+
+Source: [`examples/flows/decorator_callsite.py`](../../examples/flows/decorator_callsite.py)
+
+```python
+p = inline(stamp_timestamp)(p)  # force inline regardless of definition
+p = actor(validator)(p)          # force actor regardless of definition
+```
+
+---
+
 ## Built-in rules
 
-Four rules ship with asya-lab and apply automatically (no configuration needed):
+Four rules ship with asya-lab and apply automatically (no configuration needed).
+See the full YAML in
+[`src/asya-lab/asya_lab/defaults/compiler.rules.yaml`](../../src/asya-lab/asya_lab/defaults/compiler.rules.yaml).
 
 ### asyncio.timeout
 
 ```python
 async with asyncio.timeout(30):
     p = ocr_extractor(p)
-    p = language_detector(p)
 ```
 
-Extracts `30` into `spec.resiliency.timeout.actor` for all actors in the scope
-(both `ocr_extractor` and `language_detector`).
+Extracts `30` into `spec.resiliency.timeout.actor` for all actors in scope.
 
 ### tenacity.retry
 
@@ -241,52 +432,6 @@ their manifests.
 
 ---
 
-## Inline comment overrides
-
-For per-statement control without writing a rule, use `# asya: <action>`
-comments:
-
-```python
-@flow
-def pipeline(p: dict) -> dict:
-    p = normalize(p)       # asya: inline   — run inside router, no queue hop
-    p = validate(p)        # asya: actor    — separate actor (explicit)
-    p = enrich(p)                           — default classification
-    return p
-```
-
-Supported actions: `actor`, `inline`, `unfold`, `flow`, `config`.
-
-Inline comments have the **highest priority** — they override all rules and
-defaults.
-
-The syntax follows standard Python tool conventions (`# type: ignore`,
-`# noqa: E501`).
-
----
-
-## Definition-site and call-site decorators
-
-Beyond config rules, the compiler recognizes classification decorators on
-function definitions:
-
-```python
-@actor
-def validate(p: dict) -> dict: ...    # always a separate actor
-
-@inline
-def inject_trace(p: dict) -> dict: ... # always inlined into router
-```
-
-And call-site wrappers for functions defined elsewhere:
-
-```python
-p = actor(external_lib.validate)(p)    # force actor boundary
-p = inline(external_lib.normalize)(p)  # force inline
-```
-
----
-
 ## How it works end-to-end
 
 Here is the full pipeline for a `@retry` decorator:
@@ -358,18 +503,20 @@ If a symbol cannot be resolved to an FQN, matching uses the bare name.
 
 ## Examples
 
-The `examples/flows/` directory contains working examples:
+The [`examples/flows/`](../../examples/flows/) directory contains working
+examples. Each has a `compiled/` subdirectory with the generated routers so you
+can see input and output side by side.
 
-| File | Demonstrates |
-|------|--------------|
-| `decorator_retry.py` | `@retry` with config extraction |
-| `with_asyncio_timeout.py` | `asyncio.timeout` context manager |
-| `with_nested_timeout_scopes.py` | Nested timeout scopes |
-| `decorator_definitions.py` | `@actor` and `@inline` definition-site decorators |
-| `decorator_callsite.py` | `actor(fn)(p)` call-site wrappers |
-| `inline_comment_overrides.py` | `# asya: actor` / `# asya: inline` overrides |
+| Source file | Compiled output | Demonstrates |
+|-------------|-----------------|--------------|
+| [`decorator_retry.py`](../../examples/flows/decorator_retry.py) | [`compiled/decorator_retry/`](../../examples/flows/compiled/decorator_retry/) | `@retry` config extraction + `asyncio.timeout` scope |
+| [`with_asyncio_timeout.py`](../../examples/flows/with_asyncio_timeout.py) | [`compiled/with_asyncio_timeout/`](../../examples/flows/compiled/with_asyncio_timeout/) | Context manager scoped to multiple actors |
+| [`with_nested_timeout_scopes.py`](../../examples/flows/with_nested_timeout_scopes.py) | [`compiled/with_nested_timeout_scopes/`](../../examples/flows/compiled/with_nested_timeout_scopes/) | Nested scopes with different timeouts |
+| [`decorator_definitions.py`](../../examples/flows/decorator_definitions.py) | [`compiled/decorator_definitions/`](../../examples/flows/compiled/decorator_definitions/) | `@actor` and `@inline` on function definitions |
+| [`decorator_callsite.py`](../../examples/flows/decorator_callsite.py) | [`compiled/decorator_callsite/`](../../examples/flows/compiled/decorator_callsite/) | `actor(fn)(p)` and `inline(fn)(p)` wrappers |
+| [`inline_comment_overrides.py`](../../examples/flows/inline_comment_overrides.py) | [`compiled/inline_comment_overrides/`](../../examples/flows/compiled/inline_comment_overrides/) | `# asya: actor` / `# asya: inline` directives |
 
-Compile any example:
+Compile any example yourself:
 
 ```bash
 asya flow compile examples/flows/decorator_retry.py --output-dir compiled/ --verbose
