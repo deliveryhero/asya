@@ -285,18 +285,29 @@ The extractor handles these AST expression types when resolving terminal
 
 ## Argument binding
 
-The extractor binds call arguments to parameter names using this resolution
-chain:
+The extractor first binds call arguments to parameter names, then rules look
+up values from the resulting map.
 
-1. **Keywords** — always known (`func(delay=30)` binds `delay` directly)
-2. **Positional + `inspect.signature`** — the extractor imports the function at
-   compile time and reads its signature to map positional args to parameter names
-3. **Positional + ParamSpec** — rule declares both bindings explicitly
-4. **Positional fallback** — positional index as string key (`"0"`, `"1"`, ...)
+**Binding** (call arguments to names):
 
-The import map from the flow file's `import` statements is used to resolve bare
-names to FQNs (e.g. `stop_after_attempt` to `tenacity.stop_after_attempt`) for
+1. **Keywords** — arguments passed with a keyword (e.g. `func(delay=30)`) are
+   bound directly to their name (`delay`)
+2. **Positional + `inspect.signature`** — for positional arguments, the
+   extractor imports the called function at compile time and uses its signature
+   to map arguments to parameter names
+3. **Positional fallback** — if introspection fails (e.g. the function cannot
+   be imported), positional arguments are bound using their 0-based index as a
+   string key (`"0"`, `"1"`, ...)
+
+The import map from the flow file's `import` statements resolves bare names to
+FQNs (e.g. `stop_after_attempt` to `tenacity.stop_after_attempt`) for
 `inspect.signature` lookups.
+
+**Lookup** (rule navigates the bound map):
+
+After binding, rules use `param` to look up values. A plain string looks up by
+keyword name, an integer by positional index, and a `ParamSpec` tries keyword
+first then falls back to positional index (see [ParamSpec](#paramspec)).
 
 ---
 

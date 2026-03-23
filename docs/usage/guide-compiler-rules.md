@@ -479,8 +479,10 @@ async with asyncio.timeout(60):        # scope: fetch, parse, validate
 p = store(p)                           # no timeout scope
 ```
 
-The outer 60s timeout applies to all three actors. The inner 10s timeout
-applies only to `parse` and `validate`. The `store` actor has no timeout.
+The compiler understands nested scopes. In this example:
+- A 60s timeout applies to the group of actors: `fetch`, `parse`, and `validate`
+- A nested, more restrictive 10s timeout applies to the subgroup containing only `parse` and `validate`
+- The `store` actor is outside of any timeout scope defined here
 
 ---
 
