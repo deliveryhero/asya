@@ -123,16 +123,26 @@ migration:
       memory: 128Mi
   backoffLimit: 5
 
-# Flow registry: flows are registered by patching the gateway-flows ConfigMap
-# after deployment (via CLI, kubectl, or RBAC-authorized actors).
-# The gateway hot-reloads flows.yaml when the ConfigMap changes.
-# To seed flows at deploy time, set `exposedFlows` to a list of flow definitions:
-#   exposedFlows:
-#   - name: my_flow
-#     entrypoint: my-actor
-#     ...
-# By default the ConfigMap starts empty; patch it post-deploy via kubectl or the asya CLI.
+# Flow registry: flows are registered via ConfigMaps in /etc/asya/flows/.
+# The gateway reads all *.yaml files and hot-reloads on changes.
+#
+# Two ways to register flows:
+#   1. Helm-managed (seed at deploy time):
+#      exposedFlows:
+#      - name: my-flow
+#        entrypoint: start-my-flow
+#        description: "My flow"
+#        mcp: {}
+#
+#   2. Per-flow ConfigMaps (deployed by `asya k apply`):
+#      flowConfigMaps:
+#      - asya-flow-text-flow-config
+#      - asya-flow-greet-flow-config
+#
+# Per-flow CMs are created by `asya expose` and deployed alongside actors.
+# The gateway mounts them via projected volume into the same directory.
 exposedFlows: []
+flowConfigMaps: []
 flowsExposerGroup: "asya-flow-exposers"
 
 # External database (if postgresql.enabled=false)
