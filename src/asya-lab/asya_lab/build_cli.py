@@ -163,6 +163,14 @@ def build(
     project = AsyaProject.from_dir(asya_dir.parent, arg_values={"flow_name": flow_name.name})
     project_root = asya_dir.parent
 
+    # Resolve registry: --default-repo > ASYA_REGISTRY > config.registry
+    if default_repo is None:
+        import os
+
+        default_repo = os.environ.get("ASYA_REGISTRY") or project.cfg.get("registry")
+        if default_repo:
+            default_repo = str(default_repo)
+
     # Mode 1: explicit directory
     if build_dir:
         skaffold_path = Path(build_dir)

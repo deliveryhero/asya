@@ -9,6 +9,8 @@ compiler:
   manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"
 
+registry: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo
+
 contexts:
   dev:
     namespace: asya-demo
