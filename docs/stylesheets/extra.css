@@ -295,6 +295,43 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Mobile: prevent code overflow and improve readability */
+@media (max-width: 700px) {
+  pre {
+    font-size: 0.8rem;
+    padding: 12px;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  /* Inline code: allow wrapping */
+  code {
+    word-break: break-word;
+  }
+
+  /* Tables: allow horizontal scroll on mobile instead of breaking layout */
+  table {
+    table-layout: auto !important;
+    display: block;
+    overflow-x: auto;
+  }
+
+  /* Prevent content from overflowing viewport */
+  .typography,
+  .prose,
+  [data-slot="content"] {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    min-width: 0;
+  }
+
+  /* Images should not overflow */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+}
+
 /* Buttons */
 .btn-primary {
   background-color: #3498db;
