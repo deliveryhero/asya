@@ -562,7 +562,9 @@ class CodeGenerator:
         adapter_name = f"adapter_{op.name}"
         filename = f"{adapter_name}.py"
 
-        args_str = ", ".join(op.input_args)
+        # Replace 'p[' with 'payload[' since the adapter uses 'payload' as param name
+        adapted_args = [arg.replace("p[", "payload[", 1) if arg.startswith("p[") else arg for arg in op.input_args]
+        args_str = ", ".join(adapted_args)
         func_keyword = "async def" if op.is_async else "def"
         await_keyword = "await " if op.is_async else ""
 

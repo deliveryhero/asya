@@ -458,7 +458,7 @@ class TestAdapterCodegen:
         assert af.actor_name == "get_weather"
         assert af.filename == "adapter_get_weather.py"
         assert "async def adapter_get_weather(payload: dict):" in af.code
-        assert "await get_weather(p['city'], p['time'])" in af.code
+        assert "await get_weather(payload['city'], payload['time'])" in af.code
         assert "payload['result'] = _result" in af.code
         assert "yield payload" in af.code
 
