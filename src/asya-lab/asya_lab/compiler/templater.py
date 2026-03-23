@@ -371,11 +371,12 @@ images:
         config_path.write_text(self._KUSTOMIZE_CONFIG)
 
         # Resolve namespace from default context if configured
-        contexts = self.project.get_contexts()
         default_ctx = self.project.cfg.get("default_context")
         ns = None
-        if default_ctx and contexts and default_ctx in contexts:
-            ns = contexts[default_ctx].get("namespace")
+        if default_ctx:
+            ctx_cfg = self.project.cfg.get("contexts", {})
+            if isinstance(ctx_cfg, dict) and default_ctx in ctx_cfg:
+                ns = ctx_cfg[default_ctx].get("namespace")
 
         kust: dict = {
             "apiVersion": "kustomize.config.k8s.io/v1beta1",
