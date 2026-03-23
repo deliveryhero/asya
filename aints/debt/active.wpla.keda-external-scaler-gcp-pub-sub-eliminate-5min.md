@@ -5,7 +5,9 @@ assignee: Artem Yushkovskiy
 tags:
   - worktree:.worktrees/debt/wpla.keda-external-scaler-gcp-pub-sub-eliminate-5min
   - branch:debt/wpla.keda-external-scaler-gcp-pub-sub-eliminate-5min
+  - pr:383
 ---
+
 
 
 ## Problem
