@@ -5,7 +5,7 @@
 
 | Status | Ref | Pri | Title | Worktree | Branch | PR |
 |--------|-----|-----|-------|----------|--------|----|
-| ○ open | [jhre] | P1 | FLY events use 500ms DB poll between mesh and api gateways — route directly to SSE clients | — | — | — |
+| ○ open | [jhre] | P1 | Ephemeral FLY streaming via PG LISTEN/NOTIFY with A2A artifact chunking | — | — | — |
 | ○ open | [1fac] | P2 | Sidecar: ASYA_ACTOR_ROLE (regular|sink|sump) and ASYA_ACTOR_SINK unification | — | — | — |
 | ○ open | [1fm8] | P2 | Add load test Job to asya-quickstart chart | — | — | — |
 | ○ open | [1php] | P2 | Design SendWithDelay crew actor for transports without native delay | — | — | — |
