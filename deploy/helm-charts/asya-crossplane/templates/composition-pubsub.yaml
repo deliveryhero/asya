@@ -263,7 +263,7 @@ spec:
                     cooldownPeriod: {{`{{ $cooldownPeriod }}`}}
                     triggers:
                       {{- if .Values.pubsub.keda.scaler.enabled }}
-                      {{- $scalerNs := .Values.actorNamespace | default .Release.Namespace }}
+                      {{- $scalerNs := .Release.Namespace }}
                       {{- $scalerAddr := .Values.pubsub.keda.scaler.address | default (printf "asya-scaler-pubsub.%s.svc.cluster.local:6000" $scalerNs) }}
                       - type: external
                         name: queue

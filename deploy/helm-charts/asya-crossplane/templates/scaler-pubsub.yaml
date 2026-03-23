@@ -4,7 +4,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: asya-scaler-pubsub
-  namespace: {{ .Values.actorNamespace | default .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: asya-scaler-pubsub
     app.kubernetes.io/component: scaler
@@ -60,7 +60,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: asya-scaler-pubsub
-  namespace: {{ .Values.actorNamespace | default .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
   labels:
     app.kubernetes.io/name: asya-scaler-pubsub
     app.kubernetes.io/component: scaler
