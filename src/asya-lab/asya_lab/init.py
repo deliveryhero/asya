@@ -38,6 +38,9 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: {{ max_replicas }}
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
 """
 
 _ROUTER_TEMPLATE = """\
@@ -57,6 +60,9 @@ spec:
     enabled: true
     minReplicaCount: 0
     maxReplicaCount: 2
+  env:
+  - name: PYTHONUNBUFFERED
+    value: "1"
 """
 
 _CONFIGMAP_TEMPLATE = """\
