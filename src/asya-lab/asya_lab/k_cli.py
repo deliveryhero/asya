@@ -472,6 +472,33 @@ def _pod_prefix_to_deploy(prefix: str) -> str:
     return pod_name
 
 
+def _format_log_line(
+    line: str,
+    actor_colors: dict[str, str],
+    max_prefix_len: int,
+    show_container: bool,
+) -> str | None:
+    """Parse kubectl --prefix log line and format with colored actor name."""
+    if not line.startswith("["):
+        return line
+
+    try:
+        bracket_end = line.index("]") + 1
+    except ValueError:
+        return line
+
+    prefix_str = line[:bracket_end]
+    text = line[bracket_end:].lstrip()
+    deploy_name = _pod_prefix_to_deploy(prefix_str)
+    color = _color_for(deploy_name, actor_colors)
+    padded = deploy_name.ljust(max_prefix_len)
+
+    if show_container:
+        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
+        return f"{color}{padded}|{container_name}{_RESET} | {text}"
+    return f"{color}{padded}{_RESET} | {text}"
+
+
 def _stream_colored_logs(
     runner: KubeRunner,
     flow_name: str,
@@ -479,42 +506,94 @@ def _stream_colored_logs(
     follow: bool,
     tail: int | None,
 ) -> None:
-    """Stream logs with colored actor-name prefixes using kubectl -l selector.
+    """Stream logs with colored actor-name prefixes.
 
-    Uses a single kubectl logs process per container with label selector,
-    which handles dynamic pod discovery natively in follow mode.
+    In follow mode, watches for new pods and attaches log streams
+    as actors scale up. Uses kubectl logs per-pod with --prefix.
     """
+    import selectors
     import signal
+    import threading
+    import time
 
-    deploys = _get_flow_deployments(runner, flow_name)
-    if not deploys:
-        click.echo("[-] No deployments found for flow", err=True)
+    actors = _get_flow_deployments(runner, flow_name)
+    if not actors:
+        click.echo("[-] No actors found for flow", err=True)
         sys.exit(1)
 
     actor_colors: dict[str, str] = {}
-    max_prefix_len = max(len(d) for d in deploys)
-    for d in sorted(deploys):
-        _color_for(d, actor_colors)
+    max_prefix_len = max(len(a) for a in actors)
+    for a in sorted(actors):
+        _color_for(a, actor_colors)
 
-    show_container_suffix = len(containers) > 1
+    show_container = len(containers) > 1
     ns_args = ["-n", runner.namespace] if runner.namespace else []
+    tail_arg = str(tail if tail is not None else 100)
 
+    # Track attached pods to avoid duplicates
+    attached_pods: set[str] = set()
     procs: list[subprocess.Popen] = []
-    for container in containers:
-        cmd = [
-            "kubectl", "logs", *ns_args,
-            "-l", f"asya.sh/flow={flow_name}",
-            "-c", container,
-            "--prefix",
-            "--tail", str(tail if tail is not None else 100),
-        ]
-        if follow:
-            cmd.append("-f")
+    sel = selectors.DefaultSelector()
+    lock = threading.Lock()
 
-        proc = subprocess.Popen(  # nosec B603, B607
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+    def _attach_pod(pod_name: str) -> None:
+        """Attach log streams for a pod."""
+        with lock:
+            if pod_name in attached_pods:
+                return
+            attached_pods.add(pod_name)
+
+        for container in containers:
+            cmd = ["kubectl", "logs", *ns_args, pod_name, "-c", container, "--prefix", "--tail", tail_arg]
+            if follow:
+                cmd.append("-f")
+            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)  # nosec B603, B607
+            with lock:
+                procs.append(proc)
+                assert proc.stdout is not None
+                sel.register(proc.stdout, selectors.EVENT_READ)
+
+    def _discover_pods() -> None:
+        """Discover and attach to existing pods."""
+        import json as _json
+
+        result = runner.kubectl(
+            "get", "pods", "-l", f"asya.sh/flow={flow_name}",
+            "--field-selector=status.phase=Running",
+            "-o", "jsonpath={.items[*].metadata.name}",
+            quiet=True, capture_output=True, text=True,
         )
-        procs.append(proc)
+        if result.returncode == 0 and result.stdout.strip():
+            for pod_name in result.stdout.strip().split():
+                _attach_pod(pod_name)
+
+    def _watch_pods() -> None:
+        """Watch for new pods in background (follow mode only)."""
+        import json as _json
+
+        while True:
+            time.sleep(3)  # poll for new pods
+            _discover_pods()
+
+    _discover_pods()
+
+    if follow and not attached_pods:
+        click.echo("[.] No running pods. Waiting for scale-up...", err=True)
+        while not attached_pods:
+            import time
+
+            time.sleep(3)
+            _discover_pods()
+        click.echo(f"[+] Attached to {len(attached_pods)} pod(s)", err=True)
+
+    if not attached_pods:
+        click.echo("[-] No running pods found for flow", err=True)
+        sys.exit(1)
+
+    # Start pod watcher thread in follow mode
+    if follow:
+        watcher = threading.Thread(target=_watch_pods, daemon=True)
+        watcher.start()
 
     def _cleanup(signum=None, frame=None):
         for p in procs:
@@ -524,70 +603,29 @@ def _stream_colored_logs(
     signal.signal(signal.SIGINT, _cleanup)
     signal.signal(signal.SIGTERM, _cleanup)
 
-    # For single-container (common case), read directly
-    # For multi-container, use selectors
-    if len(procs) == 1:
-        proc = procs[0]
-        assert proc.stdout is not None
-        try:
-            for raw_line in proc.stdout:
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                # Parse: [pod/name-hash-hash/container] log text
-                if line.startswith("["):
-                    bracket_end = line.index("]") + 1
-                    prefix_str = line[:bracket_end]
-                    text = line[bracket_end:].lstrip()
-                    deploy_name = _pod_prefix_to_deploy(prefix_str)
-                    color = _color_for(deploy_name, actor_colors)
-                    padded = deploy_name.ljust(max_prefix_len)
-                    if show_container_suffix:
-                        # Extract container from prefix
-                        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
-                        click.echo(f"{color}{padded}|{container_name}{_RESET} | {text}")
-                    else:
-                        click.echo(f"{color}{padded}{_RESET} | {text}")
-                else:
-                    click.echo(line)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            _cleanup()
-    else:
-        import selectors
-
-        sel = selectors.DefaultSelector()
-        for proc in procs:
-            assert proc.stdout is not None
-            sel.register(proc.stdout, selectors.EVENT_READ)
-
-        try:
-            active = len(procs)
-            while active > 0:
+    try:
+        while True:
+            with lock:
                 events = sel.select(timeout=1.0)
-                for key, _mask in events:
-                    fobj = key.fileobj
-                    assert hasattr(fobj, "readline")
-                    raw_line = fobj.readline()
-                    if not raw_line:
+            for key, _mask in events:
+                fobj = key.fileobj
+                assert hasattr(fobj, "readline")
+                raw_line = fobj.readline()
+                if not raw_line:
+                    with lock:
                         sel.unregister(fobj)
-                        active -= 1
+                    if not follow:
                         continue
-                    line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                    if line.startswith("["):
-                        bracket_end = line.index("]") + 1
-                        prefix_str = line[:bracket_end]
-                        text = line[bracket_end:].lstrip()
-                        deploy_name = _pod_prefix_to_deploy(prefix_str)
-                        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
-                        color = _color_for(deploy_name, actor_colors)
-                        padded = deploy_name.ljust(max_prefix_len)
-                        click.echo(f"{color}{padded}|{container_name}{_RESET} | {text}")
-                    else:
-                        click.echo(line)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            _cleanup()
+                    continue
+
+                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                formatted = _format_log_line(line, actor_colors, max_prefix_len, show_container)
+                if formatted is not None:
+                    click.echo(formatted)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        _cleanup()
 
 
 @click.command()
@@ -852,13 +890,13 @@ def _start_port_forward(target: str, ns: str, port: int | None) -> int:
         except OSError:
             _kill_port_forward(target)
 
-    # Check port availability
+    # Check port availability — try connecting first (something listening?)
     try:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-            sock.bind(("127.0.0.1", local_port))
+        with socket.create_connection(("127.0.0.1", local_port), timeout=1):
+            click.echo(f"[-] Port {local_port} is in use (something is listening). Use --port to override.", err=True)
+            sys.exit(1)
     except OSError:
-        click.echo(f"[-] Port {local_port} is in use. Use --port to specify a different port.", err=True)
-        sys.exit(1)
+        pass  # port is free
 
     cmd = ["kubectl", "port-forward", "-n", ns, svc, f"{local_port}:{remote_port}"]
     proc = subprocess.Popen(  # nosec B603, B607
