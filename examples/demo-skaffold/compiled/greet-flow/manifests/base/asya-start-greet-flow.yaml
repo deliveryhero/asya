@@ -18,3 +18,12 @@ spec:
   env:
   - name: ASYA_HANDLER_ROUTER_GREET_FLOW_LINE_13_SEQ_1
     value: routers.router_greet_flow_line_13_seq_1
+  volumes:
+  - name: routers
+    configMap:
+      name: greet-flow-routers
+  volumeMounts:
+  - name: routers
+    mountPath: /opt/asya/routers.py
+    subPath: routers.py
+    readOnly: true
