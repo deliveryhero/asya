@@ -562,16 +562,35 @@ class CodeGenerator:
         adapter_name = f"adapter_{op.name}"
         filename = f"{adapter_name}.py"
 
-        # Replace 'p[' with 'payload[' since the adapter uses 'payload' as param name
-        adapted_args = [arg.replace("p[", "payload[", 1) if arg.startswith("p[") else arg for arg in op.input_args]
+        # Reverse _ParamNormalizer's p→payload rename for adapter file context
+        def _denormalize_arg(arg: str) -> str:
+            if arg == "p":
+                return "payload"
+            if arg.startswith("p["):
+                return "payload" + arg[1:]
+            return arg
+
+        adapted_args = [_denormalize_arg(arg) for arg in op.input_args]
         args_str = ", ".join(adapted_args)
         func_keyword = "async def" if op.is_async else "def"
         await_keyword = "await " if op.is_async else ""
+
+        # Generate import line from the parser's import_map
+        import_line = ""
+        fqn = self.result.import_map.get(op.name)
+        if fqn:
+            # "greeter.greet" -> "from greeter import greet"
+            module_path = fqn.rsplit(".", 1)[0]
+            import_line = f"from {module_path} import {op.name}"
 
         lines = [
             "# fmt: off",
             "# ruff: noqa",
             f'"""Auto-generated adapter for {op.name}"""',
+        ]
+        if import_line:
+            lines.append(import_line)
+        lines += [
             "",
             f"{func_keyword} {adapter_name}(payload: dict):",
             f'    """Adapter: wraps {op.name}() for dict-in/dict-out protocol"""',

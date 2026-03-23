@@ -539,3 +539,89 @@ class TestAdapterCodegen:
         # Adapter actor should appear in routing like any other actor
         assert 'resolve("get_weather")' in code
         assert 'resolve("handler_b")' in code
+
+    def test_adapter_bare_p_denormalized_to_payload(self):
+        """Bare 'p' arg (whole payload) is denormalized to 'payload' in adapter."""
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="greet",
+                    lineno=3,
+                    input_args=["p"],
+                    output_path="p['greeting']",
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["greet"],
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "greet(payload)" in af.code
+        assert "greet(p)" not in af.code
+        assert "payload['greeting'] = _result" in af.code
+
+    def test_adapter_import_line_from_import_map(self):
+        """Adapter file includes import line when import_map has entry."""
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="greet",
+                    lineno=3,
+                    input_args=["p"],
+                    output_path="p['greeting']",
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["greet"],
+            import_map={"greet": "greeter.greet"},
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "from greeter import greet" in af.code
+
+    def test_adapter_no_import_line_when_not_in_map(self):
+        """Adapter file omits import line when function not in import_map."""
+        from asya_lab.flow.codegen import CodeGenerator
+        from asya_lab.flow.parser import AdapterCall, ParseResult, Return
+
+        result = ParseResult(
+            flow_name="my_flow",
+            operations=[
+                AdapterCall(
+                    name="local_fn",
+                    lineno=3,
+                    input_args=["p['x']"],
+                    output_path="p['y']",
+                    is_async=False,
+                ),
+                Return(lineno=4),
+            ],
+            actors=["local_fn"],
+            import_map={},
+        )
+        codegen = CodeGenerator(result, "test.py")
+        codegen.generate()
+        meta = codegen.get_meta()
+
+        assert meta.adapter_files is not None
+        af = meta.adapter_files[0]
+        assert "from " not in af.code
+        assert "import " not in af.code
