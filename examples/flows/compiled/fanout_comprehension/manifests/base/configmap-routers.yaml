@@ -29,18 +29,18 @@ data:
         """Entrypoint for flow 'research_flow'"""
         _next = []
         _next.append(resolve("preprocessor"))
-        _next.append(resolve("router_research_flow_line_14_fanout_1"))
+        _next.append(resolve("router_research_flow_fanout_results"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_research_flow_line_14_fanout_1(payload: dict):
-        """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
+    async def router_research_flow_fanout_results(payload: dict):
+        """Fan-out router: dispatches to sub-agents and aggregator (results)"""
         p = payload
 
         origin_id = yield "GET", ".id"
         _next_tail = yield "GET", ".route.next"
 
-        _agg = resolve("fanin_research_flow_line_14")
+        _agg = resolve("fanin_research_flow_results")
 
         _slices = []
         for t in p['topics']:

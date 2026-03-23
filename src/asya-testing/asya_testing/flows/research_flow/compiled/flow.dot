@@ -4,18 +4,18 @@ digraph "research_flow" {
 
     { rank=source; start_research_flow; }
 
-    fanin_research_flow_line_11 [label="fanin_research_flow_line_11", fillcolor=lightblue];
+    fanin_research_flow_results [label="fanin_research_flow_results", fillcolor=lightblue];
     research_agent [label="research_agent", fillcolor=lightblue];
-    router_research_flow_line_11_fanout_1 [label="router_research_flow_line_11_fanout_1", fillcolor=wheat];
+    router_research_flow_fanout_results [label="router_research_flow_fanout_results", fillcolor=wheat];
     start_research_flow [label="start_research_flow", fillcolor=palegreen];
     summarizer [label="summarizer", fillcolor=lightsalmon];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
-    start_research_flow -> router_research_flow_line_11_fanout_1;
-    router_research_flow_line_11_fanout_1 -> fanin_research_flow_line_11 [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_research_flow_line_11 -> summarizer;
-    router_research_flow_line_11_fanout_1 -> research_agent;
-    research_agent -> fanin_research_flow_line_11;
+    start_research_flow -> router_research_flow_fanout_results;
+    router_research_flow_fanout_results -> fanin_research_flow_results [label="fanout: p['topics']", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_research_flow_results -> summarizer;
+    router_research_flow_fanout_results -> research_agent;
+    research_agent -> fanin_research_flow_results;
     summarizer -> __end__;
 }

@@ -24,13 +24,13 @@ spec:
     value: handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
     value: handler_process
-  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_LINE_13_SEQ_5
-    value: routers.router_while_break_continue_flow_line_13_seq_5
-  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_LINE_14_WHILE_1
-    value: routers.router_while_break_continue_flow_line_14_while_1
-  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_LINE_15_SEQ_4
-    value: routers.router_while_break_continue_flow_line_15_seq_4
-  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_LINE_17_IF_3
-    value: routers.router_while_break_continue_flow_line_17_if_3
-  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_LINE_20_IF_2
-    value: routers.router_while_break_continue_flow_line_20_if_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_SKIP
+    value: routers.router_while_break_continue_flow_if_skip
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_IF_STOP
+    value: routers.router_while_break_continue_flow_if_stop
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_SEQ_SET_I
+    value: routers.router_while_break_continue_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_SEQ_SET_I_2
+    value: routers.router_while_break_continue_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_BREAK_CONTINUE_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_while_break_continue_flow_while_i_lt_max_iterations

@@ -21,14 +21,14 @@ async def start_ingestion_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_ingestion_pipeline_line_16_except_1(payload: dict):
+async def router_ingestion_pipeline_except_connectionerror_timeouterror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['retry_reason'] = 'transient'
     yield "SET", ".route.next", [resolve('queue_for_retry')]
     yield payload
 
-async def router_ingestion_pipeline_line_19_except_2(payload: dict):
+async def router_ingestion_pipeline_except_valueerror_keyerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['status'] = 'bad_input'

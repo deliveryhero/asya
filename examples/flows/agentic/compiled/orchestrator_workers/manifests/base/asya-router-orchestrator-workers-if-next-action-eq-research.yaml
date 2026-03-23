@@ -1,0 +1,41 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-orchestrator-workers-if-next-action-eq-research
+  namespace: default
+  labels:
+    asya.sh/flow: orchestrator-workers
+    asya.sh/generated: 'true'
+spec:
+  actor: router-orchestrator-workers-if-next-action-eq-research
+  image: python:3.13-slim
+  handler: routers.router_orchestrator_workers_if_next_action_eq_research
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_ANALYSIS_WORKER
+    value: analysis_worker
+  - name: ASYA_HANDLER_ACTOR_DATA_WORKER
+    value: data_worker
+  - name: ASYA_HANDLER_ACTOR_ORCHESTRATOR
+    value: orchestrator
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_IS_COMPLETE
+    value: routers.router_orchestrator_workers_if_is_complete
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_ITERATION_GE_10
+    value: routers.router_orchestrator_workers_if_iteration_ge_10
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_ANALYZE
+    value: routers.router_orchestrator_workers_if_next_action_eq_analyze
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_RESEARCH
+    value: routers.router_orchestrator_workers_if_next_action_eq_research
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_IF_NEXT_ACTION_EQ_WRITE
+    value: routers.router_orchestrator_workers_if_next_action_eq_write
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_SEQ_SET_ITERATION
+    value: routers.router_orchestrator_workers_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_ORCHESTRATOR_WORKERS_WHILE_LOOP
+    value: routers.router_orchestrator_workers_while_loop
+  - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
+    value: synthesizer
+  - name: ASYA_HANDLER_ACTOR_WRITING_WORKER
+    value: writing_worker

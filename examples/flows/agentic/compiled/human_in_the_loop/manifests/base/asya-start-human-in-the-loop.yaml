@@ -26,15 +26,15 @@ spec:
     value: proposal_generator
   - name: ASYA_HANDLER_ACTOR_REVISION_AGENT
     value: revision_agent
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_59_WHILE_1
-    value: routers.router_human_in_the_loop_line_59_while_1
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_60_SEQ_6
-    value: routers.router_human_in_the_loop_line_60_seq_6
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_69_IF_5
-    value: routers.router_human_in_the_loop_line_69_if_5
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_74_IF_4
-    value: routers.router_human_in_the_loop_line_74_if_4
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_78_IF_3
-    value: routers.router_human_in_the_loop_line_78_if_3
-  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_LINE_79_SEQ_2
-    value: routers.router_human_in_the_loop_line_79_seq_2
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_APPROVAL_EQ_REJECTED
+    value: routers.router_human_in_the_loop_if_approval_eq_rejected
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_APPROVAL_IN_APPROVED_MODIFIED
+    value: routers.router_human_in_the_loop_if_approval_in_approved_modified
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_IF_ATTEMPT_GE_3
+    value: routers.router_human_in_the_loop_if_attempt_ge_3
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_SEQ_SET_ATTEMPT
+    value: routers.router_human_in_the_loop_seq_set_attempt
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_SEQ_SET_RESULT
+    value: routers.router_human_in_the_loop_seq_set_result
+  - name: ASYA_HANDLER_ROUTER_HUMAN_IN_THE_LOOP_WHILE_LOOP
+    value: routers.router_human_in_the_loop_while_loop

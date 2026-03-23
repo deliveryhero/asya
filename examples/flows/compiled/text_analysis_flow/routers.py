@@ -18,17 +18,17 @@ async def start_text_analysis_flow(payload: dict):
     _next = []
     _next.append(resolve("clean_text"))
     _next.append(resolve("tokenize"))
-    _next.append(resolve("router_text_analysis_flow_line_15_if_4"))
+    _next.append(resolve("router_text_analysis_flow_if_language_eq_en"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_text_analysis_flow_line_24_seq_1(payload: dict):
+async def router_text_analysis_flow_seq_set_extracted(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['extracted'] = True
     yield p
 
-async def router_text_analysis_flow_line_20_seq_2(payload: dict):
+async def router_text_analysis_flow_seq_set_sentiment(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -37,30 +37,30 @@ async def router_text_analysis_flow_line_20_seq_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_text_analysis_flow_line_17_if_3(payload: dict):
+async def router_text_analysis_flow_if_language_eq_es(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['language'] == 'es':
         _next.append(resolve("spanish_sentiment"))
     else:
-        _next.append(resolve("router_text_analysis_flow_line_20_seq_2"))
+        _next.append(resolve("router_text_analysis_flow_seq_set_sentiment"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_text_analysis_flow_line_15_if_4(payload: dict):
+async def router_text_analysis_flow_if_language_eq_en(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['language'] == 'en':
         _next.append(resolve("english_sentiment"))
         _next.append(resolve("extract_entities"))
-        _next.append(resolve("router_text_analysis_flow_line_24_seq_1"))
+        _next.append(resolve("router_text_analysis_flow_seq_set_extracted"))
     else:
-        _next.append(resolve("router_text_analysis_flow_line_17_if_3"))
+        _next.append(resolve("router_text_analysis_flow_if_language_eq_es"))
         _next.append(resolve("extract_entities"))
-        _next.append(resolve("router_text_analysis_flow_line_24_seq_1"))
+        _next.append(resolve("router_text_analysis_flow_seq_set_extracted"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

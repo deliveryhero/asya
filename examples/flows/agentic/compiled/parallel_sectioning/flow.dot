@@ -6,9 +6,9 @@ digraph "parallel_sectioning" {
 
     aggregator [label="aggregator", fillcolor=lightsalmon];
     entity_recognizer [label="entity_recognizer", fillcolor=lightblue];
-    fanin_parallel_sectioning_line_47 [label="fanin_parallel_sectioning_line_47", fillcolor=lightblue];
+    fanin_parallel_sectioning_analysis [label="fanin_parallel_sectioning_analysis", fillcolor=lightblue];
     preprocessor [label="preprocessor", fillcolor=lightblue];
-    router_parallel_sectioning_line_47_fanout_1 [label="router_parallel_sectioning_line_47_fanout_1", fillcolor=wheat];
+    router_parallel_sectioning_fanout_analysis [label="router_parallel_sectioning_fanout_analysis", fillcolor=wheat];
     sentiment_analyzer [label="sentiment_analyzer", fillcolor=lightblue];
     start_parallel_sectioning [label="start_parallel_sectioning", fillcolor=palegreen];
     topic_extractor [label="topic_extractor", fillcolor=lightblue];
@@ -16,14 +16,14 @@ digraph "parallel_sectioning" {
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_parallel_sectioning -> preprocessor;
-    preprocessor -> router_parallel_sectioning_line_47_fanout_1;
-    router_parallel_sectioning_line_47_fanout_1 -> fanin_parallel_sectioning_line_47 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
-    fanin_parallel_sectioning_line_47 -> aggregator;
-    router_parallel_sectioning_line_47_fanout_1 -> sentiment_analyzer;
-    sentiment_analyzer -> fanin_parallel_sectioning_line_47;
-    router_parallel_sectioning_line_47_fanout_1 -> topic_extractor;
-    topic_extractor -> fanin_parallel_sectioning_line_47;
-    router_parallel_sectioning_line_47_fanout_1 -> entity_recognizer;
-    entity_recognizer -> fanin_parallel_sectioning_line_47;
+    preprocessor -> router_parallel_sectioning_fanout_analysis;
+    router_parallel_sectioning_fanout_analysis -> fanin_parallel_sectioning_analysis [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    fanin_parallel_sectioning_analysis -> aggregator;
+    router_parallel_sectioning_fanout_analysis -> sentiment_analyzer;
+    sentiment_analyzer -> fanin_parallel_sectioning_analysis;
+    router_parallel_sectioning_fanout_analysis -> topic_extractor;
+    topic_extractor -> fanin_parallel_sectioning_analysis;
+    router_parallel_sectioning_fanout_analysis -> entity_recognizer;
+    entity_recognizer -> fanin_parallel_sectioning_analysis;
     aggregator -> __end__;
 }

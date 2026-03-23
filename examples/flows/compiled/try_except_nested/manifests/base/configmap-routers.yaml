@@ -35,14 +35,14 @@ data:
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_nested_error_handling_line_33_except_1(payload: dict):
+    async def router_nested_error_handling_except_connectionerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['status'] = 'connection_failed'
         yield "SET", ".route.next", [resolve('handle_connection_error'), resolve('cleanup'), resolve('store_results')]
         yield payload
 
-    async def router_nested_error_handling_line_29_except_2(payload: dict):
+    async def router_nested_error_handling_except_valueerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['parse_status'] = 'invalid'

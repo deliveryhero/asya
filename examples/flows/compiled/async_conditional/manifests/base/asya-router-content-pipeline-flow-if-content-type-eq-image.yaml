@@ -1,0 +1,21 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-content-pipeline-flow-if-content-type-eq-image
+  namespace: default
+  labels:
+    asya.sh/flow: content-pipeline-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-content-pipeline-flow-if-content-type-eq-image
+  image: python:3.13-slim
+  handler: routers.router_content_pipeline_flow_if_content_type_eq_image
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_IF_CONTENT_TYPE_EQ_IMAGE
+    value: routers.router_content_pipeline_flow_if_content_type_eq_image
+  - name: ASYA_HANDLER_ROUTER_CONTENT_PIPELINE_FLOW_IF_CONTENT_TYPE_EQ_TEXT
+    value: routers.router_content_pipeline_flow_if_content_type_eq_text

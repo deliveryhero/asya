@@ -1,0 +1,51 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-conditional-nested-flow-if-a-eq-a
+  namespace: default
+  labels:
+    asya.sh/flow: conditional-nested-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-conditional-nested-flow-if-a-eq-a
+  image: python:3.13-slim
+  handler: routers.router_conditional_nested_flow_if_a_eq_a
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_A
+    value: handler_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_B
+    value: handler_b
+  - name: ASYA_HANDLER_ACTOR_HANDLER_C
+    value: handler_c
+  - name: ASYA_HANDLER_ACTOR_HANDLER_D
+    value: handler_d
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE_INPUT
+    value: handler_validate_input
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_IF_A_EQ_A
+    value: routers.router_conditional_nested_flow_if_a_eq_a
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_IF_X_GT_2
+    value: routers.router_conditional_nested_flow_if_x_gt_2
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_IF_X_GT_2_2
+    value: routers.router_conditional_nested_flow_if_x_gt_2_2
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X
+    value: routers.router_conditional_nested_flow_seq_set_x
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_2
+    value: routers.router_conditional_nested_flow_seq_set_x_2
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_3
+    value: routers.router_conditional_nested_flow_seq_set_x_3
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_4
+    value: routers.router_conditional_nested_flow_seq_set_x_4
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_5
+    value: routers.router_conditional_nested_flow_seq_set_x_5
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_6
+    value: routers.router_conditional_nested_flow_seq_set_x_6
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_7
+    value: routers.router_conditional_nested_flow_seq_set_x_7
+  - name: ASYA_HANDLER_ROUTER_CONDITIONAL_NESTED_FLOW_SEQ_SET_X_8
+    value: routers.router_conditional_nested_flow_seq_set_x_8

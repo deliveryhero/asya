@@ -28,18 +28,18 @@ data:
     async def start_multi_stage_flow(payload: dict):
         """Entrypoint for flow 'multi_stage_flow'"""
         _next = []
-        _next.append(resolve("router_multi_stage_flow_line_14_fanout_2"))
+        _next.append(resolve("router_multi_stage_flow_fanout_research"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_multi_stage_flow_line_15_fanout_1(payload: dict):
-        """Fan-out router: dispatches to sub-agents and aggregator (line 15)"""
+    async def router_multi_stage_flow_fanout_reviews(payload: dict):
+        """Fan-out router: dispatches to sub-agents and aggregator (reviews)"""
         p = payload
 
         origin_id = yield "GET", ".id"
         _next_tail = yield "GET", ".route.next"
 
-        _agg = resolve("fanin_multi_stage_flow_line_15")
+        _agg = resolve("fanin_multi_stage_flow_reviews")
 
         _slices = []
         for r in p['research']:
@@ -63,14 +63,14 @@ data:
             yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": _i + 1}
             yield _payload
 
-    async def router_multi_stage_flow_line_14_fanout_2(payload: dict):
-        """Fan-out router: dispatches to sub-agents and aggregator (line 14)"""
+    async def router_multi_stage_flow_fanout_research(payload: dict):
+        """Fan-out router: dispatches to sub-agents and aggregator (research)"""
         p = payload
 
         origin_id = yield "GET", ".id"
         _next_tail = yield "GET", ".route.next"
 
-        _agg = resolve("fanin_multi_stage_flow_line_14")
+        _agg = resolve("fanin_multi_stage_flow_research")
 
         _slices = []
         for t in p['topics']:
@@ -85,7 +85,7 @@ data:
         }
 
         # Index 0: parent payload forwarded to aggregator
-        yield "SET", ".route.next", [_agg, resolve("router_multi_stage_flow_line_15_fanout_1")] + _next_tail
+        yield "SET", ".route.next", [_agg, resolve("router_multi_stage_flow_fanout_reviews")] + _next_tail
         yield "SET", ".headers.x-asya-fan-in", {**_fan_in, "slice_index": 0}
         yield copy.deepcopy(p)
 

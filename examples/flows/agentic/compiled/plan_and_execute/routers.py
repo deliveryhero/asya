@@ -20,11 +20,11 @@ async def start_plan_and_execute(payload: dict):
     p['current_step'] = 0
     p['step_results'] = []
     _next.append(resolve("planner"))
-    _next.append(resolve("router_plan_and_execute_line_53_while_2"))
+    _next.append(resolve("router_plan_and_execute_while_current_step_lt_len_p_get_plan"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_plan_and_execute_line_61_seq_1(payload: dict):
+async def router_plan_and_execute_seq_set_completed(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -34,7 +34,7 @@ async def router_plan_and_execute_line_61_seq_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_plan_and_execute_line_58_if_3(payload: dict):
+async def router_plan_and_execute_if_current_step_lt_len_p_get_plan(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -47,16 +47,16 @@ async def router_plan_and_execute_line_58_if_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_plan_and_execute_line_53_while_2(payload: dict):
+async def router_plan_and_execute_while_current_step_lt_len_p_get_plan(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['current_step'] < len(p.get('plan', [])):
         _next.append(resolve("executor"))
-        _next.append(resolve("router_plan_and_execute_line_58_if_3"))
-        _next.append(resolve("router_plan_and_execute_line_53_while_2"))
+        _next.append(resolve("router_plan_and_execute_if_current_step_lt_len_p_get_plan"))
+        _next.append(resolve("router_plan_and_execute_while_current_step_lt_len_p_get_plan"))
     else:
-        yield "SET", ".route.next", [resolve("router_plan_and_execute_line_61_seq_1")]
+        yield "SET", ".route.next", [resolve("router_plan_and_execute_seq_set_completed")]
         yield p
         return
 

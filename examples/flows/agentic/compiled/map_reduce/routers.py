@@ -19,18 +19,18 @@ async def start_map_reduce(payload: dict):
     """Entrypoint for flow 'map_reduce'"""
     _next = []
     _next.append(resolve("splitter"))
-    _next.append(resolve("router_map_reduce_line_54_fanout_1"))
+    _next.append(resolve("router_map_reduce_fanout_chunk_results"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_map_reduce_line_54_fanout_1(payload: dict):
-    """Fan-out router: dispatches to sub-agents and aggregator (line 54)"""
+async def router_map_reduce_fanout_chunk_results(payload: dict):
+    """Fan-out router: dispatches to sub-agents and aggregator (chunk_results)"""
     p = payload
 
     origin_id = yield "GET", ".id"
     _next_tail = yield "GET", ".route.next"
 
-    _agg = resolve("fanin_map_reduce_line_54")
+    _agg = resolve("fanin_map_reduce_chunk_results")
 
     _slices = []
     for chunk in p['chunks']:

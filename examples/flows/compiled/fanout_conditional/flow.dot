@@ -6,27 +6,27 @@ digraph "adaptive_flow" {
 
     classifier [label="classifier", fillcolor=lightblue];
     deep_analyzer [label="deep_analyzer", fillcolor=lightblue];
-    fanin_adaptive_flow_line_16 [label="fanin_adaptive_flow_line_16", fillcolor=lightblue];
+    fanin_adaptive_flow_results [label="fanin_adaptive_flow_results", fillcolor=lightblue];
     fast_analyzer [label="fast_analyzer", fillcolor=lightblue];
     formatter [label="formatter", fillcolor=lightsalmon];
-    router_adaptive_flow_line_15_if_2 [label="router_adaptive_flow_line_15_if_2", fillcolor=wheat];
-    router_adaptive_flow_line_16_fanout_1 [label="router_adaptive_flow_line_16_fanout_1", fillcolor=wheat];
+    router_adaptive_flow_fanout_results [label="router_adaptive_flow_fanout_results", fillcolor=wheat];
+    router_adaptive_flow_if_parallel [label="router_adaptive_flow_if_parallel", fillcolor=wheat];
     sequential_analyzer [label="sequential_analyzer", fillcolor=lightblue];
     start_adaptive_flow [label="start_adaptive_flow", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_adaptive_flow -> classifier;
-    classifier -> router_adaptive_flow_line_15_if_2;
-    router_adaptive_flow_line_16_fanout_1 -> fanin_adaptive_flow_line_16 [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
-    router_adaptive_flow_line_16_fanout_1 -> fast_analyzer;
-    fast_analyzer -> fanin_adaptive_flow_line_16;
-    router_adaptive_flow_line_16_fanout_1 -> deep_analyzer;
-    deep_analyzer -> fanin_adaptive_flow_line_16;
-    router_adaptive_flow_line_15_if_2 -> router_adaptive_flow_line_16_fanout_1 [label="p['parallel']", color="#2E8B57", fontcolor="#2E8B57"];
-    router_adaptive_flow_line_16_fanout_1 -> formatter;
-    router_adaptive_flow_line_15_if_2 -> sequential_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
+    classifier -> router_adaptive_flow_if_parallel;
+    router_adaptive_flow_fanout_results -> fanin_adaptive_flow_results [label="fanout", color="#6C35EA", fontcolor="#6C35EA"];
+    router_adaptive_flow_fanout_results -> fast_analyzer;
+    fast_analyzer -> fanin_adaptive_flow_results;
+    router_adaptive_flow_fanout_results -> deep_analyzer;
+    deep_analyzer -> fanin_adaptive_flow_results;
+    router_adaptive_flow_if_parallel -> router_adaptive_flow_fanout_results [label="p['parallel']", color="#2E8B57", fontcolor="#2E8B57"];
+    router_adaptive_flow_fanout_results -> formatter;
+    router_adaptive_flow_if_parallel -> sequential_analyzer [label="else", color="#D35400", fontcolor="#D35400"];
     sequential_analyzer -> formatter;
-    fanin_adaptive_flow_line_16 -> formatter;
+    fanin_adaptive_flow_results -> formatter;
     formatter -> __end__;
 }

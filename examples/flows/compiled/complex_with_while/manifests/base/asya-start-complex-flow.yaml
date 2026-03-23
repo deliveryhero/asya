@@ -32,15 +32,15 @@ spec:
     value: handler_transform_batch
   - name: ASYA_HANDLER_ACTOR_HANDLER_VALIDATE
     value: handler_validate
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_15_IF_6
-    value: routers.router_complex_flow_line_15_if_6
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_19_IF_5
-    value: routers.router_complex_flow_line_19_if_5
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_22_WHILE_1
-    value: routers.router_complex_flow_line_22_while_1
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_26_IF_3
-    value: routers.router_complex_flow_line_26_if_3
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_29_IF_2
-    value: routers.router_complex_flow_line_29_if_2
-  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_LINE_32_IF_4
-    value: routers.router_complex_flow_line_32_if_4
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_NEEDS_ENRICHMENT
+    value: routers.router_complex_flow_if_needs_enrichment
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_NOT_VALID
+    value: routers.router_complex_flow_if_not_valid
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_QUALITY_SCORE_GE_50
+    value: routers.router_complex_flow_if_quality_score_ge_50
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_QUALITY_SCORE_LT_20
+    value: routers.router_complex_flow_if_quality_score_lt_20
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_IF_REQUIRES_RETRY
+    value: routers.router_complex_flow_if_requires_retry
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_FLOW_WHILE_BATCH_COUNT_LT_MAX_BATCHES
+    value: routers.router_complex_flow_while_batch_count_lt_max_batches

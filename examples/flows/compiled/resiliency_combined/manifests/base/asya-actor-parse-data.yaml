@@ -18,13 +18,13 @@ spec:
     value: timeout_decorator.timeout
   resiliency:
     policies:
-      try_except_line_31_0:
+      except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-data-pipeline-line-34-except-1
+        - router-data-pipeline-except-valueerror
     rules:
     - errors:
       - ValueError
-      policy: try_except_line_31_0
+      policy: except_valueerror
     timeout:
       actor: 10

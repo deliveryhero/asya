@@ -1,0 +1,47 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-complex-combined-flow-if-not-valid
+  namespace: default
+  labels:
+    asya.sh/flow: complex-combined-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-complex-combined-flow-if-not-valid
+  image: python:3.13-slim
+  handler: routers.router_complex_combined_flow_if_not_valid
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLER_DEFAULT
+    value: handler_default
+  - name: ASYA_HANDLER_ACTOR_HANDLER_ERROR
+    value: handler_error
+  - name: ASYA_HANDLER_ACTOR_HANDLER_FINALIZE
+    value: handler_finalize
+  - name: ASYA_HANDLER_ACTOR_HANDLER_INIT
+    value: handler_init
+  - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
+    value: handler_process
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_A
+    value: handler_type_a
+  - name: ASYA_HANDLER_ACTOR_HANDLER_TYPE_B
+    value: handler_type_b
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_NEEDS_LOOP
+    value: routers.router_complex_combined_flow_if_needs_loop
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_NOT_VALID
+    value: routers.router_complex_combined_flow_if_not_valid
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_SKIP_EVEN_AND_P_I_2_EQ_0
+    value: routers.router_complex_combined_flow_if_skip_even_and_p_i_2_eq_0
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_STOP_EARLY
+    value: routers.router_complex_combined_flow_if_stop_early
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_TYPE_EQ_A
+    value: routers.router_complex_combined_flow_if_type_eq_a
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_IF_TYPE_EQ_B
+    value: routers.router_complex_combined_flow_if_type_eq_b
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_SEQ_SET_I
+    value: routers.router_complex_combined_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_COMPLEX_COMBINED_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_complex_combined_flow_while_i_lt_max_iterations

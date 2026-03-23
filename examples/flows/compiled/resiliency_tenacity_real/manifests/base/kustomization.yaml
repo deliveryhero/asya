@@ -4,6 +4,6 @@ resources:
 - asya-actor-fetch-from-api.yaml
 - asya-actor-process-response.yaml
 - asya-actor-store-results.yaml
-- asya-router-api-pipeline-line-30-seq-1.yaml
+- asya-router-api-pipeline-seq-set-status.yaml
 - asya-start-api-pipeline.yaml
 - configmap-routers.yaml

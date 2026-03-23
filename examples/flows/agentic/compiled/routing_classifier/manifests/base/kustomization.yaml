@@ -7,8 +7,8 @@ resources:
 - asya-actor-format-reply.yaml
 - asya-actor-general-agent.yaml
 - asya-actor-technical-agent.yaml
-- asya-router-routing-classifier-line-46-if-3.yaml
-- asya-router-routing-classifier-line-48-if-2.yaml
-- asya-router-routing-classifier-line-50-if-1.yaml
+- asya-router-routing-classifier-if-category-eq-account.yaml
+- asya-router-routing-classifier-if-category-eq-billing.yaml
+- asya-router-routing-classifier-if-category-eq-technical.yaml
 - asya-start-routing-classifier.yaml
 - configmap-routers.yaml

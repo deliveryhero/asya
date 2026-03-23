@@ -5,19 +5,19 @@ flowchart TD
     handler_setup[handler_setup]
     handler_type_a[handler_type_a]
     handler_type_b[handler_type_b]
-    router_sample_flow_line_10_seq_2{{"router_sample_flow_line_10_seq_2<br/><br/>p['branch'] = 'B'"}}
-    router_sample_flow_line_5_if_3{{router_sample_flow_line_5_if_3}}
-    router_sample_flow_line_6_seq_1{{"router_sample_flow_line_6_seq_1<br/><br/>p['branch'] = 'A'"}}
+    router_sample_flow_if_type_eq_a{{router_sample_flow_if_type_eq_a}}
+    router_sample_flow_seq_set_branch{{"router_sample_flow_seq_set_branch<br/><br/>p['branch'] = 'A'"}}
+    router_sample_flow_seq_set_branch_2{{"router_sample_flow_seq_set_branch_2<br/><br/>p['branch'] = 'B'"}}
     start_sample_flow([start_sample_flow])
     __end__((( )))
 
     start_sample_flow --> handler_setup
-    handler_setup --> router_sample_flow_line_5_if_3
-    router_sample_flow_line_6_seq_1 --> handler_type_a
-    router_sample_flow_line_5_if_3 -->|"p['type'] == 'A'"| router_sample_flow_line_6_seq_1
-    router_sample_flow_line_5_if_3 -->|"else"| handler_type_b
-    handler_type_b --> router_sample_flow_line_10_seq_2
-    router_sample_flow_line_10_seq_2 --> handler_finalize
+    handler_setup --> router_sample_flow_if_type_eq_a
+    router_sample_flow_seq_set_branch --> handler_type_a
+    router_sample_flow_if_type_eq_a -->|"p['type'] == 'A'"| router_sample_flow_seq_set_branch
+    router_sample_flow_if_type_eq_a -->|"else"| handler_type_b
+    handler_type_b --> router_sample_flow_seq_set_branch_2
+    router_sample_flow_seq_set_branch_2 --> handler_finalize
     handler_type_a --> handler_finalize
     handler_finalize --> __end__
 
@@ -28,7 +28,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_sample_flow start
     class handler_finalize endnode
-    class router_sample_flow_line_10_seq_2,router_sample_flow_line_5_if_3,router_sample_flow_line_6_seq_1 router
+    class router_sample_flow_if_type_eq_a,router_sample_flow_seq_set_branch,router_sample_flow_seq_set_branch_2 router
     class handler_setup,handler_type_a,handler_type_b handler
     class __end__ endpoint
     linkStyle 3 stroke:#2E8B57

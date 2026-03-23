@@ -5,8 +5,8 @@ resources:
 - asya-actor-ocr-extractor.yaml
 - asya-actor-sentiment-analyzer.yaml
 - asya-actor-translator.yaml
-- asya-router-document-pipeline-line-17-seq-3.yaml
-- asya-router-document-pipeline-line-23-if-2.yaml
-- asya-router-document-pipeline-line-27-seq-1.yaml
+- asya-router-document-pipeline-if-language-ne-en.yaml
+- asya-router-document-pipeline-seq-set-status-2.yaml
+- asya-router-document-pipeline-seq-set-status.yaml
 - asya-start-document-pipeline.yaml
 - configmap-routers.yaml

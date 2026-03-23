@@ -18,11 +18,11 @@ async def start_evaluator_optimizer(payload: dict):
     p = payload
     _next = []
     p['iteration'] = 0
-    _next.append(resolve("router_evaluator_optimizer_line_58_while_1"))
+    _next.append(resolve("router_evaluator_optimizer_while_loop"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_72_if_2(payload: dict):
+async def router_evaluator_optimizer_if_iteration_ge_max_iterations(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -36,7 +36,7 @@ async def router_evaluator_optimizer_line_72_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_68_if_3(payload: dict):
+async def router_evaluator_optimizer_if_score_ge_score_threshold(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -45,29 +45,29 @@ async def router_evaluator_optimizer_line_68_if_3(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_evaluator_optimizer_line_72_if_2"))
+        _next.append(resolve("router_evaluator_optimizer_if_iteration_ge_max_iterations"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_59_seq_4(payload: dict):
+async def router_evaluator_optimizer_seq_set_iteration(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("generator"))
     _next.append(resolve("evaluator"))
-    _next.append(resolve("router_evaluator_optimizer_line_68_if_3"))
+    _next.append(resolve("router_evaluator_optimizer_if_score_ge_score_threshold"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_evaluator_optimizer_line_58_while_1(payload: dict):
+async def router_evaluator_optimizer_while_loop(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_evaluator_optimizer_line_59_seq_4"))
-    _next.append(resolve("router_evaluator_optimizer_line_58_while_1"))
+    _next.append(resolve("router_evaluator_optimizer_seq_set_iteration"))
+    _next.append(resolve("router_evaluator_optimizer_while_loop"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

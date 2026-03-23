@@ -16,58 +16,15 @@ Regenerate by running: asya flow compile guardrails_sandwich.py
 async def start_guardrails_sandwich(payload: dict):
     """Entrypoint for flow 'guardrails_sandwich'"""
     _next = []
-    _next.append(resolve("router_guardrails_sandwich_line_47_try_enter_0"))
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_guardrails_sandwich_line_47_try_enter_0(payload: dict):
-    """Try-enter router: sets _on_error header and inserts try body"""
-    _next = []
-    yield "SET", ".headers._on_error", resolve("router_guardrails_sandwich_line_47_except_dispatch_0")
     _next.append(resolve("input_validator"))
     _next.append(resolve("core_agent"))
     _next.append(resolve("output_validator"))
-    _next.append(resolve("router_guardrails_sandwich_line_47_try_exit_0"))
-
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_guardrails_sandwich_line_47_try_exit_0(payload: dict):
-    """Try-exit router: clears _on_error header (success path)"""
-    _next = []
-    headers = yield "GET", ".headers"
-    if "_on_error" in headers:
-        yield "DEL", ".headers._on_error"
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_guardrails_sandwich_line_47_except_dispatch_0(payload: dict):
-    """Except-dispatch router: matches error type and routes to handler"""
-    p = payload
-    _next = []
-    _error_type = yield "GET", ".status.error.type"
-    _error_mro = yield "GET", ".status.error.mro"
-    _all_types = [_error_type] + _error_mro
-
-    if "Exception" in _all_types:
-        yield "DEL", ".status.error"
-        _next.append(resolve("safe_fallback"))
-    else:
-        _next.append(resolve("router_guardrails_sandwich_line_47_reraise_0"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_guardrails_sandwich_line_47_reraise_0(payload: dict):
-    """Reraise router: raises RuntimeError for unhandled exceptions"""
-    _error_type = yield "GET", ".status.error.type"
-    _error_msg = yield "GET", ".status.error.message"
-    raise RuntimeError(f"Unhandled exception {_error_type}: {_error_msg}")
-
-async def end_guardrails_sandwich(payload: dict):
-    """Exitpoint for flow 'guardrails_sandwich'"""
-    yield "SET", ".route.next", []
+async def router_guardrails_sandwich_except_exception(payload: dict):
+    """Router for error handling (except clause)"""
+    yield "SET", ".route.next", [resolve('safe_fallback')]
     yield payload
 
 

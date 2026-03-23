@@ -16,11 +16,11 @@ Regenerate by running: asya flow compile async_conditional.py
 async def start_content_pipeline_flow(payload: dict):
     """Entrypoint for flow 'content_pipeline_flow'"""
     _next = []
-    _next.append(resolve("router_content_pipeline_flow_line_15_if_2"))
+    _next.append(resolve("router_content_pipeline_flow_if_content_type_eq_text"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_content_pipeline_flow_line_17_if_1(payload: dict):
+async def router_content_pipeline_flow_if_content_type_eq_image(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -32,14 +32,14 @@ async def router_content_pipeline_flow_line_17_if_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_content_pipeline_flow_line_15_if_2(payload: dict):
+async def router_content_pipeline_flow_if_content_type_eq_text(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p['content_type'] == 'text':
         pass
     else:
-        _next.append(resolve("router_content_pipeline_flow_line_17_if_1"))
+        _next.append(resolve("router_content_pipeline_flow_if_content_type_eq_image"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

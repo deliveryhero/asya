@@ -2,8 +2,8 @@
   "flow_name": "mutations_only_flow",
   "nodes": [
     {
-      "id": "router_mutations_only_flow_line_13_seq_1",
-      "label": "router_mutations_only_flow_line_13_seq_1",
+      "id": "router_mutations_only_flow_seq_set_step",
+      "label": "router_mutations_only_flow_seq_set_step",
       "generated": true,
       "mutations": [
         "p['step'] = 1",
@@ -23,7 +23,7 @@
   "edges": [
     {
       "from": "start_mutations_only_flow",
-      "to": "router_mutations_only_flow_line_13_seq_1",
+      "to": "router_mutations_only_flow_seq_set_step",
       "label": null,
       "type": "prepend"
     }

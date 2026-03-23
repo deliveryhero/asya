@@ -26,11 +26,11 @@ spec:
     value: format_reply
   - name: ASYA_HANDLER_ACTOR_GENERAL_AGENT
     value: general_agent
-  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_LINE_46_IF_3
-    value: routers.router_routing_classifier_line_46_if_3
-  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_LINE_48_IF_2
-    value: routers.router_routing_classifier_line_48_if_2
-  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_LINE_50_IF_1
-    value: routers.router_routing_classifier_line_50_if_1
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_ACCOUNT
+    value: routers.router_routing_classifier_if_category_eq_account
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_BILLING
+    value: routers.router_routing_classifier_if_category_eq_billing
+  - name: ASYA_HANDLER_ROUTER_ROUTING_CLASSIFIER_IF_CATEGORY_EQ_TECHNICAL
+    value: routers.router_routing_classifier_if_category_eq_technical
   - name: ASYA_HANDLER_ACTOR_TECHNICAL_AGENT
     value: technical_agent

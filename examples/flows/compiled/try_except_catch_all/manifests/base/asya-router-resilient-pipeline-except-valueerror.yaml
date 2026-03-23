@@ -1,0 +1,23 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-resilient-pipeline-except-valueerror
+  namespace: default
+  labels:
+    asya.sh/flow: resilient-pipeline
+    asya.sh/generated: 'true'
+spec:
+  actor: router-resilient-pipeline-except-valueerror
+  image: python:3.13-slim
+  handler: routers.router_resilient_pipeline_except_valueerror
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_HANDLE_KNOWN_ERROR
+    value: handle_known_error
+  - name: ASYA_HANDLER_ACTOR_HANDLE_UNKNOWN_ERROR
+    value: handle_unknown_error
+  - name: ASYA_HANDLER_ACTOR_RISKY_OPERATION
+    value: risky_operation

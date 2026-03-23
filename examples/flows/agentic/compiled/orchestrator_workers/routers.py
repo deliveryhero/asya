@@ -19,11 +19,11 @@ async def start_orchestrator_workers(payload: dict):
     _next = []
     p['iteration'] = 0
     p['worker_results'] = []
-    _next.append(resolve("router_orchestrator_workers_line_56_while_1"))
+    _next.append(resolve("router_orchestrator_workers_while_loop"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_71_if_2(payload: dict):
+async def router_orchestrator_workers_if_iteration_ge_10(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -37,7 +37,7 @@ async def router_orchestrator_workers_line_71_if_2(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_68_if_3(payload: dict):
+async def router_orchestrator_workers_if_next_action_eq_write(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -49,33 +49,33 @@ async def router_orchestrator_workers_line_68_if_3(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_66_if_4(payload: dict):
+async def router_orchestrator_workers_if_next_action_eq_analyze(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('next_action') == 'analyze':
         _next.append(resolve("analysis_worker"))
     else:
-        _next.append(resolve("router_orchestrator_workers_line_68_if_3"))
+        _next.append(resolve("router_orchestrator_workers_if_next_action_eq_write"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_64_if_5(payload: dict):
+async def router_orchestrator_workers_if_next_action_eq_research(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     if p.get('next_action') == 'research':
         _next.append(resolve("data_worker"))
-        _next.append(resolve("router_orchestrator_workers_line_71_if_2"))
+        _next.append(resolve("router_orchestrator_workers_if_iteration_ge_10"))
     else:
-        _next.append(resolve("router_orchestrator_workers_line_66_if_4"))
-        _next.append(resolve("router_orchestrator_workers_line_71_if_2"))
+        _next.append(resolve("router_orchestrator_workers_if_next_action_eq_analyze"))
+        _next.append(resolve("router_orchestrator_workers_if_iteration_ge_10"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_61_if_6(payload: dict):
+async def router_orchestrator_workers_if_is_complete(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -84,28 +84,28 @@ async def router_orchestrator_workers_line_61_if_6(payload: dict):
         yield p
         return
     else:
-        _next.append(resolve("router_orchestrator_workers_line_64_if_5"))
+        _next.append(resolve("router_orchestrator_workers_if_next_action_eq_research"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_57_seq_7(payload: dict):
+async def router_orchestrator_workers_seq_set_iteration(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
     p['iteration'] += 1
     _next.append(resolve("orchestrator"))
-    _next.append(resolve("router_orchestrator_workers_line_61_if_6"))
+    _next.append(resolve("router_orchestrator_workers_if_is_complete"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_orchestrator_workers_line_56_while_1(payload: dict):
+async def router_orchestrator_workers_while_loop(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    _next.append(resolve("router_orchestrator_workers_line_57_seq_7"))
-    _next.append(resolve("router_orchestrator_workers_line_56_while_1"))
+    _next.append(resolve("router_orchestrator_workers_seq_set_iteration"))
+    _next.append(resolve("router_orchestrator_workers_while_loop"))
 
     yield "SET", ".route.next[:0]", _next
     yield payload

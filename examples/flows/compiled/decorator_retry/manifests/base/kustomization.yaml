@@ -4,6 +4,6 @@ resources:
 - asya-actor-fetch-data.yaml
 - asya-actor-store-results.yaml
 - asya-actor-transform-data.yaml
-- asya-router-resilient-pipeline-line-26-seq-1.yaml
+- asya-router-resilient-pipeline-seq-set-status.yaml
 - asya-start-resilient-pipeline.yaml
 - configmap-routers.yaml

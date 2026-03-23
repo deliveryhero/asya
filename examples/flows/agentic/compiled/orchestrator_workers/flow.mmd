@@ -4,35 +4,35 @@ flowchart TD
     analysis_worker[analysis_worker]
     data_worker[data_worker]
     orchestrator[orchestrator]
-    router_orchestrator_workers_line_56_while_1{{router_orchestrator_workers_line_56_while_1}}
-    router_orchestrator_workers_line_57_seq_7{{"router_orchestrator_workers_line_57_seq_7<br/><br/>p['iteration'] += 1"}}
-    router_orchestrator_workers_line_61_if_6{{router_orchestrator_workers_line_61_if_6}}
-    router_orchestrator_workers_line_64_if_5{{router_orchestrator_workers_line_64_if_5}}
-    router_orchestrator_workers_line_66_if_4{{router_orchestrator_workers_line_66_if_4}}
-    router_orchestrator_workers_line_68_if_3{{router_orchestrator_workers_line_68_if_3}}
-    router_orchestrator_workers_line_71_if_2{{router_orchestrator_workers_line_71_if_2}}
+    router_orchestrator_workers_if_is_complete{{router_orchestrator_workers_if_is_complete}}
+    router_orchestrator_workers_if_iteration_ge_10{{router_orchestrator_workers_if_iteration_ge_10}}
+    router_orchestrator_workers_if_next_action_eq_analyze{{router_orchestrator_workers_if_next_action_eq_analyze}}
+    router_orchestrator_workers_if_next_action_eq_research{{router_orchestrator_workers_if_next_action_eq_research}}
+    router_orchestrator_workers_if_next_action_eq_write{{router_orchestrator_workers_if_next_action_eq_write}}
+    router_orchestrator_workers_seq_set_iteration{{"router_orchestrator_workers_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_orchestrator_workers_while_loop{{router_orchestrator_workers_while_loop}}
     start_orchestrator_workers(["start_orchestrator_workers<br/><br/>p['iteration'] = 0<br/>p['worker_results'] = []"])
     synthesizer[synthesizer]
     writing_worker[writing_worker]
     __end__((( )))
 
-    start_orchestrator_workers --> router_orchestrator_workers_line_56_while_1
-    router_orchestrator_workers_line_71_if_2 -->|"p['iteration'] >= 10"| synthesizer
-    router_orchestrator_workers_line_68_if_3 -->|"p.get('next_action') == 'write'"| writing_worker
-    router_orchestrator_workers_line_66_if_4 -->|"p.get('next_action') == 'analyze'"| analysis_worker
-    router_orchestrator_workers_line_66_if_4 -->|"else"| router_orchestrator_workers_line_68_if_3
-    router_orchestrator_workers_line_64_if_5 -->|"p.get('next_action') == 'research'"| data_worker
-    data_worker --> router_orchestrator_workers_line_71_if_2
-    router_orchestrator_workers_line_64_if_5 -->|"else"| router_orchestrator_workers_line_66_if_4
-    router_orchestrator_workers_line_61_if_6 -->|"else"| router_orchestrator_workers_line_64_if_5
-    router_orchestrator_workers_line_61_if_6 -->|"p.get('is_complete')"| synthesizer
-    router_orchestrator_workers_line_57_seq_7 --> orchestrator
-    orchestrator --> router_orchestrator_workers_line_61_if_6
-    router_orchestrator_workers_line_56_while_1 --> router_orchestrator_workers_line_57_seq_7
-    analysis_worker --> router_orchestrator_workers_line_71_if_2
-    writing_worker --> router_orchestrator_workers_line_71_if_2
-    router_orchestrator_workers_line_71_if_2 -->|"else"| router_orchestrator_workers_line_56_while_1
-    router_orchestrator_workers_line_68_if_3 -->|"else"| router_orchestrator_workers_line_56_while_1
+    start_orchestrator_workers --> router_orchestrator_workers_while_loop
+    router_orchestrator_workers_if_iteration_ge_10 -->|"p['iteration'] >= 10"| synthesizer
+    router_orchestrator_workers_if_next_action_eq_write -->|"p.get('next_action') == 'write'"| writing_worker
+    router_orchestrator_workers_if_next_action_eq_analyze -->|"p.get('next_action') == 'analyze'"| analysis_worker
+    router_orchestrator_workers_if_next_action_eq_analyze -->|"else"| router_orchestrator_workers_if_next_action_eq_write
+    router_orchestrator_workers_if_next_action_eq_research -->|"p.get('next_action') == 'research'"| data_worker
+    data_worker --> router_orchestrator_workers_if_iteration_ge_10
+    router_orchestrator_workers_if_next_action_eq_research -->|"else"| router_orchestrator_workers_if_next_action_eq_analyze
+    router_orchestrator_workers_if_is_complete -->|"else"| router_orchestrator_workers_if_next_action_eq_research
+    router_orchestrator_workers_if_is_complete -->|"p.get('is_complete')"| synthesizer
+    router_orchestrator_workers_seq_set_iteration --> orchestrator
+    orchestrator --> router_orchestrator_workers_if_is_complete
+    router_orchestrator_workers_while_loop --> router_orchestrator_workers_seq_set_iteration
+    analysis_worker --> router_orchestrator_workers_if_iteration_ge_10
+    writing_worker --> router_orchestrator_workers_if_iteration_ge_10
+    router_orchestrator_workers_if_iteration_ge_10 -->|"else"| router_orchestrator_workers_while_loop
+    router_orchestrator_workers_if_next_action_eq_write -->|"else"| router_orchestrator_workers_while_loop
     synthesizer --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -42,7 +42,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_orchestrator_workers start
     class synthesizer endnode
-    class router_orchestrator_workers_line_56_while_1,router_orchestrator_workers_line_57_seq_7,router_orchestrator_workers_line_61_if_6,router_orchestrator_workers_line_64_if_5,router_orchestrator_workers_line_66_if_4,router_orchestrator_workers_line_68_if_3,router_orchestrator_workers_line_71_if_2 router
+    class router_orchestrator_workers_if_is_complete,router_orchestrator_workers_if_iteration_ge_10,router_orchestrator_workers_if_next_action_eq_analyze,router_orchestrator_workers_if_next_action_eq_research,router_orchestrator_workers_if_next_action_eq_write,router_orchestrator_workers_seq_set_iteration,router_orchestrator_workers_while_loop router
     class analysis_worker,data_worker,orchestrator,writing_worker handler
     class __end__ endpoint
     linkStyle 1,2,3,5,9 stroke:#2E8B57

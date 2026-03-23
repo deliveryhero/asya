@@ -17,11 +17,11 @@ async def start_if_elif_else_flow(payload: dict):
     """Entrypoint for flow 'if_elif_else_flow'"""
     _next = []
     _next.append(resolve("handler_validate"))
-    _next.append(resolve("router_if_elif_else_flow_line_13_if_2"))
+    _next.append(resolve("router_if_elif_else_flow_if_type_eq_a"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_elif_else_flow_line_15_if_1(payload: dict):
+async def router_if_elif_else_flow_if_type_eq_b(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -33,7 +33,7 @@ async def router_if_elif_else_flow_line_15_if_1(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_if_elif_else_flow_line_13_if_2(payload: dict):
+async def router_if_elif_else_flow_if_type_eq_a(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
@@ -41,7 +41,7 @@ async def router_if_elif_else_flow_line_13_if_2(payload: dict):
         _next.append(resolve("handler_type_a"))
         _next.append(resolve("handler_finalize"))
     else:
-        _next.append(resolve("router_if_elif_else_flow_line_15_if_1"))
+        _next.append(resolve("router_if_elif_else_flow_if_type_eq_b"))
         _next.append(resolve("handler_finalize"))
 
     yield "SET", ".route.next[:0]", _next

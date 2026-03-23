@@ -3,8 +3,8 @@ kind: Kustomization
 resources:
 - asya-actor-charge-payment.yaml
 - asya-actor-validate-order.yaml
-- asya-router-order-pipeline-line-27-seq-3.yaml
-- asya-router-order-pipeline-line-32-if-2.yaml
-- asya-router-order-pipeline-line-33-seq-1.yaml
+- asya-router-order-pipeline-if-fraud-score-gt-0.8.yaml
+- asya-router-order-pipeline-seq-p-normalize-keys-p.yaml
+- asya-router-order-pipeline-seq-set-status.yaml
 - asya-start-order-pipeline.yaml
 - configmap-routers.yaml

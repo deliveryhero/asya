@@ -5,10 +5,10 @@ resources:
 - asya-actor-finalize-loop-j.yaml
 - asya-actor-initialize.yaml
 - asya-actor-process-item.yaml
-- asya-router-nested-loop-flow-line-14-seq-5.yaml
-- asya-router-nested-loop-flow-line-15-while-1.yaml
-- asya-router-nested-loop-flow-line-16-seq-4.yaml
-- asya-router-nested-loop-flow-line-18-while-2.yaml
-- asya-router-nested-loop-flow-line-19-seq-3.yaml
+- asya-router-nested-loop-flow-seq-set-i-2.yaml
+- asya-router-nested-loop-flow-seq-set-i.yaml
+- asya-router-nested-loop-flow-seq-set-j.yaml
+- asya-router-nested-loop-flow-while-i-lt-max-i.yaml
+- asya-router-nested-loop-flow-while-j-lt-max-j.yaml
 - asya-start-nested-loop-flow.yaml
 - configmap-routers.yaml

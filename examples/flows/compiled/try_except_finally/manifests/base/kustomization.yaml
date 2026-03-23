@@ -6,7 +6,7 @@ resources:
 - asya-actor-handle-failure.yaml
 - asya-actor-process-with-resource.yaml
 - asya-actor-release-resource.yaml
-- asya-router-resource-pipeline-line-10-except-1.yaml
-- asya-router-resource-pipeline-line-6-seq-2.yaml
+- asya-router-resource-pipeline-except-runtimeerror.yaml
+- asya-router-resource-pipeline-seq-set-status.yaml
 - asya-start-resource-pipeline.yaml
 - configmap-routers.yaml

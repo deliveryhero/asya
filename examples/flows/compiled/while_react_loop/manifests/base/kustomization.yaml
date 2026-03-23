@@ -3,7 +3,7 @@ kind: Kustomization
 resources:
 - asya-actor-execute-tool.yaml
 - asya-actor-llm-call.yaml
-- asya-router-react-agent-line-13-while-1.yaml
-- asya-router-react-agent-line-15-if-2.yaml
+- asya-router-react-agent-if-tool-calls.yaml
+- asya-router-react-agent-while-loop.yaml
 - asya-start-react-agent.yaml
 - configmap-routers.yaml

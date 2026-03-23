@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-adk-llm-auditor.QualityScorer.aggregate
+  namespace: default
+  labels:
+    asya.sh/flow: llm-auditor
+spec:
+  actor: actor-adk-llm-auditor.QualityScorer.aggregate
+  image: examples.asya.sh/adk-llm-auditor.QualityScorer.aggregate:latest
+  handler: adk_llm_auditor.QualityScorer.aggregate
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

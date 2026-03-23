@@ -6,6 +6,6 @@ resources:
 - asya-actor-preprocessor.yaml
 - asya-actor-sentiment-analyzer.yaml
 - asya-actor-topic-extractor.yaml
-- asya-router-parallel-sectioning-line-47-fanout-1.yaml
+- asya-router-parallel-sectioning-fanout-analysis.yaml
 - asya-start-parallel-sectioning.yaml
 - configmap-routers.yaml

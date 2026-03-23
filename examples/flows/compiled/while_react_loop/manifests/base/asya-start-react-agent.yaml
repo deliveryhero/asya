@@ -20,7 +20,7 @@ spec:
     value: execute_tool
   - name: ASYA_HANDLER_ACTOR_LLM_CALL
     value: llm_call
-  - name: ASYA_HANDLER_ROUTER_REACT_AGENT_LINE_13_WHILE_1
-    value: routers.router_react_agent_line_13_while_1
-  - name: ASYA_HANDLER_ROUTER_REACT_AGENT_LINE_15_IF_2
-    value: routers.router_react_agent_line_15_if_2
+  - name: ASYA_HANDLER_ROUTER_REACT_AGENT_IF_TOOL_CALLS
+    value: routers.router_react_agent_if_tool_calls
+  - name: ASYA_HANDLER_ROUTER_REACT_AGENT_WHILE_LOOP
+    value: routers.router_react_agent_while_loop

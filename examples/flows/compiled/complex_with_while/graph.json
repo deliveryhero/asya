@@ -36,33 +36,33 @@
       "label": "handler_validate"
     },
     {
-      "id": "router_complex_flow_line_15_if_6",
-      "label": "router_complex_flow_line_15_if_6",
+      "id": "router_complex_flow_if_needs_enrichment",
+      "label": "router_complex_flow_if_needs_enrichment",
       "generated": true
     },
     {
-      "id": "router_complex_flow_line_19_if_5",
-      "label": "router_complex_flow_line_19_if_5",
+      "id": "router_complex_flow_if_not_valid",
+      "label": "router_complex_flow_if_not_valid",
       "generated": true
     },
     {
-      "id": "router_complex_flow_line_22_while_1",
-      "label": "router_complex_flow_line_22_while_1",
+      "id": "router_complex_flow_if_quality_score_ge_50",
+      "label": "router_complex_flow_if_quality_score_ge_50",
       "generated": true
     },
     {
-      "id": "router_complex_flow_line_26_if_3",
-      "label": "router_complex_flow_line_26_if_3",
+      "id": "router_complex_flow_if_quality_score_lt_20",
+      "label": "router_complex_flow_if_quality_score_lt_20",
       "generated": true
     },
     {
-      "id": "router_complex_flow_line_29_if_2",
-      "label": "router_complex_flow_line_29_if_2",
+      "id": "router_complex_flow_if_requires_retry",
+      "label": "router_complex_flow_if_requires_retry",
       "generated": true
     },
     {
-      "id": "router_complex_flow_line_32_if_4",
-      "label": "router_complex_flow_line_32_if_4",
+      "id": "router_complex_flow_while_batch_count_lt_max_batches",
+      "label": "router_complex_flow_while_batch_count_lt_max_batches",
       "generated": true
     },
     {
@@ -87,30 +87,30 @@
     },
     {
       "from": "handler_validate",
-      "to": "router_complex_flow_line_15_if_6",
+      "to": "router_complex_flow_if_not_valid",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_29_if_2",
+      "from": "router_complex_flow_if_quality_score_ge_50",
       "to": "handler_finalize",
       "label": "p['quality_score'] >= 50",
       "type": "set"
     },
     {
-      "from": "router_complex_flow_line_26_if_3",
-      "to": "router_complex_flow_line_22_while_1",
+      "from": "router_complex_flow_if_quality_score_lt_20",
+      "to": "router_complex_flow_while_batch_count_lt_max_batches",
       "label": "p['quality_score'] < 20",
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_26_if_3",
-      "to": "router_complex_flow_line_29_if_2",
+      "from": "router_complex_flow_if_quality_score_lt_20",
+      "to": "router_complex_flow_if_quality_score_ge_50",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
+      "from": "router_complex_flow_while_batch_count_lt_max_batches",
       "to": "handler_transform_batch",
       "label": "p.get('batch_count', 0) < p.get('max_batches', 3)",
       "type": "prepend"
@@ -123,55 +123,55 @@
     },
     {
       "from": "handler_check_quality",
-      "to": "router_complex_flow_line_26_if_3",
+      "to": "router_complex_flow_if_quality_score_lt_20",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_22_while_1",
+      "from": "router_complex_flow_while_batch_count_lt_max_batches",
       "to": "handler_finalize",
       "label": "else",
       "type": "set"
     },
     {
-      "from": "router_complex_flow_line_32_if_4",
+      "from": "router_complex_flow_if_requires_retry",
       "to": "handler_retry_handler",
       "label": "p.get('requires_retry')",
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_19_if_5",
+      "from": "router_complex_flow_if_needs_enrichment",
       "to": "handler_enrich_data",
       "label": "p.get('needs_enrichment')",
       "type": "prepend"
     },
     {
       "from": "handler_enrich_data",
-      "to": "router_complex_flow_line_22_while_1",
+      "to": "router_complex_flow_while_batch_count_lt_max_batches",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_19_if_5",
-      "to": "router_complex_flow_line_32_if_4",
+      "from": "router_complex_flow_if_needs_enrichment",
+      "to": "router_complex_flow_if_requires_retry",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_15_if_6",
-      "to": "router_complex_flow_line_19_if_5",
+      "from": "router_complex_flow_if_not_valid",
+      "to": "router_complex_flow_if_needs_enrichment",
       "label": "else",
       "type": "prepend"
     },
     {
-      "from": "router_complex_flow_line_15_if_6",
+      "from": "router_complex_flow_if_not_valid",
       "to": "handler_error",
       "label": "not p['valid']",
       "type": "set"
     },
     {
-      "from": "router_complex_flow_line_29_if_2",
-      "to": "router_complex_flow_line_22_while_1",
+      "from": "router_complex_flow_if_quality_score_ge_50",
+      "to": "router_complex_flow_while_batch_count_lt_max_batches",
       "label": "else",
       "type": "continuation"
     },
@@ -182,7 +182,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_complex_flow_line_32_if_4",
+      "from": "router_complex_flow_if_requires_retry",
       "to": "handler_finalize",
       "label": "else",
       "type": "continuation"

@@ -1,0 +1,35 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-nested-loop-flow-seq-set-i
+  namespace: default
+  labels:
+    asya.sh/flow: nested-loop-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-nested-loop-flow-seq-set-i
+  image: python:3.13-slim
+  handler: routers.router_nested_loop_flow_seq_set_i
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP_I
+    value: finalize_loop_i
+  - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP_J
+    value: finalize_loop_j
+  - name: ASYA_HANDLER_ACTOR_INITIALIZE
+    value: initialize
+  - name: ASYA_HANDLER_ACTOR_PROCESS_ITEM
+    value: process_item
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_SEQ_SET_I
+    value: routers.router_nested_loop_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_SEQ_SET_I_2
+    value: routers.router_nested_loop_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_SEQ_SET_J
+    value: routers.router_nested_loop_flow_seq_set_j
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_WHILE_I_LT_MAX_I
+    value: routers.router_nested_loop_flow_while_i_lt_max_i
+  - name: ASYA_HANDLER_ROUTER_NESTED_LOOP_FLOW_WHILE_J_LT_MAX_J
+    value: routers.router_nested_loop_flow_while_j_lt_max_j

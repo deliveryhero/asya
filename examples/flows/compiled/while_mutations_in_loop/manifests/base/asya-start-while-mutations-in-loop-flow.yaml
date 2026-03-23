@@ -22,11 +22,11 @@ spec:
     value: handler_init
   - name: ASYA_HANDLER_ACTOR_HANDLER_PROCESS
     value: handler_process
-  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_LINE_13_SEQ_4
-    value: routers.router_while_mutations_in_loop_flow_line_13_seq_4
-  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_LINE_15_WHILE_1
-    value: routers.router_while_mutations_in_loop_flow_line_15_while_1
-  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_LINE_16_SEQ_3
-    value: routers.router_while_mutations_in_loop_flow_line_16_seq_3
-  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_LINE_20_SEQ_2
-    value: routers.router_while_mutations_in_loop_flow_line_20_seq_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I
+    value: routers.router_while_mutations_in_loop_flow_seq_set_i
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_I_2
+    value: routers.router_while_mutations_in_loop_flow_seq_set_i_2
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_SEQ_SET_PROCESSED
+    value: routers.router_while_mutations_in_loop_flow_seq_set_processed
+  - name: ASYA_HANDLER_ROUTER_WHILE_MUTATIONS_IN_LOOP_FLOW_WHILE_I_LT_MAX_ITERATIONS
+    value: routers.router_while_mutations_in_loop_flow_while_i_lt_max_iterations

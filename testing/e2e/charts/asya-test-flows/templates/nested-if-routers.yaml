@@ -27,14 +27,14 @@ spec:
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-9-if-7
+  name: router-test-nested-flow-if-level1-eq-a
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-9-if-7
+  actor: router-test-nested-flow-if-level1-eq-a
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -44,21 +44,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_9_if_7
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level1_eq_a
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-11-if-3
+  name: router-test-nested-flow-if-level2-eq-x
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-11-if-3
+  actor: router-test-nested-flow-if-level2-eq-x
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -68,21 +68,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_11_if_3
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level2_eq_x
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-12-seq-1
+  name: router-test-nested-flow-seq-set-route
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-12-seq-1
+  actor: router-test-nested-flow-seq-set-route
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -92,21 +92,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_12_seq_1
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-15-seq-2
+  name: router-test-nested-flow-seq-set-route-2
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-15-seq-2
+  actor: router-test-nested-flow-seq-set-route-2
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -116,21 +116,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_15_seq_2
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_2
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-19-if-6
+  name: router-test-nested-flow-if-level2-eq-x-2
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-19-if-6
+  actor: router-test-nested-flow-if-level2-eq-x-2
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -140,21 +140,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_19_if_6
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_if_level2_eq_x_2
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-20-seq-4
+  name: router-test-nested-flow-seq-set-route-3
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-20-seq-4
+  actor: router-test-nested-flow-seq-set-route-3
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -164,21 +164,21 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_20_seq_4
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_3
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}
 ---
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: router-test-nested-flow-line-23-seq-5
+  name: router-test-nested-flow-seq-set-route-4
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "asya-test-flows.labels" . | nindent 4 }}
     asya.sh/flow: nested-if
     asya.sh/actor-type: router
 spec:
-  actor: router-test-nested-flow-line-23-seq-5
+  actor: router-test-nested-flow-seq-set-route-4
   scaling:
     enabled: {{ .Values.scaling.enabled }}
     minReplicaCount: {{ .Values.scaling.minReplicaCount }}
@@ -188,6 +188,6 @@ spec:
     queueLength: {{ .Values.scaling.queueLength }}
   image: {{ .Values.workload.image }}
   imagePullPolicy: {{ .Values.workload.imagePullPolicy }}
-  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_line_23_seq_5
+  handler: asya_testing.flows.nested_if.compiled.routers.router_test_nested_flow_seq_set_route_4
   env:
   {{- include "asya-test-flows.nested-if-handler-env" . | nindent 2 }}

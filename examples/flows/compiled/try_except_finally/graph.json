@@ -23,8 +23,8 @@
       "label": "release_resource"
     },
     {
-      "id": "router_resource_pipeline_line_10_except_1",
-      "label": "router_resource_pipeline_line_10_except_1",
+      "id": "router_resource_pipeline_except_runtimeerror",
+      "label": "router_resource_pipeline_except_runtimeerror",
       "generated": true,
       "mutations": [
         "p['status'] = 'failed'"
@@ -66,7 +66,7 @@
       "type": "continuation"
     },
     {
-      "from": "router_resource_pipeline_line_10_except_1",
+      "from": "router_resource_pipeline_except_runtimeerror",
       "to": "handle_failure",
       "label": null,
       "type": "set"
@@ -79,13 +79,13 @@
     },
     {
       "from": "acquire_resource",
-      "to": "router_resource_pipeline_line_10_except_1",
+      "to": "router_resource_pipeline_except_runtimeerror",
       "label": "RuntimeError",
       "type": "error"
     },
     {
       "from": "process_with_resource",
-      "to": "router_resource_pipeline_line_10_except_1",
+      "to": "router_resource_pipeline_except_runtimeerror",
       "label": "RuntimeError",
       "type": "error"
     }

@@ -10,33 +10,33 @@ flowchart TD
     final_assembler[final_assembler]
     generalist[generalist]
     root_agent[root_agent]
-    router_hierarchical_delegation_line_60_if_6{{router_hierarchical_delegation_line_60_if_6}}
-    router_hierarchical_delegation_line_64_if_2{{router_hierarchical_delegation_line_64_if_2}}
-    router_hierarchical_delegation_line_66_if_1{{router_hierarchical_delegation_line_66_if_1}}
-    router_hierarchical_delegation_line_71_if_5{{router_hierarchical_delegation_line_71_if_5}}
-    router_hierarchical_delegation_line_75_if_4{{router_hierarchical_delegation_line_75_if_4}}
-    router_hierarchical_delegation_line_77_if_3{{router_hierarchical_delegation_line_77_if_3}}
+    router_hierarchical_delegation_if_domain_eq_content{{router_hierarchical_delegation_if_domain_eq_content}}
+    router_hierarchical_delegation_if_domain_eq_data{{router_hierarchical_delegation_if_domain_eq_data}}
+    router_hierarchical_delegation_if_subtask_eq_api{{router_hierarchical_delegation_if_subtask_eq_api}}
+    router_hierarchical_delegation_if_subtask_eq_edit{{router_hierarchical_delegation_if_subtask_eq_edit}}
+    router_hierarchical_delegation_if_subtask_eq_sql{{router_hierarchical_delegation_if_subtask_eq_sql}}
+    router_hierarchical_delegation_if_subtask_eq_write{{router_hierarchical_delegation_if_subtask_eq_write}}
     sql_specialist[sql_specialist]
     start_hierarchical_delegation([start_hierarchical_delegation])
     writer[writer]
     __end__((( )))
 
     start_hierarchical_delegation --> root_agent
-    root_agent --> router_hierarchical_delegation_line_60_if_6
-    router_hierarchical_delegation_line_66_if_1 -->|"p.get('subtask') == 'api'"| api_specialist
-    router_hierarchical_delegation_line_66_if_1 -->|"else"| data_generalist
-    router_hierarchical_delegation_line_64_if_2 -->|"p.get('subtask') == 'sql'"| sql_specialist
-    router_hierarchical_delegation_line_64_if_2 -->|"else"| router_hierarchical_delegation_line_66_if_1
-    router_hierarchical_delegation_line_77_if_3 -->|"p.get('subtask') == 'edit'"| editor
-    router_hierarchical_delegation_line_77_if_3 -->|"else"| content_generalist
-    router_hierarchical_delegation_line_75_if_4 -->|"p.get('subtask') == 'write'"| writer
-    router_hierarchical_delegation_line_75_if_4 -->|"else"| router_hierarchical_delegation_line_77_if_3
-    router_hierarchical_delegation_line_71_if_5 -->|"p.get('domain') == 'content'"| content_team_lead
-    content_team_lead --> router_hierarchical_delegation_line_75_if_4
-    router_hierarchical_delegation_line_71_if_5 -->|"else"| generalist
-    router_hierarchical_delegation_line_60_if_6 -->|"p.get('domain') == 'data'"| data_team_lead
-    data_team_lead --> router_hierarchical_delegation_line_64_if_2
-    router_hierarchical_delegation_line_60_if_6 -->|"else"| router_hierarchical_delegation_line_71_if_5
+    root_agent --> router_hierarchical_delegation_if_domain_eq_data
+    router_hierarchical_delegation_if_subtask_eq_api -->|"p.get('subtask') == 'api'"| api_specialist
+    router_hierarchical_delegation_if_subtask_eq_api -->|"else"| data_generalist
+    router_hierarchical_delegation_if_subtask_eq_sql -->|"p.get('subtask') == 'sql'"| sql_specialist
+    router_hierarchical_delegation_if_subtask_eq_sql -->|"else"| router_hierarchical_delegation_if_subtask_eq_api
+    router_hierarchical_delegation_if_subtask_eq_edit -->|"p.get('subtask') == 'edit'"| editor
+    router_hierarchical_delegation_if_subtask_eq_edit -->|"else"| content_generalist
+    router_hierarchical_delegation_if_subtask_eq_write -->|"p.get('subtask') == 'write'"| writer
+    router_hierarchical_delegation_if_subtask_eq_write -->|"else"| router_hierarchical_delegation_if_subtask_eq_edit
+    router_hierarchical_delegation_if_domain_eq_content -->|"p.get('domain') == 'content'"| content_team_lead
+    content_team_lead --> router_hierarchical_delegation_if_subtask_eq_write
+    router_hierarchical_delegation_if_domain_eq_content -->|"else"| generalist
+    router_hierarchical_delegation_if_domain_eq_data -->|"p.get('domain') == 'data'"| data_team_lead
+    data_team_lead --> router_hierarchical_delegation_if_subtask_eq_sql
+    router_hierarchical_delegation_if_domain_eq_data -->|"else"| router_hierarchical_delegation_if_domain_eq_content
     sql_specialist --> final_assembler
     generalist --> final_assembler
     api_specialist --> final_assembler
@@ -53,7 +53,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_hierarchical_delegation start
     class final_assembler endnode
-    class router_hierarchical_delegation_line_60_if_6,router_hierarchical_delegation_line_64_if_2,router_hierarchical_delegation_line_66_if_1,router_hierarchical_delegation_line_71_if_5,router_hierarchical_delegation_line_75_if_4,router_hierarchical_delegation_line_77_if_3 router
+    class router_hierarchical_delegation_if_domain_eq_content,router_hierarchical_delegation_if_domain_eq_data,router_hierarchical_delegation_if_subtask_eq_api,router_hierarchical_delegation_if_subtask_eq_edit,router_hierarchical_delegation_if_subtask_eq_sql,router_hierarchical_delegation_if_subtask_eq_write router
     class api_specialist,content_generalist,content_team_lead,data_generalist,data_team_lead,editor,generalist,root_agent,sql_specialist,writer handler
     class __end__ endpoint
     linkStyle 2,4,6,8,10,13 stroke:#2E8B57

@@ -16,19 +16,19 @@
       "role": "end"
     },
     {
-      "id": "router_llm_pipeline_line_16_except_1",
-      "label": "router_llm_pipeline_line_16_except_1",
-      "generated": true,
-      "mutations": [
-        "p['fallback'] = True"
-      ]
-    },
-    {
-      "id": "router_llm_pipeline_line_19_except_2",
-      "label": "router_llm_pipeline_line_19_except_2",
+      "id": "router_llm_pipeline_except_authenticationerror",
+      "label": "router_llm_pipeline_except_authenticationerror",
       "generated": true,
       "mutations": [
         "p['status'] = 'auth_failed'"
+      ]
+    },
+    {
+      "id": "router_llm_pipeline_except_ratelimiterror",
+      "label": "router_llm_pipeline_except_ratelimiterror",
+      "generated": true,
+      "mutations": [
+        "p['fallback'] = True"
       ]
     },
     {
@@ -49,26 +49,26 @@
       "type": "prepend"
     },
     {
-      "from": "router_llm_pipeline_line_16_except_1",
+      "from": "router_llm_pipeline_except_ratelimiterror",
       "to": "call_fallback_llm",
       "label": null,
       "type": "set"
     },
     {
-      "from": "router_llm_pipeline_line_19_except_2",
+      "from": "router_llm_pipeline_except_authenticationerror",
       "to": "notify_admin",
       "label": null,
       "type": "set"
     },
     {
       "from": "call_llm",
-      "to": "router_llm_pipeline_line_16_except_1",
+      "to": "router_llm_pipeline_except_ratelimiterror",
       "label": "openai.RateLimitError",
       "type": "error"
     },
     {
       "from": "call_llm",
-      "to": "router_llm_pipeline_line_19_except_2",
+      "to": "router_llm_pipeline_except_authenticationerror",
       "label": "openai.AuthenticationError",
       "type": "error"
     }

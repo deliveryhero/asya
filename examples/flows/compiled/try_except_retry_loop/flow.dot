@@ -8,25 +8,25 @@ digraph "retry_pipeline" {
     call_external_api [label="call_external_api", fillcolor=lightblue];
     log_retry [label="log_retry", fillcolor=lightsalmon];
     prepare_request [label="prepare_request", fillcolor=lightblue];
-    router_retry_pipeline_line_15_while_1 [label="router_retry_pipeline_line_15_while_1", fillcolor=wheat];
-    router_retry_pipeline_line_16_seq_4 [label="router_retry_pipeline_line_16_seq_4\n\np['attempt'] += 1", fillcolor=wheat];
-    router_retry_pipeline_line_20_except_2 [label="router_retry_pipeline_line_20_except_2", fillcolor=wheat];
-    router_retry_pipeline_line_22_except_3 [label="router_retry_pipeline_line_22_except_3", fillcolor=wheat];
+    router_retry_pipeline_except_connectionerror [label="router_retry_pipeline_except_connectionerror", fillcolor=wheat];
+    router_retry_pipeline_except_valueerror [label="router_retry_pipeline_except_valueerror", fillcolor=wheat];
+    router_retry_pipeline_seq_set_attempt [label="router_retry_pipeline_seq_set_attempt\n\np['attempt'] += 1", fillcolor=wheat];
+    router_retry_pipeline_while_attempt_lt_3 [label="router_retry_pipeline_while_attempt_lt_3", fillcolor=wheat];
     start_retry_pipeline [label="start_retry_pipeline\n\np['attempt'] = 0", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
     start_retry_pipeline -> prepare_request;
-    prepare_request -> router_retry_pipeline_line_15_while_1;
-    router_retry_pipeline_line_20_except_2 -> log_retry;
-    router_retry_pipeline_line_16_seq_4 -> call_external_api;
+    prepare_request -> router_retry_pipeline_while_attempt_lt_3;
+    router_retry_pipeline_except_connectionerror -> log_retry;
+    router_retry_pipeline_seq_set_attempt -> call_external_api;
     call_external_api -> call_another_api;
-    router_retry_pipeline_line_15_while_1 -> router_retry_pipeline_line_16_seq_4 [label="p['attempt'] < 3", color="#2E8B57", fontcolor="#2E8B57"];
-    call_external_api -> router_retry_pipeline_line_20_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
-    call_external_api -> router_retry_pipeline_line_22_except_3 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    call_another_api -> router_retry_pipeline_line_20_except_2 [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
-    call_another_api -> router_retry_pipeline_line_22_except_3 [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
-    call_another_api -> router_retry_pipeline_line_15_while_1;
+    router_retry_pipeline_while_attempt_lt_3 -> router_retry_pipeline_seq_set_attempt [label="p['attempt'] < 3", color="#2E8B57", fontcolor="#2E8B57"];
+    call_external_api -> router_retry_pipeline_except_connectionerror [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    call_external_api -> router_retry_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    call_another_api -> router_retry_pipeline_except_connectionerror [label="ConnectionError", color="#DC143C", fontcolor="#DC143C"];
+    call_another_api -> router_retry_pipeline_except_valueerror [label="ValueError", color="#DC143C", fontcolor="#DC143C"];
+    call_another_api -> router_retry_pipeline_while_attempt_lt_3;
     log_retry -> __end__;
-    router_retry_pipeline_line_22_except_3 -> __end__;
+    router_retry_pipeline_except_valueerror -> __end__;
 }

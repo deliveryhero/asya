@@ -11,8 +11,8 @@
       "role": "end"
     },
     {
-      "id": "router_decorator_inline_comments_flow_line_18_if_1",
-      "label": "router_decorator_inline_comments_flow_line_18_if_1",
+      "id": "router_decorator_inline_comments_flow_if_category_eq_priority",
+      "label": "router_decorator_inline_comments_flow_if_category_eq_priority",
       "generated": true
     },
     {
@@ -36,18 +36,18 @@
     },
     {
       "from": "classifier",
-      "to": "router_decorator_inline_comments_flow_line_18_if_1",
+      "to": "router_decorator_inline_comments_flow_if_category_eq_priority",
       "label": null,
       "type": "continuation"
     },
     {
-      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "from": "router_decorator_inline_comments_flow_if_category_eq_priority",
       "to": "fast_handler",
       "label": "p['category'] == 'priority'",
       "type": "prepend"
     },
     {
-      "from": "router_decorator_inline_comments_flow_line_18_if_1",
+      "from": "router_decorator_inline_comments_flow_if_category_eq_priority",
       "to": "standard_handler",
       "label": "else",
       "type": "prepend"

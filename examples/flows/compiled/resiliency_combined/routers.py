@@ -24,7 +24,7 @@ async def start_data_pipeline(payload: dict):
     yield "SET", ".route.next[:0]", _next
     yield payload
 
-async def router_data_pipeline_line_34_except_1(payload: dict):
+async def router_data_pipeline_except_valueerror(payload: dict):
     """Router for error handling (except clause)"""
     p = payload
     p['error'] = 'bad_data'

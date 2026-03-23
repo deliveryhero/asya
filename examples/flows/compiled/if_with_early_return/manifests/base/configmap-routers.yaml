@@ -27,11 +27,11 @@ data:
         """Entrypoint for flow 'early_return_flow'"""
         _next = []
         _next.append(resolve("handler_validate"))
-        _next.append(resolve("router_early_return_flow_line_13_if_1"))
+        _next.append(resolve("router_early_return_flow_if_not_valid"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_early_return_flow_line_13_if_1(payload: dict):
+    async def router_early_return_flow_if_not_valid(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []

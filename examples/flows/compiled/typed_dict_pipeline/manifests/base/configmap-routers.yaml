@@ -28,11 +28,11 @@ data:
         _next = []
         _next.append(resolve("parser"))
         _next.append(resolve("validator"))
-        _next.append(resolve("router_typeddict_pipeline_line_76_if_1"))
+        _next.append(resolve("router_typeddict_pipeline_if_not_valid"))
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_typeddict_pipeline_line_76_if_1(payload: dict):
+    async def router_typeddict_pipeline_if_not_valid(payload: dict):
         """Router for control flow and payload mutations"""
         p = payload
         _next = []

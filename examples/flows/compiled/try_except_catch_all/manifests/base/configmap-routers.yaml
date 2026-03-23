@@ -30,14 +30,14 @@ data:
         yield "SET", ".route.next[:0]", _next
         yield payload
 
-    async def router_resilient_pipeline_line_8_except_1(payload: dict):
+    async def router_resilient_pipeline_except_valueerror(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error_type'] = 'known'
         yield "SET", ".route.next", [resolve('handle_known_error')]
         yield payload
 
-    async def router_resilient_pipeline_line_11_except_2(payload: dict):
+    async def router_resilient_pipeline_except_all(payload: dict):
         """Router for error handling (except clause)"""
         p = payload
         p['error_type'] = 'unknown'

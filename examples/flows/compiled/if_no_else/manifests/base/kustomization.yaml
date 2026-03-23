@@ -3,6 +3,6 @@ kind: Kustomization
 resources:
 - asya-actor-handler-setup.yaml
 - asya-actor-handler-true.yaml
-- asya-router-if-no-else-flow-line-13-if-1.yaml
+- asya-router-if-no-else-flow-if-condition.yaml
 - asya-start-if-no-else-flow.yaml
 - configmap-routers.yaml

@@ -1,73 +1,65 @@
 flowchart TD
-    %% Flow: adk_llm_auditor
+    %% Flow: llm_auditor
 
     accuracy_scorer[accuracy_scorer]
     adk_llm_auditor_QualityScorer_aggregate[QualityScorer.aggregate]
     completeness_scorer[completeness_scorer]
-    critique[critique]
-    deep_reviser[deep_reviser]
-    extract_claims[extract_claims]
-    fallback_generate[fallback_generate]
-    fanin_llm_auditor_line_56[fanin_llm_auditor_line_56]
-    fanout_llm_auditor_line_56{{fanout_llm_auditor_line_56}}
-    finalize[finalize]
-    llm_generate[llm_generate]
-    reviser[reviser]
-    router_llm_auditor_line_41_if{{router_llm_auditor_line_41_if}}
-    router_llm_auditor_line_42_seq{{"router_llm_auditor_line_42_seq<br/><br/>p['status'] = 'no_claims'"}}
-    router_llm_auditor_line_46_loop_back_0{{router_llm_auditor_line_46_loop_back_0}}
-    router_llm_auditor_line_47_seq{{"router_llm_auditor_line_47_seq<br/><br/>p['iteration'] += 1"}}
-    router_llm_auditor_line_50_except_dispatch_0{{router_llm_auditor_line_50_except_dispatch_0}}
-    router_llm_auditor_line_50_try_enter_0{{router_llm_auditor_line_50_try_enter_0}}
-    router_llm_auditor_line_50_try_exit_0{{router_llm_auditor_line_50_try_exit_0}}
-    router_llm_auditor_line_65_if{{router_llm_auditor_line_65_if}}
-    router_llm_auditor_line_66_seq{{"router_llm_auditor_line_66_seq<br/><br/>p['prev_score'] = p['aggregate_score']"}}
-    router_llm_auditor_line_70_if{{router_llm_auditor_line_70_if}}
-    router_llm_auditor_line_71_seq{{"router_llm_auditor_line_71_seq<br/><br/>p['status'] = 'approved'"}}
-    router_llm_auditor_line_73_if{{router_llm_auditor_line_73_if}}
-    router_llm_auditor_line_83_if{{router_llm_auditor_line_83_if}}
-    router_llm_auditor_line_84_seq{{"router_llm_auditor_line_84_seq<br/><br/>p['status'] = 'max_iterations'"}}
-    router_llm_auditor_line_87_seq{{"router_llm_auditor_line_87_seq<br/><br/>p['prev_score'] = p['aggregate_score']"}}
-    router_llm_auditor_line_90_seq{{"router_llm_auditor_line_90_seq<br/><br/>p['partial'] = False"}}
-    start_llm_auditor(["start_llm_auditor<br/><br/>p['iteration'] = 0<br/>p['status'] = 'started'<br/>p['partial'] = True"])
+    fanin_llm_auditor_scores[fanin_llm_auditor_scores]
+    router_llm_auditor_except_all{{router_llm_auditor_except_all}}
+    router_llm_auditor_fanout_scores{{router_llm_auditor_fanout_scores}}
+    router_llm_auditor_if_aggregate_score_ge_70{{router_llm_auditor_if_aggregate_score_ge_70}}
+    router_llm_auditor_if_aggregate_score_ge_90{{router_llm_auditor_if_aggregate_score_ge_90}}
+    router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9{{router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9}}
+    router_llm_auditor_if_iteration_ge_max_iterations{{router_llm_auditor_if_iteration_ge_max_iterations}}
+    router_llm_auditor_if_not_claims{{"router_llm_auditor_if_not_claims<br/><br/>p['iteration'] = 0<br/>p['status'] = 'started'<br/>p['partial'] = True"}}
+    router_llm_auditor_seq_set_iteration{{"router_llm_auditor_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_llm_auditor_seq_set_partial{{"router_llm_auditor_seq_set_partial<br/><br/>p['partial'] = False"}}
+    router_llm_auditor_seq_set_prev_score{{"router_llm_auditor_seq_set_prev_score<br/><br/>p['prev_score'] = p['aggregate_score']"}}
+    router_llm_auditor_seq_set_prev_score_2{{"router_llm_auditor_seq_set_prev_score_2<br/><br/>p['prev_score'] = p['aggregate_score']"}}
+    router_llm_auditor_seq_set_status{{"router_llm_auditor_seq_set_status<br/><br/>p['status'] = 'max_iterations'"}}
+    router_llm_auditor_seq_set_status_2{{"router_llm_auditor_seq_set_status_2<br/><br/>p['status'] = 'approved'"}}
+    router_llm_auditor_seq_set_status_3{{"router_llm_auditor_seq_set_status_3<br/><br/>p['status'] = 'no_claims'"}}
+    router_llm_auditor_while_loop{{router_llm_auditor_while_loop}}
+    start_llm_auditor([start_llm_auditor])
     __end__((( )))
 
-    start_llm_auditor --> extract_claims
-    extract_claims --> router_llm_auditor_line_41_if
-    router_llm_auditor_line_90_seq --> finalize
-    router_llm_auditor_line_66_seq --> router_llm_auditor_line_46_loop_back_0
-    router_llm_auditor_line_73_if -->|p['aggregate_score'] >= 70| critique
-    critique --> reviser
-    reviser --> router_llm_auditor_line_83_if
-    router_llm_auditor_line_73_if -->|not (p['aggregate_score'] >= 70)| critique
-    critique --> deep_reviser
-    deep_reviser --> router_llm_auditor_line_83_if
-    router_llm_auditor_line_84_seq --> router_llm_auditor_line_90_seq
-    router_llm_auditor_line_83_if -->|p['iteration'] >= p.get('max_iterations', 5)| router_llm_auditor_line_84_seq
-    router_llm_auditor_line_83_if -->|not (p['iteration'] >= p.get('max_iterations', 5))| router_llm_auditor_line_87_seq
-    router_llm_auditor_line_70_if -->|p['aggregate_score'] >= 90| router_llm_auditor_line_71_seq
-    router_llm_auditor_line_70_if -->|not (p['aggregate_score'] >= 90)| router_llm_auditor_line_73_if
-    router_llm_auditor_line_65_if -->|p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70| router_llm_auditor_line_66_seq
-    router_llm_auditor_line_65_if -->|not (p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70)| router_llm_auditor_line_70_if
-    fanout_llm_auditor_line_56 -->|fanout| fanin_llm_auditor_line_56
-    fanin_llm_auditor_line_56 --> adk_llm_auditor_QualityScorer_aggregate
-    adk_llm_auditor_QualityScorer_aggregate --> router_llm_auditor_line_65_if
-    fanout_llm_auditor_line_56 --> accuracy_scorer
-    accuracy_scorer --> fanin_llm_auditor_line_56
-    fanout_llm_auditor_line_56 --> completeness_scorer
-    completeness_scorer --> fanin_llm_auditor_line_56
-    router_llm_auditor_line_50_try_enter_0 --> llm_generate
-    llm_generate --> router_llm_auditor_line_50_try_exit_0
-    router_llm_auditor_line_50_try_exit_0 --> fanout_llm_auditor_line_56
-    router_llm_auditor_line_50_except_dispatch_0 --> fanout_llm_auditor_line_56
-    router_llm_auditor_line_50_except_dispatch_0 -->|True| fallback_generate
-    router_llm_auditor_line_47_seq --> router_llm_auditor_line_50_try_enter_0
-    router_llm_auditor_line_46_loop_back_0 --> router_llm_auditor_line_47_seq
-    router_llm_auditor_line_41_if -->|not p.get('claims')| router_llm_auditor_line_42_seq
-    router_llm_auditor_line_41_if -->|not (not p.get('claims'))| router_llm_auditor_line_46_loop_back_0
-    router_llm_auditor_line_50_try_enter_0 --> router_llm_auditor_line_46_loop_back_0
-    fallback_generate --> __end__
-    finalize --> __end__
-    router_llm_auditor_line_42_seq --> __end__
-    router_llm_auditor_line_71_seq --> __end__
-    router_llm_auditor_line_87_seq --> __end__
+    start_llm_auditor --> router_llm_auditor_if_not_claims
+    router_llm_auditor_seq_set_status --> router_llm_auditor_seq_set_partial
+    router_llm_auditor_if_iteration_ge_max_iterations -->|"else"| router_llm_auditor_seq_set_prev_score
+    router_llm_auditor_if_iteration_ge_max_iterations -->|"p['iteration'] >= p.get('max_iterations', 5)"| router_llm_auditor_seq_set_status
+    router_llm_auditor_if_aggregate_score_ge_90 -->|"else"| router_llm_auditor_if_aggregate_score_ge_70
+    router_llm_auditor_if_aggregate_score_ge_70 --> router_llm_auditor_if_iteration_ge_max_iterations
+    router_llm_auditor_if_aggregate_score_ge_90 -->|"p['aggregate_score'] >= 90"| router_llm_auditor_seq_set_status_2
+    router_llm_auditor_seq_set_prev_score_2 --> router_llm_auditor_while_loop
+    router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9 -->|"p['aggregate_score'] > p.get('prev_score', 0) and p['aggregate_score'] < 70"| router_llm_auditor_seq_set_prev_score_2
+    router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9 -->|"else"| router_llm_auditor_if_aggregate_score_ge_90
+    router_llm_auditor_fanout_scores -->|"fanout"| fanin_llm_auditor_scores
+    fanin_llm_auditor_scores --> adk_llm_auditor_QualityScorer_aggregate
+    adk_llm_auditor_QualityScorer_aggregate --> router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9
+    router_llm_auditor_fanout_scores --> accuracy_scorer
+    accuracy_scorer --> fanin_llm_auditor_scores
+    router_llm_auditor_fanout_scores --> completeness_scorer
+    completeness_scorer --> fanin_llm_auditor_scores
+    router_llm_auditor_except_all --> router_llm_auditor_fanout_scores
+    router_llm_auditor_seq_set_iteration --> router_llm_auditor_fanout_scores
+    router_llm_auditor_while_loop --> router_llm_auditor_seq_set_iteration
+    router_llm_auditor_if_not_claims -->|"else"| router_llm_auditor_while_loop
+    router_llm_auditor_if_not_claims -->|"not p.get('claims')"| router_llm_auditor_seq_set_status_3
+    router_llm_auditor_fanout_scores --> router_llm_auditor_while_loop
+    router_llm_auditor_seq_set_partial --> __end__
+    router_llm_auditor_seq_set_prev_score --> __end__
+    router_llm_auditor_seq_set_status_2 --> __end__
+    router_llm_auditor_seq_set_status_3 --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_llm_auditor start
+    class router_llm_auditor_except_all,router_llm_auditor_fanout_scores,router_llm_auditor_if_aggregate_score_ge_70,router_llm_auditor_if_aggregate_score_ge_90,router_llm_auditor_if_aggregate_score_gt_prev_score_and_7a47b9,router_llm_auditor_if_iteration_ge_max_iterations,router_llm_auditor_if_not_claims,router_llm_auditor_seq_set_iteration,router_llm_auditor_seq_set_partial,router_llm_auditor_seq_set_prev_score,router_llm_auditor_seq_set_prev_score_2,router_llm_auditor_seq_set_status,router_llm_auditor_seq_set_status_2,router_llm_auditor_seq_set_status_3,router_llm_auditor_while_loop router
+    class accuracy_scorer,adk_llm_auditor_QualityScorer_aggregate,completeness_scorer,fanin_llm_auditor_scores handler
+    class __end__ endpoint
+    linkStyle 3,6,8,21 stroke:#2E8B57
+    linkStyle 10 stroke:#7B68EE
+    linkStyle 2,4,9,20 stroke:#E07040

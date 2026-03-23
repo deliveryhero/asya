@@ -1,0 +1,41 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-loop-flow-seq-set-abort-2
+  namespace: default
+  labels:
+    asya.sh/flow: loop-flow
+    asya.sh/generated: 'true'
+spec:
+  actor: router-loop-flow-seq-set-abort-2
+  image: python:3.13-slim
+  handler: routers.router_loop_flow_seq_set_abort_2
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_CHECK_THRESHOLD
+    value: check_threshold
+  - name: ASYA_HANDLER_ACTOR_FINALIZE_LOOP
+    value: finalize_loop
+  - name: ASYA_HANDLER_ACTOR_INITIALIZE
+    value: initialize
+  - name: ASYA_HANDLER_ACTOR_PROCESS_ABORT
+    value: process_abort
+  - name: ASYA_HANDLER_ACTOR_PROCESS_ITEM
+    value: process_item
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_IF_SKIP_THRESHOLD_CHECK
+    value: routers.router_loop_flow_if_skip_threshold_check
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_IF_THRESHOLD_MET
+    value: routers.router_loop_flow_if_threshold_met
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_SEQ_SET_ABORT
+    value: routers.router_loop_flow_seq_set_abort
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_SEQ_SET_ABORT_2
+    value: routers.router_loop_flow_seq_set_abort_2
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_SEQ_SET_ITERATION
+    value: routers.router_loop_flow_seq_set_iteration
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_SEQ_SET_ITERATION_2
+    value: routers.router_loop_flow_seq_set_iteration_2
+  - name: ASYA_HANDLER_ROUTER_LOOP_FLOW_WHILE_ITERATION_LT_MAX_ITERATIONS
+    value: routers.router_loop_flow_while_iteration_lt_max_iterations

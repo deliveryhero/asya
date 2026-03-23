@@ -5,36 +5,36 @@ flowchart TD
     code_exec[code_exec]
     format_response[format_response]
     llm_reason[llm_reason]
-    router_react_tool_loop_line_49_while_1{{router_react_tool_loop_line_49_while_1}}
-    router_react_tool_loop_line_50_seq_8{{"router_react_tool_loop_line_50_seq_8<br/><br/>p['iteration'] += 1"}}
-    router_react_tool_loop_line_56_if_7{{router_react_tool_loop_line_56_if_7}}
-    router_react_tool_loop_line_62_if_6{{"router_react_tool_loop_line_62_if_6<br/><br/>p['tool_name'] = p['tool_calls'][0]['name']"}}
-    router_react_tool_loop_line_64_if_5{{router_react_tool_loop_line_64_if_5}}
-    router_react_tool_loop_line_66_if_4{{router_react_tool_loop_line_66_if_4}}
-    router_react_tool_loop_line_69_seq_3{{"router_react_tool_loop_line_69_seq_3<br/><br/>p['observation'] = 'Unknown tool'"}}
-    router_react_tool_loop_line_75_if_2{{"router_react_tool_loop_line_75_if_2<br/><br/>p['messages'] = p.get('messages', [])"}}
+    router_react_tool_loop_if_iteration_ge_10{{"router_react_tool_loop_if_iteration_ge_10<br/><br/>p['messages'] = p.get('messages', [])"}}
+    router_react_tool_loop_if_not_tool_calls{{router_react_tool_loop_if_not_tool_calls}}
+    router_react_tool_loop_if_tool_name_eq_calculator{{router_react_tool_loop_if_tool_name_eq_calculator}}
+    router_react_tool_loop_if_tool_name_eq_code_exec{{router_react_tool_loop_if_tool_name_eq_code_exec}}
+    router_react_tool_loop_if_tool_name_eq_web_search{{"router_react_tool_loop_if_tool_name_eq_web_search<br/><br/>p['tool_name'] = p['tool_calls'][0]['name']"}}
+    router_react_tool_loop_seq_set_iteration{{"router_react_tool_loop_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_react_tool_loop_seq_set_observation{{"router_react_tool_loop_seq_set_observation<br/><br/>p['observation'] = 'Unknown tool'"}}
+    router_react_tool_loop_while_loop{{router_react_tool_loop_while_loop}}
     start_react_tool_loop(["start_react_tool_loop<br/><br/>p['messages'] = p.get('messages', [])<br/>p['iteration'] = 0"])
     web_search[web_search]
     __end__((( )))
 
-    start_react_tool_loop --> router_react_tool_loop_line_49_while_1
-    router_react_tool_loop_line_75_if_2 -->|"p['iteration'] >= 10"| format_response
-    router_react_tool_loop_line_66_if_4 -->|"p['tool_name'] == 'calculator'"| calculator
-    router_react_tool_loop_line_66_if_4 -->|"else"| router_react_tool_loop_line_69_seq_3
-    router_react_tool_loop_line_64_if_5 -->|"p['tool_name'] == 'code_exec'"| code_exec
-    router_react_tool_loop_line_64_if_5 -->|"else"| router_react_tool_loop_line_66_if_4
-    router_react_tool_loop_line_62_if_6 -->|"p['tool_name'] == 'web_search'"| web_search
-    web_search --> router_react_tool_loop_line_75_if_2
-    router_react_tool_loop_line_62_if_6 -->|"else"| router_react_tool_loop_line_64_if_5
-    router_react_tool_loop_line_56_if_7 -->|"else"| router_react_tool_loop_line_62_if_6
-    router_react_tool_loop_line_56_if_7 -->|"not p.get('tool_calls')"| format_response
-    router_react_tool_loop_line_50_seq_8 --> llm_reason
-    llm_reason --> router_react_tool_loop_line_56_if_7
-    router_react_tool_loop_line_49_while_1 --> router_react_tool_loop_line_50_seq_8
-    code_exec --> router_react_tool_loop_line_75_if_2
-    calculator --> router_react_tool_loop_line_75_if_2
-    router_react_tool_loop_line_69_seq_3 --> router_react_tool_loop_line_75_if_2
-    router_react_tool_loop_line_75_if_2 -->|"else"| router_react_tool_loop_line_49_while_1
+    start_react_tool_loop --> router_react_tool_loop_while_loop
+    router_react_tool_loop_if_iteration_ge_10 -->|"p['iteration'] >= 10"| format_response
+    router_react_tool_loop_if_tool_name_eq_calculator -->|"p['tool_name'] == 'calculator'"| calculator
+    router_react_tool_loop_if_tool_name_eq_calculator -->|"else"| router_react_tool_loop_seq_set_observation
+    router_react_tool_loop_if_tool_name_eq_code_exec -->|"p['tool_name'] == 'code_exec'"| code_exec
+    router_react_tool_loop_if_tool_name_eq_code_exec -->|"else"| router_react_tool_loop_if_tool_name_eq_calculator
+    router_react_tool_loop_if_tool_name_eq_web_search -->|"p['tool_name'] == 'web_search'"| web_search
+    web_search --> router_react_tool_loop_if_iteration_ge_10
+    router_react_tool_loop_if_tool_name_eq_web_search -->|"else"| router_react_tool_loop_if_tool_name_eq_code_exec
+    router_react_tool_loop_if_not_tool_calls -->|"else"| router_react_tool_loop_if_tool_name_eq_web_search
+    router_react_tool_loop_if_not_tool_calls -->|"not p.get('tool_calls')"| format_response
+    router_react_tool_loop_seq_set_iteration --> llm_reason
+    llm_reason --> router_react_tool_loop_if_not_tool_calls
+    router_react_tool_loop_while_loop --> router_react_tool_loop_seq_set_iteration
+    code_exec --> router_react_tool_loop_if_iteration_ge_10
+    calculator --> router_react_tool_loop_if_iteration_ge_10
+    router_react_tool_loop_seq_set_observation --> router_react_tool_loop_if_iteration_ge_10
+    router_react_tool_loop_if_iteration_ge_10 -->|"else"| router_react_tool_loop_while_loop
     format_response --> __end__
 
     classDef start fill:#98FB98,stroke:#333
@@ -44,7 +44,7 @@ flowchart TD
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_react_tool_loop start
     class format_response endnode
-    class router_react_tool_loop_line_49_while_1,router_react_tool_loop_line_50_seq_8,router_react_tool_loop_line_56_if_7,router_react_tool_loop_line_62_if_6,router_react_tool_loop_line_64_if_5,router_react_tool_loop_line_66_if_4,router_react_tool_loop_line_69_seq_3,router_react_tool_loop_line_75_if_2 router
+    class router_react_tool_loop_if_iteration_ge_10,router_react_tool_loop_if_not_tool_calls,router_react_tool_loop_if_tool_name_eq_calculator,router_react_tool_loop_if_tool_name_eq_code_exec,router_react_tool_loop_if_tool_name_eq_web_search,router_react_tool_loop_seq_set_iteration,router_react_tool_loop_seq_set_observation,router_react_tool_loop_while_loop router
     class calculator,code_exec,llm_reason,web_search handler
     class __end__ endpoint
     linkStyle 1,2,4,6,10 stroke:#2E8B57

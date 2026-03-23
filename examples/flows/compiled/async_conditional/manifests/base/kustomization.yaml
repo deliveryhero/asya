@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-- asya-router-content-pipeline-flow-line-15-if-2.yaml
-- asya-router-content-pipeline-flow-line-17-if-1.yaml
+- asya-router-content-pipeline-flow-if-content-type-eq-image.yaml
+- asya-router-content-pipeline-flow-if-content-type-eq-text.yaml
 - asya-start-content-pipeline-flow.yaml
 - configmap-routers.yaml

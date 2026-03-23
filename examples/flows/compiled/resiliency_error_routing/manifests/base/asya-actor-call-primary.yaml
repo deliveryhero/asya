@@ -18,20 +18,20 @@ spec:
     value: tenacity.retry
   resiliency:
     policies:
-      try_except_line_27_0:
+      except_connectionerror:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-29-except-1
-      try_except_line_27_1:
+        - router-failover-pipeline-except-connectionerror
+      except_valueerror:
         maxAttempts: 1
         thenRoute:
-        - router-failover-pipeline-line-32-except-2
+        - router-failover-pipeline-except-valueerror
       default:
         maxAttempts: 3
     rules:
     - errors:
       - ConnectionError
-      policy: try_except_line_27_0
+      policy: except_connectionerror
     - errors:
       - ValueError
-      policy: try_except_line_27_1
+      policy: except_valueerror

@@ -1,0 +1,31 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-plan-and-execute-seq-set-completed
+  namespace: default
+  labels:
+    asya.sh/flow: plan-and-execute
+    asya.sh/generated: 'true'
+spec:
+  actor: router-plan-and-execute-seq-set-completed
+  image: python:3.13-slim
+  handler: routers.router_plan_and_execute_seq_set_completed
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 2
+  env:
+  - name: ASYA_HANDLER_ACTOR_EXECUTOR
+    value: executor
+  - name: ASYA_HANDLER_ACTOR_PLANNER
+    value: planner
+  - name: ASYA_HANDLER_ACTOR_RE_PLANNER
+    value: re_planner
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_IF_CURRENT_STEP_LT_LEN_P_GET_PLAN
+    value: routers.router_plan_and_execute_if_current_step_lt_len_p_get_plan
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_SEQ_SET_COMPLETED
+    value: routers.router_plan_and_execute_seq_set_completed
+  - name: ASYA_HANDLER_ROUTER_PLAN_AND_EXECUTE_WHILE_CURRENT_STEP_LT_LEN_P_GET_PLAN
+    value: routers.router_plan_and_execute_while_current_step_lt_len_p_get_plan
+  - name: ASYA_HANDLER_ACTOR_SYNTHESIZER
+    value: synthesizer

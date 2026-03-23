@@ -3,68 +3,36 @@
   "nodes": [
     {
       "id": "core_agent",
-      "role": "processor",
-      "label": "core_agent",
-      "generated": false
+      "label": "core_agent"
     },
     {
       "id": "input_validator",
-      "role": "processor",
-      "label": "input_validator",
-      "generated": false
+      "label": "input_validator"
     },
     {
       "id": "output_validator",
-      "role": "processor",
-      "label": "output_validator",
-      "generated": false
+      "label": "output_validator"
     },
     {
-      "id": "router_guardrails_sandwich_line_47_except_dispatch_0",
-      "role": "router",
-      "label": "router_guardrails_sandwich_line_47_except_dispatch_0",
-      "generated": true
-    },
-    {
-      "id": "router_guardrails_sandwich_line_47_reraise_0",
-      "role": "exitpoint",
-      "label": "router_guardrails_sandwich_line_47_reraise_0",
-      "generated": true
-    },
-    {
-      "id": "router_guardrails_sandwich_line_47_try_enter_0",
-      "role": "router",
-      "label": "router_guardrails_sandwich_line_47_try_enter_0",
-      "generated": true
-    },
-    {
-      "id": "router_guardrails_sandwich_line_47_try_exit_0",
-      "role": "exitpoint",
-      "label": "router_guardrails_sandwich_line_47_try_exit_0",
+      "id": "router_guardrails_sandwich_except_exception",
+      "label": "router_guardrails_sandwich_except_exception",
       "generated": true
     },
     {
       "id": "safe_fallback",
-      "role": "exitpoint",
       "label": "safe_fallback",
-      "generated": false
+      "role": "end"
     },
     {
       "id": "start_guardrails_sandwich",
-      "role": "entrypoint",
       "label": "start_guardrails_sandwich",
+      "role": "start",
       "generated": true
     }
   ],
   "edges": [
     {
       "from": "start_guardrails_sandwich",
-      "to": "router_guardrails_sandwich_line_47_try_enter_0",
-      "label": null,
-      "type": "prepend"
-    },
-    {
-      "from": "router_guardrails_sandwich_line_47_try_enter_0",
       "to": "input_validator",
       "label": null,
       "type": "prepend"
@@ -82,29 +50,29 @@
       "type": "continuation"
     },
     {
-      "from": "output_validator",
-      "to": "router_guardrails_sandwich_line_47_try_exit_0",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
+      "from": "router_guardrails_sandwich_except_exception",
       "to": "safe_fallback",
-      "label": "'Exception' in _all_types",
-      "type": "prepend"
+      "label": null,
+      "type": "set"
     },
     {
-      "from": "router_guardrails_sandwich_line_47_except_dispatch_0",
-      "to": "router_guardrails_sandwich_line_47_reraise_0",
-      "label": "not ('Exception' in _all_types)",
-      "type": "prepend"
+      "from": "input_validator",
+      "to": "router_guardrails_sandwich_except_exception",
+      "label": "Exception",
+      "type": "error"
+    },
+    {
+      "from": "core_agent",
+      "to": "router_guardrails_sandwich_except_exception",
+      "label": "Exception",
+      "type": "error"
+    },
+    {
+      "from": "output_validator",
+      "to": "router_guardrails_sandwich_except_exception",
+      "label": "Exception",
+      "type": "error"
     }
   ],
-  "groups": [],
-  "warnings": [
-    "node 'router_guardrails_sandwich_line_47_except_dispatch_0' is not reachable from entrypoint",
-    "node 'router_guardrails_sandwich_line_47_reraise_0' is not reachable from entrypoint",
-    "node 'safe_fallback' is not reachable from entrypoint",
-    "node 'router_guardrails_sandwich_line_47_except_dispatch_0' has no incoming edges but is not an entrypoint"
-  ]
+  "groups": []
 }
