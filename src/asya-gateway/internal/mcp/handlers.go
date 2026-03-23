@@ -26,6 +26,7 @@ var (
 	meshProgressPathRegex = regexp.MustCompile(`^/mesh/([^/]+)/progress$`)
 	meshFinalPathRegex    = regexp.MustCompile(`^/mesh/([^/]+)/final$`)
 	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
+	streamPathRegex       = regexp.MustCompile(`^/stream/([^/]+)$`)
 )
 
 const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id + colon
@@ -255,7 +256,11 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Match both /mesh/{id}/stream (mesh routes) and /stream/{id} (API routes)
 	matches := meshStreamPathRegex.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		matches = streamPathRegex.FindStringSubmatch(r.URL.Path)
+	}
 	if matches == nil {
 		http.Error(w, "Invalid task stream path", http.StatusBadRequest)
 		return

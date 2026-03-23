@@ -909,18 +909,8 @@ func (s *PgStore) isFinal(status types.EnvelopeStatus) bool {
 }
 
 // NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
-// Used for streaming LLM tokens and real-time progress updates.
 func (s *PgStore) NotifyFLY(id string, payload []byte) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	update := types.EnvelopeUpdate{
-		ID:             id,
-		Status:         types.EnvelopeStatusRunning,
-		PartialPayload: json.RawMessage(payload),
-		Timestamp:      time.Now(),
-	}
-	s.notifyListeners(update)
+	s.dispatchFLY(id, string(payload))
 }
 
 // cleanupOldUpdates periodically removes old task updates (keep last 24 hours)
