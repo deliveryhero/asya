@@ -19,7 +19,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 	// Setup: Create task store and handler
 	_ = context.Background()
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	// Create a test job with 3 actors
 	job := &types.Envelope{
@@ -159,7 +159,7 @@ func TestProgressTracking_EndToEnd(t *testing.T) {
 // TestProgressTracking_SSEStream tests the SSE streaming of progress updates
 func TestProgressTracking_SSEStream(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	// Create job
 	job := &types.Envelope{
@@ -232,7 +232,7 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 	}
 
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	job := &types.Envelope{
 		ID: "keepalive-test-job",
@@ -281,7 +281,7 @@ func TestProgressTracking_SSEKeepalive(t *testing.T) {
 // TestProgressTracking_ConcurrentUpdates tests handling of concurrent progress updates
 func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	taskID := "concurrent-test-task"
 	job := &types.Envelope{
@@ -344,7 +344,7 @@ func TestProgressTracking_ConcurrentUpdates(t *testing.T) {
 // direct-SQS messages bypass gateway task creation.
 func TestProgressTracking_InvalidTaskID(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	progressUpdate := types.EnvelopeProgressUpdate{
 		Prev:   []string{},
@@ -368,7 +368,7 @@ func TestProgressTracking_InvalidTaskID(t *testing.T) {
 // TestProgressTracking_RouteUpdate tests that route fields are updated on each progress report
 func TestProgressTracking_RouteUpdate(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	// Create task with initial route
 	taskID := "route-update-test"
@@ -431,7 +431,7 @@ func TestProgressTracking_RouteUpdate(t *testing.T) {
 // TestProgressTracking_RouteActorsMultipleUpdates tests route updates across multiple progress reports
 func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	taskID := "route-multi-update-test"
 	task := &types.Envelope{
@@ -478,7 +478,7 @@ func TestProgressTracking_RouteActorsMultipleUpdates(t *testing.T) {
 // This is a regression test for the bug where empty actors caused progress_percent = 0
 func TestProgressTracking_EmptyActorsList(t *testing.T) {
 	store := envelopestore.NewStore()
-	handler := NewHandler(store)
+	handler := NewHandler(store, nil)
 
 	// Create a task with 3 actors
 	taskID := "test-empty-actors-" + time.Now().Format("20060102150405")

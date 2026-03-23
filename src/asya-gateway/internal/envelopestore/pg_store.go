@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"strconv"
 	"sync"
@@ -635,7 +636,7 @@ func (s *PgStore) Subscribe(id string) chan types.EnvelopeUpdate {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch := make(chan types.EnvelopeUpdate, 10)
+	ch := make(chan types.EnvelopeUpdate, 100)
 	s.listeners[id] = append(s.listeners[id], ch)
 
 	return ch
@@ -667,7 +668,7 @@ func (s *PgStore) notifyListeners(update types.EnvelopeUpdate) {
 		select {
 		case ch <- update:
 		default:
-			// Channel full, skip
+			slog.Warn("FLY event dropped: subscriber channel full", "task_id", update.ID)
 		}
 	}
 }
@@ -906,6 +907,11 @@ func (s *PgStore) List(params EnvelopeListParams) ([]*types.Envelope, int, error
 // isFinal checks if a status is final
 func (s *PgStore) isFinal(status types.EnvelopeStatus) bool {
 	return status == types.EnvelopeStatusSucceeded || status == types.EnvelopeStatusFailed || status == types.EnvelopeStatusCanceled
+}
+
+// NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
+func (s *PgStore) NotifyFLY(id string, payload []byte) {
+	s.dispatchFLY(id, string(payload))
 }
 
 // cleanupOldUpdates periodically removes old task updates (keep last 24 hours)

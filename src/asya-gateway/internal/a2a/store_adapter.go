@@ -32,6 +32,13 @@ func NewStoreAdapter(store envelopestore.EnvelopeStore, sp stateproxy.Reader) *S
 
 // Save translates a2a.Task state change to internal TaskUpdate and calls internal.Update.
 func (a *StoreAdapter) Save(ctx context.Context, task *a2alib.Task, event a2alib.Event, prev a2alib.TaskVersion) (a2alib.TaskVersion, error) {
+	// Streaming artifact chunks are ephemeral — accumulate in a2a-go's
+	// Manager.lastSaved in-memory, but do not persist to the DB.
+	// Final artifacts are delivered by actors via state proxy.
+	if _, ok := event.(*a2alib.TaskArtifactUpdateEvent); ok {
+		return prev, nil
+	}
+
 	status := FromA2AState(task.Status.State)
 
 	update := types.EnvelopeUpdate{
