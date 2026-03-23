@@ -3,8 +3,8 @@
 BEGIN;
 
 -- Add partial_payload column to task_updates for persisting streaming partial events.
--- Partial events (e.g. LLM tokens) are stored here so SSE clients connecting after
--- task completion can replay them via GetUpdates.
+-- Column retained for backward compatibility. FLY events are now ephemeral (broadcast via
+-- PG LISTEN/NOTIFY) and are NOT written to this column. Only progress/status updates persist.
 ALTER TABLE task_updates
 ADD COLUMN partial_payload JSONB;
 

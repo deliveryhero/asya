@@ -11,6 +11,7 @@ Complete reference for all `asya-gateway` HTTP endpoints. Routes are split acros
 | `POST` | `/mcp` | api | MCP auth | LLM clients, asya-lab |
 | `GET` | `/mcp/sse` | api | MCP auth | LLM clients, asya-lab |
 | `POST` | `/tools/call` | api | MCP auth | LLM clients, asya-lab |
+| `GET` | `/stream/{id}` | api | MCP/A2A auth | Any client (A2A, MCP, UI) |
 | `GET` | `/.well-known/oauth-protected-resource` | api | Public | MCP clients |
 | `GET` | `/.well-known/oauth-authorization-server` | api | Public | MCP clients |
 | `POST` | `/oauth/register` | api | Open or token | MCP clients |
@@ -167,6 +168,26 @@ REST convenience wrapper for MCP tool invocation. Simpler than the full MCP prot
 - `500` — tool handler failed
 
 **Auth** — same as `POST /mcp`.
+
+---
+
+#### `GET /stream/{id}`
+
+Protocol-agnostic SSE stream for ephemeral FLY events. Provides live per-token streaming for any client (A2A, MCP, UI) without protocol-specific wrapping. Complementary to `/mesh/{id}/stream` (internal mesh access) but exposed on the API gateway.
+
+**Response** `200 text/event-stream`:
+
+```
+event: partial
+data: {"type":"text_delta","token":"Hello"}
+
+event: partial
+data: {"type":"text_delta","token":" world"}
+```
+
+⚠️ **FLY events are ephemeral** — clients must connect before or during task execution. Historical FLY replay is NOT supported.
+
+**Auth** — Bearer token required when `ASYA_MCP_API_KEY` or `ASYA_MCP_OAUTH_ENABLED=true` is configured.
 
 ---
 
@@ -380,7 +401,7 @@ Returns full task state.
 
 #### `GET /mesh/{id}/stream`
 
-SSE stream of task update events. Replays historical updates first, then streams live updates. Sends keepalive comments every 15 seconds. Closes when task reaches a final status.
+SSE stream of task update events. Replays historical progress and status updates first, then streams live updates. Sends keepalive comments every 15 seconds. Closes when task reaches a final status.
 
 **Response** `200 text/event-stream`:
 
@@ -397,6 +418,8 @@ FLY event (e.g. LLM token stream):
 event: partial
 data: {"type":"text_delta","token":"Hello"}
 ```
+
+⚠️ **FLY events are ephemeral** — they are broadcast in real-time via PG LISTEN/NOTIFY but not persisted. Clients connecting after task completion will NOT see historical FLY events, only progress and status updates.
 
 The SSE event type defaults to `partial`. If the FLY payload contains an A2A-specific key (`artifact_update`, `status_update`, or `message`), the event type matches that key.
 
@@ -461,7 +484,9 @@ Reports final task status. Called by `x-sink` (on success) or `x-sump` (on failu
 
 #### `POST /mesh/{id}/fly`
 
-Forwards FLY (partial payload) events from the sidecar to SSE clients. Body limited to 1 MiB. The `type` field determines the SSE event type (defaults to `partial`).
+Broadcasts ephemeral FLY events from the sidecar to SSE clients. Body limited to 1 MiB. The `type` field determines the SSE event type (defaults to `partial`).
+
+FLY events are broadcast via PG LISTEN/NOTIFY for cross-process delivery (mesh → api gateway) and via in-process `NotifyFLY` channels for same-process subscribers. Events are NOT written to the database — they exist only in memory during task execution.
 
 **Request** `application/json` — arbitrary JSON, passed through verbatim.
 

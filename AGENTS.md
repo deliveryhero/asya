@@ -214,6 +214,7 @@ Three fixed namespaces (planned `ASYA_BASE_PREFIX`, not yet implemented, would b
 | `/a2a/` | External AI agents, orchestrators | Full A2A protocol (SendMessage, GetTask, Subscribe, pause/resume, push notifications) |
 | `/mcp/` | LLM clients, developers | MCP Streamable HTTP + legacy SSE, REST tool invocation |
 | `/mesh/` | Sidecars, operators | Progress/FLY/final reporting from sidecars; `POST /mesh/config-reload` for immediate ConfigMap reload |
+| `/stream/` | Any client (A2A, MCP, UI) | Ephemeral FLY SSE — live per-token streaming by task ID |
 
 Special root routes (unaffected by base prefix):
 - `/.well-known/agent.json` — A2A Agent Card discovery
