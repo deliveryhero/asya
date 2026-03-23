@@ -77,10 +77,10 @@ and the **KSA annotation** that links actor pods to the actor SA (configured bel
 |---|---|---|---|
 | `asya-crossplane` | Crossplane creates/deletes Pub/Sub topics and subscriptions | `roles/pubsub.admin` | JSON key in K8s secret → `gcpProviderConfig.secretRef` (default); or WI via `credentialsSource: InjectedIdentity` (see Section 5) |
 | `asya-actor` | Actor sidecars publish/consume Pub/Sub; handlers call Vertex AI | `roles/pubsub.publisher`, `roles/pubsub.subscriber`, `roles/aiplatform.user` | WI annotation on the `default` KSA; JSON key in K8s secret for gateway |
-| `asya-keda` | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` | JSON key in K8s secret → `pubsub.keda.secretRef` |
+| `asya-actor` (for KEDA) | KEDA reads subscription backlog to drive autoscaling | `roles/monitoring.viewer`, `roles/pubsub.viewer` | JSON key in K8s secret → `pubsub.keda.secretRef`; or WI on KEDA operator SA |
 
 ```bash
-for sa in asya-crossplane asya-actor asya-keda; do
+for sa in asya-crossplane asya-actor; do
   gcloud iam service-accounts create $sa \
     --project=$PROJECT \
     --display-name="Asya: $sa"
@@ -91,17 +91,11 @@ gcloud projects add-iam-policy-binding $PROJECT \
   --member="serviceAccount:asya-crossplane@${PROJECT}.iam.gserviceaccount.com" \
   --role="roles/pubsub.admin" --condition=None
 
-# Actors
-for role in roles/pubsub.publisher roles/pubsub.subscriber roles/aiplatform.user; do
+# Actors + KEDA (single SA for both — KEDA needs monitoring.viewer for Pub/Sub metrics)
+for role in roles/pubsub.publisher roles/pubsub.subscriber roles/aiplatform.user \
+            roles/monitoring.viewer roles/pubsub.viewer; do
   gcloud projects add-iam-policy-binding $PROJECT \
     --member="serviceAccount:asya-actor@${PROJECT}.iam.gserviceaccount.com" \
-    --role="$role" --condition=None
-done
-
-# KEDA
-for role in roles/monitoring.viewer roles/pubsub.viewer; do
-  gcloud projects add-iam-policy-binding $PROJECT \
-    --member="serviceAccount:asya-keda@${PROJECT}.iam.gserviceaccount.com" \
     --role="$role" --condition=None
 done
 ```
@@ -173,10 +167,37 @@ gcloud iam service-accounts add-iam-policy-binding \
 Then set `--set gcpProviderConfig.credentialsSource=InjectedIdentity` and drop the `secretRef`
 flags from the `helm upgrade` command. The JSON key approach below works without this extra step.
 
-**KEDA TriggerAuthentication — JSON key (`keda/gcp-keda-secret`)**
+**KEDA TriggerAuthentication — JSON key or Workload Identity**
 
-KEDA's `TriggerAuthentication` resource for GCP Pub/Sub does not yet support Workload Identity.
-A JSON key is required until upstream KEDA adds WI support for the GCP Pub/Sub scaler.
+KEDA supports two authentication methods for the GCP Pub/Sub scaler:
+
+1. **JSON key** (`gcp-keda-secret` in the actor namespace): Create a key for the actor SA
+   and store it in a K8s Secret. The Crossplane composition generates a `TriggerAuthentication`
+   that references this secret. Simpler to set up but requires key rotation.
+
+2. **Workload Identity** (recommended for production): Annotate the KEDA operator's KSA
+   with the actor GCP SA and bind WI. The KEDA operator pod then authenticates via the
+   GKE metadata server — no JSON key needed.
+
+   ```bash
+   # Annotate KEDA operator SA
+   kubectl annotate sa keda-operator -n keda \
+     iam.gke.io/gcp-service-account=asya-actor@${PROJECT}.iam.gserviceaccount.com
+
+   # Bind WI
+   gcloud iam service-accounts add-iam-policy-binding \
+     asya-actor@${PROJECT}.iam.gserviceaccount.com \
+     --role=roles/iam.workloadIdentityUser \
+     --member="serviceAccount:${PROJECT}.svc.id.goog[keda/keda-operator]" \
+     --condition=None --project=$PROJECT
+
+   # Restart KEDA to pick up WI
+   kubectl rollout restart deployment/keda-operator -n keda
+   ```
+
+   With WI enabled, you still need a `gcp-keda-secret` in the actor namespace
+   (the Crossplane-generated `TriggerAuthentication` references it), but the
+   KEDA operator authenticates via WI for the actual Pub/Sub API calls.
 
 **Actor sidecars — GKE Workload Identity (no secret)**
 
@@ -198,8 +219,8 @@ Create the required secrets:
 kubectl create namespace crossplane-system
 kubectl create namespace keda
 
-# Generate JSON keys for Crossplane and KEDA
-for sa in asya-crossplane asya-actor asya-keda; do
+# Generate JSON keys for Crossplane and the actor SA
+for sa in asya-crossplane asya-actor; do
   gcloud iam service-accounts keys create /tmp/${sa}-key.json \
     --iam-account=${sa}@${PROJECT}.iam.gserviceaccount.com \
     --project=$PROJECT
@@ -215,10 +236,10 @@ kubectl create secret generic asya-actor-creds \
   --namespace=$NS \
   --from-file=sa-key.json=/tmp/asya-actor-key.json
 
-# KEDA scaler credentials (keda namespace)
+# KEDA scaler credentials (actor namespace — uses actor SA which has monitoring.viewer)
 kubectl create secret generic gcp-keda-secret \
-  --namespace=keda \
-  --from-file=credentials.json=/tmp/asya-keda-key.json
+  --namespace=$NS \
+  --from-file=credentials.json=/tmp/asya-actor-key.json
 
 rm /tmp/asya-*-key.json
 
