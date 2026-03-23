@@ -15,7 +15,9 @@ Regenerate by running: asya flow compile flow_text_improver.py
 
 async def start_text_improver(payload: dict):
     """Entrypoint for flow 'text_improver'"""
+    p = payload
     _next = []
+    p['topic'] = p.get('topic', p.get('query', ''))
     _next.append(resolve("research"))
     _next.append(resolve("router_text_improver_seq_set_feedback"))
     yield "SET", ".route.next[:0]", _next

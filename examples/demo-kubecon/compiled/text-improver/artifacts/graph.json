@@ -58,7 +58,10 @@
       "id": "start_text_improver",
       "label": "start_text_improver",
       "role": "start",
-      "generated": true
+      "generated": true,
+      "mutations": [
+        "p['topic'] = p.get('topic', p.get('query', ''))"
+      ]
     }
   ],
   "edges": [

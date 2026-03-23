@@ -11,7 +11,7 @@ flowchart TD
     router_text_improver_seq_set_feedback{{"router_text_improver_seq_set_feedback<br/><br/>p['feedback'] = ''<br/>p['iteration'] = 0"}}
     router_text_improver_seq_set_iteration{{"router_text_improver_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
     router_text_improver_while_loop{{router_text_improver_while_loop}}
-    start_text_improver([start_text_improver])
+    start_text_improver(["start_text_improver<br/><br/>p['topic'] = p.get('topic', p.get('query', ''))"])
     __end__((( )))
 
     start_text_improver --> research

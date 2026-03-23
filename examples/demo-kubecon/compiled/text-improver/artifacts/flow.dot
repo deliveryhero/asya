@@ -14,7 +14,7 @@ digraph "text_improver" {
     router_text_improver_seq_set_feedback [label="router_text_improver_seq_set_feedback\n\np['feedback'] = ''\np['iteration'] = 0", fillcolor=wheat];
     router_text_improver_seq_set_iteration [label="router_text_improver_seq_set_iteration\n\np['iteration'] += 1", fillcolor=wheat];
     router_text_improver_while_loop [label="router_text_improver_while_loop", fillcolor=wheat];
-    start_text_improver [label="start_text_improver", fillcolor=palegreen];
+    start_text_improver [label="start_text_improver\n\np['topic'] = p.get('topic', p.get('query', ''))", fillcolor=palegreen];
 
     __end__ [label="", shape=doublecircle, fillcolor=black, width=0.3, fixedsize=true];
 
