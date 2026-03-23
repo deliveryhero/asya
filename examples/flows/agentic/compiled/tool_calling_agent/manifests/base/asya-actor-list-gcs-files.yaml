@@ -1,0 +1,16 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-list-gcs-files
+  namespace: default
+  labels:
+    asya.sh/flow: tool-calling-agent
+spec:
+  actor: actor-list-gcs-files
+  image: examples.asya.sh/list-gcs-files:latest
+  handler: list_gcs_files
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

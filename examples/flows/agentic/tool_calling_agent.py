@@ -25,16 +25,17 @@ ADK equivalent:
 Framework references:
   - Claude Agent SDK: @tool decorator for Python functions
     https://github.com/anthropics/claude-agent-sdk-python
-  - LangChain: @tool decorator with automatic schema generation
+  - LangGraph: from langchain_core.tools import tool
     https://python.langchain.com/docs/how_to/custom_tools/
   - Anthropic: tool_use blocks in Claude API responses
     https://docs.anthropic.com/en/docs/build-with-claude/tool-use
 
 Deployment:
   - llm_reason: LLM actor (picks tools, produces final answer)
-  - get_weather: adapter actor (@tool decorator, compiler-generated wrapper)
-  - web_search: adapter actor (@tool decorator, compiler-generated wrapper)
-  - list_gcs_files: adapter actor (plain function, # asya: actor directive)
+  - get_weather: adapter actor (async, @tool decorator)
+  - web_search: adapter actor (async, @tool decorator)
+  - calculate: adapter actor (sync, @tool decorator)
+  - list_gcs_files: adapter actor (async, no decorator, # asya: actor directive)
   - format_response: standard dict->dict actor
 
 Payload contract:
@@ -69,6 +70,13 @@ async def get_weather(city: str, units: str = "celsius") -> dict:
 @tool
 async def web_search(query: str, max_results: int = 5) -> dict:
     """Search the web and return results."""
+    ...
+
+
+# Sync tool — compiler generates def (not async def) adapter
+@tool
+def calculate(expression: str) -> dict:
+    """Evaluate a math expression. Sync — no await needed."""
     ...
 
 
@@ -108,6 +116,9 @@ async def tool_calling_agent(p: dict) -> dict:
             p["tool_result"] = await get_weather(p["tool_args"]["city"])  # asya: actor
         elif p["tool_name"] == "web_search":
             p["tool_result"] = await web_search(p["tool_args"]["query"])  # asya: actor
+        elif p["tool_name"] == "calculate":
+            # Sync tool — compiler generates sync adapter (no await)
+            p["tool_result"] = calculate(p["tool_args"]["expression"])  # asya: actor
         elif p["tool_name"] == "list_gcs_files":
             # Plain function (ADK-style, no decorator) — directive marks it as actor
             p["tool_result"] = await list_gcs_files(p["tool_args"]["bucket"], p["tool_args"]["prefix"])  # asya: actor
