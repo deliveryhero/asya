@@ -51,6 +51,7 @@ The output is a set of standard `AsyncActor` manifests linked by an
 | `asyncio.gather(a, b)` | Fan-out with automatic fan-in (for asyncio flows) |
 | `try/except` | Error routing to recovery actors |
 | `with asyncio.timeout()` | SLA-bounded execution |
+| `@tool`-decorated functions | Adapter generation for non-standard signatures |
 
 ## Flows vs standalone actors
 
@@ -67,6 +68,47 @@ For advanced patterns that break this contract, use standalone generator actors 
 | Fan-out / fan-in | ✅ | ✅ |
 | Fire-and-forget fan-out (multiple yields) | use actor | ✅ |
 | Streaming events (FLY) | use actor | ✅ |
+
+## Tool adapter generation
+
+External frameworks like Claude Agent SDK and LangChain define functions with
+typed signatures (`get_weather(city: str) -> dict`) rather than Asya's
+`dict -> dict` protocol. The compiler bridges this gap automatically.
+
+When a `@tool`-decorated function is called with non-standard arguments:
+
+```python
+from claude_agent_sdk import tool
+
+@tool
+async def get_weather(city: str) -> dict: ...
+
+@flow
+async def my_flow(p: dict) -> dict:
+    p["weather"] = await get_weather(p["city"])
+    return p
+```
+
+The compiler generates an **adapter file** that wraps the function:
+
+```python
+async def adapter_get_weather(payload: dict):
+    _result = await get_weather(payload["city"])
+    payload["weather"] = _result
+    yield payload
+```
+
+The adapter is deployed as a separate actor, bridging the tool's typed interface
+with the envelope protocol. The `@tool` decorator is automatically stripped at
+runtime via `ASYA_IGNORE_DECORATORS`.
+
+Built-in rules support `claude_agent_sdk.tool`, `langchain.tools.tool`, and
+`langchain_core.tools.tool`. Custom tool decorators can be added via
+[compiler rules](../usage/guide-compiler-rules.md).
+
+See [`examples/flows/tool_adapter.py`](../../examples/flows/tool_adapter.py)
+for a working example with compiled output in
+[`examples/flows/compiled/tool_adapter/`](../../examples/flows/compiled/tool_adapter/).
 
 ## Purely additive
 

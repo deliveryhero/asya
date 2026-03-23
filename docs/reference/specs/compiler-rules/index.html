@@ -2957,40 +2957,113 @@ engine = RuleEngine(rules)  # dict keyed by match → last write wins
 </code></pre></div>
 <hr />
 <h2 id="shipped-default-rules">Shipped default rules<a class="headerlink" href="#shipped-default-rules" title="Permanent link">#</a></h2>
-<p>Four rules ship with asya-lab:</p>
+<p>Seven rules ship with asya-lab:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
 <th>Rule</th>
 <th>Symbol</th>
-<th>Extracts to</th>
+<th>TreatAs</th>
+<th>Effect</th>
 </tr>
 </thead>
 <tbody>
 <tr>
 <td>asyncio.timeout</td>
 <td><code>asyncio.timeout</code></td>
-<td><code>spec.resiliency.timeout.actor</code></td>
+<td><code>config</code></td>
+<td>Extracts <code>spec.resiliency.timeout.actor</code></td>
 </tr>
 <tr>
 <td>tenacity.retry</td>
 <td><code>tenacity.retry</code></td>
-<td><code>maxAttempts</code>, <code>maxDuration</code>, <code>initialDelay</code>, <code>maxInterval</code></td>
+<td><code>config</code></td>
+<td>Extracts <code>maxAttempts</code>, <code>maxDuration</code>, <code>initialDelay</code>, <code>maxInterval</code></td>
 </tr>
 <tr>
 <td>timeout_decorator</td>
 <td><code>timeout_decorator.timeout</code></td>
-<td><code>spec.resiliency.timeout.actor</code></td>
+<td><code>config</code></td>
+<td>Extracts <code>spec.resiliency.timeout.actor</code></td>
 </tr>
 <tr>
 <td>stamina.retry</td>
 <td><code>stamina.retry</code></td>
-<td><code>maxAttempts</code>, <code>maxDuration</code></td>
+<td><code>config</code></td>
+<td>Extracts <code>maxAttempts</code>, <code>maxDuration</code></td>
+</tr>
+<tr>
+<td>claude_agent_sdk.tool</td>
+<td><code>claude_agent_sdk.tool</code></td>
+<td><code>actor</code></td>
+<td>Classifies as actor, generates adapter if non-standard signature</td>
+</tr>
+<tr>
+<td>langchain.tools.tool</td>
+<td><code>langchain.tools.tool</code></td>
+<td><code>actor</code></td>
+<td>Classifies as actor, generates adapter if non-standard signature</td>
+</tr>
+<tr>
+<td>langchain_core.tools.tool</td>
+<td><code>langchain_core.tools.tool</code></td>
+<td><code>actor</code></td>
+<td>Classifies as actor, generates adapter if non-standard signature</td>
 </tr>
 </tbody>
 </table></div>
+<p>The <code>config</code> rules extract parameter values into manifest fields. The <code>actor</code>
+rules classify decorated functions as actors and strip the decorator at runtime
+via <code>ASYA_IGNORE_DECORATORS</code>. When actor-classified functions use non-standard
+call patterns (e.g. <code>p["result"] = fn(p["city"])</code> instead of <code>p = fn(p)</code>), the
+compiler generates an <strong>adapter file</strong> — see <a href="#adapter-generation">Adapter generation</a>.</p>
 <p>See the full YAML in
 <code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code>.</p>
+<hr />
+<h2 id="adapter-generation">Adapter generation<a class="headerlink" href="#adapter-generation" title="Permanent link">#</a></h2>
+<p>When a function classified as <code>actor</code> (via rule, decorator, or <code># asya: actor</code>
+directive) is called with a non-standard pattern, the compiler generates an
+adapter wrapper that bridges the function's typed signature to Asya's
+<code>dict -&gt; dict</code> envelope protocol.</p>
+<h3 id="standard-vs-non-standard-calls">Standard vs non-standard calls<a class="headerlink" href="#standard-vs-non-standard-calls" title="Permanent link">#</a></h3>
+<p><strong>Standard call</strong> — no adapter needed:</p>
+<div class="highlight"><pre><span></span><code><span class="n">p</span> <span class="o">=</span> <span class="n">handler</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>           <span class="c1"># ActorCall: dict -&gt; dict, deployed directly</span>
+</code></pre></div>
+<p><strong>Non-standard call</strong> — adapter generated:</p>
+<div class="highlight"><pre><span></span><code><span class="n">p</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>           <span class="c1"># AdapterCall: typed args + subscript target</span>
+<span class="n">p</span><span class="p">[</span><span class="s2">&quot;greeting&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">format_greeting</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;user_name&quot;</span><span class="p">])</span> <span class="c1"># AdapterCall: typed args + subscript target</span>
+</code></pre></div>
+<h3 id="generated-adapter-file">Generated adapter file<a class="headerlink" href="#generated-adapter-file" title="Permanent link">#</a></h3>
+<p>For <code>p["weather"] = await get_weather(p["city"])</code>, the compiler produces
+<code>adapter_get_weather.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="sd">&quot;&quot;&quot;Auto-generated adapter for get_weather&quot;&quot;&quot;</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">module</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_weather</span>                <span class="c1"># added when function is imported</span>
+
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adapter_get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adapter: wraps get_weather() for dict-in/dict-out protocol&quot;&quot;&quot;</span>
+    <span class="n">_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_result</span>
+    <span class="k">yield</span> <span class="n">payload</span>
+</code></pre></div>
+<p>Key properties:
+- <strong>Argument denormalization</strong>: internal <code>p["key"]</code> references are expanded to
+  <code>payload["key"]</code> in the adapter
+- <strong>Import injection</strong>: when the function is imported from another module, the
+  adapter includes the appropriate <code>from module import func</code> statement (with
+  <code>as alias</code> when the local name differs from the original)
+- <strong>Async preservation</strong>: async functions get <code>async def</code> + <code>await</code>; sync
+  functions get plain <code>def</code>
+- <strong>Output routing</strong>: subscript targets (<code>p["key"] = ...</code>) store the result at
+  that key; bare assignment (<code>p = fn(...)</code>) replaces the entire payload</p>
+<h3 id="deployment">Deployment<a class="headerlink" href="#deployment" title="Permanent link">#</a></h3>
+<p>The adapter file is deployed as a ConfigMap alongside the actor's handler code.
+At runtime, the adapter function is loaded as the actor's handler instead of the
+original function. The adapter calls the original function, wrapping its inputs
+and outputs for the envelope protocol.</p>
+<h3 id="example">Example<a class="headerlink" href="#example" title="Permanent link">#</a></h3>
+<p>See <a href="../../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a>
+and its compiled output in
+<a href="../../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a>.</p>
 <hr />
 <h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
 <ul>
@@ -4237,6 +4310,40 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             data-active="false" data-depth="2">
             Shipped default rules
         </a>
+        
+
+        
+        <a href="#adapter-generation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Adapter generation
+        </a>
+        
+        
+        <a href="#standard-vs-non-standard-calls"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Standard vs non-standard calls
+        </a>
+        
+        <a href="#generated-adapter-file"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Generated adapter file
+        </a>
+        
+        <a href="#deployment"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Deployment
+        </a>
+        
+        <a href="#example"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Example
+        </a>
+        
         
 
         

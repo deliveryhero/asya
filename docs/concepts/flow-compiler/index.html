@@ -2537,6 +2537,10 @@ become conditional route rewrites. Sequential calls become chained routes.</p>
 <td><code>with asyncio.timeout()</code></td>
 <td>SLA-bounded execution</td>
 </tr>
+<tr>
+<td><code>@tool</code>-decorated functions</td>
+<td>Adapter generation for non-standard signatures</td>
+</tr>
 </tbody>
 </table></div>
 <h2 id="flows-vs-standalone-actors">Flows vs standalone actors<a class="headerlink" href="#flows-vs-standalone-actors" title="Permanent link">#</a></h2>
@@ -2580,6 +2584,36 @@ keeps the compiled graph predictable and debuggable.</p>
 </tr>
 </tbody>
 </table></div>
+<h2 id="tool-adapter-generation">Tool adapter generation<a class="headerlink" href="#tool-adapter-generation" title="Permanent link">#</a></h2>
+<p>External frameworks like Claude Agent SDK and LangChain define functions with
+typed signatures (<code>get_weather(city: str) -&gt; dict</code>) rather than Asya's
+<code>dict -&gt; dict</code> protocol. The compiler bridges this gap automatically.</p>
+<p>When a <code>@tool</code>-decorated function is called with non-standard arguments:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">claude_agent_sdk</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+
+<span class="nd">@tool</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span> <span class="o">...</span>
+
+<span class="nd">@flow</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">my_flow</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>The compiler generates an <strong>adapter file</strong> that wraps the function:</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adapter_get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+    <span class="n">_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_result</span>
+    <span class="k">yield</span> <span class="n">payload</span>
+</code></pre></div>
+<p>The adapter is deployed as a separate actor, bridging the tool's typed interface
+with the envelope protocol. The <code>@tool</code> decorator is automatically stripped at
+runtime via <code>ASYA_IGNORE_DECORATORS</code>.</p>
+<p>Built-in rules support <code>claude_agent_sdk.tool</code>, <code>langchain.tools.tool</code>, and
+<code>langchain_core.tools.tool</code>. Custom tool decorators can be added via
+<a href="../../usage/guide-compiler-rules/">compiler rules</a>.</p>
+<p>See <a href="../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a>
+for a working example with compiled output in
+<a href="../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a>.</p>
 <h2 id="purely-additive">Purely additive<a class="headerlink" href="#purely-additive" title="Permanent link">#</a></h2>
 <p>The flow compiler is a build-time tool. It generates standard actors that run on
 the standard mesh. Removing the compiler does not affect already-deployed flows.
@@ -3711,6 +3745,14 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Flows vs standalone actors
+        </a>
+        
+
+        
+        <a href="#tool-adapter-generation"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Tool adapter generation
         </a>
         
 

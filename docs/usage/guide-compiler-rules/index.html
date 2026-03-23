@@ -2707,9 +2707,50 @@ definition site carry that classification everywhere they are called.</p>
 </code></pre></div>
 <hr />
 <h2 id="built-in-rules">Built-in rules<a class="headerlink" href="#built-in-rules" title="Permanent link">#</a></h2>
-<p>Four rules ship with asya-lab and apply automatically (no configuration needed).
+<p>Seven rules ship with asya-lab and apply automatically (no configuration needed).
 See the full YAML in
 <a href="../../src/asya-lab/asya_lab/defaults/compiler.rules.yaml"><code>src/asya-lab/asya_lab/defaults/compiler.rules.yaml</code></a>.</p>
+<h3 id="tool-decorator-rules-claude_agent_sdktool-langchaintoolstool-langchain_coretoolstool">Tool decorator rules (claude_agent_sdk.tool, langchain.tools.tool, langchain_core.tools.tool)<a class="headerlink" href="#tool-decorator-rules-claude_agent_sdktool-langchaintoolstool-langchain_coretoolstool" title="Permanent link">#</a></h3>
+<p>Functions decorated with <code>@tool</code> from supported frameworks are classified as
+actors. When called with non-standard signatures, the compiler generates an
+adapter wrapper.</p>
+<p>Source: <a href="../../examples/flows/tool_adapter.py"><code>examples/flows/tool_adapter.py</code></a></p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">claude_agent_sdk</span><span class="w"> </span><span class="kn">import</span> <span class="n">tool</span>
+
+<span class="nd">@tool</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_weather</span><span class="p">(</span><span class="n">city</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Get current weather for a city.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;temp&quot;</span><span class="p">:</span> <span class="mi">22</span><span class="p">,</span> <span class="s2">&quot;condition&quot;</span><span class="p">:</span> <span class="s2">&quot;sunny&quot;</span><span class="p">}</span>
+
+<span class="nd">@tool</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">format_greeting</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Format a personalized greeting.&quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Hello, </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">!&quot;</span>
+
+<span class="nd">@flow</span>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">tool_adapter</span><span class="p">(</span><span class="n">p</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="k">await</span> <span class="n">validate_input</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>        <span class="c1"># adapter generated</span>
+    <span class="n">p</span><span class="p">[</span><span class="s2">&quot;greeting&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">format_greeting</span><span class="p">(</span><span class="n">p</span><span class="p">[</span><span class="s2">&quot;user_name&quot;</span><span class="p">])</span>    <span class="c1"># adapter generated</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="k">await</span> <span class="n">compose_response</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">p</span>
+</code></pre></div>
+<p>The compiler:
+1. Resolves <code>tool</code> to <code>claude_agent_sdk.tool</code> via the import map
+2. Classifies <code>get_weather</code> and <code>format_greeting</code> as actors (treat-as: actor)
+3. Detects non-standard call patterns (<code>p["weather"] = get_weather(p["city"])</code>)
+4. Generates adapter files: <code>adapter_get_weather.py</code> and <code>adapter_format_greeting.py</code>
+5. Adds <code>claude_agent_sdk.tool</code> to <code>ASYA_IGNORE_DECORATORS</code> so the runtime strips <code>@tool</code></p>
+<p>Generated adapter (<code>adapter_get_weather.py</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">adapter_get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Adapter: wraps get_weather() for dict-in/dict-out protocol&quot;&quot;&quot;</span>
+    <span class="n">_result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_weather</span><span class="p">(</span><span class="n">payload</span><span class="p">[</span><span class="s2">&quot;city&quot;</span><span class="p">])</span>
+    <span class="n">payload</span><span class="p">[</span><span class="s2">&quot;weather&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">_result</span>
+    <span class="k">yield</span> <span class="n">payload</span>
+</code></pre></div>
+<p>Standard <code>p = fn(p)</code> calls with <code>@tool</code> are treated as regular actor calls
+(no adapter needed). The adapter is only generated for non-standard patterns.</p>
+<p>Compiled output: <a href="../../examples/flows/compiled/tool_adapter/"><code>examples/flows/compiled/tool_adapter/</code></a></p>
 <h3 id="asynciotimeout">asyncio.timeout<a class="headerlink" href="#asynciotimeout" title="Permanent link">#</a></h3>
 <div class="highlight"><pre><span></span><code><span class="k">async</span> <span class="k">with</span> <span class="n">asyncio</span><span class="o">.</span><span class="n">timeout</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
     <span class="n">p</span> <span class="o">=</span> <span class="n">ocr_extractor</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
@@ -2936,6 +2977,11 @@ can see input and output side by side.</p>
 <td><a href="../../examples/flows/inline_comment_overrides.py"><code>inline_comment_overrides.py</code></a></td>
 <td><a href="../../examples/flows/compiled/inline_comment_overrides/"><code>compiled/inline_comment_overrides/</code></a></td>
 <td><code># asya: actor</code> / <code># asya: inline</code> directives</td>
+</tr>
+<tr>
+<td><a href="../../examples/flows/tool_adapter.py"><code>tool_adapter.py</code></a></td>
+<td><a href="../../examples/flows/compiled/tool_adapter/"><code>compiled/tool_adapter/</code></a></td>
+<td><code>@tool</code> adapter generation for non-standard signatures</td>
 </tr>
 </tbody>
 </table></div>
@@ -4096,6 +4142,12 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             Built-in rules
         </a>
         
+        
+        <a href="#tool-decorator-rules-claude_agent_sdktool-langchaintoolstool-langchain_coretoolstool"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Tool decorator rules (claude_agent_sdk.tool, langchain.tools.tool, langchain_core.tools.tool)
+        </a>
         
         <a href="#asynciotimeout"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"

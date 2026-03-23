@@ -2009,7 +2009,7 @@ the AST to produce a flat list of operations and extracted configuration.</p>
 <li>Return type annotation: <code>dict</code></li>
 </ul>
 <h3 id="operation-types">Operation types<a class="headerlink" href="#operation-types" title="Permanent link">#</a></h3>
-<p>The parser produces five operation types:</p>
+<p>The parser produces six operation types:</p>
 <div class="table-wrapper"><table>
 <thead>
 <tr>
@@ -2023,6 +2023,11 @@ the AST to produce a flat list of operations and extracted configuration.</p>
 <td><code>ActorCall</code></td>
 <td><code>p = handler(p)</code></td>
 <td>lineno, name, source_file</td>
+</tr>
+<tr>
+<td><code>AdapterCall</code></td>
+<td><code>p["key"] = fn(p["arg"])</code></td>
+<td>lineno, name, input_args, output_path, is_async</td>
 </tr>
 <tr>
 <td><code>Mutation</code></td>
@@ -2046,6 +2051,13 @@ the AST to produce a flat list of operations and extracted configuration.</p>
 </tr>
 </tbody>
 </table></div>
+<p><code>AdapterCall</code> is emitted when a function classified as <code>actor</code> (via compiler
+rule, <code>@actor</code> decorator, or <code># asya: actor</code> directive) is called with
+non-standard arguments — e.g. typed parameters extracted from payload keys
+rather than the standard <code>dict -&gt; dict</code> pattern. The code generator produces
+an adapter wrapper file that bridges the function's typed signature to the
+envelope protocol. See
+<a href="../../specs/compiler-rules/#adapter-generation">Adapter generation</a>.</p>
 <p>Previous IR types that no longer exist as separate operations:</p>
 <div class="table-wrapper"><table>
 <thead>
