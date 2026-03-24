@@ -444,9 +444,9 @@ _RESET = "\033[0m"
 
 
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
-    """Get or assign a color for an actor name."""
+    """Get or assign a color for an actor name. Deterministic: same name = same color."""
     if actor not in actor_colors:
-        idx = len(actor_colors) % len(_ACTOR_COLORS)
+        idx = hash(actor) % len(_ACTOR_COLORS)
         actor_colors[actor] = _ACTOR_COLORS[idx]
     return actor_colors[actor]
 
@@ -477,7 +477,7 @@ def _format_log_line(
     max_prefix_len: int,
     show_container: bool,
 ) -> str | None:
-    """Parse kubectl --prefix log line and colorize the [pod/name/container] prefix."""
+    """Parse kubectl --prefix log line, format docker-compose style with colored padded name."""
     if not line.startswith("["):
         return line
 
@@ -490,8 +490,12 @@ def _format_log_line(
     text = line[bracket_end:].lstrip()
     deploy_name = _pod_prefix_to_deploy(prefix_str)
     color = _color_for(deploy_name, actor_colors)
+    padded = deploy_name.ljust(max_prefix_len)
 
-    return f"{color}{prefix_str}{_RESET} {text}"
+    if show_container:
+        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
+        return f"{color}{padded}|{container_name}{_RESET} | {text}"
+    return f"{color}{padded}{_RESET} | {text}"
 
 
 def _stream_colored_logs(
@@ -502,15 +506,27 @@ def _stream_colored_logs(
     tail: int | None,
     max_width: int = 32,
 ) -> None:
-    """Stream logs with colored actor-name prefixes.
+    """Stream logs with colored actor-name prefixes (docker-compose style).
 
     Uses single kubectl logs command with label selector and --all-pods.
     kubectl handles pod discovery, reconnection, and multiplexing.
     """
     import signal
 
+    # Pre-discover actors to compute padding and assign colors
+    result = runner.kubectl(
+        "get", "asyncactor", "-l", f"asya.sh/flow={flow_name}",
+        "-o", "jsonpath={.items[*].metadata.name}",
+        quiet=True, capture_output=True, text=True,
+    )
+    actors = result.stdout.strip().split() if result.returncode == 0 and result.stdout.strip() else []
     actor_colors: dict[str, str] = {}
+    max_name_len = min(max((len(a) for a in actors), default=20), max_width)
+    for a in sorted(actors):
+        _color_for(a, actor_colors)
+
     show_container = len(containers) > 1
+    ctx_args = ["--context", runner.kube_context] if runner.kube_context else []
     ns_args = ["-n", runner.namespace] if runner.namespace else []
     tail_arg = str(tail if tail is not None else 100)
 
@@ -518,7 +534,7 @@ def _stream_colored_logs(
 
     for container in containers:
         cmd = [
-            "kubectl", "logs", *ns_args,
+            "kubectl", *ctx_args, "logs", *ns_args,
             "-l", f"asya.sh/flow={flow_name}",
             "--all-pods", "--prefix",
             "--max-log-requests=20",
@@ -542,7 +558,7 @@ def _stream_colored_logs(
         assert procs[0].stdout is not None
         for raw_line in procs[0].stdout:
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-            formatted = _format_log_line(line, actor_colors, max_width, show_container)
+            formatted = _format_log_line(line, actor_colors, max_name_len, show_container)
             if formatted is not None:
                 click.echo(formatted)
     except KeyboardInterrupt:
