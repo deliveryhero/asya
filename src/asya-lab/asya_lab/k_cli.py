@@ -562,6 +562,7 @@ def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, conta
       asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
     if target is None:
+        click.echo("[-] Missing flow name.", err=True)
         _list_available_flows(ctx)
         sys.exit(1)
 
@@ -1423,7 +1424,7 @@ def k() -> None:
 
 _COLUMN_MAP = {
     "ACTOR": ".metadata.name",
-    "FLOW": "ACTOR",
+    "FLOW": ".metadata.labels['asya.sh/flow']",
     "STATUS": ".status.phase",
     "CURRENT": ".status.infrastructure.workload.readyReplicas",
     "DESIRED": ".status.infrastructure.workload.replicas",
@@ -1434,7 +1435,7 @@ _COLUMN_MAP = {
     "HANDLER": ".spec.handler",
 }
 
-_DEFAULT_COLUMNS = ["NAME", "STATUS", "CURRENT", "DESIRED", "MIN", "MAX", "FLAVORS"]
+_DEFAULT_COLUMNS = ["ACTOR", "FLOW", "STATUS", "CURRENT", "DESIRED", "MIN", "MAX", "FLAVORS"]
 
 
 def _build_columns_spec(names: list[str]) -> str:
