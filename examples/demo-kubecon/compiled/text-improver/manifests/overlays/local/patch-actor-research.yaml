@@ -6,3 +6,7 @@ spec:
   scaling:
     minReplicaCount: 1
   imagePullPolicy: Never
+  sidecar:
+    env:
+    - name: OTEL_EXPORTER_OTLP_ENDPOINT
+      value: http://tempo.asya-e2e.svc.cluster.local:4317
