@@ -920,18 +920,34 @@ def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
 
 
 def _colorize_json(obj: object, indent: int = 2) -> str:
-    """Render JSON with ANSI colors: keys=cyan, strings=green, numbers=yellow."""
+    """Render JSON with ANSI colors. Uses pygments if available, else simple line coloring."""
     import json as _json
-    import re
 
     raw = _json.dumps(obj, indent=indent, ensure_ascii=False)
-    # Color JSON keys (quoted strings followed by colon)
-    raw = re.sub(r'"([^"]+)"(\s*:)', r'\033[36m"\1"\033[0m\2', raw)
-    # Color string values (quoted strings NOT followed by colon)
-    raw = re.sub(r':\s*"([^"]*)"', lambda m: f': \033[32m"{m.group(1)}"\033[0m', raw)
-    # Color numbers
-    raw = re.sub(r":\s*(\d+\.?\d*)", lambda m: f": \033[33m{m.group(1)}\033[0m", raw)
-    return raw
+
+    try:
+        from pygments import highlight
+        from pygments.formatters import TerminalFormatter
+        from pygments.lexers import JsonLexer
+
+        return highlight(raw, JsonLexer(), TerminalFormatter()).rstrip()
+    except ImportError:
+        pass
+
+    # Fallback: color each line based on content
+    C, G, Y, R = "\033[36m", "\033[32m", "\033[33m", "\033[0m"
+    lines = []
+    for line in raw.split("\n"):
+        stripped = line.lstrip()
+        if stripped.startswith('"') and '":' in stripped:
+            # key: value line — color the key
+            colon_pos = line.index('":')
+            key_part = line[: colon_pos + 1]
+            val_part = line[colon_pos + 1 :]
+            lines.append(f"{C}{key_part}{R}{val_part}")
+        else:
+            lines.append(line)
+    return "\n".join(lines)
 
 
 def _print_result(artifacts: list, fallback: dict | None = None) -> None:
