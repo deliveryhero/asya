@@ -471,7 +471,7 @@ def _format_log_line(
     max_prefix_len: int,
     show_container: bool,
 ) -> str | None:
-    """Parse kubectl --prefix log line and format with colored actor name."""
+    """Parse kubectl --prefix log line and colorize the [pod/name/container] prefix."""
     if not line.startswith("["):
         return line
 
@@ -483,14 +483,9 @@ def _format_log_line(
     prefix_str = line[:bracket_end]
     text = line[bracket_end:].lstrip()
     deploy_name = _pod_prefix_to_deploy(prefix_str)
-    short_name = _truncate_actor(deploy_name, max_prefix_len)
     color = _color_for(deploy_name, actor_colors)
-    padded = short_name.ljust(max_prefix_len)
 
-    if show_container:
-        container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
-        return f"{color}{padded}|{container_name}{_RESET} | {text}"
-    return f"{color}{padded}{_RESET} | {text}"
+    return f"{color}{prefix_str}{_RESET} {text}"
 
 
 def _stream_colored_logs(
