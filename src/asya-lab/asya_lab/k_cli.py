@@ -1137,25 +1137,28 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
         if not spans:
             continue
 
-        # Render ASCII timeline
+        # Render ASCII timeline with colored actor names
         spans.sort(key=lambda s: s["start"])
         min_start = min(s["start"] for s in spans)
         max_end = max(s["end"] for s in spans)
         total_ns = max_end - min_start or 1
 
+        # Compute column width from longest actor name
+        actor_colors: dict[str, str] = {}
+        max_actor_len = max(len(s["service"]) for s in spans)
+
         click.echo(f"\n  Trace: {trace_id}", err=True)
         click.echo(f"  Total: {total_ns / 1e6:.0f}ms", err=True)
-        click.echo(f"  {'Actor':<28} {'Span':<20} {'Duration':>8}  Timeline", err=True)
-        click.echo(f"  {'─' * 28} {'─' * 20} {'─' * 8}  {'─' * 40}", err=True)
+        click.echo(f"  {'Actor':<{max_actor_len}} {'Duration':>8}  Timeline", err=True)
+        click.echo(f"  {'─' * max_actor_len} {'─' * 8}  {'─' * 40}", err=True)
 
         bar_width = 40
         for s in spans:
             offset = int((s["start"] - min_start) / total_ns * bar_width)
             width = max(1, int(s["dur_ms"] / (total_ns / 1e6) * bar_width))
+            color = _color_for(s["service"], actor_colors)
             bar = " " * offset + "█" * width
-            actor = _truncate_actor(s["service"], 28)
-            name = s["name"][:20]
-            click.echo(f"  {actor:<28} {name:<20} {s['dur_ms']:>7.0f}ms  {bar}", err=True)
+            click.echo(f"  {color}{s['service']:<{max_actor_len}}{_RESET} {s['dur_ms']:>7.0f}ms  {color}{bar}{_RESET}", err=True)
 
         click.echo("", err=True)
         return  # show first matching trace
