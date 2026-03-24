@@ -277,10 +277,10 @@ def _register_flow_with_gateway(runner: KubeRunner, flow_name: str) -> None:
 
 
 @click.command()
-@click.argument("target", type=ASYA_REF)
+@click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
-def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
+def apply(target: AsyaRef | None, ctx: str, verbose: bool) -> None:
     """Apply compiled manifests to a Kubernetes cluster.
 
     TARGET is a flow name (kebab-case, snake_case, or path/to/flow.py).
@@ -290,6 +290,8 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     includes a gateway-flows ConfigMap (from `asya expose`), the
     gateway deployment is automatically patched to mount it.
     """
+    if target is None:
+        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
     flow_function = target.name.replace("-", "_")
     runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
     runner.check_readonly("apply")
@@ -319,13 +321,15 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
 
 
 @click.command()
-@click.argument("target", type=ASYA_REF)
+@click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-def delete(target: AsyaRef, ctx: str) -> None:
+def delete(target: AsyaRef | None, ctx: str) -> None:
     """Delete a deployed flow from the cluster.
 
     TARGET is the flow name. Deletes all resources with label asya.sh/flow=<name>.
     """
+    if target is None:
+        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
     runner = KubeRunner(ctx)
     runner.check_readonly("delete")
 
@@ -1305,8 +1309,8 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 
 
 @click.command()
-@click.argument("target", type=ASYA_REF)
-@click.argument("message", required=True)
+@click.argument("target", type=ASYA_REF, required=False, default=None)
+@click.argument("message", required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--url", default=None, help="Gateway URL (default: auto-detect via port-forward)")
 @click.option("--skill", default=None, help="Skill hint when multiple flows are registered")
@@ -1317,8 +1321,8 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output (show method, task_id, raw events)")
 @click.option("--api-key", default=None, help="API key (default: auto-fetch from asya-gateway-auth secret)")
 def send(
-    target: AsyaRef,
-    message: str,
+    target: AsyaRef | None,
+    message: str | None,
     ctx: str,
     url: str | None,
     skill: str | None,
@@ -1341,6 +1345,11 @@ def send(
       asya k send greet-flow "Hello" --skill greet-flow
       asya k send text-flow '{"key":"val"}' --mcp
     """
+    if target is None:
+        raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
+    if message is None:
+        raise click.MissingParameter(param_hint="'MESSAGE'", param_type="argument")
+
     runner = KubeRunner(ctx)
     url = _resolve_gateway_url(runner, url)
 
@@ -1450,7 +1459,7 @@ def _build_columns_spec(names: list[str]) -> str:
 @click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide)")
-@click.option("--columns", default=None, help="Column names to show (e.g. name,min,max,status)")
+@click.option("--columns", default=None, help="Column names to show (e.g. actor,min,max,status)")
 @click.option("--no-headers", is_flag=True, help="Hide column headers")
 def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str | None, no_headers: bool) -> None:
     """Show status of deployed actors.
@@ -1461,7 +1470,7 @@ def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str 
       asya k status text-improver              # one flow
       asya k status text-improver -o name      # pipeable names
       asya k status text-improver -o json      # full JSON
-      asya k status text-improver -c name,min,max
+      asya k status text-improver -c actor,min,max
     """
     runner = KubeRunner(ctx)
 

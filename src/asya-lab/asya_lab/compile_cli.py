@@ -88,35 +88,41 @@ def _compile_flow_file(
             sys.exit(1)
 
     # Print compilation summary
+    def _rel(p: Path) -> str:
+        try:
+            return str(p.relative_to(Path.cwd()))
+        except ValueError:
+            return str(p)
+
     num_actors = len(result.actors)
     num_routers = sum(1 for a in result.actors if a.generated)
     click.echo(f"[+] Compiled flow '{flow_name}' ({num_actors} actors, {num_routers} routers)")
-    click.echo(f"    code:      {code_dir}")
+    click.echo(f"    code:      {_rel(code_dir)}")
 
     if artifacts_dir != code_dir:
-        click.echo(f"    artifacts: {artifacts_dir}")
+        click.echo(f"    artifacts: {_rel(artifacts_dir)}")
 
     graph_file = artifacts_dir / "graph.json"
     if graph_file.exists():
-        click.echo(f"    graph:     {graph_file}")
+        click.echo(f"    graph:     {_rel(graph_file)}")
 
     dot_file = artifacts_dir / "flow.dot"
     if dot_file.exists():
-        click.echo(f"    dot:       {dot_file}")
+        click.echo(f"    dot:       {_rel(dot_file)}")
 
     mmd_file = artifacts_dir / "flow.mmd"
     if mmd_file.exists():
-        click.echo(f"    mermaid:   {mmd_file}")
+        click.echo(f"    mermaid:   {_rel(mmd_file)}")
 
     if plot:
         plot_file = artifacts_dir / f"flow.{plot_format}"
         if plot_file.exists():
-            click.echo(f"    plot:      {plot_file}")
+            click.echo(f"    plot:      {_rel(plot_file)}")
         else:
             click.echo("[!] Plot requested but graphviz 'dot' not found; skipping render", err=True)
 
     if result.manifests_dir:
-        click.echo(f"    manifests: {result.manifests_dir}")
+        click.echo(f"    manifests: {_rel(result.manifests_dir)}")
 
     if verbose:
         actor = compiler.single_actor_name
@@ -186,7 +192,8 @@ def compile_cmd(flow_name, source_file, plot, plot_format, verbose, strict):
                 plot_format=plot_format,
             )
         else:
-            _recompile_kebab_target(flow_name, verbose)
+            click.echo(f"[-] Missing source file. Usage: asya compile {flow_name} -f path/to/flow.py", err=True)
+            sys.exit(1)
     except FlowCompileError as e:
         click.echo(f"[-] Compilation failed for {flow_name}\n", err=True)
         click.echo(str(e), err=True)
