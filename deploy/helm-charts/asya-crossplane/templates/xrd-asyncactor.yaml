@@ -461,12 +461,13 @@ spec:
         - name: Status
           type: string
           jsonPath: .status.phase
+        - name: Replicas
+          type: string
+          jsonPath: .status.infrastructure.workload.replicas
         - name: Ready
           type: integer
           jsonPath: .status.infrastructure.workload.readyReplicas
-        - name: Replicas
-          type: integer
-          jsonPath: .status.infrastructure.workload.replicas
+          priority: 1
         - name: Queue
           type: string
           jsonPath: .status.queueUrl
