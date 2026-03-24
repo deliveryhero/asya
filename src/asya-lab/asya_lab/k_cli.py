@@ -564,7 +564,7 @@ def _stream_colored_logs(
             *ns_args,
             "-l",
             f"asya.sh/flow={flow_name}",
-            # "--all-pods",
+            "--all-pods",
             "--prefix",
             "--max-log-requests=20",
             "-c",
@@ -869,7 +869,7 @@ def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
         headers["X-API-Key"] = api_key
     try:
         req = urllib.request.Request(a2a_url, data=_json.dumps(req_body).encode(), headers=headers)
-        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310  # nosemgrep
             body = _json.loads(resp.read())
         return body.get("result", {}).get("artifacts", [])
     except Exception:
@@ -960,7 +960,7 @@ def _send_a2a(
                 data=_json.dumps(request).encode(),
                 headers=headers,
             )
-            with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep: dynamic-urllib-use-detected
+            with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
                 # A2A streaming sends two event kinds (per streaming-events.md + PR #392):
                 #   artifact-update  — result payload (before terminal)
                 #   status-update    — progress/lifecycle; final=true marks completion
@@ -1014,8 +1014,7 @@ def _send_a2a(
                             if captured_artifact:
                                 _print_result([captured_artifact], event if verbose else None)
                             elif state == "completed" and gw_task_id:
-                                _print_result(_fetch_artifacts(url, gw_task_id, api_key),
-                                              event if verbose else None)
+                                _print_result(_fetch_artifacts(url, gw_task_id, api_key), event if verbose else None)
                             elif verbose:
                                 _print_result([], event)
                             return tid

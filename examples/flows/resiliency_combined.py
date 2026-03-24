@@ -24,7 +24,7 @@ from timeout_decorator import timeout
 
 
 @flow
-async def data_pipeline(p: dict) -> dict:
+async def resiliency_combined(p: dict) -> dict:
     p["status"] = "started"
 
     async with asyncio.timeout(60):

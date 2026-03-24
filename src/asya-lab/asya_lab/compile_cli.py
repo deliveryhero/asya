@@ -27,7 +27,7 @@ def _resolve_compiled_dir(source_path: Path, flow_name: str) -> Path:
         sys.exit(1)
 
     project = AsyaProject.from_dir(source_path.parent, arg_values={"flow_name": flow_name})
-    return project.resolve_path("compiler.routers") / flow_name
+    return project.resolve_path("compiler.routers")
 
 
 def _compile_flow_file(

@@ -2,7 +2,7 @@ from _asya_utils import flow
 
 
 @flow
-def data_pipeline(p: dict) -> dict:
+def try_except_multiple_handlers(p: dict) -> dict:
     try:
         p = parse_input(p)
         p = transform_data(p)

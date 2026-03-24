@@ -4,8 +4,8 @@ templates:
   max_replicas: 5
 
 compiler:
-  routers: "./compiled"
-  manifests: "./compiled"
+  routers: "./compiled/${arg:flow_name}"
+  manifests: "./compiled/${arg:flow_name}/manifests"
   templates: ".asya/templates"
 
 build:
