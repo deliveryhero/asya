@@ -1505,8 +1505,37 @@ def k() -> None:
     """Kubernetes commands (apply, delete, status, logs, send, edit, context)."""
 
 
+@click.command("list")
+@click.argument("target", type=ASYA_REF)
+@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
+@click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide, or custom-columns=...)")
+@click.option("--columns", default=None, help="Custom columns (comma-separated, e.g. NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role)")
+def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -> None:
+    """List actors for a flow.
+
+    \b
+    Examples:
+      asya k list text-improver
+      asya k list text-improver -o name
+      asya k list text-improver --columns NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role
+    """
+    flow_function = target.name.replace("-", "_")
+    runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
+
+    args = ["get", "asyncactor", "-l", f"asya.sh/flow={target.name}"]
+
+    if columns:
+        args.extend(["-o", f"custom-columns={columns}"])
+    elif output:
+        args.extend(["-o", output])
+
+    result = runner.kubectl(*args)
+    sys.exit(result.returncode)
+
+
 k.add_command(apply)
 k.add_command(delete)
+k.add_command(k_list)
 k.add_command(k_status)
 k.add_command(logs)
 k.add_command(send)
