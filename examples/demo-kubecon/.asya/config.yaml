@@ -18,5 +18,7 @@ contexts:
     namespace: asya-e2e
     kubectl_context: kind-asya-e2e-pubsub-gcs
     gateway_url: http://localhost:8080
+    tempo_url: http://localhost:3200
+    grafana_url: http://localhost:3000
 
 default_context: dev

@@ -787,7 +787,7 @@ def _send_a2a(
     skill: str | None,
     api_key: str | None,
     stream: bool,
-) -> None:
+) -> str | None:
     """Send a message via A2A protocol."""
     import json as _json
     import uuid
@@ -846,6 +846,7 @@ def _send_a2a(
         click.echo(f"[.] Task {result_id}: {state}")
 
     click.echo(_json.dumps(result, indent=2))
+    return result_id if result_id != "?" else None
 
 
 def _truncate_actor(name: str, max_len: int = 32) -> str:
@@ -889,7 +890,7 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
             file=sys.stderr,
         )
     else:
-        click.echo(f"[.] waiting for {task_id[:12]}...", err=True)
+        click.echo(f"[.] waiting for {task_id}...", err=True)
 
     prev_msg = ""
     poll_count = 0
@@ -932,7 +933,7 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
                     pbar.refresh()
                     pbar.close()
                 marker = "[+]" if state == "completed" else "[-]"
-                click.echo(f"{marker} Task {task_id[:12]}: {state}")
+                click.echo(f"{marker} Task {task_id}: {state}")
                 # Show message parts (skip generic "Task completed successfully")
                 for part in parts:
                     if part.get("kind") == "text" and part["text"] != "Task completed successfully":
@@ -951,7 +952,7 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
 
     if pbar:
         pbar.close()
-    click.echo(f"[-] Timed out waiting for task {task_id[:12]}", err=True)
+    click.echo(f"[-] Timed out waiting for task {task_id}", err=True)
 
 
 def _stream_task_sse(api_url: str, task_id: str, api_key: str | None) -> None:
@@ -962,7 +963,7 @@ def _stream_task_sse(api_url: str, task_id: str, api_key: str | None) -> None:
     # /stream/{id} endpoint on the API gateway
     base_url = api_url.rstrip("/").replace("/mcp", "").replace("/a2a", "")
     stream_url = f"{base_url}/stream/{task_id}"
-    click.echo(f"[.] streaming {task_id[:12]}...", err=True)
+    click.echo(f"[.] streaming {task_id}...", err=True)
 
     headers = {}
     if api_key:
@@ -990,7 +991,7 @@ def _stream_task_sse(api_url: str, task_id: str, api_key: str | None) -> None:
 
                     if phase in ("completed", "succeeded", "failed"):
                         marker = "[+]" if phase in ("completed", "succeeded") else "[-]"
-                        click.echo(f"{marker} Task {task_id[:12]}: {phase}")
+                        click.echo(f"{marker} Task {task_id}: {phase}")
                         payload = event.get("payload")
                         if payload:
                             click.echo(_json.dumps(payload, indent=2))
@@ -1059,6 +1060,109 @@ def _send_mcp(
         _poll_task_status(url, task_id, api_key)
 
 
+def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
+    """Show trace URL and ASCII span diagram for an envelope."""
+    import json as _json
+    import time as _time
+    import urllib.request
+
+    ctx_cfg = runner._context_config or {}
+    tempo_url = ctx_cfg.get("tempo_url")
+    grafana_url = ctx_cfg.get("grafana_url")
+
+    if grafana_url:
+        import urllib.parse
+        query = f'{{span.asya.envelope_id="{envelope_id}"}}'
+        # Grafana Explore URL with properly encoded panes JSON
+        panes = _json.dumps({"trace": {"datasourceUid": "tempo", "queries": [{"refId": "A", "queryType": "traceql", "query": query}]}})
+        explore_url = f"{grafana_url}/explore?schemaVersion=1&panes={urllib.parse.quote(panes)}"
+        click.echo(f"\n[.] Grafana: {explore_url}", err=True)
+
+    if not tempo_url:
+        if not grafana_url:
+            click.echo("[.] No tempo_url or grafana_url in context config — skipping trace", err=True)
+        return
+
+    # Query Tempo via TraceQL for spans matching this envelope ID
+    click.echo(f"[.] Querying traces for {envelope_id}...", err=True)
+    _time.sleep(5)  # wait for traces to flush to Tempo
+
+    import urllib.parse
+    traceql = f'{{span.asya.envelope_id="{envelope_id}"}}'
+    search_url = f"{tempo_url}/api/search?q={urllib.parse.quote(traceql)}&limit=10"
+
+    data = {"traces": []}
+    for attempt in range(6):
+        _time.sleep(3)
+        try:
+            with urllib.request.urlopen(search_url, timeout=10) as resp:  # nosec B310
+                data = _json.loads(resp.read())
+            if data.get("traces"):
+                break
+        except Exception as e:
+            if attempt == 5:
+                click.echo(f"[!] Cannot query Tempo: {e}", err=True)
+                return
+
+    # Find traces containing our envelope ID
+    for trace_info in data.get("traces", []):
+        trace_id = trace_info.get("traceID", "")
+        try:
+            trace_url = f"{tempo_url}/api/traces/{trace_id}"
+            with urllib.request.urlopen(trace_url, timeout=10) as resp:  # nosec B310
+                trace_data = _json.loads(resp.read())
+        except Exception:
+            continue
+
+        # Collect spans
+        spans = []
+        for batch in trace_data.get("batches", []):
+            res_attrs = batch.get("resource", {}).get("attributes", [])
+            svc = next((a["value"].get("stringValue", "") for a in res_attrs if a.get("key") == "service.name"), "?")
+            for scope in batch.get("scopeSpans", []):
+                for span in scope.get("spans", []):
+                    attrs = {a["key"]: a.get("value", {}).get("stringValue", a.get("value", {}).get("intValue", ""))
+                             for a in span.get("attributes", [])}
+                    if attrs.get("asya.envelope_id") == envelope_id:
+                        start_ns = int(span.get("startTimeUnixNano", 0))
+                        end_ns = int(span.get("endTimeUnixNano", 0))
+                        spans.append({
+                            "service": svc,
+                            "name": span.get("name", "?"),
+                            "start": start_ns,
+                            "end": end_ns,
+                            "dur_ms": (end_ns - start_ns) / 1e6,
+                        })
+
+        if not spans:
+            continue
+
+        # Render ASCII timeline
+        spans.sort(key=lambda s: s["start"])
+        min_start = min(s["start"] for s in spans)
+        max_end = max(s["end"] for s in spans)
+        total_ns = max_end - min_start or 1
+
+        click.echo(f"\n  Trace: {trace_id}", err=True)
+        click.echo(f"  Total: {total_ns / 1e6:.0f}ms", err=True)
+        click.echo(f"  {'Actor':<28} {'Span':<20} {'Duration':>8}  Timeline", err=True)
+        click.echo(f"  {'─' * 28} {'─' * 20} {'─' * 8}  {'─' * 40}", err=True)
+
+        bar_width = 40
+        for s in spans:
+            offset = int((s["start"] - min_start) / total_ns * bar_width)
+            width = max(1, int(s["dur_ms"] / (total_ns / 1e6) * bar_width))
+            bar = " " * offset + "█" * width
+            actor = _truncate_actor(s["service"], 28)
+            name = s["name"][:20]
+            click.echo(f"  {actor:<28} {name:<20} {s['dur_ms']:>7.0f}ms  {bar}", err=True)
+
+        click.echo("", err=True)
+        return  # show first matching trace
+
+    click.echo("[.] No traces found for this envelope (traces may take a few seconds to flush)", err=True)
+
+
 @click.command()
 @click.argument("target", type=ASYA_REF)
 @click.argument("message", required=True)
@@ -1068,6 +1172,7 @@ def _send_mcp(
 @click.option("--a2a", "use_a2a", is_flag=True, default=False, help="Use A2A protocol (default)")
 @click.option("--mcp", "use_mcp", is_flag=True, default=False, help="Use MCP protocol")
 @click.option("--stream", is_flag=True, help="Stream events (A2A subscribe)")
+@click.option("--trace", is_flag=True, help="Show trace URL and ASCII spans after completion")
 @click.option("--api-key", default=None, help="API key (default: auto-fetch from asya-gateway-auth secret)")
 def send(
     target: AsyaRef,
@@ -1078,6 +1183,7 @@ def send(
     use_a2a: bool,
     use_mcp: bool,
     stream: bool,
+    trace: bool,
     api_key: str | None,
 ) -> None:
     """Send a message to a deployed flow.
@@ -1103,12 +1209,16 @@ def send(
             api_key = _fetch_api_key(runner, "a2a-api-key")
 
     # Default to A2A
+    task_id = None
     if not use_mcp:
         click.echo(f"[.] {target.name} -> {url}/a2a/", err=True)
-        _send_a2a(url, message, skill or target.name, api_key, stream)
+        task_id = _send_a2a(url, message, skill or target.name, api_key, stream)
     else:
         click.echo(f"[.] {target.name} -> {url}/mcp", err=True)
         _send_mcp(url, target.name, message, api_key, stream)
+
+    if trace and task_id:
+        _show_trace(runner, task_id)
 
 
 def _resolve_gateway_url(runner: KubeRunner, url_override: str | None) -> str:
