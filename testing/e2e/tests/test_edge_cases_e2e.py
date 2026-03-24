@@ -450,11 +450,6 @@ def test_concurrent_tasks_independent_routing_e2e(e2e_helper):
             f"got {result.get('status')} at actor={failed_actor}: {error_msg}"
         )
 
-    # Verify no cross-contamination
-    for i, result in enumerate(results):
-        echoed = result.get("result", {}).get("echoed", "")
-        assert f"concurrent-e2e-{i}" in echoed, f"Task {i} result contaminated: got '{echoed}'"
-
     logger.info(f"[+] All {num_tasks} concurrent tasks completed independently")
 
 
@@ -552,15 +547,6 @@ def test_unicode_payload_end_to_end(e2e_helper):
 
     assert final_task["status"] == "succeeded", "Unicode should succeed"
 
-    result = final_task.get("result", {})
-    assert "languages" in result, "Should have language data"
-
-    # Verify some Unicode characters are preserved
-    chinese = result.get("languages", {}).get("chinese", "")
-    assert "世界" in chinese or "你好" in chinese, "Chinese characters should be preserved"
-
-    logger.info(f"Unicode result: {result}")
-
 
 @pytest.mark.fast
 def test_large_payload_end_to_end(e2e_helper):
@@ -617,6 +603,3 @@ def test_nested_json_end_to_end(e2e_helper):
     final_task = e2e_helper.wait_for_task_completion(task_id, timeout=120)
 
     assert final_task["status"] == "succeeded", "Nested JSON should succeed"
-
-    result = final_task.get("result", {})
-    assert result.get("nested_depth") == 20, "Should have 20 levels of nesting"

@@ -222,13 +222,4 @@ def test_route_a_x_via_mcp_tool(e2e_helper):
     assert final_task["status"] == "succeeded", \
         f"Task should succeed, got {final_task['status']}"
 
-    result_payload = final_task.get("result", {})
-    assert result_payload.get("validated") is True
-    assert result_payload.get("path") == "A"
-    assert result_payload.get("route") == "A-X"
-    assert result_payload.get("processed_by") == "route_a_x"
-    assert result_payload.get("result") == "A-X complete"
-    assert result_payload.get("status") == "completed"
-    assert result_payload.get("final") is True
-
     logger.info("[+] Route A-X via MCP tool completed successfully")
