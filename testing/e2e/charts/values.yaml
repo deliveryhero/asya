@@ -151,6 +151,9 @@ tracing:
   enabled: false
   endpoint: ""
 
+observability:
+  enabled: false
+
 transport:
   rabbitmq:
     enabled: false
