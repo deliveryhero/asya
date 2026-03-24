@@ -147,6 +147,18 @@ crew:
       cooldownPeriod: 30
       queueLength: 5
 
+tracing:
+  enabled: false
+  endpoint: ""
+
+observability:
+  prometheus:
+    enabled: false
+  loki:
+    enabled: false
+  promtail:
+    enabled: false
+
 transport:
   rabbitmq:
     enabled: false

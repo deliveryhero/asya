@@ -14,6 +14,11 @@ metadata:
 spec:
   actor: {{ $pause.name }}
 
+  {{- if .Values.tracing.endpoint }}
+  tracing:
+    endpoint: {{ .Values.tracing.endpoint | quote }}
+  {{- end }}
+
   {{- with $pause.sidecar }}
   sidecar:
     {{- toYaml . | nindent 4 }}

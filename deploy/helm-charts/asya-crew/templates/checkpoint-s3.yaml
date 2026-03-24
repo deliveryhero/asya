@@ -19,6 +19,11 @@ spec:
     - {{ include "asya-crew.persistence.flavorName" . }}
   {{- end }}
 
+  {{- if .Values.tracing.endpoint }}
+  tracing:
+    endpoint: {{ .Values.tracing.endpoint | quote }}
+  {{- end }}
+
   {{- with $checkpointS3.sidecar }}
   sidecar:
     {{- toYaml . | nindent 4 }}

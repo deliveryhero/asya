@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"testing"
 
 	a2alib "github.com/a2aproject/a2a-go/a2a"
@@ -18,7 +19,7 @@ func TestMessageToPayload_SingleDataPart(t *testing.T) {
 	taskID := a2alib.TaskID("task-1")
 	contextID := "ctx-1"
 
-	payload, headers := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify root-level extraction
 	if payload["key"] != "val" {
@@ -66,7 +67,7 @@ func TestMessageToPayload_TextOnly(t *testing.T) {
 	taskID := a2alib.TaskID("task-2")
 	contextID := "ctx-2"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify query field set
 	if payload["query"] != "hello" {
@@ -97,7 +98,7 @@ func TestMessageToPayload_MultiText(t *testing.T) {
 	taskID := a2alib.TaskID("task-3")
 	contextID := "ctx-3"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify text concatenation with "\n"
 	if payload["query"] != "line 1\nline 2" {
@@ -118,7 +119,7 @@ func TestMessageToPayload_NoSyntheticFields(t *testing.T) {
 	taskID := a2alib.TaskID("task-4")
 	contextID := "ctx-4"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify no underscore-prefixed synthetic fields exist
 	for key := range payload {
@@ -152,7 +153,7 @@ func TestMessageToPayload_MixedParts(t *testing.T) {
 	taskID := a2alib.TaskID("task-5")
 	contextID := "ctx-5"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify all data parts merged at root
 	if payload["type"] != "image" {
@@ -169,7 +170,7 @@ func TestMessageToPayload_MixedParts(t *testing.T) {
 }
 
 func TestBuildA2AHeaders(t *testing.T) {
-	headers := BuildA2AHeaders("task-123", "ctx-456")
+	headers := BuildA2AHeaders(context.Background(), "task-123", "ctx-456")
 
 	if headers["x-asya-a2a-task-id"] != "task-123" {
 		t.Errorf("task-id header = %v, want task-123", headers["x-asya-a2a-task-id"])
@@ -178,9 +179,9 @@ func TestBuildA2AHeaders(t *testing.T) {
 		t.Errorf("context-id header = %v, want ctx-456", headers["x-asya-a2a-context-id"])
 	}
 
-	// Verify only expected headers are present
+	// When no active span, only A2A headers should be present (no traceparent)
 	if len(headers) != 2 {
-		t.Errorf("expected 2 headers, got %d", len(headers))
+		t.Errorf("expected 2 headers without active span, got %d", len(headers))
 	}
 }
 
@@ -197,7 +198,7 @@ func TestMessageToPayload_WithFilePart(t *testing.T) {
 	taskID := a2alib.TaskID("task-6")
 	contextID := "ctx-6"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// When files are present, we should not unwrap single data part
 	// Text should be stored as query
@@ -221,7 +222,7 @@ func TestMessageToPayload_EmptyParts(t *testing.T) {
 	taskID := a2alib.TaskID("task-empty")
 	contextID := "ctx-empty"
 
-	payload, headers := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify a2a.task namespace is still initialized
 	a2aNamespace, ok := payload["a2a"].(map[string]any)
@@ -263,7 +264,7 @@ func TestMessageToPayload_NilParts(t *testing.T) {
 	taskID := a2alib.TaskID("task-nil")
 	contextID := "ctx-nil"
 
-	payload, headers := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify a2a.task namespace is still initialized
 	a2aNamespace, ok := payload["a2a"].(map[string]any)
@@ -300,7 +301,7 @@ func TestMessageToPayload_HistoryContainsFullMessage(t *testing.T) {
 	taskID := a2alib.TaskID("task-hist")
 	contextID := "ctx-hist"
 
-	payload, _ := MessageToPayload(msg, taskID, contextID)
+	payload, _ := MessageToPayload(context.Background(), msg, taskID, contextID)
 
 	// Verify history contains the full serialized message
 	a2aNamespace := payload["a2a"].(map[string]any)
@@ -332,7 +333,7 @@ func TestMessageToPayload_HeaderStamping(t *testing.T) {
 		},
 	}
 
-	_, headers := MessageToPayload(msg, "my-task-id", "my-context-id")
+	_, headers := MessageToPayload(context.Background(), msg, "my-task-id", "my-context-id")
 
 	if headers["x-asya-a2a-task-id"] != "my-task-id" {
 		t.Errorf("task-id header = %v, want my-task-id", headers["x-asya-a2a-task-id"])
@@ -340,7 +341,8 @@ func TestMessageToPayload_HeaderStamping(t *testing.T) {
 	if headers["x-asya-a2a-context-id"] != "my-context-id" {
 		t.Errorf("context-id header = %v, want my-context-id", headers["x-asya-a2a-context-id"])
 	}
+	// When no active span, only A2A headers should be present (no traceparent)
 	if len(headers) != 2 {
-		t.Errorf("expected exactly 2 headers, got %d", len(headers))
+		t.Errorf("expected exactly 2 headers without active span, got %d", len(headers))
 	}
 }

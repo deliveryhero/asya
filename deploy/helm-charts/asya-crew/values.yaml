@@ -11,6 +11,10 @@ image:
   pullPolicy: IfNotPresent
   # tag defaults to Chart.appVersion if not specified
 
+# Distributed tracing configuration
+tracing:
+  endpoint: ""
+
 # X-sink actor configuration
 # First layer of two-layer termination: reports final status to gateway, routes to hooks
 x-sink:

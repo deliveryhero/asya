@@ -161,3 +161,7 @@ externalDatabase:
 tests:
   image: alpine/k8s:1.28.3
   imagePullPolicy: IfNotPresent
+
+# Distributed tracing configuration
+tracing:
+  endpoint: ""

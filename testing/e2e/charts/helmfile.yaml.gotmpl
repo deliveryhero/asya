@@ -25,11 +25,10 @@ repositories:
     url: https://kedacore.github.io/charts
   - name: crossplane-stable
     url: https://charts.crossplane.io/stable
-  # Disabled: prometheus and grafana not used in e2e
-  # - name: prometheus-community
-  #   url: https://prometheus-community.github.io/helm-charts
-  # - name: grafana
-  #   url: https://grafana.github.io/helm-charts
+  - name: prometheus-community
+    url: https://prometheus-community.github.io/helm-charts
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
 
 releases:
   - name: keda
@@ -191,6 +190,184 @@ releases:
         command: "sh"
         args: ["-c", "echo \"[+] GCS (emulator) deployed in $(($(date +%s) - $(cat /tmp/helm-gcs-start)))s\""]
 
+  - name: tempo
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: grafana/tempo
+    version: "~1.x"
+    condition: tracing.enabled
+    values:
+      - tempo:
+          storage:
+            trace:
+              backend: local
+          retention: 24h
+          receivers:
+            otlp:
+              protocols:
+                grpc:
+                  endpoint: "0.0.0.0:4317"
+                http:
+                  endpoint: "0.0.0.0:4318"
+          metricsGenerator:
+            enabled: true
+            remoteWriteUrl: "http://prometheus-server.{{ .Values.namespace | default "asya-e2e" }}.svc.cluster.local:80/api/v1/write"
+            processor:
+              service_graphs:
+                wait: 10s
+                max_items: 10000
+                enable_messaging_system_latency_histogram: true
+                enable_virtual_node_label: true
+              span_metrics:
+                enable_target_info: true
+        overrides:
+          defaults:
+            metrics_generator:
+              processors:
+                - service-graphs
+                - span-metrics
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            cpu: 250m
+            memory: 256Mi
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying Tempo...' && date +%s > /tmp/helm-tempo-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] Tempo deployed in $(($(date +%s) - $(cat /tmp/helm-tempo-start)))s\""]
+
+  - name: prometheus
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: prometheus-community/prometheus
+    condition: observability.prometheus.enabled
+    values:
+      - server:
+          persistentVolume:
+            enabled: false
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+          extraFlags:
+            - "web.enable-remote-write-receiver"
+        alertmanager:
+          enabled: false
+        kube-state-metrics:
+          enabled: false
+        prometheus-node-exporter:
+          enabled: false
+        prometheus-pushgateway:
+          enabled: false
+        extraScrapeConfigs: |
+          - job_name: asya-actors
+            kubernetes_sd_configs:
+              - role: pod
+                namespaces:
+                  names:
+                    - {{ .Values.namespace | default "asya-e2e" }}
+            relabel_configs:
+              - source_labels: [__meta_kubernetes_pod_container_name]
+                action: keep
+                regex: asya-sidecar
+              - source_labels: [__address__]
+                action: replace
+                regex: ([^:]+)(?::\d+)?
+                replacement: ${1}:8080
+                target_label: __address__
+              - source_labels: [__meta_kubernetes_namespace]
+                target_label: namespace
+              - source_labels: [__meta_kubernetes_pod_label_asya_sh_actor]
+                target_label: actor
+              - source_labels: [__meta_kubernetes_pod_name]
+                target_label: pod
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying Prometheus...' && date +%s > /tmp/helm-prometheus-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] Prometheus deployed in $(($(date +%s) - $(cat /tmp/helm-prometheus-start)))s\""]
+
+  - name: loki
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: grafana/loki
+    condition: observability.loki.enabled
+    values:
+      - deploymentMode: SingleBinary
+        loki:
+          auth_enabled: false
+          useTestSchema: true
+          commonConfig:
+            replication_factor: 1
+          storage:
+            type: filesystem
+        singleBinary:
+          replicas: 1
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+        backend:
+          replicas: 0
+        read:
+          replicas: 0
+        write:
+          replicas: 0
+        gateway:
+          enabled: false
+        chunksCache:
+          enabled: false
+        resultsCache:
+          enabled: false
+        monitoring:
+          selfMonitoring:
+            enabled: false
+          lokiCanary:
+            enabled: false
+        test:
+          enabled: false
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying Loki...' && date +%s > /tmp/helm-loki-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] Loki deployed in $(($(date +%s) - $(cat /tmp/helm-loki-start)))s\""]
+
+  - name: promtail
+    namespace: {{ .Values.namespace | default "asya-e2e" }}
+    chart: grafana/promtail
+    condition: observability.promtail.enabled
+    needs:
+      - loki
+    values:
+      - config:
+          clients:
+            - url: http://loki:3100/loki/api/v1/push
+        resources:
+          requests:
+            cpu: 25m
+            memory: 64Mi
+    labels:
+      layer: infra
+    hooks:
+      - events: ["presync"]
+        command: "sh"
+        args: ["-c", "echo '[.] Deploying Promtail...' && date +%s > /tmp/helm-promtail-start"]
+      - events: ["postsync"]
+        command: "sh"
+        args: ["-c", "echo \"[+] Promtail deployed in $(($(date +%s) - $(cat /tmp/helm-promtail-start)))s\""]
+
   - name: jwks-server
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: ./jwks-server
@@ -259,6 +436,10 @@ releases:
     values:
       - {{- .Values.gateway | toYaml | nindent 8 }}
       - exposedFlows: {{- readFile "flows.yaml" | fromYaml | get "flows" | toYaml | nindent 10 }}
+      {{- if .Values.tracing.enabled }}
+      - tracing:
+          endpoint: {{ .Values.tracing.endpoint | quote }}
+      {{- end }}
     labels:
       layer: infra
 
@@ -268,6 +449,10 @@ releases:
     chart: ../../../deploy/helm-charts/asya-crew
     values:
       - {{- .Values.crew | toYaml | nindent 8 }}
+      {{- if .Values.tracing.enabled }}
+      - tracing:
+          endpoint: {{ .Values.tracing.endpoint | quote }}
+      {{- end }}
     labels:
       layer: app
 
