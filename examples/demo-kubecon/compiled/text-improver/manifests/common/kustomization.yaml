@@ -8,7 +8,7 @@ configurations:
 images:
 - name: demo-kubecon
   newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/demo-kubecon
-  newTag: v0.5.10-107-gd904e8b8-dirty
+  newTag: v0.5.10-108-g043fe422
 patches:
 - path: patch-actor-evaluate.yaml
 - path: patch-actor-generate.yaml
