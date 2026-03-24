@@ -111,6 +111,10 @@ spec:
           value: "{{ .Release.Namespace }}"
         - name: ASYA_CONFIG_PATH
           value: "/etc/asya/flows"
+        {{- if .Values.tracing.endpoint }}
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: {{ .Values.tracing.endpoint | quote }}
+        {{- end }}
         {{- with .Values.env }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
