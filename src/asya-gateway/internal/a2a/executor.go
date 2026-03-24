@@ -9,6 +9,10 @@ import (
 	a2alib "github.com/a2aproject/a2a-go/a2a"
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/a2aproject/a2a-go/a2asrv/eventqueue"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
@@ -47,6 +51,17 @@ func (e *Executor) Execute(
 	taskID := reqCtx.TaskID
 	contextID := reqCtx.ContextID
 
+	// Create root span for the entire task execution
+	tracer := otel.Tracer("asya-gateway")
+	ctx, rootSpan := tracer.Start(ctx, "gateway.task.execute",
+		trace.WithSpanKind(trace.SpanKindServer),
+		trace.WithAttributes(
+			attribute.String("asya.task_id", string(taskID)),
+			attribute.String("asya.context_id", contextID),
+		),
+	)
+	defer rootSpan.End()
+
 	// Check for resume of paused task
 	if reqCtx.StoredTask != nil && reqCtx.StoredTask.Status.State == a2alib.TaskStateInputRequired {
 		return e.handleResume(ctx, reqCtx, eq)
@@ -55,14 +70,19 @@ func (e *Executor) Execute(
 	// Resolve skill -> entrypoint actor
 	skill, err := e.resolveSkill(msg, reqCtx.Metadata)
 	if err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, "skill resolution failed")
 		return eq.Write(ctx, a2alib.NewStatusUpdateEvent(
 			reqCtx, a2alib.TaskStateRejected,
 			a2alib.NewMessage(a2alib.MessageRoleAgent,
 				&a2alib.TextPart{Text: err.Error()})))
 	}
 
+	// Add actor attribute to root span
+	rootSpan.SetAttributes(attribute.String("asya.actor", skill.Actor))
+
 	// Translate A2A Message -> envelope payload + headers
-	payload, headers := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(ctx, msg, taskID, contextID)
 
 	// Build envelope tracking record
 	timeoutSec := 300
@@ -86,12 +106,30 @@ func (e *Executor) Execute(
 	}
 
 	if err := e.taskStore.Create(envelope); err != nil {
+		rootSpan.RecordError(err)
+		rootSpan.SetStatus(codes.Error, "envelope creation failed")
 		return fmt.Errorf("create envelope: %w", err)
 	}
 
 	// Dispatch to queue
 	if e.queueClient != nil {
-		if err := e.queueClient.SendMessage(ctx, envelope); err != nil {
+		// Create producer span for queue send
+		_, sendSpan := tracer.Start(ctx, "gateway.queue.send",
+			trace.WithSpanKind(trace.SpanKindProducer),
+			trace.WithAttributes(
+				attribute.String("asya.destination_queue", skill.Actor),
+			),
+		)
+
+		err := e.queueClient.SendMessage(ctx, envelope)
+		if err != nil {
+			sendSpan.RecordError(err)
+			sendSpan.SetStatus(codes.Error, "queue send failed")
+			sendSpan.End()
+
+			rootSpan.RecordError(err)
+			rootSpan.SetStatus(codes.Error, "dispatch failed")
+
 			slog.Error("Failed to dispatch envelope to queue", "task_id", taskID, "error", err)
 			_ = e.taskStore.Update(types.EnvelopeUpdate{
 				ID:        string(taskID),
@@ -101,6 +139,8 @@ func (e *Executor) Execute(
 			})
 			return fmt.Errorf("dispatch: %w", err)
 		}
+
+		sendSpan.End()
 	}
 
 	if err := eq.Write(ctx, a2alib.NewStatusUpdateEvent(
@@ -193,7 +233,7 @@ func (e *Executor) handleResume(
 	contextID := reqCtx.ContextID
 	msg := reqCtx.Message
 
-	payload, headers := MessageToPayload(msg, taskID, contextID)
+	payload, headers := MessageToPayload(ctx, msg, taskID, contextID)
 
 	// Merge resume-specific header with A2A headers
 	headers["x-asya-resume-task"] = string(taskID)

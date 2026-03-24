@@ -1,6 +1,7 @@
 package a2a
 
 import (
+	"context"
 	"encoding/json"
 	"maps"
 	"strings"
@@ -17,7 +18,7 @@ import (
 // 4. Mixed -> merge data at root, add text as payload["query"]
 //
 // NO synthetic fields (_a2a_text, _a2a_files) are allowed.
-func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID string) (map[string]any, map[string]any) {
+func MessageToPayload(ctx context.Context, msg *a2alib.Message, taskID a2alib.TaskID, contextID string) (map[string]any, map[string]any) {
 	var textParts []string
 	var dataParts []map[string]any
 	hasFiles := false
@@ -68,17 +69,23 @@ func MessageToPayload(msg *a2alib.Message, taskID a2alib.TaskID, contextID strin
 	}
 	payload["a2a"] = a2aNamespace
 
-	headers := BuildA2AHeaders(string(taskID), contextID)
+	headers := BuildA2AHeaders(ctx, string(taskID), contextID)
 
 	return payload, headers
 }
 
 // BuildA2AHeaders returns envelope headers for A2A task tracking.
-func BuildA2AHeaders(taskID, contextID string) map[string]any {
-	return map[string]any{
+// Injects trace context (traceparent, tracestate) into headers if a span is active.
+func BuildA2AHeaders(ctx context.Context, taskID, contextID string) map[string]any {
+	headers := map[string]any{
 		"x-asya-a2a-task-id":    taskID,
 		"x-asya-a2a-context-id": contextID,
 	}
+
+	// Inject OTEL trace context
+	InjectTraceContext(ctx, headers)
+
+	return headers
 }
 
 // messageToHistoryEntry serializes an a2a-go Message to a JSON-compatible map

@@ -16,6 +16,7 @@ import (
 	"github.com/deliveryhero/asya/asya-sidecar/internal/metrics"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/router"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
+	"github.com/deliveryhero/asya/asya-sidecar/internal/tracing"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
 )
 
@@ -244,6 +245,21 @@ func main() {
 		slog.Info("Metrics disabled")
 	}
 
+	// Initialize tracing
+	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	tracingShutdown, err := tracing.Init(otelEndpoint, cfg.ActorName, cfg.Namespace)
+	if err != nil {
+		slog.Error("Failed to initialize tracing", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		if err := tracingShutdown(shutdownCtx); err != nil {
+			slog.Error("Failed to shutdown tracing", "error", err)
+		}
+	}()
+
 	// Create router
 	r := router.NewRouter(cfg, tp, runtimeClient, m)
 
@@ -312,8 +328,14 @@ func main() {
 	slog.Info("Starting message processing")
 	if err := r.Run(ctx); err != nil && err != context.Canceled {
 		slog.Error("Router error", "error", err)
+		tracing.ForceFlush(context.Background())
 		os.Exit(1)
 	}
+
+	// Force flush traces before shutdown
+	flushCtx, flushCancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer flushCancel()
+	tracing.ForceFlush(flushCtx)
 
 	slog.Info("Sidecar shutdown complete")
 }
