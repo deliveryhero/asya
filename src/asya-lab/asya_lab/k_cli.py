@@ -436,23 +436,6 @@ _ACTOR_COLORS = [
 _RESET = "\033[0m"
 
 
-def _get_flow_deployments(runner: KubeRunner, flow_name: str) -> list[str]:
-    """Get actor names for a flow from AsyncActor CRDs.
-
-    Queries AsyncActors (always have the flow label) rather than
-    Deployments (Crossplane-created, may lack the label).
-    """
-    import json as _json
-
-    result = runner.kubectl(
-        "get", "asyncactor", "-l", f"asya.sh/flow={flow_name}",
-        "-o", "jsonpath={.items[*].metadata.name}",
-        quiet=True, capture_output=True, text=True,
-    )
-    if result.returncode != 0 or not result.stdout.strip():
-        return []
-    return result.stdout.strip().split()
-
 
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
     """Get or assign a color for an actor name."""
@@ -520,92 +503,31 @@ def _stream_colored_logs(
 ) -> None:
     """Stream logs with colored actor-name prefixes.
 
-    In follow mode, watches for new pods and attaches log streams
-    as actors scale up. Uses kubectl logs per-pod with --prefix.
+    Uses single kubectl logs command with label selector and --all-pods.
+    kubectl handles pod discovery, reconnection, and multiplexing.
     """
-    import selectors
     import signal
-    import threading
-    import time
-
-    actors = _get_flow_deployments(runner, flow_name)
-    if not actors:
-        click.echo("[-] No actors found for flow", err=True)
-        sys.exit(1)
 
     actor_colors: dict[str, str] = {}
-    max_prefix_len = min(max(len(a) for a in actors), max_width)
-    for a in sorted(actors):
-        _color_for(a, actor_colors)
-
     show_container = len(containers) > 1
     ns_args = ["-n", runner.namespace] if runner.namespace else []
     tail_arg = str(tail if tail is not None else 100)
 
-    # Track attached pods to avoid duplicates
-    attached_pods: set[str] = set()
     procs: list[subprocess.Popen] = []
-    sel = selectors.DefaultSelector()
-    lock = threading.Lock()
 
-    def _attach_pod(pod_name: str) -> None:
-        """Attach log streams for a pod."""
-        with lock:
-            if pod_name in attached_pods:
-                return
-            attached_pods.add(pod_name)
-
-        for container in containers:
-            cmd = ["kubectl", "logs", *ns_args, pod_name, "-c", container, "--prefix", "--tail", tail_arg]
-            if follow:
-                cmd.append("-f")
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)  # nosec B603, B607
-            with lock:
-                procs.append(proc)
-                assert proc.stdout is not None
-                sel.register(proc.stdout, selectors.EVENT_READ)
-
-    def _discover_pods() -> None:
-        """Discover and attach to existing pods."""
-        import json as _json
-
-        result = runner.kubectl(
-            "get", "pods", "-l", f"asya.sh/flow={flow_name}",
-            "--field-selector=status.phase=Running",
-            "-o", "jsonpath={.items[*].metadata.name}",
-            quiet=True, capture_output=True, text=True,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            for pod_name in result.stdout.strip().split():
-                _attach_pod(pod_name)
-
-    def _watch_pods() -> None:
-        """Watch for new pods in background (follow mode only)."""
-        import json as _json
-
-        while True:
-            time.sleep(3)  # poll for new pods
-            _discover_pods()
-
-    _discover_pods()
-
-    if follow and not attached_pods:
-        click.echo("[.] No running pods. Waiting for scale-up...", err=True)
-        while not attached_pods:
-            import time
-
-            time.sleep(3)
-            _discover_pods()
-        click.echo(f"[+] Attached to {len(attached_pods)} pod(s)", err=True)
-
-    if not attached_pods:
-        click.echo("[-] No running pods found for flow", err=True)
-        sys.exit(1)
-
-    # Start pod watcher thread in follow mode
-    if follow:
-        watcher = threading.Thread(target=_watch_pods, daemon=True)
-        watcher.start()
+    for container in containers:
+        cmd = [
+            "kubectl", "logs", *ns_args,
+            "-l", f"asya.sh/flow={flow_name}",
+            "--all-pods", "--prefix",
+            "--max-log-requests=20",
+            "-c", container,
+            "--tail", tail_arg,
+        ]
+        if follow:
+            cmd.append("-f")
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)  # nosec B603, B607
+        procs.append(proc)
 
     def _cleanup(signum=None, frame=None):
         for p in procs:
@@ -616,24 +538,12 @@ def _stream_colored_logs(
     signal.signal(signal.SIGTERM, _cleanup)
 
     try:
-        while True:
-            with lock:
-                events = sel.select(timeout=1.0)
-            for key, _mask in events:
-                fobj = key.fileobj
-                assert hasattr(fobj, "readline")
-                raw_line = fobj.readline()
-                if not raw_line:
-                    with lock:
-                        sel.unregister(fobj)
-                    if not follow:
-                        continue
-                    continue
-
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                formatted = _format_log_line(line, actor_colors, max_prefix_len, show_container)
-                if formatted is not None:
-                    click.echo(formatted)
+        assert procs[0].stdout is not None
+        for raw_line in procs[0].stdout:
+            line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+            formatted = _format_log_line(line, actor_colors, max_width, show_container)
+            if formatted is not None:
+                click.echo(formatted)
     except KeyboardInterrupt:
         pass
     finally:
