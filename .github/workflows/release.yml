@@ -342,15 +342,4 @@ jobs:
         Version: \`${{ steps.version.outputs.version }}\`
 
         Charts are available at: https://asya.sh/charts
-
-        Add the repository:
-        \`\`\`bash
-        helm repo add asya https://asya.sh/charts
-        helm repo update
-        \`\`\`
-
-        Install charts:
-        \`\`\`bash
-        helm install asya-gateway asya/asya-gateway --version ${{ steps.version.outputs.version }}
-        \`\`\`
         EOF

@@ -1,0 +1,64 @@
+# Configuration for actions/labeler@v5.
+# Applies labels to PRs based on changed file paths.
+# Title-based labels (feat, fix, etc.) are applied by the pr-commit workflow.
+
+docs:
+- changed-files:
+  - any-glob-to-any-file:
+    - '**/*.md'
+    - 'docs/**/*'
+
+charts:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'deploy/helm-charts/**/*'
+
+ci:
+- changed-files:
+  - any-glob-to-any-file:
+    - '.github/**/*'
+
+test:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'testing/**/*'
+    - '**/*_test.go'
+    - '**/test_*.py'
+
+deps:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'go.mod'
+    - 'go.sum'
+    - '**/requirements*.txt'
+    - '**/pyproject.toml'
+
+asya-crew:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/asya-crew/**/*'
+
+asya-gateway:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/asya-gateway/**/*'
+
+function-asya-flavors:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/function-asya-flavors/**/*'
+
+asya-runtime:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/asya-runtime/**/*'
+
+asya-sidecar:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/asya-sidecar/**/*'
+
+asya-state-proxy:
+- changed-files:
+  - any-glob-to-any-file:
+    - 'src/asya-state-proxy/**/*'
