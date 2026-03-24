@@ -856,25 +856,47 @@ def _fetch_api_key(runner: KubeRunner, key_name: str) -> str | None:
         return None
 
 
+def _find_svc(label: str, namespaces: list[str]) -> tuple[str, str] | None:
+    """Find a K8s service by label across namespaces. Returns (ns, svc_name)."""
+    for ns in namespaces:
+        result = subprocess.run(  # nosec B603, B607  # nosemgrep
+            ["kubectl", "-n", ns, "get", "svc", "-l", label, "-o", "jsonpath={.items[0].metadata.name}"],
+            capture_output=True, text=True, check=False,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            return (ns, result.stdout.strip())
+    return None
+
+
 def _print_port_forward_hint(url: str, ctx_config: dict | None) -> None:
-    """Print kubectl port-forward commands for gateway and optional services."""
+    """Print kubectl port-forward commands discovered from cluster services."""
     from urllib.parse import urlparse
 
     cfg = ctx_config or {}
-    ns = cfg.get("namespace", "asya-demo")
+    actor_ns = cfg.get("namespace", "asya-demo")
+    search_ns = list({actor_ns, "monitoring", "asya-system", "default"})
     gw_port = urlparse(url).port or 80
 
     click.echo("[.] Run in a separate terminal:", err=True)
-    click.echo(f"    kubectl -n {ns} port-forward svc/asya-gateway-api {gw_port}:80  # required", err=True)
 
-    for key, svc, default_port, comment in [
-        ("tempo_url", "tempo", 3200, "for --trace"),
-        ("grafana_url", "grafana", 3000, "for dashboards"),
+    gw = _find_svc("app.kubernetes.io/name=asya-gateway,asya.sh/gateway-mode=api", [actor_ns, "asya-system"])
+    gw_svc = f"-n {gw[0]} svc/{gw[1]}" if gw else f"-n {actor_ns} svc/asya-gateway-api"
+    click.echo(f"    kubectl port-forward {gw_svc} {gw_port}:80  # required", err=True)
+
+    for key, label, default_port, comment in [
+        ("tempo_url", "app.kubernetes.io/name=tempo", 3200, "for --trace"),
+        ("grafana_url", "app.kubernetes.io/name=grafana", 3000, "for dashboards"),
     ]:
         svc_url = cfg.get(key, "")
-        if svc_url:
-            p = urlparse(str(svc_url)).port or default_port
-            click.echo(f"    kubectl -n {ns} port-forward svc/{svc} {p}:{p}  # optional, {comment}", err=True)
+        if not svc_url:
+            continue
+        local_port = urlparse(str(svc_url)).port or default_port
+        found = _find_svc(label, search_ns)
+        if found:
+            svc_port = 80 if "grafana" in label else default_port
+            click.echo(f"    kubectl port-forward -n {found[0]} svc/{found[1]} {local_port}:{svc_port}  # optional, {comment}", err=True)
+        else:
+            click.echo(f"    # {comment}: service with label '{label}' not found in {search_ns}", err=True)
 
 
 def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
