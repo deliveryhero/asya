@@ -1515,8 +1515,8 @@ def k() -> None:
 _DEFAULT_COLUMNS = ",".join([
     "NAME:.metadata.name",
     "ROLE:.metadata.labels.asya\\.sh/role",
-    "IMAGE:.spec.image",
-    "HANDLER:.spec.handler",
+    "MIN:.spec.scaling.minReplicaCount",
+    "MAX:.spec.scaling.maxReplicaCount",
     "FLAVORS:.spec.flavors[*]",
 ])
 
