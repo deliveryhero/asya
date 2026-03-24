@@ -1,16 +1,18 @@
-"""Research actor: gather context about a topic."""
-import time
-import random
+"""Research actor: gather context about a topic using Gemini."""
+import litellm
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
+
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type(litellm.exceptions.APIConnectionError),
+)
 async def research(topic: str) -> str:  # asya: actor
-    t = random.random()
-    print(f"[.] Sleeping random {t:.3} sec")
-    time.sleep(t)
-    context = (
-        f"Key facts about '{topic}': "
-        f"This is a well-studied subject with multiple perspectives. "
-        f"Recent developments include new frameworks and methodologies. "
-        f"Consider both technical and human aspects."
+    response = await litellm.acompletion(
+        model="vertex_ai/gemini-2.0-flash",
+        messages=[{"role": "user", "content": f"Provide 3-4 key facts about: {topic}. Be concise, 2-3 sentences."}],
     )
-    print(f"[+] researched context for '{topic}'")
+    context = response.choices[0].message.content
+    print(f"[+] researched '{topic}' ({len(context)} chars)")
     return context

@@ -1,33 +1,23 @@
-"""Generator actor: write or revise a draft."""
-import os
-import random
-import time
+"""Generator actor: write or revise a draft using Gemini."""
+import litellm
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
-FAIL_RATE = float(os.environ.get("FAIL_RATE", "0"))
 
-FIRST_DRAFT = (
-    "Initial exploration of the topic. Covers basic concepts but lacks depth "
-    "and structure. Needs more supporting evidence and clearer argumentation."
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type(litellm.exceptions.APIConnectionError),
 )
-
-REVISION = (
-    "Revised draft with improved structure and supporting evidence. "
-    "Arguments are well-developed with concrete examples. "
-    "Transitions between sections are smoother."
-)
-
-
 async def generate(topic: str, context: str) -> str:  # asya: actor
-    t = random.random()
-    print(f"[.] Sleeping random {t:.3} sec")
-    time.sleep(t)
-
-    if random.random() < FAIL_RATE:
-        raise RuntimeError("[!] transient generation failure")
-
-    if not context:
-        draft = f"[{topic}] {FIRST_DRAFT}"
-    else:
-        draft = f"[{topic}] {REVISION} (Addressed: {context[:60]})"
+    prompt = (
+        f"Write a short, creative text (3-5 paragraphs) about: {topic}\n\n"
+        f"Use this context:\n{context}\n\n"
+        f"Be engaging and informative."
+    )
+    response = await litellm.acompletion(
+        model="vertex_ai/gemini-2.0-flash",
+        messages=[{"role": "user", "content": prompt}],
+    )
+    draft = response.choices[0].message.content
     print(f"[+] generated draft ({len(draft)} chars)")
     return draft

@@ -14,7 +14,7 @@ from actors import research, generate, evaluate, polish
 
 
 async def text_improver(p: dict) -> dict:  # asya: flow
-    p["topic"] = p.get("topic", "anything")
+    p["topic"] = p.get("topic", p.get("query", "anything"))
     p["context"] = await research(p["topic"])
 
     while True:

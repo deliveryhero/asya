@@ -1,23 +1,41 @@
-"""Evaluator actor: score the draft and provide feedback."""
-import time
-import random
+"""Evaluator actor: score the draft and provide feedback using Gemini."""
+import json
+
+import litellm
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(min=1, max=10),
+    retry=retry_if_exception_type(litellm.exceptions.APIConnectionError),
+)
 async def evaluate(payload: dict) -> dict:  # asya: actor
-    t = random.random()
-    print(f"[.] Sleeping random {t:.3} sec")
-    time.sleep(t)
+    draft = payload.get("draft", payload.get("result", ""))
+    topic = payload.get("topic", "")
 
-    iteration = payload.get("iteration", 1)
-    base_score = 50 + iteration * 18
-    payload["score"] = min(base_score + random.randint(-5, 5), 100)
-    if payload["score"] < payload.get("threshold", 85):
-        payload["feedback"] = (
-            f"Score {payload['score']}/100. "
-            f"Needs stronger transitions, more concrete examples, "
-            f"and better conclusion. Iteration {iteration}."
-        )
-    else:
-        payload["feedback"] = ""
-    print(f"[+] evaluated: score={payload['score']}/100 (iteration {iteration})")
+    prompt = (
+        f"You are a writing critic. Score this text 0-100 and give feedback.\n\n"
+        f"Task: {topic}\n"
+        f"Text:\n{draft}\n\n"
+        f'Respond in JSON: {{"score": <int>, "feedback": "<specific improvements>"}}'
+    )
+    response = await litellm.acompletion(
+        model="vertex_ai/gemini-2.0-flash",
+        messages=[{"role": "user", "content": prompt}],
+    )
+
+    raw = response.choices[0].message.content
+    try:
+        cleaned = raw.strip()
+        if cleaned.startswith("```"):
+            cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+        result = json.loads(cleaned)
+        payload["score"] = int(result.get("score", 0))
+        payload["feedback"] = result.get("feedback", "")
+    except (json.JSONDecodeError, ValueError):
+        payload["score"] = 50
+        payload["feedback"] = raw
+
+    print(f"[+] evaluated: score={payload['score']}/100")
     return payload

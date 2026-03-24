@@ -17,7 +17,7 @@ async def start_text_improver(payload: dict):
     """Entrypoint for flow 'text_improver'"""
     p = payload
     _next = []
-    p['topic'] = p.get('topic', 'anything')
+    p['topic'] = p.get('topic', p.get('query', 'anything'))
     _next.append(resolve("research"))
     _next.append(resolve("router_text_improver_while_loop"))
     yield "SET", ".route.next[:0]", _next

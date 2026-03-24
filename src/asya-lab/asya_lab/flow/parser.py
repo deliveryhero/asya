@@ -359,10 +359,11 @@ class FlowParser:
                 if func is None or not callable(func):
                     continue
                 source_lines, _ = _inspect.getsourcelines(func)
-                if source_lines and _DIRECTIVE_PATTERN.search(source_lines[0]):
-                    m = _DIRECTIVE_PATTERN.search(source_lines[0])
+                for src_line in source_lines:
+                    m = _DIRECTIVE_PATTERN.search(src_line)
                     if m:
                         self._decorator_index[name] = m.group(1)
+                        break
             except Exception:
                 continue
 
