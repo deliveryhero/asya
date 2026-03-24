@@ -313,7 +313,7 @@ spec:
                   properties:
                     endpoint:
                       type: string
-                      description: OTLP gRPC endpoint (e.g. tempo:4317). No http:// prefix — gRPC uses bare host:port.
+                      description: "Creates OTEL_EXPORTER_OTLP_ENDPOINT env var in the sidecar (e.g. tempo:4317)"
 
                 stateProxy:
                   type: array

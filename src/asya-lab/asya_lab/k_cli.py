@@ -1314,7 +1314,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
                 data = _json.loads(resp.read())
             n = len(data.get("traces", []))
             if n:
-                click.echo(f"[.] Found {n} trace(s) (attempt {attempt + 1})", err=True)
+                click.echo(f"[.] Found {n} trace(s)", err=True)
                 break
             if attempt >= 3:
                 click.echo(f"[.] No traces yet (attempt {attempt + 1}/10)...", err=True)
