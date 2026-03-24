@@ -1517,6 +1517,8 @@ _DEFAULT_COLUMNS = ",".join([
     "ROLE:.metadata.labels.asya\\.sh/role",
     "MIN:.spec.scaling.minReplicaCount",
     "MAX:.spec.scaling.maxReplicaCount",
+    "DESIRED:.status.replicas",
+    "CURRENT:.status.readyReplicas",
     "FLAVORS:.spec.flavors[*]",
 ])
 
