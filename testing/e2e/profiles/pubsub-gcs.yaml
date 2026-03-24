@@ -5,6 +5,10 @@
 
 namespace: asya-e2e
 
+tracing:
+  enabled: true
+  endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
+
 # KEDA operator configuration for the pubsub-gcs profile.
 # PUBSUB_EMULATOR_HOST routes the gcp-pubsub scaler to the in-cluster emulator,
 # bypassing GCP OAuth (the emulator accepts requests without authentication).
