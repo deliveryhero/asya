@@ -27,8 +27,8 @@ async def router_text_improver_if_iteration_ge_max_iterations(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    if p['iteration'] >= p.get('max_iterations', 3):
-        yield "SET", ".route.next", [resolve("polish")]
+    if p['iteration'] >= p.get('max_iterations', 2):
+        yield "SET", ".route.next", []
         yield p
         return
     else:
@@ -41,8 +41,8 @@ async def router_text_improver_if_score_ge_threshold(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    if p['score'] >= p.get('threshold', 85):
-        yield "SET", ".route.next", [resolve("polish")]
+    if p['score'] >= p.get('threshold', 80):
+        yield "SET", ".route.next", []
         yield p
         return
     else:
@@ -55,7 +55,7 @@ async def router_text_improver_seq_set_iteration(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    p['iteration'] = p.get('iteration', 1) + 1
+    p['iteration'] = p.get('iteration', 0) + 1
     _next.append(resolve("generate"))
     _next.append(resolve("evaluate"))
     _next.append(resolve("router_text_improver_if_score_ge_threshold"))

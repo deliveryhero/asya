@@ -20,8 +20,6 @@ spec:
     value: actors.evaluate.evaluate
   - name: ASYA_HANDLER_ACTOR_GENERATE
     value: actors.generate.generate
-  - name: ASYA_HANDLER_ACTOR_POLISH
-    value: actors.polish.polish
   - name: ASYA_HANDLER_ACTOR_RESEARCH
     value: actors.research.research
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_IF_ITERATION_GE_MAX_ITERATIONS

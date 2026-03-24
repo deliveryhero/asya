@@ -1,4 +1,4 @@
-"""Evaluator actor: score the draft and provide feedback using Gemini."""
+"""Evaluator actor: score the draft using Gemini."""
 import json
 
 import litellm
@@ -12,30 +12,19 @@ from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_excep
 )
 async def evaluate(payload: dict) -> dict:  # asya: actor
     draft = payload.get("draft", payload.get("result", ""))
-    topic = payload.get("topic", "")
-
-    prompt = (
-        f"You are a writing critic. Score this text 0-100 and give feedback.\n\n"
-        f"Task: {topic}\n"
-        f"Text:\n{draft}\n\n"
-        f'Respond in JSON: {{"score": <int>, "feedback": "<specific improvements>"}}'
-    )
     response = await litellm.acompletion(
         model="vertex_ai/gemini-2.0-flash",
-        messages=[{"role": "user", "content": prompt}],
+        messages=[{"role": "user", "content": f'Score 0-100 and give feedback. Respond JSON only: {{"score":<int>,"feedback":"<text>"}}\n\nText:\n{draft[:500]}'}],
+        max_tokens=100,
     )
-
     raw = response.choices[0].message.content
     try:
-        cleaned = raw.strip()
-        if cleaned.startswith("```"):
-            cleaned = cleaned.split("\n", 1)[1].rsplit("```", 1)[0]
+        cleaned = raw.strip().removeprefix("```json").removeprefix("```").removesuffix("```").strip()
         result = json.loads(cleaned)
         payload["score"] = int(result.get("score", 0))
         payload["feedback"] = result.get("feedback", "")
     except (json.JSONDecodeError, ValueError):
         payload["score"] = 50
         payload["feedback"] = raw
-
     print(f"[+] evaluated: score={payload['score']}/100")
     return payload

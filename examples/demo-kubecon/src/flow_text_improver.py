@@ -3,14 +3,14 @@
 KubeCon demo flow. Compiles to distributed actor graph via `asya compile`.
 
 Pipeline:
-  research -> [while: generate -> evaluate -> break if score >= threshold] -> polish
+  research -> [while: generate -> evaluate -> break if score >= threshold]
 
 Configurable via payload:
   - topic (str): what to write about
-  - threshold (int): quality score to accept (default 85)
-  - max_iterations (int): max revision loops (default 3)
+  - threshold (int): quality score to accept (default 80)
+  - max_iterations (int): max revision loops (default 2)
 """
-from actors import research, generate, evaluate, polish
+from actors import research, generate, evaluate
 
 
 async def text_improver(p: dict) -> dict:  # asya: flow
@@ -18,15 +18,13 @@ async def text_improver(p: dict) -> dict:  # asya: flow
     p["context"] = await research(p["topic"])
 
     while True:
-        p["iteration"] = p.get("iteration", 1) + 1
-        
+        p["iteration"] = p.get("iteration", 0) + 1
         p["draft"] = await generate(p["topic"], p["context"])
         p = await evaluate(p)
 
-        if p["score"] >= p.get("threshold", 85):
+        if p["score"] >= p.get("threshold", 60):
             break
-        if p["iteration"] >= p.get("max_iterations", 3):
+        if p["iteration"] >= p.get("max_iterations", 2):
             break
 
-    p["result"] = await polish(p["draft"])
     return p

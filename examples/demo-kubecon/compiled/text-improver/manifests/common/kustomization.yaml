@@ -8,9 +8,8 @@ configurations:
 patches:
 - path: patch-actor-evaluate.yaml
 - path: patch-actor-generate.yaml
-- path: patch-actor-polish.yaml
 - path: patch-actor-research.yaml
 images:
 - name: demo-kubecon
   newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/demo-kubecon
-  newTag: v0.5.10-132-gb202fab7-dirty
+  newTag: v0.5.10-133-g9ac9f7b5-dirty
