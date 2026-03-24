@@ -229,10 +229,7 @@
     }
   ],
   "schemaVersion": 39,
-  "tags": [
-    "asya",
-    "tracing"
-  ],
+  "tags": ["asya", "tracing"],
   "templating": {
     "list": []
   },
