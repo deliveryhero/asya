@@ -1432,10 +1432,10 @@ def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str 
     if target:
         args.extend(["-l", f"asya.sh/flow={target.name}"])
 
-    if columns:
-        args.extend(["-o", f"custom-columns={columns}"])
-    elif output:
+    if output:
         args.extend(["-o", output])
+    elif columns:
+        args.extend(["-o", f"custom-columns={columns}"])
     else:
         args.extend(["-o", f"custom-columns={_DEFAULT_COLUMNS}"])
 
