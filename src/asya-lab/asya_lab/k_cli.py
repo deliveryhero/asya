@@ -525,7 +525,7 @@ def _stream_colored_logs(
     )
     actors = result.stdout.strip().split() if result.returncode == 0 and result.stdout.strip() else []
     actor_colors: dict[str, str] = {}
-    max_name_len = max((len(a) for a in actors), default=max_width)
+    max_name_len = max_width
     for a in sorted(actors):
         _color_for(a, actor_colors)
 
