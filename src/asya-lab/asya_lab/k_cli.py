@@ -1110,38 +1110,9 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     grafana_url = ctx_cfg.get("grafana_url")
 
     if grafana_url:
-        import urllib.parse
-        # Query Grafana for Tempo datasource UID
-        ds_uid = "tempo"
-        try:
-            ds_req = urllib.request.Request(f"{grafana_url}/api/datasources")
-            ds_req.add_header("Authorization", "Basic " + __import__("base64").b64encode(b"admin:admin").decode())
-            with urllib.request.urlopen(ds_req, timeout=3) as resp:  # nosec B310
-                for ds in _json.loads(resp.read()):
-                    if ds.get("type") == "tempo":
-                        ds_uid = ds["uid"]
-                        break
-        except Exception:
-            pass
-
-        query = f'{{span.asya.envelope_id="{envelope_id}"}}'
-        pane_id = "trace"
-        panes = _json.dumps({
-            pane_id: {
-                "datasource": ds_uid,
-                "queries": [{
-                    "refId": "A",
-                    "queryType": "traceql",
-                    "query": query,
-                    "datasource": {"type": "tempo", "uid": ds_uid},
-                    "limit": 20,
-                    "tableType": "traces",
-                }],
-                "range": {"from": "now-1h", "to": "now"},
-            },
-        })
-        explore_url = f"{grafana_url}/explore?schemaVersion=1&panes={urllib.parse.quote(panes)}&orgId=1"
-        click.echo(f"\n[.] Grafana: {explore_url}", err=True)
+        traceql_query = f'{{span.asya.envelope_id="{envelope_id}"}}'
+        click.echo(f"\n[.] Grafana: {grafana_url}/explore -> Tempo -> TraceQL:", err=True)
+        click.echo(f"    {traceql_query}", err=True)
 
     if not tempo_url:
         if not grafana_url:
