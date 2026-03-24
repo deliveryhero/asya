@@ -494,7 +494,7 @@ def _format_log_line(
     text = line[bracket_end:].lstrip()
     deploy_name = _pod_prefix_to_deploy(prefix_str)
     color = _color_for(deploy_name, actor_colors)
-    padded = deploy_name.ljust(max_prefix_len)
+    padded = deploy_name.ljust(max_prefix_len)  # pad short names, overfill long ones
 
     if show_container:
         container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
@@ -508,7 +508,7 @@ def _stream_colored_logs(
     containers: list[str],
     follow: bool,
     tail: int | None,
-    max_width: int = 32,
+    max_width: int = 20,
 ) -> None:
     """Stream logs with colored actor-name prefixes (docker-compose style).
 
@@ -525,7 +525,7 @@ def _stream_colored_logs(
     )
     actors = result.stdout.strip().split() if result.returncode == 0 and result.stdout.strip() else []
     actor_colors: dict[str, str] = {}
-    max_name_len = min(max((len(a) for a in actors), default=20), max_width)
+    max_name_len = max((len(a) for a in actors), default=max_width)
     for a in sorted(actors):
         _color_for(a, actor_colors)
 
@@ -602,7 +602,7 @@ def _stream_colored_logs(
     multiple=True,
     help="Container(s) to show (default: asya-runtime). Use -c asya-sidecar to add sidecar logs.",
 )
-@click.option("--width", "-w", type=int, default=32, help="Max actor name column width (default: 32)")
+@click.option("--width", "-w", type=int, default=20, help="Min actor name column width for padding (default: 20)")
 def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int) -> None:
     """Stream logs for a deployed flow with colored actor-name prefixes.
 
