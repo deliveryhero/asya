@@ -934,15 +934,18 @@ def _truncate_actor(name: str, max_len: int = 32) -> str:
 
 
 def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
-    """Poll A2A tasks/get until task reaches a terminal state, showing progress."""
+    """Poll A2A tasks/get until terminal state, showing tqdm progress bar."""
     import json as _json
     import time as _time
     import urllib.request
 
+    try:
+        from tqdm import tqdm
+    except ImportError:
+        tqdm = None
+
     base = api_url.rstrip("/").replace("/mcp", "").replace("/a2a", "")
     a2a_url = f"{base}/a2a/"
-    prev_state = ""
-    actors_seen: list[str] = []
 
     def _a2a_get(tid: str) -> dict:
         req_body = {"jsonrpc": "2.0", "id": "poll", "method": "tasks/get", "params": {"id": tid}}
@@ -953,45 +956,71 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
         with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
             return _json.loads(resp.read())
 
+    pbar = None
+    if tqdm:
+        pbar = tqdm(
+            total=100,
+            desc="Processing",
+            unit="%",
+            bar_format="{desc}: {percentage:3.0f}% |{bar}| {postfix}",
+            file=sys.stderr,
+        )
+    else:
+        click.echo(f"[.] waiting for {task_id[:12]}...", err=True)
+
+    prev_msg = ""
+    poll_count = 0
+
     for _ in range(600):
         _time.sleep(1)
+        poll_count += 1
         try:
             body = _a2a_get(task_id)
             task = body.get("result", {})
             state = task.get("status", {}).get("state", "")
-
-            # Extract current actor from status message
+            msg = ""
             parts = task.get("status", {}).get("message", {}).get("parts", [])
             for part in parts:
-                text = part.get("text", "")
-                # Look for "processing at actor 'X'" or "actor 'X'" pattern
-                if "actor" in text.lower() or "router" in text.lower():
-                    # Extract actor name from message
-                    for word in text.split("'"):
-                        if word.startswith("actor-") or word.startswith("router-") or word.startswith("start-"):
-                            if word not in actors_seen:
-                                actors_seen.append(word)
-                                short = _truncate_actor(word)
-                                click.echo(f"  [{short}]", err=True)
+                if part.get("kind") == "text":
+                    msg = part["text"]
 
-            if state != prev_state and state == "working":
-                prev_state = state
+            # Update progress bar
+            if pbar:
+                postfix = state
+                if msg and msg != prev_msg and msg != "Task completed successfully":
+                    actor = _truncate_actor(msg, 40)
+                    postfix = actor
+                    prev_msg = msg
+                # Estimate progress: submitted=5%, working=10-90%, completed=100%
+                if state == "submitted":
+                    pbar.n = 5
+                elif state == "working":
+                    pbar.n = min(10 + poll_count * 5, 90)
+                pbar.set_postfix_str(postfix)
+                pbar.refresh()
+            elif msg != prev_msg:
+                click.echo(f"  [{_truncate_actor(msg, 40)}]", err=True)
+                prev_msg = msg
 
             if state in ("completed", "failed"):
-                click.echo(f"[100%]", err=True)
+                if pbar:
+                    pbar.n = 100
+                    pbar.set_postfix_str(state)
+                    pbar.refresh()
+                    pbar.close()
                 marker = "[+]" if state == "completed" else "[-]"
                 click.echo(f"{marker} Task {task_id[:12]}: {state}")
-                # Show final message
                 for part in parts:
                     if part.get("kind") == "text" and part["text"] != "Task completed successfully":
                         click.echo(part["text"])
-                # Show artifacts if present
                 for artifact in task.get("artifacts", []):
                     click.echo(_json.dumps(artifact, indent=2))
                 return
         except Exception:
             pass
 
+    if pbar:
+        pbar.close()
     click.echo(f"[-] Timed out waiting for task {task_id[:12]}", err=True)
 
 

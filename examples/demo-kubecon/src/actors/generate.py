@@ -1,7 +1,6 @@
 """Generator actor: write or revise a draft."""
 import os
 import random
-import time
 
 FAIL_RATE = float(os.environ.get("FAIL_RATE", "0"))
 
@@ -21,7 +20,6 @@ async def generate(topic: str, context: str, feedback: str) -> str:  # asya: act
     if random.random() < FAIL_RATE:
         raise RuntimeError("[!] transient generation failure")
 
-    time.sleep(random.random())
     if not feedback:
         draft = f"[{topic}] {FIRST_DRAFT}"
     else:
