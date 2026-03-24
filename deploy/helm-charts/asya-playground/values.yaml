@@ -388,8 +388,8 @@ tempo:
       defaults:
         metrics_generator:
           processors:
-            - service-graphs
-            - span-metrics
+          - service-graphs
+          - span-metrics
 
     # OTLP receivers are enabled by default
     # Receivers listen on:
