@@ -1283,15 +1283,8 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     grafana_url = ctx_cfg.get("grafana_url")
 
     if grafana_url:
-        import urllib.parse as _urlparse
-
         traceql_query = f'{{span.asya.envelope_id="{envelope_id}"}}'
-        explore_url = (
-            f"{grafana_url}/explore?schemaVersion=1"
-            f"&panes=%7B%22a%22:%7B%22datasource%22:%22tempo%22,"
-            f"%22queries%22:%5B%7B%22query%22:%22{_urlparse.quote(traceql_query)}%22%7D%5D%7D%7D"
-        )
-        click.echo(f"\n[.] Grafana: {explore_url}", err=True)
+        click.echo(f"\n[.] TraceQL: {traceql_query}", err=True)
 
     if not tempo_url:
         if not grafana_url:
@@ -1377,6 +1370,8 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
         max_actor_len = max(len(s["service"]) for s in spans)
 
         click.echo(f"\n  Trace: {trace_id}", err=True)
+        if grafana_url:
+            click.echo(f"  Grafana: {grafana_url}/explore?left=%5B%22now-1h%22,%22now%22,%22Tempo%22,%7B%22query%22:%22{trace_id}%22%7D%5D", err=True)
         click.echo(f"  Total: {total_ns / 1e6:.0f}ms", err=True)
         click.echo(f"  {'Actor':<{max_actor_len}} {'Duration':>8}  Timeline", err=True)
         click.echo(f"  {'─' * max_actor_len} {'─' * 8}  {'─' * 40}", err=True)
