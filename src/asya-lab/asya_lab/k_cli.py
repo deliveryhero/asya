@@ -954,6 +954,7 @@ def _send_a2a(
         # SSE streaming: gateway sends A2A task updates as SSE events.
         # Format: "id: <task-id>\ndata: {jsonrpc result}\n\n"
         click.echo("[.] streaming...", err=True)
+        gw_task_id: str | None = None
         try:
             req = urllib.request.Request(
                 f"{url}/a2a/",
@@ -964,7 +965,6 @@ def _send_a2a(
                 # A2A streaming sends two event kinds (per streaming-events.md + PR #392):
                 #   artifact-update  — result payload (before terminal)
                 #   status-update    — progress/lifecycle; final=true marks completion
-                gw_task_id: str | None = None
                 captured_artifact: dict | None = None  # from artifact-update event
                 prev_actor = ""
                 for raw_line in resp:
