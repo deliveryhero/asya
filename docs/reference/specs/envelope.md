@@ -49,6 +49,16 @@
 - `payload` (required): User data processed by actors
 - `headers` (optional): Routing metadata (trace IDs, priorities)
 
+### Sidecar-Managed Headers
+
+These headers are automatically managed by the sidecar and should not be
+overwritten by user handlers:
+
+| Header | Description |
+|---|---|
+| `traceparent` | W3C Trace Context parent (auto-injected when tracing enabled) |
+| `tracestate` | W3C Trace Context state (auto-injected when tracing enabled) |
+
 ## Queue Naming Convention
 
 All actor queues follow pattern: `asya-{namespace}-{actor_name}`

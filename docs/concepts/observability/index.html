@@ -2474,11 +2474,17 @@
 first-class observability. Asya integrates with the standard Kubernetes
 observability stack: OpenTelemetry, Prometheus, and structured logging.</p>
 <h2 id="distributed-tracing">Distributed tracing<a class="headerlink" href="#distributed-tracing" title="Permanent link">#</a></h2>
-<p>Every envelope carries a <code>trace_id</code> in its headers. The sidecar propagates this
-trace ID across actor boundaries, creating a single distributed trace that spans
-the entire pipeline.</p>
-<p>OpenTelemetry integration means traces appear in any compatible backend: Jaeger,
-Zipkin, Tempo, Datadog, or Honeycomb.</p>
+<p>Every envelope carries W3C Trace Context headers (<code>traceparent</code>, <code>tracestate</code>).
+The gateway generates the root trace when a task is created. Each sidecar
+extracts the trace context, creates spans for envelope processing, and injects
+updated context into outgoing envelopes.</p>
+<p>Set <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> to enable tracing. Traces appear in any
+OTLP-compatible backend: Tempo, Jaeger, Cloud Trace, Datadog, or Honeycomb.</p>
+<p>Span structure per actor hop:
+- <code>actor.process</code> — full envelope processing (SpanKindConsumer)
+- <code>actor.runtime.call</code> — handler execution via Unix socket
+- <code>actor.resiliency.policy</code> — retry/exhausted decisions
+- <code>actor.queue.send</code> — outbound dispatch (SpanKindProducer)</p>
 <h2 id="prometheus-metrics">Prometheus metrics<a class="headerlink" href="#prometheus-metrics" title="Permanent link">#</a></h2>
 <p>Every sidecar exposes Prometheus metrics:</p>
 <div class="table-wrapper"><table>

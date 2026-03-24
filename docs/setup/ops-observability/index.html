@@ -2649,6 +2649,21 @@
 <li><code>controller_runtime_reconcile_errors_total{controller="asyncactor"}</code> - Failed reconciliations</li>
 <li><code>controller_runtime_reconcile_time_seconds{controller="asyncactor"}</code> - Reconciliation duration</li>
 </ul>
+<h2 id="distributed-tracing">Distributed Tracing<a class="headerlink" href="#distributed-tracing" title="Permanent link">#</a></h2>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">#</a></h3>
+<p>Set <code>OTEL_EXPORTER_OTLP_ENDPOINT</code> on sidecar and gateway to enable tracing:</p>
+<ul>
+<li><strong>Sidecar</strong>: Set via <code>spec.tracing.endpoint</code> in AsyncActor CR</li>
+<li><strong>Gateway</strong>: Set via <code>tracing.endpoint</code> in gateway Helm values</li>
+</ul>
+<h3 id="playground-setup">Playground Setup<a class="headerlink" href="#playground-setup" title="Permanent link">#</a></h3>
+<p>Enable <code>sampleTracing.enabled: true</code> in the playground chart to deploy Grafana
+Tempo. The Tempo datasource is auto-provisioned in Grafana.</p>
+<h3 id="querying-traces">Querying Traces<a class="headerlink" href="#querying-traces" title="Permanent link">#</a></h3>
+<p>In Grafana Explore, select the Tempo datasource and use TraceQL:</p>
+<div class="highlight"><pre><span></span><code>{resource.service.name=&quot;my-actor&quot;}
+{span.asya.actor=&quot;text-processor&quot; &amp;&amp; status=error}
+</code></pre></div>
 <h2 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">#</a></h2>
 <p>Use standard Kubernetes logging tools:</p>
 <ul>
@@ -2665,11 +2680,6 @@
 <span class="w">  </span><span class="nt">&quot;timestamp&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2025-11-18T12:00:00Z&quot;</span>
 <span class="p">}</span>
 </code></pre></div>
-<h2 id="future">Future<a class="headerlink" href="#future" title="Permanent link">#</a></h2>
-<ul>
-<li>OpenTelemetry tracing for distributed request tracing</li>
-<li>Pre-built Grafana dashboards</li>
-</ul>
   </div>
 </article>
 
@@ -3885,18 +3895,38 @@ document.querySelectorAll('.typography img').forEach(function(img) {
         
 
         
+        <a href="#distributed-tracing"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="2">
+            Distributed Tracing
+        </a>
+        
+        
+        <a href="#configuration"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Configuration
+        </a>
+        
+        <a href="#playground-setup"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Playground Setup
+        </a>
+        
+        <a href="#querying-traces"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Querying Traces
+        </a>
+        
+        
+
+        
         <a href="#logging"
             class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
             data-active="false" data-depth="2">
             Logging
-        </a>
-        
-
-        
-        <a href="#future"
-            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
-            data-active="false" data-depth="2">
-            Future
         </a>
         
 

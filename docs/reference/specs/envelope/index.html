@@ -2514,6 +2514,27 @@
 <li><code>payload</code> (required): User data processed by actors</li>
 <li><code>headers</code> (optional): Routing metadata (trace IDs, priorities)</li>
 </ul>
+<h3 id="sidecar-managed-headers">Sidecar-Managed Headers<a class="headerlink" href="#sidecar-managed-headers" title="Permanent link">#</a></h3>
+<p>These headers are automatically managed by the sidecar and should not be
+overwritten by user handlers:</p>
+<div class="table-wrapper"><table>
+<thead>
+<tr>
+<th>Header</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>traceparent</code></td>
+<td>W3C Trace Context parent (auto-injected when tracing enabled)</td>
+</tr>
+<tr>
+<td><code>tracestate</code></td>
+<td>W3C Trace Context state (auto-injected when tracing enabled)</td>
+</tr>
+</tbody>
+</table></div>
 <h2 id="queue-naming-convention">Queue Naming Convention<a class="headerlink" href="#queue-naming-convention" title="Permanent link">#</a></h2>
 <p>All actor queues follow pattern: <code>asya-{namespace}-{actor_name}</code></p>
 <p><strong>Examples</strong>:
@@ -3825,6 +3846,14 @@ document.querySelectorAll('.typography img').forEach(function(img) {
             data-active="false" data-depth="2">
             Envelope Structure
         </a>
+        
+        
+        <a href="#sidecar-managed-headers"
+            class="text-muted-foreground hover:text-foreground data-[active=true]:text-foreground text-[0.8rem] no-underline transition-colors data-[depth=3]:pl-4 data-[depth=4]:pl-6"
+            data-active="false" data-depth="3">
+            Sidecar-Managed Headers
+        </a>
+        
         
 
         
