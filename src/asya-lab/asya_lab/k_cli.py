@@ -1559,19 +1559,29 @@ def k() -> None:
     """Kubernetes commands (apply, delete, status, logs, send, edit, context)."""
 
 
+_DEFAULT_COLUMNS = ",".join([
+    "NAME:.metadata.name",
+    "ROLE:.metadata.labels.asya\\.sh/role",
+    "IMAGE:.spec.image",
+    "HANDLER:.spec.handler",
+    "FLAVORS:.spec.flavors[*]",
+])
+
+
 @click.command("list")
 @click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide, or custom-columns=...)")
-@click.option("--columns", default=None, help="Custom columns (comma-separated, e.g. NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role)")
+@click.option("--columns", default=None, help="Custom columns (e.g. NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role)")
 def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -> None:
     """List actors for a flow.
 
     \b
     Examples:
-      asya k list text-improver
-      asya k list text-improver -o name
-      asya k list text-improver --columns NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role
+      asya k list text-improver                # concise table
+      asya k list text-improver -o name        # pipeable names
+      asya k list text-improver -o json        # full JSON
+      asya k list text-improver -o wide        # kubectl wide
     """
     flow_function = target.name.replace("-", "_")
     runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
@@ -1582,6 +1592,8 @@ def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -
         args.extend(["-o", f"custom-columns={columns}"])
     elif output:
         args.extend(["-o", output])
+    else:
+        args.extend(["-o", f"custom-columns={_DEFAULT_COLUMNS}"])
 
     result = runner.kubectl(*args)
     sys.exit(result.returncode)
