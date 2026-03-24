@@ -7,6 +7,7 @@ edit, context, secret.
 from __future__ import annotations
 
 import re
+import itertools
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -446,9 +447,11 @@ _RESET = "\033[0m"
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
     """Get or assign a color for an actor name. Deterministic across runs."""
     if actor not in actor_colors:
-        import hashlib
-        stable_hash = int(hashlib.md5(actor.encode()).hexdigest(), 16)  # nosec B324
-        actor_colors[actor] = _ACTOR_COLORS[stable_hash % len(_ACTOR_COLORS)]
+        # FNV-1a hash for deterministic, stable color assignment
+        h = 0x811C9DC5
+        for b in actor.encode():
+            h = ((h ^ b) * 0x01000193) & 0xFFFFFFFF
+        actor_colors[actor] = _ACTOR_COLORS[h % len(_ACTOR_COLORS)]
     return actor_colors[actor]
 
 
@@ -571,13 +574,13 @@ def _stream_colored_logs(
                 click.echo(f"[-] {err}", err=True)
             sys.exit(1)
 
-        line = first_line.decode("utf-8", errors="replace").rstrip("\n")
-        formatted = _format_log_line(line, actor_colors, max_name_len, show_container)
-        if formatted is not None:
-            click.echo(formatted)
-
-        for raw_line in proc.stdout:
+        for raw_line in itertools.chain([first_line], proc.stdout):
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+            if "too many open files" in line:
+                click.echo("[-] Too many open files for kubectl -f. Fix with:", err=True)
+                click.echo("    sudo sysctl fs.inotify.max_user_watches=524288", err=True)
+                click.echo("    sudo sysctl fs.inotify.max_user_instances=1024", err=True)
+                break
             formatted = _format_log_line(line, actor_colors, max_name_len, show_container)
             if formatted is not None:
                 click.echo(formatted)
