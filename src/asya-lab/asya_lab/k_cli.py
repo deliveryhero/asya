@@ -500,8 +500,9 @@ def _format_log_line(
     prefix_str = line[:bracket_end]
     text = line[bracket_end:].lstrip()
     deploy_name = _pod_prefix_to_deploy(prefix_str)
+    short_name = _truncate_actor(deploy_name, max_prefix_len)
     color = _color_for(deploy_name, actor_colors)
-    padded = deploy_name.ljust(max_prefix_len)
+    padded = short_name.ljust(max_prefix_len)
 
     if show_container:
         container_name = prefix_str.strip("[]").split("/")[-1] if "/" in prefix_str else ""
@@ -515,6 +516,7 @@ def _stream_colored_logs(
     containers: list[str],
     follow: bool,
     tail: int | None,
+    max_width: int = 32,
 ) -> None:
     """Stream logs with colored actor-name prefixes.
 
@@ -532,7 +534,7 @@ def _stream_colored_logs(
         sys.exit(1)
 
     actor_colors: dict[str, str] = {}
-    max_prefix_len = max(len(a) for a in actors)
+    max_prefix_len = min(max(len(a) for a in actors), max_width)
     for a in sorted(actors):
         _color_for(a, actor_colors)
 
@@ -650,7 +652,8 @@ def _stream_colored_logs(
     multiple=True,
     help="Container(s) to show (default: asya-runtime). Use -c asya-sidecar to add sidecar logs.",
 )
-def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...]) -> None:
+@click.option("--width", "-w", type=int, default=32, help="Max actor name column width (default: 32)")
+def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int) -> None:
     """Stream logs for a deployed flow with colored actor-name prefixes.
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
@@ -670,7 +673,7 @@ def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: 
         tail = 0
 
     runner = KubeRunner(ctx)
-    _stream_colored_logs(runner, target.name, list(containers), follow, tail)
+    _stream_colored_logs(runner, target.name, list(containers), follow, tail, max_width=width)
 
 
 # ---------------------------------------------------------------------------
@@ -1019,11 +1022,18 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
                     pbar.close()
                 marker = "[+]" if state == "completed" else "[-]"
                 click.echo(f"{marker} Task {task_id[:12]}: {state}")
+                # Show message parts (skip generic "Task completed successfully")
                 for part in parts:
                     if part.get("kind") == "text" and part["text"] != "Task completed successfully":
                         click.echo(part["text"])
-                for artifact in task.get("artifacts", []):
-                    click.echo(_json.dumps(artifact, indent=2))
+                # Show artifacts if present
+                artifacts = task.get("artifacts", [])
+                if artifacts:
+                    for artifact in artifacts:
+                        click.echo(_json.dumps(artifact, indent=2))
+                else:
+                    # No artifacts — print full task status for visibility
+                    click.echo(_json.dumps(task, indent=2))
                 return
         except Exception:
             pass
