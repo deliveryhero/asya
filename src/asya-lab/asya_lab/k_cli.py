@@ -856,6 +856,27 @@ def _fetch_api_key(runner: KubeRunner, key_name: str) -> str | None:
         return None
 
 
+def _print_port_forward_hint(url: str, ctx_config: dict | None) -> None:
+    """Print kubectl port-forward commands for gateway and optional services."""
+    from urllib.parse import urlparse
+
+    cfg = ctx_config or {}
+    ns = cfg.get("namespace", "asya-demo")
+    gw_port = urlparse(url).port or 80
+
+    click.echo("[.] Run in a separate terminal:", err=True)
+    click.echo(f"    kubectl -n {ns} port-forward svc/asya-gateway-api {gw_port}:80  # required", err=True)
+
+    for key, svc, default_port, comment in [
+        ("tempo_url", "tempo", 3200, "for --trace"),
+        ("grafana_url", "grafana", 3000, "for dashboards"),
+    ]:
+        svc_url = cfg.get(key, "")
+        if svc_url:
+            p = urlparse(str(svc_url)).port or default_port
+            click.echo(f"    kubectl -n {ns} port-forward svc/{svc} {p}:{p}  # optional, {comment}", err=True)
+
+
 def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
     """Fetch the final task result via tasks/get and return its artifacts."""
     import json as _json
@@ -914,6 +935,7 @@ def _send_a2a(
     api_key: str | None,
     stream: bool,
     verbose: bool = False,
+    ctx_config: dict | None = None,
 ) -> str | None:
     """Send a message via A2A protocol."""
     import json as _json
@@ -1025,6 +1047,10 @@ def _send_a2a(
                         click.echo(f"[-] {err.get('message', err)}", err=True)
                         return gw_task_id or task_id
         except Exception as e:
+            if "Connection refused" in str(e) or "Errno 111" in str(e):
+                click.echo(f"[-] Connection refused: {url}", err=True)
+                _print_port_forward_hint(url, ctx_config)
+                sys.exit(1)
             click.echo(f"[-] Stream failed ({e}) — falling back to poll", err=True)
             _poll_task_status(url, gw_task_id or task_id, api_key)
         return gw_task_id or task_id
@@ -1041,6 +1067,8 @@ def _send_a2a(
             body = _json.loads(resp.read())
     except Exception as e:
         click.echo(f"[-] Request failed: {e}", err=True)
+        if "Connection refused" in str(e) or "Errno 111" in str(e):
+            _print_port_forward_hint(url, ctx_config)
         sys.exit(1)
 
     if "error" in body:
@@ -1422,7 +1450,9 @@ def send(
     task_id = None
     if use_a2a or not use_mcp:
         click.echo(f"[.] {target.name} -> {url}/a2a/", err=True)
-        task_id = _send_a2a(url, message, skill or target.name, api_key, stream, verbose=verbose)
+        task_id = _send_a2a(
+            url, message, skill or target.name, api_key, stream, verbose=verbose, ctx_config=runner._context_config
+        )
     else:
         click.echo(f"[.] {target.name} -> {url}/mcp", err=True)
         task_id = _send_mcp(url, target.name, message, api_key, stream)
