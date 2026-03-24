@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.14] - 2026-03-24
+
+<!-- Release notes generated using configuration in .github/release.yml at main -->
+
+## What's Changed
+### Features
+* feat: distributed tracing — OTEL instrumentation + Tempo in Grafana [kvx0] by @atemate in https://github.com/deliveryhero/asya/pull/391
+* feat(gateway): surface result payload as A2A artifact [ar84] by @atemate in https://github.com/deliveryhero/asya/pull/392
+* feat(grafana): add flow overview panels to Asya dashboard by @atemate in https://github.com/deliveryhero/asya/pull/394
+### Other Changes
+* ci: replace release-drafter with GitHub native release.yml by @atemate in https://github.com/deliveryhero/asya/pull/390
+
+
+**Full Changelog**: https://github.com/deliveryhero/asya/compare/v0.5.13...v0.5.14
+
+
+
 ## [0.5.13] - 2026-03-23
 
 ## Major Changes
@@ -1408,6 +1425,9 @@ All images are published to GitHub Container Registry:
 [0.5.12]: https://github.com/deliveryhero/asya/releases/tag/v0.5.12
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.13...HEAD
 [0.5.13]: https://github.com/deliveryhero/asya/releases/tag/v0.5.13
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.14...HEAD
+[0.5.14]: https://github.com/deliveryhero/asya/releases/tag/v0.5.14
 
