@@ -1512,92 +1512,46 @@ def k() -> None:
     """Kubernetes commands (apply, delete, status, logs, send, edit, context)."""
 
 
+_DEFAULT_COLUMNS = ",".join([
+    "NAME:.metadata.name",
+    "ROLE:.metadata.labels.asya\\.sh/role",
+    "MIN:.spec.scaling.minReplicaCount",
+    "MAX:.spec.scaling.maxReplicaCount",
+    "DESIRED:.status.replicas",
+    "CURRENT:.status.readyReplicas",
+    "FLAVORS:.spec.flavors[*]",
+])
+
+
 @click.command("list")
 @click.argument("target", type=ASYA_REF)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-@click.option("-o", "output", default=None, help="Output format (json, yaml, name)")
-def k_list(target: AsyaRef, ctx: str, output: str | None) -> None:
+@click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide, or custom-columns=...)")
+@click.option("--columns", default=None, help="Custom columns (e.g. NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role)")
+def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -> None:
     """List actors for a flow.
 
     \b
     Examples:
-      asya k list text-improver                # table with replicas
+      asya k list text-improver                # concise table
       asya k list text-improver -o name        # pipeable names
       asya k list text-improver -o json        # full JSON
+      asya k list text-improver -o wide        # kubectl wide
     """
-    import json as _json
-
     flow_function = target.name.replace("-", "_")
     runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
 
-    if output in ("json", "yaml", "name"):
-        result = runner.kubectl("get", "asyncactor", "-l", f"asya.sh/flow={target.name}", "-o", output)
-        sys.exit(result.returncode)
+    args = ["get", "asyncactor", "-l", f"asya.sh/flow={target.name}"]
 
-    # Default: custom table with deployment replica info
-    actor_result = runner.kubectl(
-        "get", "asyncactor", "-l", f"asya.sh/flow={target.name}", "-o", "json",
-        quiet=True, capture_output=True, text=True,
-    )
-    if actor_result.returncode != 0:
-        click.echo(f"[-] No actors found for flow '{target.name}'", err=True)
-        sys.exit(1)
+    if columns:
+        args.extend(["-o", f"custom-columns={columns}"])
+    elif output:
+        args.extend(["-o", output])
+    else:
+        args.extend(["-o", f"custom-columns={_DEFAULT_COLUMNS}"])
 
-    actors = _json.loads(actor_result.stdout).get("items", [])
-    if not actors:
-        click.echo("[.] No actors deployed")
-        return
-
-    deploy_result = runner.kubectl(
-        "get", "deploy", "-l", f"asya.sh/flow={target.name}", "-o", "json",
-        quiet=True, capture_output=True, text=True,
-    )
-    deploys: dict[str, dict] = {}
-    if deploy_result.returncode == 0:
-        for d in _json.loads(deploy_result.stdout).get("items", []):
-            deploys[d["metadata"]["name"]] = d.get("status", {})
-
-    G = "\033[32m"
-    Y = "\033[33m"
-    R = "\033[31m"
-    DIM = "\033[2m"
-    RST = "\033[0m"
-
-    rows = []
-    for actor in actors:
-        name = actor["metadata"]["name"]
-        spec = actor.get("spec", {})
-        labels = actor["metadata"].get("labels", {})
-        role = labels.get("asya.sh/role", "actor")
-        if role == "<none>" or not role:
-            role = "router" if labels.get("asya.sh/generated") == "true" else "actor"
-        scaling = spec.get("scaling", {})
-        min_r = scaling.get("minReplicaCount", "")
-        max_r = scaling.get("maxReplicaCount", "")
-        ds = deploys.get(name, {})
-        desired = ds.get("replicas", 0)
-        current = ds.get("readyReplicas", 0)
-        flavors = ",".join(spec.get("flavors", []))
-        rows.append((name, role, str(min_r), str(max_r), desired, current, flavors))
-
-    # Column widths
-    nw = max(len(r[0]) for r in rows)
-    rw = max(len(r[1]) for r in rows)
-    fw = max(len(r[6]) for r in rows)
-
-    hdr = f"{'NAME':<{nw}}  {'ROLE':<{rw}}  {'MIN':>3}  {'MAX':>3}  {'READY':>7}  FLAVORS"
-    click.echo(f"{DIM}{hdr}{RST}")
-    for name, role, mn, mx, desired, current, flavors in rows:
-        healthy = current >= desired and desired > 0
-        color = G if healthy else (Y if current > 0 else R)
-        role_style = DIM if role in ("router", "start") else ""
-        click.echo(
-            f"{role_style}{name:<{nw}}{RST}  "
-            f"{DIM}{role:<{rw}}{RST}  "
-            f"{mn:>3}  {mx:>3}  "
-            f"{color}{current}/{desired:>3}{RST}  "
-            f"{flavors}"
-        )
+    result = runner.kubectl(*args)
+    sys.exit(result.returncode)
 
 
 k.add_command(apply)
