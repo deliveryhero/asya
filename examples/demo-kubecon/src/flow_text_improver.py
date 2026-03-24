@@ -10,7 +10,7 @@ Configurable via payload:
   - threshold (int): quality score to accept (default 85)
   - max_iterations (int): max revision loops (default 3)
 """
-from actors import research, generate, evaluate
+from actors import research, generate, evaluate, polish
 
 
 async def text_improver(p: dict) -> dict:  # asya: flow
@@ -20,12 +20,13 @@ async def text_improver(p: dict) -> dict:  # asya: flow
     while True:
         p["iteration"] = p.get("iteration", 1) + 1
         
-        p["result"] = await generate(p["topic"], p["context"])
+        p["draft"] = await generate(p["topic"], p["context"])
         p = await evaluate(p)
 
-        if p["score"] >= p.get("threshold", 75):
+        if p["score"] >= p.get("threshold", 85):
             break
-        if p["iteration"] >= p.get("max_iterations", 2):
+        if p["iteration"] >= p.get("max_iterations", 3):
             break
 
+    p["result"] = await polish(p["draft"])
     return p

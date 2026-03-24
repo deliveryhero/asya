@@ -20,6 +20,8 @@ spec:
     value: actors.evaluate.evaluate
   - name: ASYA_HANDLER_ACTOR_GENERATE
     value: actors.generate.generate
+  - name: ASYA_HANDLER_ACTOR_POLISH
+    value: actors.polish.polish
   - name: ASYA_HANDLER_ACTOR_RESEARCH
     value: actors.research.research
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_IF_ITERATION_GE_MAX_ITERATIONS
@@ -30,8 +32,6 @@ spec:
     value: routers.router_text_improver_seq_set_iteration
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_WHILE_LOOP
     value: routers.router_text_improver_while_loop
-  - name: ASYA_CODE_HASH
-    value: eb02b646f31a
   volumes:
   - name: routers
     configMap:

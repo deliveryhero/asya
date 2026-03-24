@@ -1,6 +1,7 @@
 """Generator actor: write or revise a draft."""
 import os
 import random
+import time
 
 FAIL_RATE = float(os.environ.get("FAIL_RATE", "0"))
 
@@ -17,6 +18,10 @@ REVISION = (
 
 
 async def generate(topic: str, context: str) -> str:  # asya: actor
+    t = random.random()
+    print(f"[.] Sleeping random {t:.3} sec")
+    time.sleep(t)
+
     if random.random() < FAIL_RATE:
         raise RuntimeError("[!] transient generation failure")
 

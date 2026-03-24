@@ -290,6 +290,15 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     runner.kustomize_apply(overlay, field_manager=f"asya-flow-{target.name}")
     _register_flow_with_gateway(runner, target.name)
 
+    # Rollout restart to pick up ConfigMap changes (routers, adapters)
+    result = runner.kubectl(
+        "rollout", "restart", "deployment",
+        "-l", f"asya.sh/flow={target.name}",
+        quiet=True,
+    )
+    if result.returncode == 0:
+        click.echo(f"[.] Rolling restart: {target.name}")
+
 
 # ---------------------------------------------------------------------------
 # asya k delete

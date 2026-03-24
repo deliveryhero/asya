@@ -10,6 +10,11 @@
       "label": "generate"
     },
     {
+      "id": "polish",
+      "label": "polish",
+      "role": "end"
+    },
+    {
       "id": "research",
       "label": "research"
     },
@@ -60,10 +65,22 @@
       "type": "continuation"
     },
     {
+      "from": "router_text_improver_if_iteration_ge_max_iterations",
+      "to": "polish",
+      "label": "p['iteration'] >= p.get('max_iterations', 3)",
+      "type": "set"
+    },
+    {
       "from": "router_text_improver_if_score_ge_threshold",
       "to": "router_text_improver_if_iteration_ge_max_iterations",
       "label": "else",
       "type": "prepend"
+    },
+    {
+      "from": "router_text_improver_if_score_ge_threshold",
+      "to": "polish",
+      "label": "p['score'] >= p.get('threshold', 85)",
+      "type": "set"
     },
     {
       "from": "router_text_improver_seq_set_iteration",
@@ -92,7 +109,7 @@
     {
       "from": "router_text_improver_if_iteration_ge_max_iterations",
       "to": "router_text_improver_while_loop",
-      "label": null,
+      "label": "else",
       "type": "continuation"
     }
   ],

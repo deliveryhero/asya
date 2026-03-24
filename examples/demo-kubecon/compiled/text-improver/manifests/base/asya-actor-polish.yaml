@@ -1,13 +1,14 @@
 apiVersion: asya.sh/v1alpha1
 kind: AsyncActor
 metadata:
-  name: actor-research
+  name: actor-polish
   labels:
     asya.sh/flow: text-improver
+    asya.sh/role: end
 spec:
-  actor: actor-research
+  actor: actor-polish
   image: demo-kubecon
-  handler: adapter_research.adapter_research
+  handler: adapter_polish.adapter_polish
   scaling:
     enabled: true
     minReplicaCount: 0
@@ -18,9 +19,9 @@ spec:
   volumes:
   - name: adapter
     configMap:
-      name: text-improver-research-adapter
+      name: text-improver-polish-adapter
   volumeMounts:
   - name: adapter
-    mountPath: /opt/asya/adapter_research.py
-    subPath: adapter_research.py
+    mountPath: /opt/asya/adapter_polish.py
+    subPath: adapter_polish.py
     readOnly: true

@@ -36,8 +36,8 @@ data:
         """Router for control flow and payload mutations"""
         p = payload
         _next = []
-        if p['iteration'] >= p.get('max_iterations', 2):
-            yield "SET", ".route.next", []
+        if p['iteration'] >= p.get('max_iterations', 3):
+            yield "SET", ".route.next", [resolve("polish")]
             yield p
             return
         else:
@@ -50,8 +50,8 @@ data:
         """Router for control flow and payload mutations"""
         p = payload
         _next = []
-        if p['score'] >= p.get('threshold', 75):
-            yield "SET", ".route.next", []
+        if p['score'] >= p.get('threshold', 85):
+            yield "SET", ".route.next", [resolve("polish")]
             yield p
             return
         else:
