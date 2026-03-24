@@ -1,2 +1,2 @@
-litellm
+litellm[google]
 tenacity
