@@ -152,7 +152,12 @@ tracing:
   endpoint: ""
 
 observability:
-  enabled: false
+  prometheus:
+    enabled: false
+  loki:
+    enabled: false
+  promtail:
+    enabled: false
 
 transport:
   rabbitmq:

@@ -10,7 +10,12 @@ tracing:
   endpoint: "tempo.asya-e2e.svc.cluster.local:4317"
 
 observability:
-  enabled: true
+  prometheus:
+    enabled: true
+  loki:
+    enabled: true
+  promtail:
+    enabled: true
 
 # KEDA operator configuration for the pubsub-gcs profile.
 # PUBSUB_EMULATOR_HOST routes the gcp-pubsub scaler to the in-cluster emulator,

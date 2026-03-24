@@ -245,7 +245,7 @@ releases:
   - name: prometheus
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: prometheus-community/prometheus
-    condition: observability.enabled
+    condition: observability.prometheus.enabled
     values:
       - server:
           persistentVolume:
@@ -299,7 +299,7 @@ releases:
   - name: loki
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: grafana/loki
-    condition: observability.enabled
+    condition: observability.loki.enabled
     values:
       - deploymentMode: SingleBinary
         loki:
@@ -347,7 +347,7 @@ releases:
   - name: promtail
     namespace: {{ .Values.namespace | default "asya-e2e" }}
     chart: grafana/promtail
-    condition: observability.enabled
+    condition: observability.promtail.enabled
     needs:
       - loki
     values:
