@@ -15,11 +15,16 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/deliveryhero/asya/asya-sidecar/internal/config"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/metrics"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/progress"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/runtime"
+	"github.com/deliveryhero/asya/asya-sidecar/internal/tracing"
 	"github.com/deliveryhero/asya/asya-sidecar/internal/transport"
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
 )
@@ -40,6 +45,7 @@ type Router struct {
 	metrics          *metrics.Metrics
 	progressReporter *progress.Reporter
 	gatewayURL       string
+	tracer           trace.Tracer
 }
 
 // NewRouter creates a new router instance
@@ -59,7 +65,18 @@ func NewRouter(cfg *config.Config, transport transport.Transport, runtimeClient 
 		metrics:          m,
 		progressReporter: progressReporter,
 		gatewayURL:       cfg.GatewayURL,
+		tracer:           otel.Tracer("asya-sidecar"),
 	}
+}
+
+// getTracer returns the router's tracer, falling back to the global OTEL tracer.
+// This ensures tests that construct Router structs directly (without NewRouter)
+// get a valid no-op tracer instead of nil.
+func (r *Router) getTracer() trace.Tracer {
+	if r.tracer != nil {
+		return r.tracer
+	}
+	return otel.Tracer("asya-sidecar")
 }
 
 // ensureAndUpdateStatus initializes or updates the status on a envelope before processing.
@@ -204,6 +221,7 @@ func (r *Router) processEndActorEnvelope(ctx context.Context, msg envelopes.Enve
 			}
 
 			slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
+			tracing.ForceFlush(context.Background())
 			os.Exit(1)
 		}
 
@@ -358,6 +376,24 @@ func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, polic
 	attemptsExhausted := msg.Status.Attempt >= maxAttempts
 	durationExhausted := isDurationExhausted(msg, policy.MaxDuration.Duration())
 
+	// Determine outcome for span attributes before starting the span
+	var outcome string
+	if !attemptsExhausted && !durationExhausted {
+		outcome = "retry"
+	} else {
+		outcome = "exhausted"
+	}
+
+	_, policySpan := r.getTracer().Start(ctx, "actor.resiliency.policy",
+		trace.WithAttributes(
+			attribute.Int("asya.attempt", msg.Status.Attempt),
+			attribute.String("asya.policy_name", string(policy.Backoff)),
+			attribute.Int("asya.max_attempts", maxAttempts),
+			attribute.String("asya.outcome", outcome),
+		),
+	)
+	defer policySpan.End()
+
 	if !attemptsExhausted && !durationExhausted {
 		delay := computeRetryDelayForPolicy(msg.Status.Attempt, policy)
 		slog.Info("Retrying message with policy backoff",
@@ -369,6 +405,8 @@ func (r *Router) applyPolicy(ctx context.Context, msg *envelopes.Envelope, polic
 
 		if err := r.retryMessage(ctx, msg, response.Details, delay); err != nil {
 			slog.Error("Failed to send retry message, routing to x-sink", "id", msg.ID, "error", err)
+			policySpan.SetStatus(codes.Error, "retry send failed")
+			policySpan.RecordError(err)
 			if r.metrics != nil {
 				r.metrics.RecordMessageFailed(r.actorName, "retry_send_failed")
 			}
@@ -719,6 +757,24 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return nil
 	}
 
+	// Extract trace context from envelope headers and start processing span
+	ctx = tracing.ExtractTraceContext(ctx, msg.Headers)
+	spanAttrs := []attribute.KeyValue{
+		attribute.String("asya.actor", r.actorName),
+		attribute.String("asya.envelope_id", msg.ID),
+		attribute.String("asya.queue", r.resolveQueueName(r.actorName)),
+	}
+	if msg.Headers != nil {
+		if flowID, ok := msg.Headers["x-asya-flow"].(string); ok && flowID != "" {
+			spanAttrs = append(spanAttrs, attribute.String("asya.flow", flowID))
+		}
+	}
+	ctx, span := r.getTracer().Start(ctx, "actor.process",
+		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithAttributes(spanAttrs...),
+	)
+	defer span.End()
+
 	// SLA pre-check: reject expired envelopes before processing
 	if deadline, ok := msg.ParseDeadline(); ok && time.Now().After(deadline) {
 		slog.Warn("Message SLA expired, routing to x-sink",
@@ -971,6 +1027,7 @@ func (r *Router) handleRuntimeCallError(ctx context.Context, msg *envelopes.Enve
 		}
 
 		slog.Error("Exiting to prevent zombie processing (runtime may still be working)")
+		tracing.ForceFlush(context.Background())
 		os.Exit(1)
 	}
 
@@ -1069,6 +1126,22 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 		}
 	}
 
+	// Start a producer span for outgoing envelope
+	ctx, sendSpan := r.getTracer().Start(ctx, "actor.queue.send",
+		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithAttributes(
+			attribute.String("asya.destination_queue", destinationQueue),
+			attribute.String("asya.message_type", msgType),
+		),
+	)
+	defer sendSpan.End()
+
+	// Inject updated trace context into headers so the next actor can continue the trace
+	if headers == nil {
+		headers = make(map[string]interface{})
+	}
+	tracing.InjectTraceContext(ctx, headers)
+
 	// Create new message with the route as-is
 	newMsg := envelopes.Envelope{
 		ID:       id,
@@ -1083,6 +1156,8 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 	msgBody, err := json.Marshal(newMsg)
 	if err != nil {
 		slog.Error("Failed to marshal message for routing", "id", id, "error", err)
+		sendSpan.SetStatus(codes.Error, "marshal failed")
+		sendSpan.RecordError(err)
 		return fmt.Errorf("failed to marshal message: %w", err)
 	}
 
@@ -1099,6 +1174,8 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 
 	if err != nil {
 		slog.Error("Failed to send message to queue", "id", id, "queue", destinationQueue, "error", err)
+		sendSpan.SetStatus(codes.Error, "send failed")
+		sendSpan.RecordError(err)
 	} else {
 		slog.Info("Successfully sent message to queue", "id", id, "queue", destinationQueue, "duration", sendDuration)
 	}
