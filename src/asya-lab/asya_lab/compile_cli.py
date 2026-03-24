@@ -17,10 +17,10 @@ from asya_lab.config.project import AsyaProject
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
-def _resolve_output_dirs(project: AsyaProject) -> dict[str, Path]:
-    """Resolve code/artifacts/manifests dirs from project config."""
+def _resolve_compiler_dirs(project: AsyaProject) -> dict[str, Path]:
+    """Resolve compiler directories (code, artifacts, manifests, templates) from project config."""
     dirs = {}
-    for key in ("compiler.code", "compiler.artifacts", "compiler.manifests"):
+    for key in ("compiler.code", "compiler.artifacts", "compiler.manifests", "compiler.templates"):
         try:
             dirs[key.split(".")[-1]] = project.resolve_path(key)
         except KeyError:
@@ -60,7 +60,7 @@ def _compile_flow_file(
 
     # Resolve output directories from config — no hidden defaults
     if project:
-        dirs = _resolve_output_dirs(project)
+        dirs = _resolve_compiler_dirs(project)
     else:
         dirs = {}
 
@@ -68,6 +68,7 @@ def _compile_flow_file(
     code_dir = dirs.get("code", default_base / "code").resolve()
     artifacts_dir = dirs.get("artifacts", default_base / "artifacts").resolve()
     manifests_dir = dirs.get("manifests", default_base / "manifests").resolve()
+    templates_dir = dirs.get("templates")
 
     if project is None:
         click.echo(
@@ -85,6 +86,7 @@ def _compile_flow_file(
         overwrite=True,
         artifacts_dir=str(artifacts_dir),
         manifests_dir=str(manifests_dir),
+        templates_dir=str(templates_dir) if templates_dir else None,
     )
 
     # Print warnings before summary

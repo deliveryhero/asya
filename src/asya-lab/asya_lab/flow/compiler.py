@@ -79,6 +79,7 @@ class FlowCompiler:
         routers_dir: str | None = None,
         artifacts_dir: str | None = None,
         manifests_dir: str | None = None,
+        templates_dir: str | None = None,
     ) -> FlowInfo:
         _ = overwrite  # reserved for future use
         source_path = Path(source_file)
@@ -88,8 +89,6 @@ class FlowCompiler:
         # Resolve output directories — all default to output_dir if not specified
         routers_path = Path(routers_dir) if routers_dir else Path(output_dir)
         artifacts_path = Path(artifacts_dir) if artifacts_dir else Path(output_dir)
-        self._explicit_manifests_dir = Path(manifests_dir) if manifests_dir else None
-
         for d in (routers_path, artifacts_path):
             if d.exists() and not d.is_dir():
                 raise ValueError(f"Output path exists and is not a directory: {d}")
@@ -113,7 +112,9 @@ class FlowCompiler:
             for af in self._codegen_meta.adapter_files:
                 (routers_path / af.filename).write_text(af.code)
 
-        _manifests_dir = self._stamp_manifests(routers_path)
+        _manifests_path = Path(manifests_dir) if manifests_dir else None
+        _templates_path = Path(templates_dir) if templates_dir else None
+        _manifests_dir = self._stamp_manifests(_manifests_path, _templates_path)
         dot, mermaid_content, json_content = self._generate_outputs(artifacts_path)
 
         if flow_name is None:
@@ -268,8 +269,8 @@ class FlowCompiler:
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
 
-    def _stamp_manifests(self, compiled_dir: Path) -> Path | None:
-        if self._codegen_meta is None:
+    def _stamp_manifests(self, manifests_dir: Path | None, templates_dir: Path | None = None) -> Path | None:
+        if manifests_dir is None or self._codegen_meta is None:
             return None
         if self._codegen_meta.single_actor is not None:
             return None
@@ -282,19 +283,10 @@ class FlowCompiler:
 
         flow_name = flow_function.replace("_", "-")
 
-        # Use explicitly passed manifests_dir, fall back to config
-        manifests_dir = getattr(self, "_explicit_manifests_dir", None)
-        try:
-            if manifests_dir is None and self._project:
-                manifests_dir = self._project.resolve_path("compiler.manifests")
-            if manifests_dir is None:
-                return None
-            manifests_dir.mkdir(parents=True, exist_ok=True)
-            templates_dir = self._project.resolve_path("compiler.templates") if self._project else None
-            if templates_dir is None:
-                return None
-        except KeyError:
+        if templates_dir is None:
             return None
+
+        manifests_dir.mkdir(parents=True, exist_ok=True)
 
         router_code = self._generated_code or ""
         actor_template = templates_dir / "actor.yaml"
