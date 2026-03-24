@@ -281,8 +281,7 @@ class FlowCompiler:
         flow_name = flow_function.replace("_", "-")
 
         try:
-            # Use compiled_dir/manifests directly; avoids ${arg:flow_name} interpolation issues
-            manifests_dir = compiled_dir / "manifests"
+            manifests_dir = self._project.resolve_path("compiler.manifests")
             manifests_dir.mkdir(parents=True, exist_ok=True)
             templates_dir = self._project.resolve_path("compiler.templates")
         except KeyError:
