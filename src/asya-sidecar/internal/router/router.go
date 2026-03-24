@@ -775,7 +775,7 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		}
 	}
 	ctx, span := r.getTracer().Start(ctx, "actor.process",
-		trace.WithSpanKind(trace.SpanKindConsumer),
+		trace.WithSpanKind(trace.SpanKindServer),
 		trace.WithAttributes(spanAttrs...),
 	)
 	defer span.End()
@@ -1133,7 +1133,7 @@ func (r *Router) routeResponse(ctx context.Context, id string, parentID *string,
 
 	// Start a producer span for outgoing envelope
 	ctx, sendSpan := r.getTracer().Start(ctx, "actor.queue.send",
-		trace.WithSpanKind(trace.SpanKindProducer),
+		trace.WithSpanKind(trace.SpanKindClient),
 		trace.WithAttributes(
 			attribute.String("asya.destination_queue", destinationQueue),
 			attribute.String("asya.message_type", msgType),
