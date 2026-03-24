@@ -558,6 +558,12 @@ spec:
                           - name: {{`{{ .name }}`}}
                             value: {{`{{ .value | quote }}`}}
                           {{`{{- end }}`}}
+                          {{`{{- if $xrSpec.tracing }}`}}
+                          {{`{{- if $xrSpec.tracing.endpoint }}`}}
+                          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                            value: {{`"{{ $xrSpec.tracing.endpoint }}"`}}
+                          {{`{{- end }}`}}
+                          {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency }}`}}
                           {{`{{- if $xrSpec.resiliency.policies }}`}}
                           - name: ASYA_RESILIENCY_POLICIES
