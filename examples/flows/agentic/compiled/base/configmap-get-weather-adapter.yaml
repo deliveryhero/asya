@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tool-calling-agent-get-weather-adapter
+  labels:
+    asya.sh/flow: tool-calling-agent
+    asya.sh/managed-by: asya-compiler
+    asya.sh/adapter-for: get-weather
+data:
+  adapter_get_weather.py: |
+    # fmt: off
+    # ruff: noqa
+    """Auto-generated adapter for get_weather"""
+
+    async def adapter_get_weather(payload: dict):
+        """Adapter: wraps get_weather() for dict-in/dict-out protocol"""
+        _result = await get_weather(payload['tool_args']['city'])
+        payload['tool_result'] = _result
+        yield payload

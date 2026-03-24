@@ -26,6 +26,7 @@ async def router_conditional_nested_flow_seq_set_x(payload: dict):
     p = payload
     p['x'] += 9
     p['x'] *= 10
+    yield "SET", ".route.next", []
     yield p
 
 async def router_conditional_nested_flow_seq_set_x_2(payload: dict):

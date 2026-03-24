@@ -28,6 +28,7 @@ async def router_document_pipeline_seq_set_status(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['status'] = 'done'
+    yield "SET", ".route.next", []
     yield p
 
 async def router_document_pipeline_if_language_ne_en(payload: dict):

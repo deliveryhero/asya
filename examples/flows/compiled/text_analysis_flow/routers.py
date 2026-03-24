@@ -26,6 +26,7 @@ async def router_text_analysis_flow_seq_set_extracted(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['extracted'] = True
+    yield "SET", ".route.next", []
     yield p
 
 async def router_text_analysis_flow_seq_set_sentiment(payload: dict):

@@ -546,7 +546,7 @@ images:
             }
         )
 
-    def _inject_adapter_configmap_mount(self, manifest: dict, af: "AdapterFile") -> None:
+    def _inject_adapter_configmap_mount(self, manifest: dict, af: AdapterFile) -> None:
         """Mount an adapter ConfigMap at /opt/asya/<adapter>.py for adapter actors.
 
         The adapter wraps the original function to conform to dict-in/dict-out protocol.

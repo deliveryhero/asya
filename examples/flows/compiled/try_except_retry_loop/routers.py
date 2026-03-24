@@ -52,6 +52,7 @@ async def router_retry_pipeline_while_attempt_lt_3(payload: dict):
         _next.append(resolve("router_retry_pipeline_seq_set_attempt"))
         _next.append(resolve("router_retry_pipeline_while_attempt_lt_3"))
     else:
+        yield "SET", ".route.next", []
         yield p
         return
 

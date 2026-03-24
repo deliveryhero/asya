@@ -34,6 +34,7 @@ async def router_order_pipeline_seq_set_status(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['status'] = 'rejected'
+    yield "SET", ".route.next", []
     yield p
 
 async def router_order_pipeline_if_fraud_score_gt_0.8(payload: dict):

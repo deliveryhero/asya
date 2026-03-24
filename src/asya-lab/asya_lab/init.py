@@ -178,7 +178,10 @@ def init_project(
 
     config_file = asya_dir / "config.yaml"
     if not config_file.exists():
-        config_file.write_text(_ROOT_CONFIG)
+        content = _ROOT_CONFIG
+        if registry:
+            content = content.replace("router_image:", f'registry: "{registry}"\n  router_image:')
+        config_file.write_text(content)
 
     templates_dir = asya_dir / "templates"
     templates_dir.mkdir(parents=True, exist_ok=True)

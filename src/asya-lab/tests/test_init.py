@@ -2,7 +2,6 @@
 
 from pathlib import Path
 
-import pytest
 import yaml
 from asya_lab.init import init_project, scan_and_generate_skaffold
 
@@ -142,11 +141,15 @@ class TestSkaffoldImageResolution:
         # Create a skaffold.yaml with an artifact
         pkg_dir = tmp_path / "src" / "nlp"
         pkg_dir.mkdir(parents=True)
-        (pkg_dir / "skaffold.yaml").write_text(yaml.dump({
-            "apiVersion": "skaffold/v4beta13",
-            "kind": "Config",
-            "build": {"artifacts": [{"image": "team-a-nlp", "context": "."}]},
-        }))
+        (pkg_dir / "skaffold.yaml").write_text(
+            yaml.dump(
+                {
+                    "apiVersion": "skaffold/v4beta13",
+                    "kind": "Config",
+                    "build": {"artifacts": [{"image": "team-a-nlp", "context": "."}]},
+                }
+            )
+        )
         # Create a Python module in the context
         (pkg_dir / "__init__.py").write_text("")
         (pkg_dir / "analyzer.py").write_text("def analyze(p): return p\n")

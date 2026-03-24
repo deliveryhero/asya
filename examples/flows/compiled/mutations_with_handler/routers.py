@@ -29,6 +29,7 @@ async def router_mutations_with_handler_flow_seq_set_finalized(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     p['finalized'] = True
+    yield "SET", ".route.next", []
     yield p
 
 

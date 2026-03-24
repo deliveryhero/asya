@@ -12,7 +12,9 @@ from asya_lab.init import init_project, scan_and_generate_skaffold
 
 @click.command()
 @click.option("--dir", "target_dir", default=".", help="Target directory (default: current directory)")
-@click.option("--scan", is_flag=True, help="Scan for Dockerfiles/pyproject.toml and generate skaffold.yaml per build context")
+@click.option(
+    "--scan", is_flag=True, help="Scan for Dockerfiles/pyproject.toml and generate skaffold.yaml per build context"
+)
 def init(target_dir, scan):
     """Scaffold .asya/ project directory.
 

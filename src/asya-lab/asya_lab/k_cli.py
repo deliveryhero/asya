@@ -6,8 +6,8 @@ edit, context, secret.
 
 from __future__ import annotations
 
-import re
 import itertools
+import re
 import subprocess  # nosec B404
 import sys
 from pathlib import Path
@@ -130,14 +130,16 @@ class KubeRunner:
         apply_cmd = ["kubectl"]
         if self.kube_context:
             apply_cmd.extend(["--context", self.kube_context])
-        apply_cmd.extend([
-            "apply",
-            "--server-side",
-            "--force-conflicts",
-            f"--field-manager={field_manager}",
-            "-f",
-            "-",
-        ])
+        apply_cmd.extend(
+            [
+                "apply",
+                "--server-side",
+                "--force-conflicts",
+                f"--field-manager={field_manager}",
+                "-f",
+                "-",
+            ]
+        )
         if self.namespace:
             apply_cmd.extend(["-n", self.namespace])
 
@@ -299,8 +301,11 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
 
     # Rollout restart to pick up ConfigMap changes (routers, adapters)
     result = runner.kubectl(
-        "rollout", "restart", "deployment",
-        "-l", f"asya.sh/flow={target.name}",
+        "rollout",
+        "restart",
+        "deployment",
+        "-l",
+        f"asya.sh/flow={target.name}",
         quiet=True,
     )
     if result.returncode == 0:
@@ -353,8 +358,15 @@ def k_status(target: AsyaRef | None, ctx: str) -> None:
 
     # Get actors
     result = runner.kubectl(
-        "get", "asyncactor", "-l", label, "-o", "json",
-        quiet=True, capture_output=True, text=True,
+        "get",
+        "asyncactor",
+        "-l",
+        label,
+        "-o",
+        "json",
+        quiet=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         if target:
@@ -371,8 +383,15 @@ def k_status(target: AsyaRef | None, ctx: str) -> None:
 
     # Get pods
     pod_result = runner.kubectl(
-        "get", "pods", "-l", label, "-o", "json",
-        quiet=True, capture_output=True, text=True,
+        "get",
+        "pods",
+        "-l",
+        label,
+        "-o",
+        "json",
+        quiet=True,
+        capture_output=True,
+        text=True,
     )
     pods_by_actor: dict[str, list[dict]] = {}
     if pod_result.returncode == 0:
@@ -391,20 +410,16 @@ def k_status(target: AsyaRef | None, ctx: str) -> None:
         for actor in flow_actors:
             name = actor["metadata"]["name"]
             spec = actor.get("spec", {})
-            status_phase = actor.get("status", {}).get("phase", "?")
-
             # Derive actual status from pods (XRD status is unreliable — debt/mqd9)
             actor_pods = pods_by_actor.get(name, [])
             if actor_pods:
-                running = sum(1 for p in actor_pods if p["status"].get("phase") == "Running")
                 ready = sum(
-                    1 for p in actor_pods
-                    if all(c.get("ready") for c in p["status"].get("containerStatuses", []))
+                    1 for p in actor_pods if all(c.get("ready") for c in p["status"].get("containerStatuses", []))
                 )
                 total = len(actor_pods)
                 pod_status = f"{ready}/{total} ready"
             else:
-                running = ready = total = 0
+                ready = total = 0
                 scaling = spec.get("scaling", {})
                 if scaling.get("enabled") and scaling.get("minReplicaCount", 0) == 0:
                     pod_status = "scaled to 0 (KEDA)"
@@ -441,7 +456,6 @@ _ACTOR_COLORS = [
     "\033[95m",  # bright magenta
 ]
 _RESET = "\033[0m"
-
 
 
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
@@ -519,9 +533,15 @@ def _stream_colored_logs(
 
     # Pre-discover actors to compute padding and assign colors
     result = runner.kubectl(
-        "get", "asyncactor", "-l", f"asya.sh/flow={flow_name}",
-        "-o", "jsonpath={.items[*].metadata.name}",
-        quiet=True, capture_output=True, text=True,
+        "get",
+        "asyncactor",
+        "-l",
+        f"asya.sh/flow={flow_name}",
+        "-o",
+        "jsonpath={.items[*].metadata.name}",
+        quiet=True,
+        capture_output=True,
+        text=True,
     )
     actors = result.stdout.strip().split() if result.returncode == 0 and result.stdout.strip() else []
     actor_colors: dict[str, str] = {}
@@ -538,12 +558,19 @@ def _stream_colored_logs(
 
     for container in containers:
         cmd = [
-            "kubectl", *ctx_args, "logs", *ns_args,
-            "-l", f"asya.sh/flow={flow_name}",
-            "--all-pods", "--prefix",
+            "kubectl",
+            *ctx_args,
+            "logs",
+            *ns_args,
+            "-l",
+            f"asya.sh/flow={flow_name}",
+            "--all-pods",
+            "--prefix",
             "--max-log-requests=20",
-            "-c", container,
-            "--tail", tail_arg,
+            "-c",
+            container,
+            "--tail",
+            tail_arg,
         ]
         if follow:
             cmd.append("-f")
@@ -791,8 +818,6 @@ def context_use(name: str) -> None:
     sys.exit(result.returncode)
 
 
-
-
 # ---------------------------------------------------------------------------
 # asya k send
 # ---------------------------------------------------------------------------
@@ -804,9 +829,14 @@ def _fetch_api_key(runner: KubeRunner, key_name: str) -> str | None:
     import json as _json
 
     result = runner.kubectl(
-        "get", "secret", "asya-gateway-auth",
-        "-o", "json",
-        quiet=True, capture_output=True, text=True,
+        "get",
+        "secret",
+        "asya-gateway-auth",
+        "-o",
+        "json",
+        quiet=True,
+        capture_output=True,
+        text=True,
     )
     if result.returncode != 0:
         return None
@@ -829,26 +859,28 @@ def _send_a2a(
 ) -> str | None:
     """Send a message via A2A protocol."""
     import json as _json
-    import uuid
     import urllib.request
+    import uuid
 
     task_id = str(uuid.uuid4())
     msg_id = str(uuid.uuid4())
 
-    request = {
-        "jsonrpc": "2.0",
-        "id": task_id,
-        "method": "message/send",
-        "params": {
-            "message": {
-                "messageId": msg_id,
-                "role": "user",
-                "parts": [{"kind": "text", "text": message}],
-            },
+    params: dict[str, object] = {
+        "message": {
+            "messageId": msg_id,
+            "role": "user",
+            "parts": [{"kind": "text", "text": message}],
         },
     }
     if skill:
-        request["params"]["metadata"] = {"skill": skill}
+        params["metadata"] = {"skill": skill}
+
+    request: dict[str, object] = {
+        "jsonrpc": "2.0",
+        "id": task_id,
+        "method": "message/send",
+        "params": params,
+    }
 
     headers = {"Content-Type": "application/json"}
     if api_key:
@@ -893,7 +925,7 @@ def _truncate_actor(name: str, max_len: int = 32) -> str:
     if len(name) <= max_len:
         return name
     keep = (max_len - 3) // 2
-    return name[:keep] + "..." + name[-(max_len - 3 - keep):]
+    return name[:keep] + "..." + name[-(max_len - 3 - keep) :]
 
 
 def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
@@ -932,11 +964,9 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
         click.echo(f"[.] waiting for {task_id}...", err=True)
 
     prev_msg = ""
-    poll_count = 0
 
-    for _ in range(600):
+    for poll_count in range(1, 601):
         _time.sleep(1)
-        poll_count += 1
         try:
             body = _a2a_get(task_id)
             task = body.get("result", {})
@@ -986,7 +1016,7 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
                     # No artifacts — print full task status for visibility
                     click.echo(_json.dumps(task, indent=2))
                 return
-        except Exception:
+        except Exception:  # nosec B110 — polling loop, transient network errors expected
             pass
 
     if pbar:
@@ -1049,7 +1079,6 @@ def _send_mcp(
 ) -> None:
     """Send a message via MCP protocol (initialize session + tools/call)."""
     import json as _json
-    import uuid
     import urllib.request
 
     headers = {"Content-Type": "application/json"}
@@ -1124,10 +1153,11 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     _time.sleep(5)  # wait for traces to flush to Tempo
 
     import urllib.parse
+
     traceql = f'{{span.asya.envelope_id="{envelope_id}"}}'
     search_url = f"{tempo_url}/api/search?q={urllib.parse.quote(traceql)}&limit=10"
 
-    data = {"traces": []}
+    data: dict = {"traces": []}
     for attempt in range(6):
         _time.sleep(3)
         try:
@@ -1147,7 +1177,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
             trace_url = f"{tempo_url}/api/traces/{trace_id}"
             with urllib.request.urlopen(trace_url, timeout=10) as resp:  # nosec B310
                 trace_data = _json.loads(resp.read())
-        except Exception:
+        except Exception:  # nosec B112 — skip traces that fail to fetch
             continue
 
         # Collect spans
@@ -1157,18 +1187,22 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
             svc = next((a["value"].get("stringValue", "") for a in res_attrs if a.get("key") == "service.name"), "?")
             for scope in batch.get("scopeSpans", []):
                 for span in scope.get("spans", []):
-                    attrs = {a["key"]: a.get("value", {}).get("stringValue", a.get("value", {}).get("intValue", ""))
-                             for a in span.get("attributes", [])}
+                    attrs = {
+                        a["key"]: a.get("value", {}).get("stringValue", a.get("value", {}).get("intValue", ""))
+                        for a in span.get("attributes", [])
+                    }
                     if attrs.get("asya.envelope_id") == envelope_id:
                         start_ns = int(span.get("startTimeUnixNano", 0))
                         end_ns = int(span.get("endTimeUnixNano", 0))
-                        spans.append({
-                            "service": svc,
-                            "name": span.get("name", "?"),
-                            "start": start_ns,
-                            "end": end_ns,
-                            "dur_ms": (end_ns - start_ns) / 1e6,
-                        })
+                        spans.append(
+                            {
+                                "service": svc,
+                                "name": span.get("name", "?"),
+                                "start": start_ns,
+                                "end": end_ns,
+                                "dur_ms": (end_ns - start_ns) / 1e6,
+                            }
+                        )
 
         if not spans:
             continue
@@ -1194,7 +1228,10 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
             width = max(1, int(s["dur_ms"] / (total_ns / 1e6) * bar_width))
             color = _color_for(s["service"], actor_colors)
             bar = " " * offset + "█" * width
-            click.echo(f"  {color}{s['service']:<{max_actor_len}}{_RESET} {s['dur_ms']:>7.0f}ms  {color}{bar}{_RESET}", err=True)
+            click.echo(
+                f"  {color}{s['service']:<{max_actor_len}}{_RESET} {s['dur_ms']:>7.0f}ms  {color}{bar}{_RESET}",
+                err=True,
+            )
 
         click.echo("", err=True)
         return  # show first matching trace
@@ -1247,9 +1284,9 @@ def send(
         else:
             api_key = _fetch_api_key(runner, "a2a-api-key")
 
-    # Default to A2A
+    # Default to A2A (--a2a is explicit but also the default when --mcp is not set)
     task_id = None
-    if not use_mcp:
+    if use_a2a or not use_mcp:
         click.echo(f"[.] {target.name} -> {url}/a2a/", err=True)
         task_id = _send_a2a(url, message, skill or target.name, api_key, stream)
     else:

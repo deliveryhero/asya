@@ -18,6 +18,11 @@ import sys
 from pathlib import Path
 
 import click
+import yaml
+
+from asya_lab.cli_types import ASYA_REF, AsyaRef
+from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
+from asya_lab.config.project import AsyaProject
 
 
 class _LiteralStr(str):
@@ -26,13 +31,9 @@ class _LiteralStr(str):
 
 def _literal_representer(dumper: yaml.Dumper, data: _LiteralStr) -> yaml.ScalarNode:
     return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-import yaml
+
 
 yaml.add_representer(_LiteralStr, _literal_representer)
-
-from asya_lab.cli_types import ASYA_REF, AsyaRef
-from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
-from asya_lab.config.project import AsyaProject
 
 
 # -- Shorthand key mapping --------------------------------------------------
@@ -169,7 +170,7 @@ def _build_gateway_config(
     has_a2a = kv_dict.pop("a2a", None) is not None
 
     if not description:
-        raise click.UsageError("--gateway requires description=... (e.g. description=\"Analyze text\")")
+        raise click.UsageError('--gateway requires description=... (e.g. description="Analyze text")')
     if not has_mcp and not has_a2a:
         raise click.UsageError("--gateway requires at least one protocol: mcp=true and/or a2a=true")
 
@@ -278,17 +279,14 @@ def _write_actor_patch(ps: PatchSpec, patch_dir: Path) -> Path:
             if not existing_spec["env"]:
                 del existing_spec["env"]
 
-        if "env" in new_spec:
-            if "env" in existing_spec:
-                existing_names = {e["name"] for e in existing_spec["env"]}
-                for entry in new_spec["env"]:
-                    if entry["name"] in existing_names:
-                        existing_spec["env"] = [
-                            entry if e["name"] == entry["name"] else e for e in existing_spec["env"]
-                        ]
-                    else:
-                        existing_spec["env"].append(entry)
-                del new_spec["env"]
+        if "env" in new_spec and "env" in existing_spec:
+            existing_names = {e["name"] for e in existing_spec["env"]}
+            for entry in new_spec["env"]:
+                if entry["name"] in existing_names:
+                    existing_spec["env"] = [entry if e["name"] == entry["name"] else e for e in existing_spec["env"]]
+                else:
+                    existing_spec["env"].append(entry)
+            del new_spec["env"]
 
         _deep_merge(existing_spec, new_spec)
         existing["spec"] = existing_spec
@@ -485,6 +483,7 @@ def patch(
         return
 
     # -- Actor scope ---------------------------------------------------------
+    assert actor_ref is not None  # guaranteed by scope validation above
     actor_names = [_resolve_actor_name(actor_ref, base_dir)]
 
     env_remove = [k[4:] for k in remove_keys if k.startswith("env.")]

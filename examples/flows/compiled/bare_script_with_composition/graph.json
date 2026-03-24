@@ -41,5 +41,13 @@
       "type": "continuation"
     }
   ],
-  "groups": []
+  "groups": [
+    {
+      "id": "sub_flow",
+      "nodes": [
+        "validate",
+        "enrich"
+      ]
+    }
+  ]
 }

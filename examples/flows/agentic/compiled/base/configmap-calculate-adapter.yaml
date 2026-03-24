@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tool-calling-agent-calculate-adapter
+  labels:
+    asya.sh/flow: tool-calling-agent
+    asya.sh/managed-by: asya-compiler
+    asya.sh/adapter-for: calculate
+data:
+  adapter_calculate.py: |
+    # fmt: off
+    # ruff: noqa
+    """Auto-generated adapter for calculate"""
+
+    def adapter_calculate(payload: dict):
+        """Adapter: wraps calculate() for dict-in/dict-out protocol"""
+        _result = calculate(payload['tool_args']['expression'])
+        payload['tool_result'] = _result
+        yield payload

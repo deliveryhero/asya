@@ -125,7 +125,9 @@ def _rel(p: Path) -> str:
 @click.command("build")
 @click.argument("flow_name", type=ASYA_REF)
 @click.option("--actor", "-a", "actor_ref", default=None, help="Build only this actor's image")
-@click.option("--dir", "build_dir", default=None, type=click.Path(exists=True), help="Build from this skaffold directory")
+@click.option(
+    "--dir", "build_dir", default=None, type=click.Path(exists=True), help="Build from this skaffold directory"
+)
 @click.option("--push/--no-push", default=True, help="Push to registry (default: true)")
 @click.option("--tag/--no-tag", default=True, help="Auto-update kustomize image tags (default: true)")
 @click.option("--default-repo", "default_repo", default=None, help="Registry prefix (skaffold --default-repo)")

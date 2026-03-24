@@ -1,0 +1,17 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-format-response
+  namespace: default
+  labels:
+    asya.sh/flow: tool-calling-agent
+    asya.sh/role: end
+spec:
+  actor: actor-format-response
+  image: examples.asya.sh/format-response:latest
+  handler: format_response
+  scaling:
+    enabled: true
+    minReplicaCount: 0
+    maxReplicaCount: 5
+  env: []

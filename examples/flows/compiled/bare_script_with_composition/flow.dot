@@ -15,4 +15,10 @@ digraph "main_flow" {
     validate -> enrich;
     enrich -> format_output;
     format_output -> __end__;
+    subgraph cluster_sub_flow {
+        label="sub_flow";
+        style=dashed;
+        validate;
+        enrich;
+    }
 }

@@ -1217,7 +1217,9 @@ class _InvokeHandler(http.server.BaseHTTPRequestHandler):
 
         if is_generator:
             self._stream_sse_response(envelope, user_func)
-            logger.info("[+] %s done (id=%s, %.0fms, generator)", handler_name, short_id, (time.monotonic() - _t0) * 1000)
+            logger.info(
+                "[+] %s done (id=%s, %.0fms, generator)", handler_name, short_id, (time.monotonic() - _t0) * 1000
+            )
         else:
             try:
                 frames = _collect_payload_frames(envelope, user_func)

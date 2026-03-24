@@ -79,6 +79,7 @@ class FlowCompiler:
         routers_dir: str | None = None,
         artifacts_dir: str | None = None,
     ) -> FlowInfo:
+        _ = overwrite  # reserved for future use
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
