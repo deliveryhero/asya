@@ -95,10 +95,10 @@ func main() {
 		defer pgStore.Close()
 		envelopeStore = pgStore
 
-		// Start FLY listener in api/testing modes for SSE streaming
+		// Start event listener in api/testing modes for SSE streaming
 		if mode == modeAPI || mode == modeTesting {
-			go pgStore.StartFLYListener(ctx, dbURL)
-			slog.Info("Started FLY listener goroutine", "mode", mode)
+			go pgStore.StartEventListener(ctx, dbURL)
+			slog.Info("Started event listener goroutine", "mode", mode)
 		}
 	} else {
 		slog.Info("Using in-memory envelope store (not recommended for production)")

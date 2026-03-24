@@ -681,6 +681,77 @@ def test_tasks_list_returns_tasks_for_context():
 
 
 @pytest.mark.fast
+def test_tasks_get_includes_result_artifact():
+    """
+    tasks/get includes the final payload as an A2A artifact for completed tasks.
+
+    Sends a task via message/stream, waits for completion, then retrieves via
+    tasks/get and verifies the result artifact is present with the correct payload.
+    """
+    if not API_KEY:
+        pytest.skip("ASYA_A2A_API_KEY not configured")
+
+    events = _send_task("test_echo", {"message": "artifact-test"}, timeout=120)
+    final = _final_state(events)
+    assert final == "completed", f"task must complete: {final}"
+
+    task_id = _task_id_from_events(events)
+    assert task_id, f"could not extract task ID from events: {events[:2]}"
+
+    result = _a2a_post("tasks/get", {"id": task_id})
+    assert "result" in result, f"tasks/get must return result: {result}"
+    task = result["result"]
+    artifacts = task.get("artifacts", [])
+    assert len(artifacts) > 0, (
+        f"completed task must have at least one artifact with the final payload, got: {task}"
+    )
+    result_artifact = next((a for a in artifacts if a.get("artifactId") == "result"), None)
+    assert result_artifact is not None, (
+        f"expected artifact with artifactId='result', got: {[a.get('artifactId') for a in artifacts]}"
+    )
+    parts = result_artifact.get("parts", [])
+    assert len(parts) > 0, "result artifact must have at least one part"
+    text = parts[0].get("text", "")
+    assert "artifact-test" in text, (
+        f"result artifact text must contain the original payload data, got: {text[:200]}"
+    )
+    logger.info(f"[+] tasks/get includes result artifact for task {task_id}")
+
+
+@pytest.mark.fast
+def test_message_stream_includes_artifact_event():
+    """
+    message/stream SSE includes a TaskArtifactUpdateEvent before the terminal event.
+
+    The artifact event carries the final payload so streaming clients receive
+    the output without a separate tasks/get call.
+    """
+    if not API_KEY:
+        pytest.skip("ASYA_A2A_API_KEY not configured")
+
+    events = _send_task("test_echo", {"message": "stream-artifact"}, timeout=120)
+    final = _final_state(events)
+    assert final == "completed", f"task must complete: {final}"
+
+    artifact_events = [
+        e for e in events
+        if e.get("result", {}).get("artifact") is not None
+    ]
+    assert len(artifact_events) > 0, (
+        f"SSE stream must include at least one artifact event, got event types: "
+        f"{[list(e.get('result', {}).keys()) for e in events]}"
+    )
+    artifact = artifact_events[-1]["result"]["artifact"]
+    parts = artifact.get("parts", [])
+    assert len(parts) > 0, "artifact event must have parts"
+    text = parts[0].get("text", "")
+    assert "stream-artifact" in text, (
+        f"artifact text must contain the original payload data, got: {text[:200]}"
+    )
+    logger.info("[+] message/stream includes artifact event with final payload")
+
+
+@pytest.mark.fast
 def test_multihop_pipeline_via_a2a():
     """
     Multi-actor pipeline via A2A: submit a multi-hop task and track to completion.

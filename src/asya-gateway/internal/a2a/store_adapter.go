@@ -95,6 +95,15 @@ func (a *StoreAdapter) Get(ctx context.Context, taskID a2alib.TaskID) (*a2alib.T
 		a.hydrateFromStateProxy(ctx, envelope, a2aTask)
 	}
 
+	// Synthesize an artifact from the DB result for succeeded tasks when no
+	// state-proxy artifacts were hydrated. The sidecar stores the final payload
+	// in envelope.Result via POST /mesh/{id}/final; this exposes it per A2A spec.
+	if len(a2aTask.Artifacts) == 0 && envelope.Result != nil && envelope.Status == types.EnvelopeStatusSucceeded {
+		if artifact := resultToArtifact(envelope.Result); artifact != nil {
+			a2aTask.Artifacts = []*a2alib.Artifact{artifact}
+		}
+	}
+
 	return a2aTask, version, nil
 }
 
@@ -196,6 +205,30 @@ func parseArtifacts(raw any) []*a2alib.Artifact {
 		return nil
 	}
 	return arts
+}
+
+// resultToArtifact converts an envelope Result to an A2A Artifact with JSON-serialized content.
+// Returns nil if the result is nil, an empty map (PG store default for NULL columns), or
+// cannot be serialized. Used as fallback when state-proxy artifacts are not available.
+func resultToArtifact(result any) *a2alib.Artifact {
+	if result == nil {
+		return nil
+	}
+	if m, ok := result.(map[string]any); ok && len(m) == 0 {
+		return nil
+	}
+	data, err := json.Marshal(result)
+	if err != nil {
+		slog.Warn("Failed to marshal result for artifact", "error", err)
+		return nil
+	}
+	return &a2alib.Artifact{
+		ID:   a2alib.ArtifactID(resultArtifactID),
+		Name: "Task result",
+		Parts: a2alib.ContentParts{
+			&a2alib.TextPart{Text: string(data)},
+		},
+	}
 }
 
 // List translates status filter, calls internal.List with pagination, and converts results.
