@@ -412,7 +412,7 @@ def _format_log_line(
     return f"{color}{padded}{_RESET} | {text}"
 
 
-def _list_available_flows(ctx: str | None) -> None:
+def _list_available_flows(ctx: str | None) -> str:
     """Print available flow names from deployed AsyncActors."""
     runner = KubeRunner(ctx)
     result = runner.kubectl(
@@ -421,12 +421,7 @@ def _list_available_flows(ctx: str | None) -> None:
         quiet=True, capture_output=True, text=True,
     )
     flows = sorted(set(result.stdout.split())) if result.returncode == 0 and result.stdout.strip() else []
-    if flows:
-        click.echo("Available flows:", err=True)
-        for f in flows:
-            click.echo(f"  {f}", err=True)
-    else:
-        click.echo("[-] No flows deployed", err=True)
+    return repr(flows)
 
 
 def _stream_colored_logs(
@@ -562,8 +557,7 @@ def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, conta
       asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
     if target is None:
-        _list_available_flows(ctx)
-        raise click.MissingParameter(param_hint="'TARGET'", param_type="argument")
+        raise click.MissingParameter(param_hint=f"'TARGET' (detected flows: {_list_available_flows(ctx)})", param_type="argument")
 
     if not containers:
         containers = ("asya-runtime",)
@@ -1423,7 +1417,7 @@ def k() -> None:
 
 _COLUMN_MAP = {
     "ACTOR": ".metadata.name",
-    "FLOW": ".metadata.labels['asya.sh/flow']",
+    "FLOW": ".metadata.labels.asya\\.sh/flow",
     "STATUS": ".status.phase",
     "CURRENT": ".status.infrastructure.workload.readyReplicas",
     "DESIRED": ".status.infrastructure.workload.replicas",
