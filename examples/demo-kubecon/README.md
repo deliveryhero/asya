@@ -59,7 +59,7 @@ Applies actors + ConfigMaps + gateway flow registration.
 ## Step 5: Port-forward and test
 
 ```bash
-kubectl --context $KCTX -n asya-demo port-forward svc/asya-gateway-api 18080:80 &
+kubectl -n asya-demo port-forward svc/asya-gateway-api 18080:80
 asya k send text-improver "Write a haiku about Kubernetes" --context dev
 ```
 
@@ -75,8 +75,8 @@ asya k logs text-improver -f --context dev
 ## Step 7: Load test
 
 ```bash
-kubectl --context $KCTX apply -f k8s/load-test-job.yaml
-kubectl --context $KCTX -n asya-demo logs -f job/text-improver-load-test
+kubectl apply -f k8s/load-test-job.yaml
+kubectl -n asya-demo logs -f job/text-improver-load-test
 ```
 
 Watch KEDA scale-up in Grafana.
@@ -85,7 +85,7 @@ Watch KEDA scale-up in Grafana.
 
 ```bash
 asya k delete text-improver --context dev
-kubectl --context $KCTX delete job text-improver-load-test -n asya-demo
+kubectl delete job text-improver-load-test -n asya-demo
 ```
 
 ## Flow

@@ -10,7 +10,6 @@ resources:
 - asya-router-text-improver-if-score-ge-threshold.yaml
 - asya-router-text-improver-seq-set-feedback.yaml
 - asya-router-text-improver-seq-set-iteration.yaml
-- asya-router-text-improver-seq-set-topic.yaml
 - asya-router-text-improver-while-loop.yaml
 - asya-start-text-improver.yaml
 - configmap-format-output-adapter.yaml

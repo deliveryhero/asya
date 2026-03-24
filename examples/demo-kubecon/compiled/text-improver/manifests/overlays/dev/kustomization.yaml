@@ -5,3 +5,7 @@ resources:
 - flow-expose.yaml
 patches:
 - path: patch-actor-generate.yaml
+- path: patch-actor-evaluate.yaml
+- path: patch-actor-format-output.yaml
+- path: patch-actor-polish.yaml
+- path: patch-actor-research.yaml
