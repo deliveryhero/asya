@@ -920,31 +920,17 @@ def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
 
 
 def _colorize_json(obj: object, indent: int = 2) -> str:
-    """Render JSON with ANSI colors. Uses pygments if available, else simple line coloring."""
+    """Render JSON with ANSI-colored keys (cyan)."""
     import json as _json
 
     raw = _json.dumps(obj, indent=indent, ensure_ascii=False)
-
-    try:
-        from pygments import highlight
-        from pygments.formatters import TerminalFormatter
-        from pygments.lexers import JsonLexer
-
-        return highlight(raw, JsonLexer(), TerminalFormatter()).rstrip()
-    except ImportError:
-        pass
-
-    # Fallback: color each line based on content
-    C, G, Y, R = "\033[36m", "\033[32m", "\033[33m", "\033[0m"
+    C, R = "\033[36m", "\033[0m"
     lines = []
     for line in raw.split("\n"):
         stripped = line.lstrip()
         if stripped.startswith('"') and '":' in stripped:
-            # key: value line — color the key
             colon_pos = line.index('":')
-            key_part = line[: colon_pos + 1]
-            val_part = line[colon_pos + 1 :]
-            lines.append(f"{C}{key_part}{R}{val_part}")
+            lines.append(f"{C}{line[: colon_pos + 1]}{R}{line[colon_pos + 1 :]}")
         else:
             lines.append(line)
     return "\n".join(lines)
@@ -1315,19 +1301,29 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     search_url = f"{tempo_url}/api/search?q={urllib.parse.quote(traceql)}&limit=10"
 
     data: dict = {"traces": []}
-    for attempt in range(6):
-        _time.sleep(3)
+    for attempt in range(10):
+        _time.sleep(3)  # wait for traces to flush to Tempo
         try:
             with urllib.request.urlopen(search_url, timeout=10) as resp:  # nosec B310  # nosemgrep
                 data = _json.loads(resp.read())
-            if data.get("traces"):
+            n = len(data.get("traces", []))
+            if n:
+                click.echo(f"[.] Found {n} trace(s) (attempt {attempt + 1})", err=True)
                 break
+            if attempt >= 3:
+                click.echo(f"[.] No traces yet (attempt {attempt + 1}/10)...", err=True)
         except Exception as e:
-            if attempt == 5:
-                click.echo(f"[!] Cannot query Tempo: {e}", err=True)
+            click.echo(f"[!] Tempo query failed: {e}", err=True)
+            if attempt >= 5:
+                click.echo(f"[!] Giving up. Try manually:", err=True)
+                click.echo(f"    curl '{search_url}'", err=True)
                 return
 
-    # Find traces containing our envelope ID
+    if not data.get("traces"):
+        click.echo("[.] No traces found. Try manually:", err=True)
+        click.echo(f"    curl '{search_url}'", err=True)
+        return
+
     for trace_info in data.get("traces", []):
         trace_id = trace_info.get("traceID", "")
         try:
