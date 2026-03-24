@@ -1,0 +1,8 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: router-text-improver-seq-set-iteration
+spec:
+  scaling:
+    maxReplicaCount: 10
+    minReplicaCount: 1

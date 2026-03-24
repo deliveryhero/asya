@@ -5,6 +5,7 @@ metadata:
 spec:
   scaling:
     minReplicaCount: 1
+    maxReplicaCount: 25
   imagePullPolicy: Never
   sidecar:
     env:

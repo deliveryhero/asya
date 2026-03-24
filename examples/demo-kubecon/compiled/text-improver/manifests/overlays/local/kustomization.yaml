@@ -11,3 +11,8 @@ patches:
 - path: patch-actor-evaluate.yaml
 - path: patch-actor-generate.yaml
 - path: patch-actor-research.yaml
+- path: patch-start-text-improver.yaml
+- path: patch-router-text-improver-if-iteration-ge-max-iterations.yaml
+- path: patch-router-text-improver-if-score-ge-threshold.yaml
+- path: patch-router-text-improver-seq-set-iteration.yaml
+- path: patch-router-text-improver-while-loop.yaml
