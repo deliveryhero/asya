@@ -27,6 +27,12 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/tracing"
 )
 
+const (
+	modeAPI     = "api"
+	modeMesh    = "mesh"
+	modeTesting = "testing"
+)
+
 func main() {
 	// Set up structured logging with level control
 	logLevel := getEnv("ASYA_LOG_LEVEL", "INFO")
@@ -90,7 +96,7 @@ func main() {
 		envelopeStore = pgStore
 
 		// Start FLY listener in api/testing modes for SSE streaming
-		if mode == "api" || mode == "testing" {
+		if mode == modeAPI || mode == modeTesting {
 			go pgStore.StartFLYListener(ctx, dbURL)
 			slog.Info("Started FLY listener goroutine", "mode", mode)
 		}
@@ -253,7 +259,7 @@ func main() {
 
 	// Wrap mux with OTEL HTTP instrumentation (API mode only — mesh is internal)
 	var handler http.Handler = mux
-	if mode == "api" || mode == "testing" {
+	if mode == modeAPI || mode == modeTesting {
 		handler = otelhttp.NewHandler(mux, "asya-gateway")
 	}
 
@@ -345,12 +351,12 @@ func buildRoutes(mux *http.ServeMux, mode string, meshHandler *mcp.Handler,
 		mcpMiddleware = func(h http.Handler) http.Handler { return h }
 	}
 	switch mode {
-	case "api":
+	case modeAPI:
 		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
-	case "mesh":
+	case modeMesh:
 		registerMeshRoutes(mux, meshHandler)
-	case "testing":
+	case modeTesting:
 		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
 		registerMeshRoutes(mux, meshHandler)

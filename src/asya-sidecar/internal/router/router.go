@@ -79,6 +79,24 @@ func (r *Router) getTracer() trace.Tracer {
 	return otel.Tracer("asya-sidecar")
 }
 
+// startProcessSpan extracts trace context from envelope headers and starts
+// the root processing span for this actor hop.
+func (r *Router) startProcessSpan(ctx context.Context, msg *envelopes.Envelope) (context.Context, trace.Span) {
+	ctx = tracing.ExtractTraceContext(ctx, msg.Headers)
+	spanAttrs := []attribute.KeyValue{
+		attribute.String("asya.actor", r.actorName),
+		attribute.String("asya.envelope_id", msg.ID),
+		attribute.String("asya.queue", r.resolveQueueName(r.actorName)),
+	}
+	if flowID, ok := msg.Headers["x-asya-flow"].(string); ok && flowID != "" {
+		spanAttrs = append(spanAttrs, attribute.String("asya.flow", flowID))
+	}
+	return r.getTracer().Start(ctx, "actor.process",
+		trace.WithSpanKind(trace.SpanKindServer),
+		trace.WithAttributes(spanAttrs...),
+	)
+}
+
 // ensureAndUpdateStatus initializes or updates the status on a envelope before processing.
 // If status is nil, creates a default with phase=processing.
 // If status exists, transitions to processing phase and updates actor/timestamps.
@@ -762,22 +780,8 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		msg.Headers = make(map[string]interface{})
 	}
 
-	// Extract trace context from envelope headers and start processing span
-	ctx = tracing.ExtractTraceContext(ctx, msg.Headers)
-	spanAttrs := []attribute.KeyValue{
-		attribute.String("asya.actor", r.actorName),
-		attribute.String("asya.envelope_id", msg.ID),
-		attribute.String("asya.queue", r.resolveQueueName(r.actorName)),
-	}
-	if msg.Headers != nil {
-		if flowID, ok := msg.Headers["x-asya-flow"].(string); ok && flowID != "" {
-			spanAttrs = append(spanAttrs, attribute.String("asya.flow", flowID))
-		}
-	}
-	ctx, span := r.getTracer().Start(ctx, "actor.process",
-		trace.WithSpanKind(trace.SpanKindServer),
-		trace.WithAttributes(spanAttrs...),
-	)
+	// Extract trace context and start processing span
+	ctx, span := r.startProcessSpan(ctx, msg)
 	defer span.End()
 
 	// SLA pre-check: reject expired envelopes before processing
