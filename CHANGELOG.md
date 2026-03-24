@@ -6,6 +6,53 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.5.13] - 2026-03-23
+
+## Major Changes
+
+* fix(crew): handle DeadlineExceeded as empty queue in scaler-pubsub [ws0s] (#388) @atemate
+
+## Other Changes
+
+* fix(crew): handle DeadlineExceeded as empty queue in scaler-pubsub [ws0s] (#388) @atemate
+
+## Installation
+
+### Helm Charts
+
+Add the Helm repository:
+```bash
+helm repo add asya https://asya.sh/charts
+helm repo update
+```
+
+Install the Crossplane compositions and gateway:
+```bash
+helm install asya-crossplane asya/asya-crossplane \
+  --version 0.5.13 \
+  --namespace asya-system \
+  --create-namespace
+helm install asya-gateway asya/asya-gateway \
+  --version 0.5.13 \
+  --namespace asya
+```
+
+## Docker Images
+
+All images are published to GitHub Container Registry:
+
+- `ghcr.io/deliveryhero/asya-crew:0.5.13`
+- `ghcr.io/deliveryhero/asya-gateway:0.5.13`
+- `ghcr.io/deliveryhero/asya-sidecar:0.5.13`
+- `ghcr.io/deliveryhero/asya-testing:0.5.13`
+
+## Contributors
+
+@atemate, @github-actions[bot] and [github-actions[bot]](https://github.com/apps/github-actions)
+
+
+
+
 ## [0.5.12] - 2026-03-23
 
 ## What's Changed
@@ -1358,6 +1405,9 @@ All images are published to GitHub Container Registry:
 [0.5.11]: https://github.com/deliveryhero/asya/releases/tag/v0.5.11
 
 
-[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.12...HEAD
 [0.5.12]: https://github.com/deliveryhero/asya/releases/tag/v0.5.12
+
+
+[Unreleased]: https://github.com/deliveryhero/asya/compare/v0.5.13...HEAD
+[0.5.13]: https://github.com/deliveryhero/asya/releases/tag/v0.5.13
 
