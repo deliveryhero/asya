@@ -64,7 +64,7 @@ def _compile_flow_file(
     else:
         dirs = {}
 
-    default_base = Path(f"./flows/{flow_function}")
+    default_base = Path(f".asya/flows/{flow_function}")
     code_dir = dirs.get("code", default_base / "code").resolve()
     artifacts_dir = dirs.get("artifacts", default_base / "artifacts").resolve()
     # manifests_dir is resolved inside _stamp_manifests from config;
