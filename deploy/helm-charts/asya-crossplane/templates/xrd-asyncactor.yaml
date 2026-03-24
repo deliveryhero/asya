@@ -462,7 +462,7 @@ spec:
           type: string
           jsonPath: .status.phase
         - name: Replicas
-          type: string
+          type: integer
           jsonPath: .status.infrastructure.workload.replicas
         - name: Ready
           type: integer
