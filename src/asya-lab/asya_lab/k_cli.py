@@ -406,35 +406,89 @@ def k_status(target: AsyaRef | None, ctx: str) -> None:
         flow = actor["metadata"].get("labels", {}).get("asya.sh/flow", "?")
         flows.setdefault(flow, []).append(actor)
 
+    G = "\033[32m"  # green
+    Y = "\033[33m"
+    R = "\033[31m"
+    C = "\033[36m"
+    DIM = "\033[2m"
+    RST = "\033[0m"
+
     for flow_name, flow_actors in sorted(flows.items()):
-        click.echo(f"Flow: {flow_name}")
+        # Flow header
+        total_actors = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") == "actor")
+        total_routers = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") in ("router", "start"))
+        click.echo(f"\n{C}Flow: {flow_name}{RST}  ({total_actors} actors, {total_routers} routers)")
+
+        # Build rows
+        rows = []
         for actor in flow_actors:
             name = actor["metadata"]["name"]
             spec = actor.get("spec", {})
-            # Derive actual status from pods (XRD status is unreliable — debt/mqd9)
+            labels = actor["metadata"].get("labels", {})
+            role = labels.get("asya.sh/role", "")
+            synced = actor.get("status", {}).get("conditions", [])
+            xr_ready = any(c.get("type") == "Ready" and c.get("status") == "True" for c in synced)
+
             actor_pods = pods_by_actor.get(name, [])
             if actor_pods:
                 ready = sum(
                     1 for p in actor_pods if all(c.get("ready") for c in p["status"].get("containerStatuses", []))
                 )
                 total = len(actor_pods)
-                pod_status = f"{ready}/{total} ready"
+                pods_str = f"{ready}/{total}"
+                healthy = ready == total and total > 0
             else:
-                ready = total = 0
                 scaling = spec.get("scaling", {})
                 if scaling.get("enabled") and scaling.get("minReplicaCount", 0) == 0:
-                    pod_status = "scaled to 0 (KEDA)"
+                    pods_str = "0 (scaled)"
+                    healthy = True
                 else:
-                    pod_status = "no pods"
+                    pods_str = "0"
+                    healthy = False
 
-            # Role indicator
-            role = actor["metadata"].get("labels", {}).get("asya.sh/role", "")
-            role_marker = f" ({role})" if role else ""
+            image = spec.get("image", "")
+            image_short = image.rsplit("/", 1)[-1] if "/" in image else image
+            flavors = ", ".join(spec.get("flavors", []))
 
-            # Handler
-            handler = spec.get("handler", "?")
+            rows.append({
+                "name": name,
+                "role": role,
+                "pods": pods_str,
+                "healthy": healthy,
+                "xr_ready": xr_ready,
+                "image": image_short,
+                "flavors": flavors,
+            })
 
-            click.echo(f"  {name}{role_marker}: {pod_status}, handler={handler}")
+        # Column widths
+        name_w = max(len(r["name"]) for r in rows)
+        role_w = max(len(r["role"]) for r in rows)
+        pods_w = max(len(r["pods"]) for r in rows)
+        img_w = max(len(r["image"]) for r in rows)
+
+        # Header
+        hdr = f"  {'NAME':<{name_w}}  {'ROLE':<{role_w}}  {'PODS':>{pods_w}}  {'READY':>5}  {'IMAGE':<{img_w}}"
+        if any(r["flavors"] for r in rows):
+            hdr += "  FLAVORS"
+        click.echo(f"{DIM}{hdr}{RST}")
+
+        # Rows
+        for r in rows:
+            status_color = G if r["healthy"] else (Y if r["pods"] != "0" else R)
+            ready_str = "yes" if r["xr_ready"] else "no"
+            ready_color = G if r["xr_ready"] else R
+            role_color = DIM if r["role"] in ("router", "start") else ""
+
+            line = (
+                f"  {role_color}{r['name']:<{name_w}}{RST}"
+                f"  {DIM}{r['role']:<{role_w}}{RST}"
+                f"  {status_color}{r['pods']:>{pods_w}}{RST}"
+                f"  {ready_color}{ready_str:>5}{RST}"
+                f"  {r['image']:<{img_w}}"
+            )
+            if r["flavors"]:
+                line += f"  {r['flavors']}"
+            click.echo(line)
 
         click.echo()
 
