@@ -170,6 +170,12 @@ sampleMonitoring:
   # When enabled, deploys kube-prometheus-stack with pre-configured Asya dashboards
   enabled: false
 
+sampleTracing:
+  # Grafana Tempo tracing backend (demo/development only)
+  # For production: Set enabled: false and use your existing tracing infrastructure
+  # When enabled, deploys Tempo with OTLP receivers for trace ingestion
+  enabled: false
+
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
   # For production: Set enabled: false and configure asya-gateway.externalDatabase below
@@ -239,6 +245,13 @@ asya-crossplane:
 # Crew configuration (passed to asya-crew chart)
 # Uncomment and modify values below to override chart defaults
 asya-crew:
+  # Tracing configuration
+  # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
+  # Format: {release-name}-tempo:4317
+  # Example: If release name is 'asya', use 'asya-tempo:4317'
+  tracing:
+    endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true
+
   # image:
   #   repository: ghcr.io/deliveryhero/asya-crew
   #   tag: "latest"
@@ -306,6 +319,13 @@ asya-crew:
 # Gateway configuration (passed to asya-gateway chart)
 # Uncomment and modify values below to override chart defaults
 asya-gateway:
+  # Tracing configuration
+  # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
+  # Format: {release-name}-tempo:4317
+  # Example: If release name is 'asya', use 'asya-tempo:4317'
+  tracing:
+    endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true
+
   # replicaCount: 1
   # image:
   #   repository: ghcr.io/deliveryhero/asya-gateway
@@ -328,6 +348,65 @@ asya-gateway:
     database: asya_gateway
     username: asya
     password: asya-db-password
+
+# Grafana Tempo configuration (passed to tempo chart)
+# Only used when sampleTracing.enabled: true
+# Configured for single-binary mode with local storage and OTLP receivers
+tempo:
+  # Use single replica for local development
+  replicas: 1
+
+  # Reduce resource usage for local development
+  tempo:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Minimal retention for demos
+    retention: 24h
+
+    # Enable metrics generator to correlate traces with metrics
+    metricsGenerator:
+      enabled: true
+      remoteWriteUrl: "http://asya-monitoring-prometheus:9090/api/v1/write"
+
+    # OTLP receivers are enabled by default
+    # Receivers listen on:
+    #   - 4317: OTLP gRPC
+    #   - 4318: OTLP HTTP
+    receivers:
+      jaeger:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:14250
+          thrift_binary:
+            endpoint: 0.0.0.0:6832
+          thrift_compact:
+            endpoint: 0.0.0.0:6831
+          thrift_http:
+            endpoint: 0.0.0.0:14268
+      opencensus: {}
+      otlp:
+        protocols:
+          grpc:
+            endpoint: "0.0.0.0:4317"
+          http:
+            endpoint: "0.0.0.0:4318"
+
+    # Local storage backend for demos
+    storage:
+      trace:
+        backend: local
+        local:
+          path: /var/tempo/traces
+
+  # Use local storage
+  persistence:
+    enabled: false
 
 # Prometheus + Grafana configuration (passed to kube-prometheus-stack chart)
 # Only used when sampleMonitoring.enabled: true
@@ -366,6 +445,26 @@ kube-prometheus-stack:
   grafana:
     # Admin credentials for local development
     adminPassword: asya-admin
+    # Additional datasources for Grafana
+    # Note: The Tempo datasource URL uses the release name pattern: {release-name}-tempo
+    # For a release named 'asya', the service will be 'asya-tempo'
+    additionalDataSources:
+    - name: Tempo
+      type: tempo
+      # URL pattern: http://{release-name}-tempo:3100
+      # Default assumes release name matches the namespace or is 'asya'
+      # Override this in your values if using a different release name
+      url: http://{{ .Release.Name }}-tempo:3100
+      access: proxy
+      isDefault: false
+      jsonData:
+        tracesToMetricsEnabled: true
+        tracesToMetrics:
+          datasourceUid: prometheus
+        serviceMap:
+          datasourceUid: prometheus
+        nodeGraph:
+          enabled: true
     # Enable sidecar for dashboard auto-discovery
     sidecar:
       dashboards:
