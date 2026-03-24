@@ -5,6 +5,3 @@ metadata:
 spec:
   scaling:
     minReplicaCount: 1
-  env:
-  - name: FAIL_RATE
-    value: '0.1'

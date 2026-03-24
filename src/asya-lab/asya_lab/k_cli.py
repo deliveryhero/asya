@@ -925,6 +925,122 @@ def _send_a2a(
     click.echo(_json.dumps(result, indent=2))
 
 
+def _truncate_actor(name: str, max_len: int = 32) -> str:
+    """Truncate actor name to max_len, replacing middle with '...'."""
+    if len(name) <= max_len:
+        return name
+    keep = (max_len - 3) // 2
+    return name[:keep] + "..." + name[-(max_len - 3 - keep):]
+
+
+def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
+    """Poll A2A tasks/get until task reaches a terminal state, showing progress."""
+    import json as _json
+    import time as _time
+    import urllib.request
+
+    base = api_url.rstrip("/").replace("/mcp", "").replace("/a2a", "")
+    a2a_url = f"{base}/a2a/"
+    prev_state = ""
+    actors_seen: list[str] = []
+
+    def _a2a_get(tid: str) -> dict:
+        req_body = {"jsonrpc": "2.0", "id": "poll", "method": "tasks/get", "params": {"id": tid}}
+        headers = {"Content-Type": "application/json"}
+        if api_key:
+            headers["X-API-Key"] = api_key
+        req = urllib.request.Request(a2a_url, data=_json.dumps(req_body).encode(), headers=headers)
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
+            return _json.loads(resp.read())
+
+    for _ in range(600):
+        _time.sleep(1)
+        try:
+            body = _a2a_get(task_id)
+            task = body.get("result", {})
+            state = task.get("status", {}).get("state", "")
+
+            # Extract current actor from status message
+            parts = task.get("status", {}).get("message", {}).get("parts", [])
+            for part in parts:
+                text = part.get("text", "")
+                # Look for "processing at actor 'X'" or "actor 'X'" pattern
+                if "actor" in text.lower() or "router" in text.lower():
+                    # Extract actor name from message
+                    for word in text.split("'"):
+                        if word.startswith("actor-") or word.startswith("router-") or word.startswith("start-"):
+                            if word not in actors_seen:
+                                actors_seen.append(word)
+                                short = _truncate_actor(word)
+                                click.echo(f"  [{short}]", err=True)
+
+            if state != prev_state and state == "working":
+                prev_state = state
+
+            if state in ("completed", "failed"):
+                click.echo(f"[100%]", err=True)
+                marker = "[+]" if state == "completed" else "[-]"
+                click.echo(f"{marker} Task {task_id[:12]}: {state}")
+                # Show final message
+                for part in parts:
+                    if part.get("kind") == "text" and part["text"] != "Task completed successfully":
+                        click.echo(part["text"])
+                # Show artifacts if present
+                for artifact in task.get("artifacts", []):
+                    click.echo(_json.dumps(artifact, indent=2))
+                return
+        except Exception:
+            pass
+
+    click.echo(f"[-] Timed out waiting for task {task_id[:12]}", err=True)
+
+
+def _stream_task_sse(api_url: str, task_id: str, api_key: str | None) -> None:
+    """Stream SSE events from GET /stream/{id}, falling back to A2A polling."""
+    import json as _json
+    import urllib.request
+
+    # /stream/{id} endpoint on the API gateway
+    base_url = api_url.rstrip("/").replace("/mcp", "").replace("/a2a", "")
+    stream_url = f"{base_url}/stream/{task_id}"
+    click.echo(f"[.] streaming {task_id[:12]}...", err=True)
+
+    headers = {}
+    if api_key:
+        headers["X-API-Key"] = api_key
+    req = urllib.request.Request(stream_url, headers=headers)
+
+    try:
+        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
+            for raw_line in resp:
+                line = raw_line.decode("utf-8").rstrip("\n")
+                if line.startswith("data:"):
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        event = _json.loads(data_str)
+                    except _json.JSONDecodeError:
+                        click.echo(f"  {data_str}", err=True)
+                        continue
+
+                    phase = event.get("phase", event.get("status", ""))
+                    actor = event.get("curr", event.get("actor", ""))
+                    if actor:
+                        click.echo(f"  [{actor}]", err=True)
+
+                    if phase in ("completed", "succeeded", "failed"):
+                        marker = "[+]" if phase in ("completed", "succeeded") else "[-]"
+                        click.echo(f"{marker} Task {task_id[:12]}: {phase}")
+                        payload = event.get("payload")
+                        if payload:
+                            click.echo(_json.dumps(payload, indent=2))
+                        return
+    except Exception:
+        # SSE not available, fall back to A2A polling
+        _poll_task_status(api_url, task_id, api_key)
+
+
 def _send_mcp(
     url: str,
     tool_name: str,
@@ -941,28 +1057,6 @@ def _send_mcp(
     if api_key:
         headers["Authorization"] = f"Bearer {api_key}"
 
-    def _mcp_call(method: str, params: dict, session_id: str | None = None) -> tuple[dict, str | None]:
-        h = dict(headers)
-        if session_id:
-            h["Mcp-Session-Id"] = session_id
-        req_body = {"jsonrpc": "2.0", "id": str(uuid.uuid4()), "method": method, "params": params}
-        req = urllib.request.Request(f"{url}/mcp", data=_json.dumps(req_body).encode(), headers=h)
-        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
-            sid = resp.headers.get("Mcp-Session-Id", session_id)
-            return _json.loads(resp.read()), sid
-
-    # Initialize session
-    click.echo("[.] MCP: initializing session...", err=True)
-    init_resp, session_id = _mcp_call("initialize", {
-        "protocolVersion": "2025-03-26",
-        "capabilities": {},
-        "clientInfo": {"name": "asya-cli", "version": "1.0"},
-    })
-
-    if "error" in init_resp:
-        click.echo(f"[-] MCP initialize failed: {init_resp['error']}", err=True)
-        sys.exit(1)
-
     # Try parsing message as JSON for tool arguments
     try:
         arguments = _json.loads(message)
@@ -971,17 +1065,39 @@ def _send_mcp(
     except _json.JSONDecodeError:
         arguments = {"text": message}
 
-    # Call tool
+    # Use REST /tools/call endpoint (non-blocking, returns task_id immediately)
     click.echo(f"[.] MCP: calling tool '{tool_name}'...", err=True)
-    call_resp, _ = _mcp_call("tools/call", {"name": tool_name, "arguments": arguments}, session_id)
-
-    if "error" in call_resp:
-        click.echo(f"[-] MCP call failed: {call_resp['error']}", err=True)
+    req_body = {"name": tool_name, "arguments": arguments}
+    req = urllib.request.Request(
+        f"{url}/tools/call",
+        data=_json.dumps(req_body).encode(),
+        headers=headers,
+    )
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
+            result = _json.loads(resp.read())
+    except Exception as e:
+        click.echo(f"[-] MCP call failed: {e}", err=True)
         sys.exit(1)
+    # Extract task_id from the tool call response for polling
+    task_id = None
+    for content in result.get("content", []):
+        if content.get("type") == "text":
+            try:
+                info = _json.loads(content["text"])
+                task_id = info.get("task_id")
+            except (_json.JSONDecodeError, TypeError):
+                pass
 
-    result = call_resp.get("result", {})
-    click.echo("[+] MCP call completed")
-    click.echo(_json.dumps(result, indent=2))
+    if not task_id:
+        click.echo("[+] MCP call completed")
+        click.echo(_json.dumps(result, indent=2))
+        return
+
+    if stream:
+        _stream_task_sse(url, task_id, api_key)
+    else:
+        _poll_task_status(url, task_id, api_key)
 
 
 @click.command()
