@@ -1076,7 +1076,7 @@ def _send_mcp(
     message: str,
     api_key: str | None,
     stream: bool,
-) -> None:
+) -> str | None:
     """Send a message via MCP protocol (initialize session + tools/call)."""
     import json as _json
     import urllib.request
@@ -1120,12 +1120,14 @@ def _send_mcp(
     if not task_id:
         click.echo("[+] MCP call completed")
         click.echo(_json.dumps(result, indent=2))
-        return
+        return None
 
     if stream:
         _stream_task_sse(url, task_id, api_key)
     else:
         _poll_task_status(url, task_id, api_key)
+
+    return task_id
 
 
 def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
@@ -1291,7 +1293,7 @@ def send(
         task_id = _send_a2a(url, message, skill or target.name, api_key, stream)
     else:
         click.echo(f"[.] {target.name} -> {url}/mcp", err=True)
-        _send_mcp(url, target.name, message, api_key, stream)
+        task_id = _send_mcp(url, target.name, message, api_key, stream)
 
     if trace and task_id:
         _show_trace(runner, task_id)
