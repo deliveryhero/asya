@@ -1435,8 +1435,9 @@ def _build_columns_spec(names: list[str]) -> str:
 @click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide)")
-@click.option("--columns", "-c", default=None, help="Column names to show (e.g. name,min,max,status)")
-def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str | None) -> None:
+@click.option("--columns", default=None, help="Column names to show (e.g. name,min,max,status)")
+@click.option("--no-headers", is_flag=True, help="Hide column headers")
+def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str | None, no_headers: bool) -> None:
     """Show status of deployed actors.
 
     \b
@@ -1458,6 +1459,9 @@ def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str 
     else:
         col_names = [c.strip() for c in columns.split(",")] if columns else _DEFAULT_COLUMNS
         args.extend(["-o", f"custom-columns={_build_columns_spec(col_names)}"])
+
+    if no_headers:
+        args.append("--no-headers")
 
     result = runner.kubectl(*args)
     sys.exit(result.returncode)
