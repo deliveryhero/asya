@@ -13,20 +13,18 @@ def test_compile_help():
     runner = CliRunner()
     result = runner.invoke(compile_cmd, ["--help"])
     assert result.exit_code == 0
-    assert "FLOW_NAME" in result.output
-    assert "--file" in result.output
+    assert "TARGET" in result.output
     assert "--output-dir" in result.output
     assert "--plot" in result.output
     assert "--verbose" in result.output
     assert "--strict" in result.output
 
 
-def test_compile_rejects_underscore_name():
-    """Flow name with underscores should be rejected."""
+def test_compile_rejects_nonexistent_file():
+    """Compiling a nonexistent file should fail."""
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, ["my_flow", "-f", "dummy.py"])
+    result = runner.invoke(compile_cmd, ["nonexistent.py"])
     assert result.exit_code != 0
-    assert "kebab-case" in result.output
 
 
 def test_compile_py_file(tmp_path: Path):
@@ -48,7 +46,7 @@ def test_compile_py_file(tmp_path: Path):
 
     output_dir = tmp_path / "out"
     runner = CliRunner()
-    result = runner.invoke(compile_cmd, ["my-flow", "-f", str(flow_source), "-o", str(output_dir)])
+    result = runner.invoke(compile_cmd, [str(flow_source), "-o", str(output_dir)])
 
     assert result.exit_code == 0, (
         f"stdout: {result.output}\nstderr: {result.stderr if hasattr(result, 'stderr') else ''}"
