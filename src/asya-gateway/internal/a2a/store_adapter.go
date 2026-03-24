@@ -223,7 +223,7 @@ func resultToArtifact(result any) *a2alib.Artifact {
 		return nil
 	}
 	return &a2alib.Artifact{
-		ID:   "result",
+		ID:   a2alib.ArtifactID(resultArtifactID),
 		Name: "Task result",
 		Parts: a2alib.ContentParts{
 			&a2alib.TextPart{Text: string(data)},

@@ -726,6 +726,14 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 // normal-sized notifications delivered via pg_notify do NOT also call the fallback,
 // because the PG LISTEN goroutine on the API gateway will dispatch to subscribers.
 func (h *Handler) pgNotify(ctx context.Context, taskID, eventType, payload string, inProcessFallback func()) {
+	if strings.ContainsRune(taskID, ':') {
+		slog.Warn("pgNotify: taskID contains colon, skipping to prevent delimiter injection",
+			"task_id", taskID)
+		if inProcessFallback != nil {
+			inProcessFallback()
+		}
+		return
+	}
 	notification := taskID + ":" + eventType + ":" + payload
 	if h.pool == nil {
 		if inProcessFallback != nil {
@@ -734,7 +742,7 @@ func (h *Handler) pgNotify(ctx context.Context, taskID, eventType, payload strin
 		return
 	}
 	if len(notification) > maxPGNotifyPayload {
-		slog.Debug("Event too large for pg_notify, using DB poll fallback",
+		slog.Debug("Event too large for pg_notify, using fallback",
 			"task_id", taskID, "type", eventType, "size", len(notification))
 		if inProcessFallback != nil {
 			inProcessFallback()

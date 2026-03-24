@@ -200,15 +200,11 @@ func writeResultArtifact(
 	status types.EnvelopeStatus,
 	result any,
 ) {
-	if status != types.EnvelopeStatusSucceeded || result == nil {
+	if status != types.EnvelopeStatusSucceeded {
 		return
 	}
-	if m, ok := result.(map[string]any); ok && len(m) == 0 {
-		return
-	}
-	data, err := json.Marshal(result)
-	if err != nil {
-		slog.Warn("Failed to marshal result for artifact event", "error", err)
+	artifact := resultToArtifact(result)
+	if artifact == nil {
 		return
 	}
 	evt := &a2alib.TaskArtifactUpdateEvent{
@@ -216,11 +212,7 @@ func writeResultArtifact(
 		ContextID: reqCtx.ContextID,
 		Append:    false,
 		LastChunk: true,
-		Artifact: &a2alib.Artifact{
-			ID:    a2alib.ArtifactID(resultArtifactID),
-			Name:  "Task result",
-			Parts: a2alib.ContentParts{&a2alib.TextPart{Text: string(data)}},
-		},
+		Artifact:  artifact,
 	}
 	if err := eq.Write(ctx, evt); err != nil {
 		slog.Warn("Failed to write result artifact event", "error", err)
