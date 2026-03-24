@@ -11,27 +11,42 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const FLYChannel = "fly"
+// TaskEventsChannel is the unified PG NOTIFY channel for all mesh-to-API events.
+const TaskEventsChannel = "task_events"
 
-// parseFLYNotification splits a "task_id:payload_json" notification.
-func parseFLYNotification(raw string) (string, string, bool) {
-	idx := strings.IndexByte(raw, ':')
-	if idx <= 0 {
-		return "", "", false
+// Event type prefixes in the notification payload.
+const (
+	eventTypeFly      = "fly"
+	eventTypeProgress = "progress"
+	eventTypeFinal    = "final"
+)
+
+// parseNotification splits a "task_id:type:payload_json" notification.
+func parseNotification(raw string) (taskID, eventType, payload string, ok bool) {
+	// First colon separates task_id
+	idx1 := strings.IndexByte(raw, ':')
+	if idx1 <= 0 {
+		return "", "", "", false
 	}
-	return raw[:idx], raw[idx+1:], true
+	rest := raw[idx1+1:]
+	// Second colon separates event type from payload
+	idx2 := strings.IndexByte(rest, ':')
+	if idx2 <= 0 {
+		return "", "", "", false
+	}
+	return raw[:idx1], rest[:idx2], rest[idx2+1:], true
 }
 
-// StartFLYListener runs a LISTEN loop on a dedicated PG connection.
-// Dispatches received FLY notifications to in-process subscribers.
+// StartEventListener runs a LISTEN loop on a dedicated PG connection.
+// Dispatches received notifications to in-process subscribers.
 // Blocks until ctx is canceled. Reconnects on connection errors.
-func (s *PgStore) StartFLYListener(ctx context.Context, connString string) {
+func (s *PgStore) StartEventListener(ctx context.Context, connString string) {
 	for {
 		if err := s.listenLoop(ctx, connString); err != nil {
 			if ctx.Err() != nil {
 				return
 			}
-			slog.Warn("FLY listener connection lost, reconnecting", "error", err)
+			slog.Warn("Event listener connection lost, reconnecting", "error", err)
 			select {
 			case <-time.After(time.Second):
 			case <-ctx.Done():
@@ -48,11 +63,11 @@ func (s *PgStore) listenLoop(ctx context.Context, connString string) error {
 	}
 	defer func() { _ = conn.Close(ctx) }()
 
-	if _, err := conn.Exec(ctx, "LISTEN "+FLYChannel); err != nil {
+	if _, err := conn.Exec(ctx, "LISTEN "+TaskEventsChannel); err != nil {
 		return err
 	}
 
-	slog.Info("FLY listener started", "channel", FLYChannel)
+	slog.Info("Event listener started", "channel", TaskEventsChannel)
 
 	for {
 		notification, err := conn.WaitForNotification(ctx)
@@ -60,26 +75,50 @@ func (s *PgStore) listenLoop(ctx context.Context, connString string) error {
 			return err
 		}
 
-		taskID, payload, ok := parseFLYNotification(notification.Payload)
+		taskID, eventType, payload, ok := parseNotification(notification.Payload)
 		if !ok {
-			slog.Warn("FLY listener: malformed notification", "payload", notification.Payload)
+			slog.Warn("Event listener: malformed notification", "payload", notification.Payload)
 			continue
 		}
 
-		s.dispatchFLY(taskID, payload)
+		s.dispatchEvent(taskID, eventType, payload)
 	}
 }
 
-// dispatchFLY dispatches a FLY payload to in-process subscribers.
-func (s *PgStore) dispatchFLY(taskID string, payload string) {
+// dispatchEvent routes a parsed notification to the appropriate subscriber format.
+func (s *PgStore) dispatchEvent(taskID, eventType, payload string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	update := types.EnvelopeUpdate{
-		ID:             taskID,
-		Status:         types.EnvelopeStatusRunning,
-		PartialPayload: json.RawMessage(payload),
-		Timestamp:      time.Now(),
+	var update types.EnvelopeUpdate
+
+	switch eventType {
+	case eventTypeFly:
+		update = types.EnvelopeUpdate{
+			ID:             taskID,
+			Status:         types.EnvelopeStatusRunning,
+			PartialPayload: json.RawMessage(payload),
+			Timestamp:      time.Now(),
+		}
+
+	case eventTypeProgress, eventTypeFinal:
+		if err := json.Unmarshal([]byte(payload), &update); err != nil {
+			slog.Warn("Event listener: failed to unmarshal update",
+				"task_id", taskID, "type", eventType, "error", err)
+			return
+		}
+		update.ID = taskID
+
+	default:
+		slog.Warn("Event listener: unknown event type", "task_id", taskID, "type", eventType)
+		return
 	}
+
 	s.notifyListeners(update)
+}
+
+// dispatchFLY dispatches a FLY payload to in-process subscribers.
+// Kept for backward compatibility with NotifyFLY (in-process fallback).
+func (s *PgStore) dispatchFLY(taskID string, payload string) {
+	s.dispatchEvent(taskID, eventTypeFly, payload)
 }

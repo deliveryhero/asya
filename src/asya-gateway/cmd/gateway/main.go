@@ -73,7 +73,7 @@ func main() {
 		// Start FLY listener in api/testing modes for SSE streaming
 		mode := os.Getenv("ASYA_GATEWAY_MODE")
 		if mode == "api" || mode == "testing" {
-			go pgStore.StartFLYListener(ctx, dbURL)
+			go pgStore.StartEventListener(ctx, dbURL)
 			slog.Info("Started FLY listener goroutine", "mode", mode)
 		}
 	} else {

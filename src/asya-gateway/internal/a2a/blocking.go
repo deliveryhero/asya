@@ -53,9 +53,10 @@ func terminalOrInterrupted(status types.EnvelopeStatus) bool {
 	}
 }
 
-// dbPollInterval is how often waitAndRelayEvents polls the DB to detect
-// cross-process status updates (e.g., mesh gateway writing task final status).
-const dbPollInterval = 500 * time.Millisecond
+// dbPollInterval is how often waitAndRelayEvents polls the DB as a backup
+// to detect cross-process status updates. PG NOTIFY is the primary delivery
+// mechanism; DB poll catches oversized events that exceed the 8KB PG NOTIFY limit.
+const dbPollInterval = 2 * time.Second
 
 // waitAndRelayEvents subscribes to task store updates and relays them as
 // a2a events to the event queue. It blocks until the task reaches a terminal

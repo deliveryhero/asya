@@ -29,7 +29,7 @@ var (
 	streamPathRegex       = regexp.MustCompile(`^/stream/([^/]+)$`)
 )
 
-const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id + colon
+const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id:type: prefix
 
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
@@ -529,6 +529,12 @@ func (h *Handler) HandleMeshProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast progress via PG NOTIFY for cross-process delivery.
+	// No fallback needed — progress is persisted and detected via DB poll.
+	if progressJSON, err := json.Marshal(update); err == nil {
+		h.pgNotify(r.Context(), taskID, "progress", string(progressJSON), nil)
+	}
+
 	slog.Debug("Progress update stored",
 		"task_id", taskID,
 		"status", progress.Status,
@@ -654,6 +660,12 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Broadcast final status via PG NOTIFY for cross-process delivery.
+	// No fallback needed — final status is persisted and detected via DB poll.
+	if finalJSON, err := json.Marshal(update); err == nil {
+		h.pgNotify(r.Context(), taskID, "final", string(finalJSON), nil)
+	}
+
 	slog.Info("Task final status updated successfully",
 		"id", taskID,
 		"status", taskStatus)
@@ -701,20 +713,39 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 	// Broadcast via PG NOTIFY for cross-process delivery (dual-gateway mode).
 	// FLY events are ephemeral — no INSERT, no UPDATE, no DB storage.
 	// NotifyFLY is the fallback when pg_notify is not available or fails.
-	if h.pool != nil {
-		notification := taskID + ":" + string(body)
-		if len(notification) > maxPGNotifyPayload {
-			slog.Warn("FLY event too large for pg_notify, using in-process only",
-				"task_id", taskID, "size", len(notification))
-			h.taskStore.NotifyFLY(taskID, body)
-		} else if _, err := h.pool.Exec(r.Context(), "SELECT pg_notify($1, $2)", envelopestore.FLYChannel, notification); err != nil {
-			slog.Warn("Failed to pg_notify FLY event, falling back to in-process",
-				"task_id", taskID, "error", err)
-			h.taskStore.NotifyFLY(taskID, body)
-		}
-	} else {
+	h.pgNotify(r.Context(), taskID, "fly", string(body), func() {
 		h.taskStore.NotifyFLY(taskID, body)
-	}
+	})
 
 	w.WriteHeader(http.StatusOK)
+}
+
+// pgNotify sends a notification on the unified task_events PG NOTIFY channel.
+// Falls back to inProcessFallback if pg_notify is unavailable or the payload exceeds
+// the PG NOTIFY size limit. The fallback is only called for oversized or failed sends;
+// normal-sized notifications delivered via pg_notify do NOT also call the fallback,
+// because the PG LISTEN goroutine on the API gateway will dispatch to subscribers.
+func (h *Handler) pgNotify(ctx context.Context, taskID, eventType, payload string, inProcessFallback func()) {
+	notification := taskID + ":" + eventType + ":" + payload
+	if h.pool == nil {
+		if inProcessFallback != nil {
+			inProcessFallback()
+		}
+		return
+	}
+	if len(notification) > maxPGNotifyPayload {
+		slog.Debug("Event too large for pg_notify, using DB poll fallback",
+			"task_id", taskID, "type", eventType, "size", len(notification))
+		if inProcessFallback != nil {
+			inProcessFallback()
+		}
+		return
+	}
+	if _, err := h.pool.Exec(ctx, "SELECT pg_notify($1, $2)", envelopestore.TaskEventsChannel, notification); err != nil {
+		slog.Warn("Failed to pg_notify, falling back to in-process",
+			"task_id", taskID, "type", eventType, "error", err)
+		if inProcessFallback != nil {
+			inProcessFallback()
+		}
+	}
 }
