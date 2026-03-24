@@ -247,7 +247,7 @@ asya-crossplane:
 asya-crew:
   # Tracing configuration
   # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
-  # Format: {release-name}-tempo:4317
+  # Format: {release-name}-tempo:4317 (no http:// — gRPC uses bare host:port)
   # Example: If release name is 'asya', use 'asya-tempo:4317'
   tracing:
     endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true
@@ -321,7 +321,7 @@ asya-crew:
 asya-gateway:
   # Tracing configuration
   # When sampleTracing.enabled: true, set this to point to Tempo's OTLP gRPC endpoint
-  # Format: {release-name}-tempo:4317
+  # Format: {release-name}-tempo:4317 (no http:// — gRPC uses bare host:port)
   # Example: If release name is 'asya', use 'asya-tempo:4317'
   tracing:
     endpoint: "" # Set to "{release-name}-tempo:4317" when sampleTracing.enabled: true

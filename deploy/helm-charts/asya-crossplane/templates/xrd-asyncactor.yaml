@@ -313,7 +313,7 @@ spec:
                   properties:
                     endpoint:
                       type: string
-                      description: OTLP gRPC endpoint (e.g. http://tempo:4317)
+                      description: OTLP gRPC endpoint (e.g. tempo:4317). No http:// prefix — gRPC uses bare host:port.
 
                 stateProxy:
                   type: array
