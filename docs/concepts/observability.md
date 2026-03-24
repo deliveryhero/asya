@@ -6,12 +6,19 @@ observability stack: OpenTelemetry, Prometheus, and structured logging.
 
 ## Distributed tracing
 
-Every envelope carries a `trace_id` in its headers. The sidecar propagates this
-trace ID across actor boundaries, creating a single distributed trace that spans
-the entire pipeline.
+Every envelope carries W3C Trace Context headers (`traceparent`, `tracestate`).
+The gateway generates the root trace when a task is created. Each sidecar
+extracts the trace context, creates spans for envelope processing, and injects
+updated context into outgoing envelopes.
 
-OpenTelemetry integration means traces appear in any compatible backend: Jaeger,
-Zipkin, Tempo, Datadog, or Honeycomb.
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` to enable tracing. Traces appear in any
+OTLP-compatible backend: Tempo, Jaeger, Cloud Trace, Datadog, or Honeycomb.
+
+Span structure per actor hop:
+- `actor.process` — full envelope processing (SpanKindConsumer)
+- `actor.runtime.call` — handler execution via Unix socket
+- `actor.resiliency.policy` — retry/exhausted decisions
+- `actor.queue.send` — outbound dispatch (SpanKindProducer)
 
 ## Prometheus metrics
 

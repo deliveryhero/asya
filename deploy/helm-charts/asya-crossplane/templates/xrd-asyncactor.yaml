@@ -307,6 +307,14 @@ spec:
                       type: object
                       x-kubernetes-preserve-unknown-fields: true
 
+                tracing:
+                  type: object
+                  description: Distributed tracing configuration
+                  properties:
+                    endpoint:
+                      type: string
+                      description: OTLP gRPC endpoint (e.g. http://tempo:4317)
+
                 stateProxy:
                   type: array
                   description: State proxy mount configurations for persistent state access

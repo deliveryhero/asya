@@ -15,6 +15,7 @@ import (
 	"github.com/a2aproject/a2a-go/a2asrv"
 	"github.com/jackc/pgx/v5/pgxpool"
 	mcpserver "github.com/mark3labs/mcp-go/server"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
@@ -23,6 +24,13 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/queue"
 	"github.com/deliveryhero/asya/asya-gateway/internal/stateproxy"
 	"github.com/deliveryhero/asya/asya-gateway/internal/toolstore"
+	"github.com/deliveryhero/asya/asya-gateway/internal/tracing"
+)
+
+const (
+	modeAPI     = "api"
+	modeMesh    = "mesh"
+	modeTesting = "testing"
 )
 
 func main() {
@@ -50,8 +58,25 @@ func main() {
 	// Load configuration from environment
 	port := getEnv("ASYA_GATEWAY_PORT", "8080")
 	dbURL := getEnv("ASYA_DATABASE_URL", "")
+	mode := os.Getenv("ASYA_GATEWAY_MODE")
+	namespace := getEnv("ASYA_NAMESPACE", "default")
 
-	slog.Info("Starting Asya Gateway", "port", port, "logLevel", logLevel)
+	slog.Info("Starting Asya Gateway", "port", port, "logLevel", logLevel, "mode", mode)
+
+	// Initialize OTEL tracing
+	otelEndpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+	shutdownTracing, err := tracing.Init(otelEndpoint, "asya-gateway-"+mode, namespace)
+	if err != nil {
+		slog.Error("Failed to initialize tracing", "error", err)
+		os.Exit(1)
+	}
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := shutdownTracing(ctx); err != nil {
+			slog.Error("Failed to shutdown tracing", "error", err)
+		}
+	}()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -71,8 +96,7 @@ func main() {
 		envelopeStore = pgStore
 
 		// Start FLY listener in api/testing modes for SSE streaming
-		mode := os.Getenv("ASYA_GATEWAY_MODE")
-		if mode == "api" || mode == "testing" {
+		if mode == modeAPI || mode == modeTesting {
 			go pgStore.StartFLYListener(ctx, dbURL)
 			slog.Info("Started FLY listener goroutine", "mode", mode)
 		}
@@ -131,7 +155,6 @@ func main() {
 	apiKey := os.Getenv("ASYA_A2A_API_KEY")
 
 	// A2A setup using a2a-go library
-	namespace := getEnv("ASYA_NAMESPACE", "default")
 	executor := a2a.NewExecutor(queueClient, envelopeStore, registry, namespace)
 
 	// Wire state proxy reader for GetTask history/artifact hydration.
@@ -224,7 +247,6 @@ func main() {
 
 	// Setup routes based on ASYA_GATEWAY_MODE
 	mux := http.NewServeMux()
-	mode := os.Getenv("ASYA_GATEWAY_MODE")
 	if err := buildRoutes(mux, mode, meshHandler, mcpServer, a2aRootHandler, cardProducer, mcpMiddleware, oauthSrv); err != nil {
 		slog.Error("Invalid gateway mode", "error", err)
 		os.Exit(1)
@@ -235,9 +257,15 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
+	// Wrap mux with OTEL HTTP instrumentation (API mode only — mesh is internal)
+	var handler http.Handler = mux
+	if mode == modeAPI || mode == modeTesting {
+		handler = otelhttp.NewHandler(mux, "asya-gateway")
+	}
+
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
-		Handler: mux,
+		Handler: handler,
 	}
 
 	// Start server in goroutine
@@ -323,12 +351,12 @@ func buildRoutes(mux *http.ServeMux, mode string, meshHandler *mcp.Handler,
 		mcpMiddleware = func(h http.Handler) http.Handler { return h }
 	}
 	switch mode {
-	case "api":
+	case modeAPI:
 		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
-	case "mesh":
+	case modeMesh:
 		registerMeshRoutes(mux, meshHandler)
-	case "testing":
+	case modeTesting:
 		registerAPIRoutes(mux, meshHandler, mcpServer, a2aHandler, cardProducer, mcpMiddleware)
 		registerOAuthRoutes(mux, oauthSrv)
 		registerMeshRoutes(mux, meshHandler)

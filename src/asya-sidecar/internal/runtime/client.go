@@ -13,6 +13,10 @@ import (
 	"time"
 
 	"github.com/deliveryhero/asya/asya-sidecar/pkg/envelopes"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // ErrorDetails represents additional information on error occurred in runtime
@@ -100,22 +104,36 @@ func NewClient(socketPath string, timeout time.Duration) *Client {
 //	Runtime -> Sidecar:  400 {"error": "...", ...}             (bad request)
 //	Runtime -> Sidecar:  500 {"error": "...", ...}             (handler error)
 func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Duration, onUpstream func(json.RawMessage), onDownstream func(RuntimeResponse, int)) error {
+	tracer := otel.Tracer("asya-sidecar")
+	ctx, span := tracer.Start(ctx, "actor.runtime.call",
+		trace.WithAttributes(
+			attribute.String("http.request.method", "POST"),
+		),
+	)
+	defer span.End()
+
 	ctx, cancel := context.WithTimeout(ctx, timeout)
 	defer cancel()
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "http://localhost/invoke", bytes.NewReader(data))
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to create HTTP request")
 		return fmt.Errorf("failed to create HTTP request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		span.RecordError(err)
+		span.SetStatus(codes.Error, "failed to send request to runtime")
 		return fmt.Errorf("failed to send request to runtime: %w", err)
 	}
 	defer func() {
 		cancel() // cancel context before draining body to avoid blocking on SSE keep-alive
 		_ = resp.Body.Close()
 	}()
+
+	span.SetAttributes(attribute.Int("http.response.status_code", resp.StatusCode))
 
 	contentType := resp.Header.Get("Content-Type")
 
@@ -129,10 +147,14 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 	case resp.StatusCode == http.StatusOK:
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to read runtime response body")
 			return fmt.Errorf("failed to read runtime response body: %w", err)
 		}
 		var invokeResp httpInvokeResponse
 		if err := json.Unmarshal(body, &invokeResp); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to parse runtime success response")
 			return fmt.Errorf("failed to parse runtime success response: %w", err)
 		}
 		for i, frame := range invokeResp.Frames {
@@ -143,10 +165,14 @@ func (c *Client) CallRuntime(ctx context.Context, data []byte, timeout time.Dura
 	default:
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "failed to read runtime response body")
 			return fmt.Errorf("failed to read runtime response body: %w", err)
 		}
 		var errResp RuntimeResponse
 		if err := json.Unmarshal(body, &errResp); err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, "runtime returned unparseable error response")
 			return fmt.Errorf("runtime returned HTTP %d with unparseable body: %s", resp.StatusCode, string(body))
 		}
 		onDownstream(errResp, 0)

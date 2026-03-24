@@ -228,6 +228,29 @@ Exposed via controller-runtime:
 - `controller_runtime_reconcile_errors_total{controller="asyncactor"}` - Failed reconciliations
 - `controller_runtime_reconcile_time_seconds{controller="asyncactor"}` - Reconciliation duration
 
+## Distributed Tracing
+
+### Configuration
+
+Set `OTEL_EXPORTER_OTLP_ENDPOINT` on sidecar and gateway to enable tracing:
+
+- **Sidecar**: Set via `spec.tracing.endpoint` in AsyncActor CR
+- **Gateway**: Set via `tracing.endpoint` in gateway Helm values
+
+### Playground Setup
+
+Enable `sampleTracing.enabled: true` in the playground chart to deploy Grafana
+Tempo. The Tempo datasource is auto-provisioned in Grafana.
+
+### Querying Traces
+
+In Grafana Explore, select the Tempo datasource and use TraceQL:
+
+```
+{resource.service.name="my-actor"}
+{span.asya.actor="text-processor" && status=error}
+```
+
 ## Logging
 
 Use standard Kubernetes logging tools:
@@ -247,8 +270,3 @@ Use standard Kubernetes logging tools:
   "timestamp": "2025-11-18T12:00:00Z"
 }
 ```
-
-## Future
-
-- OpenTelemetry tracing for distributed request tracing
-- Pre-built Grafana dashboards

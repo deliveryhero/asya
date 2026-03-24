@@ -1,0 +1,242 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 20,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "serviceMap",
+          "serviceMapQuery": "{}",
+          "refId": "A"
+        }
+      ],
+      "title": "Actor Topology (Service Graph)",
+      "description": "Live topology of the actor mesh derived from distributed traces. Nodes = services, edges = request flow with rate/error/duration.",
+      "type": "nodeGraph"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{}",
+          "limit": 30,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent Traces",
+      "description": "Click a trace to see the full waterfall. Use the search bar above to filter by service, span name, or duration.",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 10,
+      "title": "Error Traces",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 2,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{status=error}",
+          "limit": 20,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Error Traces",
+      "description": "Traces containing at least one error span",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
+      "id": 11,
+      "title": "Gateway Traces",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
+      "id": 3,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{name=\"gateway.task.execute\"}",
+          "limit": 20,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Task Executions (Gateway)",
+      "description": "Traces starting from gateway task dispatch",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "id": 12,
+      "title": "Actor Traces",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "id": 4,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{name=\"actor.process\"}",
+          "limit": 20,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Actor Processing Spans",
+      "description": "All actor.process spans across the mesh",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "id": 13,
+      "title": "Slow Traces",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
+      "id": 5,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{name=\"actor.runtime.call\" && duration > 500ms}",
+          "limit": 20,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
+      "title": "Slow Runtime Calls (> 500ms)",
+      "description": "Actor handler executions taking longer than 500ms",
+      "type": "table"
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["asya", "tracing"],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "title": "Asya - Service Map & Traces",
+  "uid": "asya-service-map-traces"
+}

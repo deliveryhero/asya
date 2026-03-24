@@ -129,6 +129,8 @@ sidecar:
   awsRegion: "us-east-1"
   # GCP project ID for Pub/Sub access (cluster-wide)
   gcpProjectId: ""
+  # OTLP endpoint for distributed tracing (leave empty to disable)
+  tracingEndpoint: ""
 
 # KEDA authentication configuration (SQS)
 keda:

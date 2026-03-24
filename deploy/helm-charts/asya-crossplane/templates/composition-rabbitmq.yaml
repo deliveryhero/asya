@@ -252,6 +252,7 @@ spec:
             {{`{{- $sidecarImage := "`}}{{ .Values.sidecar.image | default "ghcr.io/deliveryhero/asya-sidecar:latest" }}{{`" -}}`}}
             {{`{{- $sidecarImagePullPolicy := "`}}{{ .Values.sidecar.imagePullPolicy | default "IfNotPresent" }}{{`" -}}`}}
             {{`{{- $gatewayURL := "`}}{{ .Values.sidecar.gatewayURL }}{{`" -}}`}}
+            {{`{{- $tracingEndpoint := "`}}{{ .Values.sidecar.tracingEndpoint }}{{`" -}}`}}
             {{`{{- $socketPath := printf "%s/asya-runtime.sock" $socketDir -}}`}}
             {{`{{- $isSystemActor := or (eq $actorName "x-sink") (eq $actorName "x-sump") (eq $actorName "happy-end") (eq $actorName "error-end") -}}`}}
             {{`{{- $scalingEnabled := true -}}`}}
@@ -423,6 +424,13 @@ spec:
                           {{`{{- range (($xrSpec.sidecar | default dict).env | default list) }}`}}
                           - name: {{`{{ .name }}`}}
                             value: {{`{{ .value | quote }}`}}
+                          {{`{{- end }}`}}
+                          {{`{{- if and $xrSpec.tracing $xrSpec.tracing.endpoint }}`}}
+                          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                            value: {{`"{{ $xrSpec.tracing.endpoint }}"`}}
+                          {{`{{- else if ne $tracingEndpoint "" }}`}}
+                          - name: OTEL_EXPORTER_OTLP_ENDPOINT
+                            value: {{`{{ $tracingEndpoint }}`}}
                           {{`{{- end }}`}}
                           {{`{{- if $xrSpec.resiliency }}`}}
                           {{`{{- if $xrSpec.resiliency.policies }}`}}
