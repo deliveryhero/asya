@@ -757,6 +757,11 @@ func (r *Router) ProcessMessage(ctx context.Context, queueMsg transport.QueueMes
 		return nil
 	}
 
+	// Ensure headers map exists for trace context propagation
+	if msg.Headers == nil {
+		msg.Headers = make(map[string]interface{})
+	}
+
 	// Extract trace context from envelope headers and start processing span
 	ctx = tracing.ExtractTraceContext(ctx, msg.Headers)
 	spanAttrs := []attribute.KeyValue{

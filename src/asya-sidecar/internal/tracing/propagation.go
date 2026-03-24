@@ -42,20 +42,15 @@ func (h *headerCarrier) Keys() []string {
 
 // ExtractTraceContext extracts the trace context from envelope headers and returns a new context.
 // If no trace context is found in headers, returns the original context unchanged.
+// The headers map must not be nil.
 func ExtractTraceContext(ctx context.Context, headers map[string]any) context.Context {
-	if headers == nil {
-		return ctx
-	}
 	carrier := &headerCarrier{headers: headers}
 	return otel.GetTextMapPropagator().Extract(ctx, carrier)
 }
 
-// InjectTraceContext injects the trace context from the given context into envelope headers.
-// Creates the headers map if it is nil.
+// InjectTraceContext injects the trace context from the given context into the provided
+// envelope headers map. The headers map must not be nil.
 func InjectTraceContext(ctx context.Context, headers map[string]any) {
-	if headers == nil {
-		return
-	}
 	carrier := &headerCarrier{headers: headers}
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
 }

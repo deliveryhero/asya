@@ -251,17 +251,6 @@ func TestExtractTraceContext_WithNoTraceparent(t *testing.T) {
 	}
 }
 
-func TestExtractTraceContext_WithNilHeaders(t *testing.T) {
-	resetGlobalTracer(t)
-
-	// Extract should handle nil headers gracefully
-	ctx := ExtractTraceContext(context.Background(), nil)
-
-	if ctx == nil {
-		t.Error("ExtractTraceContext should not return nil context")
-	}
-}
-
 func TestInjectTraceContext_WritesTraceparent(t *testing.T) {
 	resetGlobalTracer(t)
 
@@ -292,26 +281,6 @@ func TestInjectTraceContext_WritesTraceparent(t *testing.T) {
 	if _, ok := traceparent.(string); !ok {
 		t.Errorf("Expected traceparent to be string, got %T", traceparent)
 	}
-}
-
-func TestInjectTraceContext_WithNilHeaders(t *testing.T) {
-	resetGlobalTracer(t)
-
-	shutdown, err := Init("localhost:4317", "test-service", "test-namespace")
-	if err != nil {
-		t.Fatalf("Init should not error, got: %v", err)
-	}
-	defer func() {
-		_ = shutdown(context.Background())
-	}()
-
-	// Create a span
-	tracer := otel.GetTracerProvider().Tracer("test")
-	ctx, span := tracer.Start(context.Background(), "test-span")
-	defer span.End()
-
-	// Inject should handle nil headers gracefully (no panic)
-	InjectTraceContext(ctx, nil)
 }
 
 func TestHeaderCarrier_NonStringValues(t *testing.T) {

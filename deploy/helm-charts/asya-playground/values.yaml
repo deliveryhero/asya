@@ -370,6 +370,8 @@ tempo:
     retention: 24h
 
     # Enable metrics generator to correlate traces with metrics
+    # NOTE: remoteWriteUrl must match kube-prometheus-stack.fullnameOverride
+    # (currently "asya-monitoring") suffixed with "-prometheus"
     metricsGenerator:
       enabled: true
       remoteWriteUrl: "http://asya-monitoring-prometheus:9090/api/v1/write"

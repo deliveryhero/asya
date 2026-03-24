@@ -40,12 +40,9 @@ func (h *headerCarrier) Keys() []string {
 	return keys
 }
 
-// InjectTraceContext injects the trace context from the given context into envelope headers.
-// Creates the headers map if it is nil.
+// InjectTraceContext injects the trace context from the given context into the provided
+// envelope headers map. The headers map must not be nil.
 func InjectTraceContext(ctx context.Context, headers map[string]any) {
-	if headers == nil {
-		return
-	}
 	carrier := &headerCarrier{headers: headers}
 	otel.GetTextMapPropagator().Inject(ctx, carrier)
 }
