@@ -414,7 +414,7 @@ class TestDefinitionSiteDecorators:
         ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], Mutation)
 
-    def test_actor_directive_on_decorated_function_with_multiline_decorator(self):
+    def test_directive_on_decorated_function_with_multiline_decorator(self):
         """# asya: actor on def line should be found even with decorators above.
         The unknown decorator should be preserved (not stripped)."""
         source = textwrap.dedent("""
@@ -434,5 +434,43 @@ class TestDefinitionSiteDecorators:
         ops = result.operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
-        # Unknown decorator should NOT be stripped (not in ignore_decorators)
+        # Unknown decorator must NOT be stripped — it's user business logic
         assert "some_decorator" not in (result.ignore_decorators or [])
+
+    def test_actor_decorator_with_unknown_decorator_preserves_unknown(self):
+        """@actor + @some_decorator: @actor is recognized, @some_decorator preserved."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+
+            @some_decorator(arg=1)
+            @actor
+            def handler(p: dict) -> dict:
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        # @actor is recognized, @some_decorator is unknown and must be preserved
+        assert "some_decorator" not in (result.ignore_decorators or [])
+
+    def test_directive_on_async_decorated_function(self):
+        """# asya: actor works on async def with decorators above."""
+        source = textwrap.dedent("""
+            @flow
+            async def my_flow(p: dict) -> dict:
+                p = await handler(p)
+                return p
+
+            @some_retry(attempts=3)
+            async def handler(p: dict) -> dict:  # asya: actor
+                return p
+        """)
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"
+        assert "some_retry" not in (result.ignore_decorators or [])
