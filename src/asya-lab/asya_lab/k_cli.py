@@ -974,14 +974,14 @@ def _send_a2a(
 
     if stream:
         # SSE streaming: gateway sends A2A task updates as SSE events.
-        # Format: "id: <task-id>\ndata: {jsonrpc result}\n\n"
         click.echo("[.] streaming...", err=True)
         gw_task_id: str | None = None
         try:
+            sse_headers = {**headers, "Accept": "text/event-stream"}
             req = urllib.request.Request(
                 f"{url}/a2a/",
                 data=_json.dumps(request).encode(),
-                headers=headers,
+                headers=sse_headers,
             )
             with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
                 # A2A streaming sends two event kinds (per streaming-events.md + PR #392):
@@ -989,8 +989,13 @@ def _send_a2a(
                 #   status-update    — progress/lifecycle; final=true marks completion
                 captured_artifact: dict | None = None  # from artifact-update event
                 prev_actor = ""
-                for raw_line in resp:
-                    line = raw_line.decode("utf-8").rstrip("\n")
+                while True:
+                    raw_line = resp.readline()
+                    if not raw_line:
+                        break
+                    line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
+                    if verbose and line:
+                        click.echo(f"  SSE> {line[:120]}", err=True)
                     if not line.startswith("data:"):
                         continue
                     data_str = line[5:].strip()
