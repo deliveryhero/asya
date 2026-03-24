@@ -76,19 +76,18 @@ class FlowCompiler:
         overwrite: bool = False,
         flow_name: str | None = None,
         *,
-        routers_dir: str | None = None,
-        artifacts_dir: str | None = None,
-        manifests_dir: str | None = None,
-        templates_dir: str | None = None,
+        routers_dir: Path | None = None,
+        artifacts_dir: Path | None = None,
+        manifests_dir: Path | None = None,
+        templates_dir: Path | None = None,
     ) -> FlowInfo:
         _ = overwrite  # reserved for future use
         source_path = Path(source_file)
         if not source_path.exists():
             raise FileNotFoundError(f"Source file not found: {source_file}")
 
-        # Resolve output directories — all default to output_dir if not specified
-        routers_path = Path(routers_dir) if routers_dir else Path(output_dir)
-        artifacts_path = Path(artifacts_dir) if artifacts_dir else Path(output_dir)
+        routers_path = routers_dir or Path(output_dir)
+        artifacts_path = artifacts_dir or Path(output_dir)
         for d in (routers_path, artifacts_path):
             if d.exists() and not d.is_dir():
                 raise ValueError(f"Output path exists and is not a directory: {d}")
@@ -112,9 +111,7 @@ class FlowCompiler:
             for af in self._codegen_meta.adapter_files:
                 (routers_path / af.filename).write_text(af.code)
 
-        _manifests_path = Path(manifests_dir) if manifests_dir else None
-        _templates_path = Path(templates_dir) if templates_dir else None
-        _manifests_dir = self._stamp_manifests(_manifests_path, _templates_path)
+        _manifests_dir = self._stamp_manifests(manifests_dir, templates_dir)
         dot, mermaid_content, json_content = self._generate_outputs(artifacts_path)
 
         if flow_name is None:

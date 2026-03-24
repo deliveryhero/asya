@@ -84,9 +84,9 @@ def _compile_flow_file(
         str(source_path),
         str(code_dir),
         overwrite=True,
-        artifacts_dir=str(artifacts_dir),
-        manifests_dir=str(manifests_dir),
-        templates_dir=str(templates_dir) if templates_dir else None,
+        artifacts_dir=artifacts_dir,
+        manifests_dir=manifests_dir,
+        templates_dir=templates_dir,
     )
 
     # Print warnings before summary
