@@ -1,4 +1,6 @@
 ---
 title: Shorten default kubectl get asya view
 priority: 3 # low
+tags:
+  - pr:399
 ---
