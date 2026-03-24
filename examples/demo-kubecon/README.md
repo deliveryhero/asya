@@ -41,11 +41,11 @@ kustomize image tags in `compiled/text-improver/manifests/common/`.
 ## Step 3: Expose via gateway
 
 ```bash
-asya patch text-improver --gateway \
+asya patch text-improver --gateway --context dev \
+  -- \
   expose=true \
   description="Text improver: evaluator-optimizer content pipeline" \
-  mcp=true a2a=true \
-  --context dev
+  mcp=true a2a=true
 ```
 
 ## Step 4: Deploy

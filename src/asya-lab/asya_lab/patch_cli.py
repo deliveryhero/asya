@@ -18,7 +18,17 @@ import sys
 from pathlib import Path
 
 import click
+
+
+class _LiteralStr(str):
+    """String subclass that yaml.dump renders as a block scalar (|)."""
+
+
+def _literal_representer(dumper: yaml.Dumper, data: _LiteralStr) -> yaml.ScalarNode:
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
 import yaml
+
+yaml.add_representer(_LiteralStr, _literal_representer)
 
 from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.discovery import BASE_DIR, COMMON_DIR, OVERLAYS_DIR, find_asya_dir
@@ -196,7 +206,7 @@ def _build_gateway_config(
             },
         },
         "data": {
-            f"{flow_name}.yaml": flow_yaml,
+            f"{flow_name}.yaml": _LiteralStr(flow_yaml),
         },
     }
 

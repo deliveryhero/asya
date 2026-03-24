@@ -1,0 +1,10 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-generate
+spec:
+  scaling:
+    minReplicaCount: 1
+  env:
+  - name: FAIL_RATE
+    value: '0.1'
