@@ -977,12 +977,10 @@ def _send_a2a(
     if skill:
         params["metadata"] = {"skill": skill}
 
-    # Use message/stream (SSE) when --stream, otherwise message/send (blocking)
-    method = "message/stream" if stream else "message/send"
     request: dict[str, object] = {
         "jsonrpc": "2.0",
         "id": task_id,
-        "method": method,
+        "method": "message/send",
         "params": params,
     }
 
@@ -991,121 +989,53 @@ def _send_a2a(
         headers["X-API-Key"] = api_key
 
     if verbose:
-        click.echo(f"  method: {method}", err=True)
+        click.echo(f"  method: message/send", err=True)
         click.echo(f"  task_id: {task_id}", err=True)
 
-    if stream:
-        # SSE streaming via http.client (urllib buffers the entire response)
-        click.echo("[.] streaming...", err=True)
-        gw_task_id: str | None = None
+    # message/send blocks until the task completes and returns the full result.
+    # With --stream, show a spinner while waiting.
+    import threading
+
+    result_holder: list = []
+    error_holder: list = []
+
+    def _do_send() -> None:
         try:
-            import http.client
-            from urllib.parse import urlparse
+            req = urllib.request.Request(
+                f"{url}/a2a/",
+                data=_json.dumps(request).encode(),
+                headers=headers,
+            )
+            with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
+                result_holder.append(_json.loads(resp.read()))
+        except Exception as exc:
+            error_holder.append(exc)
 
-            parsed = urlparse(f"{url}/a2a/")
-            conn = http.client.HTTPConnection(parsed.hostname, parsed.port or 80, timeout=600)
-            body = _json.dumps(request).encode()
-            sse_headers = {**headers, "Accept": "text/event-stream"}
-            conn.request("POST", parsed.path, body=body, headers=sse_headers)
-            resp = conn.getresponse()
+    t = threading.Thread(target=_do_send, daemon=True)
+    t.start()
 
-            if verbose:
-                click.echo(f"  HTTP {resp.status} {resp.reason}", err=True)
-                click.echo(f"  Content-Type: {resp.getheader('Content-Type', '?')}", err=True)
+    if stream:
+        import time as _time
+        import itertools
 
-            if resp.status != 200:
-                err_body = resp.read().decode("utf-8", errors="replace")
-                click.echo(f"[-] Gateway returned {resp.status}: {err_body[:200]}", err=True)
-                conn.close()
-                return task_id
+        spinner = itertools.cycle("|/-\\")
+        while t.is_alive():
+            click.echo(f"\r[{next(spinner)}] waiting for completion...", nl=False, err=True)
+            _time.sleep(0.3)
+        click.echo("\r" + " " * 40 + "\r", nl=False, err=True)
+    else:
+        click.echo("[.] waiting for response...", err=True)
 
-            captured_artifact: dict | None = None
-            prev_actor = ""
-            while True:
-                raw_line = resp.readline()
-                if not raw_line:
-                    break
-                line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
-                if verbose and line:
-                    click.echo(f"  SSE> {line[:200]}", err=True)
-                if not line.startswith("data:"):
-                    continue
-                data_str = line[5:].strip()
-                if not data_str:
-                    continue
-                try:
-                    event = _json.loads(data_str)
-                except _json.JSONDecodeError:
-                    continue
+    t.join()
 
-                kind = event.get("kind", "")
-
-                # Extract gateway task ID from any event
-                eid = event.get("taskId") or event.get("result", {}).get("id")
-                if gw_task_id is None and eid:
-                    gw_task_id = eid
-
-                if kind == "artifact-update":
-                    art = event.get("artifact", {})
-                    if art:
-                        captured_artifact = art
-                    if verbose:
-                        click.echo(f"  [artifact] {event.get('artifact', {}).get('artifactId', '')}", err=True)
-
-                elif kind == "status-update":
-                    state = event.get("status", {}).get("state", "")
-                    is_final = event.get("final", False)
-
-                    msg_parts = event.get("status", {}).get("message", {}).get("parts", [])
-                    curr_actor = next((p["text"] for p in msg_parts if p.get("kind") == "text"), "")
-                    if curr_actor and curr_actor != prev_actor and curr_actor != "Task completed successfully":
-                        click.echo(f"  [{curr_actor}]", err=True)
-                        prev_actor = curr_actor
-
-                    if is_final or state in ("completed", "failed", "canceled"):
-                        marker = "[+]" if state in ("completed", "succeeded") else "[-]"
-                        tid = gw_task_id or task_id
-                        click.echo(f"{marker} Task {tid}: {state}", err=True)
-                        if captured_artifact:
-                            _print_result([captured_artifact], event if verbose else None)
-                        elif state == "completed" and gw_task_id:
-                            _print_result(_fetch_artifacts(url, gw_task_id, api_key), event if verbose else None)
-                        elif verbose:
-                            _print_result([], event)
-                        conn.close()
-                        return tid
-
-                elif "error" in event:
-                    err = event["error"]
-                    click.echo(f"[-] {err.get('message', err)}", err=True)
-                    conn.close()
-                    return gw_task_id or task_id
-
-            conn.close()
-        except ConnectionRefusedError:
-            click.echo(f"[-] Connection refused: {url}", err=True)
-            _print_port_forward_hint(url, ctx_config)
-            sys.exit(1)
-        except Exception as e:
-            click.echo(f"[-] Stream failed ({e}) — falling back to poll", err=True)
-            _poll_task_status(url, gw_task_id or task_id, api_key)
-        return gw_task_id or task_id
-
-    # Non-streaming: message/send (blocks until task reaches terminal state)
-    click.echo("[.] waiting for response...", err=True)
-    try:
-        req = urllib.request.Request(
-            f"{url}/a2a/",
-            data=_json.dumps(request).encode(),
-            headers=headers,
-        )
-        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
-            body = _json.loads(resp.read())
-    except Exception as e:
+    if error_holder:
+        e = error_holder[0]
         click.echo(f"[-] Request failed: {e}", err=True)
         if "Connection refused" in str(e) or "Errno 111" in str(e):
             _print_port_forward_hint(url, ctx_config)
         sys.exit(1)
+
+    body = result_holder[0] if result_holder else {}
 
     if "error" in body:
         err = body["error"]
