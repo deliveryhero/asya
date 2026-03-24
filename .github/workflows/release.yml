@@ -304,13 +304,12 @@ jobs:
         helm repo update
 
         echo "[.] Building asya-playground dependencies..."
-        helm dependency build deploy/helm-charts/asya-playground
+        helm dependency update deploy/helm-charts/asya-playground
 
         kill $SERVER_PID 2>/dev/null || true
 
         # Restore production repo URLs in Chart.yaml (version was already bumped by earlier step)
         sed -i 's|http://localhost:8879|https://asya.sh/charts|g' deploy/helm-charts/asya-playground/Chart.yaml
-        rm -f deploy/helm-charts/asya-playground/Chart.lock
 
         echo "[.] Packaging asya-playground..."
         helm package deploy/helm-charts/asya-playground -d .deploy/charts
