@@ -40,8 +40,6 @@ jobs:
     needs: validate-title
 
     steps:
-    - uses: actions/checkout@v4
-
     - name: Label PR by changed files
       uses: actions/labeler@v5
       with:
