@@ -1,19 +1,19 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "4039f6d4fad2cad365506d01b105de9b9ea64c99",
+  "commit": "f01a387697d113dc4c24918509ae594ac4758022",
   "coverage": {
     "type": "merged",
     "format": "Merged",
     "total": 8239,
-    "covered": 4280,
+    "covered": 4278,
     "files": [
       {
         "type": "statement",
         "file": "github.com/deliveryhero/asya/asya-sidecar/cmd/sidecar/main.go",
         "normalized_path": "src/asya-sidecar/cmd/sidecar/main.go",
         "total": 263,
-        "covered": 51,
+        "covered": 49,
         "blocks": [
           {
             "type": "statement",
@@ -175,7 +175,7 @@
             "end_line": 99,
             "end_col": 20,
             "num_stmt": 1,
-            "count": 1
+            "count": 0
           },
           {
             "type": "statement",
@@ -29978,6 +29978,6 @@
       }
     ]
   },
-  "test_execution_time": 478000000000,
-  "timestamp": "2026-03-24T15:35:25.698620337Z"
+  "test_execution_time": 472000000000,
+  "timestamp": "2026-03-24T16:22:12.034398087Z"
 }
