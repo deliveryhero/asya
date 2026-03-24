@@ -1283,9 +1283,15 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     grafana_url = ctx_cfg.get("grafana_url")
 
     if grafana_url:
+        import urllib.parse as _urlparse
+
         traceql_query = f'{{span.asya.envelope_id="{envelope_id}"}}'
-        click.echo(f"\n[.] Grafana: {grafana_url}/explore -> Tempo -> TraceQL:", err=True)
-        click.echo(f"    {traceql_query}", err=True)
+        explore_url = (
+            f"{grafana_url}/explore?schemaVersion=1"
+            f"&panes=%7B%22a%22:%7B%22datasource%22:%22tempo%22,"
+            f"%22queries%22:%5B%7B%22query%22:%22{_urlparse.quote(traceql_query)}%22%7D%5D%7D%7D"
+        )
+        click.echo(f"\n[.] Grafana: {explore_url}", err=True)
 
     if not tempo_url:
         if not grafana_url:
@@ -1401,7 +1407,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 @click.option("--a2a", "use_a2a", is_flag=True, default=False, help="Use A2A protocol (default)")
 @click.option("--mcp", "use_mcp", is_flag=True, default=False, help="Use MCP protocol")
 @click.option("--stream", is_flag=True, help="Stream events (A2A subscribe)")
-@click.option("--trace", is_flag=True, help="Show trace URL and ASCII spans after completion")
+@click.option("--show-traces", "trace", is_flag=True, help="Show Grafana trace link and ASCII spans after completion")
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output (show method, task_id, raw events)")
 @click.option("--api-key", default=None, help="API key (default: auto-fetch from asya-gateway-auth secret)")
 def send(
