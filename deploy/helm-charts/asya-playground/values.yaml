@@ -375,6 +375,21 @@ tempo:
     metricsGenerator:
       enabled: true
       remoteWriteUrl: "http://asya-monitoring-prometheus:9090/api/v1/write"
+      processor:
+        service_graphs:
+          wait: 10s
+          max_items: 10000
+          enable_messaging_system_latency_histogram: true
+          enable_virtual_node_label: true
+        span_metrics:
+          enable_target_info: true
+
+    overrides:
+      defaults:
+        metrics_generator:
+          processors:
+            - service-graphs
+            - span-metrics
 
     # OTLP receivers are enabled by default
     # Receivers listen on:
@@ -456,7 +471,7 @@ kube-prometheus-stack:
       # URL pattern: http://{release-name}-tempo:3100
       # Default assumes release name matches the namespace or is 'asya'
       # Override this in your values if using a different release name
-      url: http://{{ .Release.Name }}-tempo:3100
+      url: http://{{ .Release.Name }}-tempo:3200
       access: proxy
       isDefault: false
       jsonData:

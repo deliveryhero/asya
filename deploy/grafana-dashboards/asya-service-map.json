@@ -5,243 +5,236 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
-  "links": [
-    {
-      "asDropdown": false,
-      "icon": "dashboard",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": ["asya"],
-      "targetBlank": false,
-      "title": "Actors Overview",
-      "type": "dashboards"
-    }
-  ],
+  "links": [],
   "panels": [
     {
       "datasource": {
         "type": "tempo",
-        "uid": "${tempo_datasource}"
+        "uid": "ffgxzkexkbda8d"
       },
-      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 0 },
-      "id": 1,
-      "options": {
-        "nodes": {},
-        "edges": {}
+      "gridPos": {
+        "h": 16,
+        "w": 24,
+        "x": 0,
+        "y": 0
       },
+      "id": 20,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
-            "uid": "${tempo_datasource}"
+            "uid": "ffgxzkexkbda8d"
           },
           "queryType": "serviceMap",
+          "serviceMapQuery": "{}",
           "refId": "A"
         }
       ],
-      "title": "Actor Service Map",
-      "description": "Live topology of the actor mesh. Nodes = actors/services, edges = message flow. Requires Tempo metricsGenerator for full edge metrics.",
+      "title": "Actor Topology (Service Graph)",
+      "description": "Live topology of the actor mesh derived from distributed traces. Nodes = services, edges = request flow with rate/error/duration.",
       "type": "nodeGraph"
     },
     {
-      "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 20 },
-      "id": 10,
+      "datasource": {
+        "type": "tempo",
+        "uid": "ffgxzkexkbda8d"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 17
+      },
+      "id": 1,
+      "targets": [
+        {
+          "datasource": {
+            "type": "tempo",
+            "uid": "ffgxzkexkbda8d"
+          },
+          "queryType": "traceql",
+          "query": "{}",
+          "limit": 30,
+          "tableType": "traces",
+          "refId": "A"
+        }
+      ],
       "title": "Recent Traces",
+      "description": "Click a trace to see the full waterfall. Use the search bar above to filter by service, span name, or duration.",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 29
+      },
+      "id": 10,
+      "title": "Error Traces",
       "type": "row"
     },
     {
       "datasource": {
         "type": "tempo",
-        "uid": "${tempo_datasource}"
+        "uid": "ffgxzkexkbda8d"
       },
-      "fieldConfig": {
-        "defaults": {
-          "custom": {
-            "align": "auto",
-            "cellOptions": { "type": "auto" },
-            "inspect": false
-          }
-        },
-        "overrides": [
-          {
-            "matcher": { "id": "byName", "options": "Trace ID" },
-            "properties": [
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "View trace",
-                    "url": "/explore?orgId=1&left=%7B%22datasource%22:%22${tempo_datasource}%22,%22queries%22:%5B%7B%22queryType%22:%22traceql%22,%22query%22:%22${__value.raw}%22%7D%5D%7D",
-                    "targetBlank": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": { "id": "byName", "options": "Duration" },
-            "properties": [
-              { "id": "unit", "value": "ms" }
-            ]
-          }
-        ]
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 30
       },
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 21 },
       "id": 2,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
-            "uid": "${tempo_datasource}"
+            "uid": "ffgxzkexkbda8d"
           },
-          "queryType": "traceqlSearch",
+          "queryType": "traceql",
+          "query": "{status=error}",
           "limit": 20,
-          "filters": [
-            {
-              "id": "service-name",
-              "tag": "resource.service.name",
-              "operator": "=",
-              "scope": "resource",
-              "value": ["${service:pipe}"]
-            },
-            {
-              "id": "span-name",
-              "tag": "name",
-              "operator": "=",
-              "scope": "span"
-            },
-            {
-              "id": "min-duration",
-              "tag": "duration",
-              "operator": ">",
-              "valueType": "duration"
-            }
-          ],
+          "tableType": "traces",
           "refId": "A"
         }
       ],
-      "title": "Recent Traces",
-      "description": "Click a trace ID to view the full waterfall",
+      "title": "Error Traces",
+      "description": "Traces containing at least one error span",
       "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 31 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 38
+      },
       "id": 11,
-      "title": "Error Traces",
+      "title": "Gateway Traces",
       "type": "row"
     },
     {
       "datasource": {
         "type": "tempo",
-        "uid": "${tempo_datasource}"
+        "uid": "ffgxzkexkbda8d"
       },
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 39
+      },
       "id": 3,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
-            "uid": "${tempo_datasource}"
+            "uid": "ffgxzkexkbda8d"
           },
           "queryType": "traceql",
-          "query": "{status=error && resource.service.name=~\"${service:pipe}\"}",
+          "query": "{name=\"gateway.task.execute\"}",
           "limit": 20,
+          "tableType": "traces",
           "refId": "A"
         }
       ],
-      "title": "Error Traces",
-      "description": "Traces with at least one error span",
+      "title": "Task Executions (Gateway)",
+      "description": "Traces starting from gateway task dispatch",
       "type": "table"
     },
     {
       "collapsed": false,
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
       "id": 12,
-      "title": "Latency",
+      "title": "Actor Traces",
       "type": "row"
     },
     {
       "datasource": {
         "type": "tempo",
-        "uid": "${tempo_datasource}"
+        "uid": "ffgxzkexkbda8d"
       },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
       "id": 4,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
-            "uid": "${tempo_datasource}"
+            "uid": "ffgxzkexkbda8d"
           },
           "queryType": "traceql",
-          "query": "{name=\"actor.runtime.call\" && resource.service.name=~\"${service:pipe}\"} | rate()",
+          "query": "{name=\"actor.process\"}",
+          "limit": 20,
+          "tableType": "traces",
           "refId": "A"
         }
       ],
-      "title": "Runtime Call Rate",
-      "type": "timeseries"
+      "title": "Actor Processing Spans",
+      "description": "All actor.process spans across the mesh",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 56
+      },
+      "id": 13,
+      "title": "Slow Traces",
+      "type": "row"
     },
     {
       "datasource": {
         "type": "tempo",
-        "uid": "${tempo_datasource}"
+        "uid": "ffgxzkexkbda8d"
       },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 57
+      },
       "id": 5,
       "targets": [
         {
           "datasource": {
             "type": "tempo",
-            "uid": "${tempo_datasource}"
+            "uid": "ffgxzkexkbda8d"
           },
           "queryType": "traceql",
-          "query": "{name=\"actor.runtime.call\" && resource.service.name=~\"${service:pipe}\"} | quantile_over_time(duration, 0.95)",
+          "query": "{name=\"actor.runtime.call\" && duration > 500ms}",
+          "limit": 20,
+          "tableType": "traces",
           "refId": "A"
         }
       ],
-      "title": "Runtime Call Latency (P95)",
-      "type": "timeseries"
+      "title": "Slow Runtime Calls (> 500ms)",
+      "description": "Actor handler executions taking longer than 500ms",
+      "type": "table"
     }
   ],
   "schemaVersion": 39,
-  "tags": ["asya", "tracing"],
+  "tags": [
+    "asya",
+    "tracing"
+  ],
   "templating": {
-    "list": [
-      {
-        "current": {},
-        "hide": 0,
-        "includeAll": false,
-        "name": "tempo_datasource",
-        "options": [],
-        "query": "tempo",
-        "refresh": 1,
-        "regex": "",
-        "type": "datasource"
-      },
-      {
-        "allValue": ".*",
-        "current": {},
-        "datasource": {
-          "type": "tempo",
-          "uid": "${tempo_datasource}"
-        },
-        "definition": "",
-        "hide": 0,
-        "includeAll": true,
-        "multi": true,
-        "name": "service",
-        "options": [],
-        "query": {
-          "queryType": "traceql",
-          "query": "{} | select(resource.service.name)"
-        },
-        "refresh": 2,
-        "regex": "",
-        "type": "query"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-30m",
