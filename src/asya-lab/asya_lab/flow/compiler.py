@@ -448,11 +448,12 @@ class FlowCompiler:
             self.import_map[name] = handler_fqn
 
             try:
-                # Unwrap decorated functions (e.g. @retry) to find the original source file.
-                # Decorators like tenacity.retry wrap the function object, causing
-                # inspect.getfile() to return the decorator module instead of the actor source.
-                unwrapped = inspect.unwrap(func)
-                source_file = Path(inspect.getfile(unwrapped)).resolve()
+                # Resolve source file. If getfile returns a path outside the project
+                # (e.g. a decorator wrapper module like tenacity), unwrap to find the
+                # original function's source file.
+                source_file = Path(inspect.getfile(func)).resolve()
+                if hasattr(func, "__wrapped__") and not str(source_file).startswith(str(Path.cwd())):
+                    source_file = Path(inspect.getfile(inspect.unwrap(func))).resolve()
                 self.handler_source_files[name] = source_file
                 if self.verbose and name in actor_names:
                     import click

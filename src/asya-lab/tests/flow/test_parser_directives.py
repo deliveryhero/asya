@@ -413,3 +413,22 @@ class TestDefinitionSiteDecorators:
         # Inline comment (highest priority) wins over @actor
         ops = FlowParser(source, "test.py").parse().operations
         assert isinstance(ops[0], Mutation)
+
+    def test_actor_directive_on_decorated_function_with_multiline_decorator(self):
+        """# asya: actor on def line should be found even with decorators above."""
+        source = textwrap.dedent("""
+            @flow
+            def my_flow(p: dict) -> dict:
+                p = handler(p)
+                return p
+
+            @some_decorator(
+                arg1=value1,
+                arg2=value2,
+            )
+            def handler(p: dict) -> dict:  # asya: actor
+                return p
+        """)
+        ops = FlowParser(source, "test.py").parse().operations
+        assert isinstance(ops[0], ActorCall)
+        assert ops[0].name == "handler"

@@ -293,6 +293,10 @@ class FlowParser:
         for node in tree.body:
             if not isinstance(node, _FUNC_DEF_TYPES):
                 continue
+            # Check # asya: <directive> comment on def line (works with decorators above)
+            d = self._directive_for_func(node)
+            if d is not None and node.name not in index:
+                index[node.name] = d.treat_as
             for dec in node.decorator_list:
                 dec_name = self._decorator_name(dec)
                 if dec_name is None:
@@ -496,10 +500,19 @@ class FlowParser:
 
     # -- Flow function detection --
 
+    def _directive_for_func(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> AsyaDirective | None:
+        """Find directive comment on any line of the function signature (including decorators)."""
+        end = node.body[0].lineno if node.body else node.end_lineno or node.lineno
+        for lineno in range(node.lineno, end):
+            d = self._directives.get(lineno)
+            if d is not None:
+                return d
+        return None
+
     def _is_flow_by_directive(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
         """Check if function has ``# asya: flow`` comment on the def line."""
-        directive = self._directives.get(node.lineno)
-        return directive is not None and directive.treat_as == "flow"
+        d = self._directive_for_func(node)
+        return d is not None and d.treat_as == "flow"
 
     def _find_flow_function(self, tree: ast.Module) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
         candidates: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
