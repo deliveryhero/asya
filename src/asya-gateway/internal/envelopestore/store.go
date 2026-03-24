@@ -1,6 +1,7 @@
 package envelopestore
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -252,7 +253,7 @@ func (s *Store) Subscribe(id string) chan types.EnvelopeUpdate {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	ch := make(chan types.EnvelopeUpdate, 10)
+	ch := make(chan types.EnvelopeUpdate, 100)
 	s.listeners[id] = append(s.listeners[id], ch)
 
 	return ch
@@ -284,7 +285,7 @@ func (s *Store) notifyListeners(update types.EnvelopeUpdate) {
 		select {
 		case ch <- update:
 		default:
-			// Channel full, skip
+			slog.Warn("FLY event dropped: subscriber channel full", "task_id", update.ID)
 		}
 	}
 }
@@ -454,4 +455,19 @@ func (s *Store) List(params EnvelopeListParams) ([]*types.Envelope, int, error) 
 // isFinal checks if a status is final (must hold lock)
 func (s *Store) isFinal(status types.EnvelopeStatus) bool {
 	return status == types.EnvelopeStatusSucceeded || status == types.EnvelopeStatusFailed || status == types.EnvelopeStatusCanceled
+}
+
+// NotifyFLY dispatches an ephemeral FLY event to in-process subscribers without persisting to storage.
+// Used for streaming LLM tokens and real-time progress updates.
+func (s *Store) NotifyFLY(id string, payload []byte) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	update := types.EnvelopeUpdate{
+		ID:             id,
+		Status:         types.EnvelopeStatusRunning,
+		PartialPayload: json.RawMessage(payload),
+		Timestamp:      time.Now(),
+	}
+	s.notifyListeners(update)
 }

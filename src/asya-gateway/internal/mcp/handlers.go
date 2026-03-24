@@ -9,11 +9,13 @@ import (
 	"log/slog"
 	"net/http"
 	"regexp"
+	"strings"
 	"time"
 
 	"github.com/deliveryhero/asya/asya-gateway/internal/a2a"
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
@@ -24,20 +26,25 @@ var (
 	meshProgressPathRegex = regexp.MustCompile(`^/mesh/([^/]+)/progress$`)
 	meshFinalPathRegex    = regexp.MustCompile(`^/mesh/([^/]+)/final$`)
 	meshFlyPathRegex      = regexp.MustCompile(`^/mesh/([^/]+)/fly$`)
+	streamPathRegex       = regexp.MustCompile(`^/stream/([^/]+)$`)
 )
+
+const maxPGNotifyPayload = 7900 // PG NOTIFY limit is 8000 bytes; leave room for task_id + colon
 
 // Handler provides HTTP endpoints for task management
 // MCP endpoints are now handled directly by mark3labs/mcp-go server
 type Handler struct {
 	taskStore      envelopestore.EnvelopeStore
-	server         *Server      // For direct tool calls
-	configReloadFn func() error // Optional: triggers immediate ConfigMap reload
+	server         *Server       // For direct tool calls
+	configReloadFn func() error  // Optional: triggers immediate ConfigMap reload
+	pool           *pgxpool.Pool // For pg_notify (FLY events); nil when using in-memory store
 }
 
 // NewHandler creates a new HTTP handler for task management
-func NewHandler(taskStore envelopestore.EnvelopeStore) *Handler {
+func NewHandler(taskStore envelopestore.EnvelopeStore, pool *pgxpool.Pool) *Handler {
 	return &Handler{
 		taskStore: taskStore,
+		pool:      pool,
 	}
 }
 
@@ -249,7 +256,11 @@ func (h *Handler) HandleMeshStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Match both /mesh/{id}/stream (mesh routes) and /stream/{id} (API routes)
 	matches := meshStreamPathRegex.FindStringSubmatch(r.URL.Path)
+	if matches == nil {
+		matches = streamPathRegex.FindStringSubmatch(r.URL.Path)
+	}
 	if matches == nil {
 		http.Error(w, "Invalid task stream path", http.StatusBadRequest)
 		return
@@ -667,10 +678,8 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 	}
 	taskID := matches[1]
 
-	// Limit request body size to prevent resource exhaustion (1MB)
 	r.Body = http.MaxBytesReader(w, r.Body, 1024*1024)
 
-	// Read raw payload body
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		var maxBytesError *http.MaxBytesError
@@ -682,19 +691,29 @@ func (h *Handler) HandleMeshFly(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create a TaskUpdate with PartialPayload for SSE broadcasting
-	update := types.EnvelopeUpdate{
-		ID:             taskID,
-		Status:         types.EnvelopeStatusRunning,
-		PartialPayload: json.RawMessage(body),
-		Timestamp:      time.Now(),
+	// Reject task IDs containing the notification delimiter to prevent
+	// an attacker from spoofing FLY events for arbitrary tasks.
+	if strings.Contains(taskID, ":") {
+		http.Error(w, "Invalid task ID", http.StatusBadRequest)
+		return
 	}
 
-	// Store and broadcast to SSE subscribers
-	if err := h.taskStore.UpdateProgress(update); err != nil {
-		slog.Error("Failed to store FLY event", "task_id", taskID, "error", err)
-		http.Error(w, "Failed to store FLY event", http.StatusInternalServerError)
-		return
+	// Broadcast via PG NOTIFY for cross-process delivery (dual-gateway mode).
+	// FLY events are ephemeral — no INSERT, no UPDATE, no DB storage.
+	// NotifyFLY is the fallback when pg_notify is not available or fails.
+	if h.pool != nil {
+		notification := taskID + ":" + string(body)
+		if len(notification) > maxPGNotifyPayload {
+			slog.Warn("FLY event too large for pg_notify, using in-process only",
+				"task_id", taskID, "size", len(notification))
+			h.taskStore.NotifyFLY(taskID, body)
+		} else if _, err := h.pool.Exec(r.Context(), "SELECT pg_notify($1, $2)", envelopestore.FLYChannel, notification); err != nil {
+			slog.Warn("Failed to pg_notify FLY event, falling back to in-process",
+				"task_id", taskID, "error", err)
+			h.taskStore.NotifyFLY(taskID, body)
+		}
+	} else {
+		h.taskStore.NotifyFLY(taskID, body)
 	}
 
 	w.WriteHeader(http.StatusOK)

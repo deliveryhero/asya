@@ -1,0 +1,76 @@
+{{- if .Values.pubsub.keda.scaler.enabled }}
+{{- $grpcPort := 6000 }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asya-scaler-pubsub
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: asya-scaler-pubsub
+    app.kubernetes.io/component: scaler
+    app.kubernetes.io/part-of: asya
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: asya-scaler-pubsub
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: asya-scaler-pubsub
+        app.kubernetes.io/component: scaler
+        app.kubernetes.io/part-of: asya
+    spec:
+      {{- with .Values.pubsub.keda.scaler.serviceAccountName }}
+      serviceAccountName: {{ . }}
+      {{- end }}
+      containers:
+      - name: scaler-pubsub
+        image: "{{ .Values.pubsub.keda.scaler.image.repository }}:{{ .Values.pubsub.keda.scaler.image.tag | default "latest" }}"
+        imagePullPolicy: {{ .Values.pubsub.keda.scaler.image.pullPolicy | default "IfNotPresent" }}
+        command: ["/scaler-pubsub"]
+        ports:
+        - containerPort: {{ $grpcPort }}
+          name: grpc
+          protocol: TCP
+        env:
+        - name: SCALER_PORT
+          value: "{{ $grpcPort }}"
+        - name: LOG_LEVEL
+          value: {{ .Values.pubsub.keda.scaler.logLevel | default "INFO" | quote }}
+        {{- range .Values.pubsub.keda.scaler.env }}
+        - name: {{ .name }}
+          value: {{ .value | quote }}
+        {{- end }}
+        resources:
+          {{- toYaml .Values.pubsub.keda.scaler.resources | nindent 10 }}
+        livenessProbe:
+          tcpSocket:
+            port: {{ $grpcPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        readinessProbe:
+          tcpSocket:
+            port: {{ $grpcPort }}
+          initialDelaySeconds: 2
+          periodSeconds: 3
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: asya-scaler-pubsub
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app.kubernetes.io/name: asya-scaler-pubsub
+    app.kubernetes.io/component: scaler
+    app.kubernetes.io/part-of: asya
+spec:
+  selector:
+    app.kubernetes.io/name: asya-scaler-pubsub
+  ports:
+  - port: {{ $grpcPort }}
+    targetPort: {{ $grpcPort }}
+    protocol: TCP
+    name: grpc
+{{- end }}

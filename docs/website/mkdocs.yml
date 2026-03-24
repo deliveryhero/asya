@@ -10,7 +10,7 @@ docs_dir: ..
 theme:
   name: shadcn
   custom_dir: .
-  favicon: website/img/favicon.ico
+  favicon: website/img/logo_colored_with_borders.png
   features:
   - navigation.sections
   - navigation.indexes

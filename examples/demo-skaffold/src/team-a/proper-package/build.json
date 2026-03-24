@@ -1,8 +1,0 @@
-{
-  "builds": [
-    {
-      "imageName": "src-team-a-proper-package",
-      "tag": "europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/src-team-a-proper-package:v0.5.9-41-g8d3308d8@sha256:c0dab588510d02f34543e77c37a16830c9fcc159749969e1fb85dbe51619b5cf"
-    }
-  ]
-}

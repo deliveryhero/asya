@@ -144,7 +144,7 @@ spec:
               optional: true
           {{- range .Values.flowConfigMaps }}
           - configMap:
-              name: {{ . }}
+              name: {{ . | quote }}
               optional: true
           {{- end }}
       {{- with .Values.volumes }}

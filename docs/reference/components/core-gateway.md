@@ -5,8 +5,9 @@
 - Expose MCP-compliant HTTP API
 - Create tasks from HTTP requests
 - Track task status in PostgreSQL
-- Stream progress updates via Server-Sent Events (SSE)
+- Stream progress updates and ephemeral FLY events via Server-Sent Events (SSE)
 - Receive status reports from crew actors
+- Broadcast FLY events via PG LISTEN/NOTIFY for cross-process delivery
 
 ## How It Works
 
@@ -248,12 +249,17 @@ GET /mesh/{id}/stream
 Accept: text/event-stream
 ```
 
+Internal mesh endpoint for streaming progress and FLY events. For external API access, use `GET /stream/{id}` on the API gateway.
+
 **Features**:
 
-- Sends historical updates first (no missed progress)
+- Sends historical progress and status updates first (no missed progress)
 - Streams real-time updates as they occur
+- Broadcasts ephemeral FLY events via PG LISTEN/NOTIFY for cross-process delivery
 - Keepalive comments every 15 seconds
 - Auto-closes on final status (`succeeded` or `failed`)
+
+⚠️ **FLY events are ephemeral** — not persisted to the database. Clients connecting after task completion will NOT see historical FLY events.
 
 Stream events (TaskUpdate):
 ```

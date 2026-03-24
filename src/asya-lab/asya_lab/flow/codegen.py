@@ -582,8 +582,12 @@ class CodeGenerator:
         fqn = self.result.import_map.get(op.name)
         if fqn:
             # "greeter.greet" -> "from greeter import greet"
-            module_path = fqn.rsplit(".", 1)[0]
-            import_line = f"from {module_path} import {op.name}"
+            # Handles aliases: "greeter.greet" with op.name="my_greet" -> "from greeter import greet as my_greet"
+            module_path, original_name = fqn.rsplit(".", 1)
+            if original_name != op.name:
+                import_line = f"from {module_path} import {original_name} as {op.name}"
+            else:
+                import_line = f"from {module_path} import {op.name}"
 
         lines = [
             "# fmt: off",

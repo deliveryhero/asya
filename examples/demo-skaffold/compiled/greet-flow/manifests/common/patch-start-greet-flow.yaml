@@ -1,7 +1,0 @@
-apiVersion: asya.sh/v1alpha1
-kind: AsyncActor
-metadata:
-  name: start-greet-flow
-spec:
-  scaling:
-    minReplicaCount: 1

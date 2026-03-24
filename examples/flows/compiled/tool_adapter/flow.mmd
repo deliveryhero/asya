@@ -1,0 +1,25 @@
+flowchart TD
+    %% Flow: tool_adapter
+
+    compose_response[compose_response]
+    format_greeting[format_greeting]
+    get_weather[get_weather]
+    start_tool_adapter([start_tool_adapter])
+    validate_input[validate_input]
+    __end__((( )))
+
+    start_tool_adapter --> validate_input
+    validate_input --> get_weather
+    get_weather --> format_greeting
+    format_greeting --> compose_response
+    compose_response --> __end__
+
+    classDef start fill:#98FB98,stroke:#333
+    classDef endnode fill:#FFA07A,stroke:#333
+    classDef router fill:#F5DEB3,stroke:#333
+    classDef handler fill:#ADD8E6,stroke:#333
+    classDef endpoint fill:#000,stroke:#333,color:#fff
+    class start_tool_adapter start
+    class compose_response endnode
+    class format_greeting,get_weather,validate_input handler
+    class __end__ endpoint

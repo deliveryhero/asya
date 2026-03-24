@@ -2,6 +2,7 @@ package a2a
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,6 +14,28 @@ import (
 	"github.com/deliveryhero/asya/asya-gateway/internal/envelopestore"
 	"github.com/deliveryhero/asya/asya-gateway/pkg/types"
 )
+
+// flyArtifactID is the deterministic artifact ID used for FLY streaming chunks.
+const flyArtifactID = "fly-stream"
+
+// convertFLYToArtifactUpdate converts a FLY event (PartialPayload) to an A2A
+// TaskArtifactUpdateEvent. The first event creates the artifact (Append=false),
+// subsequent events append to it (Append=true).
+func convertFLYToArtifactUpdate(
+	reqCtx *a2asrv.RequestContext,
+	payload json.RawMessage,
+	isFirst bool,
+) *a2alib.TaskArtifactUpdateEvent {
+	return &a2alib.TaskArtifactUpdateEvent{
+		TaskID:    reqCtx.TaskID,
+		ContextID: reqCtx.ContextID,
+		Append:    !isFirst,
+		Artifact: &a2alib.Artifact{
+			ID:    a2alib.ArtifactID(flyArtifactID),
+			Parts: a2alib.ContentParts{a2alib.TextPart{Text: string(payload)}},
+		},
+	}
+}
 
 // terminalOrInterrupted returns true if the status represents a terminal
 // or interrupted state that should stop the blocking wait loop.
@@ -79,6 +102,29 @@ func waitAndRelayEvents(
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 
+	firstFLY := true
+
+	// closeArtifactStream sends a LastChunk event to signal the end of the FLY
+	// artifact stream. Only called if FLY events were actually sent (!firstFLY).
+	closeArtifactStream := func() {
+		if firstFLY {
+			return
+		}
+		lastChunk := &a2alib.TaskArtifactUpdateEvent{
+			TaskID:    reqCtx.TaskID,
+			ContextID: reqCtx.ContextID,
+			Append:    true,
+			LastChunk: true,
+			Artifact: &a2alib.Artifact{
+				ID:    a2alib.ArtifactID(flyArtifactID),
+				Parts: a2alib.ContentParts{},
+			},
+		}
+		if err := eq.Write(ctx, lastChunk); err != nil {
+			slog.Warn("Failed to write LastChunk artifact event", "task_id", taskID, "error", err)
+		}
+	}
+
 	for {
 		select {
 		case update, ok := <-ch:
@@ -87,7 +133,18 @@ func waitAndRelayEvents(
 				return nil
 			}
 
+			// FLY events: relay as A2A artifact chunks
+			if update.PartialPayload != nil {
+				evt := convertFLYToArtifactUpdate(reqCtx, update.PartialPayload, firstFLY)
+				firstFLY = false
+				if err := eq.Write(ctx, evt); err != nil {
+					slog.Warn("Failed to relay FLY as artifact", "task_id", taskID, "error", err)
+				}
+				continue
+			}
+
 			if terminalOrInterrupted(update.Status) {
+				closeArtifactStream()
 				slog.Debug("Blocking wait: terminal event relayed via subscription",
 					"task_id", taskID, "status", update.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, update.Status)
@@ -101,6 +158,7 @@ func waitAndRelayEvents(
 				continue
 			}
 			if terminalOrInterrupted(current.Status) {
+				closeArtifactStream()
 				slog.Debug("Blocking wait: terminal status detected via DB poll",
 					"task_id", taskID, "status", current.Status)
 				return writeTerminalEvent(ctx, reqCtx, eq, current.Status)
@@ -109,6 +167,7 @@ func waitAndRelayEvents(
 		case <-timer.C:
 			// Timeout: get current state and write as final event
 			slog.Warn("Blocking wait timed out", "task_id", taskID, "timeout", timeout)
+			closeArtifactStream()
 			current, getErr := store.Get(taskID)
 			if getErr != nil {
 				return fmt.Errorf("get task on timeout: %w", getErr)

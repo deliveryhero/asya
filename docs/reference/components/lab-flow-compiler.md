@@ -223,15 +223,24 @@ the AST to produce a flat list of operations and extracted configuration.
 
 ### Operation types
 
-The parser produces five operation types:
+The parser produces six operation types:
 
 | Operation | Source construct | Fields |
 |---|---|---|
 | `ActorCall` | `p = handler(p)` | lineno, name, source_file |
+| `AdapterCall` | `p["key"] = fn(p["arg"])` | lineno, name, input_args, output_path, is_async |
 | `Mutation` | `p["key"] = value` | lineno, code |
 | `Conditional` | `if p["x"]: ...` | lineno, test, true_branch, false_branch |
 | `Loop` | `while cond: ...` | lineno, test, body (`test: None` for `while True`) |
 | `FanOut` | `p["x"] = [a(p), b(p)]` | lineno, target_key, actor_calls, pattern |
+
+`AdapterCall` is emitted when a function classified as `actor` (via compiler
+rule, `@actor` decorator, or `# asya: actor` directive) is called with
+non-standard arguments — e.g. typed parameters extracted from payload keys
+rather than the standard `dict -> dict` pattern. The code generator produces
+an adapter wrapper file that bridges the function's typed signature to the
+envelope protocol. See
+[Adapter generation](../specs/compiler-rules.md#adapter-generation).
 
 Previous IR types that no longer exist as separate operations:
 

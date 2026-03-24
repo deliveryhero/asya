@@ -133,6 +133,6 @@ metadata:
     app: load-test
     flow: text-improver
 data:
-  gcp_project_id: "foodsci-img-gen-dev-1407-1448"
+  gcp_project_id: "<YOUR-GCP-PROJECT>"
   topic_name: "asya-demo-start-text-improver"
   message_count: "50"

@@ -1,1 +1,0 @@
-# no dependencies — bare-script actors are self-contained

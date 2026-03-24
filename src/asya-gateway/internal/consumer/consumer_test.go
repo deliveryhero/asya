@@ -53,6 +53,8 @@ func (s *mockTaskStore) List(params envelopestore.EnvelopeListParams) ([]*types.
 	return nil, 0, nil
 }
 
+func (s *mockTaskStore) NotifyFLY(id string, payload []byte) {}
+
 // mockQueueClient implements queue.Client with all no-ops
 type mockQueueClient struct{}
 

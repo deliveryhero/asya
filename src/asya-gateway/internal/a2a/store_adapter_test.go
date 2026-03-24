@@ -508,3 +508,130 @@ func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, got.History, 2, "paused task must return full conversation history")
 }
+
+// ---------------------------------------------------------------------------
+// Artifact event filtering in Save()
+// ---------------------------------------------------------------------------
+
+func TestStoreAdapterSave_SkipsDBForArtifactAppend(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	taskID := "artifact-skip-task"
+	err := store.Create(&types.Envelope{
+		ID:        taskID,
+		ContextID: "ctx",
+		Route:     types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+		Payload:   map[string]any{},
+	})
+	require.NoError(t, err)
+
+	// Transition to running
+	err = store.Update(types.EnvelopeUpdate{
+		ID:        taskID,
+		Status:    types.EnvelopeStatusRunning,
+		Timestamp: time.Now(),
+	})
+	require.NoError(t, err)
+
+	a2aTask := &a2alib.Task{
+		ID:        a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Status:    a2alib.TaskStatus{State: a2alib.TaskStateWorking},
+	}
+
+	artifactEvent := &a2alib.TaskArtifactUpdateEvent{
+		TaskID:    a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Append:    true,
+		Artifact: &a2alib.Artifact{
+			ID:    "fly-stream",
+			Parts: a2alib.ContentParts{a2alib.TextPart{Text: "hello"}},
+		},
+	}
+
+	prevVersion := a2alib.TaskVersion(42)
+	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, prevVersion)
+	require.NoError(t, err)
+	assert.Equal(t, prevVersion, version)
+
+	envelope, err := store.Get(taskID)
+	require.NoError(t, err)
+	assert.Equal(t, types.EnvelopeStatusRunning, envelope.Status)
+	assert.Empty(t, envelope.Message, "Save() should not write to store for artifact events")
+}
+
+func TestStoreAdapterSave_SkipsDBForNewArtifact(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	taskID := "artifact-new-task"
+	err := store.Create(&types.Envelope{
+		ID:        taskID,
+		ContextID: "ctx",
+		Route:     types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+	})
+	require.NoError(t, err)
+
+	// Transition to running
+	err = store.Update(types.EnvelopeUpdate{
+		ID:        taskID,
+		Status:    types.EnvelopeStatusRunning,
+		Timestamp: time.Now(),
+	})
+	require.NoError(t, err)
+
+	a2aTask := &a2alib.Task{
+		ID:        a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Status:    a2alib.TaskStatus{State: a2alib.TaskStateWorking},
+	}
+
+	artifactEvent := &a2alib.TaskArtifactUpdateEvent{
+		TaskID:    a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Append:    false,
+		Artifact: &a2alib.Artifact{
+			ID:    "fly-stream",
+			Parts: a2alib.ContentParts{a2alib.TextPart{Text: "first chunk"}},
+		},
+	}
+
+	prevVersion := a2alib.TaskVersion(10)
+	version, err := adapter.Save(context.Background(), a2aTask, artifactEvent, prevVersion)
+	require.NoError(t, err)
+	assert.Equal(t, prevVersion, version)
+}
+
+func TestStoreAdapterSave_StatusEventsStillWriteToDB(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	taskID := "status-write-task"
+	err := store.Create(&types.Envelope{
+		ID:        taskID,
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusPending,
+		Route:     types.Route{Prev: []string{}, Curr: "actor1", Next: []string{}},
+	})
+	require.NoError(t, err)
+
+	a2aTask := &a2alib.Task{
+		ID:        a2alib.TaskID(taskID),
+		ContextID: "ctx",
+		Status: a2alib.TaskStatus{
+			State:   a2alib.TaskStateWorking,
+			Message: a2alib.NewMessage(a2alib.MessageRoleAgent, &a2alib.TextPart{Text: "working"}),
+		},
+	}
+
+	statusEvent := a2alib.NewStatusUpdateEvent(a2aTask, a2alib.TaskStateWorking, nil)
+
+	version, err := adapter.Save(context.Background(), a2aTask, statusEvent, a2alib.TaskVersionMissing)
+	require.NoError(t, err)
+	assert.NotEqual(t, a2alib.TaskVersionMissing, version)
+
+	envelope, err := store.Get(taskID)
+	require.NoError(t, err)
+	assert.Equal(t, types.EnvelopeStatusRunning, envelope.Status)
+}

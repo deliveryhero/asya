@@ -1,0 +1,53 @@
+# Configuration for GitHub's auto-generated release notes.
+# Used when clicking "Generate release notes" in the GitHub release UI.
+# See: https://docs.github.com/en/repositories/releasing-projects-on-github/automatically-generated-release-notes
+
+changelog:
+  exclude:
+    labels:
+    - automated
+    authors:
+    - github-actions[bot]
+    - dependabot[bot]
+
+  categories:
+  - title: "Breaking Changes"
+    labels:
+    - breaking
+    - breaking-change
+
+  - title: "Features"
+    labels:
+    - feat
+
+  - title: "Bug Fixes"
+    labels:
+    - fix
+
+  - title: "Helm Charts"
+    labels:
+    - charts
+
+  - title: "Performance"
+    labels:
+    - perf
+
+  - title: "Documentation"
+    labels:
+    - docs
+
+  - title: "Other Changes"
+    labels:
+    - refactor
+    - test
+    - build
+    - ci
+    - chore
+    - deps
+    - style
+    - asya-crew
+    - asya-gateway
+    - function-asya-flavors
+    - asya-runtime
+    - asya-sidecar
+    - asya-state-proxy

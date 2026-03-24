@@ -13,7 +13,7 @@ stubs with simulated latency.
 - GCP auth and Artifact Registry access
 
 ```bash
-export GCP_PROJECT=foodsci-img-gen-dev-1407-1448
+export GCP_PROJECT=<YOUR-GCP-PROJECT>
 export REGION=europe-west1
 export KCTX=gke_${GCP_PROJECT}_${REGION}_asya-demo
 
