@@ -58,26 +58,15 @@ def _compile_flow_file(
     else:
         flow_name = flow_function.replace("_", "-")
 
-    # Resolve output directories from config — no hidden defaults
-    if project:
-        dirs = _resolve_compiler_dirs(project)
-    else:
-        dirs = {}
-
-    default_base = Path(f".asya/flows/{flow_function}")
-    code_dir = dirs.get("code", default_base / "code").resolve()
-    artifacts_dir = dirs.get("artifacts", default_base / "artifacts").resolve()
-    manifests_dir = dirs.get("manifests", default_base / "manifests").resolve()
-    templates_dir = dirs.get("templates")
-
     if project is None:
-        click.echo(
-            f"[!] No .asya/config.yaml found. Outputs default to:\n"
-            f"    code:      {code_dir}\n"
-            f"    artifacts: {artifacts_dir}\n"
-            f"    manifests: {manifests_dir}",
-            err=True,
-        )
+        click.echo("[-] No .asya/config.yaml found. Run 'asya init' first.", err=True)
+        sys.exit(1)
+
+    dirs = _resolve_compiler_dirs(project)
+    code_dir = dirs["code"]
+    artifacts_dir = dirs["artifacts"]
+    manifests_dir = dirs["manifests"]
+    templates_dir = dirs.get("templates")
 
     compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
     result = compiler.compile_file(
@@ -102,7 +91,6 @@ def _compile_flow_file(
     num_actors = len(result.actors)
     num_routers = sum(1 for a in result.actors if a.generated)
     click.echo(f"[+] Compiled flow '{flow_name}' ({num_actors} actors, {num_routers} routers)")
-
     click.echo(f"    code:      {code_dir}")
 
     if artifacts_dir != code_dir:
