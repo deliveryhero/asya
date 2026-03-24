@@ -1,7 +1,7 @@
 {
   "repository": "deliveryhero/asya",
   "ref": "refs/heads/main",
-  "commit": "7d65dd30a9b3a4d02f4be130778f3ef983ad5e13",
+  "commit": "e2dab9bf9d091d3721b1e4faa6407ec63be5e8cc",
   "coverage": {
     "type": "merged",
     "format": "Merged",
@@ -25769,8 +25769,8 @@
     ]
   },
   "code_to_test_ratio": {
-    "code": 34269,
-    "test": 19633,
+    "code": 35123,
+    "test": 19804,
     "code_files": [
       {
         "code": 923,
@@ -27250,6 +27250,34 @@
         "language": "Go"
       },
       {
+        "code": 419,
+        "comment": 17,
+        "blank": 66,
+        "path": "src/asya-crew/cmd/scaler-pubsub/externalscaler/externalscaler.pb.go",
+        "language": "Go"
+      },
+      {
+        "code": 185,
+        "comment": 34,
+        "blank": 24,
+        "path": "src/asya-crew/cmd/scaler-pubsub/externalscaler/externalscaler_grpc.pb.go",
+        "language": "Go"
+      },
+      {
+        "code": 89,
+        "comment": 2,
+        "blank": 16,
+        "path": "src/asya-crew/cmd/scaler-pubsub/main.go",
+        "language": "Go"
+      },
+      {
+        "code": 161,
+        "comment": 12,
+        "blank": 30,
+        "path": "src/asya-crew/cmd/scaler-pubsub/scaler.go",
+        "language": "Go"
+      },
+      {
         "code": 0,
         "comment": 0,
         "blank": 0,
@@ -28512,6 +28540,13 @@
         "language": "Go"
       },
       {
+        "code": 171,
+        "comment": 1,
+        "blank": 22,
+        "path": "src/asya-crew/cmd/scaler-pubsub/scaler_test.go",
+        "language": "Go"
+      },
+      {
         "code": 48,
         "comment": 0,
         "blank": 10,
@@ -28884,6 +28919,6 @@
       }
     ]
   },
-  "test_execution_time": 388000000000,
-  "timestamp": "2026-03-23T23:10:22.369861581Z"
+  "test_execution_time": 433000000000,
+  "timestamp": "2026-03-24T00:02:05.949750146Z"
 }
