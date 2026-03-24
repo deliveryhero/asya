@@ -1152,7 +1152,6 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 
     # Query Tempo via TraceQL for spans matching this envelope ID
     click.echo(f"[.] Querying traces for {envelope_id}...", err=True)
-    _time.sleep(5)  # wait for traces to flush to Tempo
 
     import urllib.parse
 
