@@ -600,6 +600,7 @@ func (h *Handler) HandleMeshFinal(w http.ResponseWriter, r *http.Request) {
 	update := types.EnvelopeUpdate{
 		ID:              taskID,
 		Status:          taskStatus,
+		Result:          finalUpdate.Result,
 		ProgressPercent: &progressPercent,
 		Timestamp:       time.Now(),
 	}

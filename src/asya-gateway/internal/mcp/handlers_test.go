@@ -894,8 +894,11 @@ func TestHandleMeshFinal(t *testing.T) {
 					t.Errorf("Task status = %v, want %v", task.Status, tt.wantTaskStatus)
 				}
 
-				if tt.wantTaskStatus == types.EnvelopeStatusSucceeded && task.Result != nil {
-					t.Error("Succeeded task must not store result payload in PG (metadata only)")
+				if tt.wantTaskStatus == types.EnvelopeStatusSucceeded && task.Result == nil {
+					updateMap := tt.finalUpdate.(map[string]interface{})
+					if _, hasResult := updateMap["result"]; hasResult {
+						t.Error("Expected result to be set for succeeded task")
+					}
 				}
 
 				if tt.wantTaskStatus == types.EnvelopeStatusFailed {

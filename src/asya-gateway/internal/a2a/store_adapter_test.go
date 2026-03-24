@@ -510,15 +510,15 @@ func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Result payload NOT stored in PG for succeeded tasks
+// Result-to-artifact synthesis
 // ---------------------------------------------------------------------------
 
-func TestStoreAdapterGet_NoArtifactForSucceededTaskWithoutStateProxy(t *testing.T) {
+func TestStoreAdapterGet_ResultSynthesizedAsArtifactForSucceededTask(t *testing.T) {
 	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil) // no state proxy
 
 	task := &types.Envelope{
-		ID:        "no-sp-task",
+		ID:        "result-task",
 		ContextID: "ctx",
 		Status:    types.EnvelopeStatusSucceeded,
 		Route:     types.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
@@ -526,14 +526,110 @@ func TestStoreAdapterGet_NoArtifactForSucceededTaskWithoutStateProxy(t *testing.
 	}
 	require.NoError(t, store.Create(task))
 	require.NoError(t, store.Update(types.EnvelopeUpdate{
-		ID:        "no-sp-task",
+		ID:        "result-task",
+		Status:    types.EnvelopeStatusSucceeded,
+		Result:    map[string]any{"output": "hello world"},
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "result-task")
+	require.NoError(t, err)
+	require.Len(t, got.Artifacts, 1, "succeeded task with Result must produce an artifact")
+	assert.Equal(t, a2alib.ArtifactID("result"), got.Artifacts[0].ID)
+	require.Len(t, got.Artifacts[0].Parts, 1)
+	textPart, ok := got.Artifacts[0].Parts[0].(*a2alib.TextPart)
+	require.True(t, ok)
+	assert.Contains(t, textPart.Text, `"output"`)
+	assert.Contains(t, textPart.Text, `"hello world"`)
+}
+
+func TestStoreAdapterGet_StateProxyArtifactsTakePrecedenceOverResult(t *testing.T) {
+	store := envelopestore.NewStore()
+	sp := &fakeStateProxy{
+		payloads: map[string]map[string]any{
+			"succeeded/sp-task": {
+				"a2a": map[string]any{
+					"task": map[string]any{
+						"artifacts": []any{
+							map[string]any{
+								"artifactId": "custom-artifact",
+								"name":       "custom.json",
+								"parts":      []any{map[string]any{"kind": "text", "text": "custom data"}},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	adapter := NewStoreAdapter(store, sp)
+
+	task := &types.Envelope{
+		ID:        "sp-task",
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusSucceeded,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
+		ID:        "sp-task",
+		Status:    types.EnvelopeStatusSucceeded,
+		Result:    map[string]any{"output": "should not appear"},
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "sp-task")
+	require.NoError(t, err)
+	require.Len(t, got.Artifacts, 1, "state-proxy artifacts must take precedence")
+	assert.Equal(t, a2alib.ArtifactID("custom-artifact"), got.Artifacts[0].ID)
+}
+
+func TestStoreAdapterGet_NoArtifactForFailedTaskWithResult(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	task := &types.Envelope{
+		ID:        "failed-result-task",
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusFailed,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
+		ID:        "failed-result-task",
+		Status:    types.EnvelopeStatusFailed,
+		Result:    map[string]any{"error": "something broke"},
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "failed-result-task")
+	require.NoError(t, err)
+	assert.Empty(t, got.Artifacts, "failed task Result is error metadata, not output artifact")
+}
+
+func TestStoreAdapterGet_NoArtifactForSucceededTaskWithNilResult(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	task := &types.Envelope{
+		ID:        "nil-result-task",
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusSucceeded,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
+		ID:        "nil-result-task",
 		Status:    types.EnvelopeStatusSucceeded,
 		Timestamp: time.Now(),
 	}))
 
-	got, _, err := adapter.Get(context.Background(), "no-sp-task")
+	got, _, err := adapter.Get(context.Background(), "nil-result-task")
 	require.NoError(t, err)
-	assert.Empty(t, got.Artifacts, "succeeded task without state proxy must have no artifacts")
+	assert.Empty(t, got.Artifacts, "succeeded task with nil Result must not produce artifacts")
 }
 
 // ---------------------------------------------------------------------------

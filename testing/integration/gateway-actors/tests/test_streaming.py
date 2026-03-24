@@ -53,9 +53,13 @@ def test_streaming_partial_events(gateway_helper):
         assert partial.get("type") == "text_delta", f"Partial {i} should have type text_delta"
         assert partial.get("token") == f"token_{i}", f"Partial {i} should have token token_{i}"
 
-    # Wait for completion and verify status
+    # Wait for completion and verify final result
     final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
     assert final_task["status"] == "succeeded", f"Task should succeed, got {final_task}"
+    result = final_task["result"]
+    assert result is not None, "Should have a final result"
+    assert result.get("summary") == "streaming complete"
+    assert result.get("total_tokens") == token_count
 
 
 def test_streaming_default_token_count(gateway_helper):

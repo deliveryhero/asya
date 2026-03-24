@@ -49,6 +49,10 @@ def test_simple_tool_execution(gateway_helper):
 
     logger.info(f" Final task: {final_task}")
     assert final_task["status"] == "succeeded", f"Task should succeed, got {final_task}"
+    assert final_task["result"] is not None, "Task should have result"
+
+    task_result = final_task["result"]
+    assert task_result.get("echoed") == "Hello, World!", "Should echo the input"
 
 
 def test_multi_actor_pipeline(gateway_helper):
@@ -93,7 +97,11 @@ def test_multi_actor_pipeline(gateway_helper):
     else:
         logger.info(" No actor updates received (race condition or fast processing)")
 
-    logger.info(f" Final task: {final_task}")
+    result = final_task["result"]
+    logger.info(f" Result: {result}")
+    assert result is not None, "Should have a result"
+    # Value should be: 10 * 2 + 5 = 25 (doubled + incremented)
+    assert result.get("value") == 25, f"Expected 25, got {result.get('value')}"
 
 
 def test_error_handling(gateway_helper):
@@ -147,6 +155,7 @@ def test_task_status_endpoint(gateway_helper):
 
     logger.info(f" Final task: {final_task}")
     assert final_task["status"] == "succeeded", "Should complete successfully"
+    assert final_task["result"] is not None, "Should have result"
     assert "updated_at" in final_task, "Should have updated_at timestamp"
 
 
@@ -177,6 +186,14 @@ def test_concurrent_tasks(gateway_helper):
     for task in completed_tasks:
         logger.info(f" Verifying task {task['id']}: status={task['status']}")
         assert task["status"] == "succeeded", f"Task {task['id']} should succeed"
+        assert task["result"] is not None, f"Task {task['id']} should have result"
+
+    # Verify each task has its own result
+    results = [task["result"]["echoed"] for task in completed_tasks]
+    logger.info(f" All results: {results}")
+    assert "concurrent-0" in results, "Should have result from task 0"
+    assert "concurrent-1" in results, "Should have result from task 1"
+    assert "concurrent-2" in results, "Should have result from task 2"
 
 
 def test_timeout_handling(gateway_helper):
