@@ -208,8 +208,15 @@ func parseArtifacts(raw any) []*a2alib.Artifact {
 }
 
 // resultToArtifact converts an envelope Result to an A2A Artifact with JSON-serialized content.
-// Returns nil if serialization fails. Used as fallback when state-proxy artifacts are not available.
+// Returns nil if the result is nil, an empty map (PG store default for NULL columns), or
+// cannot be serialized. Used as fallback when state-proxy artifacts are not available.
 func resultToArtifact(result any) *a2alib.Artifact {
+	if result == nil {
+		return nil
+	}
+	if m, ok := result.(map[string]any); ok && len(m) == 0 {
+		return nil
+	}
 	data, err := json.Marshal(result)
 	if err != nil {
 		slog.Warn("Failed to marshal result for artifact", "error", err)

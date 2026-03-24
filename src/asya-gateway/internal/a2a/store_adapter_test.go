@@ -609,6 +609,31 @@ func TestStoreAdapterGet_NoArtifactForFailedTaskWithResult(t *testing.T) {
 	assert.Empty(t, got.Artifacts, "failed task Result is error metadata, not output artifact")
 }
 
+func TestStoreAdapterGet_NoArtifactForSucceededTaskWithEmptyMapResult(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil)
+
+	task := &types.Envelope{
+		ID:        "empty-map-task",
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusSucceeded,
+		Route:     types.Route{Prev: []string{"a"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+		Result:    map[string]any{}, // PG store default for NULL column
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
+		ID:        "empty-map-task",
+		Status:    types.EnvelopeStatusSucceeded,
+		Result:    map[string]any{},
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "empty-map-task")
+	require.NoError(t, err)
+	assert.Empty(t, got.Artifacts, "empty map Result (PG NULL default) must not produce artifacts")
+}
+
 func TestStoreAdapterGet_NoArtifactForSucceededTaskWithNilResult(t *testing.T) {
 	store := envelopestore.NewStore()
 	adapter := NewStoreAdapter(store, nil)
