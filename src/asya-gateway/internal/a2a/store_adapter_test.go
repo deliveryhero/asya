@@ -510,6 +510,33 @@ func TestStoreAdapterGet_HistoryHydratedForPausedTask(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
+// Result payload NOT stored in PG for succeeded tasks
+// ---------------------------------------------------------------------------
+
+func TestStoreAdapterGet_NoArtifactForSucceededTaskWithoutStateProxy(t *testing.T) {
+	store := envelopestore.NewStore()
+	adapter := NewStoreAdapter(store, nil) // no state proxy
+
+	task := &types.Envelope{
+		ID:        "no-sp-task",
+		ContextID: "ctx",
+		Status:    types.EnvelopeStatusSucceeded,
+		Route:     types.Route{Prev: []string{"actor1"}, Curr: "", Next: []string{}},
+		Payload:   map[string]any{},
+	}
+	require.NoError(t, store.Create(task))
+	require.NoError(t, store.Update(types.EnvelopeUpdate{
+		ID:        "no-sp-task",
+		Status:    types.EnvelopeStatusSucceeded,
+		Timestamp: time.Now(),
+	}))
+
+	got, _, err := adapter.Get(context.Background(), "no-sp-task")
+	require.NoError(t, err)
+	assert.Empty(t, got.Artifacts, "succeeded task without state proxy must have no artifacts")
+}
+
+// ---------------------------------------------------------------------------
 // Artifact event filtering in Save()
 // ---------------------------------------------------------------------------
 
