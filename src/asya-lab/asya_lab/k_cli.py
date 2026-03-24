@@ -412,6 +412,23 @@ def _format_log_line(
     return f"{color}{padded}{_RESET} | {text}"
 
 
+def _list_available_flows(ctx: str | None) -> None:
+    """Print available flow names from deployed AsyncActors."""
+    runner = KubeRunner(ctx)
+    result = runner.kubectl(
+        "get", "asyncactor",
+        "-o", "jsonpath={.items[*].metadata.labels.asya\\.sh/flow}",
+        quiet=True, capture_output=True, text=True,
+    )
+    flows = sorted(set(result.stdout.split())) if result.returncode == 0 and result.stdout.strip() else []
+    if flows:
+        click.echo("Available flows:", err=True)
+        for f in flows:
+            click.echo(f"  {f}", err=True)
+    else:
+        click.echo("[-] No flows deployed", err=True)
+
+
 def _stream_colored_logs(
     runner: KubeRunner,
     flow_name: str,
@@ -520,7 +537,7 @@ def _stream_colored_logs(
 
 
 @click.command()
-@click.argument("target", type=ASYA_REF)
+@click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("--follow", "-f", is_flag=True, help="Follow log output")
 @click.option("--tail", type=int, default=None, help="Number of lines to show from end")
@@ -532,7 +549,7 @@ def _stream_colored_logs(
     help="Container(s) to show (default: asya-runtime). Use -c asya-sidecar to add sidecar logs.",
 )
 @click.option("--width", "-w", type=int, default=20, help="Min actor name column width for padding (default: 20)")
-def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int) -> None:
+def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, containers: tuple[str, ...], width: int) -> None:
     """Stream logs for a deployed flow with colored actor-name prefixes.
 
     TARGET is the flow name. Shows logs from all pods matching asya.sh/flow label.
@@ -544,6 +561,10 @@ def logs(target: AsyaRef, ctx: str, follow: bool, tail: int | None, containers: 
       asya k logs text-flow -f           # follow mode
       asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
+    if target is None:
+        _list_available_flows(ctx)
+        sys.exit(1)
+
     if not containers:
         containers = ("asya-runtime",)
 
@@ -1401,7 +1422,8 @@ def k() -> None:
 
 
 _COLUMN_MAP = {
-    "NAME": ".metadata.name",
+    "ACTOR": ".metadata.name",
+    "FLOW": "ACTOR",
     "STATUS": ".status.phase",
     "CURRENT": ".status.infrastructure.workload.readyReplicas",
     "DESIRED": ".status.infrastructure.workload.replicas",
@@ -1410,7 +1432,6 @@ _COLUMN_MAP = {
     "FLAVORS": ".spec.flavors[*]",
     "IMAGE": ".spec.image",
     "HANDLER": ".spec.handler",
-    "ROLE": ".metadata.labels.asya\\.sh/role",
 }
 
 _DEFAULT_COLUMNS = ["NAME", "STATUS", "CURRENT", "DESIRED", "MIN", "MAX", "FLAVORS"]
