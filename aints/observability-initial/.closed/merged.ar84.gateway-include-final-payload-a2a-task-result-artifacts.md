@@ -8,6 +8,7 @@ tags:
   - pr:392
 ---
 
+
 ## Problem
 
 The sidecar sends the final output payload to the gateway via `POST /mesh/{id}/final`,
