@@ -919,8 +919,23 @@ def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
         return []
 
 
+def _colorize_json(obj: object, indent: int = 2) -> str:
+    """Render JSON with ANSI colors: keys=cyan, strings=green, numbers=yellow."""
+    import json as _json
+    import re
+
+    raw = _json.dumps(obj, indent=indent, ensure_ascii=False)
+    # Color JSON keys (quoted strings followed by colon)
+    raw = re.sub(r'"([^"]+)"(\s*:)', r'\033[36m"\1"\033[0m\2', raw)
+    # Color string values (quoted strings NOT followed by colon)
+    raw = re.sub(r':\s*"([^"]*)"', lambda m: f': \033[32m"{m.group(1)}"\033[0m', raw)
+    # Color numbers
+    raw = re.sub(r":\s*(\d+\.?\d*)", lambda m: f": \033[33m{m.group(1)}\033[0m", raw)
+    return raw
+
+
 def _print_result(artifacts: list, fallback: dict | None = None) -> None:
-    """Print task result JSON to stdout (jq-able). All status goes to stderr.
+    """Print task result JSON to stdout with colors. All status goes to stderr.
 
     Extracts text parts from A2A artifact and tries to parse as JSON for
     pretty output. Falls back to raw artifact if not JSON.
@@ -929,7 +944,7 @@ def _print_result(artifacts: list, fallback: dict | None = None) -> None:
 
     if not artifacts:
         if fallback:
-            click.echo(_json.dumps(fallback, indent=2))
+            click.echo(_colorize_json(fallback))
         return
 
     # Extract text content from artifact parts
@@ -941,12 +956,12 @@ def _print_result(artifacts: list, fallback: dict | None = None) -> None:
                 # Try to parse as JSON for pretty printing
                 try:
                     parsed = _json.loads(text)
-                    click.echo(_json.dumps(parsed, indent=2))
+                    click.echo(_colorize_json(parsed))
                 except (_json.JSONDecodeError, ValueError):
                     click.echo(text)
                 return
         # No text parts — print full artifact
-        click.echo(_json.dumps(artifact, indent=2))
+        click.echo(_colorize_json(artifact))
         return
 
 
