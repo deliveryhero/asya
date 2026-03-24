@@ -1400,22 +1400,42 @@ def k() -> None:
     """Kubernetes commands (apply, delete, status, logs, send, edit, context)."""
 
 
-_DEFAULT_COLUMNS = ",".join([
-    "NAME:.metadata.name",
-    "STATUS:.status.phase",
-    "CURRENT:.status.infrastructure.workload.readyReplicas",
-    "DESIRED:.status.infrastructure.workload.replicas",
-    "MIN:.spec.scaling.minReplicaCount",
-    "MAX:.spec.scaling.maxReplicaCount",
-    "FLAVORS:.spec.flavors[*]",
-])
+_COLUMN_MAP = {
+    "NAME": ".metadata.name",
+    "STATUS": ".status.phase",
+    "CURRENT": ".status.infrastructure.workload.readyReplicas",
+    "DESIRED": ".status.infrastructure.workload.replicas",
+    "MIN": ".spec.scaling.minReplicaCount",
+    "MAX": ".spec.scaling.maxReplicaCount",
+    "FLAVORS": ".spec.flavors[*]",
+    "IMAGE": ".spec.image",
+    "HANDLER": ".spec.handler",
+    "ROLE": ".metadata.labels.asya\\.sh/role",
+}
+
+_DEFAULT_COLUMNS = ["NAME", "STATUS", "CURRENT", "DESIRED", "MIN", "MAX", "FLAVORS"]
+
+
+def _build_columns_spec(names: list[str]) -> str:
+    """Build kubectl custom-columns spec from column names."""
+    parts = []
+    for name in names:
+        key = name.upper()
+        if key in _COLUMN_MAP:
+            parts.append(f"{key}:{_COLUMN_MAP[key]}")
+        elif ":" in name:
+            parts.append(name)
+        else:
+            click.echo(f"[-] Unknown column '{name}'. Available: {', '.join(sorted(_COLUMN_MAP))}", err=True)
+            sys.exit(1)
+    return ",".join(parts)
 
 
 @click.command("status")
 @click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
 @click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide)")
-@click.option("--columns", default=None, help="Custom columns (e.g. NAME:.metadata.name,STATUS:.status.phase)")
+@click.option("--columns", "-c", default=None, help="Column names to show (e.g. name,min,max,status)")
 def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str | None) -> None:
     """Show status of deployed actors.
 
@@ -1425,6 +1445,7 @@ def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str 
       asya k status text-improver              # one flow
       asya k status text-improver -o name      # pipeable names
       asya k status text-improver -o json      # full JSON
+      asya k status text-improver -c name,min,max
     """
     runner = KubeRunner(ctx)
 
@@ -1434,10 +1455,9 @@ def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str 
 
     if output:
         args.extend(["-o", output])
-    elif columns:
-        args.extend(["-o", f"custom-columns={columns}"])
     else:
-        args.extend(["-o", f"custom-columns={_DEFAULT_COLUMNS}"])
+        col_names = [c.strip() for c in columns.split(",")] if columns else _DEFAULT_COLUMNS
+        args.extend(["-o", f"custom-columns={_build_columns_spec(col_names)}"])
 
     result = runner.kubectl(*args)
     sys.exit(result.returncode)
