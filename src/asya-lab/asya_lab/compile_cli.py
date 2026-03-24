@@ -13,12 +13,11 @@ from pathlib import Path
 
 import click
 
-from asya_lab.cli_types import ASYA_REF, AsyaRef
 from asya_lab.config.project import AsyaProject
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
-def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
+def _resolve_compiled_dir(source_path: Path, flow_name: str) -> Path:
     """Resolve compiled output dir from config (compiler.routers)."""
     from asya_lab.config.discovery import find_asya_dir
 
@@ -27,8 +26,8 @@ def _resolve_compiled_dir(source_path: Path, flow_function: str) -> Path:
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
-    project = AsyaProject.from_dir(source_path.parent)
-    return project.resolve_path("compiler.routers") / flow_function
+    project = AsyaProject.from_dir(source_path.parent, arg_values={"flow_name": flow_name})
+    return project.resolve_path("compiler.routers") / flow_name
 
 
 def _compile_flow_file(
@@ -45,17 +44,17 @@ def _compile_flow_file(
 
     source_path = Path(target).resolve()
 
-    # Load project config (if .asya/ exists)
+    # Infer flow function name via lightweight AST scan (no full compile)
+    flow_function = _infer_flow_function(source_path) or source_path.stem
+
+    # Load project config (if .asya/ exists), with flow_name for path interpolation
     project = None
     rule_engine = None
     try:
-        project = AsyaProject.from_dir(source_path.parent)
+        project = AsyaProject.from_dir(source_path.parent, arg_values={"flow_name": flow_function})
         rule_engine = project.load_rules()
     except FileNotFoundError:
         pass
-
-    # Infer flow function name via lightweight AST scan (no full compile)
-    flow_function = _infer_flow_function(source_path) or source_path.stem
 
     if flow_name_override:
         flow_name = flow_name_override
@@ -66,7 +65,7 @@ def _compile_flow_file(
     if output_dir:
         compiled_dir = Path(output_dir).resolve()
     else:
-        compiled_dir = _resolve_compiled_dir(source_path, flow_function)
+        compiled_dir = _resolve_compiled_dir(source_path, flow_name)
 
     # Single compile call — handles code + manifests + graph outputs
     compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
@@ -146,8 +145,8 @@ def _recompile_kebab_target(
 
 
 @click.command("compile")
-@click.argument("target", type=ASYA_REF)
-@click.option("--flow", "flow_name", default=None, help="Override flow name (kebab-case)")
+@click.argument("flow_name")
+@click.option("-f", "--file", "source_file", default=None, help="Python source file containing the flow")
 @click.option("--output-dir", "-o", default=None, help="Override manifest output directory")
 @click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
 @click.option(
@@ -160,20 +159,19 @@ def _recompile_kebab_target(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbose, strict):
-    """Compile a flow or actor into Kubernetes manifests.
+def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, strict):
+    """Compile a flow into Kubernetes manifests.
 
-    TARGET can be:
+    FLOW_NAME is the kebab-case flow name (e.g. text-improver).
 
     \b
-      flow.py              Compile flow from Python source
-      flow.py:my_flow      Compile specific flow function from file
-      my-flow              Recompile from existing .asya/ manifests
+      asya compile text-improver -f src/flow.py   # compile from source
+      asya compile text-improver                   # recompile from manifests
     """
     try:
-        if target.source is not None:
+        if source_file is not None:
             _compile_flow_file(
-                str(target.source),
+                source_file,
                 flow_name,
                 output_dir,
                 verbose,
@@ -182,9 +180,9 @@ def compile_cmd(target: AsyaRef, flow_name, output_dir, plot, plot_format, verbo
                 plot_format=plot_format,
             )
         else:
-            _recompile_kebab_target(target.name, output_dir, verbose)
+            _recompile_kebab_target(flow_name, output_dir, verbose)
     except FlowCompileError as e:
-        click.echo(f"[-] Compilation failed for {target.name}\n", err=True)
+        click.echo(f"[-] Compilation failed for {flow_name}\n", err=True)
         click.echo(str(e), err=True)
         sys.exit(1)
     except (FileNotFoundError, ValueError) as e:

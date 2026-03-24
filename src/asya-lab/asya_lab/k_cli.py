@@ -564,7 +564,7 @@ def _stream_colored_logs(
             *ns_args,
             "-l",
             f"asya.sh/flow={flow_name}",
-            "--all-pods",
+            # "--all-pods",
             "--prefix",
             "--max-log-requests=20",
             "-c",
@@ -574,7 +574,7 @@ def _stream_colored_logs(
         ]
         if follow:
             cmd.append("-f")
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # nosec B603, B607
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # nosec B603, B607  # nosemgrep
         procs.append(proc)
 
     def _cleanup(signum=None, frame=None):
@@ -587,12 +587,18 @@ def _stream_colored_logs(
 
     try:
         proc = procs[0]
-        assert proc.stdout is not None
+        if proc.stdout is None:
+            return
         first_line = proc.stdout.readline()
         if not first_line:
             # No stdout — check stderr for errors
-            assert proc.stderr is not None
+            if proc.stderr is None:
+                return
             err = proc.stderr.read().decode("utf-8", errors="replace").strip()
+            if "unknown flag" in err and "--all-pods" in err:
+                click.echo("[-] Your kubectl does not support --all-pods (requires >=1.28).", err=True)
+                click.echo("[-] Upgrade kubectl: https://kubernetes.io/docs/tasks/tools/", err=True)
+                sys.exit(1)
             if "too many open files" in err:
                 click.echo("[-] Too many open files for kubectl -f. Fix with:", err=True)
                 click.echo("    sudo sysctl fs.inotify.max_user_watches=524288", err=True)
@@ -850,12 +856,64 @@ def _fetch_api_key(runner: KubeRunner, key_name: str) -> str | None:
         return None
 
 
+def _fetch_artifacts(url: str, task_id: str, api_key: str | None) -> list:
+    """Fetch the final task result via tasks/get and return its artifacts."""
+    import json as _json
+    import urllib.request
+
+    base = url.rstrip("/").replace("/mcp", "").replace("/a2a", "")
+    a2a_url = f"{base}/a2a/"
+    req_body = {"jsonrpc": "2.0", "id": "fetch", "method": "tasks/get", "params": {"id": task_id}}
+    headers = {"Content-Type": "application/json"}
+    if api_key:
+        headers["X-API-Key"] = api_key
+    try:
+        req = urllib.request.Request(a2a_url, data=_json.dumps(req_body).encode(), headers=headers)
+        with urllib.request.urlopen(req, timeout=15) as resp:  # nosec B310
+            body = _json.loads(resp.read())
+        return body.get("result", {}).get("artifacts", [])
+    except Exception:
+        return []
+
+
+def _print_result(artifacts: list, fallback: dict | None = None) -> None:
+    """Print task result JSON to stdout (jq-able). All status goes to stderr.
+
+    Extracts text parts from A2A artifact and tries to parse as JSON for
+    pretty output. Falls back to raw artifact if not JSON.
+    """
+    import json as _json
+
+    if not artifacts:
+        if fallback:
+            click.echo(_json.dumps(fallback, indent=2))
+        return
+
+    # Extract text content from artifact parts
+    for artifact in artifacts:
+        parts = artifact.get("parts", [])
+        for part in parts:
+            if part.get("kind") == "text":
+                text = part["text"]
+                # Try to parse as JSON for pretty printing
+                try:
+                    parsed = _json.loads(text)
+                    click.echo(_json.dumps(parsed, indent=2))
+                except (_json.JSONDecodeError, ValueError):
+                    click.echo(text)
+                return
+        # No text parts — print full artifact
+        click.echo(_json.dumps(artifact, indent=2))
+        return
+
+
 def _send_a2a(
     url: str,
     message: str,
     skill: str | None,
     api_key: str | None,
     stream: bool,
+    verbose: bool = False,
 ) -> str | None:
     """Send a message via A2A protocol."""
     import json as _json
@@ -875,10 +933,12 @@ def _send_a2a(
     if skill:
         params["metadata"] = {"skill": skill}
 
+    # Use message/stream (SSE) when --stream, otherwise message/send (blocking)
+    method = "message/stream" if stream else "message/send"
     request: dict[str, object] = {
         "jsonrpc": "2.0",
         "id": task_id,
-        "method": "message/send",
+        "method": method,
         "params": params,
     }
 
@@ -886,13 +946,99 @@ def _send_a2a(
     if api_key:
         headers["X-API-Key"] = api_key
 
+    if verbose:
+        click.echo(f"  method: {method}", err=True)
+        click.echo(f"  task_id: {task_id}", err=True)
+
+    if stream:
+        # SSE streaming: gateway sends A2A task updates as SSE events.
+        # Format: "id: <task-id>\ndata: {jsonrpc result}\n\n"
+        click.echo("[.] streaming...", err=True)
+        try:
+            req = urllib.request.Request(
+                f"{url}/a2a/",
+                data=_json.dumps(request).encode(),
+                headers=headers,
+            )
+            with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep: dynamic-urllib-use-detected
+                # A2A streaming sends two event kinds (per streaming-events.md + PR #392):
+                #   artifact-update  — result payload (before terminal)
+                #   status-update    — progress/lifecycle; final=true marks completion
+                gw_task_id: str | None = None
+                captured_artifact: dict | None = None  # from artifact-update event
+                prev_actor = ""
+                for raw_line in resp:
+                    line = raw_line.decode("utf-8").rstrip("\n")
+                    if not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if not data_str:
+                        continue
+                    try:
+                        event = _json.loads(data_str)
+                    except _json.JSONDecodeError:
+                        if verbose:
+                            click.echo(f"  {data_str}", err=True)
+                        continue
+
+                    kind = event.get("kind", "")
+
+                    # Extract gateway task ID from any event
+                    eid = event.get("taskId") or event.get("result", {}).get("id")
+                    if gw_task_id is None and eid:
+                        gw_task_id = eid
+
+                    if kind == "artifact-update":
+                        # Capture result artifact sent by writeResultArtifact() before terminal
+                        art = event.get("artifact", {})
+                        if art:
+                            captured_artifact = art
+                        if verbose:
+                            click.echo(f"  [artifact] {event.get('artifact', {}).get('artifactId', '')}", err=True)
+
+                    elif kind == "status-update":
+                        state = event.get("status", {}).get("state", "")
+                        is_final = event.get("final", False)
+
+                        # Show current actor from status message
+                        msg_parts = event.get("status", {}).get("message", {}).get("parts", [])
+                        curr_actor = next((p["text"] for p in msg_parts if p.get("kind") == "text"), "")
+                        if curr_actor and curr_actor != prev_actor and curr_actor != "Task completed successfully":
+                            click.echo(f"  [{curr_actor}]", err=True)
+                            prev_actor = curr_actor
+
+                        if is_final or state in ("completed", "failed", "canceled"):
+                            marker = "[+]" if state in ("completed", "succeeded") else "[-]"
+                            tid = gw_task_id or task_id
+                            click.echo(f"{marker} Task {tid}: {state}", err=True)
+                            if captured_artifact:
+                                _print_result([captured_artifact], event if verbose else None)
+                            elif state == "completed" and gw_task_id:
+                                _print_result(_fetch_artifacts(url, gw_task_id, api_key),
+                                              event if verbose else None)
+                            elif verbose:
+                                _print_result([], event)
+                            return tid
+
+                    elif "error" in event:
+                        # JSON-RPC error envelope
+                        err = event["error"]
+                        click.echo(f"[-] {err.get('message', err)}", err=True)
+                        return gw_task_id or task_id
+        except Exception as e:
+            click.echo(f"[-] Stream failed ({e}) — falling back to poll", err=True)
+            _poll_task_status(url, gw_task_id or task_id, api_key)
+        return gw_task_id or task_id
+
+    # Non-streaming: message/send (blocks until task reaches terminal state)
+    click.echo("[.] waiting for response...", err=True)
     try:
         req = urllib.request.Request(
             f"{url}/a2a/",
             data=_json.dumps(request).encode(),
             headers=headers,
         )
-        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
             body = _json.loads(resp.read())
     except Exception as e:
         click.echo(f"[-] Request failed: {e}", err=True)
@@ -909,14 +1055,10 @@ def _send_a2a(
     state = result.get("status", {}).get("state", "unknown")
     result_id = result.get("id", "?")
 
-    if state == "completed":
-        click.echo(f"[+] Task {result_id}: {state}")
-    elif state == "failed":
-        click.echo(f"[-] Task {result_id}: {state}", err=True)
-    else:
-        click.echo(f"[.] Task {result_id}: {state}")
-
-    click.echo(_json.dumps(result, indent=2))
+    marker = "[+]" if state == "completed" else ("[-]" if state == "failed" else "[.]")
+    click.echo(f"{marker} Task {result_id}: {state}", err=True)
+    artifacts = result.get("artifacts", [])
+    _print_result(artifacts, result)
     return result_id if result_id != "?" else None
 
 
@@ -948,7 +1090,7 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
         if api_key:
             headers["X-API-Key"] = api_key
         req = urllib.request.Request(a2a_url, data=_json.dumps(req_body).encode(), headers=headers)
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310  # nosemgrep
             return _json.loads(resp.read())
 
     pbar = None
@@ -1002,19 +1144,9 @@ def _poll_task_status(api_url: str, task_id: str, api_key: str | None) -> None:
                     pbar.refresh()
                     pbar.close()
                 marker = "[+]" if state == "completed" else "[-]"
-                click.echo(f"{marker} Task {task_id}: {state}")
-                # Show message parts (skip generic "Task completed successfully")
-                for part in parts:
-                    if part.get("kind") == "text" and part["text"] != "Task completed successfully":
-                        click.echo(part["text"])
-                # Show artifacts if present
+                click.echo(f"{marker} Task {task_id}: {state}", err=True)
                 artifacts = task.get("artifacts", [])
-                if artifacts:
-                    for artifact in artifacts:
-                        click.echo(_json.dumps(artifact, indent=2))
-                else:
-                    # No artifacts — print full task status for visibility
-                    click.echo(_json.dumps(task, indent=2))
+                _print_result(artifacts, task)
                 return
         except Exception:  # nosec B110 — polling loop, transient network errors expected
             pass
@@ -1040,7 +1172,7 @@ def _stream_task_sse(api_url: str, task_id: str, api_key: str | None) -> None:
     req = urllib.request.Request(stream_url, headers=headers)
 
     try:
-        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=600) as resp:  # nosec B310  # nosemgrep
             for raw_line in resp:
                 line = raw_line.decode("utf-8").rstrip("\n")
                 if line.startswith("data:"):
@@ -1102,7 +1234,7 @@ def _send_mcp(
         headers=headers,
     )
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310
+        with urllib.request.urlopen(req, timeout=30) as resp:  # nosec B310  # nosemgrep
             result = _json.loads(resp.read())
     except Exception as e:
         click.echo(f"[-] MCP call failed: {e}", err=True)
@@ -1162,7 +1294,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
     for attempt in range(6):
         _time.sleep(3)
         try:
-            with urllib.request.urlopen(search_url, timeout=10) as resp:  # nosec B310
+            with urllib.request.urlopen(search_url, timeout=10) as resp:  # nosec B310  # nosemgrep
                 data = _json.loads(resp.read())
             if data.get("traces"):
                 break
@@ -1176,7 +1308,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
         trace_id = trace_info.get("traceID", "")
         try:
             trace_url = f"{tempo_url}/api/traces/{trace_id}"
-            with urllib.request.urlopen(trace_url, timeout=10) as resp:  # nosec B310
+            with urllib.request.urlopen(trace_url, timeout=10) as resp:  # nosec B310  # nosemgrep
                 trace_data = _json.loads(resp.read())
         except Exception:  # nosec B112 — skip traces that fail to fetch
             continue
@@ -1250,6 +1382,7 @@ def _show_trace(runner: KubeRunner, envelope_id: str) -> None:
 @click.option("--mcp", "use_mcp", is_flag=True, default=False, help="Use MCP protocol")
 @click.option("--stream", is_flag=True, help="Stream events (A2A subscribe)")
 @click.option("--trace", is_flag=True, help="Show trace URL and ASCII spans after completion")
+@click.option("--verbose", "-v", is_flag=True, help="Verbose output (show method, task_id, raw events)")
 @click.option("--api-key", default=None, help="API key (default: auto-fetch from asya-gateway-auth secret)")
 def send(
     target: AsyaRef,
@@ -1261,6 +1394,7 @@ def send(
     use_mcp: bool,
     stream: bool,
     trace: bool,
+    verbose: bool,
     api_key: str | None,
 ) -> None:
     """Send a message to a deployed flow.
@@ -1289,7 +1423,7 @@ def send(
     task_id = None
     if use_a2a or not use_mcp:
         click.echo(f"[.] {target.name} -> {url}/a2a/", err=True)
-        task_id = _send_a2a(url, message, skill or target.name, api_key, stream)
+        task_id = _send_a2a(url, message, skill or target.name, api_key, stream, verbose=verbose)
     else:
         click.echo(f"[.] {target.name} -> {url}/mcp", err=True)
         task_id = _send_mcp(url, target.name, message, api_key, stream)

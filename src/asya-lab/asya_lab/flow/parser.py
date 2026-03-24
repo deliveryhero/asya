@@ -350,8 +350,60 @@ class FlowParser:
                 continue
             module_name = fqn.rsplit(".", 1)[0]
             func_name = fqn.rsplit(".", 1)[1]
+
+            # First try: locate source via find_spec without executing the module.
+            # This avoids ImportError when the module has heavy/unavailable deps.
+            directive_found = False
             try:
-                mod = importlib.import_module(module_name)
+                import ast as _ast
+                from pathlib import Path as _Path
+
+                def _ast_scan(source_file: str, target_func: str, sym_name: str) -> bool:
+                    """AST-scan source file for # asya: directive on target_func def line.
+
+                    Returns True if the function was found (directive may or may not exist).
+                    Updates self._decorator_index[sym_name] when directive is present.
+                    """
+                    src = _Path(source_file).read_text()
+                    tree = _ast.parse(src)
+                    for node in _ast.walk(tree):
+                        if not isinstance(node, _ast.FunctionDef | _ast.AsyncFunctionDef):
+                            continue
+                        if node.name != target_func:
+                            continue
+                        def_line = src.splitlines()[node.lineno - 1]
+                        m = _DIRECTIVE_PATTERN.search(def_line)
+                        if m:
+                            self._decorator_index[sym_name] = m.group(1)
+                        return True
+                    return False
+
+                # Locate the package without executing it
+                spec = importlib.util.find_spec(module_name)
+                if spec:
+                    # Try submodule file directly (avoids executing __init__.py with heavy deps):
+                    # e.g. actors/research.py for func_name="research"
+                    if spec.submodule_search_locations:
+                        for search_dir in spec.submodule_search_locations:
+                            candidate = _Path(search_dir) / f"{func_name}.py"
+                            if candidate.exists():
+                                _ast_scan(str(candidate), func_name, name)
+                                directive_found = True
+                                break
+
+                    # Fallback: scan the module's own __init__.py
+                    if not directive_found and spec.origin and spec.origin.endswith(".py"):
+                        _ast_scan(spec.origin, func_name, name)
+                        directive_found = True  # module located; skip import fallback
+            except Exception:  # nosec B110 — best-effort AST scan, safe to skip on error  # nosemgrep
+                pass
+
+            if directive_found:
+                continue
+
+            # Fallback: import the module (may fail if deps are unavailable)
+            try:
+                mod = importlib.import_module(module_name)  # nosemgrep
             except ImportError:
                 self.warnings.append(
                     f"Cannot import '{module_name}' for directive scan of '{name}'. "
@@ -368,7 +420,7 @@ class FlowParser:
                     if m:
                         self._decorator_index[name] = m.group(1)
                         break
-            except Exception:
+            except Exception:  # nosec B112  # nosemgrep
                 continue
 
     def _should_strip_decorator(self, fqn: str) -> bool:

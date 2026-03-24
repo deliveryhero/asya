@@ -111,7 +111,7 @@ class FlowCompiler:
             for af in self._codegen_meta.adapter_files:
                 (routers_path / af.filename).write_text(af.code)
 
-        manifests_dir = self._stamp_manifests(routers_path)
+        _manifests_dir = self._stamp_manifests(routers_path)
         dot, mermaid_content, json_content = self._generate_outputs(artifacts_path)
 
         if flow_name is None:
@@ -133,7 +133,7 @@ class FlowCompiler:
             flow_function=flow_function,
             routers_path=compiled_file,
             artifacts_dir=artifacts_path,
-            manifests_dir=manifests_dir or routers_path,
+            manifests_dir=_manifests_dir or routers_path,
             graph=to_json(self._graph_data, flow_function) if self._graph_data else {},
             dot=dot,
             mermaid=mermaid_content,
@@ -281,8 +281,9 @@ class FlowCompiler:
         flow_name = flow_function.replace("_", "-")
 
         try:
-            # flow_name already interpolated via ${arg:flow_name} in config
-            manifests_dir = self._project.resolve_path("compiler.manifests")
+            # Use compiled_dir/manifests directly; avoids ${arg:flow_name} interpolation issues
+            manifests_dir = compiled_dir / "manifests"
+            manifests_dir.mkdir(parents=True, exist_ok=True)
             templates_dir = self._project.resolve_path("compiler.templates")
         except KeyError:
             return None
@@ -416,7 +417,7 @@ class FlowCompiler:
         fqn_module = ".".join(package_parts)
 
         try:
-            mod = importlib.import_module(fqn_module)
+            mod = importlib.import_module(fqn_module)  # nosemgrep
         except ImportError:
             # Fall back: try importing from the file directly
             try:
