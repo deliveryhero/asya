@@ -562,6 +562,7 @@ def logs(target: AsyaRef | None, ctx: str, follow: bool, tail: int | None, conta
       asya k logs text-flow -c asya-runtime -c asya-sidecar  # both containers
     """
     if target is None:
+        _list_available_flows(ctx)
         raise click.MissingParameter(param_hint="'TARGET'", param_type="argument")
 
     if not containers:
