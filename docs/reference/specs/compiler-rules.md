@@ -385,6 +385,32 @@ and its compiled output in
 [`examples/flows/compiled/decorator_retry/`](../../../examples/flows/compiled/decorator_retry/)
 for a full walkthrough.
 
+### Rule-matched vs unknown decorators
+
+The compiler **only strips decorators that match a rule**. This is a core design
+principle: the rules file is the knowledge base for what the compiler understands.
+
+- **Rule-matched decorators** (e.g. `tenacity.retry` with `treat-as: config`) are
+  stripped at runtime via `ASYA_IGNORE_DECORATORS`. Their behavior is implemented
+  by the Asya platform (sidecar retry policies, Crossplane manifest fields), so
+  running them in Python would be redundant or conflicting.
+
+- **Unknown decorators** (no rule match) are **never stripped**. They are user
+  business logic — logging, auth, caching, validation — and must execute at
+  runtime. The compiler passes them through unchanged. The `# asya: actor`
+  directive and `@actor` decorator classify the function as an actor, but they
+  do not affect other decorators on the same function.
+
+```python
+@some_logging_decorator       # unknown — preserved, runs at runtime
+@retry(stop=stop_after_attempt(3))  # rule-matched — stripped, config extracted
+async def handler(p: dict) -> dict:  # asya: actor
+    ...
+```
+
+In the generated manifest, `@retry` params appear as `spec.resiliency.policies`,
+and `@some_logging_decorator` remains on the handler at runtime.
+
 ### Both mechanisms in one flow
 
 Context managers and decorators can work together on the same flow. The
