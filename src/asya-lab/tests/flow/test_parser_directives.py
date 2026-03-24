@@ -415,7 +415,8 @@ class TestDefinitionSiteDecorators:
         assert isinstance(ops[0], Mutation)
 
     def test_actor_directive_on_decorated_function_with_multiline_decorator(self):
-        """# asya: actor on def line should be found even with decorators above."""
+        """# asya: actor on def line should be found even with decorators above.
+        The unknown decorator should be preserved (not stripped)."""
         source = textwrap.dedent("""
             @flow
             def my_flow(p: dict) -> dict:
@@ -429,6 +430,9 @@ class TestDefinitionSiteDecorators:
             def handler(p: dict) -> dict:  # asya: actor
                 return p
         """)
-        ops = FlowParser(source, "test.py").parse().operations
+        result = FlowParser(source, "test.py").parse()
+        ops = result.operations
         assert isinstance(ops[0], ActorCall)
         assert ops[0].name == "handler"
+        # Unknown decorator should NOT be stripped (not in ignore_decorators)
+        assert "some_decorator" not in (result.ignore_decorators or [])
