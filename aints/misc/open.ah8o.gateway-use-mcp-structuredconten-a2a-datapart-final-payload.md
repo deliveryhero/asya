@@ -1,7 +1,10 @@
 ---
 title: "Gateway: use MCP structuredContent and A2A DataPart for final payload"
 priority: 3 # low
+tags:
+  - pr:392
 ---
+
 
 ## Context
 
