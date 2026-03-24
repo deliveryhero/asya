@@ -292,8 +292,7 @@ def apply(target: AsyaRef | None, ctx: str, verbose: bool) -> None:
     """
     if target is None:
         raise click.MissingParameter(param_hint=f"'TARGET' (deployed flows: {_list_available_flows(ctx)})", param_type="argument")
-    flow_function = target.name.replace("-", "_")
-    runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
+    runner = KubeRunner(ctx, arg_values={"flow_name": target.name})
     runner.check_readonly("apply")
 
     manifests_dir = runner.find_manifests(target.name)

@@ -439,6 +439,7 @@ def patch(
         click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
         sys.exit(1)
 
+    # Try kebab→snake, then as-is, to match whatever the compiler used
     project = AsyaProject.from_dir(asya_dir.parent, arg_values={"flow_name": flow_name.name})
     manifests_dir = project.resolve_path("compiler.manifests")
     base_dir = manifests_dir / BASE_DIR
