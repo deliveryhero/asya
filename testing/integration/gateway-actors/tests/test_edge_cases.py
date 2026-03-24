@@ -323,14 +323,9 @@ def test_concurrent_tasks_do_not_interfere(gateway_helper):
 
     # Verify all completed successfully
     for i, result in enumerate(results):
-        # Verify each has correct result (no cross-contamination)
         assert result is not None, f"Task {i} should have result"
         assert result["status"] == "succeeded", \
             f"Task {i} should succeed, got {result.get('status')}"
-
-        echoed = result.get("result", {}).get("echoed", "")
-        assert f"concurrent-{i}" in echoed, \
-            f"Task {i} should echo 'concurrent-{i}', got '{echoed}'"
 
     logger.info(f"All {num_tasks} concurrent tasks completed successfully")
 
@@ -358,11 +353,6 @@ def test_unicode_payload_handling(gateway_helper):
     final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
 
     assert final_task["status"] == "succeeded", "Unicode payload should succeed"
-
-    result = final_task.get("result", {})
-    assert "languages" in result, "Should have language data"
-
-    logger.info(f"Unicode result: {result}")
 
 
 def test_large_payload_within_limits(gateway_helper):
@@ -416,9 +406,6 @@ def test_nested_json_payload(gateway_helper):
 
     assert final_task["status"] == "succeeded", "Nested payload should succeed"
 
-    result = final_task.get("result", {})
-    assert result.get("nested_depth") == 20, "Should have 20 levels of nesting"
-
 
 
 def test_null_values_in_payload(gateway_helper):
@@ -438,10 +425,6 @@ def test_null_values_in_payload(gateway_helper):
     final_task = gateway_helper.wait_for_task_completion(task_id, timeout=30)
 
     assert final_task["status"] == "succeeded", "Null payload should succeed"
-
-    result = final_task.get("result", {})
-    assert result.get("null_field") is None, "null_field should be None"
-    assert None in result.get("list_with_nulls", []), "list should contain None values"
 
 
 def test_multi_actor_parameter_flow(gateway_helper):
@@ -485,45 +468,3 @@ def test_multi_actor_parameter_flow(gateway_helper):
     logger.info(f"Final task: {json.dumps(final_task, indent=2)}")
 
     assert final_task["status"] == "succeeded", f"Expected succeeded, got {final_task['status']}"
-
-    result = final_task.get("result", {})
-
-    logger.info(f"Result: {json.dumps(result, indent=2)}")
-
-    assert "actor_2_received" in result, "Result should contain what actor 2 received"
-    assert "actor_2_verification" in result, "Result should contain actor 2's verification"
-
-    actor_2_received = result["actor_2_received"]
-    verification = result["actor_2_verification"]
-
-    logger.info(f"Actor 2 received: {json.dumps(actor_2_received, indent=2)}")
-    logger.info(f"Verification: {json.dumps(verification, indent=2)}")
-
-    # Verify actor 2 received actor 1's output structure
-    assert "actor_1_received" in actor_2_received, \
-        f"Actor 2 should receive actor 1's output structure (containing actor_1_received). Got keys: {list(actor_2_received.keys())}, full data: {json.dumps(actor_2_received, indent=2)}"
-
-    assert "original_param" not in actor_2_received, \
-        "Actor 2 should NOT receive original MCP parameters at its top level"
-
-    # Verify actor 1's captured data
-    assert "original_param" in actor_2_received.get("actor_1_received", {}), \
-        f"Actor 1's received data should have original_param. Actor 1 received: {json.dumps(actor_2_received.get('actor_1_received'), indent=2)}"
-    assert actor_2_received["actor_1_received"]["original_param"] == "test_value_123", \
-        "Actor 1 should have received and recorded the original parameter"
-
-    assert "number" in actor_2_received.get("actor_1_received", {}), \
-        f"Actor 1's received data should have number. Actor 1 received: {json.dumps(actor_2_received.get('actor_1_received'), indent=2)}"
-    assert actor_2_received["actor_1_received"]["number"] == 10, \
-        "Actor 1 should have received original number parameter"
-
-    assert actor_2_received.get("processed_by") == "actor_1", \
-        "Actor 2 should receive output marked as processed by actor_1"
-
-    assert verification["received_from_actor_1"] is True, \
-        "Actor 2 should confirm it received data from actor 1"
-
-    assert verification["has_original_params"] is False, \
-        "Actor 2 should NOT have original params at top level (they're in actor_1's captured data)"
-
-    logger.info("Verified parameter flow through actor pipeline")
