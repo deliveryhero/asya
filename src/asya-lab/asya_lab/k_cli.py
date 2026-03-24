@@ -444,10 +444,11 @@ _RESET = "\033[0m"
 
 
 def _color_for(actor: str, actor_colors: dict[str, str]) -> str:
-    """Get or assign a color for an actor name. Deterministic: same name = same color."""
+    """Get or assign a color for an actor name. Deterministic across runs."""
     if actor not in actor_colors:
-        idx = hash(actor) % len(_ACTOR_COLORS)
-        actor_colors[actor] = _ACTOR_COLORS[idx]
+        import hashlib
+        stable_hash = int(hashlib.md5(actor.encode()).hexdigest(), 16)  # nosec B324
+        actor_colors[actor] = _ACTOR_COLORS[stable_hash % len(_ACTOR_COLORS)]
     return actor_colors[actor]
 
 
@@ -543,7 +544,7 @@ def _stream_colored_logs(
         ]
         if follow:
             cmd.append("-f")
-        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)  # nosec B603, B607
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)  # nosec B603, B607
         procs.append(proc)
 
     def _cleanup(signum=None, frame=None):
@@ -555,8 +556,27 @@ def _stream_colored_logs(
     signal.signal(signal.SIGTERM, _cleanup)
 
     try:
-        assert procs[0].stdout is not None
-        for raw_line in procs[0].stdout:
+        proc = procs[0]
+        assert proc.stdout is not None
+        first_line = proc.stdout.readline()
+        if not first_line:
+            # No stdout — check stderr for errors
+            assert proc.stderr is not None
+            err = proc.stderr.read().decode("utf-8", errors="replace").strip()
+            if "too many open files" in err:
+                click.echo("[-] Too many open files for kubectl -f. Fix with:", err=True)
+                click.echo("    sudo sysctl fs.inotify.max_user_watches=524288", err=True)
+                click.echo("    sudo sysctl fs.inotify.max_user_instances=1024", err=True)
+            elif err:
+                click.echo(f"[-] {err}", err=True)
+            sys.exit(1)
+
+        line = first_line.decode("utf-8", errors="replace").rstrip("\n")
+        formatted = _format_log_line(line, actor_colors, max_name_len, show_container)
+        if formatted is not None:
+            click.echo(formatted)
+
+        for raw_line in proc.stdout:
             line = raw_line.decode("utf-8", errors="replace").rstrip("\n")
             formatted = _format_log_line(line, actor_colors, max_name_len, show_container)
             if formatted is not None:
