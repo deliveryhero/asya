@@ -78,7 +78,7 @@ for flow_file in "$REPO_ROOT"/src/asya-testing/asya_testing/flows/*/flow.py \
     output_dir="$flow_dir/compiled/$flow_name"
   fi
 
-  uv run --with-editable src/asya-lab --with-requirements examples/flows/requirements.txt asya compile "$flow_name" -f "$flow_file" -o "$output_dir" --plot &
+  uv run --with-editable src/asya-lab --with-requirements examples/flows/requirements.txt asya compile "$flow_name" -f "$flow_file" --plot &
 
   # Store the process ID of the background task
   pids+=("$!")

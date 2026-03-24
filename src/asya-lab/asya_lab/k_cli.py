@@ -290,7 +290,8 @@ def apply(target: AsyaRef, ctx: str, verbose: bool) -> None:
     includes a gateway-flows ConfigMap (from `asya expose`), the
     gateway deployment is automatically patched to mount it.
     """
-    runner = KubeRunner(ctx, arg_values={"flow_name": target.name})
+    flow_function = target.name.replace("-", "_")
+    runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
     runner.check_readonly("apply")
 
     manifests_dir = runner.find_manifests(target.name)

@@ -17,23 +17,20 @@ from asya_lab.config.project import AsyaProject
 from asya_lab.flow import FlowCompileError, FlowCompiler
 
 
-def _resolve_compiled_dir(source_path: Path, flow_name: str) -> Path:
-    """Resolve compiled output dir from config (compiler.routers)."""
-    from asya_lab.config.discovery import find_asya_dir
-
-    asya_dir = find_asya_dir(source_path.parent)
-    if not asya_dir:
-        click.echo("[-] No .asya/ directory found. Run 'asya init' first.", err=True)
-        sys.exit(1)
-
-    project = AsyaProject.from_dir(source_path.parent, arg_values={"flow_name": flow_name})
-    return project.resolve_path("compiler.routers")
+def _resolve_output_dirs(project: AsyaProject) -> dict[str, Path]:
+    """Resolve code/artifacts/manifests dirs from project config."""
+    dirs = {}
+    for key in ("compiler.code", "compiler.artifacts", "compiler.manifests"):
+        try:
+            dirs[key.split(".")[-1]] = project.resolve_path(key)
+        except KeyError:
+            pass
+    return dirs
 
 
 def _compile_flow_file(
     target: str,
     flow_name_override: str | None,
-    output_dir: str | None,
     verbose: bool,
     strict: bool = False,
     plot: bool = False,
@@ -61,15 +58,24 @@ def _compile_flow_file(
     else:
         flow_name = flow_function.replace("_", "-")
 
-    # Resolve compiled output dir from config or CLI override
-    if output_dir:
-        compiled_dir = Path(output_dir).resolve()
+    # Resolve output directories from config
+    if project:
+        dirs = _resolve_output_dirs(project)
     else:
-        compiled_dir = _resolve_compiled_dir(source_path, flow_name)
+        dirs = {}
 
-    # Single compile call — handles code + manifests + graph outputs
+    code_dir = dirs.get("code", Path(f"./compiled/{flow_function}/code")).resolve()
+    artifacts_dir = dirs.get("artifacts", code_dir).resolve()
+
+    # Single compile call — code goes to code_dir, artifacts to artifacts_dir,
+    # manifests are stamped separately by _stamp_manifests from config
     compiler = FlowCompiler(verbose=verbose, rule_engine=rule_engine, project=project)
-    result = compiler.compile_file(str(source_path), str(compiled_dir), overwrite=True)
+    result = compiler.compile_file(
+        str(source_path),
+        str(code_dir),
+        overwrite=True,
+        artifacts_dir=str(artifacts_dir),
+    )
 
     # Print warnings before summary
     warnings = result.warnings
@@ -85,39 +91,41 @@ def _compile_flow_file(
     num_routers = sum(1 for a in result.actors if a.generated)
     click.echo(f"[+] Compiled flow '{flow_name}' ({num_actors} actors, {num_routers} routers)")
 
-    click.echo(f"    routers:   {result.routers_path}")
+    click.echo(f"    code:      {code_dir}")
 
-    graph_file = compiled_dir / "graph.json"
+    if artifacts_dir != code_dir:
+        click.echo(f"    artifacts: {artifacts_dir}")
+
+    graph_file = artifacts_dir / "graph.json"
     if graph_file.exists():
         click.echo(f"    graph:     {graph_file}")
 
-    dot_file = compiled_dir / "flow.dot"
+    dot_file = artifacts_dir / "flow.dot"
     if dot_file.exists():
         click.echo(f"    dot:       {dot_file}")
 
-    mmd_file = compiled_dir / "flow.mmd"
+    mmd_file = artifacts_dir / "flow.mmd"
     if mmd_file.exists():
         click.echo(f"    mermaid:   {mmd_file}")
 
     if plot:
-        plot_file = compiled_dir / f"flow.{plot_format}"
+        plot_file = artifacts_dir / f"flow.{plot_format}"
         if plot_file.exists():
             click.echo(f"    plot:      {plot_file}")
         else:
             click.echo("[!] Plot requested but graphviz 'dot' not found; skipping render", err=True)
+
+    if result.manifests_dir:
+        click.echo(f"    manifests: {result.manifests_dir}")
 
     if verbose:
         actor = compiler.single_actor_name
         if actor is not None:
             click.echo("[+] Single-actor flow: no router actor needed")
 
-        if result.manifests_dir and result.manifests_dir != compiled_dir:
-            click.echo(f"[+] Stamped manifests to: {result.manifests_dir}")
-
 
 def _recompile_kebab_target(
     target: str,
-    output_dir: str | None,
     verbose: bool,
 ) -> None:
     """Recompile from existing manifests found in .asya/."""
@@ -147,7 +155,6 @@ def _recompile_kebab_target(
 @click.command("compile")
 @click.argument("flow_name")
 @click.option("-f", "--file", "source_file", default=None, help="Python source file containing the flow")
-@click.option("--output-dir", "-o", default=None, help="Override manifest output directory")
 @click.option("--plot", is_flag=True, help="Generate flow diagram (DOT + SVG or PNG)")
 @click.option(
     "--plot-format",
@@ -159,7 +166,7 @@ def _recompile_kebab_target(
 )
 @click.option("--verbose", "-v", is_flag=True, help="Verbose output")
 @click.option("--strict", is_flag=True, help="Treat warnings as errors")
-def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, strict):
+def compile_cmd(flow_name, source_file, plot, plot_format, verbose, strict):
     """Compile a flow into Kubernetes manifests.
 
     FLOW_NAME is the kebab-case flow name (e.g. text-improver).
@@ -173,14 +180,13 @@ def compile_cmd(flow_name, source_file, output_dir, plot, plot_format, verbose, 
             _compile_flow_file(
                 source_file,
                 flow_name,
-                output_dir,
                 verbose,
                 strict,
                 plot=plot,
                 plot_format=plot_format,
             )
         else:
-            _recompile_kebab_target(flow_name, output_dir, verbose)
+            _recompile_kebab_target(flow_name, verbose)
     except FlowCompileError as e:
         click.echo(f"[-] Compilation failed for {flow_name}\n", err=True)
         click.echo(str(e), err=True)
