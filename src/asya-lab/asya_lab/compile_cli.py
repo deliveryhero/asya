@@ -58,14 +58,25 @@ def _compile_flow_file(
     else:
         flow_name = flow_function.replace("_", "-")
 
-    # Resolve output directories from config
+    # Resolve output directories from config — no hidden defaults
     if project:
         dirs = _resolve_output_dirs(project)
     else:
         dirs = {}
 
-    code_dir = dirs.get("code", Path(f"./compiled/{flow_function}/code")).resolve()
-    artifacts_dir = dirs.get("artifacts", code_dir).resolve()
+    default_base = Path(f"./flows/{flow_function}")
+    code_dir = dirs.get("code", default_base / "code").resolve()
+    artifacts_dir = dirs.get("artifacts", default_base / "artifacts").resolve()
+    # manifests_dir is resolved inside _stamp_manifests from config;
+    # fallback if no config:
+    if "manifests" not in dirs and project is None:
+        click.echo(
+            f"[!] No .asya/config.yaml found. Outputs default to:\n"
+            f"    code:      {code_dir}\n"
+            f"    artifacts: {artifacts_dir}\n"
+            f"    manifests: {(default_base / 'manifests').resolve()}",
+            err=True,
+        )
 
     # Single compile call — code goes to code_dir, artifacts to artifacts_dir,
     # manifests are stamped separately by _stamp_manifests from config
