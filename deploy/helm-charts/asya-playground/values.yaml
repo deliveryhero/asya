@@ -462,37 +462,21 @@ kube-prometheus-stack:
   grafana:
     # Admin credentials for local development
     adminPassword: asya-admin
-    # Additional datasources for Grafana
-    # Note: The Tempo datasource URL uses the release name pattern: {release-name}-tempo
-    # For a release named 'asya', the service will be 'asya-tempo'
-    additionalDataSources:
-    - name: Tempo
-      type: tempo
-      # URL pattern: http://{release-name}-tempo:3100
-      # Default assumes release name matches the namespace or is 'asya'
-      # Override this in your values if using a different release name
-      url: http://{{ .Release.Name }}-tempo:3200
-      access: proxy
-      isDefault: false
-      jsonData:
-        tracesToMetricsEnabled: true
-        tracesToMetrics:
-          datasourceUid: prometheus
-        serviceMap:
-          datasourceUid: prometheus
-        nodeGraph:
-          enabled: true
-    # Enable sidecar for dashboard auto-discovery
+    # Sidecar for auto-discovering dashboards and datasources from ConfigMaps
     sidecar:
       dashboards:
         enabled: true
         searchNamespace: ALL
-        # Look for ConfigMaps with this label
         label: grafana_dashboard
         labelValue: "1"
         folderAnnotation: grafana_folder
         provider:
           foldersFromFilesStructure: true
+      datasources:
+        enabled: true
+        label: grafana_datasource
+        labelValue: "1"
+        searchNamespace: ALL
     # Reduce resource usage
     resources:
       requests:
