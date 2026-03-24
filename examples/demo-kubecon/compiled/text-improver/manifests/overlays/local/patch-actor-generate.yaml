@@ -1,0 +1,8 @@
+apiVersion: asya.sh/v1alpha1
+kind: AsyncActor
+metadata:
+  name: actor-generate
+spec:
+  scaling:
+    minReplicaCount: 1
+  imagePullPolicy: Never

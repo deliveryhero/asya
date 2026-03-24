@@ -14,5 +14,9 @@ contexts:
   dev:
     namespace: asya-demo
     gateway_url: http://localhost:18080
+  local:
+    namespace: asya-e2e
+    kubectl_context: kind-asya-e2e-pubsub-gcs
+    gateway_url: http://localhost:8080
 
 default_context: dev

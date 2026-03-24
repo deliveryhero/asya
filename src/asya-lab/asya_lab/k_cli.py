@@ -46,6 +46,7 @@ class KubeRunner:
         self._ctx_name = ctx
         self._context_config = self._resolve_context(ctx)
         self.namespace: str | None = self._context_config.get("namespace") if self._context_config else None
+        self.kube_context: str | None = self._context_config.get("kubectl_context") if self._context_config else None
 
     def _resolve_context(self, ctx: str | None) -> dict | None:
         """Resolve context configuration. Returns None only when contexts are not configured."""
@@ -109,8 +110,11 @@ class KubeRunner:
         return subprocess.run(cmd, check=False, **kwargs)  # nosec B603
 
     def kubectl(self, *args: str, quiet: bool = False, **kwargs) -> subprocess.CompletedProcess:
-        """Run kubectl with automatic namespace injection."""
-        cmd = ["kubectl", *args]
+        """Run kubectl with automatic context and namespace injection."""
+        cmd = ["kubectl"]
+        if self.kube_context:
+            cmd.extend(["--context", self.kube_context])
+        cmd.extend(args)
         if self.namespace:
             cmd.extend(["-n", self.namespace])
         return self.run_cmd(cmd, quiet=quiet, **kwargs)
@@ -122,15 +126,17 @@ class KubeRunner:
             click.echo(kustomize_result.stderr, err=True)
             sys.exit(kustomize_result.returncode)
 
-        apply_cmd = [
-            "kubectl",
+        apply_cmd = ["kubectl"]
+        if self.kube_context:
+            apply_cmd.extend(["--context", self.kube_context])
+        apply_cmd.extend([
             "apply",
             "--server-side",
             "--force-conflicts",
             f"--field-manager={field_manager}",
             "-f",
             "-",
-        ]
+        ])
         if self.namespace:
             apply_cmd.extend(["-n", self.namespace])
 
