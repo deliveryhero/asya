@@ -416,26 +416,37 @@ class FlowCompiler:
 
         fqn_module = ".".join(package_parts)
 
+        mod = None
+        import_error_detail = ""
+        # Try 1: import as a Python module (requires package on sys.path)
         try:
             mod = importlib.import_module(fqn_module)  # nosemgrep
-        except ImportError:
-            # Fall back: try importing from the file directly
+        except ImportError as e1:
+            # Try 2: import from file directly (exec the .py file)
             try:
                 spec = importlib.util.spec_from_file_location(module_name, flow_source)
                 if spec and spec.loader:
                     mod = importlib.util.module_from_spec(spec)
                     spec.loader.exec_module(mod)
-                else:
-                    self._cleanup_sys_path(added_paths)
-                    return
-            except Exception:
+            except ImportError as e2:
+                import_error_detail = f"missing dependency: {e2.name or e2}" if hasattr(e2, "name") else str(e2)
+            except Exception as e2:
+                import_error_detail = str(e2)
+
+        if mod is None:
+            consequence = "handler source files won't be resolved for skaffold image mapping"
+            if import_error_detail:
                 self.warnings.append(
-                    f"Could not import flow module '{fqn_module}' — "
-                    f"handler source files will not be resolved for skaffold image mapping. "
-                    f"Ensure the flow file is importable in the current Python environment."
+                    f"Cannot import '{fqn_module}' ({import_error_detail}). "
+                    f"Effect: {consequence}. "
+                    f"Fix: install the dependency in your CLI venv, or ignore if using a single image."
                 )
-                self._cleanup_sys_path(added_paths)
-                return
+            else:
+                self.warnings.append(
+                    f"Cannot import '{fqn_module}'. Effect: {consequence}."
+                )
+            self._cleanup_sys_path(added_paths)
+            return
 
         # Scan all imported names (not just actors) for source files and directives
         import_names = list(self._parse_result.import_map.keys()) if self._parse_result else []
