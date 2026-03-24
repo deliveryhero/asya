@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: text-improver-load-test
+  namespace: asya-e2e
+  labels:
+    app: load-test
+    asya.sh/flow: text-improver
+spec:
+  ttlSecondsAfterFinished: 60
+  backoffLimit: 0
+  template:
+    metadata:
+      labels:
+        app: load-test
+        asya.sh/flow: text-improver
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: load
+        image: python:3.13-slim
+        imagePullPolicy: Never
+        env:
+        - name: PUBSUB_EMULATOR_HOST
+          value: "pubsub-emulator.asya-system.svc.cluster.local:8085"
+        - name: PUBSUB_PROJECT_ID
+          value: "test-project"
+        - name: TOPIC
+          value: "asya-asya-e2e-start-text-improver"
+        - name: COUNT
+          value: "20"
+        command: ["python3", "-c"]
+        args:
+        - |
+          import json, time, random, uuid, os, sys, base64
+          from urllib.request import Request, urlopen
+
+          host = os.environ["PUBSUB_EMULATOR_HOST"]
+          project = os.environ["PUBSUB_PROJECT_ID"]
+          topic = os.environ["TOPIC"]
+          count = int(os.environ.get("COUNT", "20"))
+
+          url = f"http://{host}/v1/projects/{project}/topics/{topic}:publish"
+          TOPICS = [
+              "Write a haiku about Kubernetes",
+              "Explain microservices briefly",
+              "Draft release notes for v2",
+              "Cloud native in a tweet",
+              "Elevator pitch for actor mesh",
+          ]
+
+          print(f"[.] Publishing {count} messages to {topic}")
+          for i in range(1, count + 1):
+              text = random.choice(TOPICS)
+              envelope = {
+                  "id": str(uuid.uuid4()),
+                  "route": {"prev": [], "curr": "start-text-improver", "next": []},
+                  "headers": {"source": "load-test"},
+                  "payload": {"topic": text, "threshold": 75, "max_iterations": 2},
+              }
+              data = base64.b64encode(json.dumps(envelope).encode()).decode()
+              body = json.dumps({"messages": [{"data": data}]}).encode()
+              req = Request(url, data=body, headers={"Content-Type": "application/json"})
+              try:
+                  urlopen(req, timeout=5)
+                  if i % 5 == 0:
+                      print(f"[.] {i}/{count}")
+              except Exception as e:
+                  print(f"[!] {i}: {e}", file=sys.stderr)
+
+          print(f"[+] Published {count} messages")
