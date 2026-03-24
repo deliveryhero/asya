@@ -251,8 +251,11 @@ func main() {
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
-	// Wrap mux with OTEL HTTP instrumentation
-	handler := otelhttp.NewHandler(mux, "asya-gateway")
+	// Wrap mux with OTEL HTTP instrumentation (API mode only — mesh is internal)
+	var handler http.Handler = mux
+	if mode == "api" || mode == "testing" {
+		handler = otelhttp.NewHandler(mux, "asya-gateway")
+	}
 
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%s", port),
