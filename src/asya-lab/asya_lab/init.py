@@ -240,8 +240,10 @@ def scan_and_generate_skaffold(target_dir: Path) -> list[ScaffoldedSkaffold]:
 
         if skaffold_file.exists():
             existing = yaml.safe_load(skaffold_file.read_text()) or {}
-            existing_images = {a.get("image") for a in existing.get("build", {}).get("artifacts", [])}
-            if image_name in existing_images:
+            existing_artifacts = existing.get("build", {}).get("artifacts", [])
+            existing_images = {a.get("image") for a in existing_artifacts}
+            existing_contexts = {a.get("context", ".") for a in existing_artifacts}
+            if image_name in existing_images or rel_context in existing_contexts:
                 results.append(
                     ScaffoldedSkaffold(
                         path=skaffold_file,
