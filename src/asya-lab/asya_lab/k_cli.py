@@ -406,91 +406,44 @@ def k_status(target: AsyaRef | None, ctx: str) -> None:
         flow = actor["metadata"].get("labels", {}).get("asya.sh/flow", "?")
         flows.setdefault(flow, []).append(actor)
 
-    G = "\033[32m"  # green
-    Y = "\033[33m"
+    G = "\033[32m"
     R = "\033[31m"
+    Y = "\033[33m"
     C = "\033[36m"
-    DIM = "\033[2m"
     RST = "\033[0m"
 
     for flow_name, flow_actors in sorted(flows.items()):
-        # Flow header
-        total_actors = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") == "actor")
-        total_routers = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") in ("router", "start"))
-        click.echo(f"\n{C}Flow: {flow_name}{RST}  ({total_actors} actors, {total_routers} routers)")
+        n_actors = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") == "actor")
+        n_routers = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") in ("router", "start"))
 
-        # Build rows
-        rows = []
+        # Count healthy vs total
+        total_pods = 0
+        ready_pods = 0
+        all_xr_ready = True
         for actor in flow_actors:
             name = actor["metadata"]["name"]
-            spec = actor.get("spec", {})
-            labels = actor["metadata"].get("labels", {})
-            role = labels.get("asya.sh/role", "")
-            synced = actor.get("status", {}).get("conditions", [])
-            xr_ready = any(c.get("type") == "Ready" and c.get("status") == "True" for c in synced)
+            conditions = actor.get("status", {}).get("conditions", [])
+            if not any(c.get("type") == "Ready" and c.get("status") == "True" for c in conditions):
+                all_xr_ready = False
+            for pod in pods_by_actor.get(name, []):
+                total_pods += 1
+                if all(c.get("ready") for c in pod["status"].get("containerStatuses", [])):
+                    ready_pods += 1
 
-            actor_pods = pods_by_actor.get(name, [])
-            if actor_pods:
-                ready = sum(
-                    1 for p in actor_pods if all(c.get("ready") for c in p["status"].get("containerStatuses", []))
-                )
-                total = len(actor_pods)
-                pods_str = f"{ready}/{total}"
-                healthy = ready == total and total > 0
-            else:
-                scaling = spec.get("scaling", {})
-                if scaling.get("enabled") and scaling.get("minReplicaCount", 0) == 0:
-                    pods_str = "0 (scaled)"
-                    healthy = True
-                else:
-                    pods_str = "0"
-                    healthy = False
+        healthy = ready_pods == total_pods and total_pods > 0 and all_xr_ready
+        stable = all_xr_ready
 
-            image = spec.get("image", "")
-            image_short = image.rsplit("/", 1)[-1] if "/" in image else image
-            flavors = ", ".join(spec.get("flavors", []))
+        health_color = G if healthy else (Y if ready_pods > 0 else R)
+        health_str = "healthy" if healthy else ("degraded" if ready_pods > 0 else "down")
+        stable_str = f"{G}stable{RST}" if stable else f"{Y}reconciling{RST}"
 
-            rows.append({
-                "name": name,
-                "role": role,
-                "pods": pods_str,
-                "healthy": healthy,
-                "xr_ready": xr_ready,
-                "image": image_short,
-                "flavors": flavors,
-            })
-
-        # Column widths
-        name_w = max(len(r["name"]) for r in rows)
-        role_w = max(len(r["role"]) for r in rows)
-        pods_w = max(len(r["pods"]) for r in rows)
-        img_w = max(len(r["image"]) for r in rows)
-
-        # Header
-        hdr = f"  {'NAME':<{name_w}}  {'ROLE':<{role_w}}  {'PODS':>{pods_w}}  {'READY':>5}  {'IMAGE':<{img_w}}"
-        if any(r["flavors"] for r in rows):
-            hdr += "  FLAVORS"
-        click.echo(f"{DIM}{hdr}{RST}")
-
-        # Rows
-        for r in rows:
-            status_color = G if r["healthy"] else (Y if r["pods"] != "0" else R)
-            ready_str = "yes" if r["xr_ready"] else "no"
-            ready_color = G if r["xr_ready"] else R
-            role_color = DIM if r["role"] in ("router", "start") else ""
-
-            line = (
-                f"  {role_color}{r['name']:<{name_w}}{RST}"
-                f"  {DIM}{r['role']:<{role_w}}{RST}"
-                f"  {status_color}{r['pods']:>{pods_w}}{RST}"
-                f"  {ready_color}{ready_str:>5}{RST}"
-                f"  {r['image']:<{img_w}}"
-            )
-            if r["flavors"]:
-                line += f"  {r['flavors']}"
-            click.echo(line)
-
-        click.echo()
+        click.echo(
+            f"  {C}{flow_name}{RST}  "
+            f"{health_color}{health_str}{RST}  "
+            f"pods {ready_pods}/{total_pods}  "
+            f"{stable_str}  "
+            f"({n_actors} actors, {n_routers} routers)"
+        )
 
 
 # ---------------------------------------------------------------------------
