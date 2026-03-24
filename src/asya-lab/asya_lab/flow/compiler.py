@@ -78,6 +78,7 @@ class FlowCompiler:
         *,
         routers_dir: str | None = None,
         artifacts_dir: str | None = None,
+        manifests_dir: str | None = None,
     ) -> FlowInfo:
         _ = overwrite  # reserved for future use
         source_path = Path(source_file)
@@ -87,6 +88,7 @@ class FlowCompiler:
         # Resolve output directories — all default to output_dir if not specified
         routers_path = Path(routers_dir) if routers_dir else Path(output_dir)
         artifacts_path = Path(artifacts_dir) if artifacts_dir else Path(output_dir)
+        self._explicit_manifests_dir = Path(manifests_dir) if manifests_dir else None
 
         for d in (routers_path, artifacts_path):
             if d.exists() and not d.is_dir():
@@ -267,7 +269,7 @@ class FlowCompiler:
             pass
 
     def _stamp_manifests(self, compiled_dir: Path) -> Path | None:
-        if self._project is None or self._codegen_meta is None:
+        if self._codegen_meta is None:
             return None
         if self._codegen_meta.single_actor is not None:
             return None
@@ -280,10 +282,17 @@ class FlowCompiler:
 
         flow_name = flow_function.replace("_", "-")
 
+        # Use explicitly passed manifests_dir, fall back to config
+        manifests_dir = getattr(self, "_explicit_manifests_dir", None)
         try:
-            manifests_dir = self._project.resolve_path("compiler.manifests")
+            if manifests_dir is None and self._project:
+                manifests_dir = self._project.resolve_path("compiler.manifests")
+            if manifests_dir is None:
+                return None
             manifests_dir.mkdir(parents=True, exist_ok=True)
-            templates_dir = self._project.resolve_path("compiler.templates")
+            templates_dir = self._project.resolve_path("compiler.templates") if self._project else None
+            if templates_dir is None:
+                return None
         except KeyError:
             return None
 
