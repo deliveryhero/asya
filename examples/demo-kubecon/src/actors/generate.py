@@ -16,13 +16,13 @@ REVISION = (
 )
 
 
-async def generate(topic: str, context: str, feedback: str) -> str:  # asya: actor
+async def generate(topic: str, context: str) -> str:  # asya: actor
     if random.random() < FAIL_RATE:
         raise RuntimeError("[!] transient generation failure")
 
-    if not feedback:
+    if not context:
         draft = f"[{topic}] {FIRST_DRAFT}"
     else:
-        draft = f"[{topic}] {REVISION} (Addressed: {feedback[:60]})"
+        draft = f"[{topic}] {REVISION} (Addressed: {context[:60]})"
     print(f"[+] generated draft ({len(draft)} chars)")
     return draft

@@ -17,9 +17,9 @@ async def start_text_improver(payload: dict):
     """Entrypoint for flow 'text_improver'"""
     p = payload
     _next = []
-    p['topic'] = p.get('topic', p.get('query', ''))
+    p['topic'] = p.get('topic', 'anything')
     _next.append(resolve("research"))
-    _next.append(resolve("router_text_improver_seq_set_feedback"))
+    _next.append(resolve("router_text_improver_while_loop"))
     yield "SET", ".route.next[:0]", _next
     yield payload
 
@@ -27,8 +27,8 @@ async def router_text_improver_if_iteration_ge_max_iterations(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    if p['iteration'] >= p.get('max_iterations', 3):
-        yield "SET", ".route.next", [resolve("polish"), resolve("format_output")]
+    if p['iteration'] >= p.get('max_iterations', 2):
+        yield "SET", ".route.next", []
         yield p
         return
     else:
@@ -41,8 +41,8 @@ async def router_text_improver_if_score_ge_threshold(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    if p['score'] >= p.get('threshold', 85):
-        yield "SET", ".route.next", [resolve("polish"), resolve("format_output")]
+    if p['score'] >= p.get('threshold', 75):
+        yield "SET", ".route.next", []
         yield p
         return
     else:
@@ -55,7 +55,7 @@ async def router_text_improver_seq_set_iteration(payload: dict):
     """Router for control flow and payload mutations"""
     p = payload
     _next = []
-    p['iteration'] += 1
+    p['iteration'] = p.get('iteration', 1) + 1
     _next.append(resolve("generate"))
     _next.append(resolve("evaluate"))
     _next.append(resolve("router_text_improver_if_score_ge_threshold"))
@@ -68,17 +68,6 @@ async def router_text_improver_while_loop(payload: dict):
     p = payload
     _next = []
     _next.append(resolve("router_text_improver_seq_set_iteration"))
-    _next.append(resolve("router_text_improver_while_loop"))
-
-    yield "SET", ".route.next[:0]", _next
-    yield payload
-
-async def router_text_improver_seq_set_feedback(payload: dict):
-    """Router for control flow and payload mutations"""
-    p = payload
-    _next = []
-    p['feedback'] = ''
-    p['iteration'] = 0
     _next.append(resolve("router_text_improver_while_loop"))
 
     yield "SET", ".route.next[:0]", _next

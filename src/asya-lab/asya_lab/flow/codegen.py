@@ -274,6 +274,7 @@ class CodeGenerator:
         self._used_names: dict[str, int] = {}
         self._actor_retry_rules: dict[str, list[ActorRetryRule]] = {}  # actor_name -> rules
         self._adapter_files: list[AdapterFile] = []
+        self._merged_seq_name: str | None = None
 
     def generate(self) -> str:
         if self._is_single_actor_flow():
@@ -311,7 +312,8 @@ class CodeGenerator:
         start_name = f"start_{self.flow_name}"
         router_names = [start_name]
         for rf in self._functions:
-            router_names.append(rf.name)
+            if rf.name != self._merged_seq_name:
+                router_names.append(rf.name)
 
         all_handlers = set(self._all_handlers)
         # Conservative: each router gets refs to ALL handlers.
@@ -652,6 +654,8 @@ class CodeGenerator:
             resolved = ", ".join(f'resolve("{a}")' for a in chain)
             self._all_handlers.update(chain)
             lines.append(f'    yield "SET", ".route.next", [{resolved}]')
+        else:
+            lines.append('    yield "SET", ".route.next", []')
 
         lines.append("    yield p")
         lines.append("")
@@ -702,6 +706,8 @@ class CodeGenerator:
                 resolved = ", ".join(f'resolve("{a}")' for a in chain)
                 self._all_handlers.update(chain)
                 lines.append(f'{indent}yield "SET", ".route.next", [{resolved}]')
+            else:
+                lines.append(f'{indent}yield "SET", ".route.next", []')
             lines.append(f"{indent}yield p")
             lines.append(f"{indent}return")
         elif chain:
@@ -741,6 +747,8 @@ class CodeGenerator:
                 resolved = ", ".join(f'resolve("{a}")' for a in exit_chain)
                 self._all_handlers.update(exit_chain)
                 lines.append(f'        yield "SET", ".route.next", [{resolved}]')
+            else:
+                lines.append('        yield "SET", ".route.next", []')
             lines.append("        yield p")
             lines.append("        return")
         else:
@@ -960,6 +968,7 @@ class CodeGenerator:
                     break
 
         if merged_seq:
+            self._merged_seq_name = merged_seq.name
             lines.append(self._generate_start_router(merged_seq.seq_chain or [], merged_seq.seq_mutations))
             for rf in self._functions:
                 if rf is not merged_seq:

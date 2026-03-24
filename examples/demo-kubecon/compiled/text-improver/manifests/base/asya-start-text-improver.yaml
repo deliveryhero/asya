@@ -19,26 +19,20 @@ spec:
     value: '1'
   - name: ASYA_HANDLER_ACTOR_EVALUATE
     value: actors.evaluate.evaluate
-  - name: ASYA_HANDLER_ACTOR_FORMAT_OUTPUT
-    value: actors.format_output.format_output
   - name: ASYA_HANDLER_ACTOR_GENERATE
     value: actors.generate.generate
-  - name: ASYA_HANDLER_ACTOR_POLISH
-    value: actors.polish.polish
   - name: ASYA_HANDLER_ACTOR_RESEARCH
     value: actors.research.research
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_IF_ITERATION_GE_MAX_ITERATIONS
     value: routers.router_text_improver_if_iteration_ge_max_iterations
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_IF_SCORE_GE_THRESHOLD
     value: routers.router_text_improver_if_score_ge_threshold
-  - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_SEQ_SET_FEEDBACK
-    value: routers.router_text_improver_seq_set_feedback
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_SEQ_SET_ITERATION
     value: routers.router_text_improver_seq_set_iteration
   - name: ASYA_HANDLER_ROUTER_TEXT_IMPROVER_WHILE_LOOP
     value: routers.router_text_improver_while_loop
   - name: ASYA_CODE_HASH
-    value: e99d6861e9d4
+    value: eb02b646f31a
   volumes:
   - name: routers
     configMap:

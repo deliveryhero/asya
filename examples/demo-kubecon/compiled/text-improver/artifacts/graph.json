@@ -6,17 +6,8 @@
       "label": "evaluate"
     },
     {
-      "id": "format_output",
-      "label": "format_output",
-      "role": "end"
-    },
-    {
       "id": "generate",
       "label": "generate"
-    },
-    {
-      "id": "polish",
-      "label": "polish"
     },
     {
       "id": "research",
@@ -33,20 +24,11 @@
       "generated": true
     },
     {
-      "id": "router_text_improver_seq_set_feedback",
-      "label": "router_text_improver_seq_set_feedback",
-      "generated": true,
-      "mutations": [
-        "p['feedback'] = ''",
-        "p['iteration'] = 0"
-      ]
-    },
-    {
       "id": "router_text_improver_seq_set_iteration",
       "label": "router_text_improver_seq_set_iteration",
       "generated": true,
       "mutations": [
-        "p['iteration'] += 1"
+        "p['iteration'] = p.get('iteration', 1) + 1"
       ]
     },
     {
@@ -60,7 +42,7 @@
       "role": "start",
       "generated": true,
       "mutations": [
-        "p['topic'] = p.get('topic', p.get('query', ''))"
+        "p['topic'] = p.get('topic', 'anything')"
       ]
     }
   ],
@@ -73,19 +55,7 @@
     },
     {
       "from": "research",
-      "to": "router_text_improver_seq_set_feedback",
-      "label": null,
-      "type": "continuation"
-    },
-    {
-      "from": "router_text_improver_if_iteration_ge_max_iterations",
-      "to": "polish",
-      "label": "p['iteration'] >= p.get('max_iterations', 3)",
-      "type": "set"
-    },
-    {
-      "from": "polish",
-      "to": "format_output",
+      "to": "router_text_improver_while_loop",
       "label": null,
       "type": "continuation"
     },
@@ -94,12 +64,6 @@
       "to": "router_text_improver_if_iteration_ge_max_iterations",
       "label": "else",
       "type": "prepend"
-    },
-    {
-      "from": "router_text_improver_if_score_ge_threshold",
-      "to": "polish",
-      "label": "p['score'] >= p.get('threshold', 85)",
-      "type": "set"
     },
     {
       "from": "router_text_improver_seq_set_iteration",
@@ -126,15 +90,9 @@
       "type": "prepend"
     },
     {
-      "from": "router_text_improver_seq_set_feedback",
-      "to": "router_text_improver_while_loop",
-      "label": null,
-      "type": "prepend"
-    },
-    {
       "from": "router_text_improver_if_iteration_ge_max_iterations",
       "to": "router_text_improver_while_loop",
-      "label": "else",
+      "label": null,
       "type": "continuation"
     }
   ],

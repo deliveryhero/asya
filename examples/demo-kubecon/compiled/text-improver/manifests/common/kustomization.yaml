@@ -2,15 +2,14 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
 - ../base
+- flow-expose.yaml
 configurations:
 - kustomizeconfig.yaml
 images:
 - name: demo-kubecon
   newName: europe-west1-docker.pkg.dev/foodsci-img-gen-dev-1407-1448/asya-demo/demo-kubecon
-  newTag: d8e2d44d85e132ae243c80217c6d235bf2b729db59497844920948c794545612
+  newTag: v0.5.10-106-gfcd3c211-dirty
 patches:
 - path: patch-actor-evaluate.yaml
-- path: patch-actor-format-output.yaml
 - path: patch-actor-generate.yaml
-- path: patch-actor-polish.yaml
 - path: patch-actor-research.yaml

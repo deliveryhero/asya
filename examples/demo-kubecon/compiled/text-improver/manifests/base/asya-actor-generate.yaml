@@ -16,7 +16,7 @@ spec:
   - name: PYTHONUNBUFFERED
     value: '1'
   - name: ASYA_CODE_HASH
-    value: 8f673ad7defb
+    value: 6a3a7f5b073b
   volumes:
   - name: adapter
     configMap:

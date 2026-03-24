@@ -2,31 +2,22 @@ flowchart TD
     %% Flow: text_improver
 
     evaluate[evaluate]
-    format_output[format_output]
     generate[generate]
-    polish[polish]
     research[research]
     router_text_improver_if_iteration_ge_max_iterations{{router_text_improver_if_iteration_ge_max_iterations}}
     router_text_improver_if_score_ge_threshold{{router_text_improver_if_score_ge_threshold}}
-    router_text_improver_seq_set_feedback{{"router_text_improver_seq_set_feedback<br/><br/>p['feedback'] = ''<br/>p['iteration'] = 0"}}
-    router_text_improver_seq_set_iteration{{"router_text_improver_seq_set_iteration<br/><br/>p['iteration'] += 1"}}
+    router_text_improver_seq_set_iteration{{"router_text_improver_seq_set_iteration<br/><br/>p['iteration'] = p.get('iteration', 1) + 1"}}
     router_text_improver_while_loop{{router_text_improver_while_loop}}
-    start_text_improver(["start_text_improver<br/><br/>p['topic'] = p.get('topic', p.get('query', ''))"])
-    __end__((( )))
+    start_text_improver(["start_text_improver<br/><br/>p['topic'] = p.get('topic', 'anything')"])
 
     start_text_improver --> research
-    research --> router_text_improver_seq_set_feedback
-    router_text_improver_if_iteration_ge_max_iterations -->|"p['iteration'] >= p.get('max_iterations', 3)"| polish
-    polish --> format_output
+    research --> router_text_improver_while_loop
     router_text_improver_if_score_ge_threshold -->|"else"| router_text_improver_if_iteration_ge_max_iterations
-    router_text_improver_if_score_ge_threshold -->|"p['score'] >= p.get('threshold', 85)"| polish
     router_text_improver_seq_set_iteration --> generate
     generate --> evaluate
     evaluate --> router_text_improver_if_score_ge_threshold
     router_text_improver_while_loop --> router_text_improver_seq_set_iteration
-    router_text_improver_seq_set_feedback --> router_text_improver_while_loop
-    router_text_improver_if_iteration_ge_max_iterations -->|"else"| router_text_improver_while_loop
-    format_output --> __end__
+    router_text_improver_if_iteration_ge_max_iterations --> router_text_improver_while_loop
 
     classDef start fill:#98FB98,stroke:#333
     classDef endnode fill:#FFA07A,stroke:#333
@@ -34,9 +25,6 @@ flowchart TD
     classDef handler fill:#ADD8E6,stroke:#333
     classDef endpoint fill:#000,stroke:#333,color:#fff
     class start_text_improver start
-    class format_output endnode
-    class router_text_improver_if_iteration_ge_max_iterations,router_text_improver_if_score_ge_threshold,router_text_improver_seq_set_feedback,router_text_improver_seq_set_iteration,router_text_improver_while_loop router
-    class evaluate,generate,polish,research handler
-    class __end__ endpoint
-    linkStyle 2,5 stroke:#2E8B57
-    linkStyle 4,11 stroke:#E07040
+    class router_text_improver_if_iteration_ge_max_iterations,router_text_improver_if_score_ge_threshold,router_text_improver_seq_set_iteration,router_text_improver_while_loop router
+    class evaluate,generate,research handler
+    linkStyle 2 stroke:#E07040
