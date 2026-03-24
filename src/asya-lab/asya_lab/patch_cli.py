@@ -5,7 +5,7 @@ then validates the result with kubectl kustomize.
 
 Three scopes:
     asya patch text-flow --actor analyze scaling.min=1
-    asya patch text-flow --all-actors env.LOG_LEVEL=DEBUG
+    asya patch text-flow --actor analyze env.LOG_LEVEL=DEBUG
     asya patch text-flow --gateway expose=true description="Analyze text" mcp=true
 """
 

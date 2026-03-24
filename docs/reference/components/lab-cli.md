@@ -84,18 +84,16 @@ TARGET is an optional flow name. Without it, all build entries are executed.
 ### `asya patch`
 
 Patch compiled flow manifests with kustomize overrides. Requires exactly one
-scope: `--actor`, `--all-actors`, or `--gateway`.
+scope: `--actor` or `--gateway`.
 
 ```bash
 asya patch FLOW_NAME [KEY=VALUE...] --actor NAME [OPTIONS]
-asya patch FLOW_NAME [KEY=VALUE...] --all-actors [OPTIONS]
 asya patch FLOW_NAME [KEY=VALUE...] --gateway [OPTIONS]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `-a`, `--actor` | Target a specific actor (accepts function name or manifest name) |
-| `--all-actors` | Target all actors in the flow |
 | `--gateway` | Target gateway flow registration |
 | `--context` | Write to overlay (default: common/) |
 | `-p` | Raw JSON patch (escape hatch, actors only) |
@@ -108,7 +106,6 @@ asya patch text-flow --actor analyze scaling.min=1
 asya patch text-flow --actor analyze env.MY_VAR=value
 asya patch text-flow --actor analyze env.API_KEY=secret:my-secret:key
 asya patch text-flow --actor analyze --remove env.OLD_VAR
-asya patch text-flow --all-actors env.LOG_LEVEL=DEBUG --context dev
 ```
 
 Env shorthand: `env.NAME=value` (plain), `env.NAME=secret:name:key` (secretKeyRef),

@@ -13,7 +13,6 @@ from asya_lab.k_cli import (
     delete,
     edit,
     k,
-    k_status,
     logs,
 )
 from click.testing import CliRunner
@@ -199,36 +198,6 @@ def test_delete_readonly_context(mock_kube_runner):
 
     assert result.exit_code != 0
 
-
-# ---------------------------------------------------------------------------
-# asya k status
-# ---------------------------------------------------------------------------
-
-
-def test_k_status_help():
-    runner = CliRunner()
-    result = runner.invoke(k_status, ["--help"])
-    assert result.exit_code == 0
-    assert "target" in result.output.lower()
-
-
-@patch("asya_lab.k_cli.KubeRunner")
-def test_k_status_success(mock_kube_runner):
-    mock_runner = _mock_runner()
-    # Return JSON for asyncactor list and pod list
-    actors_json = '{"items":[{"metadata":{"name":"actor-a","labels":{"asya.sh/flow":"my-flow"}},"spec":{"scaling":{}},"status":{"phase":"Running"}}]}'
-    pods_json = '{"items":[]}'
-    mock_runner.kubectl.side_effect = [
-        MagicMock(returncode=0, stdout=actors_json, stderr=""),
-        MagicMock(returncode=0, stdout=pods_json, stderr=""),
-    ]
-    mock_kube_runner.return_value = mock_runner
-
-    runner = CliRunner()
-    result = runner.invoke(k_status, ["my-flow"])
-
-    assert result.exit_code == 0
-    assert "actor-a" in result.output
 
 
 # ---------------------------------------------------------------------------

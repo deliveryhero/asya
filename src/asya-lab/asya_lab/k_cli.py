@@ -335,118 +335,6 @@ def delete(target: AsyaRef, ctx: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# asya k status
-# ---------------------------------------------------------------------------
-
-
-@click.command("status")
-@click.argument("target", type=ASYA_REF, required=False, default=None)
-@click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-def k_status(target: AsyaRef | None, ctx: str) -> None:
-    """Show live cluster status for deployed flows.
-
-    TARGET is an optional flow name. Without it, shows all flows.
-
-    \b
-    Examples:
-      asya k status                  # all flows
-      asya k status text-flow        # one flow
-    """
-    import json as _json
-
-    runner = KubeRunner(ctx)
-    label = f"asya.sh/flow={target.name}" if target else "asya.sh/flow"
-
-    # Get actors
-    result = runner.kubectl(
-        "get",
-        "asyncactor",
-        "-l",
-        label,
-        "-o",
-        "json",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        if target:
-            click.echo(f"[-] No actors found for flow '{target.name}'", err=True)
-        else:
-            click.echo("[-] No actors found", err=True)
-        sys.exit(result.returncode)
-
-    actors_data = _json.loads(result.stdout)
-    actors = actors_data.get("items", [])
-    if not actors:
-        click.echo("[.] No actors deployed")
-        return
-
-    # Get pods
-    pod_result = runner.kubectl(
-        "get",
-        "pods",
-        "-l",
-        label,
-        "-o",
-        "json",
-        quiet=True,
-        capture_output=True,
-        text=True,
-    )
-    pods_by_actor: dict[str, list[dict]] = {}
-    if pod_result.returncode == 0:
-        for pod in _json.loads(pod_result.stdout).get("items", []):
-            actor_name = pod["metadata"].get("labels", {}).get("app.kubernetes.io/name", "?")
-            pods_by_actor.setdefault(actor_name, []).append(pod)
-
-    # Group by flow
-    flows: dict[str, list[dict]] = {}
-    for actor in actors:
-        flow = actor["metadata"].get("labels", {}).get("asya.sh/flow", "?")
-        flows.setdefault(flow, []).append(actor)
-
-    G = "\033[32m"
-    R = "\033[31m"
-    Y = "\033[33m"
-    C = "\033[36m"
-    RST = "\033[0m"
-
-    for flow_name, flow_actors in sorted(flows.items()):
-        n_actors = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") == "actor")
-        n_routers = sum(1 for a in flow_actors if a["metadata"].get("labels", {}).get("asya.sh/role") in ("router", "start"))
-
-        # Count healthy vs total
-        total_pods = 0
-        ready_pods = 0
-        all_xr_ready = True
-        for actor in flow_actors:
-            name = actor["metadata"]["name"]
-            conditions = actor.get("status", {}).get("conditions", [])
-            if not any(c.get("type") == "Ready" and c.get("status") == "True" for c in conditions):
-                all_xr_ready = False
-            for pod in pods_by_actor.get(name, []):
-                total_pods += 1
-                if all(c.get("ready") for c in pod["status"].get("containerStatuses", [])):
-                    ready_pods += 1
-
-        healthy = ready_pods == total_pods and total_pods > 0 and all_xr_ready
-        stable = all_xr_ready
-
-        health_color = G if healthy else (Y if ready_pods > 0 else R)
-        health_str = "healthy" if healthy else ("degraded" if ready_pods > 0 else "down")
-        stable_str = f"{G}stable{RST}" if stable else f"{Y}reconciling{RST}"
-
-        click.echo(
-            f"  {C}{flow_name}{RST}  "
-            f"{health_color}{health_str}{RST}  "
-            f"pods {ready_pods}/{total_pods}  "
-            f"{stable_str}  "
-            f"({n_actors} actors, {n_routers} routers)"
-        )
-
-
-# ---------------------------------------------------------------------------
 # asya k logs
 # ---------------------------------------------------------------------------
 
@@ -1514,34 +1402,35 @@ def k() -> None:
 
 _DEFAULT_COLUMNS = ",".join([
     "NAME:.metadata.name",
-    "ROLE:.metadata.labels.asya\\.sh/role",
+    "STATUS:.status.phase",
+    "CURRENT:.status.infrastructure.workload.readyReplicas",
+    "DESIRED:.status.infrastructure.workload.replicas",
     "MIN:.spec.scaling.minReplicaCount",
     "MAX:.spec.scaling.maxReplicaCount",
-    "DESIRED:.status.replicas",
-    "CURRENT:.status.readyReplicas",
     "FLAVORS:.spec.flavors[*]",
 ])
 
 
-@click.command("list")
-@click.argument("target", type=ASYA_REF)
+@click.command("status")
+@click.argument("target", type=ASYA_REF, required=False, default=None)
 @click.option("--context", "ctx", default=None, help="K8s context from .asya/config.yaml")
-@click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide, or custom-columns=...)")
-@click.option("--columns", default=None, help="Custom columns (e.g. NAME:.metadata.name,ROLE:.metadata.labels.asya\\.sh/role)")
-def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -> None:
-    """List actors for a flow.
+@click.option("-o", "output", default=None, help="Output format (json, yaml, name, wide)")
+@click.option("--columns", default=None, help="Custom columns (e.g. NAME:.metadata.name,STATUS:.status.phase)")
+def k_status(target: AsyaRef | None, ctx: str, output: str | None, columns: str | None) -> None:
+    """Show status of deployed actors.
 
     \b
     Examples:
-      asya k list text-improver                # concise table
-      asya k list text-improver -o name        # pipeable names
-      asya k list text-improver -o json        # full JSON
-      asya k list text-improver -o wide        # kubectl wide
+      asya k status                            # all flows
+      asya k status text-improver              # one flow
+      asya k status text-improver -o name      # pipeable names
+      asya k status text-improver -o json      # full JSON
     """
-    flow_function = target.name.replace("-", "_")
-    runner = KubeRunner(ctx, arg_values={"flow_name": flow_function})
+    runner = KubeRunner(ctx)
 
-    args = ["get", "asyncactor", "-l", f"asya.sh/flow={target.name}"]
+    args = ["get", "asyncactor"]
+    if target:
+        args.extend(["-l", f"asya.sh/flow={target.name}"])
 
     if columns:
         args.extend(["-o", f"custom-columns={columns}"])
@@ -1556,7 +1445,6 @@ def k_list(target: AsyaRef, ctx: str, output: str | None, columns: str | None) -
 
 k.add_command(apply)
 k.add_command(delete)
-k.add_command(k_list)
 k.add_command(k_status)
 k.add_command(logs)
 k.add_command(send)
