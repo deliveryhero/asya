@@ -47,7 +47,7 @@ def _save_flow_registry(asya_dir: Path, flow_name: str, source: str, function: s
 def _resolve_compiler_dirs(project: AsyaProject) -> dict[str, Path]:
     """Resolve compiler directories (code, artifacts, manifests, templates) from project config."""
     dirs = {}
-    for key in ("compiler.code", "compiler.artifacts", "compiler.manifests", "compiler.templates"):
+    for key in ("compiler.code", "compiler.routers", "compiler.artifacts", "compiler.manifests", "compiler.templates"):
         with contextlib.suppress(KeyError):
             dirs[key.split(".")[-1]] = project.resolve_path(key)
     return dirs
@@ -131,11 +131,19 @@ def compile_cmd(
         if verbose:
             click.echo(f"[.] Saved flow registry: {_rel(reg_path)}", err=True)
 
-    # Resolve output dirs from config
+    # Resolve output dirs from config (code/routers are aliases)
     dirs = _resolve_compiler_dirs(project)
-    code_dir = dirs["code"]
-    artifacts_dir = dirs["artifacts"]
-    manifests_dir = dirs["manifests"]
+    _code = dirs.get("code") or dirs.get("routers")
+    _manifests = dirs.get("manifests")
+    if _code is None or _manifests is None:
+        click.echo(
+            "[-] Missing compiler config. Add compiler.code and compiler.manifests to .asya/config.yaml",
+            err=True,
+        )
+        sys.exit(1)
+    code_dir: Path = _code
+    artifacts_dir: Path = dirs.get("artifacts", code_dir)
+    manifests_dir: Path = _manifests
     templates_dir = dirs.get("templates")
 
     try:

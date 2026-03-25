@@ -20,7 +20,7 @@ data:
         nodeGraph:
           enabled: true
         serviceMap:
-          datasourceUid: prometheus
-        tracesToMetrics:
-          datasourceUid: prometheus
+          datasourceUid: ""
+        tracesToLogs:
+          datasourceUid: ""
 {{- end }}
