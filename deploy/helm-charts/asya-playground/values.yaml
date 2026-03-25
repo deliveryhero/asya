@@ -449,6 +449,8 @@ kube-prometheus-stack:
   # Prometheus configuration
   prometheus:
     prometheusSpec:
+      # Accept remote writes from Tempo metrics generator (service graph)
+      enableRemoteWriteReceiver: true
       # Scrape all ServiceMonitors in all namespaces
       serviceMonitorSelectorNilUsesHelmValues: false
       podMonitorSelectorNilUsesHelmValues: false

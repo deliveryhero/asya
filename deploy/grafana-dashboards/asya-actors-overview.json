@@ -1148,7 +1148,8 @@
             "type": "tempo",
             "uid": "P214B5B846CF3925F"
           },
-          "queryType": "serviceMap"
+          "queryType": "serviceMap",
+          "serviceMapQuery": "{}"
         }
       ],
       "options": {}
