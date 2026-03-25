@@ -1,18 +1,24 @@
 dependencies:
 - name: asya-crossplane
   repository: https://asya.sh/charts
-  version: 0.5.13
+  version: 0.5.16
 - name: asya-crew
   repository: https://asya.sh/charts
-  version: 0.5.13
+  version: 0.5.16
 - name: asya-gateway
   repository: https://asya.sh/charts
-  version: 0.5.13
+  version: 0.5.16
 - name: kube-prometheus-stack
   repository: https://prometheus-community.github.io/helm-charts
-  version: 82.13.6
+  version: 82.14.0
 - name: tempo
   repository: https://grafana.github.io/helm-charts
   version: 1.24.4
-digest: sha256:e322f6afe521cd82e33768eb5cf7442434e9b1467b3c631b8a0d8017a85566d3
-generated: "2026-03-24T00:28:11.712793274Z"
+- name: loki
+  repository: https://grafana.github.io/helm-charts
+  version: 6.55.0
+- name: promtail
+  repository: https://grafana.github.io/helm-charts
+  version: 6.16.6
+digest: sha256:b967efd1c2277d48061603ce3bed322abb2d694c5e23bbc47494fc663a2fc3e1
+generated: "2026-03-25T00:42:34.355997558Z"

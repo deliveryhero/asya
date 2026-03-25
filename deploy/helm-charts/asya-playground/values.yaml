@@ -176,6 +176,12 @@ sampleTracing:
   # When enabled, deploys Tempo with OTLP receivers for trace ingestion
   enabled: false
 
+sampleLogging:
+  # Loki + Promtail log aggregation (demo/development only)
+  # For production: Set enabled: false and use your existing logging infrastructure
+  # When enabled, deploys Loki single-binary + Promtail DaemonSet
+  enabled: false
+
 sampleGatewayDb:
   # PostgreSQL for gateway (sample deployment)
   # For production: Set enabled: false and configure asya-gateway.externalDatabase below
@@ -507,6 +513,49 @@ kube-prometheus-stack:
     enabled: false
   kubeProxy:
     enabled: false
+
+# Loki configuration (passed to loki chart)
+# Only used when sampleLogging.enabled: true
+loki:
+  deploymentMode: SingleBinary
+  loki:
+    auth_enabled: false
+    useTestSchema: true
+    commonConfig:
+      replication_factor: 1
+    storage:
+      type: filesystem
+  singleBinary:
+    replicas: 1
+    persistence:
+      size: 5Gi
+  read:
+    replicas: 0
+  write:
+    replicas: 0
+  backend:
+    replicas: 0
+  monitoring:
+    selfMonitoring:
+      enabled: false
+    lokiCanary:
+      enabled: false
+  test:
+    enabled: false
+  gateway:
+    enabled: false
+  chunksCache:
+    enabled: false
+  resultsCache:
+    enabled: false
+
+# Promtail configuration (passed to promtail chart)
+# Only used when sampleLogging.enabled: true
+# NOTE: Update promtail.config.clients[0].url if using a non-default release name
+promtail:
+  config:
+    clients:
+    - url: http://asya-loki:3100/loki/api/v1/push
 
 # Testing actors with chaos/failure modes
 # These actors simulate various production scenarios for testing autoscaling and resilience
